@@ -9,6 +9,11 @@
   [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white)](https://android.com)
   [![Format: .xopp](https://img.shields.io/badge/Format-.xopp%20(100%25%20roundtrip)-orange)](https://github.com/xournalpp/xournalpp)
   [![Stylus & Tablet](https://img.shields.io/badge/Stylus-S--Pen%20%7C%20Active%20Pen%20%7C%20Tablet-blueviolet)]()
+
+  <br />
+  <br />
+
+  <img src="docs/assets/preview.jpg" alt="MobiXournal Tablet UI Preview" width="850" />
 </div>
 
 **MobiXournal** opens, edits, and saves [Xournal++](https://github.com/xournalpp/xournalpp) `.xopp`
