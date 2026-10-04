@@ -152,7 +152,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 
 ### ⚙️ Hardware Optimization & Settings
 
-- **Graphics Tablets (Tavolette Grafiche)**:
+- **Graphics Tablets**:
   - Plug-and-play USB OTG and Bluetooth tablet support (Wacom, Huion, XP-Pen, Gaomon).
   - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
   - **Stylus Calibration**: Independent pressure multiplier, minimum pressure floor, and precision budgets (Economy to Maximum).
