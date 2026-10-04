@@ -1,0 +1,11 @@
+<resources>
+    <!-- The launcher/task label. This app is an **unofficial** Android editor for Xournal++
+         documents, named MobiXournal; the label is the app's own name, so it is never mistaken
+         for the official Xournal++ app. The project name is "MobiXournal" (see README). -->
+    <string name="app_name">MobiXournal</string>
+    <string name="open_document">Open .xopp</string>
+    <string name="save_document">Save</string>
+    <string name="tool_pen">Pen</string>
+    <string name="tool_highlighter">Highlighter</string>
+    <string name="tool_eraser">Eraser</string>
+</resources>

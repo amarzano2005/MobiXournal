@@ -1,0 +1,25 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Dark configuration: default Theme.MobiXournal uses dark splash screen. -->
+    <style name="Theme.MobiXournal" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
+    </style>
+
+    <!-- Explicit Light style: stays light even when system is in dark mode -->
+    <style name="Theme.MobiXournal.Light" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@drawable/splash_screen_light</item>
+    </style>
+
+    <!-- Explicit Dark style: stays dark -->
+    <style name="Theme.MobiXournal.Dark" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@drawable/splash_screen_dark</item>
+    </style>
+</resources>

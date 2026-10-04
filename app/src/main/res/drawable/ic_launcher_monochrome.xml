@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive-icon monochrome layer for Android 13+ themed icon: the same paper sheet, calligraphic X,
+  and precision stylus from Option B flattened into a single-tint vector silhouette.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+
+    <!-- Paper sheet outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4"
+        android:pathData="M62,44 L130,44 A18,18 0 0 1 148,62 L148,130 A18,18 0 0 1 130,148 L62,148 A18,18 0 0 1 44,130 L44,62 A18,18 0 0 1 62,44 Z" />
+
+    <!-- Calligraphic X stroke -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M68,76 C78,66 90,82 98,96 C108,112 120,126 132,122 C138,120 138,112 132,112 C126,112 124,120 128,124 M124,74 C116,74 106,86 96,100 C86,116 74,128 64,122 C56,116 60,108 68,110 C74,112 74,120 68,122" />
+
+    <!-- Stylus silhouette -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M129,72 L155,46 C157,44 160,44 162,46 L164,48 C166,50 166,53 164,55 L138,81 Z M112,89 L126.5,74.5 L135.5,83.5 L121,98 Z M103,98 L112,89 L121,98 L112,107 Z M98,103 L103,98 L107,102 L102,107 Z" />
+</vector>

@@ -1,0 +1,174 @@
+MobiXournal
+Copyright (C) 2026 amarzano2005
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License (the LICENSE file) for more details.
+
+===============================================================================
+BASED ON NEXOPP — ATTRIBUTION AND MODIFICATION NOTICE
+===============================================================================
+
+This program is a derivative of **NeXopp**, the Android `.xopp` editor written by
+Brian Monroe (bamonroe):
+
+    NeXopp — https://github.com/bamonroe/NeXopp
+    Copyright (C) Brian Monroe.
+    Licensed under the GNU General Public License, version 2 or later.
+
+The whole application skeleton comes from that project: the `.xopp` reader/writer and the
+dependency-free XML layer, the Compose editor, the drawing surface and input pipeline, the tab/
+split-view/pane plumbing, the audio sidecar, the SAF open/save paths, the build and test tooling,
+and the documentation structure. This project is a continuation of that codebase under new
+ownership and the new name MobiXournal, so the work as a whole
+remains under the copyright of its original author and the terms of the GPL-2.0-or-later.
+
+CHANGES relative to NeXopp (measured against upstream's master head, file by file, after
+normalising the package name: 287 shared source files, 21 added, 33 removed, 283 of the shared
+ones modified):
+
+  1. The radial palette was deleted outright - 33 files: its renderer, tap detector, haptics,
+     action/catalog/editor/list/manager/reset components, its codec/hit-test/label/layout files and
+     all of their tests.
+  2. Its settings section "Palette" became "Shortcuts": one configurable key per tool and per pen
+     colour, plus the pen/eraser and hand/pan toggles (AppSettings.toolShortcutKeys and
+     colorShortcutKeys). NeXopp had no keyboard shortcuts at all.
+  3. The rail was regrouped from eight slots to twelve: pen and highlighter separated, Line and
+     Rectangle given slots of their own, the other figures sharing a Shapes slot, and text
+     authoring split out of Insert (ToolGroups.kt).
+  4. The shape recogniser was replaced with a direct port of desktop Xournal++'s (new Inertia.kt,
+     RecoSegment.kt, CircleRecognizer.kt and a rewritten ShapeRecognizer.kt), supplanting a
+     hand-rolled classifier.
+  5. Colours were re-derived from desktop Xournal++: its default palette hex for hex,
+     plus an HSV/hex custom slot (NeXopp shipped six hand-picked swatches),
+     pinned by PaletteColorsTest. A recents row shipped with that round and has since been removed
+     (see 14).
+  6. The highlighter now blends with a separable BlendMode.MULTIPLY at 0.47 opacity on opaque
+     paper, with the alpha-0x7f desktop store behaviour, and its tips snap to desktop Xournal++'
+     2.83 / 8.50 / 19.84 pt sizes. NeXopp had neither the blend nor the tip sizes.
+  7. Pen input gained a vendor-key barrel-button gate (the Honor Choice Pencil sends its side
+     button as keyboard key 755), collapsing of that firmware's double-click into one action, a
+     live Pen diagnostics log, and a whole-stroke eraser as the toggle's default.
+  8. New affordances: a zoom badge above the page counter, a chevron on rail slots that open a
+     submenu, a default page size setting, and a default-page-size tab in the page-size dialog.
+  9. Saved files are announced as a real type - application/x-xopp with intent filters so the app
+     shows up in Open with / Share sheets - where NeXopp wrote application/octet-stream; Save and
+     the PDF export propose the document's own name.
+ 10. New identity and artwork: the name MobiXournal, applicationId and namespace com.mobixournal
+     (NeXopp used com.nexopp for both), creator="MobiXournal" (NeXopp wrote "NeXopp"), this
+     project's own sheet-and-pencil launcher icon with an Android 13+ monochrome layer, AGENTS.md
+     in place of CLAUDE.md, and credits to NeXopp and Xournal++ in place of the Patreon link.
+ 11. Earlier update round (the work that led to this continuation), carried forward and kept:
+     the highlighter opens on its own defaults - the palette's yellow at the thickest tip - and
+     keeps a colour and width independent of the pen's (AppSettings.DEFAULT_HIGHLIGHTER_COLOR /
+     DEFAULT_HIGHLIGHTER_WIDTH, EditorUiState.highlighterColor / highlighterWidth); large,
+     Xournal++-authored .xopp files no longer lag when scrolling or writing, because a pressure
+     stroke is now painted as one filled outline built in a single pass instead of one drawLine
+     per segment - and the outline keeps the stroke's real per-point width, so the taper shows as
+     it does on the desktop (StrokePainter.drawPressureLine); the pen gained the desktop's
+     pressure settings, matching the desktop exactly (a Pressure sensitivity switch, a minimum
+     pressure floor and a pressure multiplier, so the same press stores the same width as
+     PenInputHandler::filterPressure), and the line/shape tools draw at the size setting verbatim so
+     a shape and a pen stroke look the same in both apps; and the keyboard shortcuts (pen/eraser and
+     hand/pan toggles, one key per tool and per pen colour - black, red and green pen and the
+     highlighter) are read from the native dispatchKeyEvent rather than a Compose onKeyEvent, so
+     any character works, upper or lower case.
+ 12. New in this continuation: the shape tools gained the STEM figures - Triangle, Square, Rhombus,
+     Pentagon, Hexagon and Star (ShapeKind / ShapeBuilder.kt); line style (Solid/Dashed/Dash-dot/
+     Dotted) moved into the Colour & size pop-up, so the pen can be dashed without leaving it, as
+     the line style sits in the desktop's pen options; and a new Figures
+     settings section sets the default figure size (which of the pen's S/M/L slots a new figure
+     starts at) and reorders / hides the Shapes submenu (AppSettings.shapeOrder / shapeHidden). The
+     default figure size is the knob for the pressure gap: a figure draws at its full set width
+     while a pen stroke thins with pressure, so with Pressure sensitivity on a figure can look
+     thicker than a light pen stroke.
+ 13. New in this continuation: the Colour & size pop-up was made compact (swatches in a tight grid,
+     the three tip sizes as one bar, line style as a row of chips) and is
+     now the *only* home of line style - the separate Style rail slot was removed, so it
+     costs one rail button instead of two (RailItems.kt, ToolbarSizePopup.WidthSlotBar,
+     ToolbarStylePopup.LineStyleChips). The pen palette became editable under a new Colors settings
+     section: add, redefine and delete swatches (AppSettings.penColors, seeded with PEN_COLORS and
+     capped at MAX_PEN_COLORS); the last
+     colour cannot be deleted and deleting one drops its keyboard shortcut too. The Rhombus tool
+     now draws its own hollow-rhombus glyph rather than Material's filled Diamond, so it reads as an
+     outline like Square, Rectangle, Pentagon and Hexagon (ToolGlyphs.kt).
+ 14. New in this continuation: the shipping palette is now eight swatches - Black,
+     Red, Green, Blue, Orange, Magenta, Yellow, White, in that order, each hex still Xournal++'s own
+     for that colour (PEN_COLORS, pinned by PaletteColorsTest) - and the recently-used "Recent" row and its
+     persisted list (recentColors / MAX_RECENT_COLORS / withColorUsed's MRU half) are gone: the
+     palette is the list. Fill is removed from the app entirely (no control, no fillEnabled /
+     fillAlpha / currentFill), so strokes drawn here are never flooded; the .xopp `fill` attribute
+     is still read, rendered and written, so a document that already carries it round-trips
+     untouched. The three size boxes in the pop-up were tightened (smaller dot box, less padding),
+     and WidthDot's minimum dot is now a fraction of its box rather than a fixed 23dp offset, so a
+     smaller box can't end up with a floor wider than itself.
+ 15. New in this continuation: the rail's Shape recognition and Guides slots no longer share one
+     glyph. Shape recognition carries a magic wand (AutoFixHigh) instead of the triangle it had in
+     common with the Triangle *tool* - which is why it read as "draw a triangle" rather than "tidy
+     up what I drew" - and Guides carries a ruler (Straighten), the one pictogram that already means
+     "rule a straight line" (ToolbarStylePopup.kt, ToolbarViewPopups.kt). Both new faces come from
+     material-icons-extended, already a dependency. The pen and the figure tools now default to the
+     **middle** pen-width slot (DEFAULT_SHAPE_WIDTH / DEFAULT_SHAPE_SLOT moved from index 2 to 1,
+     matching lastWidth): a figure is drawn at its width with no pressure, so starting it at the top
+     slot made a fresh shape visibly fatter than fresh handwriting. The highlighter keeps the wide
+     slot, since it lays a band rather than a stroke. Finally the palette keeps the user's own
+     colours: sanitized() and decodePenColors no longer prune anything absent from
+     PREDEFINED_COLOR_NAMES, so a swatch added under Settings -> Colors survives a restart and is
+     carried in - and restored from - the JSON backup, which already serialised penColors. That
+     name table is now display-only, and the eight shipping swatches remain desktop Xournal++'s own
+     hexes, pinned by DesktopColorParityTest against upstream palettes/xournal.gpl.
+
+Substantial portions are unchanged: the .xopp reader/writer and the dependency-free XML layer,
+the Compose editor, the drawing surface and input pipeline, the tabs/panes/audio plumbing, the
+SAF open/save paths, the build and test tooling, and the documentation structure.
+
+===============================================================================
+BASED ON XOURNAL++ — ATTRIBUTION AND MODIFICATION NOTICE
+===============================================================================
+
+This is a modified, **unofficial** derivative of Xournal++.
+
+Xournal++ is the free handwriting and notetaking application for Linux and the author of the
+`.xopp` document format:
+
+    Xournal++ — https://github.com/xournalpp/xournalpp
+    Copyright (C) the Xournal++ authors.
+    Licensed under the GNU General Public License, version 2 or later.
+
+Portions of this work — the `.xopp` format handling, the default pen colour palette, the ported
+shape recogniser, and the highlighter thickness/blend behaviour — are derived from, ported from, or
+deliberately matched to Xournal++'s source code and data files, and remain under the copyright of
+the Xournal++ authors and the terms of the GPL-2.0-or-later.
+
+CHANGES: this is not a fork of the desktop application. It is an independent Android application,
+written by the copyright holder above, that reads and writes the `.xopp` format and provides its
+own Android UI, build scripts and documentation. Files in this repository have been added, modified
+and extended relative to upstream Xournal++. This notice records that the work is modified, as
+required by the GNU GPL.
+
+This project is **not** affiliated with, endorsed by, or maintained by the Xournal++ authors, and
+it uses no upstream logo or trademark: the launcher icon is this project's own artwork.
+
+===============================================================================
+THIRD-PARTY COMPONENTS
+===============================================================================
+
+- **AndroidX / Jetpack Compose / Material Components** — Apache License 2.0.
+- **Apache PDFBox (Android port)** — Apache License 2.0. Used for PDF import/export and text
+  extraction.
+- **Bundled fonts** (DejaVu and others) — see `app/src/main/assets/fonts/LICENSE.txt` for the
+  licences and copyright holders of the font files shipped with the app.
+- **Xournal++ colour palette** (`palettes/xournal.gpl`, used as `PEN_COLORS`) — from the Xournal++
+  project, GPL-2.0-or-later.
+
+Each component remains under its own licence and copyright; nothing here relicenses it.
+
+===============================================================================
+
+This project's source: https://github.com/amarzano2005/MobiXournal
+Upstream NeXopp (the codebase this derives from): https://github.com/bamonroe/NeXopp
+Upstream Xournal++ (the format and desktop app): https://github.com/xournalpp/xournalpp

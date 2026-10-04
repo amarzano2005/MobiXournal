@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Audio-annotated strokes: recording the .wav sidecar a stroke's fn/ts points into. Requested
+         at runtime the first time the user hits Record; the app is fully usable without it. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <application
+        android:name=".MobiXournalApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MobiXournal">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
+            android:theme="@style/Theme.MobiXournal">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Offer the app as a Xournal++ document handler: tap a .xopp in a file manager,
+                 browser, or mail client and it opens here. The type is the one the app itself
+                 writes (XOPP_MIME in io/SaveTarget.kt), so the two have to agree. It matters
+                 that a .xopp is a *typed document* rather than a generic blob: without this the
+                 app never appears in "Open with", and files it saves are unidentifiable. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="application/x-xopp" />
+                <data android:scheme="file" android:mimeType="application/x-xopp" />
+            </intent-filter>
+
+            <!-- Fallback for senders that hand over a file:// URI with no (or a generic) MIME
+                 type. Documents from elsewhere — desktop Xournal++, a download, a copy on a
+                 mounted share — are not typed as .xopp by the system, which only learns an
+                 extension's type from this app's declaration, so match the extension instead. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.xopp" />
+                <data android:pathPattern=".*\\..*\\.xopp" />
+                <data android:pathPattern=".*\\..*\\..*\\.xopp" />
+            </intent-filter>
+
+            <!-- Offer the app as a PDF handler: open/annotate a PDF handed over by a file
+                 manager, browser, or mail client. Content and file URIs are covered
+                 separately because a provider-backed content:// URI carries its MIME type
+                 while a bare file:// URI often doesn't. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="application/pdf" />
+                <data android:scheme="file" android:mimeType="application/pdf" />
+            </intent-filter>
+
+            <!-- Fallback for senders that hand over a file:// URI with no (or a generic)
+                 MIME type — match on the .pdf extension instead. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.pdf" />
+                <data android:pathPattern=".*\\..*\\.pdf" />
+                <data android:pathPattern=".*\\..*\\..*\\.pdf" />
+            </intent-filter>
+
+            <!-- Offer the app as a plain-text handler too: a .txt or .md file is typeset into a
+                 generated PDF and opened as an annotatable document. Same content/file split as
+                 the PDF filters above. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="text/plain" />
+                <data android:scheme="file" android:mimeType="text/plain" />
+                <data android:scheme="content" android:mimeType="text/markdown" />
+                <data android:scheme="file" android:mimeType="text/markdown" />
+            </intent-filter>
+
+            <!-- Fallback for senders that hand over a file:// URI with no (or a generic)
+                 MIME type — match on the .txt/.md extension instead. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.txt" />
+                <data android:pathPattern=".*\\..*\\.txt" />
+                <data android:pathPattern=".*\\..*\\..*\\.txt" />
+                <data android:pathPattern=".*\\.md" />
+                <data android:pathPattern=".*\\..*\\.md" />
+                <data android:pathPattern=".*\\..*\\..*\\.md" />
+            </intent-filter>
+
+            <!-- Offer the app as an image handler: a PNG/JPEG/WebP opens as a one-page document
+                 with the picture as the page background. Same content/file split as above. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="image/png" />
+                <data android:scheme="file" android:mimeType="image/png" />
+                <data android:scheme="content" android:mimeType="image/jpeg" />
+                <data android:scheme="file" android:mimeType="image/jpeg" />
+                <data android:scheme="content" android:mimeType="image/webp" />
+                <data android:scheme="file" android:mimeType="image/webp" />
+            </intent-filter>
+
+            <!-- Fallback for senders that hand over a file:// URI with no (or a generic)
+                 MIME type — match on the image extension instead. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.png" />
+                <data android:pathPattern=".*\\..*\\.png" />
+                <data android:pathPattern=".*\\..*\\..*\\.png" />
+                <data android:pathPattern=".*\\.jpg" />
+                <data android:pathPattern=".*\\..*\\.jpg" />
+                <data android:pathPattern=".*\\..*\\..*\\.jpg" />
+                <data android:pathPattern=".*\\.jpeg" />
+                <data android:pathPattern=".*\\..*\\.jpeg" />
+                <data android:pathPattern=".*\\..*\\..*\\.jpeg" />
+                <data android:pathPattern=".*\\.webp" />
+                <data android:pathPattern=".*\\..*\\.webp" />
+                <data android:pathPattern=".*\\..*\\..*\\.webp" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

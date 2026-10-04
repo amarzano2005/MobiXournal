@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dark-mode splash screen drawable for Android API < 31 fallback:
+  Deep slate dark background with the centered high-definition logo.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background_dark" />
+    <item
+        android:width="160dp"
+        android:height="160dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/ic_splash_logo"
+            android:gravity="center"
+            android:filter="true"
+            android:antialias="true"
+            android:dither="true" />
+    </item>
+</layer-list>

@@ -1,0 +1,25 @@
+# Build artifacts & OS/editor cruft
+*.tmp
+*~
+.DS_Store
+
+# Reference material — cloned third-party repos kept locally for reading code, not tracked.
+/reference/
+
+# Android / Gradle build artifacts & local config
+build/
+.gradle/
+.gradle-cache/
+local.properties
+*.iml
+.idea/
+.kotlin/
+captures/
+.cxx/
+
+# Build logs
+*.log
+
+# Python bytecode cache (todo skill)
+__pycache__/
+*.pyc

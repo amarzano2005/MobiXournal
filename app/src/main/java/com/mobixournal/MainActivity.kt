@@ -1,0 +1,398 @@
+package com.mobixournal
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.view.KeyEvent
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.mobixournal.audio.AudioSession
+import com.mobixournal.format.SaveFormat
+import com.mobixournal.io.DocumentIo
+import com.mobixournal.io.IncomingDocument
+import com.mobixournal.io.UriStaging
+import com.mobixournal.io.XOPP_MIME
+import com.mobixournal.panes.EditorPane
+import com.mobixournal.panes.MirrorSync
+import com.mobixournal.render.BitmapBudget
+import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.PdfFonts
+import com.mobixournal.render.Placement
+import com.mobixournal.render.TextPdfGenerator
+import com.mobixournal.render.cancelSpline
+import com.mobixournal.render.finishSpline
+import com.mobixournal.render.onStylusButtonKey
+import com.mobixournal.render.splineInProgress
+import com.mobixournal.render.undoLastSplineNode
+import com.mobixournal.tabs.TabManager
+import com.mobixournal.tabs.TabStore
+import com.mobixournal.ui.AppSettings
+import com.mobixournal.ui.EditorScreen
+import com.mobixournal.ui.SettingsStore
+import com.mobixournal.ui.ThemeMode
+import com.mobixournal.ui.theme.XoppTheme
+import com.mobixournal.ui.theme.isDark
+import java.io.File
+
+/**
+ * Hosts the editor and bridges the Storage Access Framework to the `.xopp` I/O layer: open a
+ * document in place, edit on the [DrawingSurfaceView], save back to the same format. The file on
+ * disk is the only source of truth (see `AGENTS.md` non-goals).
+ */
+class MainActivity : ComponentActivity() {
+
+    /**
+     * The two editing panes. Only the first is shown until the user turns on split view, at which
+     * point the second gets its own canvas and its own restored tab session (see [EditorPane]).
+     */
+    internal val panes: List<EditorPane> by lazy {
+        TABS_DIRS.map { EditorPane(TabStore(File(filesDir, it))) }
+    }
+
+    /** Keeps two views of one mirrored document in step across the panes. */
+    internal val mirrors: MirrorSync by lazy { MirrorSync(panes) }
+
+    /** Which pane every menu/toolbar action applies to — the one last touched. */
+    internal var activePane = mutableStateOf(0)
+
+    /** Whether the editor is showing both panes side by side. */
+    internal var splitView = mutableStateOf(false)
+
+    /** The pane in focus. Everything below is written against this one document. */
+    internal val pane: EditorPane get() = panes[activePane.value.coerceIn(panes.indices)]
+
+    internal val surface: DrawingSurfaceView? get() = pane.surface
+
+    /** Where a pending image-insert tap landed, kept until the SAF picker returns the image bytes. */
+    internal var pendingImagePlacement: Placement? = null
+
+    /** The mode chosen in the Import PDF dialog, kept until the SAF picker returns the PDF. */
+    private var pendingImportMode: ImportPdfMode = ImportPdfMode.REPLACE
+
+    /** The file name last chosen in the Save As dialog; reused by plain Save. Per pane. */
+    internal var pendingSaveName: String
+        get() = pane.pendingSaveName
+        set(value) { pane.pendingSaveName = value }
+
+    /**
+     * The sticky save format. "Save As" sets it; every later plain Save reuses it, so once you save
+     * ZIPPED once, Save keeps writing ZIPPED. Opening a document adopts the format it was stored in.
+     */
+    internal var saveFormat: SaveFormat
+        get() = pane.saveFormat
+        set(value) { pane.saveFormat = value }
+
+    /** Recording, playback and sidecar transfer for audio-annotated strokes (`fn`/`ts`). */
+    internal val audio: AudioSession by lazy { AudioSession(this) }
+
+    /** Persists [AppSettings]; also the home of the nominated audio folder grant. */
+    internal val settingsStore: SettingsStore by lazy { SettingsStore(this) }
+
+    /**
+     * The folder sidecar `.wav` files are kept in — a persisted `OpenDocumentTree` grant, normally
+     * the folder the user's `.xopp` files live in. Null until they nominate one, in which case audio
+     * still records and plays but never leaves the app (see [AudioSession]).
+     */
+    internal var audioFolder: Uri? = null
+
+    /** Bumped whenever recording/playback state changes, so the Compose chrome re-reads it. */
+    internal var audioTick = mutableStateOf(0)
+
+    /** The active pane's open documents and which one is showing (see `com.mobixournal.tabs`). */
+    internal val tabs: TabManager get() = pane.tabs
+
+    /** Bumped whenever a tab list or selection changes, so the tab strips re-read them. */
+    internal var tabsTick = mutableStateOf(0)
+
+    /**
+     * The single worker every tab-overview preview is queued on, so a grid of tabs parses and
+     * rasterises one document at a time instead of all of them at once (see [previewTabPage]).
+     */
+    internal val previewWorker: java.util.concurrent.ExecutorService by lazy {
+        java.util.concurrent.Executors.newSingleThreadExecutor()
+    }
+
+    /**
+     * All document I/O policy — staging, the background-PDF stores, and the read/encode/merge steps
+     * (see [DocumentIo]). The activity keeps only the intent plumbing and the canvas wiring.
+     */
+    internal val io: DocumentIo by lazy {
+        // Plain text defaults to monospace — the sensible face for the logs and source it usually
+        // holds; markdown picks its own faces per run style (see MarkdownPdfWriter).
+        val fonts = PdfFonts(assets)
+        DocumentIo(contentResolver, cacheDir, filesDir, TextPdfGenerator(fonts::load))
+    }
+
+    /** Shared staging helper for URI byte transfers (export, image insert). */
+    internal val staging: UriStaging by lazy { UriStaging(contentResolver, File(cacheDir, "staging")) }
+
+    /** What long-running transfer is in flight, or null. Drives the editor's blocking progress note. */
+    internal var busy = mutableStateOf<String?>(null)
+
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { insertPickedImage(it) }
+        }
+
+    /**
+     * The document picker, asking for a **persistable read+write** grant rather than the default
+     * one-shot read. That grant is what lets a later plain Save write straight back to the file the
+     * document came from — including one on a mounted network share — and lets a restored tab still
+     * reach it after a restart.
+     */
+    private class OpenDocumentForEditing : ActivityResultContracts.OpenDocument() {
+        override fun createIntent(context: Context, input: Array<String>): Intent =
+            super.createIntent(context, input).addFlags(
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
+            )
+    }
+
+    private val openLauncher =
+        registerForActivityResult(OpenDocumentForEditing()) { uri ->
+            uri?.let { openDocument(it) }
+        }
+
+    internal val saveLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(XOPP_MIME)) { uri ->
+            uri?.let { saveDocument(it) }
+        }
+
+    private val importPdfLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { importPdf(it, pendingImportMode) }
+        }
+
+    internal val audioFolderLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let(::adoptAudioFolder)
+        }
+
+    internal val recordPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) beginRecording() else toast("Recording needs microphone permission")
+        }
+
+    private val exportPdfLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(PDF_MIME)) { uri ->
+            uri?.let { exportPdf(it) }
+        }
+
+    /**
+     * Hardware-keyboard shortcuts for the spline tool, which is the one tool whose gesture spans
+     * several taps: Enter commits the open curve, Backspace drops its last control point, and Escape
+     * throws it away. Handled here rather than in the surface so the canvas never has to take
+     * keyboard focus away from the app's text fields.
+     */
+    @SuppressLint("RestrictedApi")
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val view = surface
+        // A stylus barrel button can arrive as a key event rather than a motion button — Android 14+
+        // reports Bluetooth stylus buttons that way — and the canvas only takes focus on touch, so the
+        // activity routes it to the surface, which treats it as the held barrel modifier.
+        if (view != null && view.onStylusButtonKey(event)) return true
+        if (event.action == KeyEvent.ACTION_UP && view != null && view.splineInProgress()) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> { view.finishSpline(); return true }
+                KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL ->
+                    { view.undoLastSplineNode(); return true }
+                KeyEvent.KEYCODE_ESCAPE -> { view.cancelSpline(); return true }
+            }
+        }
+        // Let focused Compose components (e.g. text inputs in dialogs/settings) consume keys first.
+        if (super.dispatchKeyEvent(event)) return true
+        // If unconsumed by Compose, route to the active drawing surface for tool and color shortcuts.
+        if (view != null && view.dispatchKeyEvent(event)) return true
+        return false
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val store = settingsStore
+        val initialSettings = store.load()
+        when (initialSettings.themeMode) {
+            ThemeMode.LIGHT -> setTheme(R.style.Theme_MobiXournal_Light)
+            ThemeMode.DARK -> setTheme(R.style.Theme_MobiXournal_Dark)
+            ThemeMode.SYSTEM -> setTheme(R.style.Theme_MobiXournal)
+        }
+        MobiXournalApp.applyThemeMode(this, initialSettings.themeMode)
+
+        super.onCreate(savedInstanceState)
+
+        // Set immediate window background for smooth startup transition matching theme mode
+        val isDark = when (initialSettings.themeMode) {
+            ThemeMode.SYSTEM -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+        }
+        window.setBackgroundDrawableResource(if (isDark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light)
+
+        // PDFBox needs its font/resource loader primed once before any PDF export can run.
+        PDFBoxResourceLoader.init(applicationContext)
+        // Size the one bitmap-cache budget from this device's heap, before any cache is built.
+        BitmapBudget.configure(applicationContext)
+        audioFolder = initialSettings.audioFolderUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
+        audio.onStateChanged = { runOnUiThread { audioTick.value++ } }
+        // A cold start from another app's "open with": stash it now, open it once the canvas is up.
+        takeIncoming(intent)
+        setContent {
+            // Settings live above the theme so the Appearance choice re-colours the whole app.
+            var settings by remember {
+                mutableStateOf(initialSettings.also { applyStorageLimits(it); applyDefaultPageSize(it) })
+            }
+            XoppTheme(darkTheme = settings.themeMode.isDark(), dynamicColor = settings.dynamicColor) {
+                EditorScreen(
+                    onOpen = { openLauncher.launch(arrayOf("*/*")) },
+                    onSave = { saveActiveTab() },
+                    busy = busy.value,
+                    // Nothing left for back to peel off in the editor: leave the app for real.
+                    onExit = { finish() },
+                    onSaveAs = { name, format -> beginSaveAs(name, format) },
+                    currentSaveFormat = { saveFormat },
+                    currentSaveName = { suggestedXoppName() },
+                    onImportPdf = { mode ->
+                        pendingImportMode = mode
+                        importPdfLauncher.launch(arrayOf(PDF_MIME))
+                    },
+                    onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
+                    onPickImage = { placement ->
+                        pendingImagePlacement = placement
+                        pickImageLauncher.launch(arrayOf("image/*"))
+                    },
+                    onSurfaceCreated = { index, view ->
+                        val p = panes[index]
+                        p.surface = view
+                        view.onDocumentEdited = { doc -> mirrors.propagate(p, doc) }
+                        attachAudio(view)
+                        // Restore is asynchronous now, so a file handed to us by another app is opened
+                        // once the session is back — otherwise it would be shoved aside by the restore.
+                        restoreTabs(p) { openIncoming() }
+                    },
+                    settings = settings,
+                    onSettingsChange = {
+                        if (settings.themeMode != it.themeMode) {
+                            MobiXournalApp.applyThemeMode(this@MainActivity, it.themeMode)
+                            val isDark = when (it.themeMode) {
+                                ThemeMode.SYSTEM -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                                ThemeMode.LIGHT -> false
+                                ThemeMode.DARK -> true
+                            }
+                            window.setBackgroundDrawableResource(if (isDark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light)
+                        }
+                        settings = it
+                        store.save(it)
+                        applyStorageLimits(it)
+                        applyDefaultPageSize(it)
+                    },
+                    audio = audioUiState(),
+                    tabs = panes.map(::tabsUiState),
+                    splitView = splitView.value,
+                    onToggleSplitView = ::toggleSplitView,
+                    activePane = activePane.value,
+                    onActivePane = { activePane.value = it },
+                )
+            }
+        }
+    }
+
+    // --- handovers from other apps --------------------------------------------------------------
+
+    /**
+     * A document another app handed us that hasn't been opened yet. The intent lands before the
+     * canvas exists, so the URI waits here until the surface is up and the restored tabs are back.
+     */
+    private var pendingIntentUri: Uri? = null
+
+    /**
+     * A second handover while we're already running (the app was picked from a share/open sheet
+     * without having been killed). Same routing as the cold start; the tab strip grows by one.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        takeIncoming(intent)
+        // Already running, so the surface exists — no need to wait for onSurfaceCreated.
+        openIncoming()
+    }
+
+    /** Stash the document URI [intent] is handing over, if it is handing one over at all. */
+    private fun takeIncoming(intent: Intent?) {
+        val stream = @Suppress("DEPRECATION") intent?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        val chosen = IncomingDocument.uriString(
+            action = intent?.action,
+            data = intent?.data?.toString(),
+            stream = stream?.toString(),
+        ) ?: return
+        pendingIntentUri = Uri.parse(chosen)
+    }
+
+    /**
+     * Open the handed-over document, once. Called after the surface is live (cold start) or straight
+     * away (already running); clearing the field first keeps a re-entrant call from double-opening.
+     */
+    private fun openIncoming() {
+        val uri = pendingIntentUri ?: return
+        pendingIntentUri = null
+        openDocument(uri)
+    }
+
+    /**
+     * Run [work] off the UI thread behind a blocking progress note, then hand its result to [done]
+     * back on the UI thread. Every document transfer goes through here: a remote share can stall for
+     * seconds, and doing that inline would freeze (and eventually kill) the app.
+     */
+    internal fun <T> inBackground(label: String, work: () -> T, done: (Result<T>) -> Unit) {
+        busy.value = label
+        Thread {
+            val result = runCatching(work)
+            runOnUiThread {
+                busy.value = null
+                done(result)
+            }
+        }.start()
+    }
+
+
+    /** Cache both panes' open tabs on the way to the background — the app may not come back. */
+    override fun onPause() {
+        super.onPause()
+        // The write itself runs on the pane's writer thread; we wait briefly for it here because the
+        // process can be killed once we are in the background, and a lost snapshot is lost edits.
+        panes.forEach { snapshotActiveTab(it); it.persist() }
+        panes.forEach { it.awaitPersist(PERSIST_WAIT_MS) }
+    }
+
+    override fun onDestroy() {
+        audio.release()
+        super.onDestroy()
+    }
+
+    internal fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+
+    internal companion object {
+        // The document MIME lives in io/SaveTarget.kt beside the `.xopp` suffix, since the manifest's
+        // intent filters have to agree with it: it is the app's declaration that these files are
+        // Xournal++ documents, not untyped blobs. See that constant for why it maps to no extension.
+        const val PDF_MIME = "application/pdf"
+
+        /**
+         * Folders under `filesDir` holding each pane's cached tab session (see [TabStore]), in pane
+         * order. The first keeps its historical name so an existing session still restores.
+         */
+        val TABS_DIRS = listOf("tabs", "tabs-right")
+
+        /** How long `onPause` waits for the queued session write before letting the app go. */
+        const val PERSIST_WAIT_MS = 2_000L
+
+        /** Tab label for a document that has never been opened from, or saved to, a file. */
+        internal const val UNTITLED = "Untitled"
+    }
+}
