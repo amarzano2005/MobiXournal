@@ -171,6 +171,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 
 ### 💾 Saving & Exporting
 
+- **Local Storage Only**: Saving and PDF exporting are strictly restricted to local device storage (cloud storage providers like Google Drive, OneDrive, and Dropbox are blocked in the picker and rejected upon save) to prevent SAF synchronization conflicts, delayed uploads, and data loss.
 - **Save**: Writes directly to the open file without prompts.
 - **Save As**:
   - **Original (`.xopp`)**: Standard gzip-compressed XML file with external PDF/image linking. Best for desktop interchange.

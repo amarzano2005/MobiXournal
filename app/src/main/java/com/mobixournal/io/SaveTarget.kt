@@ -56,3 +56,27 @@ private fun nameWithSuffix(name: String, suffix: String, fallback: String): Stri
     val stem = if (dot > 0) trimmed.substring(0, dot) else trimmed
     return stem + suffix
 }
+
+/**
+ * True when [authority] belongs to a cloud or remote storage provider (e.g. Google Drive,
+ * OneDrive, Dropbox, Nextcloud, Box).
+ */
+fun isCloudAuthority(authority: String?): Boolean {
+    if (authority.isNullOrBlank()) return false
+    val lower = authority.lowercase(java.util.Locale.ROOT)
+    return lower.startsWith("com.google.android.apps.docs") ||
+        lower.contains("drive") ||
+        lower.contains("cloud") ||
+        lower.contains("dropbox") ||
+        lower.contains("onedrive") ||
+        lower.contains("skydrive") ||
+        lower.contains("box.android") ||
+        lower.contains("pcloud") ||
+        lower.contains("mega.privacy")
+}
+
+/**
+ * True when [uri] points to a cloud or remote storage provider.
+ */
+fun isCloudUri(uri: android.net.Uri): Boolean = isCloudAuthority(uri.authority)
+

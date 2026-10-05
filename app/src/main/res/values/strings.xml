@@ -8,4 +8,5 @@
     <string name="tool_pen">Pen</string>
     <string name="tool_highlighter">Highlighter</string>
     <string name="tool_eraser">Eraser</string>
+    <string name="cloud_save_not_supported">Cloud storage is not supported. Please choose a local folder on your device.</string>
 </resources>

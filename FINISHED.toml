@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "disallow-saving-to-cloud-storage-providers"
+title = "Disallow saving to cloud storage providers"
+description = "Restrict document saving and PDF export to local storage, blocking cloud providers (e.g. Google Drive, OneDrive, Dropbox) via EXTRA_LOCAL_ONLY in the file picker and validating URIs on save."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "remove-tab-overview-button-from-top-bar"
 title = "Remove tab overview button from top bar"
 description = "Remove the 4-squares tab overview button next to the split view button in the top bar"

@@ -7,6 +7,7 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.LoadedFile
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
+import com.mobixournal.io.isCloudUri
 import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.xoppNameFor
 import com.mobixournal.render.DrawingSurfaceView
@@ -251,6 +252,10 @@ internal fun MainActivity.extractPdfTextInBackground(file: File, into: DrawingSu
 
 /** Flatten the current document to a PDF at the chosen location (backgrounds + annotations). */
 internal fun MainActivity.exportPdf(uri: Uri) = runCatching {
+    if (isCloudUri(uri)) {
+        toast(getString(R.string.cloud_save_not_supported))
+        return@runCatching
+    }
     staging.writeTo(uri) { output: java.io.OutputStream -> surface?.exportPdf(output) }
 }.onFailure { toast("PDF export failed: ${it.message}") }
 
@@ -269,6 +274,11 @@ internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
  * - [SaveFormat.ZIPPED] — a ZIP package with the PDF embedded (`domain="attach"`, `bg.pdf`).
  */
 internal fun MainActivity.saveDocument(uri: Uri) {
+    if (isCloudUri(uri)) {
+        toast(getString(R.string.cloud_save_not_supported))
+        saveLauncher.launch(suggestedXoppName())
+        return
+    }
     val view = surface ?: return
     // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
     // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
@@ -310,7 +320,7 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri) {
  * share), and only fall back to asking for a location when we don't.
  */
 internal fun MainActivity.saveActiveTab() {
-    val target = tabs.active?.uri?.let(Uri::parse)?.takeIf(io::isWritable)
+    val target = tabs.active?.uri?.let(Uri::parse)?.takeIf { io.isWritable(it) && !isCloudUri(it) }
     if (target != null) saveDocument(target) else saveLauncher.launch(suggestedXoppName())
 }
 

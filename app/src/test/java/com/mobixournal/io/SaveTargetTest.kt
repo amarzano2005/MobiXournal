@@ -96,4 +96,28 @@ class SaveTargetTest {
         // the MIME has to stay one the platform has no extension for.
         assertTrue("must be a vendor type", XOPP_MIME.startsWith("application/x-"))
     }
+
+    // --- cloud authority detection -----------------------------------------------------------------
+
+    @Test
+    fun `cloud authorities are recognized`() {
+        assertTrue(isCloudAuthority("com.google.android.apps.docs.storage"))
+        assertTrue(isCloudAuthority("com.google.android.apps.docs.files"))
+        assertTrue(isCloudAuthority("com.microsoft.skydrive.content.StorageAccessProvider"))
+        assertTrue(isCloudAuthority("com.dropbox.android.provider"))
+        assertTrue(isCloudAuthority("com.box.android.documents"))
+        assertTrue(isCloudAuthority("com.nextcloud.client.providers.DocumentsStorageProvider"))
+        assertTrue(isCloudAuthority("org.owncloud.providers.DocumentsStorageProvider"))
+        assertTrue(isCloudAuthority("com.pcloud.pcloud.documents"))
+        assertTrue(isCloudAuthority("mega.privacy.android.provider"))
+    }
+
+    @Test
+    fun `local storage authorities are not recognized as cloud`() {
+        org.junit.Assert.assertFalse(isCloudAuthority("com.android.externalstorage.documents"))
+        org.junit.Assert.assertFalse(isCloudAuthority("com.android.providers.downloads.documents"))
+        org.junit.Assert.assertFalse(isCloudAuthority("com.android.providers.media.documents"))
+        org.junit.Assert.assertFalse(isCloudAuthority(null))
+        org.junit.Assert.assertFalse(isCloudAuthority(""))
+    }
 }

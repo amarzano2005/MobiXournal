@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_save_not_supported">Il salvataggio su cloud non è supportato. Seleziona una cartella locale sul dispositivo.</string>
+</resources>
