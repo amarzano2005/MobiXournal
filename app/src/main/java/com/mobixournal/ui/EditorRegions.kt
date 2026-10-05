@@ -145,7 +145,6 @@ fun EditorTopBar(
             IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
                 Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
             }
-            TabOverviewButton(tabs)
             IconButton(onClick = onToggleSplitView) {
                 Icon(
                     Icons.Filled.VerticalSplit,
