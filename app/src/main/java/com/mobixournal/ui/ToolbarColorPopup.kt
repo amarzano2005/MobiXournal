@@ -23,19 +23,18 @@ internal val XOPP_BLUE: Int = 0xFF3333CC.toInt()
 /** Xournal++ palette colour `#FF8000` (orange). */
 internal val XOPP_ORANGE: Int = 0xFFFF8000.toInt()
 
-/** Xournal++ palette colour `#FF00FF` (magenta / violet). */
-internal val XOPP_MAGENTA: Int = 0xFFFF00FF.toInt()
-internal val XOPP_VIOLET: Int = XOPP_MAGENTA
-
 /** Xournal++ palette colour `#FFFF00` (yellow) — the factory highlighter colour. */
 internal val XOPP_YELLOW: Int = 0xFFFFFF00.toInt()
+
+/** Xournal++ palette colour `#FF00FF` (magenta) — the desktop palette's own name for this swatch. */
+internal val XOPP_MAGENTA: Int = 0xFFFF00FF.toInt()
 
 /** Xournal++ palette colour `#FFFFFF` (white). */
 internal val XOPP_WHITE: Int = 0xFFFFFFFF.toInt()
 
 /**
  * The factory pen palette: eight swatches in the order the app ships with — **Black, Red, Green,
- * Blue, Orange, Magenta, Yellow, White** — each hex taken from desktop Xournal++'s palette so a colour
+ * Blue, Orange, Yellow, Magenta, White** — each hex taken from desktop Xournal++'s palette so a colour
  * picked here writes the same ARGB the desktop app writes for that swatch.
  *
  * It seeds [AppSettings.penColors], and stays this list — including on **Restore default** — so an
@@ -50,13 +49,14 @@ val PEN_COLORS: List<Int> = listOf(
     XOPP_GREEN,   // Green (#008000)
     XOPP_BLUE,    // Blue (#3333CC)
     XOPP_ORANGE,  // Orange (#FF8000)
-    XOPP_MAGENTA, // Magenta (#FF00FF)
     XOPP_YELLOW,  // Yellow (#FFFF00)
+    XOPP_MAGENTA, // Magenta (#FF00FF)
     XOPP_WHITE,   // White (#FFFFFF)
 )
 
 /**
- * Human-readable English names for the standard desktop Xournal++ palette colours.
+ * Human-readable English names for the standard desktop Xournal++ palette colours, in palette
+ * order.
  *
  * Display only: the palette accepts any opaque colour (see [decodePenColors]), so this map names a
  * swatch in the pickers and the Settings list — it does not gate what a palette may hold.
@@ -67,8 +67,8 @@ val PREDEFINED_COLOR_NAMES: Map<Int, String> = mapOf(
     XOPP_GREEN to "Green",
     XOPP_BLUE to "Blue",
     XOPP_ORANGE to "Orange",
-    XOPP_MAGENTA to "Magenta",
     XOPP_YELLOW to "Yellow",
+    XOPP_MAGENTA to "Magenta",
     XOPP_WHITE to "White",
 )
 

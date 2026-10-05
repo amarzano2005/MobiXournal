@@ -50,8 +50,8 @@ class DesktopColorParityTest {
     @Test
     fun `every palette swatch is the desktop palette's own hex`() {
         // Transcribed from upstream `palettes/xournal.gpl` — the file Xournal++ loads as its
-        // DEFAULT_PALETTE_FILE. The app ships a subset (Black, Red, Green, Blue, Orange, Magenta,
-        // Yellow, White), but each of those must be the desktop value for that colour, not a
+        // DEFAULT_PALETTE_FILE. The app ships a subset (Black, Red, Green, Blue, Orange, Yellow,
+        // Magenta, White), but each of those must be the desktop value for that colour, not a
         // lookalike: the point of matching is that the same swatch writes the same ARGB.
         val desktop = mapOf(
             0xFF000000.toInt() to "Black",       // 0 0 0

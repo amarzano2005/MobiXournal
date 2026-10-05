@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * The factory pen palette is the eight swatches the app ships with — **Black, Red, Green, Blue,
- * Orange, Magenta, Yellow, White**, in that order — so a fresh install (and **Restore default palette**)
+ * Orange, Yellow, Magenta, White**, in that order — so a fresh install (and **Restore default palette**)
  * always opens on the same short list.
  *
  * Each hex is desktop Xournal++'s own value for that colour (transcribed from upstream
@@ -52,8 +52,8 @@ class PaletteColorsTest {
         assertTrue(XOPP_GREEN in PEN_COLORS)
         assertTrue(XOPP_BLUE in PEN_COLORS)
         assertTrue(XOPP_ORANGE in PEN_COLORS)
-        assertTrue(XOPP_MAGENTA in PEN_COLORS)
         assertTrue(XOPP_YELLOW in PEN_COLORS)
+        assertTrue(XOPP_MAGENTA in PEN_COLORS)
         assertTrue(XOPP_WHITE in PEN_COLORS)
     }
 
@@ -65,8 +65,8 @@ class PaletteColorsTest {
             XOPP_GREEN to "Green (#008000)",
             XOPP_BLUE to "Blue (#3333CC)",
             XOPP_ORANGE to "Orange (#FF8000)",
-            XOPP_MAGENTA to "Magenta (#FF00FF)",
             XOPP_YELLOW to "Yellow (#FFFF00)",
+            XOPP_MAGENTA to "Magenta (#FF00FF)",
             XOPP_WHITE to "White (#FFFFFF)",
         )
         for ((color, expectedLabel) in expected) {
@@ -97,15 +97,15 @@ class PaletteColorsTest {
     }
 
     private companion object {
-        /** The eight shipping colours: Black, Red, Green, Blue, Orange, Magenta, Yellow, White. */
+        /** The eight shipping colours: Black, Red, Green, Blue, Orange, Yellow, Magenta, White. */
         val EIGHT_DEFAULTS: List<Int> = listOf(
             0xFF000000.toInt(), // Black
             0xFFFF0000.toInt(), // Red
             0xFF008000.toInt(), // Green
             0xFF3333CC.toInt(), // Blue
             0xFFFF8000.toInt(), // Orange
-            0xFFFF00FF.toInt(), // Magenta
             0xFFFFFF00.toInt(), // Yellow
+            0xFFFF00FF.toInt(), // Magenta
             0xFFFFFFFF.toInt(), // White
         )
     }
