@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "pen-parameters-presets-with-editable-names"
+title = "Pen parameters presets with editable names"
+description = "Add pen presets for minimum pressure and multiplier with editable names in both quick dialog and settings"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "overflow-pen-parameters-dialog"
 title = "Pen parameters dialog in overflow menu"
 description = "Add floating dialog for pen parameters (minimum pressure and multiplier) in overflow menu under pen diagnostics"

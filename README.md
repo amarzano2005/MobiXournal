@@ -84,7 +84,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 - **Stylus-First Input**:
   - **Palm Rejection**: Capacitive fingers only pan/zoom while the pen writes (finger drawing can be toggled on in settings).
-  - **Pressure Sensitivity & Multiplier**: Dynamic line width matching desktop Xournal++ tapering curves. Configurable minimum pressure (sensitivity) and pressure multiplier, adjustable on the fly via the top-bar overflow menu ("Pen parameters…") or Settings.
+  - **Pressure Sensitivity, Multiplier & Presets**: Dynamic line width matching desktop Xournal++ tapering curves. Configurable minimum pressure (sensitivity) and pressure multiplier with customizable presets and editable names, adjustable on the fly via the top-bar overflow menu ("Pen parameters…") or in Settings → Stylus.
   - **Hover Preview**: S-Pen / Active Pen hover ring indicates exact tip contact point.
   - **Hardware Barrel Buttons**: Hold barrel button to erase or lasso select (supported on Android 14+ stylus buttons, Bluetooth pens, and mouse right-clicks). Double-click to undo or toggle tools.
 - **Pen & Realistic Highlighter**:

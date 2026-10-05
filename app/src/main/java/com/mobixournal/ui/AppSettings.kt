@@ -286,6 +286,8 @@ data class AppSettings(
     val colorShortcutKeys: Map<Int, String> = emptyMap(),
     /** The user's saved tool snapshots, in display order (see [ToolPreset]). */
     val presets: List<ToolPreset> = emptyList(),
+    /** The user's saved pen sensitivity and pressure multiplier presets (see [PenPreset]). */
+    val penPresets: List<PenPreset> = PenPreset.DEFAULT_PRESETS,
     /**
      * Largest plain-text file (MiB) that may be typeset into a background PDF. Typesetting now reads
      * and lays out the file a line at a time, so the cap bounds *time* and output size rather than
@@ -333,6 +335,13 @@ data class AppSettings(
         tableCols = tableCols.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
         pressureMultiplier = pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
         minimumPressure = minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
+        penPresets = penPresets.ifEmpty { PenPreset.DEFAULT_PRESETS }.map { preset ->
+            preset.copy(
+                name = preset.name.ifBlank { preset.id },
+                minimumPressure = preset.minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
+                pressureMultiplier = preset.pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
+            )
+        },
         pageColumns = pageColumns.coerceIn(1, PageStacker.COLUMN_CHOICES.last()),
     )
 
@@ -536,6 +545,7 @@ class SettingsStore(context: Context) {
             toolShortcutKeys = loadToolShortcutKeys(),
             colorShortcutKeys = loadColorShortcutKeys(),
             presets = decodeToolPresets(prefs.getString(KEY_PRESETS, null)),
+            penPresets = decodePenPresets(prefs.getString(KEY_PEN_PRESETS, null)),
             textImportLimitMb = prefs.getInt(KEY_TEXT_IMPORT_LIMIT, d.textImportLimitMb).coerceAtLeast(1),
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
@@ -634,6 +644,7 @@ class SettingsStore(context: Context) {
         e.remove("fill_enabled")
         e.remove("fill_alpha")
         e.putString(KEY_PRESETS, encodeToolPresets(s.presets))
+        e.putString(KEY_PEN_PRESETS, encodePenPresets(s.penPresets))
         e.putInt(KEY_TEXT_IMPORT_LIMIT, s.textImportLimitMb)
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
@@ -717,6 +728,7 @@ class SettingsStore(context: Context) {
         const val KEY_TOOL_SHORTCUTS = "tool_shortcuts"
         const val KEY_COLOR_SHORTCUTS = "color_shortcuts"
         const val KEY_PRESETS = "tool_presets"
+        const val KEY_PEN_PRESETS = "pen_presets"
         const val KEY_TEXT_IMPORT_LIMIT = "text_import_limit_mb"
         const val KEY_PDF_CACHE_LIMIT = "pdf_cache_limit_mb"
 

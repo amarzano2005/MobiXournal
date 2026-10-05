@@ -73,6 +73,23 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     )
     if (settings.pressureEnabled) {
         Spacer(Modifier.height(12.dp))
+        PenPresetsRow(
+            presets = settings.penPresets,
+            currentMinPressure = settings.minimumPressure,
+            currentMultiplier = settings.pressureMultiplier,
+            onSelectPreset = { preset ->
+                onChange(
+                    settings.copy(
+                        minimumPressure = preset.minimumPressure,
+                        pressureMultiplier = preset.pressureMultiplier,
+                    )
+                )
+            },
+            onUpdatePresets = { updated ->
+                onChange(settings.copy(penPresets = updated))
+            },
+        )
+        Spacer(Modifier.height(12.dp))
         MinimumPressureSlider(
             value = settings.minimumPressure,
             onChange = { onChange(settings.copy(minimumPressure = it)) },

@@ -108,4 +108,19 @@ class SettingsSanitizeTest {
         assertEquals(AppSettings.TABLE_DIMENSION_MAX, high.tableRows)
         assertEquals(AppSettings.TABLE_DIMENSION_MAX, high.tableCols)
     }
+
+    @Test fun penPresetsAreSanitized() {
+        val empty = AppSettings(penPresets = emptyList()).sanitized()
+        assertEquals(PenPreset.DEFAULT_PRESETS, empty.penPresets)
+
+        val outOfBounds = AppSettings(
+            penPresets = listOf(
+                PenPreset("p1", "", -1f, 100f),
+            ),
+        ).sanitized()
+        assertEquals(1, outOfBounds.penPresets.size)
+        assertEquals("p1", outOfBounds.penPresets[0].name)
+        assertEquals(PressureCurve.MINIMUM_PRESSURE_MIN, outOfBounds.penPresets[0].minimumPressure)
+        assertEquals(AppSettings.PRESSURE_MULTIPLIER_MAX, outOfBounds.penPresets[0].pressureMultiplier)
+    }
 }

@@ -115,6 +115,18 @@ object AppSettingsBackup {
             b.append("\n")
         }
         b.append("  ],\n")
+        b.append("  \"penPresets\": [\n")
+        settings.penPresets.forEachIndexed { i, p ->
+            b.append("    {")
+                .append("\"id\": \"").append(escape(p.id)).append("\", ")
+                .append("\"name\": \"").append(escape(p.name)).append("\", ")
+                .append("\"minimumPressure\": ").append(p.minimumPressure).append(", ")
+                .append("\"pressureMultiplier\": ").append(p.pressureMultiplier)
+                .append("}")
+            if (i < settings.penPresets.lastIndex) b.append(",")
+            b.append("\n")
+        }
+        b.append("  ],\n")
         b.append("  \"textImportLimitMb\": ").append(settings.textImportLimitMb).append(",\n")
         b.append("  \"pdfCacheLimitMb\": ").append(settings.pdfCacheLimitMb).append(",\n")
         b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append("\n")
@@ -165,6 +177,15 @@ object AppSettingsBackup {
             val lineStyle = LineStyle.entries.firstOrNull { it.name.equals(lineStyleName, ignoreCase = true) } ?: LineStyle.PLAIN
             ToolPreset(id, name, tool, color, width, lineStyle)
         } ?: fallback.presets
+
+        val penPresets = root.getArr("penPresets")?.list?.mapNotNull { item ->
+            val obj = item as? JsonNode.Obj ?: return@mapNotNull null
+            val id = obj.getStrOrNull("id")?.ifEmpty { null } ?: return@mapNotNull null
+            val name = obj.getStr("name", id)
+            val minP = obj.getFloatOrNull("minimumPressure") ?: return@mapNotNull null
+            val mult = obj.getFloatOrNull("pressureMultiplier") ?: return@mapNotNull null
+            PenPreset(id, name, minP, mult)
+        } ?: fallback.penPresets
 
         return AppSettings(
             defaultPageWidthPt = root.getDouble("defaultPageWidthPt", fallback.defaultPageWidthPt),
@@ -221,6 +242,7 @@ object AppSettingsBackup {
             toolShortcutKeys = toolShortcutKeys,
             colorShortcutKeys = colorShortcutKeys,
             presets = presets,
+            penPresets = penPresets,
             textImportLimitMb = root.getInt("textImportLimitMb", fallback.textImportLimitMb),
             pdfCacheLimitMb = root.getInt("pdfCacheLimitMb", fallback.pdfCacheLimitMb),
             hasSeenOnboarding = root.getBool("hasSeenOnboarding", fallback.hasSeenOnboarding),

@@ -442,11 +442,13 @@ private fun AngleRow(
 fun PenParametersDialog(
     minimumPressure: Float,
     pressureMultiplier: Float,
-    onConfirm: (minimumPressure: Float, pressureMultiplier: Float) -> Unit,
+    presets: List<PenPreset> = PenPreset.DEFAULT_PRESETS,
+    onConfirm: (minimumPressure: Float, pressureMultiplier: Float, presets: List<PenPreset>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var minP by remember { mutableStateOf(minimumPressure) }
     var mult by remember { mutableStateOf(pressureMultiplier) }
+    var currentPresets by remember { mutableStateOf(presets) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -458,7 +460,17 @@ fun PenParametersDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PenPresetsRow(
+                    presets = currentPresets,
+                    currentMinPressure = minP,
+                    currentMultiplier = mult,
+                    onSelectPreset = { preset ->
+                        minP = preset.minimumPressure
+                        mult = preset.pressureMultiplier
+                    },
+                    onUpdatePresets = { currentPresets = it },
+                )
                 CompactParameterSlider(
                     label = "Sensitivity (min pressure)",
                     value = minP,
@@ -476,7 +488,7 @@ fun PenParametersDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(minP, mult) }) {
+            TextButton(onClick = { onConfirm(minP, mult, currentPresets) }) {
                 Text("Save")
             }
         },
