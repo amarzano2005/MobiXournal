@@ -102,4 +102,44 @@ class PenPresetTest {
         val afterLastRemove = removePenPreset(afterRemove, "p2")
         assertEquals(afterRemove, afterLastRemove)
     }
+
+    @Test
+    fun `movePenPreset reorders presets correctly`() {
+        val p1 = PenPreset("p1", "P1", 0.05f, 1.0f)
+        val p2 = PenPreset("p2", "P2", 0.08f, 1.5f)
+        val p3 = PenPreset("p3", "P3", 0.10f, 2.0f)
+        val list = listOf(p1, p2, p3)
+
+        // Move middle earlier (-1)
+        val movedEarlier = movePenPreset(list, 1, -1)
+        assertEquals(listOf(p2, p1, p3), movedEarlier)
+
+        // Move first later (+1)
+        val movedLater = movePenPreset(list, 0, 1)
+        assertEquals(listOf(p2, p1, p3), movedLater)
+
+        // Move middle to end (+1)
+        val movedToEnd = movePenPreset(list, 1, 1)
+        assertEquals(listOf(p1, p3, p2), movedToEnd)
+    }
+
+    @Test
+    fun `movePenPreset with out of bounds index or delta is no-op`() {
+        val p1 = PenPreset("p1", "P1", 0.05f, 1.0f)
+        val p2 = PenPreset("p2", "P2", 0.08f, 1.5f)
+        val list = listOf(p1, p2)
+
+        // Moving index 0 earlier is out of range
+        assertEquals(list, movePenPreset(list, 0, -1))
+
+        // Moving last index later is out of range
+        assertEquals(list, movePenPreset(list, 1, 1))
+
+        // Negative index is out of range
+        assertEquals(list, movePenPreset(list, -1, 1))
+
+        // Index beyond size is out of range
+        assertEquals(list, movePenPreset(list, 5, -1))
+    }
 }
+

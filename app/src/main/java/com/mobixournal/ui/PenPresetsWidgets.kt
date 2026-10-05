@@ -5,12 +5,17 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -18,6 +23,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,7 +43,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PenPresetsRow(
     presets: List<PenPreset>,
-    selectedPresetId: String,
+    selectedPresetId: String?,
     currentMinPressure: Float,
     currentMultiplier: Float,
     onSelectPreset: (PenPreset) -> Unit,
@@ -57,6 +63,39 @@ fun PenPresetsRow(
         ) {
             Text("Presets", style = MaterialTheme.typography.labelMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (activePreset != null && presets.size > 1) {
+                    val activeIndex = presets.indexOf(activePreset)
+                    IconButton(
+                        onClick = {
+                            if (activeIndex > 0) {
+                                onUpdatePresets(movePenPreset(presets, activeIndex, -1), activePreset.id)
+                            }
+                        },
+                        enabled = activeIndex > 0,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Move ${activePreset.name} earlier",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            if (activeIndex < presets.lastIndex) {
+                                onUpdatePresets(movePenPreset(presets, activeIndex, 1), activePreset.id)
+                            }
+                        },
+                        enabled = activeIndex < presets.lastIndex,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Move ${activePreset.name} later",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
                 if (activePreset != null) {
                     IconButton(
                         onClick = { renameTarget = activePreset },
@@ -123,9 +162,20 @@ fun PenPresetsRow(
 
     if (renameTarget != null) {
         val target = renameTarget!!
+        val targetIdx = presets.indexOf(target)
         RenamePenPresetDialog(
             preset = target,
             canDelete = presets.size > 1,
+            canMoveEarlier = targetIdx > 0,
+            canMoveLater = targetIdx in 0 until presets.lastIndex,
+            onMove = { delta ->
+                val curIdx = presets.indexOf(target)
+                if (curIdx >= 0) {
+                    val updated = movePenPreset(presets, curIdx, delta)
+                    onUpdatePresets(updated, target.id)
+                    renameTarget = updated.firstOrNull { it.id == target.id }
+                }
+            },
             onConfirm = { newName ->
                 onUpdatePresets(renamePenPreset(presets, target.id, newName), null)
                 renameTarget = null
@@ -157,11 +207,14 @@ fun PenPresetsRow(
     }
 }
 
-/** Dialog to edit a preset's name (and delete custom presets). */
+/** Dialog to edit a preset's name and order (and delete custom presets). */
 @Composable
 fun RenamePenPresetDialog(
     preset: PenPreset,
     canDelete: Boolean,
+    canMoveEarlier: Boolean = false,
+    canMoveLater: Boolean = false,
+    onMove: ((delta: Int) -> Unit)? = null,
     onConfirm: (newName: String) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -169,9 +222,9 @@ fun RenamePenPresetDialog(
     var name by remember { mutableStateOf(preset.name) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename preset", style = MaterialTheme.typography.titleMedium) },
+        title = { Text("Edit preset", style = MaterialTheme.typography.titleMedium) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -179,6 +232,43 @@ fun RenamePenPresetDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (onMove != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Order:", style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = { onMove(-1) },
+                                enabled = canMoveEarlier,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text("Earlier", style = MaterialTheme.typography.labelSmall)
+                            }
+                            OutlinedButton(
+                                onClick = { onMove(1) },
+                                enabled = canMoveLater,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            ) {
+                                Text("Later", style = MaterialTheme.typography.labelSmall)
+                                Spacer(Modifier.width(4.dp))
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {

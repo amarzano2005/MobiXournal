@@ -91,5 +91,13 @@ fun removePenPreset(presets: List<PenPreset>, id: String): List<PenPreset> {
     return if (filtered.isEmpty()) presets else filtered
 }
 
+/** [presets] with the entry at [index] moved by [delta] positions; out-of-range moves are no-ops. */
+fun movePenPreset(presets: List<PenPreset>, index: Int, delta: Int): List<PenPreset> {
+    val to = index + delta
+    if (index !in presets.indices || to !in presets.indices) return presets
+    return presets.toMutableList().also { it.add(to, it.removeAt(index)) }
+}
+
 private fun sanitizeField(text: String): String =
     text.replace(FIELD_SEP, ' ').replace(PRESET_SEP, ' ')
+

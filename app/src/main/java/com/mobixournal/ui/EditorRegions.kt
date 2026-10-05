@@ -146,6 +146,13 @@ fun EditorTopBar(
                 Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
             }
             TabOverviewButton(tabs)
+            IconButton(onClick = onToggleSplitView) {
+                Icon(
+                    Icons.Filled.VerticalSplit,
+                    contentDescription = if (splitView) "Close split view" else "Split view",
+                    tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                )
+            }
             OverflowMenu(
                 settings = settings,
                 onSelectPenPreset = { preset ->
@@ -169,8 +176,6 @@ fun EditorTopBar(
                 penDiagnostics = ui.penDiagnostics,
                 onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
                 onOpenPenParameters = { ui.showPenParametersDialog = true },
-                splitView = splitView,
-                onToggleSplitView = onToggleSplitView,
             )
         },
     )
@@ -971,7 +976,7 @@ fun EditorPaneView(
     }
 }
 
-/** The top-bar overflow ("hamburger") menu: compact quick file actions, PDF row, pen presets, and settings. */
+/** The top-bar overflow ("hamburger") menu: compact quick file actions, PDF row, pen subsection, and settings. */
 @Composable
 private fun OverflowMenu(
     settings: AppSettings?,
@@ -986,8 +991,6 @@ private fun OverflowMenu(
     penDiagnostics: Boolean,
     onTogglePenDiagnostics: () -> Unit,
     onOpenPenParameters: () -> Unit,
-    splitView: Boolean,
-    onToggleSplitView: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }) {
@@ -1060,34 +1063,34 @@ private fun OverflowMenu(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        // Pen Presets
-        if (settings != null && settings.penPresets.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
+        // Pen Subsection
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 2.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Text(
+                    "Pen",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                IconButton(
+                    onClick = { open = false; onOpenPenParameters() },
+                    modifier = Modifier.size(32.dp),
                 ) {
-                    Text(
-                        "Pen presets",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Icon(
+                        Icons.Filled.Tune,
+                        contentDescription = "Pen parameters",
+                        modifier = Modifier.size(18.dp),
                     )
-                    IconButton(
-                        onClick = { open = false; onOpenPenParameters() },
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Tune,
-                            contentDescription = "Pen parameters",
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
                 }
+            }
+            if (settings != null && settings.penPresets.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1107,27 +1110,45 @@ private fun OverflowMenu(
                         )
                     }
                 }
+                Spacer(Modifier.height(4.dp))
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-        } else {
-            DropdownMenuItem(
-                text = { Text("Pen parameters…") },
-                leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-                onClick = { open = false; onOpenPenParameters() },
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        open = false
+                        onTogglePenDiagnostics()
+                    }
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.BugReport,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = if (penDiagnostics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    if (penDiagnostics) "Hide pen diagnostics" else "Pen diagnostics",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                if (penDiagnostics) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
 
-        // Tools and Settings
-        DropdownMenuItem(
-            text = { Text(if (splitView) "Close split view" else "Split view") },
-            leadingIcon = { Icon(Icons.Filled.VerticalSplit, contentDescription = null) },
-            onClick = { open = false; onToggleSplitView() },
-        )
-        DropdownMenuItem(
-            text = { Text(if (penDiagnostics) "Hide pen diagnostics" else "Pen diagnostics") },
-            leadingIcon = { Icon(Icons.Filled.BugReport, contentDescription = null) },
-            onClick = { open = false; onTogglePenDiagnostics() },
-        )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        // Settings
         DropdownMenuItem(
             text = { Text("Settings") },
             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },

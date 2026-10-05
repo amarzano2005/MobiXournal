@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "pen-preset-reordering-diagnostics-in-pen-section-and-split-view-button-next-to-hamburger"
+title = "Pen preset reordering, diagnostics in pen section, and split view button next to hamburger"
+description = "Allow reordering pen presets via earlier/later arrows in row and edit dialog, move pen diagnostics into the pen subsection of overflow menu, and move split view button to top bar next to hamburger"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "default-values-for-new-presets-and-compact-overflow-menu-with-direct-preset-selection"
 title = "Default values for new presets and compact overflow menu with direct preset selection"
 description = "Initialize new pen presets with factory default parameters (0.05x / 1.00x) and redesign the hamburger overflow menu to be compact with 1-tap pen preset chips"
