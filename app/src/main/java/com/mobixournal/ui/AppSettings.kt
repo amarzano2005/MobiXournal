@@ -10,6 +10,8 @@ import com.mobixournal.render.PageStacker
 import com.mobixournal.render.PanSensitivity
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.StrokePrecision
+import com.mobixournal.render.ShapeBuilder
+import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
 /**
@@ -233,6 +235,12 @@ data class AppSettings(
     val scaleneAngleB: Float = 60f,
     /** Customizable interior angle C in degrees for [TriangleKind.SCALENE]. */
     val scaleneAngleC: Float = 80f,
+    /** Which variant of trapezoid the trapezoid tool draws: isosceles, right-angled or scalene. */
+    val trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
+    /** Customizable left base angle in degrees for [TrapezoidKind.SCALENE]. */
+    val trapezoidAngleA: Float = 75f,
+    /** Customizable right base angle in degrees for [TrapezoidKind.SCALENE]. */
+    val trapezoidAngleB: Float = 60f,
     /**
      * The Shapes submenu's members in display order, by [EditorTool.name]. Empty means the factory
      * order; names the list omits are appended (see [orderedShapeTools]).
@@ -322,7 +330,7 @@ data class AppSettings(
         val cleanPresets = penPresets.ifEmpty { PenPreset.DEFAULT_PRESETS }.map { preset ->
             preset.copy(
                 name = preset.name.ifBlank { preset.id },
-                minimumPressure = preset.minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
+                minimumPressure = preset.minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX),
                 pressureMultiplier = preset.pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
             )
         }
@@ -342,10 +350,20 @@ data class AppSettings(
             scaleneAngleA = scaleneAngleA.coerceIn(1f, 178f),
             scaleneAngleB = scaleneAngleB.coerceIn(1f, 178f),
             scaleneAngleC = scaleneAngleC.coerceIn(1f, 178f),
+            // A trapezoid's base angles are bounded away from 0/180: at either extreme a leg would be
+            // parallel to a base and the figure would no longer be a trapezoid (see ShapeBuilder).
+            trapezoidAngleA = trapezoidAngleA.coerceIn(
+                ShapeBuilder.MIN_TRAPEZOID_ANGLE_DEG.toFloat(),
+                ShapeBuilder.MAX_TRAPEZOID_ANGLE_DEG.toFloat(),
+            ),
+            trapezoidAngleB = trapezoidAngleB.coerceIn(
+                ShapeBuilder.MIN_TRAPEZOID_ANGLE_DEG.toFloat(),
+                ShapeBuilder.MAX_TRAPEZOID_ANGLE_DEG.toFloat(),
+            ),
             tableRows = tableRows.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
             tableCols = tableCols.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
             pressureMultiplier = pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
-            minimumPressure = minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
+            minimumPressure = minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX),
             penPresets = cleanPresets,
             selectedPenPresetId = cleanSelectedId,
             pageColumns = pageColumns.coerceIn(1, PageStacker.COLUMN_CHOICES.last()),
@@ -437,9 +455,14 @@ data class AppSettings(
         const val TABLE_DIMENSION_MIN: Int = 1
         const val TABLE_DIMENSION_MAX: Int = 50
 
-        /** The pressure-multiplier slider's range — desktop Xournal++'s "pressure multiplier". */
-        const val PRESSURE_MULTIPLIER_MIN: Float = 0.5f
-        const val PRESSURE_MULTIPLIER_MAX: Float = 2.5f
+        /**
+         * The pressure-multiplier slider's range — desktop Xournal++'s "pressure multiplier" slider
+         * bounds, taken from [PressureCurve] so the model and the control cannot drift apart. The top
+         * of the range is what a light writer needs to thicken a stroke noticeably; a narrower ceiling
+         * made the control feel inert.
+         */
+        const val PRESSURE_MULTIPLIER_MIN: Float = PressureCurve.MULTIPLIER_MIN
+        const val PRESSURE_MULTIPLIER_MAX: Float = PressureCurve.MULTIPLIER_MAX
 
         /**
          * The most colours the pen palette may hold. A ceiling keeps the swatch grid a grid — past
@@ -525,6 +548,11 @@ class SettingsStore(context: Context) {
             scaleneAngleA = prefs.getFloat(KEY_SCALENE_ANGLE_A, d.scaleneAngleA),
             scaleneAngleB = prefs.getFloat(KEY_SCALENE_ANGLE_B, d.scaleneAngleB),
             scaleneAngleC = prefs.getFloat(KEY_SCALENE_ANGLE_C, d.scaleneAngleC),
+            trapezoidKind = prefs.getString(KEY_TRAPEZOID_KIND, null)?.let {
+                runCatching { enumValueOf<TrapezoidKind>(it) }.getOrNull()
+            } ?: d.trapezoidKind,
+            trapezoidAngleA = prefs.getFloat(KEY_TRAPEZOID_ANGLE_A, d.trapezoidAngleA),
+            trapezoidAngleB = prefs.getFloat(KEY_TRAPEZOID_ANGLE_B, d.trapezoidAngleB),
             shapeOrder = decodeToolNames(prefs.getString(KEY_SHAPE_ORDER, null), SHAPE_GROUP.tools),
             shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), SHAPE_GROUP.tools).toSet(),
             toolGroupSelections = decodeToolGroupSelections(prefs.getString(KEY_TOOL_GROUPS, null)),
@@ -627,6 +655,9 @@ class SettingsStore(context: Context) {
             .putFloat(KEY_SCALENE_ANGLE_A, s.scaleneAngleA)
             .putFloat(KEY_SCALENE_ANGLE_B, s.scaleneAngleB)
             .putFloat(KEY_SCALENE_ANGLE_C, s.scaleneAngleC)
+            .putString(KEY_TRAPEZOID_KIND, s.trapezoidKind.name)
+            .putFloat(KEY_TRAPEZOID_ANGLE_A, s.trapezoidAngleA)
+            .putFloat(KEY_TRAPEZOID_ANGLE_B, s.trapezoidAngleB)
             .putString(KEY_SHAPE_ORDER, encodeToolNames(s.shapeOrder))
             .putString(KEY_SHAPE_HIDDEN, encodeToolNames(s.shapeHidden))
         e.putString(KEY_TOOL_GROUPS, encodeToolGroupSelections(s.toolGroupSelections))
@@ -721,6 +752,9 @@ class SettingsStore(context: Context) {
         const val KEY_SCALENE_ANGLE_A = "scalene_angle_a"
         const val KEY_SCALENE_ANGLE_B = "scalene_angle_b"
         const val KEY_SCALENE_ANGLE_C = "scalene_angle_c"
+        const val KEY_TRAPEZOID_KIND = "trapezoid_kind"
+        const val KEY_TRAPEZOID_ANGLE_A = "trapezoid_angle_a"
+        const val KEY_TRAPEZOID_ANGLE_B = "trapezoid_angle_b"
         const val KEY_SHAPE_ORDER = "shape_order"
         const val KEY_SHAPE_HIDDEN = "shape_hidden"
         const val KEY_TOOL_GROUPS = "tool_group_selections"

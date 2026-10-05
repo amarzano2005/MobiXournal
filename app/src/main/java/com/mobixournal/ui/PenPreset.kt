@@ -13,7 +13,7 @@ data class PenPreset(
     val pressureMultiplier: Float,
 ) {
     companion object {
-        const val FACTORY_DEFAULT_MIN_PRESSURE = 0.05f
+        const val FACTORY_DEFAULT_MIN_PRESSURE = PressureCurve.MINIMUM_PRESSURE_DEFAULT
         const val FACTORY_DEFAULT_MULTIPLIER = 1.0f
 
         /** The factory default pen presets offered on first launch. */
@@ -63,7 +63,8 @@ fun decodePenPresets(raw: String?, fallback: List<PenPreset> = PenPreset.DEFAULT
         val id = f[0].trim().ifEmpty { return@mapNotNull null }
         if (id in RETIRED_DEFAULT_PRESET_IDS) return@mapNotNull null
         val name = f[1].trim().ifEmpty { id }
-        val minP = f[2].trim().toFloatOrNull()?.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f)
+        val minP = f[2].trim().toFloatOrNull()
+            ?.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX)
             ?: return@mapNotNull null
         val mult = f[3].trim().toFloatOrNull()?.coerceIn(
             AppSettings.PRESSURE_MULTIPLIER_MIN,

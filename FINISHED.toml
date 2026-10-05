@@ -17,6 +17,94 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "add-a-trapezoid-tool-after-the-rhombus-with-isosceles-default-and-right-angled-scalene-variants"
+title = "Add a trapezoid tool after the rhombus, with isosceles default and right-angled/scalene variants"
+description = "New ShapeKind.TRAPEZOID + TrapezoidKind {ISOSCELES (default), RIGHT, SCALENE}, drawn as one constant-width stroke like the other figures. Geometry is box-driven (bottom base = drag width) with scalene configured by its two base angles, laid out by the shared ShapeBuilder.trapezoidOutline so the settings dialog preview and the tool cannot drift. Wired through the tool registry, the Shapes submenu and the top bar (after the rhombus), the top-bar variant popup sharing one composable with the triangle, the scalene angle dialog, settings persistence/backup, and tests (ShapeBuilderTest, SettingsSanitizeTest, ShapeSubmenuTest, TopBarItemsTest, ToolGlyphsTest, AppSettingsBackupTest). Docs: README + architecture."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "make-the-pen-sensitivity-controls-bite-desktop-slider-ranges-one-width-expression-disabled-with-reason-when-pressure-is-off-pressure-readout-in-diagnostics"
+title = "Make the pen sensitivity controls bite: desktop slider ranges, one width expression, disabled-with-reason when pressure is off, pressure readout in diagnostics"
+description = "The minimum-pressure and pressure-multiplier controls could be moved with no visible effect. Fixes: (1) PressureCurve now owns the whole width expression (widthPt) which widthForPressure calls, so the settings' effect on a drawn width is unit-tested; (2) the slider ranges are desktop Xournal++'s own (minimumPressure 0.01-1, multiplier 0.5-4) instead of the narrower 0.5/2.5 ceiling; (3) both controls are disabled with the reason while Pressure sensitivity is off, as the desktop greys the same frame, instead of silently doing nothing; (4) Pen diagnostics prints the raw pressure per event plus a PEN sens/mult/min/base -> width line logged whenever settings reach the surface, so a value that never arrives is visible. Tests: PressureCurveTest (width chain, ranges, pressure-off), PenInputLogTest (pressure line + dedupe key), SettingsSanitizeTest. Docs: README + architecture."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "reorder-default-pen-palette-to-black-red-green-blue-orange-yellow-magenta-white"
+title = "Reorder default pen palette to black, red, green, blue, orange, yellow, magenta, white"
+description = "Ship the eight desktop Xournal++ swatches in the requested order, with yellow before magenta (PEN_COLORS in ui/ToolbarColorPopup.kt). Hexes unchanged and still xournal.gpl's own: #000000, #FF0000, #008000, #3333CC, #FF8000, #FFFF00, #FF00FF, #FFFFFF. The keyboard colour shortcuts already list settings.penColors, so they follow the new order automatically. PaletteColorsTest and DesktopColorParityTest updated; README/architecture note the order. No other colours removed (the .xopp named-colour parse table and the custom colour slot are kept)."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "re-enable-cloud-and-remote-storage-saving"
+title = "Re-enable cloud and remote storage saving"
+description = "Revert the local-storage-only restriction: Save / Save As and PDF export use plain ActivityResultContracts.CreateDocument again, the CreateLocalDocument wrapper and all isCloudUri guards are gone, and the isCloudAuthority/isCloudUri helpers, the cloud_save_not_supported string and the values-it strings file are removed. README updated to document cloud/remote saving."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "harden-tab-snapshot-integrity-on-session-restore"
+title = "Harden tab-snapshot integrity on session restore"
+description = "Fix the blank-page-on-reopen data loss: TabStore now writes each snapshot atomically (tmp + rename) so a kill mid-write can't truncate it; TabStore.save and MainActivity.snapshotActiveTab skip a tab that is still OpenTab.opening (a slow remote/cloud fetch whose placeholder sits on the strip while the canvas shows the previous tab); and TabStore.hydrate leaves a tab unhydrated when its snapshot exists but won't parse, so the unreadable bytes are never overwritten by the blank stand-in (MainActivity.show now tells the user instead). New tests in TabStoreTest."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "table-row-counter-excludes-header-row"
+title = "Table row counter excludes header row"
+description = "In ShapeBuilder.table, treat the row count as data rows only: with hasHeader the grid now draws safeRows data rows plus one header row (effectiveRows = safeRows + 1) instead of eating the first row. Updates ShapeBuilderTest to reflect the new semantics and adds a regression test."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "selection-marquee-edge-auto-scroll"
+title = "Selection marquee edge auto-scroll"
+description = "With the Select tool and nothing selected, dragging the rectangle/lasso marquee into the top or bottom edge band now scrolls the page vertically and extends the selection, matching desktop Xournal++. Adds updateDragAutoScroll on the banding MOVE and a banding branch in autoScrollFrame; reworks the marquee corners in SelectionGestureController from view px to page-local pt (bandStart/bandEnd) so a scroll extends the band instead of shifting it, and updates DrawingSurfacePaint.drawBand to convert pt to view px."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "top-bar-save-button-and-split-view-next-to-search"
+title = "Top-bar Save button and split view next to search"
+description = "Add a one-tap Save icon button to the editor top bar in the slot the split-view button held (between redo and the overflow menu), and move the split-view button to sit directly right of the search button. Touches EditorTopBar.actions in ui/EditorRegions.kt; no behaviour change to saving itself (still calls onSave)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "disallow-saving-to-cloud-storage-providers"
 title = "Disallow saving to cloud storage providers"
 description = "Restrict document saving and PDF export to local storage, blocking cloud providers (e.g. Google Drive, OneDrive, Dropbox) via EXTRA_LOCAL_ONLY in the file picker and validating URIs on save."

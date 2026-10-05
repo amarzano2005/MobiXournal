@@ -23,6 +23,7 @@ import com.mobixournal.render.InputSettings
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.ShapeKind
+import com.mobixournal.render.tracePenParameters
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
@@ -58,6 +59,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.TRIANGLE -> ShapeKind.TRIANGLE
         EditorTool.SQUARE -> ShapeKind.SQUARE
         EditorTool.RHOMBUS -> ShapeKind.RHOMBUS
+        EditorTool.TRAPEZOID -> ShapeKind.TRAPEZOID
         EditorTool.PENTAGON -> ShapeKind.PENTAGON
         EditorTool.HEXAGON -> ShapeKind.HEXAGON
         EditorTool.TABLE -> ShapeKind.TABLE
@@ -85,7 +87,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         // Shapes are drawn as ordinary pen strokes; the shapeKind above turns a drag into geometry.
         EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
         EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.SPLINE,
-        EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS,
+        EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
         EditorTool.PENTAGON, EditorTool.HEXAGON,
         EditorTool.TABLE,
         EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
@@ -140,6 +142,9 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     scaleneAngleA = s.scaleneAngleA.toDouble()
     scaleneAngleB = s.scaleneAngleB.toDouble()
     scaleneAngleC = s.scaleneAngleC.toDouble()
+    trapezoidKind = s.trapezoidKind
+    trapezoidAngleA = s.trapezoidAngleA.toDouble()
+    trapezoidAngleB = s.trapezoidAngleB.toDouble()
     // Only place a guide the surface isn't already showing — re-placing on every settings change
     // would yank a guide the user has carefully positioned back to the middle of the screen.
     if (s.guideKind == GuideKind.NONE) {
@@ -150,6 +155,9 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     flingStrength = s.momentum
     momentumCurve = s.momentumCurve
     panSensitivity = s.panSensitivity
+    // With pen diagnostics open, print the pressure filter as the surface now holds it: that line is
+    // what turns "the sensitivity slider does nothing" into either the new value or a missing wire.
+    tracePenParameters()
 }
 
 /**

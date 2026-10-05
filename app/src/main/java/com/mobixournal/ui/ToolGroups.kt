@@ -40,7 +40,7 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
         listOf(
             EditorTool.ELLIPSE,
             // The STEM figures (see [ShapeKind] / [ShapeBuilder]).
-            EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS,
+            EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
             EditorTool.PENTAGON, EditorTool.HEXAGON,
             EditorTool.SPLINE, EditorTool.COORDINATE_AXIS,
         ),

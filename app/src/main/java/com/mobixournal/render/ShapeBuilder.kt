@@ -11,7 +11,7 @@ import kotlin.math.sin
 enum class ShapeKind {
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE,
     // The STEM set: the regular figures reached for when annotating maths and science.
-    TRIANGLE, SQUARE, RHOMBUS, PENTAGON, HEXAGON,
+    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND, AND_GATE, OR_GATE, NOT_GATE,
@@ -36,6 +36,14 @@ object ShapeBuilder {
     private const val ELLIPSE_MIN_SEGMENTS = 24
     private const val ELLIPSE_MAX_SEGMENTS = 96
 
+    /**
+     * The base angles a scalene trapezoid may be configured with, in degrees. Bounded away from 0/180
+     * so a leg can never be parallel to a base: at either extreme the figure would stop being a
+     * trapezoid at all (a rectangle, or the legs meeting).
+     */
+    const val MIN_TRAPEZOID_ANGLE_DEG = 5.0
+    const val MAX_TRAPEZOID_ANGLE_DEG = 175.0
+
     fun build(
         kind: ShapeKind,
         startX: Double, startY: Double,
@@ -48,6 +56,9 @@ object ShapeBuilder {
         angleA: Double = 40.0,
         angleB: Double = 60.0,
         angleC: Double = 80.0,
+        trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
+        trapezoidAngleA: Double = 75.0,
+        trapezoidAngleB: Double = 60.0,
     ): List<StrokePoint> = when (kind) {
         ShapeKind.LINE -> line(startX, startY, endX, endY, widthPt)
         ShapeKind.ARROW -> arrow(startX, startY, endX, endY, widthPt)
@@ -58,6 +69,10 @@ object ShapeBuilder {
         ShapeKind.TRIANGLE -> triangle(startX, startY, endX, endY, widthPt, triangleKind, angleA, angleB, angleC)
         ShapeKind.SQUARE -> square(startX, startY, endX, endY, widthPt)
         ShapeKind.RHOMBUS -> rhombus(startX, startY, endX, endY, widthPt)
+        ShapeKind.TRAPEZOID -> trapezoid(
+            startX, startY, endX, endY, widthPt,
+            trapezoidKind, trapezoidAngleA, trapezoidAngleB,
+        )
         ShapeKind.PENTAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 5)
         ShapeKind.HEXAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 6)
         ShapeKind.TABLE -> table(startX, startY, endX, endY, widthPt, rows, cols, hasHeader)
@@ -293,6 +308,123 @@ object ShapeBuilder {
     }
 
     /**
+     * A trapezoid — a quadrilateral with one pair of horizontal parallel sides — drawn into the
+     * drag's box, in the variant [kind] (see [TrapezoidKind]).
+     *
+     * The box's width is the **longer** (bottom) base and its height the figure's height, the same way
+     * [rectangle] and [rhombus] take the box as the figure: a drag says where the trapezoid goes and
+     * how big it is, and the kind says which trapezoid it is. Only the scalene variant needs angles,
+     * which it lays out through [trapezoidOutline] — the same function the settings' angle dialog
+     * previews with, so what is shown there is what gets drawn.
+     */
+    private fun trapezoid(
+        sx: Double, sy: Double, ex: Double, ey: Double, w: Double,
+        kind: TrapezoidKind = TrapezoidKind.ISOSCELES,
+        angleA: Double = 75.0,
+        angleB: Double = 60.0,
+    ): List<StrokePoint> {
+        val l = minOf(sx, ex); val r = maxOf(sx, ex)
+        val top = minOf(sy, ey); val bot = maxOf(sy, ey)
+        val boxW = r - l; val boxH = bot - top
+        if (boxW == 0.0 || boxH == 0.0) return line(sx, sy, ex, ey, w)
+
+        // The outline is expressed in a box the drag's own size (the scalene fit included), so it
+        // only needs moving onto the drag. Tracing starts at the bottom-left corner and returns to
+        // it, which keeps the closed figure a single stroke.
+        val out = trapezoidOutline(kind, boxW, boxH, angleA, angleB)
+        return out.map { (x, y) -> p(l + x, top + y, w) }.let { pts -> pts + pts.first() }
+    }
+
+    /**
+     * The trapezoid's four vertices in a [widthPt] × [heightPt] pt box whose top-left corner is the
+     * origin, as (x, y) pairs, bottom-left corner first and traced anticlockwise — the order the
+     * stroke follows. Pure box geometry, so both the tool ([trapezoid]) and the settings dialog's
+     * preview can lay the figure out identically.
+     *
+     * - [TrapezoidKind.ISOSCELES]: the shorter base is centred over the longer one at half its width.
+     * - [TrapezoidKind.RIGHT]: the left leg is vertical (right angles at the bottom-left and
+     *   top-left), the shorter base running half the box's width from that edge.
+     * - [TrapezoidKind.SCALENE]: base angles [angleA] (left) and [angleB] (right) in degrees, with the
+     *   parallel sides horizontal. Either angle may be obtuse — the leg then leans outward — and the
+     *   figure is uniformly scaled to stay inside the box (angles preserved) and centred in it, exactly
+     *   as the scalene triangle is fitted to its drag.
+     */
+    fun trapezoidOutline(
+        kind: TrapezoidKind,
+        widthPt: Double,
+        heightPt: Double,
+        angleA: Double = 75.0,
+        angleB: Double = 60.0,
+    ): List<Pair<Double, Double>> = when (kind) {
+        TrapezoidKind.ISOSCELES -> {
+            val inset = widthPt / 4.0
+            listOf(
+                0.0 to heightPt,
+                widthPt to heightPt,
+                widthPt - inset to 0.0,
+                inset to 0.0,
+            )
+        }
+        TrapezoidKind.RIGHT -> {
+            val topLen = widthPt / 2.0
+            listOf(
+                0.0 to heightPt,
+                widthPt to heightPt,
+                topLen to 0.0,
+                0.0 to 0.0,
+            )
+        }
+        TrapezoidKind.SCALENE -> scaleneTrapezoidOutline(widthPt, heightPt, angleA, angleB)
+    }
+
+    /**
+     * The scalene trapezoid: two base angles define the shape, and the given box only how big it is.
+     *
+     * Built at full box height, which fixes the top base as `width - h·(cot A + cot B)`; when the legs
+     * would cross (or the shorter base would all but vanish) the whole figure is scaled down uniformly
+     * about its own centre, which preserves both angles — the same trade the scalene triangle makes.
+     */
+    private fun scaleneTrapezoidOutline(
+        widthPt: Double,
+        heightPt: Double,
+        angleA: Double,
+        angleB: Double,
+    ): List<Pair<Double, Double>> {
+        val a = kotlin.math.abs(angleA).coerceIn(MIN_TRAPEZOID_ANGLE_DEG, MAX_TRAPEZOID_ANGLE_DEG)
+        val b = kotlin.math.abs(angleB).coerceIn(MIN_TRAPEZOID_ANGLE_DEG, MAX_TRAPEZOID_ANGLE_DEG)
+        val h = heightPt
+        val runLeft = h * cotDeg(a)
+        val runRight = h * cotDeg(b)
+        val topLeft = runLeft
+        val topRight = widthPt - runRight
+        // The figure's own bounds at that height: a leg may lean outside the box (obtuse base angle),
+        // pushing a top corner past a bottom one.
+        val minX = minOf(0.0, topLeft, topRight, widthPt)
+        val maxX = maxOf(0.0, topLeft, topRight, widthPt)
+        val figW = (maxX - minX).coerceAtLeast(1e-9)
+        val figH = h.coerceAtLeast(1e-9)
+        val scale = minOf(1.0, widthPt / figW, heightPt / figH)
+        val scaledW = figW * scale
+        val scaledH = figH * scale
+        val offsetX = (widthPt - scaledW) / 2.0 - minX * scale
+        val offsetY = (heightPt - scaledH) / 2.0
+        fun x(v: Double) = v * scale + offsetX
+        fun y(v: Double) = v * scale + offsetY
+        return listOf(
+            x(0.0) to y(heightPt),
+            x(widthPt) to y(heightPt),
+            x(topRight) to y(0.0),
+            x(topLeft) to y(0.0),
+        )
+    }
+
+    /** `cot` of an angle in degrees, via `tan` (0 at 90°, negative past it — an outward-leaning leg). */
+    private fun cotDeg(degrees: Double): Double {
+        val t = kotlin.math.tan(Math.toRadians(degrees.coerceIn(MIN_TRAPEZOID_ANGLE_DEG, MAX_TRAPEZOID_ANGLE_DEG)))
+        return if (kotlin.math.abs(t) < 1e-9) 0.0 else 1.0 / t
+    }
+
+    /**
      * A regular [sides]-gon inscribed in the drag's box, first vertex at the top. The box may be a
      * non-square rectangle (a stretched figure), matching how [ellipse] fills its box.
      */
@@ -351,7 +483,9 @@ object ShapeBuilder {
         var curX = l
         var curY = top
 
-        val effectiveRows = if (hasHeader && safeRows == 1) 2 else safeRows
+        // [rows] counts **data** rows only: turning the header on stacks one extra row above them,
+        // rather than consuming the first of the rows the user asked for.
+        val effectiveRows = safeRows + if (hasHeader) 1 else 0
         val rowHeight = (bot - top) / effectiveRows
         val headerGap = if (hasHeader) {
             (w * 2.5).coerceIn(2.0, (rowHeight * 0.3).coerceAtLeast(2.0))

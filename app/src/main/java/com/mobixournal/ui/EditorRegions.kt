@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import com.mobixournal.render.GuideKind
+import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -138,19 +139,25 @@ fun EditorTopBar(
         },
         modifier = Modifier.height(40.dp),
         actions = {
+            // Order is deliberate: split view sits directly right of the search button, and Save —
+            // the more frequent action — takes the slot split view used to hold, right before the
+            // overflow menu. Undo/redo stay paired between them.
             SearchControls(pane)
-            IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
-                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-            }
-            IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
-                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
-            }
             IconButton(onClick = onToggleSplitView) {
                 Icon(
                     Icons.Filled.VerticalSplit,
                     contentDescription = if (splitView) "Close split view" else "Split view",
                     tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 )
+            }
+            IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
+                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+            }
+            IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
+                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+            }
+            IconButton(onClick = onSave) {
+                Icon(Icons.Filled.Save, contentDescription = "Save")
             }
             OverflowMenu(
                 settings = settings,
@@ -388,36 +395,42 @@ fun TopBarToolsRow(
                     active = ui.tool == single,
                     onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                 )
-            } else if (item.id == "triangle") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CompactTrianglePopupButton(
-                        active = ui.tool == EditorTool.TRIANGLE,
-                        triangleKind = settings.triangleKind,
-                        onSelectKind = { kind ->
-                            val updated = settings.copy(triangleKind = kind)
-                            onSettingsChange(updated)
-                            surface?.activateTool(EditorTool.TRIANGLE, ui, updated, onSettingsChange)
-                        },
-                        onOpenAnglesDialog = { ui.showScaleneAnglesDialog = true },
-                        onClick = { surface?.activateTool(EditorTool.TRIANGLE, ui, settings, onSettingsChange) },
-                    )
-                    if (ui.tool == EditorTool.TRIANGLE && settings.triangleKind == TriangleKind.SCALENE) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .clickable { ui.showScaleneAnglesDialog = true },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "Customize scalene angles",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp),
-                            )
-                        }
-                    }
+            } else if (item.id == "triangle" || item.id == "trapezoid") {
+                val triangle = item.id == "triangle"
+                val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
+                val kindLabels = if (triangle) {
+                    TriangleKind.values().map { it.label }
+                } else {
+                    TrapezoidKind.values().map { it.label }
                 }
+                val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
+                CompactShapeKindButton(
+                    tool = tool,
+                    active = ui.tool == tool,
+                    heading = if (triangle) "Triangle" else "Trapezoid",
+                    kinds = kindLabels,
+                    selectedKind = kind,
+                    editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
+                    onSelectKind = { index ->
+                        val updated = if (triangle) {
+                            settings.copy(triangleKind = TriangleKind.values()[index])
+                        } else {
+                            settings.copy(trapezoidKind = TrapezoidKind.values()[index])
+                        }
+                        onSettingsChange(updated)
+                        surface?.activateTool(tool, ui, updated, onSettingsChange)
+                    },
+                    // The scalene variant is the one with angles to set, so while it is the live one the
+                    // button keeps its pencil: one tap reopens the dialog instead of digging into a menu.
+                    showEditor = ui.tool == tool &&
+                        (if (triangle) settings.triangleKind == TriangleKind.SCALENE
+                        else settings.trapezoidKind == TrapezoidKind.SCALENE),
+                    editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
+                    onEditKind = {
+                        if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
+                    },
+                    onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
+                )
             } else {
                 val group = toolGroupForRailItem(item.id)
                 if (group != null) {
@@ -474,82 +487,115 @@ private fun CompactSingleToolButton(
     }
 }
 
+/**
+ * A figure tool that ships in several geometric variants (the triangle and the trapezoid): tapping
+ * the button picks the tool, tapping it again — or a long press — opens the variant menu, and while a
+ * variant that has something to configure (the scalene kind's angles) is the live one, a pencil sits
+ * beside the button to reopen its dialog.
+ *
+ * Shared by both figures rather than copied, so the two behave identically: same tap-to-pick /
+ * tap-again-to-change-the-variant gesture, same pencil, same menu shape.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CompactTrianglePopupButton(
+private fun CompactShapeKindButton(
+    tool: EditorTool,
     active: Boolean,
-    triangleKind: TriangleKind,
-    onSelectKind: (TriangleKind) -> Unit,
-    onOpenAnglesDialog: () -> Unit,
+    heading: String,
+    kinds: List<String>,
+    selectedKind: Int,
+    editableKind: Int,
+    onSelectKind: (Int) -> Unit,
+    showEditor: Boolean,
+    editorHint: String,
+    onEditKind: () -> Unit,
     onClick: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Box {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
-                .combinedClickable(
-                    onClick = { if (active) open = true else onClick() },
-                    onLongClick = { open = true },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
+                    .combinedClickable(
+                        onClick = { if (active) open = true else onClick() },
+                        onLongClick = { open = true },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    tool.icon,
+                    contentDescription = "Tool: ${tool.label}",
+                    tint = tint,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
             Icon(
-                EditorTool.TRIANGLE.icon,
-                contentDescription = "Tool: Triangle",
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 1.dp, bottom = 1.dp)
+                    .size(10.dp),
             )
-        }
-        Icon(
-            Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 1.dp, bottom = 1.dp)
-                .size(10.dp),
-        )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            MenuHeading("Triangle")
-            for (kind in TriangleKind.values()) {
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(kind.label)
-                            if (kind == TriangleKind.SCALENE) {
-                                Spacer(Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .clickable {
-                                            open = false
-                                            onSelectKind(TriangleKind.SCALENE)
-                                            onOpenAnglesDialog()
-                                        },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Edit,
-                                        contentDescription = "Customize scalene angles",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp),
-                                    )
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                MenuHeading(heading)
+                kinds.forEachIndexed { index, label ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(label)
+                                if (index == editableKind) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                open = false
+                                                onSelectKind(index)
+                                                onEditKind()
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.Edit,
+                                            contentDescription = editorHint,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    },
-                    trailingIcon = {
-                        if (kind == triangleKind) Icon(Icons.Filled.Check, contentDescription = "selected")
-                    },
-                    onClick = {
-                        onSelectKind(kind)
-                        open = false
-                    },
+                        },
+                        trailingIcon = {
+                            if (index == selectedKind) Icon(Icons.Filled.Check, contentDescription = "selected")
+                        },
+                        onClick = {
+                            onSelectKind(index)
+                            open = false
+                        },
+                    )
+                }
+            }
+        }
+        if (showEditor) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onEditKind),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = editorHint,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp),
                 )
             }
         }

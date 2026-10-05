@@ -55,6 +55,28 @@ class ToolGlyphsTest {
     }
 
     @Test
+    fun `trapezoid glyph is the isosceles outline the tool draws`() {
+        assertEquals("Trapezoid", TrapezoidIcon.name)
+        assertEquals(4, TRAPEZOID_OUTLINE.size)
+        // Two horizontal parallel sides, the upper one shorter and centred over the lower one.
+        val top = TRAPEZOID_OUTLINE.take(2)
+        val bottom = TRAPEZOID_OUTLINE.drop(2)
+        assertEquals(top[0].second, top[1].second, 1e-6f)
+        assertEquals(bottom[0].second, bottom[1].second, 1e-6f)
+        assertEquals(
+            (top[0].first + top[1].first) / 2f,
+            (bottom[0].first + bottom[1].first) / 2f,
+            1e-6f,
+        )
+        assertTrue(
+            "the shorter side is on top",
+            abs((top[1].first - top[0].first).toDouble()) <
+                abs((bottom[1].first - bottom[0].first).toDouble()),
+        )
+        assertTrue(TRAPEZOID_OUTLINE.all { (x, y) -> x in 0f..24f && y in 0f..24f })
+    }
+
+    @Test
     fun `pentagon glyph has 5 vertices centered horizontally`() {
         assertEquals("Pentagon", PentagonIcon.name)
         assertEquals(5, PENTAGON_OUTLINE.size)

@@ -18,21 +18,54 @@ import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 
-/** Record one pointer event — touch, hover or generic motion — as the view received it. */
+/**
+ * Record one pointer event — touch, hover or generic motion — as the view received it, pressure
+ * included: the reading the pen's width is computed from belongs next to the event that carried it.
+ */
 internal fun DrawingSurfaceView.tracePenMotion(event: MotionEvent) {
     if (!penDebugEnabled) return
     val index = event.actionIndex
     val toolType = event.getToolType(index)
     val deviceName = event.device?.name
+    val pressure = event.getPressure(index)
     recordPenLine(
         PenEventText.motionLine(
-            event.actionMasked, toolType, event.buttonState, event.pointerCount, deviceName,
+            event.actionMasked, toolType, event.buttonState, event.pointerCount, deviceName, pressure,
         ),
         PenEventText.motionKey(
-            event.actionMasked, toolType, event.buttonState, event.pointerCount, deviceName,
+            event.actionMasked, toolType, event.buttonState, event.pointerCount, deviceName, pressure,
         ),
     )
 }
+
+/**
+ * Record the live pressure filter and what it makes of a half press — the pen parameters as the
+ * **drawing surface** holds them right now.
+ *
+ * Called whenever settings are pushed onto the canvas (and when the panel is switched on), because the
+ * one thing the panel could not previously answer is whether a value typed into Settings reached the
+ * pen at all. A slider moved with the panel open now prints the new multiplier (or does not, which is
+ * the answer).
+ */
+internal fun DrawingSurfaceView.tracePenParameters() {
+    if (!penDebugEnabled) return
+    recordPenLine(
+        PenEventText.penParametersLine(
+            enabled = pressureEnabled,
+            multiplier = pressureMultiplier,
+            minimum = minimumPressure,
+            baseWidthPt = baseWidthPt,
+            samplePressure = SAMPLE_PRESSURE,
+            sampleWidthPt = PressureCurve.widthPt(
+                baseWidthPt, SAMPLE_PRESSURE, pressureEnabled, pressureMultiplier, minimumPressure,
+            ),
+        ),
+        key = null,
+    )
+}
+
+/** The pressure the parameter line reports a width for: a mid press, so both ends stay comparable. */
+private const val SAMPLE_PRESSURE = 0.5f
 
 /**
  * Record one key event. Every key is logged, not only the barrel's: when a pen's button does
@@ -64,6 +97,7 @@ internal fun DrawingSurfaceView.setPenDebug(enabled: Boolean) {
     penLog.clear()
     if (enabled) {
         tracePenDevices()
+        tracePenParameters()
         postPenLogFlush()
     } else {
         onPenDebug?.invoke(emptyList())

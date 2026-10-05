@@ -183,22 +183,38 @@ fun PanSensitivitySlider(value: Float, onChange: (Float) -> Unit) {
 /**
  * The pen's minimum-pressure floor — desktop Xournal++'s "minimum pressure": the fraction of the
  * pen's width a stroke keeps even at zero pressure. 0.05 is the desktop default; raise it if a very
- * light touch should still draw a visible line.
+ * light touch should still draw a visible line. The range is the desktop slider's own
+ * ([PressureCurve.MINIMUM_PRESSURE_MIN] … [PressureCurve.MINIMUM_PRESSURE_MAX]).
+ *
+ * [enabled] is false while **Pressure sensitivity** is off: the floor is one half of that filter, so
+ * with pressure off the stroke is drawn at the size setting and this slider changes nothing. Disabled
+ * rather than hidden, with the reason on screen — the same thing desktop Xournal++ does — so the
+ * control never looks broken while it is inert.
  */
 @Composable
-fun MinimumPressureSlider(value: Float, onChange: (Float) -> Unit) {
+fun MinimumPressureSlider(
+    value: Float,
+    onChange: (Float) -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
     Text("Minimum pressure", style = MaterialTheme.typography.bodyLarge)
     Text(
-        "The lightest a stroke can get, as a fraction of the pen's width. 0.05 is desktop " +
-            "Xournal++'s default; raise it if a very light touch should still draw a visible line.",
+        if (enabled) {
+            "The lightest a stroke can get, as a fraction of the pen's width. 0.05 is desktop " +
+                "Xournal++'s default; raise it if a very light touch should still draw a visible line."
+        } else {
+            PRESSURE_FILTER_OFF_HINT
+        },
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(bottom = 4.dp),
     )
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Slider(
             value = value,
             onValueChange = onChange,
-            valueRange = PressureCurve.MINIMUM_PRESSURE_MIN..0.5f,
+            enabled = enabled,
+            valueRange = PressureCurve.MINIMUM_PRESSURE_MIN..PressureCurve.MINIMUM_PRESSURE_MAX,
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(12.dp))
@@ -209,22 +225,37 @@ fun MinimumPressureSlider(value: Float, onChange: (Float) -> Unit) {
 /**
  * The pen's pressure-multiplier control: scales the raw pressure before the minimum floor, so a light
  * writer can thicken lines without changing the size setting. 1 leaves the pressure unchanged (the
- * default); higher thickens (and can push a stroke past its nominal width, as on the desktop).
+ * default); higher thickens (and can push a stroke past its nominal width, as on the desktop). The
+ * range is the desktop slider's own, up to [PressureCurve.MULTIPLIER_MAX] — the headroom that makes
+ * the control worth reaching for.
+ *
+ * [enabled] is false while **Pressure sensitivity** is off, for the same reason as
+ * [MinimumPressureSlider]: half of a filter that is switched off has nothing to act on.
  */
 @Composable
-fun PressureMultiplierSlider(value: Float, onChange: (Float) -> Unit) {
+fun PressureMultiplierSlider(
+    value: Float,
+    onChange: (Float) -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
     Text("Pressure multiplier", style = MaterialTheme.typography.bodyLarge)
     Text(
-        "Scales the pen's pressure before it thickens the line. Raise it if you write lightly and " +
-            "want thicker strokes; 1 leaves your pressure as the tablet reports it, and above 1 a " +
-            "stroke can exceed its set width — as on the desktop.",
+        if (enabled) {
+            "Scales the pen's pressure before it thickens the line. Raise it if you write lightly and " +
+                "want thicker strokes (up to %.1f×); 1 leaves your pressure as the tablet reports it, and " +
+                "above 1 a stroke can exceed its set width — as on the desktop.".format(PressureCurve.MULTIPLIER_MAX)
+        } else {
+            PRESSURE_FILTER_OFF_HINT
+        },
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(bottom = 4.dp),
     )
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Slider(
             value = value,
             onValueChange = onChange,
+            enabled = enabled,
             valueRange = AppSettings.PRESSURE_MULTIPLIER_MIN..AppSettings.PRESSURE_MULTIPLIER_MAX,
             modifier = Modifier.weight(1f),
         )
@@ -232,6 +263,14 @@ fun PressureMultiplierSlider(value: Float, onChange: (Float) -> Unit) {
         Text("%.2f×".format(value), modifier = Modifier.width(60.dp), textAlign = TextAlign.End)
     }
 }
+
+/**
+ * Why a pressure-filter control is inert while **Pressure sensitivity** is off — desktop Xournal++'s
+ * own wording for the same disabled state ("Enable pressure sensitivity … to change this setting!").
+ */
+const val PRESSURE_FILTER_OFF_HINT: String =
+    "Inactive: turn on Pressure sensitivity (above) to change the pen's pressure filter — with it off " +
+        "every stroke is drawn at its set width."
 
 /**
  * A reorderable, toggleable list of rail-style rows — the shared body of the Toolbar section's rail

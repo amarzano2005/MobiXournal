@@ -48,6 +48,17 @@ val RHOMBUS_OUTLINE: List<Pair<Float, Float>> = listOf(
     3f to 12f,
 )
 
+/**
+ * The **Trapezoid** figure's outline vertices — the isosceles trapezoid the tool ships as its
+ * default, so the glyph reads as the shape the tool draws.
+ */
+val TRAPEZOID_OUTLINE: List<Pair<Float, Float>> = listOf(
+    8f to 8f,
+    16f to 8f,
+    21f to 19f,
+    3f to 19f,
+)
+
 /** The **Square** figure's outline vertices. */
 val SQUARE_OUTLINE: List<Pair<Float, Float>> = listOf(
     3f to 3f,
@@ -76,6 +87,9 @@ val HEXAGON_OUTLINE: List<Pair<Float, Float>> = regularPolygonOutline(6)
 
 /** Hollow rhombus outline glyph. */
 val RhombusIcon: ImageVector by lazy { buildOutlineIcon("Rhombus", RHOMBUS_OUTLINE) }
+
+/** Hollow trapezoid outline glyph. */
+val TrapezoidIcon: ImageVector by lazy { buildOutlineIcon("Trapezoid", TRAPEZOID_OUTLINE) }
 
 /** Hollow square outline glyph. */
 val SquareIcon: ImageVector by lazy { buildOutlineIcon("Square", SQUARE_OUTLINE) }

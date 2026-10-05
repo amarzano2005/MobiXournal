@@ -410,6 +410,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** For [TriangleKind.SCALENE]: interior angle C in degrees. */
     var scaleneAngleC: Double = 80.0
+
+    /** Geometric variant for [ShapeKind.TRAPEZOID]: isosceles (default), right-angled, scalene. */
+    var trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES
+
+    /** For [TrapezoidKind.SCALENE]: left base angle in degrees (measured from the longer base). */
+    var trapezoidAngleA: Double = 75.0
+
+    /** For [TrapezoidKind.SCALENE]: right base angle in degrees (measured from the longer base). */
+    var trapezoidAngleB: Double = 60.0
     /**
      * When true, a finished freehand pen stroke that clearly means a primitive (line, arrow, circle,
      * rectangle, triangle, polyline) is snapped to clean geometry — see [ShapeRecognizer].

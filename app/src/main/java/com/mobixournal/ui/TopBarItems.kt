@@ -15,6 +15,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("triangle", "Triangle"),
     RailItem("square", "Square"),
     RailItem("rhombus", "Rhombus"),
+    RailItem("trapezoid", "Trapezoid"),
     RailItem("pentagon", "Pentagon"),
     RailItem("hexagon", "Hexagon"),
     RailItem("spline", "Spline"),
@@ -34,7 +35,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "ellipse", "triangle", "square", "rhombus",
-    "pentagon", "hexagon", "spline", "axis", "arrow",
+    "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
     "table", "circuit", "logic", "guides",
 )
 
@@ -68,7 +69,12 @@ fun decodeTopBarIds(raw: String?): List<String> {
     return raw.split(',').map { it.trim() }.filter { it in known }.distinct()
 }
 
-/** Map top bar id to a single EditorTool if it represents an individual tool directly. */
+/**
+ * Map top bar id to a single EditorTool if it represents an individual tool directly, or null
+ * when the slot is rendered by a dedicated button instead. ["triangle"] and ["trapezoid"] return
+ * null because they carry their own variant picker (isosceles / right / scalene); routing them
+ * through a plain single-tool button would hide that menu.
+ */
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE

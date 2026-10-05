@@ -6,6 +6,7 @@ import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.MomentumCurve
 import com.mobixournal.render.StrokePrecision
+import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
 /**
@@ -69,6 +70,9 @@ object AppSettingsBackup {
         b.append("  \"scaleneAngleA\": ").append(settings.scaleneAngleA).append(",\n")
         b.append("  \"scaleneAngleB\": ").append(settings.scaleneAngleB).append(",\n")
         b.append("  \"scaleneAngleC\": ").append(settings.scaleneAngleC).append(",\n")
+        b.append("  \"trapezoidKind\": \"").append(settings.trapezoidKind.name).append("\",\n")
+        b.append("  \"trapezoidAngleA\": ").append(settings.trapezoidAngleA).append(",\n")
+        b.append("  \"trapezoidAngleB\": ").append(settings.trapezoidAngleB).append(",\n")
         b.append("  \"shapeOrder\": [")
             .append(settings.shapeOrder.joinToString(", ") { "\"${escape(it)}\"" })
             .append("],\n")
@@ -228,6 +232,9 @@ object AppSettingsBackup {
             scaleneAngleA = root.getFloat("scaleneAngleA", fallback.scaleneAngleA),
             scaleneAngleB = root.getFloat("scaleneAngleB", fallback.scaleneAngleB),
             scaleneAngleC = root.getFloat("scaleneAngleC", fallback.scaleneAngleC),
+            trapezoidKind = readEnum("trapezoidKind", TrapezoidKind.values(), fallback.trapezoidKind),
+            trapezoidAngleA = root.getFloat("trapezoidAngleA", fallback.trapezoidAngleA),
+            trapezoidAngleB = root.getFloat("trapezoidAngleB", fallback.trapezoidAngleB),
             shapeOrder = root.getStrList("shapeOrder") ?: fallback.shapeOrder,
             shapeHidden = root.getStrList("shapeHidden")?.toSet() ?: fallback.shapeHidden,
             toolGroupSelections = toolGroupSelections,

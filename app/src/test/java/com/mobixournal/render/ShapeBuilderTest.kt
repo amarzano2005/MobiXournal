@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.StrokePoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.hypot
@@ -82,7 +83,7 @@ class ShapeBuilderTest {
 
     @Test fun theStemFiguresAreClosedAndKeepTheConstantWidth() {
         for (kind in listOf(
-            ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.RHOMBUS,
+            ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
             ShapeKind.PENTAGON, ShapeKind.HEXAGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
@@ -97,7 +98,7 @@ class ShapeBuilderTest {
         // Every stem figure except the square is inscribed in the drag box; the square squares off
         // the drag's longer side (see [squareSquaresOffTheLongerSide]), so it may exceed the box.
         for (kind in listOf(
-            ShapeKind.TRIANGLE, ShapeKind.RHOMBUS,
+            ShapeKind.TRIANGLE, ShapeKind.RHOMBUS, ShapeKind.TRAPEZOID,
             ShapeKind.PENTAGON, ShapeKind.HEXAGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
@@ -121,6 +122,7 @@ class ShapeBuilderTest {
         fun count(kind: ShapeKind): Int = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 20.0, 1.0).size
         assertEquals(4, count(ShapeKind.TRIANGLE))   // 3 vertices + the closing repeat
         assertEquals(5, count(ShapeKind.RHOMBUS))    // 4 + closing repeat
+        assertEquals(5, count(ShapeKind.TRAPEZOID))  // 4 + closing repeat
         assertEquals(6, count(ShapeKind.PENTAGON))   // 5 + closing repeat
         assertEquals(7, count(ShapeKind.HEXAGON))    // 6 + closing repeat
     }
@@ -159,6 +161,24 @@ class ShapeBuilderTest {
         }
     }
 
+    @Test fun tableHeaderAddsAnExtraRowRatherThanConsumingOne() {
+        // [rows] counts **data** rows only: a header stacks one extra row above them, so asking for
+        // 2 data rows with a header lays out the same horizontal grid as 3 plain rows.
+        fun horizontalYs(pts: List<StrokePoint>): Set<Double> =
+            (0 until pts.size - 1)
+                .filter { kotlin.math.abs(pts[it].y - pts[it + 1].y) < 1e-9 }
+                .map { pts[it].y }
+                .toSet()
+        val plain = ShapeBuilder.build(ShapeKind.TABLE, 0.0, 0.0, 60.0, 60.0, widthPt = 1.0, rows = 3, cols = 2)
+        val withHeader = ShapeBuilder.build(ShapeKind.TABLE, 0.0, 0.0, 60.0, 60.0, widthPt = 1.0, rows = 2, cols = 2, hasHeader = true)
+        val expected = setOf(0.0, 20.0, 40.0, 60.0)
+        assertTrue("3 plain rows divide at y = 20 and 40", horizontalYs(plain).containsAll(expected))
+        assertTrue(
+            "2 data rows + header divide at the same y as 3 plain rows",
+            horizontalYs(withHeader).containsAll(expected),
+        )
+    }
+
     @Test fun tableWithOneRowOneColIsClosedRectangle() {
         val pts = ShapeBuilder.build(ShapeKind.TABLE, 0.0, 0.0, 10.0, 10.0, widthPt = 1.0, rows = 1, cols = 1)
         assertEquals(5, pts.size)
@@ -180,10 +200,10 @@ class ShapeBuilderTest {
     }
 
     @Test fun relationalTableHeaderDividesAllColumnsAndHasDoubleLine() {
-        // In a 3x3 table with header from (0,0) to (60,60):
-        // Rows are 20pt high. The header row (y=0..20) must be divided into 3 columns
-        // just like the data rows, and the header row is separated by a double line.
-        val pts = ShapeBuilder.build(ShapeKind.TABLE, 0.0, 0.0, 60.0, 60.0, widthPt = 1.0, rows = 3, cols = 3, hasHeader = true)
+        // Two data rows plus a header from (0,0) to (60,60): three rows total, so each is 20pt high.
+        // The header row (y=0..20) must be divided into 3 columns just like the data rows, and the
+        // header row is separated by a double line.
+        val pts = ShapeBuilder.build(ShapeKind.TABLE, 0.0, 0.0, 60.0, 60.0, widthPt = 1.0, rows = 2, cols = 3, hasHeader = true)
 
         // Verify vertical dividers at x=20 and x=40 span from y=0 to y=60 (entering the header row)
         val vertical20 = pts.filter { kotlin.math.abs(it.x - 20.0) < 1e-6 }
@@ -289,5 +309,109 @@ class ShapeBuilderTest {
         assertEquals(30.0, calculatedAngleA, 0.5)
         assertEquals(60.0, calculatedAngleB, 0.5)
         assertEquals(90.0, calculatedAngleC, 0.5)
+    }
+
+    // --- the trapezoid ------------------------------------------------------------------------
+
+    @Test fun isoscelesTrapezoidSpansTheDragBaseWithAHalfWidthTopCentredOverIt() {
+        val pts = ShapeBuilder.build(ShapeKind.TRAPEZOID, 0.0, 0.0, 100.0, 80.0, widthPt = 2.0)
+        assertEquals("four corners plus the closing point", 5, pts.size)
+        assertEquals(pts.first().x, pts.last().x, 1e-9)
+        assertEquals(pts.first().y, pts.last().y, 1e-9)
+        // The longer (bottom) base is the drag's whole width...
+        assertEquals(0.0, pts[0].x, 1e-9); assertEquals(80.0, pts[0].y, 1e-9)
+        assertEquals(100.0, pts[1].x, 1e-9); assertEquals(80.0, pts[1].y, 1e-9)
+        // ...and the shorter one half of it, centred, so the two legs are equal (isosceles).
+        assertEquals(75.0, pts[2].x, 1e-9); assertEquals(0.0, pts[2].y, 1e-9)
+        assertEquals(25.0, pts[3].x, 1e-9); assertEquals(0.0, pts[3].y, 1e-9)
+        assertTrue("every point carries the width setting", pts.all { it.width == 2.0 })
+    }
+
+    @Test fun rightTrapezoidHasAVerticalLeftLeg() {
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRAPEZOID, 0.0, 0.0, 100.0, 80.0, widthPt = 1.0,
+            trapezoidKind = TrapezoidKind.RIGHT,
+        )
+        assertEquals(5, pts.size)
+        // The left leg joins (0,80) to (0,0): a right angle at each end of it.
+        assertEquals(0.0, pts[0].x, 1e-9)
+        assertEquals(0.0, pts[3].x, 1e-9)
+        assertEquals(
+            "the bottom-left corner is square",
+            90.0,
+            angleAtDegrees(vPrev = pts[3], vertex = pts[0], vNext = pts[1]),
+            1e-6,
+        )
+        assertEquals(
+            "the top-left corner is square",
+            90.0,
+            angleAtDegrees(vPrev = pts[2], vertex = pts[3], vNext = pts[0]),
+            1e-6,
+        )
+        // Half-width shorter base, so it is a trapezoid and not a rectangle.
+        assertEquals(50.0, pts[2].x, 1e-9)
+    }
+
+    @Test fun scaleneTrapezoidKeepsTheConfiguredBaseAngles() {
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRAPEZOID, 0.0, 0.0, 200.0, 120.0, widthPt = 1.0,
+            trapezoidKind = TrapezoidKind.SCALENE,
+            trapezoidAngleA = 70.0, trapezoidAngleB = 55.0,
+        )
+        assertEquals(5, pts.size)
+        val bl = pts[0]; val br = pts[1]; val tr = pts[2]; val tl = pts[3]
+        assertEquals("left base angle", 70.0, angleAtDegrees(vPrev = tl, vertex = bl, vNext = br), 0.5)
+        assertEquals("right base angle", 55.0, angleAtDegrees(vPrev = tr, vertex = br, vNext = bl), 0.5)
+        // Unequal base angles mean unequal legs: four different sides, a genuine scalene trapezoid.
+        assertNotEquals("the legs differ", hypot(tl.x - bl.x, tl.y - bl.y), hypot(tr.x - br.x, tr.y - br.y))
+        // Both parallel sides stay horizontal, which is what makes it a trapezoid.
+        assertEquals(bl.y, br.y, 1e-9)
+        assertEquals(tl.y, tr.y, 1e-9)
+    }
+
+    @Test fun scaleneTrapezoidStaysInsideItsDragEvenWithObtuseBaseAngles() {
+        // 150/160 degrees make legs that lean far outward: the figure must be fitted, not spilled.
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRAPEZOID, 10.0, 20.0, 110.0, 120.0, widthPt = 1.0,
+            trapezoidKind = TrapezoidKind.SCALENE,
+            trapezoidAngleA = 150.0, trapezoidAngleB = 160.0,
+        )
+        assertTrue("x stays inside the drag", pts.all { it.x >= 10.0 - 1e-6 && it.x <= 110.0 + 1e-6 })
+        assertTrue("y stays inside the drag", pts.all { it.y >= 20.0 - 1e-6 && it.y <= 120.0 + 1e-6 })
+        assertEquals(
+            "left base angle survives the fit",
+            150.0,
+            angleAtDegrees(vPrev = pts[3], vertex = pts[0], vNext = pts[1]),
+            0.5,
+        )
+        assertEquals(
+            "right base angle survives the fit",
+            160.0,
+            angleAtDegrees(vPrev = pts[2], vertex = pts[1], vNext = pts[0]),
+            0.5,
+        )
+    }
+
+    @Test fun aTrapezoidDraggedBackwardsIsTheSameFigure() {
+        val forward = ShapeBuilder.build(ShapeKind.TRAPEZOID, 0.0, 0.0, 100.0, 80.0, widthPt = 1.0)
+        val backward = ShapeBuilder.build(ShapeKind.TRAPEZOID, 100.0, 80.0, 0.0, 0.0, widthPt = 1.0)
+        assertEquals(forward.size, backward.size)
+        forward.forEachIndexed { i, p ->
+            assertEquals(p.x, backward[i].x, 1e-9)
+            assertEquals(p.y, backward[i].y, 1e-9)
+        }
+    }
+
+    @Test fun aDegenerateDragFallsBackToALine() {
+        val pts = ShapeBuilder.build(ShapeKind.TRAPEZOID, 5.0, 5.0, 5.0, 5.0, widthPt = 1.0)
+        assertEquals(2, pts.size)
+    }
+
+    /** The interior angle at [vertex], in degrees, from the two neighbours. */
+    private fun angleAtDegrees(vPrev: StrokePoint, vertex: StrokePoint, vNext: StrokePoint): Double {
+        val ux = vPrev.x - vertex.x; val uy = vPrev.y - vertex.y
+        val vx = vNext.x - vertex.x; val vy = vNext.y - vertex.y
+        val cosTheta = ((ux * vx + uy * vy) / (hypot(ux, uy) * hypot(vx, vy))).coerceIn(-1.0, 1.0)
+        return Math.toDegrees(kotlin.math.acos(cosTheta))
     }
 }

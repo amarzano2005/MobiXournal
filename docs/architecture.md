@@ -318,7 +318,14 @@ native for stylus latency and platform fit).
   (`AppSettings.pressureEnabled`) turns the taper off entirely, so a pen stroke draws at its set size
   and matches a shape exactly; when on, the width is `max(minimumPressure, pressure × multiplier)`
   (`PressureCurve.penFactor`) — the desktop's `filterPressure` — with `minimumPressure` and
-  `pressureMultiplier` carried as the desktop's own two settings. Shapes (line, rectangle, ellipse,
+  `pressureMultiplier` carried as the desktop's own two settings. *Decision (2026-10-05):* the whole
+  expression lives once, in `PressureCurve.widthPt()`, which `widthForPressure()` calls — so the
+  settings' effect on a drawn width is unit-tested (`PressureCurveTest`) instead of being read off a
+  call site. The two sliders' **ranges are the desktop's own** (`adjustmentMinimumPressure` 0.01–1,
+  `adjustmentPressureMultiplier` 0.5–4, mirrored as `PressureCurve.MINIMUM_PRESSURE_*` /
+  `MULTIPLIER_*`): a narrower ceiling is what made the multiplier feel inert. And because half of a
+  switched-off filter can only do nothing, both controls are shown **disabled with the reason** while
+  `pressureEnabled` is false — desktop Xournal++ greys the same frame out — rather than looking broken. Shapes (line, rectangle, ellipse,
   arrow, double arrow, coordinate axis, spline) have no pressure stream, so they are drawn at the size
   setting **verbatim** (`DrawingSurfaceView.nominalShapeWidthPt()`), exactly as the desktop draws
   them: an app-invented scale would make a shape drawn here a different thickness from one drawn on
@@ -456,11 +463,16 @@ Consequences worth knowing:
   runs it on a worker and paints the canvas when it lands, so a cold start with many tabs never waits
   on more than the index. Writing is the mirror image: `EditorPane.persist` reads the session on the
   caller's thread and queues the save onto a single-threaded writer, with `awaitPersist` in `onPause`
-  so a backgrounded app still lands its snapshot. Two rules keep a placeholder from destroying
-  content: `TabStore.save` skips unhydrated tabs (their file on disk is the truth), and
-  `snapshotActiveTab` skips a tab whose parse is still in flight (the canvas still holds the previous
-  tab). Handing an unhydrated tab to the other pane copies the snapshot *file* (`TabStore.adopt`)
-  rather than parsing it.
+  so a backgrounded app still lands its snapshot. Four rules keep a placeholder from destroying
+  content: `TabStore.save` skips unhydrated tabs (their file on disk is the truth); it also skips a
+  tab that is still **`OpenTab.opening`** — a slow remote/cloud fetch whose placeholder document is
+  on the strip while the canvas still shows the *previous* tab; `snapshotActiveTab` skips a tab whose
+  parse is still in flight, for the same reason; and `TabStore.hydrate` leaves a tab **unhydrated**
+  when its snapshot exists but cannot be parsed, so the unreadable bytes are never overwritten by the
+  blank stand-in. Writing is atomic for the same end — a snapshot lands through a `.tmp` sibling and a
+  rename, so a kill mid-write can't leave a truncated file that the next launch would fail to read.
+  Handing an unhydrated tab to the other pane copies the snapshot *file* (`TabStore.adopt`) rather
+  than parsing it.
 - Tabs that were opened from a file keep that `content://` URI, so **Save** after a restart still
   writes back to the same document.
 - **The tab overview draws previews from the same snapshots.** The top bar's grid button
@@ -698,6 +710,7 @@ app/
       PageEraser.kt          # eraser applied to a page: mode, tip size, hidden-layer skip (pure)
       ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list (pure)
       TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
+      TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
       CircuitShapes.kt       # circuits & logic gates (resistor, capacitor, inductor, ground, AND, OR, NOT, NAND, NOR, XOR, XNOR) (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
@@ -737,7 +750,7 @@ app/
       ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
       ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog
       ToolbarStylePopup.kt   # shared line-style chips, and the shape-recognition toggle
-      ToolGlyphs.kt          # custom rail glyphs (the hollow rhombus); Material has no outline diamond
+      ToolGlyphs.kt          # custom rail glyphs (the hollow rhombus, the trapezoid); Material has no outline diamond
       CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
       ToolbarViewPopups.kt   # rail slots: zoom, page background, drawing guides, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog
@@ -813,7 +826,7 @@ the shared ones touched; `NOTICE` carries the full list). The headline changes:
   `CircleRecognizer.kt`, rewritten `ShapeRecognizer.kt`), replacing a hand-rolled classifier;
 - **colours were re-derived from upstream**: desktop Xournal++'s palette hexes, an HSV/hex custom
   slot, pinned by `PaletteColorsTest` (NeXopp shipped six hand-picked swatches); the shipping
-  default is now the eight swatches black/red/green/blue/orange/magenta/yellow/white, and the palette is
+  default is now the eight swatches black/red/green/blue/orange/yellow/magenta/white, and the palette is
   user-editable under Settings → Colors;
 - the **highlighter** now blends with a separable `BlendMode.MULTIPLY` at 0.47 and snaps to
   desktop's 2.83 / 8.50 / 19.84 pt tips — NeXopp had neither;
@@ -1050,6 +1063,14 @@ drag's start/end into a vertex list, previewed live and committed as one undoabl
 round-trip like any stroke. The **triangle tool** supports four geometric variants (`TriangleKind`):
 equilateral (factory default, preserved 60° angles), right-angled, isosceles (centered apex), and scalene
 (with customizable interior angles A, B, and C constrained to sum to 180° and previewed on a live canvas).
+The **trapezoid tool** (right after the rhombus) is the same pattern with three variants
+(`TrapezoidKind`): isosceles (factory default — the shorter base centred over the longer one at half
+its width), right-angled (the left leg vertical, so two angles are square), and scalene, whose two base
+angles are freely customizable — a trapezoid has one pair of parallel sides, so its two base angles fix
+its shape, and unequal angles are exactly what makes all four sides differ. `ShapeBuilder.trapezoidOutline()`
+is the single layout both the tool and the settings dialog's preview call, so the preview cannot drift
+from what a drag produces; the scalene figure is uniformly scaled to stay inside its drag (which
+preserves the angles) and centred, the same fit the scalene triangle uses.
 The **table tool** creates an \(R \times C\) grid as a single continuous polyline,
 with configurable rows and columns, optional relational header row (rendering a double separator line under the first row),
 support for live drag-sizing and one-tap centered viewport insertion,
@@ -1884,9 +1905,19 @@ toolbar":
 paths above are claims about hardware the app cannot see, the input layer carries its own instrument
 — and it is what settled the Honor pen rather than a guess: **☰ menu → Pen diagnostics** floats a live log over the canvas
 (`ui/PenDiagnosticsPanel.kt`), fed by the pure, JVM-tested **`PenInputLog`** (`PenInputLogTest`) whose
-lines are formatted by **`PenEventText`** — tool types, actions, button bits, key codes with their
-names, and the input-device list with each device's source flags (`DrawingSurfacePenDebug.kt` records
-the devices when the panel opens). Every hook (`tracePenMotion` in the three motion handlers,
+lines are formatted by **`PenEventText`** — tool types, actions, button bits, the **raw pressure**
+the tablet reports for the pointer, key codes with their names, and the input-device list with each
+device's source flags (`DrawingSurfacePenDebug.kt` records the devices when the panel opens). Pressure
+is part of the de-duplication key, so a press that never moves still shows up.
+
+The same panel answers the other "it does nothing" question — *did my setting reach the pen at all* —
+with `tracePenParameters()`: `applySettings` (and switching the panel on) logs one `PEN sens/mult/min/
+base -> @p/w` line holding the surface's own pressure filter and the width it makes of a half press. A
+slider moved in Settings either prints its new value there or never reached the drawing surface, which
+turns a guess into a reading.
+
+Every diagnostic figure is formatted in `Locale.ROOT` (not the device locale), so a pressure reads
+`0.42` on every phone and the lines stay comparable with a pen's spec sheet. Every hook (`tracePenMotion` in the three motion handlers,
 `tracePenKey` in `dispatchKeyEvent`) is a read-only observer placed *before* the routing, so what the
 panel shows is what the app really receives, not what the routing made of it; identical consecutive
 states are de-duplicated to a key so a long hover is one line, and snapshots are coalesced into one

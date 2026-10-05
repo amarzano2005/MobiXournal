@@ -36,7 +36,7 @@ class ShapeSubmenuTest {
     @Test fun theStemFiguresAreInTheShapesGroup() {
         val members = SHAPE_GROUP.tools
         assertTrue(
-            listOf("TRIANGLE", "SQUARE", "RHOMBUS", "PENTAGON", "HEXAGON")
+            listOf("TRIANGLE", "SQUARE", "RHOMBUS", "TRAPEZOID", "PENTAGON", "HEXAGON")
                 .all { name -> members.any { it.name == name } },
         )
     }

@@ -146,6 +146,52 @@ class PenInputLogTest {
     }
 
     @Test
+    fun `a motion line reports the pressure the width is computed from`() {
+        val line = PenEventText.motionLine(2, 2, 0, 1, null, pressure = 0.42f)
+        assertEquals("MOVE tool=stylus btn=- p=0.42", line)
+        assertEquals(
+            "a press that never happens must not print a value",
+            "DOWN tool=finger btn=-",
+            PenEventText.motionLine(0, 1, 0, 1, null),
+        )
+    }
+
+    @Test
+    fun `the dedupe key tracks the pressure, so a harder press is recorded`() {
+        val soft = PenEventText.motionKey(2, 2, 0, 1, null, pressure = 0.30f)
+        assertEquals(soft, PenEventText.motionKey(2, 2, 0, 1, null, pressure = 0.30f))
+        assertNotEquals(soft, PenEventText.motionKey(2, 2, 0, 1, null, pressure = 0.60f))
+        // Pressure is only worth two decimals, so digitiser jitter inside that stays one line.
+        assertEquals(soft, PenEventText.motionKey(2, 2, 0, 1, null, pressure = 0.3004f))
+    }
+
+    @Test
+    fun `the pen parameters line reports the filter and the width it produces`() {
+        assertEquals(
+            "PEN sens=on mult=4.00x min=0.05 base=2.00pt -> @p=0.50 w=4.00pt",
+            PenEventText.penParametersLine(
+                enabled = true,
+                multiplier = 4f,
+                minimum = 0.05f,
+                baseWidthPt = 2f,
+                samplePressure = 0.5f,
+                sampleWidthPt = 4.0,
+            ),
+        )
+        assertEquals(
+            "PEN sens=off mult=1.00x min=0.05 base=2.00pt -> @p=0.50 w=2.00pt",
+            PenEventText.penParametersLine(
+                enabled = false,
+                multiplier = 1f,
+                minimum = 0.05f,
+                baseWidthPt = 2f,
+                samplePressure = 0.5f,
+                sampleWidthPt = 2.0,
+            ),
+        )
+    }
+
+    @Test
     fun `a long device name is shortened so the line stays on one row`() {
         val line = PenEventText.motionLine(2, 2, 0, 1, "HONOR Choice Pencil 2nd generation")
         assertTrue(line.endsWith("…"))

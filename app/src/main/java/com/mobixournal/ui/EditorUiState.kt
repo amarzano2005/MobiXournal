@@ -64,6 +64,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showImportPdf by mutableStateOf(false)
     /** Whether the Scalene triangle angles customization dialog is showing. */
     var showScaleneAnglesDialog by mutableStateOf(false)
+    /** Whether the Scalene trapezoid angles customization dialog is showing. */
+    var showTrapezoidAnglesDialog by mutableStateOf(false)
     /** Whether the quick Pen Parameters floating dialog is showing. */
     var showPenParametersDialog by mutableStateOf(false)
 

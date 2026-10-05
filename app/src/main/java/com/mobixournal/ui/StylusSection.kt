@@ -71,74 +71,88 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    if (settings.pressureEnabled) {
-        Spacer(Modifier.height(12.dp))
-        PenPresetsRow(
-            presets = settings.penPresets,
-            selectedPresetId = settings.selectedPenPresetId,
-            currentMinPressure = settings.minimumPressure,
-            currentMultiplier = settings.pressureMultiplier,
-            onSelectPreset = { preset ->
-                onChange(
-                    settings.copy(
-                        selectedPenPresetId = preset.id,
-                        minimumPressure = preset.minimumPressure,
-                        pressureMultiplier = preset.pressureMultiplier,
-                    )
+    // The filter's components stay on screen even when pressure is off — disabled, with the reason
+    // stated — rather than vanishing: a control that silently does nothing is what makes a working
+    // slider read as broken (desktop Xournal++ greys the same frame out).
+    Spacer(Modifier.height(12.dp))
+    Text(
+        "Pressure filter",
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    Text(
+        "How your raw pressure is turned into line width: multiplied, then floored. Applies to the " +
+            "pen; the highlighter and the figure tools always draw at their set width.",
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(bottom = 4.dp),
+    )
+    Spacer(Modifier.height(8.dp))
+    PenPresetsRow(
+        presets = settings.penPresets,
+        selectedPresetId = settings.selectedPenPresetId,
+        currentMinPressure = settings.minimumPressure,
+        currentMultiplier = settings.pressureMultiplier,
+        onSelectPreset = { preset ->
+            onChange(
+                settings.copy(
+                    selectedPenPresetId = preset.id,
+                    minimumPressure = preset.minimumPressure,
+                    pressureMultiplier = preset.pressureMultiplier,
                 )
-            },
-            onUpdatePresets = { updated, newSelectedId ->
-                val nextSelectedId = newSelectedId ?: settings.selectedPenPresetId
-                val active = updated.firstOrNull { it.id == nextSelectedId }
-                onChange(
-                    settings.copy(
-                        penPresets = updated,
-                        selectedPenPresetId = nextSelectedId,
-                        minimumPressure = active?.minimumPressure ?: settings.minimumPressure,
-                        pressureMultiplier = active?.pressureMultiplier ?: settings.pressureMultiplier,
-                    )
+            )
+        },
+        onUpdatePresets = { updated, newSelectedId ->
+            val nextSelectedId = newSelectedId ?: settings.selectedPenPresetId
+            val active = updated.firstOrNull { it.id == nextSelectedId }
+            onChange(
+                settings.copy(
+                    penPresets = updated,
+                    selectedPenPresetId = nextSelectedId,
+                    minimumPressure = active?.minimumPressure ?: settings.minimumPressure,
+                    pressureMultiplier = active?.pressureMultiplier ?: settings.pressureMultiplier,
                 )
-            },
-        )
-        Spacer(Modifier.height(12.dp))
-        MinimumPressureSlider(
-            value = settings.minimumPressure,
-            onChange = { newMinP ->
-                val updatedPresets = settings.penPresets.map { preset ->
-                    if (preset.id == settings.selectedPenPresetId) {
-                        preset.copy(minimumPressure = newMinP)
-                    } else {
-                        preset
-                    }
+            )
+        },
+    )
+    Spacer(Modifier.height(12.dp))
+    MinimumPressureSlider(
+        value = settings.minimumPressure,
+        enabled = settings.pressureEnabled,
+        onChange = { newMinP ->
+            val updatedPresets = settings.penPresets.map { preset ->
+                if (preset.id == settings.selectedPenPresetId) {
+                    preset.copy(minimumPressure = newMinP)
+                } else {
+                    preset
                 }
-                onChange(
-                    settings.copy(
-                        minimumPressure = newMinP,
-                        penPresets = updatedPresets,
-                    )
+            }
+            onChange(
+                settings.copy(
+                    minimumPressure = newMinP,
+                    penPresets = updatedPresets,
                 )
-            },
-        )
-        Spacer(Modifier.height(12.dp))
-        PressureMultiplierSlider(
-            value = settings.pressureMultiplier,
-            onChange = { newMult ->
-                val updatedPresets = settings.penPresets.map { preset ->
-                    if (preset.id == settings.selectedPenPresetId) {
-                        preset.copy(pressureMultiplier = newMult)
-                    } else {
-                        preset
-                    }
+            )
+        },
+    )
+    Spacer(Modifier.height(12.dp))
+    PressureMultiplierSlider(
+        value = settings.pressureMultiplier,
+        enabled = settings.pressureEnabled,
+        onChange = { newMult ->
+            val updatedPresets = settings.penPresets.map { preset ->
+                if (preset.id == settings.selectedPenPresetId) {
+                    preset.copy(pressureMultiplier = newMult)
+                } else {
+                    preset
                 }
-                onChange(
-                    settings.copy(
-                        pressureMultiplier = newMult,
-                        penPresets = updatedPresets,
-                    )
+            }
+            onChange(
+                settings.copy(
+                    pressureMultiplier = newMult,
+                    penPresets = updatedPresets,
                 )
-            },
-        )
-    }
+            )
+        },
+    )
 
     HorizontalDivider(Modifier.padding(vertical = 12.dp))
     OptionGroup(

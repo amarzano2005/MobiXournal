@@ -37,8 +37,8 @@ enum class EditorTool {
     TEXT, IMAGE, TEXIMAGE,
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE, VERTICAL_SPACE,
     PLAY_OBJECT,
-    // The STEM figures (see [ShapeKind]): regular polygons, a square and a rhombus.
-    TRIANGLE, SQUARE, RHOMBUS, PENTAGON, HEXAGON,
+    // The STEM figures (see [ShapeKind]): regular polygons, a square, a rhombus and a trapezoid.
+    TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND, AND_GATE, OR_GATE, NOT_GATE,
@@ -49,7 +49,7 @@ enum class EditorTool {
 val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
     EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.SPLINE,
-    EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS,
+    EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
     EditorTool.PENTAGON, EditorTool.HEXAGON,
     EditorTool.TABLE,
     EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR, EditorTool.GROUND,
@@ -73,6 +73,7 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.TRIANGLE, "Triangle", Icons.Filled.ChangeHistory),
     ToolInfo(EditorTool.SQUARE, "Square", SquareIcon),
     ToolInfo(EditorTool.RHOMBUS, "Rhombus", RhombusIcon),
+    ToolInfo(EditorTool.TRAPEZOID, "Trapezoid", TrapezoidIcon),
     ToolInfo(EditorTool.PENTAGON, "Pentagon", PentagonIcon),
     ToolInfo(EditorTool.HEXAGON, "Hexagon", HexagonIcon),
     ToolInfo(EditorTool.TABLE, "Table", TableIcon),

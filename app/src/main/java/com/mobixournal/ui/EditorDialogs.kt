@@ -49,6 +49,8 @@ import com.mobixournal.format.FontDescription
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PressureCurve
+import com.mobixournal.render.ShapeBuilder
+import com.mobixournal.render.TrapezoidKind
 import kotlin.math.roundToInt
 
 /** The families offered in the text dialog — names desktop Xournal++ and Android both resolve. */
@@ -394,11 +396,131 @@ fun ScaleneAnglesDialog(
     )
 }
 
+/**
+ * Dialog to customize the two base angles of a scalene trapezoid — the trapezoid's own analogue of
+ * [ScaleneAnglesDialog]. A trapezoid's two base angles fix its shape: with the parallel sides
+ * horizontal, the left and right legs run inward by `cot(angle)`, so the angles alone decide how much
+ * the shorter base is inset and how the two legs differ (unequal angles = unequal legs).
+ *
+ * The preview is laid out by [ShapeBuilder.trapezoidOutline] — the same function the tool draws with
+ * — so what the dialog shows is exactly what a drag will produce.
+ */
+@Composable
+fun TrapezoidAnglesDialog(
+    angleA: Float,
+    angleB: Float,
+    onConfirm: (angleA: Float, angleB: Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var a by remember { mutableStateOf(angleA) }
+    var b by remember { mutableStateOf(angleB) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Scalene trapezoid angles") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Set the two angles the legs make with the longer base (left and right). Unequal " +
+                        "angles give unequal legs — a trapezoid with four different sides. The figure is " +
+                        "scaled to fit the drag, so the angles are what is kept exactly.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(90.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            RoundedCornerShape(8.dp),
+                        )
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val strokeColor = MaterialTheme.colorScheme.primary
+                    val fillColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val pts = TrapezoidPreview.outline(a.toDouble(), b.toDouble())
+                        if (pts.size < 3) return@Canvas
+                        val minX = pts.minOf { it.first }
+                        val maxX = pts.maxOf { it.first }
+                        val minY = pts.minOf { it.second }
+                        val maxY = pts.maxOf { it.second }
+                        val figW = (maxX - minX).coerceAtLeast(1e-6)
+                        val figH = (maxY - minY).coerceAtLeast(1e-6)
+                        val scale = minOf((size.width * 0.8) / figW, (size.height * 0.8) / figH)
+                        val offsetX = (size.width - figW * scale) / 2.0 - minX * scale
+                        val offsetY = (size.height - figH * scale) / 2.0 - minY * scale
+                        val p = Path().apply {
+                            moveTo((pts[0].first * scale + offsetX).toFloat(), (pts[0].second * scale + offsetY).toFloat())
+                            for (i in 1 until pts.size) {
+                                lineTo((pts[i].first * scale + offsetX).toFloat(), (pts[i].second * scale + offsetY).toFloat())
+                            }
+                            close()
+                        }
+                        drawPath(p, color = fillColor)
+                        drawPath(p, color = strokeColor, style = Stroke(width = 2.dp.toPx()))
+                    }
+                }
+
+                AngleRow(label = "Left base angle (α)", value = a, range = TRAPEZOID_ANGLE_RANGE, onValueChange = { a = it })
+                AngleRow(label = "Right base angle (β)", value = b, range = TRAPEZOID_ANGLE_RANGE, onValueChange = { b = it })
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    for ((pa, pb) in TRAPEZOID_ANGLE_PRESETS) {
+                        OutlinedButton(
+                            onClick = { a = pa; b = pb },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp),
+                        ) {
+                            Text("${pa.roundToInt()}°-${pb.roundToInt()}°", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(a, b) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+/** The base angles a scalene trapezoid's dialog offers, and a few pairs worth one tap. */
+private val TRAPEZOID_ANGLE_RANGE =
+    ShapeBuilder.MIN_TRAPEZOID_ANGLE_DEG.toFloat()..ShapeBuilder.MAX_TRAPEZOID_ANGLE_DEG.toFloat()
+
+private val TRAPEZOID_ANGLE_PRESETS: List<Pair<Float, Float>> = listOf(
+    75f to 60f,
+    60f to 60f,
+    120f to 60f,
+)
+
+/** The preview geometry: one unit box the tool's own outline is computed in. */
+private object TrapezoidPreview {
+    /** The scalene outline in a square box, ready to be scaled into the preview canvas. */
+    fun outline(angleA: Double, angleB: Double): List<Pair<Double, Double>> =
+        ShapeBuilder.trapezoidOutline(TrapezoidKind.SCALENE, PREVIEW_BOX, PREVIEW_BOX, angleA, angleB)
+
+    private const val PREVIEW_BOX = 100.0
+}
+
 @Composable
 private fun AngleRow(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
+    range: ClosedFloatingPointRange<Float> = 5f..170f,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -407,21 +529,21 @@ private fun AngleRow(
     ) {
         Text(label, modifier = Modifier.width(90.dp), style = MaterialTheme.typography.bodySmall)
         IconButton(
-            onClick = { onValueChange((value - 1f).coerceIn(5f, 170f)) },
-            enabled = value > 5f,
+            onClick = { onValueChange((value - 1f).coerceIn(range)) },
+            enabled = value > range.start,
             modifier = Modifier.size(28.dp),
         ) {
             Icon(Icons.Filled.Remove, contentDescription = "Decrease $label", modifier = Modifier.size(16.dp))
         }
         Slider(
-            value = value,
+            value = value.coerceIn(range),
             onValueChange = { onValueChange(it.roundToInt().toFloat()) },
-            valueRange = 5f..170f,
+            valueRange = range,
             modifier = Modifier.weight(1f),
         )
         IconButton(
-            onClick = { onValueChange((value + 1f).coerceIn(5f, 170f)) },
-            enabled = value < 170f,
+            onClick = { onValueChange((value + 1f).coerceIn(range)) },
+            enabled = value < range.endInclusive,
             modifier = Modifier.size(28.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Increase $label", modifier = Modifier.size(16.dp))
@@ -437,11 +559,16 @@ private fun AngleRow(
 /**
  * Quick compact floating dialog to set pen parameters on the fly: sensitivity (minimum pressure)
  * and pressure multiplier.
+ *
+ * Both sliders are the two halves of desktop Xournal++'s pressure filter, so they are **disabled while
+ * [pressureEnabled] is off** — with pressure sensitivity off every stroke is drawn at the size setting
+ * and there is nothing for either value to act on. Saying so beats letting them look broken.
  */
 @Composable
 fun PenParametersDialog(
     minimumPressure: Float,
     pressureMultiplier: Float,
+    pressureEnabled: Boolean = true,
     presets: List<PenPreset> = PenPreset.DEFAULT_PRESETS,
     selectedPresetId: String = presets.firstOrNull()?.id ?: "default",
     onConfirm: (minimumPressure: Float, pressureMultiplier: Float, presets: List<PenPreset>, selectedPresetId: String) -> Unit,
@@ -485,11 +612,19 @@ fun PenParametersDialog(
                         }
                     },
                 )
+                if (!pressureEnabled) {
+                    Text(
+                        PRESSURE_FILTER_OFF_HINT,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 CompactParameterSlider(
                     label = "Sensitivity (min pressure)",
                     value = minP,
-                    valueRange = PressureCurve.MINIMUM_PRESSURE_MIN..0.5f,
+                    valueRange = PressureCurve.MINIMUM_PRESSURE_MIN..PressureCurve.MINIMUM_PRESSURE_MAX,
                     valueDisplay = "%.2f×".format(minP),
+                    enabled = pressureEnabled,
                     onValueChange = { newMinP ->
                         minP = newMinP
                         currentPresets = currentPresets.map {
@@ -502,6 +637,7 @@ fun PenParametersDialog(
                     value = mult,
                     valueRange = AppSettings.PRESSURE_MULTIPLIER_MIN..AppSettings.PRESSURE_MULTIPLIER_MAX,
                     valueDisplay = "%.2f×".format(mult),
+                    enabled = pressureEnabled,
                     onValueChange = { newMult ->
                         mult = newMult
                         currentPresets = currentPresets.map {
@@ -519,10 +655,17 @@ fun PenParametersDialog(
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = {
-                    minP = 0.05f
-                    mult = 1.0f
+                    minP = PenPreset.FACTORY_DEFAULT_MIN_PRESSURE
+                    mult = PenPreset.FACTORY_DEFAULT_MULTIPLIER
                     currentPresets = currentPresets.map {
-                        if (it.id == currentSelectedId) it.copy(minimumPressure = 0.05f, pressureMultiplier = 1.0f) else it
+                        if (it.id == currentSelectedId) {
+                            it.copy(
+                                minimumPressure = PenPreset.FACTORY_DEFAULT_MIN_PRESSURE,
+                                pressureMultiplier = PenPreset.FACTORY_DEFAULT_MULTIPLIER,
+                            )
+                        } else {
+                            it
+                        }
                     }
                 }) {
                     Text("Reset")
@@ -542,6 +685,7 @@ private fun CompactParameterSlider(
     valueRange: ClosedFloatingPointRange<Float>,
     valueDisplay: String,
     onValueChange: (Float) -> Unit,
+    enabled: Boolean = true,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -559,6 +703,7 @@ private fun CompactParameterSlider(
         Slider(
             value = value,
             onValueChange = onValueChange,
+            enabled = enabled,
             valueRange = valueRange,
             modifier = Modifier.fillMaxWidth(),
         )

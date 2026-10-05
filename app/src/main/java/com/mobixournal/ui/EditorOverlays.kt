@@ -17,6 +17,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.captureBackgroundRegion
 import com.mobixournal.render.clearBackgroundRegion
@@ -123,10 +124,28 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showScaleneAnglesDialog = false },
         )
     }
+    if (ui.showTrapezoidAnglesDialog) {
+        TrapezoidAnglesDialog(
+            angleA = settings.trapezoidAngleA,
+            angleB = settings.trapezoidAngleB,
+            onConfirm = { a, b ->
+                ui.showTrapezoidAnglesDialog = false
+                val updated = settings.copy(
+                    trapezoidKind = TrapezoidKind.SCALENE,
+                    trapezoidAngleA = a,
+                    trapezoidAngleB = b,
+                )
+                onSettingsChange(updated)
+                surface?.activateTool(EditorTool.TRAPEZOID, ui, updated, onSettingsChange)
+            },
+            onDismiss = { ui.showTrapezoidAnglesDialog = false },
+        )
+    }
     if (ui.showPenParametersDialog) {
         PenParametersDialog(
             minimumPressure = settings.minimumPressure,
             pressureMultiplier = settings.pressureMultiplier,
+            pressureEnabled = settings.pressureEnabled,
             presets = settings.penPresets,
             selectedPresetId = settings.selectedPenPresetId,
             onConfirm = { minP, mult, presets, selectedId ->

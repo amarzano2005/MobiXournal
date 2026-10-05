@@ -2,6 +2,8 @@ package com.mobixournal.ui
 
 import com.mobixournal.render.PageStacker
 import com.mobixournal.render.PressureCurve
+import com.mobixournal.render.ShapeBuilder
+import com.mobixournal.render.TrapezoidKind
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -62,7 +64,29 @@ class SettingsSanitizeTest {
             PressureCurve.MINIMUM_PRESSURE_MIN,
             AppSettings(minimumPressure = 0f).sanitized().minimumPressure,
         )
-        assertEquals(1f, AppSettings(minimumPressure = 9f).sanitized().minimumPressure)
+        assertEquals(
+            PressureCurve.MINIMUM_PRESSURE_MAX,
+            AppSettings(minimumPressure = 9f).sanitized().minimumPressure,
+        )
+    }
+
+    @Test fun outOfRangeTrapezoidAnglesAreClamped() {
+        // A base angle at 0 or 180 would put a leg parallel to a base, which is no longer a trapezoid.
+        val low = AppSettings(trapezoidAngleA = -20f, trapezoidAngleB = 0f).sanitized()
+        assertEquals(ShapeBuilder.MIN_TRAPEZOID_ANGLE_DEG.toFloat(), low.trapezoidAngleA)
+        assertEquals(ShapeBuilder.MIN_TRAPEZOID_ANGLE_DEG.toFloat(), low.trapezoidAngleB)
+
+        val high = AppSettings(trapezoidAngleA = 999f, trapezoidAngleB = 180f).sanitized()
+        assertEquals(ShapeBuilder.MAX_TRAPEZOID_ANGLE_DEG.toFloat(), high.trapezoidAngleA)
+        assertEquals(ShapeBuilder.MAX_TRAPEZOID_ANGLE_DEG.toFloat(), high.trapezoidAngleB)
+        // In-range angles are left exactly as the user set them.
+        val kept = AppSettings(trapezoidAngleA = 70f, trapezoidAngleB = 55f).sanitized()
+        assertEquals(70f, kept.trapezoidAngleA)
+        assertEquals(55f, kept.trapezoidAngleB)
+    }
+
+    @Test fun theTrapezoidShipsAsTheIsoscelesOne() {
+        assertEquals(TrapezoidKind.ISOSCELES, AppSettings().trapezoidKind)
     }
 
     @Test fun pageColumnsStayWithinTheChoicesTheUiOffers() {

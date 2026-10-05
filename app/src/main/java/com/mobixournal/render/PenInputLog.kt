@@ -1,5 +1,7 @@
 package com.mobixournal.render
 
+import java.util.Locale
+
 /**
  * A small ring buffer of already-formatted pen-input lines — the model behind the on-canvas
  * **pen diagnostics** panel.
@@ -85,29 +87,67 @@ internal object PenEventText {
     /** Names for the styling hardware's long device names, so a line stays on one row. */
     private const val DEVICE_MAX = 22
 
-    /** `DOWN tool=stylus btn=0x20:STYLUS_PRIMARY dev=HONOR Choice Pencil`. */
+    /**
+     * `DOWN tool=stylus btn=0x20:STYLUS_PRIMARY p=0.42 dev=HONOR Choice Pencil`.
+     *
+     * [pressure] is the digitiser's raw reading for the pointer, when the event carries one — the
+     * number the pen's width is actually computed from, so a stool pigeon that never varies, or one
+     * that never moves off 1.0, is visible right here instead of only in how a stroke looks.
+     */
     fun motionLine(
         actionMasked: Int,
         toolType: Int,
         buttonState: Int,
         pointerCount: Int,
         deviceName: String?,
+        pressure: Float? = null,
     ): String = buildString {
         append(actionName(actionMasked))
         append(" tool=").append(toolName(toolType))
         append(" btn=").append(buttons(buttonState))
+        if (pressure != null) append(" p=").append(pressure(pressure))
         if (pointerCount > 1) append(" pointers=").append(pointerCount)
         appendDevice(this, deviceName)
     }
 
-    /** The dedupe key for [motionLine]'s arguments: identical consecutive states are one line. */
+    /**
+     * The dedupe key for [motionLine]'s arguments: identical consecutive states are one line. The
+     * pressure is part of it — a stream that only ever changes pressure (a pen pressed harder without
+     * moving) would otherwise be collapsed, which is exactly the evidence the panel is opened for.
+     */
     fun motionKey(
         actionMasked: Int,
         toolType: Int,
         buttonState: Int,
         pointerCount: Int,
         deviceName: String?,
-    ): String = "$actionMasked/$toolType/$buttonState/$pointerCount/$deviceName"
+        pressure: Float? = null,
+    ): String = "$actionMasked/$toolType/$buttonState/$pointerCount/$deviceName/" +
+        (pressure?.let(::pressure) ?: "-")
+
+    /**
+     * `PEN sens=on mult=1.50 min=0.05 base=1.50pt -> @p=0.50 w=0.75pt` — the live pressure filter and
+     * what it makes of a half press.
+     *
+     * Logged whenever the settings are pushed onto the canvas, which is what makes it an answer rather
+     * than a restatement: a slider moved in Settings must show up here as the new multiplier, or the
+     * value never reached the drawing surface at all.
+     */
+    fun penParametersLine(
+        enabled: Boolean,
+        multiplier: Float,
+        minimum: Float,
+        baseWidthPt: Float,
+        samplePressure: Float,
+        sampleWidthPt: Double,
+    ): String = buildString {
+        append("PEN sens=").append(if (enabled) "on" else "off")
+        append(" mult=").append(times(multiplier))
+        append(" min=").append(fraction(minimum))
+        append(" base=").append(pts(baseWidthPt))
+        append(" -> @p=").append(fraction(samplePressure))
+        append(" w=").append(pts(sampleWidthPt))
+    }
 
     /** `KEY down KEYCODE_STYLUS_BUTTON_PRIMARY(308) src=0x4002:STYLUS|POINTER`. */
     fun keyLine(down: Boolean, keyCode: Int, source: Int, deviceName: String?): String = buildString {
@@ -195,6 +235,22 @@ internal object PenEventText {
         if (deviceName.isNullOrBlank()) return
         builder.append(" dev=").append(trim(deviceName))
     }
+
+    // Formatted in the ROOT locale, not the device's: these are numbers to compare against a pen's
+    // spec sheet, so they must not come back as "0,42" on a phone set to a comma locale — and the
+    // formatting stays testable outside any locale.
+
+    /** `0.42` — two decimals, the precision the pressure is worth reading at. */
+    private fun pressure(value: Float): String = "%.2f".format(Locale.ROOT, value)
+
+    /** `1.50x` — a multiplier or a pressure fraction. */
+    private fun times(value: Float): String = "%.2fx".format(Locale.ROOT, value)
+
+    /** `0.05` — a bare fraction (the minimum-pressure floor, a pressure). */
+    private fun fraction(value: Float): String = "%.2f".format(Locale.ROOT, value)
+
+    /** `1.50pt` — a width in page points. */
+    private fun pts(value: Number): String = "%.2fpt".format(Locale.ROOT, value.toDouble())
 
     private fun trim(name: String): String =
         if (name.length <= DEVICE_MAX) name else name.take(DEVICE_MAX - 1) + "…"

@@ -84,7 +84,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 - **Stylus-First Input**:
   - **Palm Rejection**: Capacitive fingers only pan/zoom while the pen writes (finger drawing can be toggled on in settings).
-  - **Pressure Sensitivity, Multiplier & Presets**: Dynamic line width matching desktop Xournal++ tapering curves. Configurable minimum pressure (sensitivity) and pressure multiplier with customizable presets and editable names, adjustable on the fly via the top-bar overflow menu ("Pen parameters…") or in Settings → Stylus.
+  - **Pressure Sensitivity, Multiplier & Presets**: Dynamic line width matching desktop Xournal++ tapering curves. The two knobs are the desktop's own filter — **Minimum pressure** (the floor, 0.01 → 1.00) and **Pressure multiplier** (0.5 → 4.00×, so a light hand can thicken a stroke well past its size) — with customizable presets and editable names, adjustable on the fly via the top-bar overflow menu ("Pen parameters…") or in Settings → Stylus. With **Pressure sensitivity** switched off both controls are shown disabled with the reason, instead of silently doing nothing. **Pen diagnostics** prints the live filter and the raw pressure the tablet reports, so a value that never reaches the pen is visible rather than guessed at.
   - **Hover Preview**: S-Pen / Active Pen hover ring indicates exact tip contact point.
   - **Hardware Barrel Buttons**: Hold barrel button to erase or lasso select (supported on Android 14+ stylus buttons, Bluetooth pens, and mouse right-clicks). Double-click to undo or toggle tools.
 - **Pen & Realistic Highlighter**:
@@ -95,7 +95,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
   - **Whole-Stroke Eraser**: Deletes entire strokes touched by the tip.
   - Tip size adjusts with width slots; visual contact radius ring follows the cursor.
 - **Color Palette & Stroke Width**:
-  - 8 standard desktop Xournal++ colors + custom HSV/hex picker.
+  - 8 standard desktop Xournal++ colors in a fixed order — black, red, green, blue, orange, yellow, magenta, white — plus a custom HSV/hex picker.
   - 3 customizable width slots per tool (`S` / `M` / `L`).
   - Tools remember their own active color and stroke width independently.
   - Line styles: **Solid**, **Dashed**, **Dash-dot**, **Dotted**.
@@ -111,15 +111,16 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **IEEE Logic Gates**:
   - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, and **NOT (Inverter)** with standard input/output terminals and inversion bubbles.
 - **Relational Database Tables**:
-  - Interactive grid tables with dynamic row and column counters.
+  - Interactive grid tables with dynamic row and column counters. The row counter counts **data** rows only; the optional header stacks one extra row above them instead of consuming a data row.
   - Optional **Relational Header** format (double line dividing attribute columns from data rows).
   - Drag to size or 1-tap center on viewport.
 - **LaTeX Math Formulae**:
   - On-device formula editor with live preview.
   - Curated STEM symbol palette for fast symbol insertion: Calculus integrals/differentials, Greek letters, algebraic operators, and physics shortcuts.
 - **Geometry & Vectors**:
-  - **Geometric Polygons & Shapes**: Squares, rhombuses, pentagons, hexagons, ellipses/circles, and rectangles.
+  - **Geometric Polygons & Shapes**: Squares, rhombuses, trapezoids, pentagons, hexagons, ellipses/circles, and rectangles.
   - **Triangles with Variants & Custom Angles**: Submenu with 4 geometric kinds: **Equilateral** (default, equal sides/angles), **Right-angled**, **Isosceles**, and **Scalene** with fully customizable interior angles (A, B, C; sum = 180°) and live preview.
+  - **Trapezoid with Variants & Custom Angles**: Submenu with 3 kinds: **Isosceles** (default, shorter base centred over the longer one), **Right-angled** (one leg perpendicular to the bases), and **Scalene** with its two base angles customizable — unequal angles give unequal legs, i.e. four different sides — with live preview. The figure is always fitted inside its drag, and its angles are what is kept exactly.
   - **Cartesian Coordinate Axes**: Instant oriented X/Y coordinate systems.
   - **Vectors**: Single and double-ended arrows for force diagrams and dimensioning.
   - **Parametric Splines**: Multi-point smooth curves with interactive tangent handles.
@@ -137,6 +138,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Selection & Manipulation**:
   - **Rectangle & Lasso Selection**: Select active-layer objects.
   - **Transformations**: Move (with auto-scrolling at screen edges), uniform resize, and stroke rotation.
+  - **Edge Auto-Scroll**: Dragging either a move or the rectangle/lasso marquee into the top or bottom edge scrolls the page vertically, so a selection can reach past the viewport (matching desktop Xournal++).
   - **Action Bar**: Cut, Copy, Paste (centers on visible viewport), Duplicate, Recolor, Change line weight, and Delete.
   - **Select Background (Flatten)**: Marquee-select a region to copy or cut a flattened raster image including all layers and page background.
 - **PDF Text Selection**: Drag across vector PDF text to highlight and copy text to the system clipboard (no OCR needed).
@@ -156,8 +158,9 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Graphics Tablets**:
   - Plug-and-play USB OTG and Bluetooth tablet support (Wacom, Huion, XP-Pen, Gaomon).
   - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
-  - **Stylus Calibration**: Independent pressure multiplier, minimum pressure floor, and precision budgets (Economy to Maximum).
+  - **Stylus Calibration**: Independent pressure multiplier (up to 4×) and minimum pressure floor (up to 1.00) — desktop Xournal++'s own ranges — plus precision budgets (Economy to Maximum).
 - **Toolbars & Interface**:
+  - **Top Bar**: One-tap **Save** (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
   - **Dual Toolbar**: Optional secondary top bar showing frequently used tools without taking canvas space.
   - **Dockable Rail**: Tool rail can be docked to Left, Right, Top, or Bottom.
   - Reorder, hide, or show any tool slot.
@@ -171,7 +174,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 
 ### 💾 Saving & Exporting
 
-- **Local Storage Only**: Saving and PDF exporting are strictly restricted to local device storage (cloud storage providers like Google Drive, OneDrive, and Dropbox are blocked in the picker and rejected upon save) to prevent SAF synchronization conflicts, delayed uploads, and data loss.
+- **Cloud & Remote Storage**: Save and export PDF to any destination the system file picker offers, including cloud providers (Google Drive, OneDrive, Dropbox) and mounted remote shares. Every write is serialised to a local staging file first and pushed across in a single pass, so a slow or failed upload can never leave a half-written `.xopp` behind.
 - **Save**: Writes directly to the open file without prompts.
 - **Save As**:
   - **Original (`.xopp`)**: Standard gzip-compressed XML file with external PDF/image linking. Best for desktop interchange.

@@ -16,6 +16,27 @@ class ToolGroupsTest {
     }
 
     @Test
+    fun `every tool has a label and an icon`() {
+        // The rail and every picker resolve a tool's name and glyph through `EditorTool.label` /
+        // `.icon`, which look the tool up in the TOOLS table — so a tool added to the enum but not to
+        // that table would only blow up while drawing the UI. This is the guard for that.
+        for (tool in EditorTool.entries) {
+            assertTrue("label for $tool", tool.label.isNotBlank())
+            assertNotNull("icon for $tool", tool.icon)
+        }
+    }
+
+    @Test
+    fun `every stem figure is a shape tool`() {
+        for (tool in listOf(
+            EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
+            EditorTool.PENTAGON, EditorTool.HEXAGON,
+        )) {
+            assertTrue("$tool draws a figure", tool in SHAPE_TOOLS)
+        }
+    }
+
+    @Test
     fun `group ids are unique`() {
         assertEquals(TOOL_GROUPS.size, TOOL_GROUPS.map { it.id }.toSet().size)
     }

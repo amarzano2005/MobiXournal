@@ -71,6 +71,7 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
                     shapeKind ?: return, shapeStartX, shapeStartY, ex, ey, shapeWidthPt,
                     tableRows, tableCols, tableHeader,
                     triangleKind, scaleneAngleA, scaleneAngleB, scaleneAngleC,
+                    trapezoidKind, trapezoidAngleA, trapezoidAngleB,
                 ),
             )
         }
@@ -349,6 +350,9 @@ internal fun DrawingSurfaceView.addSamples(event: MotionEvent, pointerIndex: Int
  * The stroke width one sample of the current tool draws at, in pt. A highlighter lays down a
  * broad, constant-width band and ignores pressure; every other tool tapers with pressure. Shapes
  * and splines call this once per gesture so they match a pen stroke drawn at the same size.
+ *
+ * The pressure arithmetic itself lives in [PressureCurve.widthPt], so what a setting change does to a
+ * stroke is pinned by unit tests rather than by reading this call site.
  */
 internal fun DrawingSurfaceView.widthForPressure(pressure: Float): Double = if (tool == Tool.HIGHLIGHTER) {
     DrawingSurfaceDefaults.highlighterWidthFor(baseWidthPt)
@@ -356,8 +360,7 @@ internal fun DrawingSurfaceView.widthForPressure(pressure: Float): Double = if (
     // Desktop Xournal++'s model, exactly: a point's width is the raw pressure — scaled by the
     // multiplier and floored at the minimum — times the tool's width. A zero reading is not treated
     // specially; it simply takes the floor, where the desktop's own filter puts it.
-    (baseWidthPt * PressureCurve.penFactor(pressure, pressureEnabled, pressureMultiplier, minimumPressure))
-        .toDouble()
+    PressureCurve.widthPt(baseWidthPt, pressure, pressureEnabled, pressureMultiplier, minimumPressure)
 }
 
 /**

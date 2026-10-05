@@ -34,6 +34,9 @@ class TopBarItemsTest {
         assertEquals(EditorTool.TABLE, singleToolForTopBarId("table"))
         // Multi-tool groups, submenus, and popups do not resolve to a single tool
         assertNull(singleToolForTopBarId("triangle"))
+        // Triangle and trapezoid carry their own isosceles/right/scalene variant picker, so they
+        // must not resolve to a plain single-tool button (that would hide the menu).
+        assertNull(singleToolForTopBarId("trapezoid"))
         assertNull(singleToolForTopBarId("arrow"))
         assertNull(singleToolForTopBarId("circuit"))
         assertNull(singleToolForTopBarId("logic"))

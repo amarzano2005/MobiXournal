@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import kotlin.math.roundToInt
 
@@ -153,6 +154,58 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
             OutlinedButton(onClick = { showScaleneDialog = true }) {
+                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Customize angles")
+            }
+        }
+    }
+
+    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+    var showTrapezoidDialog by remember { mutableStateOf(false) }
+    if (showTrapezoidDialog) {
+        TrapezoidAnglesDialog(
+            angleA = settings.trapezoidAngleA,
+            angleB = settings.trapezoidAngleB,
+            onConfirm = { a, b ->
+                showTrapezoidDialog = false
+                onChange(
+                    settings.copy(
+                        trapezoidKind = TrapezoidKind.SCALENE,
+                        trapezoidAngleA = a,
+                        trapezoidAngleB = b,
+                    )
+                )
+            },
+            onDismiss = { showTrapezoidDialog = false },
+        )
+    }
+
+    Text("Trapezoid geometry", style = MaterialTheme.typography.bodyLarge)
+    Text(
+        "Default shape variant for the trapezoid tool.",
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(bottom = 4.dp),
+    )
+    OptionGroup(
+        title = "Type",
+        subtitle = "Choose isosceles (default), right-angled, or scalene.",
+        options = TrapezoidKind.values().toList(),
+        selected = settings.trapezoidKind,
+        label = { it.label },
+        onSelect = { onChange(settings.copy(trapezoidKind = it)) },
+    )
+    if (settings.trapezoidKind == TrapezoidKind.SCALENE) {
+        Spacer(Modifier.height(8.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "Base angles: left=${settings.trapezoidAngleA.roundToInt()}°, right=${settings.trapezoidAngleB.roundToInt()}°",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlinedButton(onClick = { showTrapezoidDialog = true }) {
                 Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Customize angles")
