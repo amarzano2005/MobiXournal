@@ -17,8 +17,8 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("rhombus", "Rhombus"),
     RailItem("pentagon", "Pentagon"),
     RailItem("hexagon", "Hexagon"),
-    RailItem("axis", "Coordinate axis"),
     RailItem("spline", "Spline"),
+    RailItem("axis", "Coordinate axis"),
     // Multi-tool dropdown groups & tools
     RailItem("arrow", "Arrows"),
     RailItem("table", "Table"),
@@ -34,7 +34,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "ellipse", "triangle", "square", "rhombus",
-    "pentagon", "hexagon", "axis", "spline", "arrow",
+    "pentagon", "hexagon", "spline", "axis", "arrow",
     "table", "circuit", "logic", "guides",
 )
 

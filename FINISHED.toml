@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "top-bar-default-order-spline"
+title = "Move generic shape before Cartesian axis in top bar"
+description = "In default order of secondary top bar, move generic shape (spline) before Cartesian axis (diagramma cartesiano)"
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "remove-star-stem"
 title = "Remove star from STEM figures"
 description = "Remove star from STEM figures in tool groups, top bar, and ShapeBuilder"

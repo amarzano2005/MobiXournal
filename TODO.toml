@@ -48,17 +48,3 @@ created = 2026-10-05
 tags = []
 rebuild = true
 emulator_debug = false
-
-[[task]]
-id = "top-bar-default-order-spline"
-title = "Move generic shape before Cartesian axis in top bar"
-description = "In default order of secondary top bar, move generic shape (spline) before Cartesian axis (diagramma cartesiano)"
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 40
-created = 2026-10-05
-tags = []
-rebuild = true
-emulator_debug = false
