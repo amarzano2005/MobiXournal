@@ -30,7 +30,6 @@ class TopBarItemsTest {
         assertEquals(EditorTool.RHOMBUS, singleToolForTopBarId("rhombus"))
         assertEquals(EditorTool.PENTAGON, singleToolForTopBarId("pentagon"))
         assertEquals(EditorTool.HEXAGON, singleToolForTopBarId("hexagon"))
-        assertEquals(EditorTool.STAR, singleToolForTopBarId("star"))
         assertEquals(EditorTool.COORDINATE_AXIS, singleToolForTopBarId("axis"))
         assertEquals(EditorTool.SPLINE, singleToolForTopBarId("spline"))
         assertEquals(EditorTool.TABLE, singleToolForTopBarId("table"))
@@ -44,8 +43,8 @@ class TopBarItemsTest {
 
     @Test
     fun `hidden items are dropped from visible items`() {
-        val visible = visibleTopBarItems(emptyList(), setOf("star", "axis"))
-        assertTrue(visible.none { it.id == "star" || it.id == "axis" })
+        val visible = visibleTopBarItems(emptyList(), setOf("hexagon", "axis"))
+        assertTrue(visible.none { it.id == "hexagon" || it.id == "axis" })
         assertEquals(TOP_BAR_ITEMS.size - 2, visible.size)
     }
 

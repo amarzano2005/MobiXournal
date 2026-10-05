@@ -82,7 +82,7 @@ class ShapeBuilderTest {
     @Test fun theStemFiguresAreClosedAndKeepTheConstantWidth() {
         for (kind in listOf(
             ShapeKind.TRIANGLE, ShapeKind.SQUARE, ShapeKind.RHOMBUS,
-            ShapeKind.PENTAGON, ShapeKind.HEXAGON, ShapeKind.STAR,
+            ShapeKind.PENTAGON, ShapeKind.HEXAGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue("$kind has vertices", pts.size >= 4)
@@ -97,7 +97,7 @@ class ShapeBuilderTest {
         // the drag's longer side (see [squareSquaresOffTheLongerSide]), so it may exceed the box.
         for (kind in listOf(
             ShapeKind.TRIANGLE, ShapeKind.RHOMBUS,
-            ShapeKind.PENTAGON, ShapeKind.HEXAGON, ShapeKind.STAR,
+            ShapeKind.PENTAGON, ShapeKind.HEXAGON,
         )) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 20.0, 10.0, widthPt = 1.5)
             assertTrue(
@@ -122,7 +122,6 @@ class ShapeBuilderTest {
         assertEquals(5, count(ShapeKind.RHOMBUS))    // 4 + closing repeat
         assertEquals(6, count(ShapeKind.PENTAGON))   // 5 + closing repeat
         assertEquals(7, count(ShapeKind.HEXAGON))    // 6 + closing repeat
-        assertEquals(11, count(ShapeKind.STAR))      // 10 + closing repeat
     }
 
     @Test fun tableStaysInsideBoundingBoxAndMaintainsConstantWidth() {

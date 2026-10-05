@@ -37,8 +37,8 @@ enum class EditorTool {
     TEXT, IMAGE, TEXIMAGE,
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE, VERTICAL_SPACE,
     PLAY_OBJECT,
-    // The STEM figures (see [ShapeKind]): regular polygons, a square, a rhombus and a star.
-    TRIANGLE, SQUARE, RHOMBUS, PENTAGON, HEXAGON, STAR,
+    // The STEM figures (see [ShapeKind]): regular polygons, a square and a rhombus.
+    TRIANGLE, SQUARE, RHOMBUS, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND, AND_GATE, OR_GATE, NOT_GATE,
@@ -50,7 +50,7 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
     EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.SPLINE,
     EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS,
-    EditorTool.PENTAGON, EditorTool.HEXAGON, EditorTool.STAR,
+    EditorTool.PENTAGON, EditorTool.HEXAGON,
     EditorTool.TABLE,
     EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR, EditorTool.GROUND,
     EditorTool.AND_GATE, EditorTool.OR_GATE, EditorTool.NOT_GATE,
@@ -75,7 +75,6 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.RHOMBUS, "Rhombus", RhombusIcon),
     ToolInfo(EditorTool.PENTAGON, "Pentagon", PentagonIcon),
     ToolInfo(EditorTool.HEXAGON, "Hexagon", HexagonIcon),
-    ToolInfo(EditorTool.STAR, "Star", StarIcon),
     ToolInfo(EditorTool.TABLE, "Table", TableIcon),
     ToolInfo(EditorTool.RESISTOR, "Resistor", ResistorIcon),
     ToolInfo(EditorTool.CAPACITOR, "Capacitor", CapacitorIcon),

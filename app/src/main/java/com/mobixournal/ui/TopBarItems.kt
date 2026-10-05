@@ -17,7 +17,6 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("rhombus", "Rhombus"),
     RailItem("pentagon", "Pentagon"),
     RailItem("hexagon", "Hexagon"),
-    RailItem("star", "Star"),
     RailItem("axis", "Coordinate axis"),
     RailItem("spline", "Spline"),
     // Multi-tool dropdown groups & tools
@@ -35,7 +34,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "ellipse", "triangle", "square", "rhombus",
-    "pentagon", "hexagon", "star", "axis", "spline", "arrow",
+    "pentagon", "hexagon", "axis", "spline", "arrow",
     "table", "circuit", "logic", "guides",
 )
 
@@ -79,7 +78,6 @@ fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "rhombus" -> EditorTool.RHOMBUS
     "pentagon" -> EditorTool.PENTAGON
     "hexagon" -> EditorTool.HEXAGON
-    "star" -> EditorTool.STAR
     "axis" -> EditorTool.COORDINATE_AXIS
     "spline" -> EditorTool.SPLINE
     "table" -> EditorTool.TABLE

@@ -15,3 +15,14 @@ order = "newest first"
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-only."
 growth = "This file only grows; nothing is removed from it."
+
+[[task]]
+id = "remove-star-stem"
+title = "Remove star from STEM figures"
+description = "Remove star from STEM figures in tool groups, top bar, and ShapeBuilder"
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []

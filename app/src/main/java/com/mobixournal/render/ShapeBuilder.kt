@@ -11,7 +11,7 @@ import kotlin.math.sin
 enum class ShapeKind {
     LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE,
     // The STEM set: the regular figures reached for when annotating maths and science.
-    TRIANGLE, SQUARE, RHOMBUS, PENTAGON, HEXAGON, STAR,
+    TRIANGLE, SQUARE, RHOMBUS, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
     RESISTOR, CAPACITOR, INDUCTOR, GROUND, AND_GATE, OR_GATE, NOT_GATE,
@@ -56,7 +56,6 @@ object ShapeBuilder {
         ShapeKind.RHOMBUS -> rhombus(startX, startY, endX, endY, widthPt)
         ShapeKind.PENTAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 5)
         ShapeKind.HEXAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 6)
-        ShapeKind.STAR -> star(startX, startY, endX, endY, widthPt)
         ShapeKind.TABLE -> table(startX, startY, endX, endY, widthPt, rows, cols, hasHeader)
         ShapeKind.RESISTOR -> CircuitShapes.resistor(startX, startY, endX, endY, widthPt)
         ShapeKind.CAPACITOR -> CircuitShapes.capacitor(startX, startY, endX, endY, widthPt).flatten()
@@ -202,25 +201,6 @@ object ShapeBuilder {
             val a = -PI / 2.0 + 2.0 * PI * i / sides
             p(cx + rx * cos(a), cy + ry * sin(a), w)
         }
-    }
-
-    /**
-     * A five-pointed star inscribed in the drag's box: ten alternating outer/inner vertices, the
-     * inner radius at the golden-ratio ratio (1/φ² ≈ 0.382) so the points look regular.
-     */
-    private fun star(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> {
-        val cx = (sx + ex) / 2.0; val cy = (sy + ey) / 2.0
-        val rx = kotlin.math.abs(ex - sx) / 2.0; val ry = kotlin.math.abs(ey - sy) / 2.0
-        val points = 5
-        val inner = 0.38196601125 // 1/φ², the golden-ratio inner radius
-        val out = ArrayList<StrokePoint>(2 * points + 1)
-        for (i in 0 until 2 * points) {
-            val a = -PI / 2.0 + PI * i / points
-            val f = if (i % 2 == 0) 1.0 else inner
-            out += p(cx + rx * f * cos(a), cy + ry * f * sin(a), w)
-        }
-        out += out.first()
-        return out
     }
 
     /** An axis-aligned ellipse inscribed in the drag's bounding box, sampled to a closed polyline. */

@@ -8,7 +8,7 @@ import kotlin.math.abs
 
 /**
  * The figure tools' glyphs are drawn as outlines rather than taken from Material's filled variants,
- * ensuring all figures on the rail (Triangle, Square, Rhombus, Pentagon, Hexagon, Star) read as
+ * ensuring all figures on the rail (Triangle, Square, Rhombus, Pentagon, Hexagon) read as
  * consistent outlines with no fill.
  */
 class ToolGlyphsTest {
@@ -72,15 +72,6 @@ class ToolGlyphsTest {
         assertEquals(12.0, cx, 1e-4)
         assertEquals(12.0, cy, 1e-4)
         assertTrue(HEXAGON_OUTLINE.all { (x, y) -> x in 0f..24f && y in 0f..24f })
-    }
-
-    @Test
-    fun `star glyph has 10 vertices centered horizontally`() {
-        assertEquals("Star", StarIcon.name)
-        assertEquals(10, STAR_OUTLINE.size)
-        val cx = STAR_OUTLINE.sumOf { it.first.toDouble() } / 10
-        assertEquals(12.0, cx, 1e-4)
-        assertTrue(STAR_OUTLINE.all { (x, y) -> x in 0f..24f && y in 0f..24f })
     }
 
     @Test

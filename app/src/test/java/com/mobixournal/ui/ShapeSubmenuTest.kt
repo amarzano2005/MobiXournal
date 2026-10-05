@@ -15,8 +15,8 @@ class ShapeSubmenuTest {
     }
 
     @Test fun aPartialOrderLeadsAndTheRestIsAppended() {
-        val ordered = orderedShapeTools(listOf("STAR", "TRIANGLE"))
-        assertEquals(listOf(EditorTool.STAR, EditorTool.TRIANGLE), ordered.take(2))
+        val ordered = orderedShapeTools(listOf("HEXAGON", "TRIANGLE"))
+        assertEquals(listOf(EditorTool.HEXAGON, EditorTool.TRIANGLE), ordered.take(2))
         assertEquals(SHAPE_GROUP.tools.size, ordered.size)
         assertEquals(SHAPE_GROUP.tools.toSet(), ordered.toSet())
     }
@@ -28,15 +28,15 @@ class ShapeSubmenuTest {
     }
 
     @Test fun hiddenMembersAreDroppedFromTheVisibleSubmenu() {
-        val visible = visibleShapeTools(emptyList(), setOf("PENTAGON", "STAR"))
+        val visible = visibleShapeTools(emptyList(), setOf("PENTAGON", "HEXAGON"))
         assertEquals(SHAPE_GROUP.tools.size - 2, visible.size)
-        assertTrue(visible.none { it.name == "PENTAGON" || it.name == "STAR" })
+        assertTrue(visible.none { it.name == "PENTAGON" || it.name == "HEXAGON" })
     }
 
     @Test fun theStemFiguresAreInTheShapesGroup() {
         val members = SHAPE_GROUP.tools
         assertTrue(
-            listOf("TRIANGLE", "SQUARE", "RHOMBUS", "PENTAGON", "HEXAGON", "STAR")
+            listOf("TRIANGLE", "SQUARE", "RHOMBUS", "PENTAGON", "HEXAGON")
                 .all { name -> members.any { it.name == name } },
         )
     }
@@ -50,7 +50,7 @@ class ShapeSubmenuTest {
     }
 
     @Test fun namesRoundTripThroughEncodeAndDecode() {
-        val names = listOf("TRIANGLE", "STAR")
+        val names = listOf("TRIANGLE", "HEXAGON")
         assertEquals(names, decodeToolNames(encodeToolNames(names), SHAPE_GROUP.tools))
         assertEquals(emptyList<String>(), decodeToolNames(null, SHAPE_GROUP.tools))
         assertEquals(listOf("TRIANGLE"), decodeToolNames("TRIANGLE,GONE", SHAPE_GROUP.tools))
