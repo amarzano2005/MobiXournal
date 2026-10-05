@@ -44,6 +44,10 @@ object ShapeBuilder {
         rows: Int = 3,
         cols: Int = 3,
         hasHeader: Boolean = false,
+        triangleKind: TriangleKind = TriangleKind.EQUILATERAL,
+        angleA: Double = 40.0,
+        angleB: Double = 60.0,
+        angleC: Double = 80.0,
     ): List<StrokePoint> = when (kind) {
         ShapeKind.LINE -> line(startX, startY, endX, endY, widthPt)
         ShapeKind.ARROW -> arrow(startX, startY, endX, endY, widthPt)
@@ -51,7 +55,7 @@ object ShapeBuilder {
         ShapeKind.COORDINATE_AXIS -> coordinateAxis(startX, startY, endX, endY, widthPt)
         ShapeKind.RECTANGLE -> rectangle(startX, startY, endX, endY, widthPt)
         ShapeKind.ELLIPSE -> ellipse(startX, startY, endX, endY, widthPt)
-        ShapeKind.TRIANGLE -> triangle(startX, startY, endX, endY, widthPt)
+        ShapeKind.TRIANGLE -> triangle(startX, startY, endX, endY, widthPt, triangleKind, angleA, angleB, angleC)
         ShapeKind.SQUARE -> square(startX, startY, endX, endY, widthPt)
         ShapeKind.RHOMBUS -> rhombus(startX, startY, endX, endY, widthPt)
         ShapeKind.PENTAGON -> regularPolygon(startX, startY, endX, endY, widthPt, sides = 5)
@@ -159,12 +163,112 @@ object ShapeBuilder {
         )
     }
 
-    /** A triangle with its apex at the drag box's top centre and its base along the bottom edge. */
-    private fun triangle(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> {
+    /**
+     * A triangle according to [kind]:
+     * - [TriangleKind.EQUILATERAL]: All 3 sides equal, 60° angles (factory default).
+     * - [TriangleKind.RIGHT]: 90° angle at corner (sx, ey) connecting to (sx, sy) and (ex, ey).
+     * - [TriangleKind.ISOSCELES]: Two equal sides, apex centered over base.
+     * - [TriangleKind.SCALENE]: 3 customizable angles [angleA], [angleB], [angleC], preserved under scaling.
+     */
+    private fun triangle(
+        sx: Double, sy: Double, ex: Double, ey: Double, w: Double,
+        kind: TriangleKind = TriangleKind.EQUILATERAL,
+        angleA: Double = 40.0,
+        angleB: Double = 60.0,
+        angleC: Double = 80.0,
+    ): List<StrokePoint> {
         val l = minOf(sx, ex); val r = maxOf(sx, ex)
         val top = minOf(sy, ey); val bot = maxOf(sy, ey)
-        val cx = (l + r) / 2.0
-        return listOf(p(cx, top, w), p(r, bot, w), p(l, bot, w), p(cx, top, w))
+        val width = r - l; val height = bot - top
+        if (width == 0.0 || height == 0.0) return line(sx, sy, ex, ey, w)
+
+        return when (kind) {
+            TriangleKind.EQUILATERAL -> {
+                // Height of an equilateral triangle with side s is s * sqrt(3) / 2
+                val s = minOf(width, height * 2.0 / kotlin.math.sqrt(3.0))
+                val h = s * kotlin.math.sqrt(3.0) / 2.0
+                val cx = (l + r) / 2.0
+                if (sy <= ey) {
+                    val yTop = top + (height - h) / 2.0
+                    val yBot = yTop + h
+                    listOf(p(cx, yTop, w), p(cx + s / 2.0, yBot, w), p(cx - s / 2.0, yBot, w), p(cx, yTop, w))
+                } else {
+                    val yTop = top + (height - h) / 2.0
+                    val yBot = yTop + h
+                    listOf(p(cx - s / 2.0, yTop, w), p(cx + s / 2.0, yTop, w), p(cx, yBot, w), p(cx - s / 2.0, yTop, w))
+                }
+            }
+            TriangleKind.RIGHT -> {
+                listOf(p(sx, sy, w), p(sx, ey, w), p(ex, ey, w), p(sx, sy, w))
+            }
+            TriangleKind.ISOSCELES -> {
+                val cx = (l + r) / 2.0
+                if (sy <= ey) {
+                    listOf(p(cx, top, w), p(r, bot, w), p(l, bot, w), p(cx, top, w))
+                } else {
+                    listOf(p(l, top, w), p(r, top, w), p(cx, bot, w), p(l, top, w))
+                }
+            }
+            TriangleKind.SCALENE -> {
+                scaleneTriangle(l, top, r, bot, sy <= ey, w, angleA, angleB, angleC)
+            }
+        }
+    }
+
+    private fun scaleneTriangle(
+        l: Double, top: Double, r: Double, bot: Double,
+        apexUp: Boolean, w: Double,
+        aA: Double, aB: Double, aC: Double,
+    ): List<StrokePoint> {
+        val total = aA + aB + aC
+        val (angA, angB, angC) = if (total > 0 && kotlin.math.abs(total - 180.0) < 1.0) {
+            Triple(aA, aB, aC)
+        } else if (aA > 0 && aB > 0 && aA + aB < 180) {
+            Triple(aA, aB, 180.0 - aA - aB)
+        } else {
+            Triple(40.0, 60.0, 80.0)
+        }
+
+        val rA = Math.toRadians(angA)
+        val rB = Math.toRadians(angB)
+        val rC = Math.toRadians(angC)
+
+        // Side lengths by Law of Sines: c = sin(C), b = sin(B)
+        val c = kotlin.math.sin(rC)
+        val b = kotlin.math.sin(rB)
+
+        // Vertex A at (0, 0), Vertex B at (c, 0)
+        // Vertex C at (b * cos(A), b * sin(A))
+        val cx = b * kotlin.math.cos(rA)
+        val cy = b * kotlin.math.sin(rA)
+
+        val xMin = minOf(0.0, cx)
+        val xMax = maxOf(c, cx)
+        val normW = xMax - xMin
+        val normH = cy
+
+        val boxW = r - l
+        val boxH = bot - top
+        if (normW <= 1e-9 || normH <= 1e-9) return listOf(p(l, top, w), p(r, bot, w))
+
+        val scale = minOf(boxW / normW, boxH / normH)
+        val scaledW = normW * scale
+        val scaledH = normH * scale
+
+        val xOff = l + (boxW - scaledW) / 2.0 - xMin * scale
+        return if (apexUp) {
+            val yOff = top + (boxH - scaledH) / 2.0 + scaledH
+            val ptA = p(xOff, yOff, w)
+            val ptB = p(xOff + c * scale, yOff, w)
+            val ptC = p(xOff + cx * scale, yOff - cy * scale, w)
+            listOf(ptC, ptB, ptA, ptC)
+        } else {
+            val yOff = top + (boxH - scaledH) / 2.0
+            val ptA = p(xOff, yOff, w)
+            val ptB = p(xOff + c * scale, yOff, w)
+            val ptC = p(xOff + cx * scale, yOff + cy * scale, w)
+            listOf(ptC, ptB, ptA, ptC)
+        }
     }
 
     /**

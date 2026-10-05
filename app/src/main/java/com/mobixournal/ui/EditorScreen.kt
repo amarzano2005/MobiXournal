@@ -136,6 +136,10 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     tableRows = s.tableRows
     tableCols = s.tableCols
     tableHeader = s.tableHeader
+    triangleKind = s.triangleKind
+    scaleneAngleA = s.scaleneAngleA.toDouble()
+    scaleneAngleB = s.scaleneAngleB.toDouble()
+    scaleneAngleC = s.scaleneAngleC.toDouble()
     // Only place a guide the surface isn't already showing — re-placing on every settings change
     // would yank a guide the user has carefully positioned back to the middle of the screen.
     if (s.guideKind == GuideKind.NONE) {

@@ -25,7 +25,6 @@ class TopBarItemsTest {
         assertEquals(EditorTool.LINE, singleToolForTopBarId("line"))
         assertEquals(EditorTool.RECTANGLE, singleToolForTopBarId("rectangle"))
         assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
-        assertEquals(EditorTool.TRIANGLE, singleToolForTopBarId("triangle"))
         assertEquals(EditorTool.SQUARE, singleToolForTopBarId("square"))
         assertEquals(EditorTool.RHOMBUS, singleToolForTopBarId("rhombus"))
         assertEquals(EditorTool.PENTAGON, singleToolForTopBarId("pentagon"))
@@ -33,7 +32,8 @@ class TopBarItemsTest {
         assertEquals(EditorTool.COORDINATE_AXIS, singleToolForTopBarId("axis"))
         assertEquals(EditorTool.SPLINE, singleToolForTopBarId("spline"))
         assertEquals(EditorTool.TABLE, singleToolForTopBarId("table"))
-        // Multi-tool groups and popups do not resolve to a single tool
+        // Multi-tool groups, submenus, and popups do not resolve to a single tool
+        assertNull(singleToolForTopBarId("triangle"))
         assertNull(singleToolForTopBarId("arrow"))
         assertNull(singleToolForTopBarId("circuit"))
         assertNull(singleToolForTopBarId("logic"))

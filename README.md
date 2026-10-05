@@ -118,8 +118,9 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - On-device formula editor with live preview.
   - Curated STEM symbol palette for fast symbol insertion: Calculus integrals/differentials, Greek letters, algebraic operators, and physics shortcuts.
 - **Geometry & Vectors**:
+  - **Geometric Polygons & Shapes**: Squares, rhombuses, pentagons, hexagons, ellipses/circles, and rectangles.
+  - **Triangles with Variants & Custom Angles**: Submenu with 4 geometric kinds: **Equilateral** (default, equal sides/angles), **Right-angled**, **Isosceles**, and **Scalene** with fully customizable interior angles (A, B, C; sum = 180°) and live preview.
   - **Cartesian Coordinate Axes**: Instant oriented X/Y coordinate systems.
-  - **Regular Polygons**: Triangles, squares, rhombuses, pentagons, hexagons, and stars.
   - **Vectors**: Single and double-ended arrows for force diagrams and dimensioning.
   - **Parametric Splines**: Multi-point smooth curves with interactive tangent handles.
 - **Virtual Drafting Instruments**:

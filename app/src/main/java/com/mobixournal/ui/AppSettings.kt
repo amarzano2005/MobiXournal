@@ -10,6 +10,7 @@ import com.mobixournal.render.PageStacker
 import com.mobixournal.render.PanSensitivity
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.StrokePrecision
+import com.mobixournal.render.TriangleKind
 
 /**
  * Which edge of the editor the tool rail is docked to.
@@ -224,6 +225,14 @@ data class AppSettings(
     val tableCols: Int = DEFAULT_TABLE_COLS,
     /** When true, inserted/drawn tables include a double horizontal line under row 1 for relational headers. */
     val tableHeader: Boolean = DEFAULT_TABLE_HEADER,
+    /** Which variant of triangle the triangle tool draws: equilateral, right, isosceles, scalene. */
+    val triangleKind: TriangleKind = TriangleKind.EQUILATERAL,
+    /** Customizable interior angle A in degrees for [TriangleKind.SCALENE]. */
+    val scaleneAngleA: Float = 40f,
+    /** Customizable interior angle B in degrees for [TriangleKind.SCALENE]. */
+    val scaleneAngleB: Float = 60f,
+    /** Customizable interior angle C in degrees for [TriangleKind.SCALENE]. */
+    val scaleneAngleC: Float = 80f,
     /**
      * The Shapes submenu's members in display order, by [EditorTool.name]. Empty means the factory
      * order; names the list omits are appended (see [orderedShapeTools]).
@@ -317,6 +326,9 @@ data class AppSettings(
         lastWidth = lastWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
         shapeWidth = shapeWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
         defaultShapeSlot = defaultShapeSlot.coerceIn(0, penWidths.lastIndex.coerceAtLeast(0)),
+        scaleneAngleA = scaleneAngleA.coerceIn(1f, 178f),
+        scaleneAngleB = scaleneAngleB.coerceIn(1f, 178f),
+        scaleneAngleC = scaleneAngleC.coerceIn(1f, 178f),
         tableRows = tableRows.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
         tableCols = tableCols.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
         pressureMultiplier = pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
@@ -491,6 +503,12 @@ class SettingsStore(context: Context) {
             tableRows = prefs.getInt(KEY_TABLE_ROWS, d.tableRows),
             tableCols = prefs.getInt(KEY_TABLE_COLS, d.tableCols),
             tableHeader = prefs.getBoolean(KEY_TABLE_HEADER, d.tableHeader),
+            triangleKind = prefs.getString(KEY_TRIANGLE_KIND, null)?.let {
+                runCatching { enumValueOf<TriangleKind>(it) }.getOrNull()
+            } ?: d.triangleKind,
+            scaleneAngleA = prefs.getFloat(KEY_SCALENE_ANGLE_A, d.scaleneAngleA),
+            scaleneAngleB = prefs.getFloat(KEY_SCALENE_ANGLE_B, d.scaleneAngleB),
+            scaleneAngleC = prefs.getFloat(KEY_SCALENE_ANGLE_C, d.scaleneAngleC),
             shapeOrder = decodeToolNames(prefs.getString(KEY_SHAPE_ORDER, null), SHAPE_GROUP.tools),
             shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), SHAPE_GROUP.tools).toSet(),
             toolGroupSelections = decodeToolGroupSelections(prefs.getString(KEY_TOOL_GROUPS, null)),
@@ -578,6 +596,10 @@ class SettingsStore(context: Context) {
             .putInt(KEY_TABLE_ROWS, s.tableRows)
             .putInt(KEY_TABLE_COLS, s.tableCols)
             .putBoolean(KEY_TABLE_HEADER, s.tableHeader)
+            .putString(KEY_TRIANGLE_KIND, s.triangleKind.name)
+            .putFloat(KEY_SCALENE_ANGLE_A, s.scaleneAngleA)
+            .putFloat(KEY_SCALENE_ANGLE_B, s.scaleneAngleB)
+            .putFloat(KEY_SCALENE_ANGLE_C, s.scaleneAngleC)
             .putString(KEY_SHAPE_ORDER, encodeToolNames(s.shapeOrder))
             .putString(KEY_SHAPE_HIDDEN, encodeToolNames(s.shapeHidden))
         e.putString(KEY_TOOL_GROUPS, encodeToolGroupSelections(s.toolGroupSelections))
@@ -666,6 +688,10 @@ class SettingsStore(context: Context) {
         const val KEY_TABLE_ROWS = "table_rows"
         const val KEY_TABLE_COLS = "table_cols"
         const val KEY_TABLE_HEADER = "table_header"
+        const val KEY_TRIANGLE_KIND = "triangle_kind"
+        const val KEY_SCALENE_ANGLE_A = "scalene_angle_a"
+        const val KEY_SCALENE_ANGLE_B = "scalene_angle_b"
+        const val KEY_SCALENE_ANGLE_C = "scalene_angle_c"
         const val KEY_SHAPE_ORDER = "shape_order"
         const val KEY_SHAPE_HIDDEN = "shape_hidden"
         const val KEY_TOOL_GROUPS = "tool_group_selections"

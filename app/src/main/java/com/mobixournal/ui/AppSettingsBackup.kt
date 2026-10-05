@@ -6,6 +6,7 @@ import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.MomentumCurve
 import com.mobixournal.render.StrokePrecision
+import com.mobixournal.render.TriangleKind
 
 /**
  * Pure Kotlin JSON serialization and deserialization for [AppSettings].
@@ -64,6 +65,10 @@ object AppSettingsBackup {
         b.append("  \"tableRows\": ").append(settings.tableRows).append(",\n")
         b.append("  \"tableCols\": ").append(settings.tableCols).append(",\n")
         b.append("  \"tableHeader\": ").append(settings.tableHeader).append(",\n")
+        b.append("  \"triangleKind\": \"").append(settings.triangleKind.name).append("\",\n")
+        b.append("  \"scaleneAngleA\": ").append(settings.scaleneAngleA).append(",\n")
+        b.append("  \"scaleneAngleB\": ").append(settings.scaleneAngleB).append(",\n")
+        b.append("  \"scaleneAngleC\": ").append(settings.scaleneAngleC).append(",\n")
         b.append("  \"shapeOrder\": [")
             .append(settings.shapeOrder.joinToString(", ") { "\"${escape(it)}\"" })
             .append("],\n")
@@ -197,6 +202,10 @@ object AppSettingsBackup {
             tableRows = root.getInt("tableRows", fallback.tableRows),
             tableCols = root.getInt("tableCols", fallback.tableCols),
             tableHeader = root.getBool("tableHeader", fallback.tableHeader),
+            triangleKind = readEnum("triangleKind", TriangleKind.values(), fallback.triangleKind),
+            scaleneAngleA = root.getFloat("scaleneAngleA", fallback.scaleneAngleA),
+            scaleneAngleB = root.getFloat("scaleneAngleB", fallback.scaleneAngleB),
+            scaleneAngleC = root.getFloat("scaleneAngleC", fallback.scaleneAngleC),
             shapeOrder = root.getStrList("shapeOrder") ?: fallback.shapeOrder,
             shapeHidden = root.getStrList("shapeHidden")?.toSet() ?: fallback.shapeHidden,
             toolGroupSelections = toolGroupSelections,

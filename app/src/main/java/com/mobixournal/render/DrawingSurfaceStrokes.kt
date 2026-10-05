@@ -70,6 +70,7 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
                 ShapeBuilder.build(
                     shapeKind ?: return, shapeStartX, shapeStartY, ex, ey, shapeWidthPt,
                     tableRows, tableCols, tableHeader,
+                    triangleKind, scaleneAngleA, scaleneAngleB, scaleneAngleC,
                 ),
             )
         }

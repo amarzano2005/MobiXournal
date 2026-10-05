@@ -17,6 +17,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.captureBackgroundRegion
 import com.mobixournal.render.clearBackgroundRegion
 import com.mobixournal.render.clearSelection
@@ -101,6 +102,25 @@ fun BoxScope.EditorOverlays(
             initialFormat = currentSaveFormat(),
             onConfirm = { filename, format -> ui.showSaveAs = false; onSaveAs(filename, format) },
             onDismiss = { ui.showSaveAs = false },
+        )
+    }
+    if (ui.showScaleneAnglesDialog) {
+        ScaleneAnglesDialog(
+            angleA = settings.scaleneAngleA,
+            angleB = settings.scaleneAngleB,
+            angleC = settings.scaleneAngleC,
+            onConfirm = { a, b, c ->
+                ui.showScaleneAnglesDialog = false
+                val updated = settings.copy(
+                    triangleKind = TriangleKind.SCALENE,
+                    scaleneAngleA = a,
+                    scaleneAngleB = b,
+                    scaleneAngleC = c,
+                )
+                onSettingsChange(updated)
+                surface?.activateTool(EditorTool.TRIANGLE, ui, updated, onSettingsChange)
+            },
+            onDismiss = { ui.showScaleneAnglesDialog = false },
         )
     }
 }

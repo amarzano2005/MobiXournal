@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.StrokePoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -204,5 +205,89 @@ class ShapeBuilderTest {
         }
         assertTrue("horizontal divider at row 1 (y=20) exists", y20Segments.isNotEmpty())
         assertTrue("double line separator below header row exists", doubleLineSegments.isNotEmpty())
+    }
+
+    @Test fun equilateralTriangleProducesThreeEqualSides() {
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRIANGLE, 0.0, 0.0, 100.0, 100.0, widthPt = 1.0,
+            triangleKind = TriangleKind.EQUILATERAL,
+        )
+        assertEquals(4, pts.size) // 3 vertices + closing
+        val d01 = hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y)
+        val d12 = hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y)
+        val d20 = hypot(pts[0].x - pts[2].x, pts[0].y - pts[2].y)
+        assertEquals(d01, d12, 1e-4)
+        assertEquals(d12, d20, 1e-4)
+    }
+
+    @Test fun rightTriangleHasRightAngleAtCorner() {
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRIANGLE, 10.0, 20.0, 70.0, 80.0, widthPt = 1.0,
+            triangleKind = TriangleKind.RIGHT,
+        )
+        assertEquals(4, pts.size)
+        // Vertex 0: (10, 20), Vertex 1: (10, 80), Vertex 2: (70, 80)
+        assertEquals(10.0, pts[0].x, 1e-9)
+        assertEquals(20.0, pts[0].y, 1e-9)
+        assertEquals(10.0, pts[1].x, 1e-9)
+        assertEquals(80.0, pts[1].y, 1e-9)
+        assertEquals(70.0, pts[2].x, 1e-9)
+        assertEquals(80.0, pts[2].y, 1e-9)
+        // Angle at vertex 1 is 90 degrees
+        val v01x = pts[0].x - pts[1].x
+        val v01y = pts[0].y - pts[1].y
+        val v21x = pts[2].x - pts[1].x
+        val v21y = pts[2].y - pts[1].y
+        val dot = v01x * v21x + v01y * v21y
+        assertEquals(0.0, dot, 1e-9)
+    }
+
+    @Test fun isoscelesTriangleApexIsCenteredBetweenBaseVertices() {
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRIANGLE, 0.0, 0.0, 100.0, 80.0, widthPt = 1.0,
+            triangleKind = TriangleKind.ISOSCELES,
+        )
+        assertEquals(4, pts.size)
+        // Vertex 0 (apex) should have x centered at 50.0
+        assertEquals(50.0, pts[0].x, 1e-9)
+        assertEquals(0.0, pts[0].y, 1e-9)
+        // Base vertices
+        assertEquals(100.0, pts[1].x, 1e-9)
+        assertEquals(80.0, pts[1].y, 1e-9)
+        assertEquals(0.0, pts[2].x, 1e-9)
+        assertEquals(80.0, pts[2].y, 1e-9)
+    }
+
+    @Test fun scaleneTrianglePreservesInteriorAngles() {
+        val pts = ShapeBuilder.build(
+            ShapeKind.TRIANGLE, 0.0, 0.0, 200.0, 150.0, widthPt = 1.0,
+            triangleKind = TriangleKind.SCALENE,
+            angleA = 30.0, angleB = 60.0, angleC = 90.0,
+        )
+        assertEquals(4, pts.size)
+        // Vertices are C, B, A, C (with closing point)
+        val vC = pts[0]
+        val vB = pts[1]
+        val vA = pts[2]
+
+        fun angleAt(vPrev: StrokePoint, vCurr: StrokePoint, vNext: StrokePoint): Double {
+            val ux = vPrev.x - vCurr.x
+            val uy = vPrev.y - vCurr.y
+            val vx = vNext.x - vCurr.x
+            val vy = vNext.y - vCurr.y
+            val dot = ux * vx + uy * vy
+            val magU = hypot(ux, uy)
+            val magV = hypot(vx, vy)
+            val cosTheta = (dot / (magU * magV)).coerceIn(-1.0, 1.0)
+            return Math.toDegrees(kotlin.math.acos(cosTheta))
+        }
+
+        val calculatedAngleA = angleAt(vC, vA, vB)
+        val calculatedAngleB = angleAt(vA, vB, vC)
+        val calculatedAngleC = angleAt(vB, vC, vA)
+
+        assertEquals(30.0, calculatedAngleA, 0.5)
+        assertEquals(60.0, calculatedAngleB, 0.5)
+        assertEquals(90.0, calculatedAngleC, 0.5)
     }
 }

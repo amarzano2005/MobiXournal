@@ -62,6 +62,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showSaveAs by mutableStateOf(false)
     /** Whether the Import PDF dialog is showing. */
     var showImportPdf by mutableStateOf(false)
+    /** Whether the Scalene triangle angles customization dialog is showing. */
+    var showScaleneAnglesDialog by mutableStateOf(false)
 
     /** Full-page (immersive) view: a Hand-tool centre double-tap hides the top bar and side toolbar. */
     var fullPage by mutableStateOf(false)

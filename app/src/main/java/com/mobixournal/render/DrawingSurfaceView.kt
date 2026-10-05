@@ -398,6 +398,18 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** When true, [ShapeKind.TABLE] draws a double line under the first row as a relational header. */
     var tableHeader: Boolean = false
+
+    /** Geometric variant for [ShapeKind.TRIANGLE]: equilateral (default), right, isosceles, scalene. */
+    var triangleKind: TriangleKind = TriangleKind.EQUILATERAL
+
+    /** For [TriangleKind.SCALENE]: interior angle A in degrees. */
+    var scaleneAngleA: Double = 40.0
+
+    /** For [TriangleKind.SCALENE]: interior angle B in degrees. */
+    var scaleneAngleB: Double = 60.0
+
+    /** For [TriangleKind.SCALENE]: interior angle C in degrees. */
+    var scaleneAngleC: Double = 80.0
     /**
      * When true, a finished freehand pen stroke that clearly means a primitive (line, arrow, circle,
      * rectangle, triangle, polyline) is snapped to clean geometry — see [ShapeRecognizer].

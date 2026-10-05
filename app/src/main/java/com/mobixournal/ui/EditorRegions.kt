@@ -3,6 +3,8 @@ package com.mobixournal.ui
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import com.mobixournal.render.GuideKind
+import com.mobixournal.render.TriangleKind
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -364,6 +366,18 @@ fun TopBarToolsRow(
                     active = ui.tool == single,
                     onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                 )
+            } else if (item.id == "triangle") {
+                CompactTrianglePopupButton(
+                    active = ui.tool == EditorTool.TRIANGLE,
+                    triangleKind = settings.triangleKind,
+                    onSelectKind = { kind ->
+                        val updated = settings.copy(triangleKind = kind)
+                        onSettingsChange(updated)
+                        surface?.activateTool(EditorTool.TRIANGLE, ui, updated, onSettingsChange)
+                    },
+                    onOpenAnglesDialog = { ui.showScaleneAnglesDialog = true },
+                    onClick = { surface?.activateTool(EditorTool.TRIANGLE, ui, settings, onSettingsChange) },
+                )
             } else {
                 val group = toolGroupForRailItem(item.id)
                 if (group != null) {
@@ -417,6 +431,73 @@ private fun CompactSingleToolButton(
             tint = tint,
             modifier = Modifier.size(18.dp),
         )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CompactTrianglePopupButton(
+    active: Boolean,
+    triangleKind: TriangleKind,
+    onSelectKind: (TriangleKind) -> Unit,
+    onOpenAnglesDialog: () -> Unit,
+    onClick: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Box {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
+                .combinedClickable(
+                    onClick = { if (active) open = true else onClick() },
+                    onLongClick = { open = true },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                EditorTool.TRIANGLE.icon,
+                contentDescription = "Tool: Triangle",
+                tint = tint,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Icon(
+            Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 1.dp, bottom = 1.dp)
+                .size(10.dp),
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            MenuHeading("Triangle")
+            for (kind in TriangleKind.values()) {
+                DropdownMenuItem(
+                    text = { Text(kind.label) },
+                    trailingIcon = {
+                        if (kind == triangleKind) Icon(Icons.Filled.Check, contentDescription = "selected")
+                    },
+                    onClick = {
+                        onSelectKind(kind)
+                        open = false
+                    },
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("Customize angles…") },
+                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onSelectKind(TriangleKind.SCALENE)
+                    onOpenAnglesDialog()
+                },
+            )
+        }
     }
 }
 

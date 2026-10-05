@@ -5,19 +5,28 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.TriangleKind
+import kotlin.math.roundToInt
 
 /**
  * The figure (shape) tools: the default size a new figure starts at, and the order / visibility of
@@ -96,6 +105,60 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         checked = settings.tableHeader,
         onCheckedChange = { onChange(settings.copy(tableHeader = it)) },
     )
+
+    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+    var showScaleneDialog by remember { mutableStateOf(false) }
+    if (showScaleneDialog) {
+        ScaleneAnglesDialog(
+            angleA = settings.scaleneAngleA,
+            angleB = settings.scaleneAngleB,
+            angleC = settings.scaleneAngleC,
+            onConfirm = { a, b, c ->
+                showScaleneDialog = false
+                onChange(
+                    settings.copy(
+                        triangleKind = TriangleKind.SCALENE,
+                        scaleneAngleA = a,
+                        scaleneAngleB = b,
+                        scaleneAngleC = c,
+                    )
+                )
+            },
+            onDismiss = { showScaleneDialog = false },
+        )
+    }
+
+    Text("Triangle geometry", style = MaterialTheme.typography.bodyLarge)
+    Text(
+        "Default shape variant for the triangle tool.",
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(bottom = 4.dp),
+    )
+    OptionGroup(
+        title = "Type",
+        subtitle = "Choose equilateral (default), right-angled, isosceles, or scalene.",
+        options = TriangleKind.values().toList(),
+        selected = settings.triangleKind,
+        label = { it.label },
+        onSelect = { onChange(settings.copy(triangleKind = it)) },
+    )
+    if (settings.triangleKind == TriangleKind.SCALENE) {
+        Spacer(Modifier.height(8.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "Angles: A=${settings.scaleneAngleA.roundToInt()}°, B=${settings.scaleneAngleB.roundToInt()}°, C=${settings.scaleneAngleC.roundToInt()}°",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlinedButton(onClick = { showScaleneDialog = true }) {
+                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Customize angles")
+            }
+        }
+    }
 
     HorizontalDivider(Modifier.padding(vertical = 12.dp))
     Text("Shapes submenu", style = MaterialTheme.typography.bodyLarge)

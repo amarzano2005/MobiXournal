@@ -4,7 +4,7 @@ package com.mobixournal.ui
  * Items available for the secondary (top) toolbar.
  *
  * Geometric figures are exposed individually so users can tap any shape with one touch,
- * while multi-member slots (arrows, physical circuits, logic gates, select, eraser) have
+ * while multi-member slots (arrows, triangles, physical circuits, logic gates, select, eraser) have
  * dropdown menus.
  */
 val TOP_BAR_ITEMS: List<RailItem> = listOf(
@@ -73,7 +73,6 @@ fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE
     "ellipse" -> EditorTool.ELLIPSE
-    "triangle" -> EditorTool.TRIANGLE
     "square" -> EditorTool.SQUARE
     "rhombus" -> EditorTool.RHOMBUS
     "pentagon" -> EditorTool.PENTAGON

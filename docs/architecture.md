@@ -697,6 +697,7 @@ app/
       StrokeEraser.kt        # partial eraser: split a stroke into surviving pieces (pure)
       PageEraser.kt          # eraser applied to a page: mode, tip size, hidden-layer skip (pure)
       ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list (pure)
+      TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
       CircuitShapes.kt       # circuits & logic gates (resistor, capacitor, inductor, ground, AND, OR, NOT, NAND, NOR, XOR, XNOR) (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
@@ -1046,7 +1047,10 @@ the raw source text, so a malformed formula can't crash a frame.
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Spline/Table) turn a
 one-finger drag into an ordinary constant-width pen stroke: `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
-round-trip like any stroke. The **table tool** creates an \(R \times C\) grid as a single continuous polyline,
+round-trip like any stroke. The **triangle tool** supports four geometric variants (`TriangleKind`):
+equilateral (factory default, preserved 60° angles), right-angled, isosceles (centered apex), and scalene
+(with customizable interior angles A, B, and C constrained to sum to 180° and previewed on a live canvas).
+The **table tool** creates an \(R \times C\) grid as a single continuous polyline,
 with configurable rows and columns, optional relational header row (rendering a double separator line under the first row),
 support for live drag-sizing and one-tap centered viewport insertion,
 and figure-style stroke (inheriting and adjusting figure width, color, and line style). The **spline tool** is the one shape whose gesture spans several touches,

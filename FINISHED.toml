@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "triangle-submenu-kinds"
+title = "Triangle submenu with equilateral, right, isosceles, and scalene"
+description = "Add submenu for triangles supporting equilateral (default), right, isosceles, and scalene with customizable 3 angles"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "fix-shape-width-setting"
 title = "Fix shape stroke width setting synchronization"
 description = "Fix live width and persistence issues when setting unique stroke for figures"
