@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,6 +48,7 @@ import kotlin.math.sin
 import com.mobixournal.format.FontDescription
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.PressureCurve
 import kotlin.math.roundToInt
 
 /** The families offered in the text dialog — names desktop Xournal++ and Android both resolve. */
@@ -433,7 +435,7 @@ private fun AngleRow(
 }
 
 /**
- * Quick floating dialog to set pen parameters on the fly: sensitivity (minimum pressure)
+ * Quick compact floating dialog to set pen parameters on the fly: sensitivity (minimum pressure)
  * and pressure multiplier.
  */
 @Composable
@@ -448,22 +450,29 @@ fun PenParametersDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Pen parameters") },
+        modifier = Modifier.widthIn(max = 380.dp),
+        title = {
+            Text(
+                "Pen parameters",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                MinimumPressureSlider(value = minP, onChange = { minP = it })
-                PressureMultiplierSlider(value = mult, onChange = { mult = it })
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    TextButton(onClick = {
-                        minP = 0.05f
-                        mult = 1.0f
-                    }) {
-                        Text("Reset defaults")
-                    }
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                CompactParameterSlider(
+                    label = "Sensitivity (min pressure)",
+                    value = minP,
+                    valueRange = PressureCurve.MINIMUM_PRESSURE_MIN..0.5f,
+                    valueDisplay = "%.2f×".format(minP),
+                    onValueChange = { minP = it },
+                )
+                CompactParameterSlider(
+                    label = "Pressure multiplier",
+                    value = mult,
+                    valueRange = AppSettings.PRESSURE_MULTIPLIER_MIN..AppSettings.PRESSURE_MULTIPLIER_MAX,
+                    valueDisplay = "%.2f×".format(mult),
+                    onValueChange = { mult = it },
+                )
             }
         },
         confirmButton = {
@@ -472,11 +481,49 @@ fun PenParametersDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = {
+                    minP = 0.05f
+                    mult = 1.0f
+                }) {
+                    Text("Reset")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
             }
         },
     )
+}
+
+@Composable
+private fun CompactParameterSlider(
+    label: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    valueDisplay: String,
+    onValueChange: (Float) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                valueDisplay,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 
