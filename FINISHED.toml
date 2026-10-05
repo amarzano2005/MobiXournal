@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "associate-slider-edits-with-active-pen-preset"
+title = "Associate slider edits with active pen preset"
+description = "Update active pen preset values in real-time when sliders are modified so adjustments associate directly with the selected preset"
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "fix-pen-preset-selection-highlighting-only-single-active-preset"
 title = "Fix pen preset selection highlighting only single active preset"
 description = "Fix selection logic so only the clicked preset is selected by ID rather than comparing float values, preventing multiple presets from lighting up simultaneously"

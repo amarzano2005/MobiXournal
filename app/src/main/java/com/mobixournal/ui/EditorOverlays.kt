@@ -128,12 +128,14 @@ fun BoxScope.EditorOverlays(
             minimumPressure = settings.minimumPressure,
             pressureMultiplier = settings.pressureMultiplier,
             presets = settings.penPresets,
-            onConfirm = { minP, mult, presets ->
+            selectedPresetId = settings.selectedPenPresetId,
+            onConfirm = { minP, mult, presets, selectedId ->
                 ui.showPenParametersDialog = false
                 val updated = settings.copy(
                     minimumPressure = minP,
                     pressureMultiplier = mult,
                     penPresets = presets,
+                    selectedPenPresetId = selectedId,
                 )
                 onSettingsChange(updated)
                 surface?.applySettings(updated)

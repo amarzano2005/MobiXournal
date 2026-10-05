@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,41 +29,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
 
 /**
  * A compact, scrollable row of pen parameter presets.
- * Selection is tracked by preset ID so at most one preset is ever highlighted,
- * even when multiple presets have similar or identical parameter values.
+ * Selection is based on [selectedPresetId]. Exactly one preset is selected.
  */
 @Composable
 fun PenPresetsRow(
     presets: List<PenPreset>,
+    selectedPresetId: String,
     currentMinPressure: Float,
     currentMultiplier: Float,
     onSelectPreset: (PenPreset) -> Unit,
-    onUpdatePresets: (List<PenPreset>) -> Unit,
+    onUpdatePresets: (presets: List<PenPreset>, newSelectedId: String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Explicitly tracked selected preset ID
-    var selectedPresetId by remember {
-        mutableStateOf(
-            presets.firstOrNull {
-                abs(it.minimumPressure - currentMinPressure) < 0.001f &&
-                    abs(it.pressureMultiplier - currentMultiplier) < 0.005f
-            }?.id ?: presets.firstOrNull()?.id,
-        )
-    }
     var renameTarget by remember { mutableStateOf<PenPreset?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val activePreset = presets.firstOrNull { it.id == selectedPresetId }
-    val isExactMatch = activePreset != null &&
-        abs(activePreset.minimumPressure - currentMinPressure) < 0.001f &&
-        abs(activePreset.pressureMultiplier - currentMultiplier) < 0.005f
-
-    // Only highlight if the active preset actually matches current slider values
-    val highlightedId = if (isExactMatch) selectedPresetId else null
+    val activePreset = presets.firstOrNull { it.id == selectedPresetId } ?: presets.firstOrNull()
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
@@ -92,7 +75,7 @@ fun PenPresetsRow(
                 ) {
                     Icon(
                         Icons.Filled.Add,
-                        contentDescription = "Add current parameters as preset",
+                        contentDescription = "Add new preset",
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -107,12 +90,11 @@ fun PenPresetsRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             for (preset in presets) {
-                val isSelected = preset.id == highlightedId
+                val isSelected = preset.id == selectedPresetId
 
                 FilterChip(
                     selected = isSelected,
                     onClick = {
-                        selectedPresetId = preset.id
                         onSelectPreset(preset)
                     },
                     label = {
@@ -143,28 +125,15 @@ fun PenPresetsRow(
         val target = renameTarget!!
         RenamePenPresetDialog(
             preset = target,
-            currentMinPressure = currentMinPressure,
-            currentMultiplier = currentMultiplier,
             canDelete = presets.size > 1,
-            onConfirm = { newName, shouldUpdateValues ->
-                val updatedPreset = if (shouldUpdateValues) {
-                    target.copy(
-                        name = newName,
-                        minimumPressure = currentMinPressure,
-                        pressureMultiplier = currentMultiplier,
-                    )
-                } else {
-                    target.copy(name = newName)
-                }
-                selectedPresetId = updatedPreset.id
-                onUpdatePresets(addOrUpdatePenPreset(presets, updatedPreset))
+            onConfirm = { newName ->
+                onUpdatePresets(renamePenPreset(presets, target.id, newName), null)
                 renameTarget = null
             },
             onDelete = {
-                onUpdatePresets(removePenPreset(presets, target.id))
-                if (selectedPresetId == target.id) {
-                    selectedPresetId = presets.firstOrNull { it.id != target.id }?.id
-                }
+                val updated = removePenPreset(presets, target.id)
+                val fallbackId = updated.firstOrNull()?.id
+                onUpdatePresets(updated, fallbackId)
                 renameTarget = null
             },
             onDismiss = { renameTarget = null },
@@ -182,8 +151,7 @@ fun PenPresetsRow(
                     minimumPressure = currentMinPressure,
                     pressureMultiplier = currentMultiplier,
                 )
-                selectedPresetId = newPreset.id
-                onUpdatePresets(addOrUpdatePenPreset(presets, newPreset))
+                onUpdatePresets(addOrUpdatePenPreset(presets, newPreset), newPreset.id)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
@@ -191,25 +159,19 @@ fun PenPresetsRow(
     }
 }
 
-/** Dialog to edit a preset's name and optionally update its values with current sliders. */
+/** Dialog to edit a preset's name (and delete custom presets). */
 @Composable
 fun RenamePenPresetDialog(
     preset: PenPreset,
-    currentMinPressure: Float,
-    currentMultiplier: Float,
     canDelete: Boolean,
-    onConfirm: (newName: String, updateValues: Boolean) -> Unit,
+    onConfirm: (newName: String) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(preset.name) }
-    val valuesDiffer = abs(preset.minimumPressure - currentMinPressure) > 0.001f ||
-        abs(preset.pressureMultiplier - currentMultiplier) > 0.005f
-    var updateValues by remember { mutableStateOf(valuesDiffer) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit preset", style = MaterialTheme.typography.titleMedium) },
+        title = { Text("Rename preset", style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -219,29 +181,11 @@ fun RenamePenPresetDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (valuesDiffer) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { updateValues = !updateValues },
-                    ) {
-                        Checkbox(
-                            checked = updateValues,
-                            onCheckedChange = { updateValues = it },
-                        )
-                        Text(
-                            "Update values to current (%.2f× / %.2f×)"
-                                .format(currentMinPressure, currentMultiplier),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name.trim().ifEmpty { preset.name }, updateValues) },
+                onClick = { onConfirm(name.trim().ifEmpty { preset.name }) },
                 enabled = name.isNotBlank(),
             ) {
                 Text("Save")

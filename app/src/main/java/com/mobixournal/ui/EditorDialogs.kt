@@ -443,12 +443,14 @@ fun PenParametersDialog(
     minimumPressure: Float,
     pressureMultiplier: Float,
     presets: List<PenPreset> = PenPreset.DEFAULT_PRESETS,
-    onConfirm: (minimumPressure: Float, pressureMultiplier: Float, presets: List<PenPreset>) -> Unit,
+    selectedPresetId: String = presets.firstOrNull()?.id ?: "default",
+    onConfirm: (minimumPressure: Float, pressureMultiplier: Float, presets: List<PenPreset>, selectedPresetId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var currentPresets by remember { mutableStateOf(presets) }
+    var currentSelectedId by remember { mutableStateOf(selectedPresetId) }
     var minP by remember { mutableStateOf(minimumPressure) }
     var mult by remember { mutableStateOf(pressureMultiplier) }
-    var currentPresets by remember { mutableStateOf(presets) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -463,32 +465,54 @@ fun PenParametersDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PenPresetsRow(
                     presets = currentPresets,
+                    selectedPresetId = currentSelectedId,
                     currentMinPressure = minP,
                     currentMultiplier = mult,
                     onSelectPreset = { preset ->
+                        currentSelectedId = preset.id
                         minP = preset.minimumPressure
                         mult = preset.pressureMultiplier
                     },
-                    onUpdatePresets = { currentPresets = it },
+                    onUpdatePresets = { updatedPresets, newSelectedId ->
+                        currentPresets = updatedPresets
+                        if (newSelectedId != null) {
+                            currentSelectedId = newSelectedId
+                            val p = updatedPresets.firstOrNull { it.id == newSelectedId }
+                            if (p != null) {
+                                minP = p.minimumPressure
+                                mult = p.pressureMultiplier
+                            }
+                        }
+                    },
                 )
                 CompactParameterSlider(
                     label = "Sensitivity (min pressure)",
                     value = minP,
                     valueRange = PressureCurve.MINIMUM_PRESSURE_MIN..0.5f,
                     valueDisplay = "%.2f×".format(minP),
-                    onValueChange = { minP = it },
+                    onValueChange = { newMinP ->
+                        minP = newMinP
+                        currentPresets = currentPresets.map {
+                            if (it.id == currentSelectedId) it.copy(minimumPressure = newMinP) else it
+                        }
+                    },
                 )
                 CompactParameterSlider(
                     label = "Pressure multiplier",
                     value = mult,
                     valueRange = AppSettings.PRESSURE_MULTIPLIER_MIN..AppSettings.PRESSURE_MULTIPLIER_MAX,
                     valueDisplay = "%.2f×".format(mult),
-                    onValueChange = { mult = it },
+                    onValueChange = { newMult ->
+                        mult = newMult
+                        currentPresets = currentPresets.map {
+                            if (it.id == currentSelectedId) it.copy(pressureMultiplier = newMult) else it
+                        }
+                    },
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(minP, mult, currentPresets) }) {
+            TextButton(onClick = { onConfirm(minP, mult, currentPresets, currentSelectedId) }) {
                 Text("Save")
             }
         },
@@ -497,6 +521,9 @@ fun PenParametersDialog(
                 TextButton(onClick = {
                     minP = 0.05f
                     mult = 1.0f
+                    currentPresets = currentPresets.map {
+                        if (it.id == currentSelectedId) it.copy(minimumPressure = 0.05f, pressureMultiplier = 1.0f) else it
+                    }
                 }) {
                     Text("Reset")
                 }

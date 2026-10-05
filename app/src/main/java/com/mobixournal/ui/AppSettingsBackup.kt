@@ -127,6 +127,7 @@ object AppSettingsBackup {
             b.append("\n")
         }
         b.append("  ],\n")
+        b.append("  \"selectedPenPresetId\": \"").append(escape(settings.selectedPenPresetId)).append("\",\n")
         b.append("  \"textImportLimitMb\": ").append(settings.textImportLimitMb).append(",\n")
         b.append("  \"pdfCacheLimitMb\": ").append(settings.pdfCacheLimitMb).append(",\n")
         b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append("\n")
@@ -243,6 +244,7 @@ object AppSettingsBackup {
             colorShortcutKeys = colorShortcutKeys,
             presets = presets,
             penPresets = penPresets,
+            selectedPenPresetId = root.getStr("selectedPenPresetId", fallback.selectedPenPresetId),
             textImportLimitMb = root.getInt("textImportLimitMb", fallback.textImportLimitMb),
             pdfCacheLimitMb = root.getInt("pdfCacheLimitMb", fallback.pdfCacheLimitMb),
             hasSeenOnboarding = root.getBool("hasSeenOnboarding", fallback.hasSeenOnboarding),

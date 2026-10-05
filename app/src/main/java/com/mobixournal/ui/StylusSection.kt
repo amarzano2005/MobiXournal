@@ -75,29 +75,68 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         Spacer(Modifier.height(12.dp))
         PenPresetsRow(
             presets = settings.penPresets,
+            selectedPresetId = settings.selectedPenPresetId,
             currentMinPressure = settings.minimumPressure,
             currentMultiplier = settings.pressureMultiplier,
             onSelectPreset = { preset ->
                 onChange(
                     settings.copy(
+                        selectedPenPresetId = preset.id,
                         minimumPressure = preset.minimumPressure,
                         pressureMultiplier = preset.pressureMultiplier,
                     )
                 )
             },
-            onUpdatePresets = { updated ->
-                onChange(settings.copy(penPresets = updated))
+            onUpdatePresets = { updated, newSelectedId ->
+                val nextSelectedId = newSelectedId ?: settings.selectedPenPresetId
+                val active = updated.firstOrNull { it.id == nextSelectedId }
+                onChange(
+                    settings.copy(
+                        penPresets = updated,
+                        selectedPenPresetId = nextSelectedId,
+                        minimumPressure = active?.minimumPressure ?: settings.minimumPressure,
+                        pressureMultiplier = active?.pressureMultiplier ?: settings.pressureMultiplier,
+                    )
+                )
             },
         )
         Spacer(Modifier.height(12.dp))
         MinimumPressureSlider(
             value = settings.minimumPressure,
-            onChange = { onChange(settings.copy(minimumPressure = it)) },
+            onChange = { newMinP ->
+                val updatedPresets = settings.penPresets.map { preset ->
+                    if (preset.id == settings.selectedPenPresetId) {
+                        preset.copy(minimumPressure = newMinP)
+                    } else {
+                        preset
+                    }
+                }
+                onChange(
+                    settings.copy(
+                        minimumPressure = newMinP,
+                        penPresets = updatedPresets,
+                    )
+                )
+            },
         )
         Spacer(Modifier.height(12.dp))
         PressureMultiplierSlider(
             value = settings.pressureMultiplier,
-            onChange = { onChange(settings.copy(pressureMultiplier = it)) },
+            onChange = { newMult ->
+                val updatedPresets = settings.penPresets.map { preset ->
+                    if (preset.id == settings.selectedPenPresetId) {
+                        preset.copy(pressureMultiplier = newMult)
+                    } else {
+                        preset
+                    }
+                }
+                onChange(
+                    settings.copy(
+                        pressureMultiplier = newMult,
+                        penPresets = updatedPresets,
+                    )
+                )
+            },
         )
     }
 

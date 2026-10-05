@@ -123,4 +123,18 @@ class SettingsSanitizeTest {
         assertEquals(PressureCurve.MINIMUM_PRESSURE_MIN, outOfBounds.penPresets[0].minimumPressure)
         assertEquals(AppSettings.PRESSURE_MULTIPLIER_MAX, outOfBounds.penPresets[0].pressureMultiplier)
     }
+
+    @Test fun selectedPenPresetIdIsSanitized() {
+        val valid = AppSettings(
+            penPresets = listOf(PenPreset("p1", "P1", 0.05f, 1.0f)),
+            selectedPenPresetId = "p1",
+        ).sanitized()
+        assertEquals("p1", valid.selectedPenPresetId)
+
+        val invalid = AppSettings(
+            penPresets = listOf(PenPreset("p1", "P1", 0.05f, 1.0f)),
+            selectedPenPresetId = "non-existent",
+        ).sanitized()
+        assertEquals("p1", invalid.selectedPenPresetId)
+    }
 }

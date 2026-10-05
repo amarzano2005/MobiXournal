@@ -288,6 +288,8 @@ data class AppSettings(
     val presets: List<ToolPreset> = emptyList(),
     /** The user's saved pen sensitivity and pressure multiplier presets (see [PenPreset]). */
     val penPresets: List<PenPreset> = PenPreset.DEFAULT_PRESETS,
+    /** Which pen parameter preset is currently active (defaults to 'default'). */
+    val selectedPenPresetId: String = "default",
     /**
      * Largest plain-text file (MiB) that may be typeset into a background PDF. Typesetting now reads
      * and lays out the file a line at a time, so the cap bounds *time* and output size rather than
@@ -316,34 +318,39 @@ data class AppSettings(
      * A stored value out of range isn't cosmetic: a stored `pageColumns` of 0 makes the pages
      * popup's mode rows unreachable.
      */
-    fun sanitized(): AppSettings = copy(
-        // Every entry survives, custom hexes included: pruning to the named desktop colours is what
-        // used to delete a user's own swatches on the next launch, and out of their JSON backups
-        // with them. Opaque ARGB stays the palette's invariant, so a colour is normalised, not judged.
-        penColors = penColors.map { it or 0xFF000000.toInt() }
-            .distinct()
-            .take(MAX_PEN_COLORS)
-            .ifEmpty { PEN_COLORS },
-        penWidths = penWidths.map { it.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX) },
-        lastWidth = lastWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
-        shapeWidth = shapeWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
-        defaultShapeSlot = defaultShapeSlot.coerceIn(0, penWidths.lastIndex.coerceAtLeast(0)),
-        scaleneAngleA = scaleneAngleA.coerceIn(1f, 178f),
-        scaleneAngleB = scaleneAngleB.coerceIn(1f, 178f),
-        scaleneAngleC = scaleneAngleC.coerceIn(1f, 178f),
-        tableRows = tableRows.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
-        tableCols = tableCols.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
-        pressureMultiplier = pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
-        minimumPressure = minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
-        penPresets = penPresets.ifEmpty { PenPreset.DEFAULT_PRESETS }.map { preset ->
+    fun sanitized(): AppSettings {
+        val cleanPresets = penPresets.ifEmpty { PenPreset.DEFAULT_PRESETS }.map { preset ->
             preset.copy(
                 name = preset.name.ifBlank { preset.id },
                 minimumPressure = preset.minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
                 pressureMultiplier = preset.pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
             )
-        },
-        pageColumns = pageColumns.coerceIn(1, PageStacker.COLUMN_CHOICES.last()),
-    )
+        }
+        val cleanSelectedId = if (cleanPresets.any { it.id == selectedPenPresetId }) selectedPenPresetId else cleanPresets.first().id
+        return copy(
+            // Every entry survives, custom hexes included: pruning to the named desktop colours is what
+            // used to delete a user's own swatches on the next launch, and out of their JSON backups
+            // with them. Opaque ARGB stays the palette's invariant, so a colour is normalised, not judged.
+            penColors = penColors.map { it or 0xFF000000.toInt() }
+                .distinct()
+                .take(MAX_PEN_COLORS)
+                .ifEmpty { PEN_COLORS },
+            penWidths = penWidths.map { it.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX) },
+            lastWidth = lastWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
+            shapeWidth = shapeWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
+            defaultShapeSlot = defaultShapeSlot.coerceIn(0, penWidths.lastIndex.coerceAtLeast(0)),
+            scaleneAngleA = scaleneAngleA.coerceIn(1f, 178f),
+            scaleneAngleB = scaleneAngleB.coerceIn(1f, 178f),
+            scaleneAngleC = scaleneAngleC.coerceIn(1f, 178f),
+            tableRows = tableRows.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
+            tableCols = tableCols.coerceIn(TABLE_DIMENSION_MIN, TABLE_DIMENSION_MAX),
+            pressureMultiplier = pressureMultiplier.coerceIn(PRESSURE_MULTIPLIER_MIN, PRESSURE_MULTIPLIER_MAX),
+            minimumPressure = minimumPressure.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f),
+            penPresets = cleanPresets,
+            selectedPenPresetId = cleanSelectedId,
+            pageColumns = pageColumns.coerceIn(1, PageStacker.COLUMN_CHOICES.last()),
+        )
+    }
 
     /**
      * This settings object with [color] written back as the pen colour restored on the next launch.
@@ -546,6 +553,7 @@ class SettingsStore(context: Context) {
             colorShortcutKeys = loadColorShortcutKeys(),
             presets = decodeToolPresets(prefs.getString(KEY_PRESETS, null)),
             penPresets = decodePenPresets(prefs.getString(KEY_PEN_PRESETS, null)),
+            selectedPenPresetId = prefs.getString(KEY_SELECTED_PEN_PRESET, "default") ?: "default",
             textImportLimitMb = prefs.getInt(KEY_TEXT_IMPORT_LIMIT, d.textImportLimitMb).coerceAtLeast(1),
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
@@ -645,6 +653,7 @@ class SettingsStore(context: Context) {
         e.remove("fill_alpha")
         e.putString(KEY_PRESETS, encodeToolPresets(s.presets))
         e.putString(KEY_PEN_PRESETS, encodePenPresets(s.penPresets))
+        e.putString(KEY_SELECTED_PEN_PRESET, s.selectedPenPresetId)
         e.putInt(KEY_TEXT_IMPORT_LIMIT, s.textImportLimitMb)
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
@@ -729,6 +738,7 @@ class SettingsStore(context: Context) {
         const val KEY_COLOR_SHORTCUTS = "color_shortcuts"
         const val KEY_PRESETS = "tool_presets"
         const val KEY_PEN_PRESETS = "pen_presets"
+        const val KEY_SELECTED_PEN_PRESET = "selected_pen_preset_id"
         const val KEY_TEXT_IMPORT_LIMIT = "text_import_limit_mb"
         const val KEY_PDF_CACHE_LIMIT = "pdf_cache_limit_mb"
 
