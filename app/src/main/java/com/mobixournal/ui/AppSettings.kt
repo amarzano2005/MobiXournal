@@ -343,7 +343,11 @@ data class AppSettings(
      */
     fun withWidthFor(tool: EditorTool, width: Float): AppSettings = when {
         tool == EditorTool.HIGHLIGHTER -> copy(highlighterWidth = width)
-        tool in SHAPE_TOOLS -> copy(shapeWidth = width)
+        tool in SHAPE_TOOLS -> {
+            val slot = penWidths.indexOf(width)
+            if (slot >= 0) copy(shapeWidth = width, defaultShapeSlot = slot)
+            else copy(shapeWidth = width)
+        }
         else -> copy(lastWidth = width)
     }
 

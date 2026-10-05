@@ -246,7 +246,13 @@ fun EditorScreen(
         }
 
         // Re-apply settings to the live surface whenever the user changes them in Settings.
-        LaunchedEffect(settings) { ui.panes.forEach { it.surface?.applySettings(settings) } }
+        LaunchedEffect(settings) {
+            if (ui.tool in SHAPE_TOOLS) {
+                ui.width = settings.shapeWidth
+                ui.panes.forEach { it.surface?.baseWidthPt = settings.shapeWidth }
+            }
+            ui.panes.forEach { it.surface?.applySettings(settings) }
+        }
 
         // Settings is overlaid on top of the still-composed editor rather than replacing it, so the
         // AndroidView-hosted DrawingSurfaceView is never detached — the drawing (and undo history)

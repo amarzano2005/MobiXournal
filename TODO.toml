@@ -34,17 +34,3 @@ created = 2026-10-05
 tags = []
 rebuild = true
 emulator_debug = false
-
-[[task]]
-id = "fix-shape-width-setting"
-title = "Fix shape stroke width setting synchronization"
-description = "Fix live width and persistence issues when setting unique stroke for figures"
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 30
-created = 2026-10-05
-tags = []
-rebuild = true
-emulator_debug = false

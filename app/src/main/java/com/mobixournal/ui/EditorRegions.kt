@@ -545,10 +545,20 @@ private fun redefineWidthSlot(
     val old = settings.penWidths[i]
     val slots = settings.penWidths.toMutableList().also { it[i] = newPt }
     val active = ui.width == old
-    onSettingsChange(
-        settings.copy(penWidths = slots, lastWidth = if (active) newPt else settings.lastWidth)
+    val affectsShape = settings.defaultShapeSlot == i || (ui.tool in SHAPE_TOOLS && active)
+    val newShapeWidth = if (affectsShape) newPt else settings.shapeWidth
+    val newLastWidth = if (ui.tool == EditorTool.PEN && active) newPt else settings.lastWidth
+    val updatedSettings = settings.copy(
+        penWidths = slots,
+        shapeWidth = newShapeWidth,
+        lastWidth = newLastWidth,
     )
-    if (active) { ui.width = newPt; surface?.baseWidthPt = newPt }
+    onSettingsChange(updatedSettings)
+    if (active || (ui.tool in SHAPE_TOOLS && affectsShape)) {
+        val effectiveWidth = if (ui.tool in SHAPE_TOOLS) newShapeWidth else newPt
+        ui.width = effectiveWidth
+        surface?.baseWidthPt = effectiveWidth
+    }
 }
 
 @Composable

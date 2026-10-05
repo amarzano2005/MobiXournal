@@ -122,4 +122,19 @@ class ToolSwitchTest {
         settings = settings.withWidthFor(EditorTool.PEN, 0.85f)
         assertEquals(0.85f, settings.lastWidth, 0f)
     }
+
+    @Test
+    fun `figure width change matching a pen slot updates defaultShapeSlot`() {
+        var settings = AppSettings(penWidths = listOf(0.85f, 1.5f, 2.6f), defaultShapeSlot = 1)
+
+        // Setting a figure to 2.6f (slot index 2) should update both shapeWidth and defaultShapeSlot
+        settings = settings.withWidthFor(EditorTool.RECTANGLE, 2.6f)
+        assertEquals(2.6f, settings.shapeWidth, 0f)
+        assertEquals(2, settings.defaultShapeSlot)
+
+        // Setting a custom width not in slots leaves defaultShapeSlot unchanged
+        settings = settings.withWidthFor(EditorTool.TRIANGLE, 4.0f)
+        assertEquals(4.0f, settings.shapeWidth, 0f)
+        assertEquals(2, settings.defaultShapeSlot)
+    }
 }

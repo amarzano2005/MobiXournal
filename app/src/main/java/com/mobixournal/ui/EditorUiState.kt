@@ -139,9 +139,9 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
                 color = saved.lastColor
                 width = saved.lastWidth
             }
-            // Between figures the width stays (picking another shape shouldn't reset it); arriving
-            // from a non-figure adopts the figure slot's own.
-            target in SHAPE_TOOLS -> if (previous !in SHAPE_TOOLS) width = saved.shapeWidth
+            // Between figures the width stays in sync with the unified figure slot; arriving
+            // from a non-figure adopts the figure slot's width.
+            target in SHAPE_TOOLS -> width = saved.shapeWidth
             // Eraser/hand/select/insert don't ink: they keep the live pen's colour and width, which
             // is what they hand back when the pen is picked again.
             else -> Unit
