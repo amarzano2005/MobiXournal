@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "fix-pen-preset-selection-highlighting-only-single-active-preset"
+title = "Fix pen preset selection highlighting only single active preset"
+description = "Fix selection logic so only the clicked preset is selected by ID rather than comparing float values, preventing multiple presets from lighting up simultaneously"
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "keep-only-default-pen-preset-and-remove-additional-predefined-presets"
 title = "Keep only Default pen preset and remove additional predefined presets"
 description = "Keep only the single Default pen preset and drop additional predefined presets"
