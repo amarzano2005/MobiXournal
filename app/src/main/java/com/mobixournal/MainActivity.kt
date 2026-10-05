@@ -21,7 +21,6 @@ import com.mobixournal.io.DocumentIo
 import com.mobixournal.io.IncomingDocument
 import com.mobixournal.io.UriStaging
 import com.mobixournal.io.XOPP_MIME
-import com.mobixournal.io.isCloudUri
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.panes.MirrorSync
 import com.mobixournal.render.BitmapBudget
@@ -163,24 +162,9 @@ class MainActivity : ComponentActivity() {
             uri?.let { openDocument(it) }
         }
 
-    /**
-     * A [ActivityResultContracts.CreateDocument] that restricts destinations to local storage only
-     * ([Intent.EXTRA_LOCAL_ONLY]), filtering out cloud providers (Google Drive, OneDrive, etc.).
-     */
-    private class CreateLocalDocument(mimeType: String) : ActivityResultContracts.CreateDocument(mimeType) {
-        override fun createIntent(context: Context, input: String): Intent =
-            super.createIntent(context, input).putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-    }
-
     internal val saveLauncher =
-        registerForActivityResult(CreateLocalDocument(XOPP_MIME)) { uri ->
-            uri?.let {
-                if (isCloudUri(it)) {
-                    toast(getString(R.string.cloud_save_not_supported))
-                } else {
-                    saveDocument(it)
-                }
-            }
+        registerForActivityResult(ActivityResultContracts.CreateDocument(XOPP_MIME)) { uri ->
+            uri?.let { saveDocument(it) }
         }
 
     private val importPdfLauncher =
@@ -199,14 +183,8 @@ class MainActivity : ComponentActivity() {
         }
 
     private val exportPdfLauncher =
-        registerForActivityResult(CreateLocalDocument(PDF_MIME)) { uri ->
-            uri?.let {
-                if (isCloudUri(it)) {
-                    toast(getString(R.string.cloud_save_not_supported))
-                } else {
-                    exportPdf(it)
-                }
-            }
+        registerForActivityResult(ActivityResultContracts.CreateDocument(PDF_MIME)) { uri ->
+            uri?.let { exportPdf(it) }
         }
 
     /**

@@ -41,6 +41,13 @@ data class OpenTab(
      * [TabStore.save] never overwrites an unhydrated tab's snapshot with its placeholder.
      */
     val hydrated: Boolean = true,
+    /**
+     * True while this tab's document is still being fetched onto the canvas — a slow remote/cloud
+     * open. [document] is then a blank stand-in *and* the canvas still holds the previous tab's
+     * content, so the tab must not be snapshotted: doing so would stamp the wrong (or an empty)
+     * document over its snapshot and bring it back that way on the next launch.
+     */
+    val opening: Boolean = false,
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

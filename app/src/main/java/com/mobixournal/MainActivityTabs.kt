@@ -99,9 +99,10 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
     // is about to read (and the other pane's canvas) are current.
     mirrors.flush()
     val view = p.surface ?: return
-    // A tab still being parsed in the background hasn't reached the canvas yet, so what is on it
-    // belongs to the tab before it — copying that in would overwrite the pending document.
-    if (p.tabs.active?.hydrated == false) return
+    // A tab still being parsed *or fetched* in the background hasn't reached the canvas yet, so what
+    // is on it belongs to the tab before it — copying that in would overwrite the pending document
+    // (and, for a slow remote/cloud open, persist an empty page over a good snapshot).
+    if (p.tabs.active?.hydrated == false || p.tabs.active?.opening == true) return
     p.tabs.updateActive {
         it.copy(
             document = view.toDocument(),
@@ -127,6 +128,12 @@ internal fun MainActivity.show(tab: OpenTab, p: EditorPane = pane) {
         val full = p.store.hydrate(tab)
         runOnUiThread {
             if (p.tabs.active?.id != full.id) return@runOnUiThread
+            if (!full.hydrated) {
+                // The snapshot exists but couldn't be parsed. Say so and leave it on disk untouched —
+                // the tab stays unhydrated so no later persist can overwrite it with a blank page.
+                toast(getString(R.string.restore_failed, tab.title))
+                return@runOnUiThread
+            }
             p.tabs.updateActive { if (it.id == full.id) full else it }
             showTab(full, p)
             tabsTick.value++

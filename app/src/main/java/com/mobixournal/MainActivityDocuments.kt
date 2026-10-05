@@ -7,7 +7,6 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.LoadedFile
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
-import com.mobixournal.io.isCloudUri
 import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.xoppNameFor
 import com.mobixournal.render.DrawingSurfaceView
@@ -38,9 +37,13 @@ import java.io.File
  */
 internal fun MainActivity.openDocument(uri: Uri) {
     snapshotActiveTab()
-    val created = tabs.open(
-        OpenTab(TabStore.newId(), displayName(uri), blankDocument(), uri.toString()),
+    // `opening = true` until the bytes land: the tab's blank stand-in must never be snapshotted while
+    // the canvas still shows the previous document — on a slow remote/cloud fetch that is exactly how
+    // an empty page ends up persisted over the tab's cached content.
+    val placeholder = OpenTab(
+        TabStore.newId(), displayName(uri), blankDocument(), uri.toString(), opening = true,
     )
+    val created = tabs.open(placeholder)
     pendingSaveName = displayName(uri)
     tabsTick.value++
     // Keep the grant so plain Save can write back here later, even after a restart.
@@ -51,7 +54,11 @@ internal fun MainActivity.openDocument(uri: Uri) {
         // Staging names are unique per open, so the copy has to be swept once it has been read
         // or the cache would grow a file per document opened.
         result.mapCatching { staged -> try { loadDocument(staged, uri) } finally { staged.delete() } }
-            .onSuccess { snapshotActiveTab() }
+            .onSuccess {
+                // The fetch landed, so the tab holds a real document and may be snapshotted again.
+                tabs.updateActive { if (it.id == placeholder.id) it.copy(opening = false) else it }
+                snapshotActiveTab()
+            }
             .onFailure {
                 toast("Open failed: ${it.message}")
                 tabs.close(created)
@@ -252,10 +259,6 @@ internal fun MainActivity.extractPdfTextInBackground(file: File, into: DrawingSu
 
 /** Flatten the current document to a PDF at the chosen location (backgrounds + annotations). */
 internal fun MainActivity.exportPdf(uri: Uri) = runCatching {
-    if (isCloudUri(uri)) {
-        toast(getString(R.string.cloud_save_not_supported))
-        return@runCatching
-    }
     staging.writeTo(uri) { output: java.io.OutputStream -> surface?.exportPdf(output) }
 }.onFailure { toast("PDF export failed: ${it.message}") }
 
@@ -274,11 +277,6 @@ internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
  * - [SaveFormat.ZIPPED] — a ZIP package with the PDF embedded (`domain="attach"`, `bg.pdf`).
  */
 internal fun MainActivity.saveDocument(uri: Uri) {
-    if (isCloudUri(uri)) {
-        toast(getString(R.string.cloud_save_not_supported))
-        saveLauncher.launch(suggestedXoppName())
-        return
-    }
     val view = surface ?: return
     // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
     // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
@@ -320,7 +318,7 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri) {
  * share), and only fall back to asking for a location when we don't.
  */
 internal fun MainActivity.saveActiveTab() {
-    val target = tabs.active?.uri?.let(Uri::parse)?.takeIf { io.isWritable(it) && !isCloudUri(it) }
+    val target = tabs.active?.uri?.let(Uri::parse)?.takeIf(io::isWritable)
     if (target != null) saveDocument(target) else saveLauncher.launch(suggestedXoppName())
 }
 

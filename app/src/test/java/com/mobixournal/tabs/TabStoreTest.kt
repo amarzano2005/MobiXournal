@@ -116,4 +116,48 @@ class TabStoreTest {
     @Test fun noSessionOnDiskLoadsAsNull() {
         assertNull(TabStore(tmp.newFolder()).load())
     }
+
+    /**
+     * A snapshot that can't be parsed must never be replaced by the blank placeholder that stands in
+     * for it. A truncated file (a kill mid-write) used to hydrate to an empty document that the next
+     * persist wrote straight back over the file — the strokes were then gone for good.
+     */
+    @Test fun anUnreadableSnapshotIsNotOverwrittenByABlankPlaceholder() {
+        val dir = tmp.newFolder()
+        val store = TabStore(dir)
+        store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0))), 0))
+        // Truncate the snapshot so it exists but no longer parses.
+        java.io.File(dir, "t1.xopp").writeText("not gzip")
+
+        val back = store.load()!!
+        val hydrated = store.hydrate(back.tabs[0])
+
+        // It stays unhydrated, so nothing can blank it...
+        assertEquals(false, hydrated.hydrated)
+        // ...and re-persisting the session leaves the bytes exactly as they were.
+        store.save(back)
+        assertEquals("not gzip", java.io.File(dir, "t1.xopp").readText())
+    }
+
+    /**
+     * A tab whose document is still being fetched (a slow remote/cloud open) must not be written:
+     * its placeholder is not the tab's content, and the canvas still holds the previous document.
+     */
+    @Test fun aTabStillOpeningKeepsItsPreviousSnapshot() {
+        val dir = tmp.newFolder()
+        val store = TabStore(dir)
+        store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0))), 0))
+
+        // Re-save the same id as an in-flight fetch: placeholder document, opening = true.
+        store.save(TabSession(listOf(OpenTab("t1", "a", doc(999.0), opening = true)), 0))
+
+        assertEquals(111.0, store.hydrate(store.load()!!.tabs[0]).document.pages[0].width, 0.0)
+    }
+
+    /** A tab with no snapshot at all is an honest blank, not a permanently stuck placeholder. */
+    @Test fun aMissingSnapshotHydratesToABlankDocument() {
+        val store = TabStore(tmp.newFolder())
+        val tab = OpenTab("gone", "x", doc(1.0), hydrated = false)
+        assertEquals(true, store.hydrate(tab).hydrated)
+    }
 }
