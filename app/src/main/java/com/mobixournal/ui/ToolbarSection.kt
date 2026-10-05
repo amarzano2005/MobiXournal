@@ -1,8 +1,12 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -43,6 +47,19 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         onOrder = { onChange(settings.copy(railOrder = it)) },
         onHidden = { onChange(settings.copy(railHidden = it)) },
     )
+    Spacer(Modifier.height(4.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        OutlinedButton(
+            onClick = {
+                onChange(settings.copy(railHidden = settings.railHidden + AppSettings.DEFAULT_RAIL_HIDDEN))
+            },
+        ) {
+            Text("Hide top bar tools in rail")
+        }
+    }
 
     Spacer(Modifier.height(16.dp))
     Text("Top bar buttons", style = MaterialTheme.typography.titleSmall)

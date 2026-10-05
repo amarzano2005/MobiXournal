@@ -123,6 +123,19 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showScaleneAnglesDialog = false },
         )
     }
+    if (ui.showPenParametersDialog) {
+        PenParametersDialog(
+            minimumPressure = settings.minimumPressure,
+            pressureMultiplier = settings.pressureMultiplier,
+            onConfirm = { minP, mult ->
+                ui.showPenParametersDialog = false
+                val updated = settings.copy(minimumPressure = minP, pressureMultiplier = mult)
+                onSettingsChange(updated)
+                surface?.applySettings(updated)
+            },
+            onDismiss = { ui.showPenParametersDialog = false },
+        )
+    }
 }
 
 /**

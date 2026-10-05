@@ -432,3 +432,51 @@ private fun AngleRow(
     }
 }
 
+/**
+ * Quick floating dialog to set pen parameters on the fly: sensitivity (minimum pressure)
+ * and pressure multiplier.
+ */
+@Composable
+fun PenParametersDialog(
+    minimumPressure: Float,
+    pressureMultiplier: Float,
+    onConfirm: (minimumPressure: Float, pressureMultiplier: Float) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var minP by remember { mutableStateOf(minimumPressure) }
+    var mult by remember { mutableStateOf(pressureMultiplier) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Pen parameters") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                MinimumPressureSlider(value = minP, onChange = { minP = it })
+                PressureMultiplierSlider(value = mult, onChange = { mult = it })
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = {
+                        minP = 0.05f
+                        mult = 1.0f
+                    }) {
+                        Text("Reset defaults")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(minP, mult) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+

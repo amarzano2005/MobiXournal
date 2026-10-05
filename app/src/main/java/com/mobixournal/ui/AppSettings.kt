@@ -513,8 +513,17 @@ class SettingsStore(context: Context) {
             shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), SHAPE_GROUP.tools).toSet(),
             toolGroupSelections = decodeToolGroupSelections(prefs.getString(KEY_TOOL_GROUPS, null)),
             railOrder = decodeRailIds(prefs.getString(KEY_RAIL_ORDER, null)),
-            railHidden = prefs.getString(KEY_RAIL_HIDDEN, null).let { raw ->
-                if (raw != null) decodeRailIds(raw).toSet() else d.railHidden
+            railHidden = run {
+                val migrated = prefs.getBoolean(KEY_RAIL_HIDDEN_MIGRATED, false)
+                val raw = prefs.getString(KEY_RAIL_HIDDEN, null)
+                if (!migrated) {
+                    prefs.edit().putBoolean(KEY_RAIL_HIDDEN_MIGRATED, true).apply()
+                    if (raw.isNullOrBlank()) d.railHidden else (decodeRailIds(raw).toSet() + d.railHidden)
+                } else if (!raw.isNullOrBlank()) {
+                    decodeRailIds(raw).toSet()
+                } else {
+                    d.railHidden
+                }
             },
             topBarOrder = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_ORDER, null)).ifEmpty { d.topBarOrder },
             topBarHidden = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_HIDDEN, null)).toSet(),
@@ -697,6 +706,7 @@ class SettingsStore(context: Context) {
         const val KEY_TOOL_GROUPS = "tool_group_selections"
         const val KEY_RAIL_ORDER = "rail_order"
         const val KEY_RAIL_HIDDEN = "rail_hidden"
+        const val KEY_RAIL_HIDDEN_MIGRATED = "rail_hidden_migrated_v1"
         const val KEY_TOP_BAR_ORDER = "top_bar_order"
         const val KEY_TOP_BAR_HIDDEN = "top_bar_hidden"
         const val KEY_AUDIO_FOLDER = "audio_folder_uri"

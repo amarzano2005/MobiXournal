@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -151,6 +152,7 @@ fun EditorTopBar(
                 onSettings = { ui.showSettings = true },
                 penDiagnostics = ui.penDiagnostics,
                 onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
+                onOpenPenParameters = { ui.showPenParametersDialog = true },
                 splitView = splitView,
                 onToggleSplitView = onToggleSplitView,
             )
@@ -367,17 +369,35 @@ fun TopBarToolsRow(
                     onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                 )
             } else if (item.id == "triangle") {
-                CompactTrianglePopupButton(
-                    active = ui.tool == EditorTool.TRIANGLE,
-                    triangleKind = settings.triangleKind,
-                    onSelectKind = { kind ->
-                        val updated = settings.copy(triangleKind = kind)
-                        onSettingsChange(updated)
-                        surface?.activateTool(EditorTool.TRIANGLE, ui, updated, onSettingsChange)
-                    },
-                    onOpenAnglesDialog = { ui.showScaleneAnglesDialog = true },
-                    onClick = { surface?.activateTool(EditorTool.TRIANGLE, ui, settings, onSettingsChange) },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CompactTrianglePopupButton(
+                        active = ui.tool == EditorTool.TRIANGLE,
+                        triangleKind = settings.triangleKind,
+                        onSelectKind = { kind ->
+                            val updated = settings.copy(triangleKind = kind)
+                            onSettingsChange(updated)
+                            surface?.activateTool(EditorTool.TRIANGLE, ui, updated, onSettingsChange)
+                        },
+                        onOpenAnglesDialog = { ui.showScaleneAnglesDialog = true },
+                        onClick = { surface?.activateTool(EditorTool.TRIANGLE, ui, settings, onSettingsChange) },
+                    )
+                    if (ui.tool == EditorTool.TRIANGLE && settings.triangleKind == TriangleKind.SCALENE) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .clickable { ui.showScaleneAnglesDialog = true },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Customize scalene angles",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                }
             } else {
                 val group = toolGroupForRailItem(item.id)
                 if (group != null) {
@@ -477,7 +497,32 @@ private fun CompactTrianglePopupButton(
             MenuHeading("Triangle")
             for (kind in TriangleKind.values()) {
                 DropdownMenuItem(
-                    text = { Text(kind.label) },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(kind.label)
+                            if (kind == TriangleKind.SCALENE) {
+                                Spacer(Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            open = false
+                                            onSelectKind(TriangleKind.SCALENE)
+                                            onOpenAnglesDialog()
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Edit,
+                                        contentDescription = "Customize scalene angles",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+                        }
+                    },
                     trailingIcon = {
                         if (kind == triangleKind) Icon(Icons.Filled.Check, contentDescription = "selected")
                     },
@@ -487,16 +532,6 @@ private fun CompactTrianglePopupButton(
                     },
                 )
             }
-            HorizontalDivider()
-            DropdownMenuItem(
-                text = { Text("Customize angles…") },
-                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                onClick = {
-                    open = false
-                    onSelectKind(TriangleKind.SCALENE)
-                    onOpenAnglesDialog()
-                },
-            )
         }
     }
 }
@@ -932,6 +967,7 @@ private fun OverflowMenu(
     onSettings: () -> Unit,
     penDiagnostics: Boolean,
     onTogglePenDiagnostics: () -> Unit,
+    onOpenPenParameters: () -> Unit,
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
 ) {
@@ -979,6 +1015,11 @@ private fun OverflowMenu(
             text = { Text(if (penDiagnostics) "Hide pen diagnostics" else "Pen diagnostics") },
             leadingIcon = { Icon(Icons.Filled.BugReport, contentDescription = null) },
             onClick = { open = false; onTogglePenDiagnostics() },
+        )
+        DropdownMenuItem(
+            text = { Text("Pen parameters…") },
+            leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
+            onClick = { open = false; onOpenPenParameters() },
         )
         DropdownMenuItem(
             text = { Text("Settings") },

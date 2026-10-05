@@ -17,6 +17,39 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "overflow-pen-parameters-dialog"
+title = "Pen parameters dialog in overflow menu"
+description = "Add floating dialog for pen parameters (minimum pressure and multiplier) in overflow menu under pen diagnostics"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "rail-disable-topbar-duplicates"
+title = "Disable elements in primary rail present in secondary toolbar by default"
+description = "Ensure secondary toolbar duplicate tools are hidden by default in primary rail"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
+id = "scalene-edit-icon-inline"
+title = "Move angle edit icon directly next to scalene triangle item and on active scalene tool"
+description = "Move angle edit icon directly next to scalene triangle item and on active scalene tool"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-05
+completed = 2026-10-05
+tags = []
+
+[[task]]
 id = "triangle-submenu-kinds"
 title = "Triangle submenu with equilateral, right, isosceles, and scalene"
 description = "Add submenu for triangles supporting equilateral (default), right, isosceles, and scalene with customizable 3 angles"
