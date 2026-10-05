@@ -21,24 +21,6 @@ data class PenPreset(
                 minimumPressure = 0.05f,
                 pressureMultiplier = 1.0f,
             ),
-            PenPreset(
-                id = "light-touch",
-                name = "Light touch",
-                minimumPressure = 0.08f,
-                pressureMultiplier = 1.5f,
-            ),
-            PenPreset(
-                id = "firm-hand",
-                name = "Firm hand",
-                minimumPressure = 0.02f,
-                pressureMultiplier = 0.75f,
-            ),
-            PenPreset(
-                id = "high-sensitivity",
-                name = "High sensitivity",
-                minimumPressure = 0.12f,
-                pressureMultiplier = 2.0f,
-            ),
         )
 
         /** Generate a stable slug id from a preset name. */
@@ -54,6 +36,9 @@ private const val FIELD_SEP: Char = ';'
 
 /** Separates presets. */
 private const val PRESET_SEP: Char = '|'
+
+/** Predefined presets that were removed and should be ignored if present in storage. */
+private val RETIRED_DEFAULT_PRESET_IDS = setOf("light-touch", "firm-hand", "high-sensitivity")
 
 /** Serialise [presets] into a single string for SharedPreferences. */
 fun encodePenPresets(presets: List<PenPreset>): String =
@@ -73,6 +58,7 @@ fun decodePenPresets(raw: String?, fallback: List<PenPreset> = PenPreset.DEFAULT
         val f = entry.split(FIELD_SEP)
         if (f.size < 4) return@mapNotNull null
         val id = f[0].trim().ifEmpty { return@mapNotNull null }
+        if (id in RETIRED_DEFAULT_PRESET_IDS) return@mapNotNull null
         val name = f[1].trim().ifEmpty { id }
         val minP = f[2].trim().toFloatOrNull()?.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, 1f)
             ?: return@mapNotNull null

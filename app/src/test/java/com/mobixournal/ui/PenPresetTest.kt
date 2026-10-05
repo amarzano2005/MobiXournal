@@ -8,15 +8,23 @@ import org.junit.Test
 class PenPresetTest {
 
     @Test
-    fun `default presets are valid`() {
+    fun `default presets contain only Default`() {
         val defaults = PenPreset.DEFAULT_PRESETS
-        assertTrue(defaults.isNotEmpty())
-        for (p in defaults) {
-            assertTrue(p.id.isNotBlank())
-            assertTrue(p.name.isNotBlank())
-            assertTrue(p.minimumPressure > 0f)
-            assertTrue(p.pressureMultiplier > 0f)
-        }
+        assertEquals(1, defaults.size)
+        val default = defaults.single()
+        assertEquals("default", default.id)
+        assertEquals("Default", default.name)
+        assertEquals(0.05f, default.minimumPressure, 0.001f)
+        assertEquals(1.0f, default.pressureMultiplier, 0.001f)
+    }
+
+    @Test
+    fun `decode filters out retired extra default presets`() {
+        val raw = "default;Default;0.05;1.0|light-touch;Light touch;0.08;1.5|custom;Custom;0.06;1.2"
+        val decoded = decodePenPresets(raw)
+        assertEquals(2, decoded.size)
+        assertEquals("default", decoded[0].id)
+        assertEquals("custom", decoded[1].id)
     }
 
     @Test
