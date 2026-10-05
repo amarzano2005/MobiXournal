@@ -423,7 +423,7 @@ internal fun DrawingSurfaceView.drawVerticalSpaceGuide(canvas: Canvas) {
     canvas.drawRect(left, vspace.lineViewY - 1f, right, vspace.lineViewY + 1f, chrome.selectionStroke)
 }
 
-/** Draw the live marquee (view px): a rectangle, or the traced lasso path in lasso mode. */
+/** Draw the live marquee: a rectangle from its page-pt corners, or the traced lasso path in lasso mode. */
 internal fun DrawingSurfaceView.drawBand(canvas: Canvas) {
     val poly = gestures.lassoPoly
     val lassoBox = layout.boxes.getOrNull(gestures.bandPage)
@@ -440,10 +440,17 @@ internal fun DrawingSurfaceView.drawBand(canvas: Canvas) {
         canvas.drawPath(chrome.lassoPath, chrome.selectionStroke)
         return
     }
-    val l = min(gestures.bandX0, gestures.bandX1)
-    val t = min(gestures.bandY0, gestures.bandY1)
-    val r = max(gestures.bandX0, gestures.bandX1)
-    val bot = max(gestures.bandY0, gestures.bandY1)
+    // The corners live in page pt; convert with the current scroll so the rectangle rides the page as
+    // the auto-scroll moves it under a held finger rather than staying glued to the viewport.
+    if (lassoBox == null) return
+    val sx = lassoBox.toViewX(gestures.bandStart.x, scrollX)
+    val sy = lassoBox.toViewY(gestures.bandStart.y, scrollY)
+    val ex = lassoBox.toViewX(gestures.bandEnd.x, scrollX)
+    val ey = lassoBox.toViewY(gestures.bandEnd.y, scrollY)
+    val l = min(sx, ex)
+    val t = min(sy, ey)
+    val r = max(sx, ex)
+    val bot = max(sy, ey)
     canvas.drawRect(l, t, r, bot, chrome.bandFill)
     canvas.drawRect(l, t, r, bot, chrome.selectionStroke)
 }

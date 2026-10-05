@@ -53,7 +53,13 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                     gestures.moveSelect(event)
                 }
                 vspace.active -> vspace.move(event.y)
-                gestures.banding -> gestures.bandMove(event)
+                gestures.banding -> {
+                    // Dragging the marquee itself into an edge band scrolls the page too, so a
+                    // selection can reach past the viewport without letting go and panning first.
+                    dragLastX = event.x; dragLastY = event.y
+                    updateDragAutoScroll(event.y)
+                    gestures.bandMove(event)
+                }
                 textSelecting -> textSelectMove(event)
                 splineDragging -> splineMove(event)
                 (current != null || currentStrokes != null) -> extendStroke(event)
@@ -422,8 +428,9 @@ private fun DrawingSurfaceView.postAutoScroll() {
 }
 
 /**
- * One auto-scroll frame: scroll one step toward the edge the finger is in and re-apply the move at
- * the finger's last position, so the selection rides the scrolling sheet, then repost.
+ * One auto-scroll frame: scroll one step toward the edge the finger is in and re-apply the gesture at
+ * the finger's last position — the moved selection, or the marquee being dragged out — so it rides the
+ * scrolling sheet, then repost.
  */
 internal fun DrawingSurfaceView.autoScrollFrame() {
     autoScrollPosted = false
@@ -434,7 +441,8 @@ internal fun DrawingSurfaceView.autoScrollFrame() {
         stopAutoScroll() // pinned at a bound: nothing left to scroll into
         return
     }
-    gestures.moveSelectTo(dragLastX, dragLastY)
+    if (gestures.banding) gestures.bandTo(dragLastX, dragLastY)
+    else gestures.moveSelectTo(dragLastX, dragLastY)
     postAutoScroll()
 }
 

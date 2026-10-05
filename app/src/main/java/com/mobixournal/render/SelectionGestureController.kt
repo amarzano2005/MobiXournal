@@ -53,18 +53,20 @@ internal class SelectionGestureController(
     /** The current selection (a page index + the refs of its selected elements), or null. */
     var selection: ActiveSelection? = null
 
-    // Live rubber-band marquee (view px) and the page it selects within.
+    // Live rubber-band marquee and the page it selects within. The corners are held in **page-local
+    // pt** (not view px) so the drag auto-scroll extends the marquee instead of shifting it: the start
+    // anchor stays pinned to the sheet while the end follows the pointer as the content moves under it.
     var banding = false
         private set
     var bandPage = 0
         private set
-    var bandX0 = 0f
+
+    /** The marquee's fixed start anchor, page-local pt on [bandPage]. */
+    var bandStart = Vec2(0.0, 0.0)
         private set
-    var bandY0 = 0f
-        private set
-    var bandX1 = 0f
-        private set
-    var bandY1 = 0f
+
+    /** The marquee's live end, page-local pt on [bandPage]. */
+    var bandEnd = Vec2(0.0, 0.0)
         private set
 
     /**
@@ -288,17 +290,30 @@ internal class SelectionGestureController(
         clearSelection()
         banding = true
         bandPage = layout().pageAt(event.x + viewport.scrollX, event.y + viewport.scrollY)?.index ?: 0
-        bandX0 = event.x; bandY0 = event.y
-        bandX1 = event.x; bandY1 = event.y
+        val box = layout().boxes.getOrNull(bandPage)
+        val start = if (box != null) {
+            Vec2(box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY))
+        } else {
+            Vec2(0.0, 0.0)
+        }
+        bandStart = start
+        bandEnd = start
         lassoPoly.clear()
         if (lassoMode()) addLassoPoint(event.x, event.y)
         render()
     }
 
-    fun bandMove(event: MotionEvent) {
-        bandX1 = event.x
-        bandY1 = event.y
-        if (lassoMode()) addLassoPoint(event.x, event.y)
+    fun bandMove(event: MotionEvent) = bandTo(event.x, event.y)
+
+    /**
+     * Re-apply the live marquee end from a **view-px** pointer position. The shared body of [bandMove]
+     * and the drag auto-scroll, which re-runs it under a held finger after the page scrolls so the band
+     * reaches the content arriving from the edge.
+     */
+    fun bandTo(viewX: Float, viewY: Float) {
+        val box = layout().boxes.getOrNull(bandPage) ?: return
+        bandEnd = Vec2(box.toPtX(viewX, viewport.scrollX), box.toPtY(viewY, viewport.scrollY))
+        if (lassoMode()) addLassoPoint(viewX, viewY)
         render()
     }
 
@@ -316,17 +331,24 @@ internal class SelectionGestureController(
         val box = layout().boxes.getOrNull(bandPage) ?: return
         val page = document().pages.getOrNull(bandPage) ?: return
         val layer = activeLayerOf(page)
-        val isTap = hypot(bandX1 - bandX0, bandY1 - bandY0) <= DrawingSurfaceDefaults.TAP_SLOP_PX
+        // Measure the drag on screen (pt × scale = view px): a marquee that never grew past a tap's
+        // slop is a tap, whether or not the auto-scroll nudged the page under it in the meantime.
+        val dragPx = hypot(
+            (bandEnd.x - bandStart.x).toFloat() * box.scale,
+            (bandEnd.y - bandStart.y).toFloat() * box.scale,
+        )
         val refs: Set<ElementRef> = when {
-            isTap -> SelectionTester.pickTopmost(page, box.toPtX(bandX0, viewport.scrollX), box.toPtY(bandY0, viewport.scrollY))?.let { setOf(it) } ?: emptySet()
+            dragPx <= DrawingSurfaceDefaults.TAP_SLOP_PX ->
+                SelectionTester.pickTopmost(page, bandStart.x, bandStart.y)?.let { setOf(it) } ?: emptySet()
             lassoMode() -> SelectionTester.inPolygon(page, lassoPoly, layer)
-            else -> {
-                val rect = Bounds(
-                    min(box.toPtX(bandX0, viewport.scrollX), box.toPtX(bandX1, viewport.scrollX)), min(box.toPtY(bandY0, viewport.scrollY), box.toPtY(bandY1, viewport.scrollY)),
-                    max(box.toPtX(bandX0, viewport.scrollX), box.toPtX(bandX1, viewport.scrollX)), max(box.toPtY(bandY0, viewport.scrollY), box.toPtY(bandY1, viewport.scrollY)),
-                )
-                SelectionTester.inRect(page, rect, layer)
-            }
+            else -> SelectionTester.inRect(
+                page,
+                Bounds(
+                    min(bandStart.x, bandEnd.x), min(bandStart.y, bandEnd.y),
+                    max(bandStart.x, bandEnd.x), max(bandStart.y, bandEnd.y),
+                ),
+                layer,
+            )
         }
         selection = if (refs.isEmpty()) null else ActiveSelection(bandPage, refs)
         onSelectionChanged(selection != null)
