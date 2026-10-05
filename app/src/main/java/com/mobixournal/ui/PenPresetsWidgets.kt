@@ -142,14 +142,12 @@ fun PenPresetsRow(
 
     if (showAddDialog) {
         NewPenPresetDialog(
-            currentMinPressure = currentMinPressure,
-            currentMultiplier = currentMultiplier,
             onConfirm = { name ->
                 val newPreset = PenPreset(
                     id = PenPreset.slugId(name) + "-" + System.currentTimeMillis().toString().takeLast(4),
                     name = name,
-                    minimumPressure = currentMinPressure,
-                    pressureMultiplier = currentMultiplier,
+                    minimumPressure = PenPreset.FACTORY_DEFAULT_MIN_PRESSURE,
+                    pressureMultiplier = PenPreset.FACTORY_DEFAULT_MULTIPLIER,
                 )
                 onUpdatePresets(addOrUpdatePenPreset(presets, newPreset), newPreset.id)
                 showAddDialog = false
@@ -206,11 +204,9 @@ fun RenamePenPresetDialog(
     )
 }
 
-/** Dialog to name and save the current slider values as a new preset. */
+/** Dialog to name a new preset initialized with default parameters (0.05× / 1.00×). */
 @Composable
 fun NewPenPresetDialog(
-    currentMinPressure: Float,
-    currentMultiplier: Float,
     onConfirm: (name: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -221,8 +217,7 @@ fun NewPenPresetDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Save current parameters (%.2f× / %.2f×) as a preset:"
-                        .format(currentMinPressure, currentMultiplier),
+                    "Creates a preset with default parameters (0.05× / 1.00×). You can adjust them at any time.",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 OutlinedTextField(

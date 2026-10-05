@@ -14,8 +14,10 @@ class PenPresetTest {
         val default = defaults.single()
         assertEquals("default", default.id)
         assertEquals("Default", default.name)
-        assertEquals(0.05f, default.minimumPressure, 0.001f)
-        assertEquals(1.0f, default.pressureMultiplier, 0.001f)
+        assertEquals(PenPreset.FACTORY_DEFAULT_MIN_PRESSURE, default.minimumPressure, 0.001f)
+        assertEquals(PenPreset.FACTORY_DEFAULT_MULTIPLIER, default.pressureMultiplier, 0.001f)
+        assertEquals(0.05f, PenPreset.FACTORY_DEFAULT_MIN_PRESSURE, 0.001f)
+        assertEquals(1.0f, PenPreset.FACTORY_DEFAULT_MULTIPLIER, 0.001f)
     }
 
     @Test

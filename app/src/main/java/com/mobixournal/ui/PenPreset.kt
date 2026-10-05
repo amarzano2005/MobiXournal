@@ -13,13 +13,16 @@ data class PenPreset(
     val pressureMultiplier: Float,
 ) {
     companion object {
+        const val FACTORY_DEFAULT_MIN_PRESSURE = 0.05f
+        const val FACTORY_DEFAULT_MULTIPLIER = 1.0f
+
         /** The factory default pen presets offered on first launch. */
         val DEFAULT_PRESETS = listOf(
             PenPreset(
                 id = "default",
                 name = "Default",
-                minimumPressure = 0.05f,
-                pressureMultiplier = 1.0f,
+                minimumPressure = FACTORY_DEFAULT_MIN_PRESSURE,
+                pressureMultiplier = FACTORY_DEFAULT_MULTIPLIER,
             ),
         )
 

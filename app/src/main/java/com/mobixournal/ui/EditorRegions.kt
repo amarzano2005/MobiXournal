@@ -54,8 +54,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -143,6 +147,18 @@ fun EditorTopBar(
             }
             TabOverviewButton(tabs)
             OverflowMenu(
+                settings = settings,
+                onSelectPenPreset = { preset ->
+                    if (settings != null && onSettingsChange != null) {
+                        val updated = settings.copy(
+                            selectedPenPresetId = preset.id,
+                            minimumPressure = preset.minimumPressure,
+                            pressureMultiplier = preset.pressureMultiplier,
+                        )
+                        onSettingsChange(updated)
+                        pane.surface?.applySettings(updated)
+                    }
+                },
                 onOpen = onOpen,
                 onNewTab = onNewTab,
                 onSave = onSave,
@@ -955,9 +971,11 @@ fun EditorPaneView(
     }
 }
 
-/** The top-bar overflow ("hamburger") menu: open, save, and the settings page. */
+/** The top-bar overflow ("hamburger") menu: compact quick file actions, PDF row, pen presets, and settings. */
 @Composable
 private fun OverflowMenu(
+    settings: AppSettings?,
+    onSelectPenPreset: (PenPreset) -> Unit,
     onOpen: () -> Unit,
     onNewTab: () -> Unit,
     onSave: () -> Unit,
@@ -975,37 +993,131 @@ private fun OverflowMenu(
     IconButton(onClick = { open = true }) {
         Icon(Icons.Filled.Menu, contentDescription = "Menu")
     }
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        DropdownMenuItem(
-            text = { Text("Open") },
-            leadingIcon = { Icon(Icons.Filled.FileOpen, contentDescription = null) },
-            onClick = { open = false; onOpen() },
-        )
-        DropdownMenuItem(
-            text = { Text("New document") },
-            leadingIcon = { Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = null) },
-            onClick = { open = false; onNewTab() },
-        )
-        DropdownMenuItem(
-            text = { Text("Import PDF") },
-            leadingIcon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-            onClick = { open = false; onImportPdf() },
-        )
-        DropdownMenuItem(
-            text = { Text("Export PDF") },
-            leadingIcon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
-            onClick = { open = false; onExportPdf() },
-        )
-        DropdownMenuItem(
-            text = { Text("Save") },
-            leadingIcon = { Icon(Icons.Filled.Save, contentDescription = null) },
-            onClick = { open = false; onSave() },
-        )
-        DropdownMenuItem(
-            text = { Text("Save As…") },
-            leadingIcon = { Icon(Icons.Filled.SaveAs, contentDescription = null) },
-            onClick = { open = false; onSaveAs() },
-        )
+    DropdownMenu(
+        expanded = open,
+        onDismissRequest = { open = false },
+        modifier = Modifier.widthIn(min = 280.dp, max = 320.dp),
+    ) {
+        // Quick File Actions
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            MenuQuickAction(
+                icon = Icons.AutoMirrored.Filled.NoteAdd,
+                label = "New",
+                onClick = { open = false; onNewTab() },
+                modifier = Modifier.weight(1f),
+            )
+            MenuQuickAction(
+                icon = Icons.Filled.FileOpen,
+                label = "Open",
+                onClick = { open = false; onOpen() },
+                modifier = Modifier.weight(1f),
+            )
+            MenuQuickAction(
+                icon = Icons.Filled.Save,
+                label = "Save",
+                onClick = { open = false; onSave() },
+                modifier = Modifier.weight(1f),
+            )
+            MenuQuickAction(
+                icon = Icons.Filled.SaveAs,
+                label = "Save As",
+                onClick = { open = false; onSaveAs() },
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        // PDF Actions
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { open = false; onImportPdf() },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Import PDF", style = MaterialTheme.typography.labelMedium)
+            }
+            OutlinedButton(
+                onClick = { open = false; onExportPdf() },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Export PDF", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        // Pen Presets
+        if (settings != null && settings.penPresets.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 2.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Pen presets",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    IconButton(
+                        onClick = { open = false; onOpenPenParameters() },
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Tune,
+                            contentDescription = "Pen parameters",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    settings.penPresets.forEach { preset ->
+                        val isSelected = preset.id == settings.selectedPenPresetId
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                open = false
+                                onSelectPenPreset(preset)
+                            },
+                            label = { Text(preset.name, style = MaterialTheme.typography.bodySmall, maxLines = 1) },
+                        )
+                    }
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        } else {
+            DropdownMenuItem(
+                text = { Text("Pen parameters…") },
+                leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
+                onClick = { open = false; onOpenPenParameters() },
+            )
+        }
+
+        // Tools and Settings
         DropdownMenuItem(
             text = { Text(if (splitView) "Close split view" else "Split view") },
             leadingIcon = { Icon(Icons.Filled.VerticalSplit, contentDescription = null) },
@@ -1017,14 +1129,34 @@ private fun OverflowMenu(
             onClick = { open = false; onTogglePenDiagnostics() },
         )
         DropdownMenuItem(
-            text = { Text("Pen parameters…") },
-            leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-            onClick = { open = false; onOpenPenParameters() },
-        )
-        DropdownMenuItem(
             text = { Text("Settings") },
             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
             onClick = { open = false; onSettings() },
         )
     }
 }
+
+@Composable
+private fun MenuQuickAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+        )
+    }
+}
+
