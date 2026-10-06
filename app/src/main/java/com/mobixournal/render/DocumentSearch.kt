@@ -140,21 +140,33 @@ object DocumentSearch {
             start = haystack.indexOf(needleNorm, start + 1)
         }
 
-        // 2. Multi-candidate & fuzzy word matching for individual words
+        // 2. Candidate & tightly bounded fuzzy matching for individual words
         for (i in words.indices) {
             if (i in matchedWordIndices) continue
             val word = words[i]
+            val primaryNorm = normalizeText(word.text)
+
+            // A. Check candidates for exact match, prefix match, or targeted substring match
             val matchesCandidate = word.candidates.any { candidate ->
                 val candNorm = normalizeText(candidate)
-                if (candNorm.contains(needleNorm)) return@any true
-                if (needleNorm.length >= 3) {
-                    val maxDist = if (needleNorm.length >= 7) 2 else 1
-                    levenshteinDistance(candNorm, needleNorm, maxDist) <= maxDist
-                } else {
-                    false
+                when {
+                    candNorm == needleNorm -> true
+                    needleNorm.length >= 3 && candNorm.startsWith(needleNorm) -> true
+                    needleNorm.length >= 4 && candNorm.contains(needleNorm) && candNorm.length <= needleNorm.length + 3 -> true
+                    else -> false
                 }
             }
-            if (matchesCandidate) {
+
+            // B. Tightly bounded fuzzy matching (distance 1) applied ONLY to primary recognized text
+            // for words with length >= 5 and length difference <= 1, preventing false positives like "della" matching "modello"
+            val matchesFuzzy = if (!matchesCandidate && needleNorm.length >= 5) {
+                val lenDiff = kotlin.math.abs(primaryNorm.length - needleNorm.length)
+                lenDiff <= 1 && levenshteinDistance(primaryNorm, needleNorm, 1) <= 1
+            } else {
+                false
+            }
+
+            if (matchesCandidate || matchesFuzzy) {
                 hits.add(SearchHit(pageIndex, listOf(word.bounds)))
                 matchedWordIndices.add(i)
             }

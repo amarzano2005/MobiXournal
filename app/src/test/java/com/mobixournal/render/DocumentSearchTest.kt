@@ -224,6 +224,46 @@ class DocumentSearchTest {
         )
     }
 
+    @Test fun doesNotMatchUnrelatedShorterWordWithSimilarSuffix() {
+        val doc = document()
+        val hwIndex = HandwritingIndex(
+            listOf(
+                listOf(
+                    HandwrittenWord(
+                        text = "della",
+                        bounds = Bounds(10.0, 20.0, 50.0, 40.0),
+                        candidates = listOf("della", "dello"),
+                    ),
+                ),
+            ),
+        )
+
+        // Query "modello" should NOT match "della" even if "dello" is a candidate
+        val hits = DocumentSearch.find(doc, null, "modello", hwIndex)
+        assertTrue(hits.isEmpty())
+    }
+
+    @Test fun matchesCandidateExactOrPrefix() {
+        val doc = document()
+        val hwIndex = HandwritingIndex(
+            listOf(
+                listOf(
+                    HandwrittenWord(
+                        text = "della",
+                        bounds = Bounds(10.0, 20.0, 50.0, 40.0),
+                        candidates = listOf("della", "dello"),
+                    ),
+                ),
+            ),
+        )
+
+        val hitsExact = DocumentSearch.find(doc, null, "dello", hwIndex)
+        assertEquals(1, hitsExact.size)
+
+        val hitsPrefix = DocumentSearch.find(doc, null, "del", hwIndex)
+        assertEquals(1, hitsPrefix.size)
+    }
+
     private fun document(vararg elements: Element): Document =
         Document(pages = listOf(blankPage().copy(layers = listOf(Layer(elements.toList())))))
 }

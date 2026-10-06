@@ -154,25 +154,21 @@ object HandwritingRecognizer {
         if (wordStrokes.isEmpty()) return null
         val bounds = computeWordBounds(wordStrokes)
 
-        // 1. Compute fallback word (fast offline template matcher)
-        val fallbackWord = FallbackInkEngine.recognizeWord(wordStrokes, bounds)
-
-        // 2. Try ML Kit Digital Ink Recognition if available on device
+        // 1. Try ML Kit Digital Ink Recognition if available on device
         if (MlKitInkEngine.isAvailable()) {
             val mlCandidates = MlKitInkEngine.recognizeWord(wordStrokes)
             if (mlCandidates.isNotEmpty()) {
-                val combinedCandidates = (mlCandidates + (fallbackWord?.candidates ?: emptyList())).distinct()
                 return HandwrittenWord(
                     text = mlCandidates.first(),
                     bounds = bounds,
                     confidence = 1.0,
-                    candidates = combinedCandidates,
+                    candidates = mlCandidates.take(5),
                 )
             }
         }
 
-        // 3. Fallback to robust offline template engine
-        return fallbackWord
+        // 2. Fallback to robust offline template engine when ML Kit is unavailable
+        return FallbackInkEngine.recognizeWord(wordStrokes, bounds)
     }
 
     fun strokeBounds(stroke: Stroke): Bounds {

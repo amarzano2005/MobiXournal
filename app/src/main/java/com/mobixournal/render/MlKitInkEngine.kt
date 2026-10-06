@@ -208,12 +208,13 @@ object MlKitInkEngine {
             try {
                 val task = recognizer.recognize(ink)
                 val result = Tasks.await(task, 1500, TimeUnit.MILLISECONDS)
-                for (cand in result.candidates) {
+                for (cand in result.candidates.take(3)) {
                     val text = cand.text.trim()
                     if (text.isNotEmpty() && text !in allCandidates) {
                         allCandidates.add(text)
                     }
                 }
+                if (allCandidates.size >= 5) break
             } catch (e: Exception) {
                 Log.w(TAG, "ML Kit recognition error", e)
             }
