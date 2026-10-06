@@ -69,6 +69,10 @@ class PaneState {
     var searchCurrent by mutableStateOf(0)
     /** Total number of search matches found. */
     var searchTotal by mutableStateOf(0)
+    /** Whether handwriting AI recognition is currently indexing the document. */
+    var searchIndexing by mutableStateOf(false)
+    /** Current indexing progress message (e.g. "Elaborazione pagina 1 di 3..."). */
+    var searchIndexingProgress by mutableStateOf<String?>(null)
     /**
      * The lines of the live pen-diagnostics log, oldest first, while [EditorUiState.penDiagnostics]
      * is on (see `PenInputLog`). Filled by the canvas as events arrive.

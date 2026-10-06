@@ -57,12 +57,18 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
@@ -198,6 +204,57 @@ fun EditorTopBar(
 }
 
 @Composable
+private fun SearchIndexingDialog(
+    progress: String?,
+    onCancel: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp,
+            modifier = Modifier.widthIn(min = 280.dp, max = 340.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(44.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.5.dp,
+                )
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    text = "Elaborazione scrittura a mano",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = progress ?: "Riconoscimento del testo con intelligenza artificiale per la ricerca in tempo reale...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(20.dp))
+                TextButton(
+                    onClick = onCancel,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                ) {
+                    Text("Annulla")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SearchControls(pane: PaneState) {
     fun apply(status: SearchStatus) {
         pane.searchCurrent = status.current
@@ -206,16 +263,38 @@ private fun SearchControls(pane: PaneState) {
     if (!pane.searchOpen) {
         IconButton(onClick = {
             pane.searchOpen = true
-            pane.surface?.setSearchQuery(pane.searchQuery)?.let(::apply)
+            pane.surface?.ensureHandwritingIndex {
+                pane.surface?.setSearchQuery(pane.searchQuery)?.let(::apply)
+            }
         }) {
             Icon(Icons.Filled.Search, contentDescription = "Search")
         }
         return
     }
 
+    LaunchedEffect(pane.searchOpen) {
+        if (pane.searchOpen && pane.surface?.isHandwritingIndexReady() == false) {
+            pane.surface?.ensureHandwritingIndex {
+                pane.surface?.setSearchQuery(pane.searchQuery)?.let(::apply)
+            }
+        }
+    }
+
+    if (pane.searchIndexing) {
+        SearchIndexingDialog(
+            progress = pane.searchIndexingProgress,
+            onCancel = {
+                pane.surface?.cancelIndexing()
+                pane.searchIndexing = false
+            },
+        )
+    }
+
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+    LaunchedEffect(pane.searchIndexing) {
+        if (!pane.searchIndexing) {
+            focusRequester.requestFocus()
+        }
     }
 
     Surface(
@@ -228,14 +307,24 @@ private fun SearchControls(pane: PaneState) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 6.dp),
         ) {
-            Icon(
-                Icons.Filled.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .size(16.dp)
-                    .padding(start = 2.dp),
-            )
+            if (pane.searchIndexing) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .padding(start = 2.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .padding(start = 2.dp),
+                )
+            }
             Spacer(Modifier.width(6.dp))
             BasicTextField(
                 value = pane.searchQuery,
@@ -257,7 +346,7 @@ private fun SearchControls(pane: PaneState) {
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (pane.searchQuery.isEmpty()) {
                             Text(
-                                "Search notes...",
+                                if (pane.searchIndexing) "Elaborazione testo..." else "Cerca negli appunti...",
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
@@ -955,6 +1044,10 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
     onSplineChanged = { n -> state.splineNodes = n }
     onSearchChanged = { s -> state.searchCurrent = s.current; state.searchTotal = s.total }
+    onSearchIndexingChanged = { active, progress ->
+        state.searchIndexing = active
+        state.searchIndexingProgress = progress
+    }
 }
 
 /**

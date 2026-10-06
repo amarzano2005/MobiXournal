@@ -50,9 +50,15 @@ object HandwritingRecognizer {
     }
 
     /** Indexes all pages in [doc], producing a [HandwritingIndex] for fast search. */
-    fun index(doc: Document, isCancelled: () -> Boolean = { false }): HandwritingIndex {
-        val pages = doc.pages.map { page ->
+    fun index(
+        doc: Document,
+        onProgress: ((Int, Int) -> Unit)? = null,
+        isCancelled: () -> Boolean = { false },
+    ): HandwritingIndex {
+        val totalPages = doc.pages.size
+        val pages = doc.pages.mapIndexed { pageIndex, page ->
             if (isCancelled()) return HandwritingIndex(emptyList())
+            onProgress?.invoke(pageIndex + 1, totalPages)
             val inkStrokes = page.layers.flatMap { layer ->
                 layer.elements.filterIsInstance<Stroke>().filter {
                     it.tool != Tool.ERASER && it.points.size >= MIN_STROKE_POINTS

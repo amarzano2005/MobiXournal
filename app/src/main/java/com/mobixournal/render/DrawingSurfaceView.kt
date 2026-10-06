@@ -542,6 +542,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Notified when search count/current changes so the top bar can show navigation state. */
     var onSearchChanged: ((SearchStatus) -> Unit)? = null
 
+    /** Notified when handwriting AI indexing begins or ends (true = indexing, false = idle), with optional progress text. */
+    var onSearchIndexingChanged: ((Boolean, String?) -> Unit)? = null
+
     internal var searchQuery = ""
     internal var searchHits: List<SearchHit> = emptyList()
     internal var currentSearchHit = -1
@@ -717,10 +720,83 @@ class DrawingSurfaceView @JvmOverloads constructor(
         return searchStatus()
     }
 
+    /** True when handwriting index is already computed and ready for immediate search. */
+    fun isHandwritingIndexReady(): Boolean =
+        handwritingIndex != null || DocumentSearch.totalStrokeCount(doc) == 0
+
+    /** Cancels any in-flight background handwriting indexing. */
+    fun cancelIndexing() {
+        indexingGeneration++
+        isIndexingActive = false
+        onSearchIndexingChanged?.invoke(false, null)
+    }
+
+    /**
+     * Ensures handwriting index is fully built before querying.
+     * If not already built, runs indexing in background, posting progress and calling [onComplete] on finish.
+     */
+    fun ensureHandwritingIndex(onComplete: (() -> Unit)? = null) {
+        val currentDoc = doc
+        if (handwritingIndex != null || DocumentSearch.totalStrokeCount(currentDoc) == 0) {
+            if (handwritingIndex == null) handwritingIndex = HandwritingIndex(emptyList())
+            onSearchIndexingChanged?.invoke(false, null)
+            onComplete?.invoke()
+            return
+        }
+
+        indexingDoc = currentDoc
+        isIndexingActive = true
+        val taskGen = ++indexingGeneration
+        onSearchIndexingChanged?.invoke(true, "Avvio elaborazione testo...")
+
+        handwritingExecutor.execute {
+            try {
+                val totalPages = currentDoc.pages.size
+                val index = HandwritingIndex.build(
+                    doc = currentDoc,
+                    onProgress = { curPage, total ->
+                        if (indexingGeneration == taskGen) {
+                            mainHandler.post {
+                                if (indexingGeneration == taskGen) {
+                                    val progressMsg = if (totalPages > 1) {
+                                        "Elaborazione pagina $curPage di $total..."
+                                    } else {
+                                        "Riconoscimento del testo con AI..."
+                                    }
+                                    onSearchIndexingChanged?.invoke(true, progressMsg)
+                                }
+                            }
+                        }
+                    },
+                    isCancelled = { indexingGeneration != taskGen },
+                )
+                mainHandler.post {
+                    if (indexingGeneration == taskGen && doc === currentDoc) {
+                        handwritingIndex = index
+                        isIndexingActive = false
+                        onSearchIndexingChanged?.invoke(false, null)
+                        if (searchQuery.isNotEmpty()) {
+                            rebuildSearch()
+                            render()
+                        }
+                        onComplete?.invoke()
+                    } else {
+                        isIndexingActive = false
+                        onSearchIndexingChanged?.invoke(false, null)
+                    }
+                }
+            } catch (_: Exception) {
+                mainHandler.post {
+                    isIndexingActive = false
+                    onSearchIndexingChanged?.invoke(false, null)
+                }
+            }
+        }
+    }
+
     fun nextSearchHit(): SearchStatus {
-        if (searchHits.isEmpty() && searchQuery.isNotEmpty() && handwritingIndex == null) {
-            handwritingIndex = HandwritingIndex.build(doc)
-            rebuildSearch()
+        if (searchHits.isEmpty() && searchQuery.isNotEmpty() && handwritingIndex == null && !isIndexingActive) {
+            ensureHandwritingIndex()
         }
         if (searchHits.isEmpty()) return searchStatus()
         currentSearchHit = (currentSearchHit + 1).floorMod(searchHits.size)
@@ -729,9 +805,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     fun previousSearchHit(): SearchStatus {
-        if (searchHits.isEmpty() && searchQuery.isNotEmpty() && handwritingIndex == null) {
-            handwritingIndex = HandwritingIndex.build(doc)
-            rebuildSearch()
+        if (searchHits.isEmpty() && searchQuery.isNotEmpty() && handwritingIndex == null && !isIndexingActive) {
+            ensureHandwritingIndex()
         }
         if (searchHits.isEmpty()) return searchStatus()
         currentSearchHit = (currentSearchHit - 1).floorMod(searchHits.size)
@@ -754,7 +829,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         val currentDoc = doc
         if (handwritingIndex == null && DocumentSearch.totalStrokeCount(currentDoc) <= 800) {
             handwritingIndex = HandwritingIndex.build(currentDoc)
-        } else if (searchQuery.isNotEmpty() && handwritingIndex == null) {
+        } else if (searchQuery.isNotEmpty() && handwritingIndex == null && !isIndexingActive) {
             triggerBackgroundIndexing(currentDoc)
         }
         searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, handwritingIndex)
@@ -773,7 +848,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         val taskGen = ++indexingGeneration
         handwritingExecutor.execute {
             try {
-                val index = HandwritingIndex.build(targetDoc) { indexingGeneration != taskGen }
+                val index = HandwritingIndex.build(targetDoc, isCancelled = { indexingGeneration != taskGen })
                 mainHandler.post {
                     if (indexingGeneration == taskGen && doc === targetDoc) {
                         handwritingIndex = index
