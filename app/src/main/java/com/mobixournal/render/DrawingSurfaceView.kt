@@ -76,6 +76,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         set(value) {
             if (value === docValue) return
             docValue = value
+            handwritingIndex = null
             rebuildSearch()
             onDocumentEdited?.invoke(value)
         }
@@ -541,6 +542,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var searchQuery = ""
     internal var searchHits: List<SearchHit> = emptyList()
     internal var currentSearchHit = -1
+    internal var handwritingIndex: HandwritingIndex? = null
 
     // Live vertical-space drag: the grabbed page, the grab line (page pt) and its view-px Y for the
     // guide overlay. Like a selection move, each frame recomputes from the gesture-start snapshot.
@@ -712,6 +714,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         searchQuery = ""
         searchHits = emptyList()
         currentSearchHit = -1
+        handwritingIndex = null
         render()
         return notifySearchChanged()
     }
@@ -720,7 +723,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
         SearchStatus(current = if (currentSearchHit >= 0) currentSearchHit + 1 else 0, total = searchHits.size)
 
     private fun rebuildSearch() {
-        searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery)
+        if (searchQuery.isNotEmpty() && handwritingIndex == null) {
+            handwritingIndex = HandwritingIndex.build(doc)
+        }
+        searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, handwritingIndex)
         currentSearchHit = when {
             searchHits.isEmpty() -> -1
             currentSearchHit < 0 -> 0

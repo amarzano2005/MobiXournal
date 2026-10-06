@@ -21,9 +21,19 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.automirrored.filled.Redo
@@ -202,30 +212,158 @@ private fun SearchControls(pane: PaneState) {
         }
         return
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        CompactSearchField(
-            value = pane.searchQuery,
-            onValueChange = {
-                pane.searchQuery = it
-                pane.surface?.setSearchQuery(it)?.let(::apply) ?: apply(SearchStatus())
-            },
-        )
-        Text("${pane.searchCurrent}/${pane.searchTotal}")
-        CompactIconButton(
-            contentDescription = "Previous match",
-            enabled = pane.searchTotal > 0,
-            onClick = { pane.surface?.previousSearchHit()?.let(::apply) },
-        ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match") }
-        CompactIconButton(
-            contentDescription = "Next match",
-            enabled = pane.searchTotal > 0,
-            onClick = { pane.surface?.nextSearchHit()?.let(::apply) },
-        ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match") }
-        CompactIconButton(contentDescription = "Close search", onClick = {
-            pane.searchOpen = false
-            pane.searchQuery = ""
-            pane.surface?.clearSearch()?.let(::apply) ?: apply(SearchStatus())
-        }) { Icon(Icons.Filled.Close, contentDescription = "Close search") }
+
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    Surface(
+        shape = RoundedCornerShape(17.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.height(34.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        ) {
+            Icon(
+                Icons.Filled.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(16.dp)
+                    .padding(start = 2.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            BasicTextField(
+                value = pane.searchQuery,
+                onValueChange = {
+                    pane.searchQuery = it
+                    pane.surface?.setSearchQuery(it)?.let(::apply) ?: apply(SearchStatus())
+                },
+                singleLine = true,
+                textStyle = TextStyle(fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = {
+                    pane.surface?.nextSearchHit()?.let(::apply)
+                }),
+                modifier = Modifier
+                    .widthIn(min = 80.dp, max = 150.dp)
+                    .focusRequester(focusRequester),
+                decorationBox = { inner ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (pane.searchQuery.isEmpty()) {
+                            Text(
+                                "Search notes...",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                        }
+                        inner()
+                    }
+                },
+            )
+            if (pane.searchQuery.isNotEmpty()) {
+                CompactIconButton(
+                    contentDescription = "Clear search",
+                    onClick = {
+                        pane.searchQuery = ""
+                        pane.surface?.setSearchQuery("")?.let(::apply) ?: apply(SearchStatus())
+                    },
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                SearchCounterBadge(pane.searchCurrent, pane.searchTotal)
+            }
+            Spacer(Modifier.width(4.dp))
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .height(16.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            )
+            Spacer(Modifier.width(2.dp))
+            CompactIconButton(
+                contentDescription = "Previous match",
+                enabled = pane.searchTotal > 0,
+                onClick = { pane.surface?.previousSearchHit()?.let(::apply) },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Filled.KeyboardArrowUp,
+                    contentDescription = "Previous match",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            CompactIconButton(
+                contentDescription = "Next match",
+                enabled = pane.searchTotal > 0,
+                onClick = { pane.surface?.nextSearchHit()?.let(::apply) },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = "Next match",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            CompactIconButton(
+                contentDescription = "Close search",
+                onClick = {
+                    pane.searchOpen = false
+                    pane.searchQuery = ""
+                    pane.surface?.clearSearch()?.let(::apply) ?: apply(SearchStatus())
+                },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = "Close search",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchCounterBadge(current: Int, total: Int) {
+    if (total > 0) {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+        ) {
+            Text(
+                "$current/$total",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+        ) {
+            Text(
+                "0/0",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
     }
 }
 
@@ -233,40 +371,19 @@ private fun SearchControls(pane: PaneState) {
 private fun CompactIconButton(
     contentDescription: String,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier.size(36.dp),
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(36.dp)
+        modifier = modifier
             .alpha(if (enabled) 1f else 0.38f)
             .semantics { this.contentDescription = contentDescription }
             .clickable(enabled = enabled, onClick = onClick),
     ) {
         icon()
     }
-}
-
-@Composable
-private fun CompactSearchField(value: String, onValueChange: (String) -> Unit) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface),
-        modifier = Modifier
-            .width(88.dp)
-            .height(36.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        decorationBox = { inner ->
-            Box {
-                if (value.isEmpty()) Text("Search", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                inner()
-            }
-        },
-    )
 }
 
 /**

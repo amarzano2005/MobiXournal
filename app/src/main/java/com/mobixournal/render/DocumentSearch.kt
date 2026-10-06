@@ -17,22 +17,29 @@ data class SearchStatus(
 )
 
 /**
- * Finds text in authored text boxes and in the extracted background-PDF text layer. Typed text uses
- * the same rough box metrics as element hit-testing; PDF text highlights whole words that overlap
- * the matched character span.
+ * Finds text in authored text boxes, in the extracted background-PDF text layer, and in handwritten
+ * ink strokes. Typed text uses the same rough box metrics as element hit-testing; PDF text and
+ * handwriting highlight whole words that overlap the matched character span.
  */
 object DocumentSearch {
 
     private const val TEXT_CHAR_W = 0.62
     private const val TEXT_LINE_H = 1.3
 
-    fun find(doc: Document, pdfTextIndex: PdfTextIndex?, rawQuery: String): List<SearchHit> {
+    fun find(
+        doc: Document,
+        pdfTextIndex: PdfTextIndex?,
+        rawQuery: String,
+        handwritingIndex: HandwritingIndex? = null,
+    ): List<SearchHit> {
         val query = rawQuery.trim()
         if (query.isEmpty()) return emptyList()
         val needle = query.lowercase(Locale.ROOT)
+        val hwIndex = handwritingIndex ?: HandwritingIndex.build(doc)
         return buildList {
             for ((pageIndex, page) in doc.pages.withIndex()) {
                 pdfTextIndex?.let { addAll(pdfHits(it, pageIndex, needle)) }
+                addAll(handwritingHits(hwIndex, pageIndex, needle))
                 for (layer in page.layers) {
                     for (element in layer.elements) {
                         if (element is TextElement) addAll(textHits(pageIndex, element, needle))
@@ -88,6 +95,31 @@ object DocumentSearch {
                 val boxes = words.indices
                     .filter { ranges[it].overlaps(span) }
                     .map { words[it].toBounds() }
+                if (boxes.isNotEmpty()) add(SearchHit(pageIndex, boxes))
+                start = haystack.indexOf(needle, start + 1)
+            }
+        }
+    }
+
+    private fun handwritingHits(index: HandwritingIndex, pageIndex: Int, needle: String): List<SearchHit> {
+        val words = index.words(pageIndex)
+        if (words.isEmpty()) return emptyList()
+        val text = StringBuilder()
+        val ranges = ArrayList<IntRange>(words.size)
+        for (word in words) {
+            if (text.isNotEmpty()) text.append(' ')
+            val start = text.length
+            text.append(word.text)
+            ranges += start until text.length
+        }
+        val haystack = text.toString().lowercase(Locale.ROOT)
+        return buildList {
+            var start = haystack.indexOf(needle)
+            while (start >= 0) {
+                val span = start until (start + needle.length)
+                val boxes = words.indices
+                    .filter { ranges[it].overlaps(span) }
+                    .map { words[it].bounds }
                 if (boxes.isNotEmpty()) add(SearchHit(pageIndex, boxes))
                 start = haystack.indexOf(needle, start + 1)
             }

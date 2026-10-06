@@ -142,6 +142,10 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Action Bar**: Cut, Copy, Paste (centers on visible viewport), Duplicate, Recolor, Change line weight, and Delete.
   - **Select Background (Flatten)**: Marquee-select a region to copy or cut a flattened raster image including all layers and page background.
 - **PDF Text Selection**: Drag across vector PDF text to highlight and copy text to the system clipboard (no OCR needed).
+- **Full-Document Search & Handwriting Recognition**:
+  - Unified search across authored text boxes, background PDF text, and **handwritten ink strokes**.
+  - On-device offline stroke handwriting recognition and indexing based on stroke clustering and point-cloud template matching.
+  - Modern Material 3 search pill with dynamic match badge (`1/3` or `0/0`), auto-focus, keyboard Search action, quick clear button, and rounded canvas highlights with smooth navigation.
 - **Vertical Space Tool**: Drag down to insert blank space across all layers simultaneously; drag up to close gaps.
 - **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images.
 - **Synchronized Audio Notes**:

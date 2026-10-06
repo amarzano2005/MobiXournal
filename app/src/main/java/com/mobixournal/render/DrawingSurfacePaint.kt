@@ -286,17 +286,21 @@ internal fun DrawingSurfaceView.drawSplineOverlay(canvas: Canvas) {
     }
 }
 
-/** Highlight every search hit, with a stronger outline around the currently focused result. */
+/** Highlight every search hit with rounded pill highlights, with a focused outline around the current result. */
 internal fun DrawingSurfaceView.drawSearchHighlights(canvas: Canvas) {
+    val cornerRadius = 6f
+    val pad = 2f
     for ((hitIndex, hit) in searchHits.withIndex()) {
         val box = layout.boxes.getOrNull(hit.pageIndex) ?: continue
         for (bounds in hit.boxes) {
-            val l = box.toViewX(bounds.left, scrollX)
-            val t = box.toViewY(bounds.top, scrollY)
-            val r = box.toViewX(bounds.right, scrollX)
-            val b = box.toViewY(bounds.bottom, scrollY)
-            canvas.drawRect(l, t, r, b, chrome.searchHit)
-            if (hitIndex == currentSearchHit) canvas.drawRect(l, t, r, b, chrome.searchCurrent)
+            val l = box.toViewX(bounds.left, scrollX) - pad
+            val t = box.toViewY(bounds.top, scrollY) - pad
+            val r = box.toViewX(bounds.right, scrollX) + pad
+            val b = box.toViewY(bounds.bottom, scrollY) + pad
+            canvas.drawRoundRect(l, t, r, b, cornerRadius, cornerRadius, chrome.searchHit)
+            if (hitIndex == currentSearchHit) {
+                canvas.drawRoundRect(l, t, r, b, cornerRadius, cornerRadius, chrome.searchCurrent)
+            }
         }
     }
 }

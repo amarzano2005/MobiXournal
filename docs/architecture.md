@@ -716,6 +716,10 @@ app/
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
       CircleRecognizer.kt    # inertia roundness + radial-residual score -> a rebuilt circle (pure)
+      DocumentSearch.kt      # case-insensitive search across typed text, PDF words, and handwriting (pure)
+      HandwritingIndex.kt    # per-page index of recognized handwritten words and bounding boxes (pure)
+      HandwritingRecognizer.kt # stroke clustering into lines/words + point-cloud alphanumeric glyph matching (pure)
+      HandwritingTemplate.kt # normalized canonical templates for Latin alphanumeric characters (pure)
       SplineBuilder.kt       # spline control points -> cubic-Bezier stroke vertex list (pure)
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       ElementBounds.kt       # pt bounding box of any element + a Bounds value type (pure)
@@ -1212,6 +1216,15 @@ together, matching desktop. Dragging up is clamped by `clampShift` so content ca
 never crosses above the line it was grabbed at; a drag that can't move anything returns the same page
 list, which keeps `finishGesture` from recording an empty undo step. The whole drag is one undo step,
 and because it only rewrites coordinates the result round-trips through save unchanged.
+
+### Document search and handwriting recognition (`DocumentSearch`, `HandwritingRecognizer`, `HandwritingIndex`)
+
+Document search is full-document and multi-layered:
+- **Authored text (`TextElement`)**: matches case-insensitively across text box lines, generating highlighted character spans.
+- **Background PDF text layer (`PdfTextIndex`)**: extracted words from PDFBox are searched in reading order, highlighting matching word bounding boxes.
+- **Handwritten ink strokes (`HandwritingRecognizer`, `HandwritingIndex`)**: non-eraser strokes across all page layers are automatically indexed and searchable. Strokes are clustered into lines based on vertical extents, sorted horizontally, and segmented into words by gap spacing. Each character is classified using point-cloud matching (resampled to 32 normalized equidistant points and matched via symmetric Chamfer distance against canonical alphanumeric gesture templates in `HandwritingTemplates`) enhanced by topological features (multi-stroke loop detection, endpoint cycles, and stroke count preferences).
+- **Match highlights & navigation**: on the canvas, matches are painted as rounded pill rectangles with subtle padding (`drawRoundRect` in `DrawingSurfacePaint.kt`). The currently focused hit receives a prominent amber outline, and `jumpToSearchHit()` smoothly centers the viewport on each result.
+- **Search UI (`SearchControls`)**: integrated into the top bar as a Material 3 pill container with auto-focusing input, dynamic match counter badge (`1/3` or `0/0`), keyboard IME Search action, instant clear button, and stepper chevron navigation.
 
 **Selecting objects (`render/`).** The **Select** tools (`EditorTool.SELECT`,
 `EditorTool.LASSO_SELECT`, `EditorTool.TEXT_SELECT`, and `EditorTool.BG_SELECT`) share the rail's

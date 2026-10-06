@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "enhance-search-ui-and-detect-handwritten-text-in-search"
+title = "Enhance search UI and detect handwritten text in search"
+description = "Modernize the search bar UI in EditorRegions.kt with Material 3 styling, match badge, clear button, and animations. Implement handwriting recognition and indexing for stroke elements so DocumentSearch detects handwritten text alongside typed and PDF text."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-06
+completed = 2026-10-06
+tags = []
+
+[[task]]
 id = "add-a-trapezoid-tool-after-the-rhombus-with-isosceles-default-and-right-angled-scalene-variants"
 title = "Add a trapezoid tool after the rhombus, with isosceles default and right-angled/scalene variants"
 description = "New ShapeKind.TRAPEZOID + TrapezoidKind {ISOSCELES (default), RIGHT, SCALENE}, drawn as one constant-width stroke like the other figures. Geometry is box-driven (bottom base = drag width) with scalene configured by its two base angles, laid out by the shared ShapeBuilder.trapezoidOutline so the settings dialog preview and the tool cannot drift. Wired through the tool registry, the Shapes submenu and the top bar (after the rhombus), the top-bar variant popup sharing one composable with the triangle, the scalene angle dialog, settings persistence/backup, and tests (ShapeBuilderTest, SettingsSanitizeTest, ShapeSubmenuTest, TopBarItemsTest, ToolGlyphsTest, AppSettingsBackupTest). Docs: README + architecture."
