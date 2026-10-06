@@ -31,21 +31,21 @@ object HandwritingRecognizer {
 
     private class LineCluster {
         val strokes = mutableListOf<BoundedStroke>()
-        var minTop = Double.MAX_VALUE
-        var maxBottom = -Double.MAX_VALUE
+        private var sumMidY = 0.0
+        private var sumHeight = 0.0
 
         fun add(bs: BoundedStroke) {
             strokes.add(bs)
-            if (bs.top < minTop) minTop = bs.top
-            if (bs.bottom > maxBottom) maxBottom = bs.bottom
+            sumMidY += bs.midY
+            sumHeight += bs.height
         }
 
-        val height: Double get() = max(maxBottom - minTop, 5.0)
-        val midY: Double get() = (minTop + maxBottom) / 2.0
+        val avgHeight: Double get() = if (strokes.isEmpty()) 15.0 else sumHeight / strokes.size
+        val avgMidY: Double get() = if (strokes.isEmpty()) 0.0 else sumMidY / strokes.size
 
         fun matches(strokeMidY: Double, strokeH: Double): Boolean {
-            val h = max(strokeH, height)
-            return abs(strokeMidY - midY) <= h * 0.75
+            val h = max(strokeH, avgHeight)
+            return abs(strokeMidY - avgMidY) <= h * 0.65
         }
     }
 
@@ -82,7 +82,7 @@ object HandwritingRecognizer {
         }
         if (bounded.isEmpty() || isCancelled()) return emptyList()
 
-        val lines = groupIntoLines(bounded)
+        val lines = groupIntoLines(bounded).sortedBy { it.avgMidY }
         return buildList {
             for (line in lines) {
                 if (isCancelled()) return emptyList()

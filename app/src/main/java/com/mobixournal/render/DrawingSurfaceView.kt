@@ -603,6 +603,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
         holder.addCallback(this)
         isFocusable = true
         isFocusableInTouchMode = true
+        MlKitInkEngine.addOnModelReadyListener {
+            mainHandler.post {
+                handwritingIndex = null
+                indexingDoc = null
+                triggerBackgroundIndexing(doc)
+            }
+        }
     }
 
     /** Replace the canvas contents with [doc] (all pages, layers, and unmodelled elements). */
@@ -745,7 +752,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     private fun rebuildSearch() {
         val currentDoc = doc
-        if (searchQuery.isNotEmpty() && handwritingIndex == null) {
+        if (handwritingIndex == null && DocumentSearch.totalStrokeCount(currentDoc) <= 800) {
+            handwritingIndex = HandwritingIndex.build(currentDoc)
+        } else if (searchQuery.isNotEmpty() && handwritingIndex == null) {
             triggerBackgroundIndexing(currentDoc)
         }
         searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, handwritingIndex)
@@ -765,16 +774,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
         handwritingExecutor.execute {
             try {
                 val index = HandwritingIndex.build(targetDoc) { indexingGeneration != taskGen }
-                if (indexingGeneration == taskGen) {
-                    mainHandler.post {
-                        if (indexingGeneration == taskGen && doc === targetDoc) {
-                            handwritingIndex = index
-                            isIndexingActive = false
-                            if (searchQuery.isNotEmpty()) {
-                                rebuildSearch()
-                                render()
-                            }
+                mainHandler.post {
+                    if (indexingGeneration == taskGen && doc === targetDoc) {
+                        handwritingIndex = index
+                        isIndexingActive = false
+                        if (searchQuery.isNotEmpty()) {
+                            rebuildSearch()
+                            render()
                         }
+                    } else {
+                        isIndexingActive = false
                     }
                 }
             } catch (_: Exception) {

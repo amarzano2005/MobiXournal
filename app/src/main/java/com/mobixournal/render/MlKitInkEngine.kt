@@ -25,18 +25,47 @@ object MlKitInkEngine {
     private val isDownloading = AtomicBoolean(false)
     private var cachedModel: DigitalInkRecognitionModel? = null
     private var cachedRecognizer: DigitalInkRecognizer? = null
-    private var isModelReady = false
+    @Volatile private var isModelReady = false
+    @Volatile private var lastAvailabilityCheckTime = 0L
+    @Volatile private var lastAvailabilityResult = false
+    private val modelReadyListeners = mutableListOf<() -> Unit>()
+
+    /**
+     * Registers a listener to be invoked when the model is downloaded and ready for inference.
+     */
+    fun addOnModelReadyListener(listener: () -> Unit) {
+        synchronized(modelReadyListeners) {
+            if (isModelReady) {
+                listener()
+            } else {
+                modelReadyListeners.add(listener)
+            }
+        }
+    }
+
+    private fun notifyModelReady() {
+        isModelReady = true
+        val listeners = synchronized(modelReadyListeners) {
+            val copy = ArrayList(modelReadyListeners)
+            modelReadyListeners.clear()
+            copy
+        }
+        for (listener in listeners) {
+            try { listener() } catch (_: Exception) {}
+        }
+    }
 
     /**
      * Resolves the best model identifier for the given locale or current device locale.
      */
     fun resolveModelIdentifier(locale: Locale = Locale.getDefault()): DigitalInkRecognitionModelIdentifier? {
-        val tag = locale.toLanguageTag()
-        DigitalInkRecognitionModelIdentifier.fromLanguageTag(tag)?.let { return it }
         val lang = locale.language
+        val country = locale.country
+        val fullTag = if (country.isNotEmpty()) "$lang-$country" else locale.toLanguageTag()
+        DigitalInkRecognitionModelIdentifier.fromLanguageTag(fullTag)?.let { return it }
+        DigitalInkRecognitionModelIdentifier.fromLanguageTag("$lang-${lang.uppercase(Locale.ROOT)}")?.let { return it }
         DigitalInkRecognitionModelIdentifier.fromLanguageTag(lang)?.let { return it }
-        // Fallbacks
-        DigitalInkRecognitionModelIdentifier.fromLanguageTag("it")?.let { return it }
+        DigitalInkRecognitionModelIdentifier.fromLanguageTag("it-IT")?.let { return it }
         return DigitalInkRecognitionModelIdentifier.fromLanguageTag("en-US")
     }
 
@@ -49,19 +78,28 @@ object MlKitInkEngine {
 
     /**
      * Checks if the recognition model is available on device and ready for immediate inference.
+     * Throttles remote checks so offline indexing never spends repetitive timeouts per word.
      */
     fun isAvailable(): Boolean {
         if (isModelReady) return true
         if (isMainThread()) return false
+        val now = System.currentTimeMillis()
+        if (now - lastAvailabilityCheckTime < 10_000L) {
+            return lastAvailabilityResult
+        }
         val model = getOrCreateModel() ?: return false
         return try {
             val task = RemoteModelManager.getInstance().isModelDownloaded(model)
-            val downloaded = Tasks.await(task, 500, TimeUnit.MILLISECONDS) == true
+            val downloaded = Tasks.await(task, 250, TimeUnit.MILLISECONDS) == true
+            lastAvailabilityCheckTime = now
+            lastAvailabilityResult = downloaded
             if (downloaded) {
-                isModelReady = true
+                notifyModelReady()
             }
             downloaded
         } catch (_: Exception) {
+            lastAvailabilityCheckTime = now
+            lastAvailabilityResult = false
             false
         }
     }
@@ -78,15 +116,15 @@ object MlKitInkEngine {
         modelManager.isModelDownloaded(model)
             .addOnSuccessListener { downloaded ->
                 if (downloaded) {
-                    isModelReady = true
+                    notifyModelReady()
                     onComplete?.invoke(true)
                 } else {
                     if (isDownloading.compareAndSet(false, true)) {
                         Log.i(TAG, "Initiating ML Kit Digital Ink model download...")
                         modelManager.download(model, DownloadConditions.Builder().build())
                             .addOnSuccessListener {
-                                isModelReady = true
                                 isDownloading.set(false)
+                                notifyModelReady()
                                 Log.i(TAG, "ML Kit Digital Ink model download complete.")
                                 onComplete?.invoke(true)
                             }
@@ -138,9 +176,10 @@ object MlKitInkEngine {
             val strokeBuilder = Ink.Stroke.builder()
             for (p in stroke.points) {
                 strokeBuilder.addPoint(Ink.Point.create(p.x.toFloat(), p.y.toFloat(), simTime))
-                simTime += 15L
+                simTime += 10L
             }
             inkBuilder.addStroke(strokeBuilder.build())
+            simTime += 150L // Inter-stroke pause for natural gesture segmentation
         }
         val ink = inkBuilder.build()
         return if (ink.strokes.isEmpty()) null else ink

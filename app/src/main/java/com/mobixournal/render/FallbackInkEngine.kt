@@ -45,21 +45,22 @@ object FallbackInkEngine {
 
         if (topWord.isEmpty()) return null
 
-        // Generate alternate candidate words by varying the most ambiguous letters
+        // Generate alternate candidate words by varying ambiguous letters
         val candidateWords = mutableListOf<String>()
         candidateWords.add(topWord)
 
-        // Generate up to 4 alternative word combinations
+        // Try alternative characters for each position
         for (i in clusterCandidates.indices) {
             val cands = clusterCandidates[i]
-            if (cands.size > 1) {
-                val altChar = cands[1].first
+            for (cIdx in 1 until minOf(3, cands.size)) {
+                val altChar = cands[cIdx].first
                 val altWord = topWord.substring(0, i) + altChar + topWord.substring(i + 1)
                 if (altWord !in candidateWords) {
                     candidateWords.add(altWord)
                 }
+                if (candidateWords.size >= 8) break
             }
-            if (candidateWords.size >= 5) break
+            if (candidateWords.size >= 8) break
         }
 
         val avgConfidence = clusterCandidates.map { it.first().second }.average()
@@ -83,12 +84,12 @@ object FallbackInkEngine {
         val h = b.bottom - b.top
         val pts = stroke.points
         // Only split if the stroke is wide enough to contain multiple connected letters
-        if (h < 5.0 || w / h < 1.25 || pts.size < 8) {
+        if (h < 5.0 || w / h < 1.35 || pts.size < 8) {
             return listOf(stroke)
         }
 
-        val baselineY = b.top + 0.55 * h
-        val minCharWidth = h * 0.35
+        val baselineY = b.top + 0.60 * h
+        val minCharWidth = h * 0.45
         val splitIndices = mutableListOf<Int>()
         var lastSplitX = b.left
 
@@ -189,16 +190,23 @@ object FallbackInkEngine {
                 score -= 0.15
             }
 
+            // In general handwritten text, favor alphabetic characters over digits
+            if (tmpl.char.isDigit()) {
+                score -= 0.08
+            } else {
+                score += 0.04
+            }
+
             scored.add(tmpl.char to score)
         }
 
-        // Return up to top 3 unique character hypotheses
+        // Return up to top 4 unique character hypotheses
         val topList = mutableListOf<Pair<Char, Double>>()
         val seenChars = mutableSetOf<Char>()
         for (item in scored.sortedByDescending { it.second }) {
             if (seenChars.add(item.first)) {
                 topList.add(item.first to item.second.coerceIn(0.01, 1.0))
-                if (topList.size >= 3) break
+                if (topList.size >= 4) break
             }
         }
         return topList

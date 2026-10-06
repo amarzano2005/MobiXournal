@@ -108,6 +108,11 @@ object HandwritingTemplates {
         template('l', listOf(stroke(0.2, 0.9, 0.4, 0.3, 0.5, 0.0, 0.6, 0.3, 0.5, 0.9, 0.8, 1.0)), hasLoop = true),
         template('o', listOf(stroke(0.15, 0.6, 0.4, 0.3, 0.7, 0.3, 0.8, 0.6, 0.6, 0.9, 0.3, 0.8, 0.2, 0.6, 0.5, 0.3, 0.8, 0.3)), hasLoop = true),
         template('a', listOf(stroke(0.15, 0.7, 0.4, 0.3, 0.7, 0.3, 0.8, 0.6, 0.7, 0.9, 0.4, 0.9, 0.2, 0.7, 0.7, 0.5, 0.8, 1.0)), hasLoop = true),
+        template('u', listOf(stroke(0.1, 0.4, 0.25, 0.8, 0.4, 1.0, 0.55, 0.8, 0.55, 0.4, 0.7, 0.8, 0.85, 1.0))),
+        template('n', listOf(stroke(0.1, 0.8, 0.2, 0.4, 0.35, 0.3, 0.5, 0.6, 0.5, 1.0, 0.6, 0.5, 0.75, 0.3, 0.9, 0.6, 0.9, 1.0))),
+        template('m', listOf(stroke(0.1, 0.8, 0.2, 0.4, 0.3, 0.3, 0.4, 0.7, 0.4, 1.0, 0.5, 0.5, 0.65, 0.3, 0.75, 0.7, 0.75, 1.0, 0.85, 0.5, 0.95, 0.4, 0.95, 1.0))),
+        template('i', listOf(stroke(0.15, 0.8, 0.35, 0.4, 0.5, 0.35, 0.5, 0.85, 0.8, 1.0), stroke(0.5, 0.1, 0.5, 0.15))),
+        template('c', listOf(stroke(0.15, 0.8, 0.35, 0.4, 0.6, 0.3, 0.75, 0.4, 0.4, 0.6, 0.3, 0.8, 0.5, 1.0, 0.85, 0.9))),
     )
 
     fun resampleAndNormalize(strokes: List<List<NormPoint>>, n: Int): List<NormPoint> {
@@ -133,6 +138,7 @@ object HandwritingTemplates {
                 val p1 = stroke[i]
                 val p2 = stroke[i + 1]
                 val d = hypot(p2.x - p1.x, p2.y - p1.y)
+                if (d < 1e-6) continue
                 var dist = d
                 var tPrev = 0.0
 

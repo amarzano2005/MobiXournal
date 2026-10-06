@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
 import java.util.Locale
 
@@ -26,6 +27,13 @@ object DocumentSearch {
     private const val TEXT_CHAR_W = 0.62
     private const val TEXT_LINE_H = 1.3
 
+    fun totalStrokeCount(doc: Document): Int =
+        doc.pages.sumOf { page ->
+            page.layers.sumOf { layer ->
+                layer.elements.count { it is Stroke }
+            }
+        }
+
     fun find(
         doc: Document,
         pdfTextIndex: PdfTextIndex?,
@@ -35,10 +43,11 @@ object DocumentSearch {
         val query = rawQuery.trim()
         if (query.isEmpty()) return emptyList()
         val needle = query.lowercase(Locale.ROOT)
+        val hwIndex = handwritingIndex ?: if (totalStrokeCount(doc) <= 800) HandwritingIndex.build(doc) else null
         return buildList {
             for ((pageIndex, page) in doc.pages.withIndex()) {
                 pdfTextIndex?.let { addAll(pdfHits(it, pageIndex, needle)) }
-                handwritingIndex?.let { addAll(handwritingHits(it, pageIndex, needle)) }
+                hwIndex?.let { addAll(handwritingHits(it, pageIndex, needle)) }
                 for (layer in page.layers) {
                     for (element in layer.elements) {
                         if (element is TextElement) addAll(textHits(pageIndex, element, needle))
