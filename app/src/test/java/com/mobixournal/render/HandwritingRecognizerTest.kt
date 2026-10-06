@@ -130,4 +130,26 @@ class HandwritingRecognizerTest {
         assertEquals(1, words.size)
         assertTrue(words[0].text.length >= 2)
     }
+
+    @Test fun indexAbortsWhenCancelled() {
+        val strokes = letterT(30.0, 30.0) + letterO(55.0, 30.0)
+        val doc = Document(
+            pages = listOf(
+                blankPage().copy(layers = listOf(Layer(strokes))),
+            ),
+        )
+
+        val index = HandwritingIndex.build(doc, isCancelled = { true })
+        assertTrue(!index.hasAnyText)
+    }
+
+    @Test fun filtersOutNonHandwritingStrokes() {
+        // A huge drawing border: 400pt wide, 300pt tall
+        val hugeBorder = stroke(0.0, 0.0, 400.0, 0.0, 400.0, 300.0, 0.0, 300.0, 0.0, 0.0)
+        // A full-page horizontal separator rule: 300pt wide, 1pt tall
+        val pageSeparator = stroke(10.0, 100.0, 310.0, 100.0)
+
+        val words = HandwritingRecognizer.recognizePage(listOf(hugeBorder, pageSeparator))
+        assertTrue(words.isEmpty())
+    }
 }

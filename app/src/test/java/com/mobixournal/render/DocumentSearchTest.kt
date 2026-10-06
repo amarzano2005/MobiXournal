@@ -76,12 +76,20 @@ class DocumentSearchTest {
         )
     }
 
+    @Test fun ignoresHandwritingWhenIndexIsNull() {
+        val strokes = letterT(20.0, 50.0) + letterO(45.0, 50.0)
+        val doc = document(*strokes.toTypedArray())
+
+        val hits = DocumentSearch.find(doc, null, "to", null)
+        assertTrue(hits.isEmpty())
+    }
+
     @Test fun findsHandwrittenTextCaseInsensitively() {
         // Draw handwritten "TO"
         val strokes = letterT(20.0, 50.0) + letterO(45.0, 50.0)
         val doc = document(*strokes.toTypedArray())
 
-        val hits = DocumentSearch.find(doc, null, "to")
+        val hits = DocumentSearch.find(doc, null, "to", HandwritingIndex.build(doc))
 
         assertEquals(1, hits.size)
         assertEquals(0, hits[0].pageIndex)
@@ -122,7 +130,7 @@ class DocumentSearchTest {
             ),
         )
 
-        val hits = DocumentSearch.find(doc, pdf, "to")
+        val hits = DocumentSearch.find(doc, pdf, "to", HandwritingIndex.build(doc))
 
         // 1 PDF hit + 1 handwriting hit ("TO") + 1 typed text hit ("to do later")
         assertEquals(3, hits.size)

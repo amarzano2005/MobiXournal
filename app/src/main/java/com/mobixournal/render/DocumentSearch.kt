@@ -35,11 +35,10 @@ object DocumentSearch {
         val query = rawQuery.trim()
         if (query.isEmpty()) return emptyList()
         val needle = query.lowercase(Locale.ROOT)
-        val hwIndex = handwritingIndex ?: HandwritingIndex.build(doc)
         return buildList {
             for ((pageIndex, page) in doc.pages.withIndex()) {
                 pdfTextIndex?.let { addAll(pdfHits(it, pageIndex, needle)) }
-                addAll(handwritingHits(hwIndex, pageIndex, needle))
+                handwritingIndex?.let { addAll(handwritingHits(it, pageIndex, needle)) }
                 for (layer in page.layers) {
                     for (element in layer.elements) {
                         if (element is TextElement) addAll(textHits(pageIndex, element, needle))

@@ -76,6 +76,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         set(value) {
             if (value === docValue) return
             docValue = value
+            indexingGeneration++
             handwritingIndex = null
             indexingDoc = null
             rebuildSearch()
@@ -545,6 +546,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var currentSearchHit = -1
     internal var handwritingIndex: HandwritingIndex? = null
     private var indexingDoc: Document? = null
+    @Volatile private var indexingGeneration = 0
     private val handwritingExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
         Thread(r, "handwriting-index").apply { isDaemon = true }
     }
@@ -719,6 +721,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         searchQuery = ""
         searchHits = emptyList()
         currentSearchHit = -1
+        indexingGeneration++
         handwritingIndex = null
         indexingDoc = null
         render()
@@ -738,14 +741,17 @@ class DrawingSurfaceView @JvmOverloads constructor(
                 currentSearchHit = if (searchHits.isEmpty()) -1 else 0
                 notifySearchChanged()
 
+                val taskGen = ++indexingGeneration
                 // Background worker indexes handwriting ink without blocking UI
                 handwritingExecutor.execute {
-                    val index = HandwritingIndex.build(currentDoc)
-                    post {
-                        if (doc === currentDoc) {
-                            handwritingIndex = index
-                            rebuildSearch()
-                            render()
+                    val index = HandwritingIndex.build(currentDoc) { indexingGeneration != taskGen }
+                    if (indexingGeneration == taskGen) {
+                        post {
+                            if (indexingGeneration == taskGen && doc === currentDoc) {
+                                handwritingIndex = index
+                                rebuildSearch()
+                                render()
+                            }
                         }
                     }
                 }
@@ -1316,6 +1322,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     override fun surfaceDestroyed(holder: SurfaceHolder) = momentum.stop()
 
     override fun onDetachedFromWindow() {
+        indexingGeneration++
         momentum.stop()
         choreographer.removeFrameCallback(paintCallback)
         paintPosted = false

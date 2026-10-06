@@ -26,6 +26,7 @@ class HandwritingIndex(private val pages: List<List<HandwrittenWord>>) {
 
     companion object {
         /** Builds a [HandwritingIndex] for all pages in [doc] using [HandwritingRecognizer]. */
-        fun build(doc: Document): HandwritingIndex = HandwritingRecognizer.index(doc)
+        fun build(doc: Document, isCancelled: () -> Boolean = { false }): HandwritingIndex =
+            HandwritingRecognizer.index(doc, isCancelled)
     }
 }
