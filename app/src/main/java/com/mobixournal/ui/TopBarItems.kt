@@ -46,9 +46,46 @@ fun orderedTopBarItems(order: List<String>): List<RailItem> {
     return listed + TOP_BAR_ITEMS.filterNot { it in listed }
 }
 
-/** [orderedTopBarItems] minus items in [hidden]. */
-fun visibleTopBarItems(order: List<String>, hidden: Set<String>): List<RailItem> =
-    orderedTopBarItems(order).filterNot { it.id in hidden }
+/**
+ * Mapping between geometric figure tools and their secondary top bar item ids.
+ */
+val FIGURE_TOOL_TO_TOP_BAR_ID: Map<EditorTool, String> = mapOf(
+    EditorTool.LINE to "line",
+    EditorTool.RECTANGLE to "rectangle",
+    EditorTool.SQUARE to "square",
+    EditorTool.ELLIPSE to "ellipse",
+    EditorTool.TRIANGLE to "triangle",
+    EditorTool.RHOMBUS to "rhombus",
+    EditorTool.TRAPEZOID to "trapezoid",
+    EditorTool.PENTAGON to "pentagon",
+    EditorTool.HEXAGON to "hexagon",
+    EditorTool.SPLINE to "spline",
+    EditorTool.COORDINATE_AXIS to "axis",
+)
+
+/**
+ * Reverse mapping from secondary top bar item id to EditorTool for geometric figures.
+ */
+val TOP_BAR_ID_TO_FIGURE_TOOL: Map<String, EditorTool> =
+    FIGURE_TOOL_TO_TOP_BAR_ID.entries.associate { (k, v) -> v to k }
+
+/**
+ * All secondary top bar ids that correspond to geometric figures.
+ */
+val ALL_FIGURE_TOP_BAR_IDS: Set<String> = FIGURE_TOOL_TO_TOP_BAR_ID.values.toSet()
+
+/** [orderedTopBarItems] minus items in [hidden] or [shapeHidden]. */
+fun visibleTopBarItems(
+    order: List<String>,
+    hidden: Set<String>,
+    shapeHidden: Set<String> = emptySet(),
+): List<RailItem> =
+    orderedTopBarItems(order).filterNot { item ->
+        if (item.id in hidden) return@filterNot true
+        val tool = TOP_BAR_ID_TO_FIGURE_TOOL[item.id]
+        if (tool != null && tool.name in shapeHidden) return@filterNot true
+        false
+    }
 
 /** Move an item at [index] by [delta] positions. */
 fun moveTopBarItem(order: List<String>, index: Int, delta: Int): List<String> {

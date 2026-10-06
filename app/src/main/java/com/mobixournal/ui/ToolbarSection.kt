@@ -73,7 +73,23 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     ReorderableRowList(
         items = orderedTopBarItems(settings.topBarOrder),
         hidden = settings.topBarHidden,
-        onOrder = { onChange(settings.copy(topBarOrder = it)) },
-        onHidden = { onChange(settings.copy(topBarHidden = it)) },
+        onOrder = { newTopBarOrder ->
+            val figureToolNames = newTopBarOrder.mapNotNull { id ->
+                TOP_BAR_ID_TO_FIGURE_TOOL[id]?.name
+            }
+            val nonFigureShapeNames = settings.shapeOrder.filterNot { name ->
+                runCatching { EditorTool.valueOf(name) }.getOrNull() in FIGURE_TOOL_TO_TOP_BAR_ID
+            }
+            val newShapeOrder = figureToolNames + nonFigureShapeNames
+            onChange(settings.copy(topBarOrder = newTopBarOrder, shapeOrder = newShapeOrder))
+        },
+        onHidden = { newTopBarHidden ->
+            val hiddenShapeNames = newTopBarHidden.mapNotNull { id ->
+                TOP_BAR_ID_TO_FIGURE_TOOL[id]?.name
+            }.toSet()
+            val figureNames = FIGURE_TOOL_TO_TOP_BAR_ID.keys.map { it.name }.toSet()
+            val newShapeHidden = (settings.shapeHidden - figureNames) + hiddenShapeNames
+            onChange(settings.copy(topBarHidden = newTopBarHidden, shapeHidden = newShapeHidden))
+        },
     )
 }

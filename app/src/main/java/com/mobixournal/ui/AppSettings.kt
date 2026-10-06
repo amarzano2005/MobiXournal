@@ -553,8 +553,8 @@ class SettingsStore(context: Context) {
             } ?: d.trapezoidKind,
             trapezoidAngleA = prefs.getFloat(KEY_TRAPEZOID_ANGLE_A, d.trapezoidAngleA),
             trapezoidAngleB = prefs.getFloat(KEY_TRAPEZOID_ANGLE_B, d.trapezoidAngleB),
-            shapeOrder = decodeToolNames(prefs.getString(KEY_SHAPE_ORDER, null), SHAPE_GROUP.tools),
-            shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), SHAPE_GROUP.tools).toSet(),
+            shapeOrder = decodeToolNames(prefs.getString(KEY_SHAPE_ORDER, null), FIGURE_TOOLS),
+            shapeHidden = decodeToolNames(prefs.getString(KEY_SHAPE_HIDDEN, null), FIGURE_TOOLS).toSet(),
             toolGroupSelections = decodeToolGroupSelections(prefs.getString(KEY_TOOL_GROUPS, null)),
             railOrder = decodeRailIds(prefs.getString(KEY_RAIL_ORDER, null)),
             railHidden = run {

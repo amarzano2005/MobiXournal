@@ -214,17 +214,30 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 
     HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    Text("Shapes submenu", style = MaterialTheme.typography.bodyLarge)
+    Text("Figures", style = MaterialTheme.typography.bodyLarge)
     Text(
-        "The figures offered by the rail's Shapes slot. Switch one off to hide it, or press and " +
-            "hold a row and drag it up or down to reorder. The picker lists them in this order.",
+        "The geometric figures offered in the secondary toolbar and shapes menu. Switch a figure off to hide it, or press and " +
+            "hold a row and drag it up or down to reorder.",
         style = MaterialTheme.typography.bodySmall,
     )
     Spacer(Modifier.height(8.dp))
     ReorderableRowList(
         items = orderedShapeTools(settings.shapeOrder).map { RailItem(it.name, it.label) },
         hidden = settings.shapeHidden,
-        onOrder = { onChange(settings.copy(shapeOrder = it)) },
-        onHidden = { onChange(settings.copy(shapeHidden = it)) },
+        onOrder = { newShapeOrder ->
+            val figureTopBarIds = newShapeOrder.mapNotNull { name ->
+                runCatching { EditorTool.valueOf(name) }.getOrNull()?.let { FIGURE_TOOL_TO_TOP_BAR_ID[it] }
+            }
+            val nonFigureTopBarIds = settings.topBarOrder.filterNot { it in TOP_BAR_ID_TO_FIGURE_TOOL }
+            val newTopBarOrder = figureTopBarIds + nonFigureTopBarIds
+            onChange(settings.copy(shapeOrder = newShapeOrder, topBarOrder = newTopBarOrder))
+        },
+        onHidden = { newShapeHidden ->
+            val hiddenTopBarIds = newShapeHidden.mapNotNull { name ->
+                runCatching { EditorTool.valueOf(name) }.getOrNull()?.let { FIGURE_TOOL_TO_TOP_BAR_ID[it] }
+            }.toSet()
+            val newTopBarHidden = (settings.topBarHidden - TOP_BAR_ID_TO_FIGURE_TOOL.keys) + hiddenTopBarIds
+            onChange(settings.copy(shapeHidden = newShapeHidden, topBarHidden = newTopBarHidden))
+        },
     )
 }

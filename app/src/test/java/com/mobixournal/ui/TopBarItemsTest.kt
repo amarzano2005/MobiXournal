@@ -59,6 +59,22 @@ class TopBarItemsTest {
     }
 
     @Test
+    fun `figures hidden in shapeHidden are also dropped from visible top bar items`() {
+        val visible = visibleTopBarItems(emptyList(), emptySet(), setOf("LINE", "RECTANGLE", "TRIANGLE"))
+        assertTrue(visible.none { it.id == "line" || it.id == "rectangle" || it.id == "triangle" })
+        assertEquals(TOP_BAR_ITEMS.size - 3, visible.size)
+    }
+
+    @Test
+    fun `all figure tools map bidirectionally to top bar ids`() {
+        for (tool in FIGURE_TOOLS) {
+            val id = FIGURE_TOOL_TO_TOP_BAR_ID[tool]
+            assertNotNull("top bar id for $tool", id)
+            assertEquals(tool, TOP_BAR_ID_TO_FIGURE_TOOL[id])
+        }
+    }
+
+    @Test
     fun `moveTopBarItem swaps item with neighbour`() {
         val moved = moveTopBarItem(emptyList(), 0, 1)
         val factory = orderedTopBarItems(emptyList()).map { it.id }

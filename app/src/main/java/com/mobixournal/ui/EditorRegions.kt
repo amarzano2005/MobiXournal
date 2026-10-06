@@ -586,7 +586,7 @@ fun TopBarToolsRow(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        for (item in visibleTopBarItems(settings.topBarOrder, settings.topBarHidden)) {
+        for (item in visibleTopBarItems(settings.topBarOrder, settings.topBarHidden, settings.shapeHidden)) {
             val single = singleToolForTopBarId(item.id)
             if (single != null) {
                 CompactSingleToolButton(

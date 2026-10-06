@@ -11,30 +11,36 @@ import org.junit.Test
 class ShapeSubmenuTest {
 
     @Test fun anEmptyOrderIsTheFactorySubmenu() {
-        assertEquals(SHAPE_GROUP.tools, orderedShapeTools(emptyList()))
+        assertEquals(FIGURE_TOOLS, orderedShapeTools(emptyList()))
     }
 
     @Test fun aPartialOrderLeadsAndTheRestIsAppended() {
         val ordered = orderedShapeTools(listOf("HEXAGON", "TRIANGLE"))
         assertEquals(listOf(EditorTool.HEXAGON, EditorTool.TRIANGLE), ordered.take(2))
-        assertEquals(SHAPE_GROUP.tools.size, ordered.size)
-        assertEquals(SHAPE_GROUP.tools.toSet(), ordered.toSet())
+        assertEquals(FIGURE_TOOLS.size, ordered.size)
+        assertEquals(FIGURE_TOOLS.toSet(), ordered.toSet())
     }
 
     @Test fun unknownAndDuplicateNamesAreIgnored() {
         val ordered = orderedShapeTools(listOf("NOPE", "HEXAGON", "HEXAGON"))
         assertEquals(EditorTool.HEXAGON, ordered.first())
-        assertEquals(SHAPE_GROUP.tools.size, ordered.size)
+        assertEquals(FIGURE_TOOLS.size, ordered.size)
     }
 
     @Test fun hiddenMembersAreDroppedFromTheVisibleSubmenu() {
         val visible = visibleShapeTools(emptyList(), setOf("PENTAGON", "HEXAGON"))
-        assertEquals(SHAPE_GROUP.tools.size - 2, visible.size)
+        assertEquals(FIGURE_TOOLS.size - 2, visible.size)
         assertTrue(visible.none { it.name == "PENTAGON" || it.name == "HEXAGON" })
     }
 
+    @Test fun simpleLineAndRectangleAreInTheFigures() {
+        val members = FIGURE_TOOLS
+        assertTrue(members.contains(EditorTool.LINE))
+        assertTrue(members.contains(EditorTool.RECTANGLE))
+    }
+
     @Test fun theStemFiguresAreInTheShapesGroup() {
-        val members = SHAPE_GROUP.tools
+        val members = FIGURE_TOOLS
         assertTrue(
             listOf("TRIANGLE", "SQUARE", "RHOMBUS", "TRAPEZOID", "PENTAGON", "HEXAGON")
                 .all { name -> members.any { it.name == name } },
@@ -50,9 +56,9 @@ class ShapeSubmenuTest {
     }
 
     @Test fun namesRoundTripThroughEncodeAndDecode() {
-        val names = listOf("TRIANGLE", "HEXAGON")
-        assertEquals(names, decodeToolNames(encodeToolNames(names), SHAPE_GROUP.tools))
-        assertEquals(emptyList<String>(), decodeToolNames(null, SHAPE_GROUP.tools))
-        assertEquals(listOf("TRIANGLE"), decodeToolNames("TRIANGLE,GONE", SHAPE_GROUP.tools))
+        val names = listOf("LINE", "RECTANGLE", "TRIANGLE", "HEXAGON")
+        assertEquals(names, decodeToolNames(encodeToolNames(names), FIGURE_TOOLS))
+        assertEquals(emptyList<String>(), decodeToolNames(null, FIGURE_TOOLS))
+        assertEquals(listOf("TRIANGLE"), decodeToolNames("TRIANGLE,GONE", FIGURE_TOOLS))
     }
 }

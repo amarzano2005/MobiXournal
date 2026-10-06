@@ -90,12 +90,32 @@ const val SHAPE_GROUP_ID = "shape"
 val SHAPE_GROUP: ToolGroup = TOOL_GROUPS.first { it.id == SHAPE_GROUP_ID }
 
 /**
- * The Shapes submenu's members in the user's [order]: the names it lists first, then any member it
- * omits appended in factory order, so a figure added in a later release still appears rather than
- * vanishing for an existing install.
+ * All geometric figure tools available in the app (including simple line and rectangle).
+ * These are configured under Settings -> Figures and displayed in the toolbars.
+ */
+val FIGURE_TOOLS: List<EditorTool> = listOf(
+    EditorTool.LINE,
+    EditorTool.RECTANGLE,
+    EditorTool.SQUARE,
+    EditorTool.ELLIPSE,
+    EditorTool.TRIANGLE,
+    EditorTool.RHOMBUS,
+    EditorTool.TRAPEZOID,
+    EditorTool.PENTAGON,
+    EditorTool.HEXAGON,
+    EditorTool.SPLINE,
+    EditorTool.COORDINATE_AXIS,
+)
+
+/** The tool names of all geometric figure tools. */
+val ALL_FIGURE_TOOL_NAMES: Set<String> = FIGURE_TOOLS.map { it.name }.toSet()
+
+/**
+ * The figure tools in the user's [order]: the names it lists first, then any member it
+ * omits appended in factory order, so newly introduced figures appear rather than vanishing.
  */
 fun orderedShapeTools(order: List<String>): List<EditorTool> {
-    val all = SHAPE_GROUP.tools
+    val all = FIGURE_TOOLS
     val byName = all.associateBy { it.name }
     val listed = order.distinct().mapNotNull { byName[it] }
     return listed + all.filterNot { it in listed }

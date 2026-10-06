@@ -201,21 +201,7 @@ fun EditorScreen(
     /** Back was pressed with nothing left to dismiss: leave the app. */
     onExit: () -> Unit = {},
     /** The top app bar content; defaults to [EditorTopBar]. */
-    topBar: @Composable (EditorUiState, PaneState, TabsUiState) -> Unit = { ui, pane, tabs ->
-        EditorTopBar(
-            ui = ui,
-            pane = pane,
-            tabs = tabs,
-            settings = settings,
-            onSettingsChange = onSettingsChange,
-            onOpen = onOpen,
-            onNewTab = { tabs.onNew() },
-            onSave = onSave,
-            onExportPdf = onExportPdf,
-            splitView = splitView,
-            onToggleSplitView = onToggleSplitView,
-        )
-    },
+    topBar: (@Composable (EditorUiState, PaneState, TabsUiState) -> Unit)? = null,
     /** The rail/toolbar content; defaults to [EditorToolbar]. */
     paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit = { ui, pane, settings, onSettingsChange, audio ->
         EditorToolbar(
@@ -237,7 +223,24 @@ fun EditorScreen(
         Scaffold(
             topBar = {
                 if (!ui.fullPage) {
-                    topBar(ui, pane, tabs[activePane.coerceIn(tabs.indices)])
+                    val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
+                    if (topBar != null) {
+                        topBar(ui, pane, activeTabs)
+                    } else {
+                        EditorTopBar(
+                            ui = ui,
+                            pane = pane,
+                            tabs = activeTabs,
+                            settings = settings,
+                            onSettingsChange = onSettingsChange,
+                            onOpen = onOpen,
+                            onNewTab = { activeTabs.onNew() },
+                            onSave = onSave,
+                            onExportPdf = onExportPdf,
+                            splitView = splitView,
+                            onToggleSplitView = onToggleSplitView,
+                        )
+                    }
                 }
             },
         ) { padding ->
