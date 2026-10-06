@@ -762,7 +762,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         indexingDoc = currentDoc
         isIndexingActive = true
         val taskGen = ++indexingGeneration
-        onSearchIndexingChanged?.invoke(true, "Avvio elaborazione testo...")
+        onSearchIndexingChanged?.invoke(true, "Starting text recognition...")
 
         handwritingExecutor.execute {
             try {
@@ -774,9 +774,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
                             mainHandler.post {
                                 if (indexingGeneration == taskGen) {
                                     val progressMsg = if (totalPages > 1) {
-                                        "Elaborazione pagina $curPage di $total..."
+                                        "Processing page $curPage of $total..."
                                     } else {
-                                        "Riconoscimento del testo con AI..."
+                                        "Processing text..."
                                     }
                                     onSearchIndexingChanged?.invoke(true, progressMsg)
                                 }

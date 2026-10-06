@@ -230,24 +230,26 @@ private fun SearchIndexingDialog(
                 )
                 Spacer(Modifier.height(18.dp))
                 Text(
-                    text = "Elaborazione scrittura a mano",
+                    text = "Loading text...",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = progress ?: "Riconoscimento del testo con intelligenza artificiale per la ricerca in tempo reale...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
+                if (progress != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = progress,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 Spacer(Modifier.height(20.dp))
                 TextButton(
                     onClick = onCancel,
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                 ) {
-                    Text("Annulla")
+                    Text("Cancel")
                 }
             }
         }
@@ -348,7 +350,7 @@ private fun SearchControls(pane: PaneState) {
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (pane.searchQuery.isEmpty()) {
                             Text(
-                                if (pane.searchIndexing) "Elaborazione testo..." else "Cerca negli appunti...",
+                                if (pane.searchIndexing) "Loading text..." else "Search document...",
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
@@ -358,21 +360,6 @@ private fun SearchControls(pane: PaneState) {
                 },
             )
             if (pane.searchQuery.isNotEmpty()) {
-                CompactIconButton(
-                    contentDescription = "Clear search",
-                    onClick = {
-                        pane.searchQuery = ""
-                        pane.surface?.setSearchQuery("")?.let(::apply) ?: apply(SearchStatus())
-                    },
-                    modifier = Modifier.size(24.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
                 Spacer(Modifier.width(4.dp))
                 SearchCounterBadge(pane.searchCurrent, pane.searchTotal)
             }

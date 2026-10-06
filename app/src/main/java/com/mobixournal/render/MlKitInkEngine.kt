@@ -12,26 +12,45 @@ import com.google.mlkit.vision.digitalink.recognition.DigitalInkRecognizerOption
 import com.google.mlkit.vision.digitalink.recognition.Ink
 import com.mobixournal.format.model.Stroke
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * High-accuracy handwriting recognizer powered by Google ML Kit Digital Ink Recognition.
- * Supports cursive and print handwriting across 300+ languages including Italian and English.
+ * Supports English as the primary language and includes major languages such as Italian,
+ * Spanish, French, and German.
  */
 object MlKitInkEngine {
 
     private const val TAG = "MlKitInkEngine"
     private val isDownloading = AtomicBoolean(false)
-    private var cachedModel: DigitalInkRecognitionModel? = null
-    private var cachedRecognizer: DigitalInkRecognizer? = null
+    private val cachedModels = ConcurrentHashMap<String, DigitalInkRecognitionModel>()
+    private val cachedRecognizers = ConcurrentHashMap<String, DigitalInkRecognizer>()
     @Volatile private var isModelReady = false
     @Volatile private var lastAvailabilityCheckTime = 0L
     @Volatile private var lastAvailabilityResult = false
     private val modelReadyListeners = mutableListOf<() -> Unit>()
 
+    /** Major language tags supported for handwriting recognition. */
+    val MAJOR_LANGUAGE_TAGS = listOf("en-US", "it-IT", "es-ES", "fr-FR", "de-DE")
+
     /**
-     * Registers a listener to be invoked when the model is downloaded and ready for inference.
+     * Returns the list of active language tags, prioritizing English and Italian,
+     * along with the device's default locale and other major languages.
+     */
+    fun activeLanguageTags(): List<String> {
+        val deviceLocale = Locale.getDefault()
+        val deviceTag = if (deviceLocale.country.isNotEmpty()) {
+            "${deviceLocale.language}-${deviceLocale.country}"
+        } else {
+            deviceLocale.language
+        }
+        return (listOf("en-US", "it-IT", deviceTag) + MAJOR_LANGUAGE_TAGS).distinct()
+    }
+
+    /**
+     * Registers a listener to be invoked when any model is downloaded and ready for inference.
      */
     fun addOnModelReadyListener(listener: () -> Unit) {
         synchronized(modelReadyListeners) {
@@ -56,17 +75,25 @@ object MlKitInkEngine {
     }
 
     /**
-     * Resolves the best model identifier for the given locale or current device locale.
+     * Resolves the model identifier for a given language tag, falling back to base language if needed.
+     */
+    fun resolveModelIdentifier(tag: String): DigitalInkRecognitionModelIdentifier? {
+        DigitalInkRecognitionModelIdentifier.fromLanguageTag(tag)?.let { return it }
+        val baseLang = tag.substringBefore('-')
+        if (baseLang.isNotEmpty() && baseLang != tag) {
+            DigitalInkRecognitionModelIdentifier.fromLanguageTag(baseLang)?.let { return it }
+        }
+        return null
+    }
+
+    /**
+     * Resolves the primary model identifier for the given locale or English fallback.
      */
     fun resolveModelIdentifier(locale: Locale = Locale.getDefault()): DigitalInkRecognitionModelIdentifier? {
-        val lang = locale.language
-        val country = locale.country
-        val fullTag = if (country.isNotEmpty()) "$lang-$country" else locale.toLanguageTag()
-        DigitalInkRecognitionModelIdentifier.fromLanguageTag(fullTag)?.let { return it }
-        DigitalInkRecognitionModelIdentifier.fromLanguageTag("$lang-${lang.uppercase(Locale.ROOT)}")?.let { return it }
-        DigitalInkRecognitionModelIdentifier.fromLanguageTag(lang)?.let { return it }
-        DigitalInkRecognitionModelIdentifier.fromLanguageTag("it-IT")?.let { return it }
-        return DigitalInkRecognitionModelIdentifier.fromLanguageTag("en-US")
+        val fullTag = if (locale.country.isNotEmpty()) "${locale.language}-${locale.country}" else locale.language
+        return resolveModelIdentifier(fullTag)
+            ?: resolveModelIdentifier("en-US")
+            ?: resolveModelIdentifier("it-IT")
     }
 
     private fun isMainThread(): Boolean =
@@ -77,7 +104,7 @@ object MlKitInkEngine {
         }
 
     /**
-     * Checks if the recognition model is available on device and ready for immediate inference.
+     * Checks if at least one recognition model is available on device and ready for immediate inference.
      * Throttles remote checks so offline indexing never spends repetitive timeouts per word.
      */
     fun isAvailable(): Boolean {
@@ -87,17 +114,26 @@ object MlKitInkEngine {
         if (now - lastAvailabilityCheckTime < 10_000L) {
             return lastAvailabilityResult
         }
-        val model = getOrCreateModel() ?: return false
         return try {
-            val task = RemoteModelManager.getInstance().isModelDownloaded(model)
-            val downloaded = Tasks.await(task, 250, TimeUnit.MILLISECONDS) == true
-            lastAvailabilityCheckTime = now
-            lastAvailabilityResult = downloaded
-            if (downloaded) {
-                notifyModelReady()
+            val modelManager = RemoteModelManager.getInstance()
+            val priorityTags = listOf("en-US", "it-IT")
+            for (tag in priorityTags) {
+                val model = getOrCreateModel(tag) ?: continue
+                try {
+                    val task = modelManager.isModelDownloaded(model)
+                    val downloaded = Tasks.await(task, 250, TimeUnit.MILLISECONDS) == true
+                    if (downloaded) {
+                        lastAvailabilityCheckTime = now
+                        lastAvailabilityResult = true
+                        notifyModelReady()
+                        return true
+                    }
+                } catch (_: Throwable) {}
             }
-            downloaded
-        } catch (_: Exception) {
+            lastAvailabilityCheckTime = now
+            lastAvailabilityResult = false
+            false
+        } catch (_: Throwable) {
             lastAvailabilityCheckTime = now
             lastAvailabilityResult = false
             false
@@ -105,63 +141,109 @@ object MlKitInkEngine {
     }
 
     /**
-     * Asynchronously ensures the model is downloaded for offline use.
+     * Asynchronously ensures the models for English, Italian, and the current locale are downloaded.
      */
     fun ensureModelDownloaded(onComplete: ((Boolean) -> Unit)? = null) {
-        val model = getOrCreateModel() ?: run {
-            onComplete?.invoke(false)
-            return
-        }
-        val modelManager = RemoteModelManager.getInstance()
-        modelManager.isModelDownloaded(model)
-            .addOnSuccessListener { downloaded ->
-                if (downloaded) {
-                    notifyModelReady()
-                    onComplete?.invoke(true)
-                } else {
-                    if (isDownloading.compareAndSet(false, true)) {
-                        Log.i(TAG, "Initiating ML Kit Digital Ink model download...")
-                        modelManager.download(model, DownloadConditions.Builder().build())
-                            .addOnSuccessListener {
-                                isDownloading.set(false)
-                                notifyModelReady()
-                                Log.i(TAG, "ML Kit Digital Ink model download complete.")
-                                onComplete?.invoke(true)
-                            }
-                            .addOnFailureListener { e ->
-                                isDownloading.set(false)
-                                Log.w(TAG, "ML Kit Digital Ink model download failed", e)
-                                onComplete?.invoke(false)
-                            }
-                    } else {
-                        onComplete?.invoke(false)
-                    }
+        try {
+            val modelManager = RemoteModelManager.getInstance()
+            val tagsToDownload = listOf("en-US", "it-IT").let { base ->
+                val devTag = Locale.getDefault().toLanguageTag()
+                (base + devTag).distinct()
+            }
+            var anySuccess = false
+            val remaining = java.util.concurrent.atomic.AtomicInteger(tagsToDownload.size)
+
+            for (tag in tagsToDownload) {
+                val model = getOrCreateModel(tag)
+                if (model == null) {
+                    if (remaining.decrementAndGet() == 0) onComplete?.invoke(anySuccess)
+                    continue
                 }
+                modelManager.isModelDownloaded(model)
+                    .addOnSuccessListener { downloaded ->
+                        if (downloaded) {
+                            anySuccess = true
+                            notifyModelReady()
+                            if (remaining.decrementAndGet() == 0) onComplete?.invoke(anySuccess)
+                        } else {
+                            Log.i(TAG, "Initiating ML Kit Digital Ink model download for $tag...")
+                            modelManager.download(model, DownloadConditions.Builder().build())
+                                .addOnSuccessListener {
+                                    anySuccess = true
+                                    notifyModelReady()
+                                    Log.i(TAG, "ML Kit Digital Ink model download complete for $tag.")
+                                    if (remaining.decrementAndGet() == 0) onComplete?.invoke(anySuccess)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.w(TAG, "ML Kit Digital Ink model download failed for $tag", e)
+                                    if (remaining.decrementAndGet() == 0) onComplete?.invoke(anySuccess)
+                                }
+                        }
+                    }
+                    .addOnFailureListener {
+                        if (remaining.decrementAndGet() == 0) onComplete?.invoke(anySuccess)
+                    }
             }
-            .addOnFailureListener {
-                onComplete?.invoke(false)
-            }
+        } catch (_: Throwable) {
+            onComplete?.invoke(false)
+        }
     }
 
     /**
-     * Recognizes text from a group of strokes forming a word or phrase.
-     * Returns a list of candidate interpretations (highest confidence first), or empty list on failure.
+     * Recognizes text from a group of strokes forming a word or phrase across available language models.
+     * Returns candidate interpretations from English and major languages (including Italian),
+     * highest confidence first.
      */
     fun recognizeWord(strokes: List<Stroke>): List<String> {
         if (isMainThread()) {
             Log.w(TAG, "Cannot call Tasks.await on main thread; using fallback recognizer")
             return emptyList()
         }
-        val recognizer = getOrCreateRecognizer() ?: return emptyList()
+        val recognizers = getAvailableRecognizers()
+        if (recognizers.isEmpty()) return emptyList()
         val ink = buildInk(strokes) ?: return emptyList()
 
+        val allCandidates = mutableListOf<String>()
+        for (recognizer in recognizers) {
+            try {
+                val task = recognizer.recognize(ink)
+                val result = Tasks.await(task, 1500, TimeUnit.MILLISECONDS)
+                for (cand in result.candidates) {
+                    val text = cand.text.trim()
+                    if (text.isNotEmpty() && text !in allCandidates) {
+                        allCandidates.add(text)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "ML Kit recognition error", e)
+            }
+        }
+        return allCandidates
+    }
+
+    private fun getAvailableRecognizers(): List<DigitalInkRecognizer> {
         return try {
-            val task = recognizer.recognize(ink)
-            val result = Tasks.await(task, 2500, TimeUnit.MILLISECONDS)
-            val candidates = result.candidates.map { it.text.trim() }.filter { it.isNotEmpty() }
-            candidates
-        } catch (e: Exception) {
-            Log.w(TAG, "ML Kit recognition error", e)
+            val modelManager = RemoteModelManager.getInstance()
+            val list = mutableListOf<DigitalInkRecognizer>()
+            for (tag in activeLanguageTags()) {
+                val model = getOrCreateModel(tag) ?: continue
+                val existing = cachedRecognizers[tag]
+                if (existing != null) {
+                    list.add(existing)
+                } else {
+                    try {
+                        val task = modelManager.isModelDownloaded(model)
+                        if (Tasks.await(task, 100, TimeUnit.MILLISECONDS) == true) {
+                            val options = DigitalInkRecognizerOptions.builder(model).build()
+                            val newRecognizer = DigitalInkRecognition.getClient(options)
+                            cachedRecognizers[tag] = newRecognizer
+                            list.add(newRecognizer)
+                        }
+                    } catch (_: Throwable) {}
+                }
+            }
+            list
+        } catch (_: Throwable) {
             emptyList()
         }
     }
@@ -185,25 +267,11 @@ object MlKitInkEngine {
         return if (ink.strokes.isEmpty()) null else ink
     }
 
-    @Synchronized
-    private fun getOrCreateModel(): DigitalInkRecognitionModel? {
-        if (cachedModel != null) return cachedModel
-        val identifier = resolveModelIdentifier() ?: return null
-        cachedModel = DigitalInkRecognitionModel.builder(identifier).build()
-        return cachedModel
-    }
-
-    @Synchronized
-    private fun getOrCreateRecognizer(): DigitalInkRecognizer? {
-        if (cachedRecognizer != null) return cachedRecognizer
-        val model = getOrCreateModel() ?: return null
-        return try {
-            val options = DigitalInkRecognizerOptions.builder(model).build()
-            cachedRecognizer = DigitalInkRecognition.getClient(options)
-            cachedRecognizer
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to create DigitalInkRecognizer", e)
-            null
-        }
+    fun getOrCreateModel(tag: String = "en-US"): DigitalInkRecognitionModel? {
+        cachedModels[tag]?.let { return it }
+        val identifier = resolveModelIdentifier(tag) ?: return null
+        val model = DigitalInkRecognitionModel.builder(identifier).build()
+        cachedModels[tag] = model
+        return model
     }
 }
