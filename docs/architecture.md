@@ -750,7 +750,7 @@ app/
       ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
       ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog
       ToolbarStylePopup.kt   # shared line-style chips, and the shape-recognition toggle
-      ToolGlyphs.kt          # custom rail glyphs (the hollow rhombus, the trapezoid); Material has no outline diamond
+      ToolGlyphs.kt          # custom rail glyphs (hollow rectangle, rhombus, trapezoid, square); Material has no outline variants
       CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
       ToolbarViewPopups.kt   # rail slots: zoom, page background, drawing guides, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog

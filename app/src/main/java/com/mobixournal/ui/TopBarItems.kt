@@ -11,9 +11,9 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     // Individual geometric shapes (one-by-one direct tools)
     RailItem("line", "Line"),
     RailItem("rectangle", "Rectangle"),
+    RailItem("square", "Square"),
     RailItem("ellipse", "Circle / Ellipse"),
     RailItem("triangle", "Triangle"),
-    RailItem("square", "Square"),
     RailItem("rhombus", "Rhombus"),
     RailItem("trapezoid", "Trapezoid"),
     RailItem("pentagon", "Pentagon"),
@@ -30,11 +30,11 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 )
 
 /**
- * Default order of buttons in the secondary top bar: line, rectangle, individual shapes,
+ * Default order of buttons in the secondary top bar: line, rectangle, square, individual shapes,
  * arrows (dropdown), table, physical circuits, logic gates, and drawing guides.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
-    "line", "rectangle", "ellipse", "triangle", "square", "rhombus",
+    "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
     "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
     "table", "circuit", "logic", "guides",
 )
@@ -78,8 +78,8 @@ fun decodeTopBarIds(raw: String?): List<String> {
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
     "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE
-    "ellipse" -> EditorTool.ELLIPSE
     "square" -> EditorTool.SQUARE
+    "ellipse" -> EditorTool.ELLIPSE
     "rhombus" -> EditorTool.RHOMBUS
     "pentagon" -> EditorTool.PENTAGON
     "hexagon" -> EditorTool.HEXAGON

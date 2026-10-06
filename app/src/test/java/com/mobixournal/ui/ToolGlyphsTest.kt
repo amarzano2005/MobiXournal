@@ -8,7 +8,7 @@ import kotlin.math.abs
 
 /**
  * The figure tools' glyphs are drawn as outlines rather than taken from Material's filled variants,
- * ensuring all figures on the rail (Triangle, Square, Rhombus, Pentagon, Hexagon) read as
+ * ensuring all figures on the rail (Triangle, Rectangle, Square, Rhombus, Pentagon, Hexagon) read as
  * consistent outlines with no fill.
  */
 class ToolGlyphsTest {
@@ -41,6 +41,22 @@ class ToolGlyphsTest {
         assertTrue("the points are inside the 24-unit grid", RHOMBUS_OUTLINE.all { (x, y) ->
             x in 0f..24f && y in 0f..24f
         })
+    }
+
+    @Test
+    fun `rectangle glyph is an outline wider than it is tall`() {
+        assertEquals("Rectangle", RectangleIcon.name)
+        assertEquals(4, RECTANGLE_OUTLINE.size)
+        val cx = RECTANGLE_OUTLINE.sumOf { it.first.toDouble() } / 4
+        val cy = RECTANGLE_OUTLINE.sumOf { it.second.toDouble() } / 4
+        assertEquals(12.0, cx, 1e-6)
+        assertEquals(12.0, cy, 1e-6)
+        val minX = RECTANGLE_OUTLINE.minOf { it.first }
+        val maxX = RECTANGLE_OUTLINE.maxOf { it.first }
+        val minY = RECTANGLE_OUTLINE.minOf { it.second }
+        val maxY = RECTANGLE_OUTLINE.maxOf { it.second }
+        assertTrue(maxX - minX > maxY - minY)
+        assertTrue(RECTANGLE_OUTLINE.all { (x, y) -> x in 0f..24f && y in 0f..24f })
     }
 
     @Test

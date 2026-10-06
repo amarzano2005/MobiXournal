@@ -59,6 +59,14 @@ val TRAPEZOID_OUTLINE: List<Pair<Float, Float>> = listOf(
     3f to 19f,
 )
 
+/** The **Rectangle** figure's outline vertices. */
+val RECTANGLE_OUTLINE: List<Pair<Float, Float>> = listOf(
+    3f to 6f,
+    21f to 6f,
+    21f to 18f,
+    3f to 18f,
+)
+
 /** The **Square** figure's outline vertices. */
 val SQUARE_OUTLINE: List<Pair<Float, Float>> = listOf(
     3f to 3f,
@@ -90,6 +98,9 @@ val RhombusIcon: ImageVector by lazy { buildOutlineIcon("Rhombus", RHOMBUS_OUTLI
 
 /** Hollow trapezoid outline glyph. */
 val TrapezoidIcon: ImageVector by lazy { buildOutlineIcon("Trapezoid", TRAPEZOID_OUTLINE) }
+
+/** Hollow rectangle outline glyph. */
+val RectangleIcon: ImageVector by lazy { buildOutlineIcon("Rectangle", RECTANGLE_OUTLINE) }
 
 /** Hollow square outline glyph. */
 val SquareIcon: ImageVector by lazy { buildOutlineIcon("Square", SQUARE_OUTLINE) }

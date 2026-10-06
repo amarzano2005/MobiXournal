@@ -21,11 +21,18 @@ class TopBarItemsTest {
     }
 
     @Test
+    fun `square appears immediately to the right of rectangle in default top bar order`() {
+        val rectIndex = DEFAULT_TOP_BAR_ORDER.indexOf("rectangle")
+        val squareIndex = DEFAULT_TOP_BAR_ORDER.indexOf("square")
+        assertEquals(rectIndex + 1, squareIndex)
+    }
+
+    @Test
     fun `single tools resolve to their respective EditorTool`() {
         assertEquals(EditorTool.LINE, singleToolForTopBarId("line"))
         assertEquals(EditorTool.RECTANGLE, singleToolForTopBarId("rectangle"))
-        assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
         assertEquals(EditorTool.SQUARE, singleToolForTopBarId("square"))
+        assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
         assertEquals(EditorTool.RHOMBUS, singleToolForTopBarId("rhombus"))
         assertEquals(EditorTool.PENTAGON, singleToolForTopBarId("pentagon"))
         assertEquals(EditorTool.HEXAGON, singleToolForTopBarId("hexagon"))
