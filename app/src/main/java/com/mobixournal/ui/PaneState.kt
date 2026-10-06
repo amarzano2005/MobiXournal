@@ -84,4 +84,6 @@ class PaneState {
     var backgroundStyle by mutableStateOf<String?>(null)
     /** Page size as (widthPt, heightPt) in points, or null when unavailable. */
     var pageSize by mutableStateOf<Pair<Double, Double>?>(null)
+    /** Monotonically increasing version counter bumped whenever a new document is loaded into the canvas. */
+    var documentVersion by mutableStateOf(0)
 }

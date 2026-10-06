@@ -263,19 +263,21 @@ private fun SearchControls(pane: PaneState) {
     if (!pane.searchOpen) {
         IconButton(onClick = {
             pane.searchOpen = true
-            pane.surface?.ensureHandwritingIndex {
-                pane.surface?.setSearchQuery(pane.searchQuery)?.let(::apply)
-            }
         }) {
             Icon(Icons.Filled.Search, contentDescription = "Search")
         }
         return
     }
 
-    LaunchedEffect(pane.searchOpen) {
-        if (pane.searchOpen && pane.surface?.isHandwritingIndexReady() == false) {
-            pane.surface?.ensureHandwritingIndex {
-                pane.surface?.setSearchQuery(pane.searchQuery)?.let(::apply)
+    LaunchedEffect(pane, pane.surface, pane.searchOpen, pane.documentVersion) {
+        if (pane.searchOpen) {
+            val surface = pane.surface ?: return@LaunchedEffect
+            if (!surface.isHandwritingIndexReady()) {
+                surface.ensureHandwritingIndex {
+                    surface.setSearchQuery(pane.searchQuery).let(::apply)
+                }
+            } else {
+                surface.setSearchQuery(pane.searchQuery).let(::apply)
             }
         }
     }
@@ -291,9 +293,9 @@ private fun SearchControls(pane: PaneState) {
     }
 
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(pane.searchIndexing) {
-        if (!pane.searchIndexing) {
-            focusRequester.requestFocus()
+    LaunchedEffect(pane.searchOpen, pane.searchIndexing) {
+        if (pane.searchOpen && !pane.searchIndexing) {
+            runCatching { focusRequester.requestFocus() }
         }
     }
 
@@ -411,6 +413,7 @@ private fun SearchControls(pane: PaneState) {
                 onClick = {
                     pane.searchOpen = false
                     pane.searchQuery = ""
+                    pane.surface?.cancelIndexing()
                     pane.surface?.clearSearch()?.let(::apply) ?: apply(SearchStatus())
                 },
                 modifier = Modifier.size(28.dp),
@@ -1048,6 +1051,9 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
         state.searchIndexing = active
         state.searchIndexingProgress = progress
     }
+    onDocumentLoaded = {
+        state.documentVersion++
+    }
 }
 
 /**
@@ -1248,14 +1254,15 @@ private fun OverflowMenu(
     onOpenPenParameters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    IconButton(onClick = { open = true }) {
-        Icon(Icons.Filled.Menu, contentDescription = "Menu")
-    }
-    DropdownMenu(
-        expanded = open,
-        onDismissRequest = { open = false },
-        modifier = Modifier.widthIn(min = 280.dp, max = 320.dp),
-    ) {
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+        }
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.widthIn(min = 280.dp, max = 320.dp),
+        ) {
         // Quick File Actions
         Row(
             modifier = Modifier
@@ -1410,6 +1417,7 @@ private fun OverflowMenu(
             onClick = { open = false; onSettings() },
         )
     }
+}
 }
 
 @Composable

@@ -542,6 +542,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Notified when search count/current changes so the top bar can show navigation state. */
     var onSearchChanged: ((SearchStatus) -> Unit)? = null
 
+    /** Notified when a fresh document is loaded into the canvas. */
+    var onDocumentLoaded: (() -> Unit)? = null
+
     /** Notified when handwriting AI indexing begins or ends (true = indexing, false = idle), with optional progress text. */
     var onSearchIndexingChanged: ((Boolean, String?) -> Unit)? = null
 
@@ -617,6 +620,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Replace the canvas contents with [doc] (all pages, layers, and unmodelled elements). */
     fun load(doc: Document) {
+        cancelIndexing()
         this.docValue = if (doc.pages.isEmpty()) doc.copy(pages = listOf(blankPage())) else doc
         scrollY = 0f
         scrollX = 0f
@@ -629,13 +633,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
         notifyHistory()
         onPageCountChanged?.invoke(this.doc.pages.size)
         lastReportedPage = -1
-        indexingGeneration++
+        searchHits = emptyList()
+        currentSearchHit = -1
+        notifySearchChanged()
         handwritingIndex = null
         indexingDoc = null
         triggerBackgroundIndexing(this.docValue)
         relayout()
         render()
         onLayersChanged?.invoke()
+        onDocumentLoaded?.invoke()
     }
 
     /**
@@ -649,6 +656,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      */
     fun applyMirroredDocument(incoming: Document) {
         if (incoming === docValue) return
+        cancelIndexing()
         docValue = if (incoming.pages.isEmpty()) incoming.copy(pages = listOf(blankPage())) else incoming
         current = null
         currentStrokes = null
@@ -658,9 +666,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
         history.clear()
         notifyHistory()
         onPageCountChanged?.invoke(docValue.pages.size)
+        searchHits = emptyList()
+        currentSearchHit = -1
+        notifySearchChanged()
+        handwritingIndex = null
+        indexingDoc = null
+        triggerBackgroundIndexing(docValue)
         relayout()
         render()
         onLayersChanged?.invoke()
+        onDocumentLoaded?.invoke()
     }
 
     /** The current working document — every page, layer, and preserved element, ready to save. */
@@ -771,7 +786,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
                     isCancelled = { indexingGeneration != taskGen },
                 )
                 mainHandler.post {
-                    if (indexingGeneration == taskGen && doc === currentDoc) {
+                    if (indexingGeneration == taskGen) {
                         handwritingIndex = index
                         isIndexingActive = false
                         onSearchIndexingChanged?.invoke(false, null)
@@ -850,7 +865,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
             try {
                 val index = HandwritingIndex.build(targetDoc, isCancelled = { indexingGeneration != taskGen })
                 mainHandler.post {
-                    if (indexingGeneration == taskGen && doc === targetDoc) {
+                    if (indexingGeneration == taskGen) {
                         handwritingIndex = index
                         isIndexingActive = false
                         if (searchQuery.isNotEmpty()) {
