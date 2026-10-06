@@ -239,6 +239,8 @@ class MainActivity : ComponentActivity() {
         PDFBoxResourceLoader.init(applicationContext)
         // Size the one bitmap-cache budget from this device's heap, before any cache is built.
         BitmapBudget.configure(applicationContext)
+        // Ensure digital ink recognition model is downloaded in background for high-accuracy handwriting search
+        com.mobixournal.render.MlKitInkEngine.ensureModelDownloaded()
         audioFolder = initialSettings.audioFolderUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
         audio.onStateChanged = { runOnUiThread { audioTick.value++ } }
         // A cold start from another app's "open with": stash it now, open it once the canvas is up.

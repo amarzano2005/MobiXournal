@@ -144,8 +144,9 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **PDF Text Selection**: Drag across vector PDF text to highlight and copy text to the system clipboard (no OCR needed).
 - **Full-Document Search & Handwriting Recognition**:
   - Unified search across authored text boxes, background PDF text, and **handwritten ink strokes**.
-  - On-device offline stroke handwriting recognition and indexing for both print and continuous cursive handwriting (ligature-based stroke segmentation).
-  - Modern Material 3 search pill with dynamic match badge (`1/3` or `0/0`), auto-focus, keyboard Search action, quick clear button, and rounded canvas highlights with smooth navigation.
+  - **Dual Handwriting Engine**: On Android devices, powered by **Google ML Kit Digital Ink Recognition** for high-accuracy neural recognition of print and cursive handwriting across 300+ languages, backed by a robust offline pure-Kotlin fallback with ligature-based stroke segmentation and topological feature classification.
+  - **Fuzzy & Multi-Candidate Search**: Tolerates handwriting variations via candidate hypothesis matching, diacritic/accent normalization, multi-word continuous phrase matching, and Levenshtein distance tolerance.
+  - **Modern UI & Performance**: Material 3 search pill with dynamic match badge (`1/3` or `0/0`), auto-focus, keyboard Search action, quick clear button, non-blocking asynchronous background indexing, and rounded canvas highlights with smooth navigation.
 - **Vertical Space Tool**: Drag down to insert blank space across all layers simultaneously; drag up to close gaps.
 - **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images.
 - **Synchronized Audio Notes**:

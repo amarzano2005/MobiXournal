@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.pdfbox.android)
+    implementation(libs.mlkit.digital.ink)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

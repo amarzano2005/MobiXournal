@@ -39,7 +39,7 @@ object HandwritingTemplates {
         template('A', listOf(stroke(0.1, 1.0, 0.5, 0.0, 0.9, 1.0), stroke(0.25, 0.6, 0.75, 0.6)), hasLoop = true),
         template('B', listOf(stroke(0.15, 0.0, 0.15, 1.0), stroke(0.15, 0.0, 0.75, 0.25, 0.15, 0.5, 0.8, 0.75, 0.15, 1.0)), hasLoop = true),
         template('C', listOf(stroke(0.85, 0.15, 0.5, 0.0, 0.15, 0.25, 0.1, 0.5, 0.15, 0.75, 0.5, 1.0, 0.85, 0.85))),
-        template('D', listOf(stroke(0.15, 0.0, 0.15, 1.0), stroke(0.15, 0.0, 0.85, 0.25, 0.85, 0.75, 0.15, 1.0)), hasLoop = true),
+        template('D', listOf(stroke(0.15, 0.0, 0.15, 1.0), stroke(0.15, 0.0, 0.8, 0.25, 0.8, 0.75, 0.15, 1.0)), hasLoop = true),
         template('E', listOf(stroke(0.85, 0.0, 0.15, 0.0, 0.15, 1.0, 0.85, 1.0), stroke(0.15, 0.5, 0.65, 0.5))),
         template('F', listOf(stroke(0.15, 0.0, 0.15, 1.0), stroke(0.15, 0.0, 0.85, 0.0), stroke(0.15, 0.5, 0.65, 0.5))),
         template('G', listOf(stroke(0.85, 0.15, 0.5, 0.0, 0.15, 0.25, 0.1, 0.5, 0.15, 0.75, 0.5, 1.0, 0.85, 0.85, 0.85, 0.5, 0.5, 0.5))),
@@ -96,8 +96,18 @@ object HandwritingTemplates {
         template('w', listOf(stroke(0.1, 0.3, 0.3, 1.0, 0.5, 0.5, 0.7, 1.0, 0.9, 0.3))),
         template('f', listOf(stroke(0.7, 0.1, 0.4, 0.0, 0.3, 0.2, 0.3, 1.0), stroke(0.15, 0.4, 0.65, 0.4))),
         template('g', listOf(stroke(0.7, 0.3, 0.4, 0.2, 0.2, 0.4, 0.4, 0.7, 0.7, 0.5, 0.7, 1.1, 0.4, 1.3, 0.2, 1.1)), hasLoop = true),
+        template('j', listOf(stroke(0.6, 0.2, 0.6, 0.9, 0.3, 1.1, 0.1, 0.9), stroke(0.6, 0.0, 0.6, 0.05))),
+        template('k', listOf(stroke(0.2, 0.0, 0.2, 1.0), stroke(0.8, 0.4, 0.2, 0.6), stroke(0.3, 0.55, 0.8, 1.0))),
+        template('q', listOf(stroke(0.8, 0.4, 0.5, 0.2, 0.2, 0.5, 0.5, 0.9, 0.8, 0.7, 0.8, 0.2, 0.8, 1.3)), hasLoop = true),
+        template('x', listOf(stroke(0.2, 0.3, 0.8, 1.0), stroke(0.8, 0.3, 0.2, 1.0))),
         template('y', listOf(stroke(0.2, 0.3, 0.4, 0.7, 0.7, 0.3), stroke(0.7, 0.3, 0.3, 1.2))),
         template('z', listOf(stroke(0.2, 0.3, 0.8, 0.3, 0.2, 1.0, 0.8, 1.0))),
+
+        // Cursive letter shapes
+        template('e', listOf(stroke(0.1, 0.8, 0.3, 0.4, 0.6, 0.3, 0.8, 0.6, 0.5, 0.8, 0.2, 0.6, 0.7, 0.9)), hasLoop = true),
+        template('l', listOf(stroke(0.2, 0.9, 0.4, 0.3, 0.5, 0.0, 0.6, 0.3, 0.5, 0.9, 0.8, 1.0)), hasLoop = true),
+        template('o', listOf(stroke(0.15, 0.6, 0.4, 0.3, 0.7, 0.3, 0.8, 0.6, 0.6, 0.9, 0.3, 0.8, 0.2, 0.6, 0.5, 0.3, 0.8, 0.3)), hasLoop = true),
+        template('a', listOf(stroke(0.15, 0.7, 0.4, 0.3, 0.7, 0.3, 0.8, 0.6, 0.7, 0.9, 0.4, 0.9, 0.2, 0.7, 0.7, 0.5, 0.8, 1.0)), hasLoop = true),
     )
 
     fun resampleAndNormalize(strokes: List<List<NormPoint>>, n: Int): List<NormPoint> {

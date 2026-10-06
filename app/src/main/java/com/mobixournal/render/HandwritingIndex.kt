@@ -9,6 +9,7 @@ data class HandwrittenWord(
     val text: String,
     val bounds: Bounds,
     val confidence: Double = 1.0,
+    val candidates: List<String> = listOf(text),
 )
 
 /**

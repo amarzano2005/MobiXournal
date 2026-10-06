@@ -128,6 +128,82 @@ class DocumentSearchTest {
         assertEquals(3, hits.size)
     }
 
+    @Test fun findsHandwrittenTextViaAlternateCandidates() {
+        val doc = document()
+        val hwIndex = HandwritingIndex(
+            listOf(
+                listOf(
+                    HandwrittenWord(
+                        text = "ciso",
+                        bounds = Bounds(10.0, 20.0, 50.0, 40.0),
+                        candidates = listOf("ciso", "ciao"),
+                    ),
+                ),
+            ),
+        )
+
+        val hits = DocumentSearch.find(doc, null, "ciao", hwIndex)
+        assertEquals(1, hits.size)
+        assertEquals(Bounds(10.0, 20.0, 50.0, 40.0), hits[0].boxes.single())
+    }
+
+    @Test fun findsHandwrittenTextFuzzily() {
+        val doc = document()
+        val hwIndex = HandwritingIndex(
+            listOf(
+                listOf(
+                    HandwrittenWord(
+                        text = "appunti",
+                        bounds = Bounds(10.0, 20.0, 80.0, 40.0),
+                    ),
+                ),
+            ),
+        )
+
+        // Query "appunto" (Levenshtein distance 1 from "appunti")
+        val hits = DocumentSearch.find(doc, null, "appunto", hwIndex)
+        assertEquals(1, hits.size)
+        assertEquals(Bounds(10.0, 20.0, 80.0, 40.0), hits[0].boxes.single())
+    }
+
+    @Test fun findsHandwrittenTextWithDiacriticsNormalized() {
+        val doc = document()
+        val hwIndex = HandwritingIndex(
+            listOf(
+                listOf(
+                    HandwrittenWord(
+                        text = "caffè",
+                        bounds = Bounds(10.0, 20.0, 50.0, 40.0),
+                    ),
+                ),
+            ),
+        )
+
+        // Query without accent
+        val hits = DocumentSearch.find(doc, null, "caffe", hwIndex)
+        assertEquals(1, hits.size)
+        assertEquals(Bounds(10.0, 20.0, 50.0, 40.0), hits[0].boxes.single())
+    }
+
+    @Test fun findsHandwrittenMultiWordPhrase() {
+        val doc = document()
+        val hwIndex = HandwritingIndex(
+            listOf(
+                listOf(
+                    HandwrittenWord("appunti", Bounds(10.0, 20.0, 60.0, 40.0)),
+                    HandwrittenWord("importanti", Bounds(70.0, 20.0, 140.0, 40.0)),
+                ),
+            ),
+        )
+
+        val hits = DocumentSearch.find(doc, null, "appunti importanti", hwIndex)
+        assertEquals(1, hits.size)
+        assertEquals(
+            listOf(Bounds(10.0, 20.0, 60.0, 40.0), Bounds(70.0, 20.0, 140.0, 40.0)),
+            hits[0].boxes,
+        )
+    }
+
     private fun document(vararg elements: Element): Document =
         Document(pages = listOf(blankPage().copy(layers = listOf(Layer(elements.toList())))))
 }

@@ -77,6 +77,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
             if (value === docValue) return
             docValue = value
             handwritingIndex = null
+            indexingDoc = null
             rebuildSearch()
             onDocumentEdited?.invoke(value)
         }
@@ -543,6 +544,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var searchHits: List<SearchHit> = emptyList()
     internal var currentSearchHit = -1
     internal var handwritingIndex: HandwritingIndex? = null
+    private var indexingDoc: Document? = null
+    private val handwritingExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "handwriting-index").apply { isDaemon = true }
+    }
 
     // Live vertical-space drag: the grabbed page, the grab line (page pt) and its view-px Y for the
     // guide overlay. Like a selection move, each frame recomputes from the gesture-start snapshot.
@@ -715,6 +720,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         searchHits = emptyList()
         currentSearchHit = -1
         handwritingIndex = null
+        indexingDoc = null
         render()
         return notifySearchChanged()
     }
@@ -723,8 +729,28 @@ class DrawingSurfaceView @JvmOverloads constructor(
         SearchStatus(current = if (currentSearchHit >= 0) currentSearchHit + 1 else 0, total = searchHits.size)
 
     private fun rebuildSearch() {
+        val currentDoc = doc
         if (searchQuery.isNotEmpty() && handwritingIndex == null) {
-            handwritingIndex = HandwritingIndex.build(doc)
+            if (indexingDoc !== currentDoc) {
+                indexingDoc = currentDoc
+                // Immediate synchronous pass with typed & PDF text (no stall)
+                searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, null)
+                currentSearchHit = if (searchHits.isEmpty()) -1 else 0
+                notifySearchChanged()
+
+                // Background worker indexes handwriting ink without blocking UI
+                handwritingExecutor.execute {
+                    val index = HandwritingIndex.build(currentDoc)
+                    post {
+                        if (doc === currentDoc) {
+                            handwritingIndex = index
+                            rebuildSearch()
+                            render()
+                        }
+                    }
+                }
+                return
+            }
         }
         searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, handwritingIndex)
         currentSearchHit = when {

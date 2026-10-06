@@ -716,9 +716,11 @@ app/
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
       CircleRecognizer.kt    # inertia roundness + radial-residual score -> a rebuilt circle (pure)
-      DocumentSearch.kt      # case-insensitive search across typed text, PDF words, and handwriting (pure)
-      HandwritingIndex.kt    # per-page index of recognized handwritten words and bounding boxes (pure)
-      HandwritingRecognizer.kt # stroke clustering into lines/words + point-cloud alphanumeric glyph matching (pure)
+      DocumentSearch.kt      # case-insensitive, diacritic-folding, candidate & fuzzy search across typed text, PDF, and ink (pure)
+      HandwritingIndex.kt    # per-page index of recognized handwritten words, multi-candidates, and bounding boxes (pure)
+      HandwritingRecognizer.kt # stroke clustering into lines/words + neural & fallback offline recognition coordinator
+      MlKitInkEngine.kt      # on-device neural digital ink recognition via Google ML Kit with automatic model download
+      FallbackInkEngine.kt   # pure-Kotlin offline recognizer with multi-hypothesis character lattice and ligature splitting (pure)
       HandwritingTemplate.kt # normalized canonical templates for Latin alphanumeric characters (pure)
       SplineBuilder.kt       # spline control points -> cubic-Bezier stroke vertex list (pure)
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
@@ -1222,7 +1224,11 @@ and because it only rewrites coordinates the result round-trips through save unc
 Document search is full-document and multi-layered:
 - **Authored text (`TextElement`)**: matches case-insensitively across text box lines, generating highlighted character spans.
 - **Background PDF text layer (`PdfTextIndex`)**: extracted words from PDFBox are searched in reading order, highlighting matching word bounding boxes.
-- **Handwritten ink strokes (`HandwritingRecognizer`, `HandwritingIndex`)**: non-eraser strokes across all page layers are automatically indexed and searchable. Supports both discrete print handwriting and continuous cursive writing (wide continuous strokes are segmented into letter sub-strokes via baseline valleys and ascending connecting ligatures). Strokes are clustered into lines based on vertical extents, sorted horizontally, and segmented into words by gap spacing. Each character is classified using point-cloud matching (resampled to 32 normalized equidistant points and matched via symmetric Chamfer distance against canonical alphanumeric gesture templates in `HandwritingTemplates`) enhanced by topological features (multi-stroke loop detection, endpoint cycles, and stroke count preferences).
+- **Handwritten ink strokes (`HandwritingRecognizer`, `HandwritingIndex`)**: non-eraser strokes across all page layers are automatically indexed and searchable. Features a dual-engine architecture:
+  - **Google ML Kit Digital Ink Recognition (`MlKitInkEngine`)**: on Android devices, high-accuracy neural recognition trained on live temporal stroke sequences powers whole-word and multi-word recognition for both print and cursive handwriting across 300+ languages (with background model downloading for the device locale).
+  - **Robust Pure-Kotlin Offline Fallback (`FallbackInkEngine`)**: used when models are downloading or in environments without Play Services/Android runtime. Features safe cursive ligature splitting, loop and stroke-count topology, and multi-hypothesis character lattice classification.
+  - **Multi-Candidate Hypotheses & Fuzzy Search (`DocumentSearch`)**: words store alternative recognition candidate strings; search matches across all candidates, performs diacritic and accent folding (`Normalizer` NFD), supports multi-word continuous phrases, and permits fuzzy Levenshtein distance matches ($\le 1$ for short queries, $\le 2$ for longer queries) to guarantee robust matching even with human handwriting variations.
+  - **Non-blocking Asynchronous Indexing (`DrawingSurfaceView`)**: indexing runs on a dedicated background worker (`handwritingExecutor`), allowing immediate search on typed/PDF text while handwriting results load smoothly without UI stalls.
 - **Match highlights & navigation**: on the canvas, matches are painted as rounded pill rectangles with subtle padding (`drawRoundRect` in `DrawingSurfacePaint.kt`). The currently focused hit receives a prominent amber outline, and `jumpToSearchHit()` smoothly centers the viewport on each result.
 - **Search UI (`SearchControls`)**: integrated into the top bar as a Material 3 pill container with auto-focusing input, dynamic match counter badge (`1/3` or `0/0`), keyboard IME Search action, instant clear button, and stepper chevron navigation.
 
