@@ -1,7 +1,9 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -9,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -59,18 +62,25 @@ fun PageCounter(
     currentPage: Int,
     pageCount: Int,
     modifier: Modifier = Modifier,
+    modern: Boolean = false,
 ) {
+    val shape = if (modern) RoundedCornerShape(14.dp) else MaterialTheme.shapes.small
+    val color = if (modern) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+    val border = if (modern) BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) else null
     Surface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+        shape = shape,
+        color = color,
+        border = border,
         tonalElevation = 3.dp,
+        shadowElevation = if (modern) 2.dp else 0.dp,
     ) {
         Text(
             text = pageLabel(currentPage, pageCount),
             style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (modern) FontWeight.SemiBold else FontWeight.Normal,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = if (modern) 10.dp else 8.dp, vertical = if (modern) 4.dp else 3.dp),
         )
     }
 }
@@ -85,20 +95,26 @@ fun ZoomBadge(
     zoom: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    modern: Boolean = false,
 ) {
-    val shape = MaterialTheme.shapes.small
+    val shape = if (modern) RoundedCornerShape(14.dp) else MaterialTheme.shapes.small
+    val color = if (modern) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+    val border = if (modern) BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) else null
     Surface(
         // Clip before the click so the ripple stays inside the badge's rounded corners.
         modifier = modifier.clip(shape).clickable(onClick = onClick),
         shape = shape,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+        color = color,
+        border = border,
         tonalElevation = 3.dp,
+        shadowElevation = if (modern) 2.dp else 0.dp,
     ) {
         Text(
             text = zoomLabel(zoom),
             style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (modern) FontWeight.SemiBold else FontWeight.Normal,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(horizontal = if (modern) 10.dp else 8.dp, vertical = if (modern) 4.dp else 3.dp),
         )
     }
 }

@@ -74,6 +74,7 @@ class AppSettingsBackupTest {
             pageCounterHorizontal = PageCounterHorizontal.LEFT,
             themeMode = ThemeMode.DARK,
             dynamicColor = false,
+            modernUi = false,
             toolShortcutKeys = mapOf(EditorTool.PEN to "p", EditorTool.ERASER to "e"),
             colorShortcutKeys = mapOf(0xFF000000.toInt() to "1"),
             presets = listOf(ToolPreset("p1", "My Pen", EditorTool.PEN, 0xFF000000.toInt(), 1.0f, LineStyle.DASHED)),

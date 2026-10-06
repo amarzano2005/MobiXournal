@@ -1,7 +1,9 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,10 +60,14 @@ fun SelectionActionBar(
     widthSlots: List<Float>,
     onDeselect: () -> Unit,
     modifier: Modifier = Modifier,
+    modern: Boolean = false,
 ) {
+    val shape = if (modern) RoundedCornerShape(24.dp) else MaterialTheme.shapes.large
+    val border = if (modern) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)) else null
     Surface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.large,
+        shape = shape,
+        border = border,
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {

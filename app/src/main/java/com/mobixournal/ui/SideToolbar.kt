@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -49,6 +51,7 @@ import com.mobixournal.render.GuideKind
 @Composable
 fun SideToolbar(
     horizontal: Boolean = false,
+    modern: Boolean = false,
     tool: EditorTool,
     onTool: (EditorTool) -> Unit,
     toolGroupSelections: Map<String, EditorTool>,
@@ -75,7 +78,7 @@ fun SideToolbar(
     shapeHidden: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
-    ToolbarShell(horizontal = horizontal, modifier = modifier) {
+    ToolbarShell(horizontal = horizontal, modern = modern, modifier = modifier) {
         for (item in visibleRailItems(railOrder, railHidden)) {
             val group = toolGroupForRailItem(item.id)
             if (group != null) {
@@ -90,6 +93,7 @@ fun SideToolbar(
                     },
                     selected = group.selected(toolGroupSelections),
                     active = tool in group.tools,
+                    modern = modern,
                     onTool = onTool,
                     // One callback for the whole pick: the slot's new face and the tool activation
                     // are a single settings write. Split in two they would both start from the same
@@ -114,29 +118,94 @@ fun SideToolbar(
 /** Width of the vertical tool rail: 48dp buttons + horizontal padding, wide enough for zoom percentage text. */
 val SideToolbarWidth = 64.dp
 
+/** Modern floating rail width: 44dp buttons + horizontal padding. */
+val SideToolbarModernWidth = 56.dp
+/** Margin around the modern floating rail. */
+val SideToolbarModernPadding = 6.dp
+/** Total width occupied by the modern vertical rail including its margins. */
+val SideToolbarModernTotalWidth = SideToolbarModernWidth + (SideToolbarModernPadding * 2)
+
 /** The rail's surface: a scrolling column down the edge, or a scrolling row across the top. */
 @Composable
-private fun ToolbarShell(horizontal: Boolean, modifier: Modifier, buttons: @Composable () -> Unit) {
-    if (horizontal) {
-        Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 3.dp) {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) { buttons() }
+private fun ToolbarShell(
+    horizontal: Boolean,
+    modern: Boolean,
+    modifier: Modifier,
+    buttons: @Composable () -> Unit,
+) {
+    if (modern) {
+        val shape = RoundedCornerShape(20.dp)
+        if (horizontal) {
+            Box(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    shape = shape,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 3.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) { buttons() }
+                }
+            }
+        } else {
+            Box(
+                modifier = modifier
+                    .fillMaxHeight()
+                    .padding(horizontal = SideToolbarModernPadding, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier.width(SideToolbarModernWidth),
+                    shape = shape,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 3.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 8.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) { buttons() }
+                }
+            }
         }
     } else {
-        Surface(modifier = modifier.fillMaxHeight().width(SideToolbarWidth), tonalElevation = 3.dp) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 8.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) { buttons() }
+        if (horizontal) {
+            Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 3.dp) {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) { buttons() }
+            }
+        } else {
+            Surface(modifier = modifier.fillMaxHeight().width(SideToolbarWidth), tonalElevation = 3.dp) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 8.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) { buttons() }
+            }
         }
     }
 }
@@ -161,16 +230,19 @@ private fun ToolGroupButton(
     members: List<EditorTool> = group.tools,
     selected: EditorTool,
     active: Boolean,
+    modern: Boolean = false,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (modern) RoundedCornerShape(12.dp) else CircleShape
+    val buttonSize = if (modern) 44.dp else ToolbarButtonSize
     Box {
         Box(
             modifier = Modifier
-                .size(ToolbarButtonSize)
-                .clip(CircleShape)
+                .size(buttonSize)
+                .clip(shape)
                 .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .combinedClickable(
                     // First tap activates the shown tool; once this slot is the live one, the next

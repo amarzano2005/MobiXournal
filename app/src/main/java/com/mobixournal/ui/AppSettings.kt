@@ -126,6 +126,7 @@ enum class ThemeMode(val label: String) {
  * @property toolShortcutKeys Per-tool keyboard shortcut, keyed by [EditorTool]; empty/absent means disabled.
  * @property colorShortcutKeys Per-colour keyboard shortcut, keyed by the ARGB value of the swatch; empty/absent means disabled.
  * @property presets The user's saved tool snapshots, in display order.
+ * @property modernUi Whether to use the modern Material 3 interface (floating rounded toolbars, pill tabs, grouped controls) or the classic compact layout.
  * @property textImportLimitMb Largest plain-text file (MiB) that may be typeset into a background PDF.
  * @property pdfCacheLimitMb How much (MiB) the generated/background PDF cache may keep.
  */
@@ -282,6 +283,11 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** Whether to use Android 12+ dynamic colours from the wallpaper (Material You). */
     val dynamicColor: Boolean = true,
+    /**
+     * Whether to use the modern Material 3 interface (floating rounded toolbars, pill tabs,
+     * grouped controls) or the classic compact layout. On by default.
+     */
+    val modernUi: Boolean = DEFAULT_MODERN_UI,
     /**
      * Per-tool keyboard shortcut, keyed by [EditorTool]. Absent or empty means that tool has no
      * shortcut. Every tool is covered, so the Settings screen can offer a key field for each.
@@ -442,6 +448,7 @@ data class AppSettings(
         const val DEFAULT_TABLE_COLS: Int = 3
         const val DEFAULT_TABLE_HEADER: Boolean = false
         const val DEFAULT_SHOW_TOOLS_IN_TOP_BAR: Boolean = true
+        const val DEFAULT_MODERN_UI: Boolean = true
 
         /**
          * Rail items hidden by default — the drawing-tool groups the secondary top bar already
@@ -577,6 +584,7 @@ class SettingsStore(context: Context) {
                 enumOr(prefs.getString(KEY_PAGE_COUNTER_H, null), d.pageCounterHorizontal),
             themeMode = enumOr(prefs.getString(KEY_THEME_MODE, null), d.themeMode),
             dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, d.dynamicColor),
+            modernUi = prefs.getBoolean(KEY_MODERN_UI, d.modernUi),
             toolShortcutKeys = loadToolShortcutKeys(),
             colorShortcutKeys = loadColorShortcutKeys(),
             presets = decodeToolPresets(prefs.getString(KEY_PRESETS, null)),
@@ -670,6 +678,7 @@ class SettingsStore(context: Context) {
         e.putString(KEY_PAGE_COUNTER_H, s.pageCounterHorizontal.name)
         e.putString(KEY_THEME_MODE, s.themeMode.name)
         e.putBoolean(KEY_DYNAMIC_COLOR, s.dynamicColor)
+        e.putBoolean(KEY_MODERN_UI, s.modernUi)
         e.putString(KEY_TOOL_SHORTCUTS, encodeToolShortcuts(s.toolShortcutKeys))
         e.putString(KEY_COLOR_SHORTCUTS, encodeColorShortcuts(s.colorShortcutKeys))
         // The legacy per-shortcut keys are gone once the generic maps exist, so the migration above
@@ -768,6 +777,7 @@ class SettingsStore(context: Context) {
         const val KEY_PAGE_COUNTER_H = "page_counter_horizontal"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_DYNAMIC_COLOR = "dynamic_color"
+        const val KEY_MODERN_UI = "modern_ui"
         const val KEY_TOOL_SHORTCUTS = "tool_shortcuts"
         const val KEY_COLOR_SHORTCUTS = "color_shortcuts"
         const val KEY_PRESETS = "tool_presets"

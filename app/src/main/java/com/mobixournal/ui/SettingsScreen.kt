@@ -50,8 +50,8 @@ enum class SettingsSection(val title: String, val summary: String) {
     SHORTCUTS("Shortcuts", "One key each to jump straight to a tool or a pen colour."),
     /** Navigation: momentum scrolling strength and panning sensitivity. */
     NAVIGATION("Navigation", "Momentum scrolling and panning sensitivity."),
-    /** Appearance: theme mode and page counter position. */
-    APPEARANCE("Appearance", "Theme, and where the page counter sits on the canvas."),
+    /** Appearance: modern or classic UI style, theme mode and page counter position. */
+    APPEARANCE("Appearance", "Modern or classic UI style, theme, and page counter position."),
     /** Storage: text import limit and PDF cache budget. */
     STORAGE("Storage", "How big a text file may be imported, and how much cache to keep."),
     /** Backup: export or import settings to and from a JSON file. */

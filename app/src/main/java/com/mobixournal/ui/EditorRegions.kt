@@ -67,6 +67,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.height
@@ -132,15 +133,18 @@ fun EditorTopBar(
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
 ) {
+    val isModern = settings?.modernUi ?: true
     val effectivePosition = if (settings?.showToolsInTopBar == true && settings.toolbarPosition == ToolbarPosition.TOP) {
         ToolbarPosition.LEFT
     } else {
         settings?.toolbarPosition ?: ToolbarPosition.LEFT
     }
+    val topBarHeight = if (isModern) 48.dp else 40.dp
     TopAppBar(
         navigationIcon = {
             if (settings != null && settings.showToolsInTopBar && effectivePosition == ToolbarPosition.LEFT && !ui.fullPage) {
-                Spacer(Modifier.width(SideToolbarWidth))
+                val spacerWidth = if (isModern) SideToolbarModernTotalWidth else SideToolbarWidth
+                Spacer(Modifier.width(spacerWidth))
             }
         },
         title = {
@@ -151,29 +155,80 @@ fun EditorTopBar(
                     settings = settings,
                     onSettingsChange = onSettingsChange,
                 )
+            } else if (isModern) {
+                val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                }
             }
         },
-        modifier = Modifier.height(40.dp),
+        modifier = Modifier.height(topBarHeight),
         actions = {
             // Order is deliberate: split view sits directly right of the search button, and Save —
             // the more frequent action — takes the slot split view used to hold, right before the
             // overflow menu. Undo/redo stay paired between them.
             SearchControls(pane)
-            IconButton(onClick = onToggleSplitView) {
-                Icon(
-                    Icons.Filled.VerticalSplit,
-                    contentDescription = if (splitView) "Close split view" else "Split view",
-                    tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
-                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-            }
-            IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
-                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
-            }
-            IconButton(onClick = onSave) {
-                Icon(Icons.Filled.Save, contentDescription = "Save")
+            if (isModern) {
+                IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Filled.VerticalSplit,
+                        contentDescription = if (splitView) "Close split view" else "Split view",
+                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                    tonalElevation = 1.dp,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                ) {
+                    IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    }
+                }
+            } else {
+                IconButton(onClick = onToggleSplitView) {
+                    Icon(
+                        Icons.Filled.VerticalSplit,
+                        contentDescription = if (splitView) "Close split view" else "Split view",
+                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
+                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                }
+                IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
+                    Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+                }
+                IconButton(onClick = onSave) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save")
+                }
             }
             OverflowMenu(
                 settings = settings,
@@ -488,6 +543,7 @@ fun EditorToolbar(
     }
     SideToolbar(
         horizontal = effectivePosition.isHorizontal,
+        modern = settings.modernUi,
         tool = ui.tool,
         onTool = { tool ->
             // One rule for every path: the outgoing tool's style goes into its own slot, the
@@ -579,6 +635,7 @@ fun TopBarToolsRow(
     modifier: Modifier = Modifier,
 ) {
     val surface = pane.surface
+    val modern = settings.modernUi
     Row(
         modifier = modifier
             .fillMaxHeight()
@@ -592,6 +649,7 @@ fun TopBarToolsRow(
                 CompactSingleToolButton(
                     tool = single,
                     active = ui.tool == single,
+                    modern = modern,
                     onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                 )
             } else if (item.id == "triangle" || item.id == "trapezoid") {
@@ -606,6 +664,7 @@ fun TopBarToolsRow(
                 CompactShapeKindButton(
                     tool = tool,
                     active = ui.tool == tool,
+                    modern = modern,
                     heading = if (triangle) "Triangle" else "Trapezoid",
                     kinds = kindLabels,
                     selectedKind = kind,
@@ -638,6 +697,7 @@ fun TopBarToolsRow(
                         members = group.tools,
                         selected = group.selected(settings.toolGroupSelections),
                         active = ui.tool in group.tools,
+                        modern = modern,
                         onTool = { tool ->
                             surface?.activateTool(tool, ui, settings, onSettingsChange)
                         },
@@ -651,6 +711,7 @@ fun TopBarToolsRow(
                 } else if (item.id == "guides") {
                     CompactGuidePopupButton(
                         kind = settings.guideKind,
+                        modern = modern,
                         onKind = {
                             onSettingsChange(settings.copy(guideKind = it))
                             pane.surface?.placeGuide(it)
@@ -666,13 +727,15 @@ fun TopBarToolsRow(
 private fun CompactSingleToolButton(
     tool: EditorTool,
     active: Boolean,
+    modern: Boolean = false,
     onClick: () -> Unit,
 ) {
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
     Box(
         modifier = Modifier
             .size(32.dp)
-            .clip(CircleShape)
+            .clip(shape)
             .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -707,17 +770,19 @@ private fun CompactShapeKindButton(
     onSelectKind: (Int) -> Unit,
     showEditor: Boolean,
     editorHint: String,
+    modern: Boolean = false,
     onEditKind: () -> Unit,
     onClick: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box {
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .clip(CircleShape)
+                    .clip(shape)
                     .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                     .combinedClickable(
                         onClick = { if (active) open = true else onClick() },
@@ -804,16 +869,18 @@ private fun CompactShapeKindButton(
 @Composable
 private fun CompactGuidePopupButton(
     kind: GuideKind,
+    modern: Boolean = false,
     onKind: (GuideKind) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val active = kind != GuideKind.NONE
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
     Box {
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(CircleShape)
+                .clip(shape)
                 .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .clickable { open = !open },
             contentAlignment = Alignment.Center,
@@ -846,16 +913,18 @@ private fun CompactTopBarToolButton(
     members: List<EditorTool> = group.tools,
     selected: EditorTool,
     active: Boolean,
+    modern: Boolean = false,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
     Box {
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(CircleShape)
+                .clip(shape)
                 .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .combinedClickable(
                     onClick = { if (active && members.size > 1) open = true else onTool(selected) },
@@ -1164,7 +1233,7 @@ fun EditorPaneView(
             }
         },
     ) {
-        if (!ui.fullPage) TabStrip(tabs[index.coerceIn(tabs.indices)], modifier = Modifier.fillMaxWidth())
+        if (!ui.fullPage) TabStrip(tabs[index.coerceIn(tabs.indices)], modifier = Modifier.fillMaxWidth(), modern = settings.modernUi)
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             AndroidView(
                 factory = { ctx ->
@@ -1208,10 +1277,12 @@ fun EditorPaneView(
                 ZoomBadge(
                     zoom = state.zoom,
                     onClick = { state.surface?.resetZoom() },
+                    modern = settings.modernUi,
                 )
                 PageCounter(
                     currentPage = state.currentPage,
                     pageCount = state.pageCount,
+                    modern = settings.modernUi,
                 )
             }
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the

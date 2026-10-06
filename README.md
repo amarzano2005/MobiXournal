@@ -165,6 +165,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
   - **Stylus Calibration**: Independent pressure multiplier (up to 4×) and minimum pressure floor (up to 1.00) — desktop Xournal++'s own ranges — plus precision budgets (Economy to Maximum).
 - **Toolbars & Interface**:
+  - **Modern vs Classic Interface**: Toggle between the **Modern UI** (default: floating dock tool rail with squircles, pill tabs, grouped undo/redo container, frosted badges, and Material 3 tonal elevation) and **Classic UI** (dense edge-to-edge flat rail, circular buttons, compact tabs) via **Settings → Appearance → Modern interface**.
   - **Top Bar**: One-tap **Save** (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
   - **Dual Toolbar**: Optional secondary top bar showing frequently used tools without taking canvas space.
   - **Dockable Rail**: Tool rail can be docked to Left, Right, Top, or Bottom.

@@ -11,6 +11,15 @@ import androidx.compose.ui.unit.dp
 /** Appearance: which Material 3 colour scheme the app's chrome is painted with. */
 @Composable
 fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    SwitchRow(
+        title = "Modern interface",
+        subtitle = "Floating rounded toolbars, pill tabs and modern Material 3 styling. Turn off for classic compact layout.",
+        checked = settings.modernUi,
+        onCheckedChange = { onChange(settings.copy(modernUi = it)) },
+    )
+
+    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+
     OptionGroup(
         title = "Theme",
         subtitle = "Colours the top bar, tool rail and canvas backdrop. " +

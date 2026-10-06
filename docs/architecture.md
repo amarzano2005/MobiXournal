@@ -777,6 +777,7 @@ app/
       SettingsScreen.kt      # settings index: one clickable row per section, each opening its own page
       SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
       ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour
+      AppearanceSection.kt   # the Appearance page: theme mode, dynamic theme, modern interface switch
       BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework
       AboutSection.kt        # the About page and the links it sends people to
       AppSettings.kt         # AppSettings model + SettingsStore (SharedPreferences persistence)
@@ -1676,7 +1677,10 @@ it doesn't affect round-trip (matching how desktop selects a PDF background's te
 **Chrome (`ui/`).** `EditorScreen` is the one editor screen (a `Row`): a top bar with undo/redo
 icon buttons and a **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save,
 Pen diagnostics, and Settings; a **left vertical rail `SideToolbar`** with five buttons — Tool, Colour, Size, Zoom,
-Pages; and the canvas filling the rest. Each rail button owns its own `DropdownMenu`, so the pop-up
+Pages; and the canvas filling the rest. Chrome styling is governed by `AppSettings.modernUi` (toggled under **Settings → Appearance**, enabled by default):
+- **Modern UI (`modernUi = true`)**: The tool rail renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation, subtle border, and squircle tool buttons (`12.dp`); the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), an accent-tonal Save button, and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
+- **Classic UI (`modernUi = false`)**: Compact edge-to-edge flat tool rail (`SideToolbarClassicWidth` = 48dp) with 48dp circular buttons, flat 40dp top bar, 32dp rectangular tab chips, and compact badges for maximum canvas density.
+Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. The
 rail's head is **one slot per tool group** (`ToolGroups.kt`): `TOOL_GROUPS` partitions every
 `EditorTool` into named groups (pen · highlighter · eraser · line · rectangle · shape · pan · select ·

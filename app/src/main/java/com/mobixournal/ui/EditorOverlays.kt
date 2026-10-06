@@ -190,6 +190,7 @@ private fun BoxScope.SelectionOverlays(
             widthSlots = settings.penWidths,
             onDeselect = { surface?.clearSelection() },
             modifier = barModifier,
+            modern = settings.modernUi,
         )
     } else if (ui.tool == EditorTool.SELECT || ui.tool == EditorTool.LASSO_SELECT || ui.tool == EditorTool.BG_SELECT) {
         SelectModeBar(

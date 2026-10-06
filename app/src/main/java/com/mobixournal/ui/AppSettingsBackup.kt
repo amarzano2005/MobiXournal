@@ -99,6 +99,7 @@ object AppSettingsBackup {
         b.append("  \"pageCounterHorizontal\": \"").append(settings.pageCounterHorizontal.name).append("\",\n")
         b.append("  \"themeMode\": \"").append(settings.themeMode.name).append("\",\n")
         b.append("  \"dynamicColor\": ").append(settings.dynamicColor).append(",\n")
+        b.append("  \"modernUi\": ").append(settings.modernUi).append(",\n")
         b.append("  \"toolShortcutKeys\": {")
             .append(settings.toolShortcutKeys.entries.joinToString(", ") { "\"${it.key.name}\": \"${escape(it.value)}\"" })
             .append("},\n")
@@ -247,6 +248,7 @@ object AppSettingsBackup {
             pageCounterHorizontal = readEnum("pageCounterHorizontal", PageCounterHorizontal.values(), fallback.pageCounterHorizontal),
             themeMode = readEnum("themeMode", ThemeMode.values(), fallback.themeMode),
             dynamicColor = root.getBool("dynamicColor", fallback.dynamicColor),
+            modernUi = root.getBool("modernUi", fallback.modernUi),
             toolShortcutKeys = toolShortcutKeys,
             colorShortcutKeys = colorShortcutKeys,
             presets = presets,
