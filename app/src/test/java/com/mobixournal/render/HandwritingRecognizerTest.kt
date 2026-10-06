@@ -143,13 +143,28 @@ class HandwritingRecognizerTest {
         assertTrue(!index.hasAnyText)
     }
 
-    @Test fun filtersOutNonHandwritingStrokes() {
-        // A huge drawing border: 400pt wide, 300pt tall
-        val hugeBorder = stroke(0.0, 0.0, 400.0, 0.0, 400.0, 300.0, 0.0, 300.0, 0.0, 0.0)
-        // A full-page horizontal separator rule: 300pt wide, 1pt tall
-        val pageSeparator = stroke(10.0, 100.0, 310.0, 100.0)
-
-        val words = HandwritingRecognizer.recognizePage(listOf(hugeBorder, pageSeparator))
+    @Test fun filtersOutSubMinimumStrokes() {
+        val speck = stroke(10.0, 10.0, 10.5, 10.5)
+        val singlePoint = Stroke(Tool.PEN, 0, null, listOf(StrokePoint(10.0, 10.0, 1.0)), true)
+        val words = HandwritingRecognizer.recognizePage(listOf(speck, singlePoint))
         assertTrue(words.isEmpty())
+    }
+
+    @Test fun benchmark100WordsIndexing() {
+        val strokes = mutableListOf<Stroke>()
+        for (i in 0 until 50) {
+            strokes.addAll(letterT(i * 40.0, 50.0))
+            strokes.addAll(letterO(i * 40.0 + 20.0, 50.0))
+        }
+        val doc = Document(
+            pages = listOf(
+                blankPage().copy(layers = listOf(Layer(strokes))),
+            ),
+        )
+        val start = System.currentTimeMillis()
+        val index = HandwritingIndex.build(doc)
+        val elapsed = System.currentTimeMillis() - start
+        println("BENCHMARK: Indexed 50 words (${strokes.size} strokes) in ${elapsed}ms")
+        assertTrue(index.hasAnyText)
     }
 }

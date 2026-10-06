@@ -79,6 +79,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
             indexingGeneration++
             handwritingIndex = null
             indexingDoc = null
+            triggerBackgroundIndexing(value)
             rebuildSearch()
             onDocumentEdited?.invoke(value)
         }
@@ -546,7 +547,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var currentSearchHit = -1
     internal var handwritingIndex: HandwritingIndex? = null
     private var indexingDoc: Document? = null
+    @Volatile private var isIndexingActive = false
     @Volatile private var indexingGeneration = 0
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val handwritingExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
         Thread(r, "handwriting-index").apply { isDaemon = true }
     }
@@ -616,6 +619,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
         notifyHistory()
         onPageCountChanged?.invoke(this.doc.pages.size)
         lastReportedPage = -1
+        indexingGeneration++
+        handwritingIndex = null
+        indexingDoc = null
+        triggerBackgroundIndexing(this.docValue)
         relayout()
         render()
         onLayersChanged?.invoke()
@@ -704,6 +711,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     fun nextSearchHit(): SearchStatus {
+        if (searchHits.isEmpty() && searchQuery.isNotEmpty() && handwritingIndex == null) {
+            handwritingIndex = HandwritingIndex.build(doc)
+            rebuildSearch()
+        }
         if (searchHits.isEmpty()) return searchStatus()
         currentSearchHit = (currentSearchHit + 1).floorMod(searchHits.size)
         jumpToSearchHit()
@@ -711,6 +722,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     fun previousSearchHit(): SearchStatus {
+        if (searchHits.isEmpty() && searchQuery.isNotEmpty() && handwritingIndex == null) {
+            handwritingIndex = HandwritingIndex.build(doc)
+            rebuildSearch()
+        }
         if (searchHits.isEmpty()) return searchStatus()
         currentSearchHit = (currentSearchHit - 1).floorMod(searchHits.size)
         jumpToSearchHit()
@@ -721,9 +736,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         searchQuery = ""
         searchHits = emptyList()
         currentSearchHit = -1
-        indexingGeneration++
-        handwritingIndex = null
-        indexingDoc = null
         render()
         return notifySearchChanged()
     }
@@ -734,29 +746,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private fun rebuildSearch() {
         val currentDoc = doc
         if (searchQuery.isNotEmpty() && handwritingIndex == null) {
-            if (indexingDoc !== currentDoc) {
-                indexingDoc = currentDoc
-                // Immediate synchronous pass with typed & PDF text (no stall)
-                searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, null)
-                currentSearchHit = if (searchHits.isEmpty()) -1 else 0
-                notifySearchChanged()
-
-                val taskGen = ++indexingGeneration
-                // Background worker indexes handwriting ink without blocking UI
-                handwritingExecutor.execute {
-                    val index = HandwritingIndex.build(currentDoc) { indexingGeneration != taskGen }
-                    if (indexingGeneration == taskGen) {
-                        post {
-                            if (indexingGeneration == taskGen && doc === currentDoc) {
-                                handwritingIndex = index
-                                rebuildSearch()
-                                render()
-                            }
-                        }
-                    }
-                }
-                return
-            }
+            triggerBackgroundIndexing(currentDoc)
         }
         searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, handwritingIndex)
         currentSearchHit = when {
@@ -765,6 +755,32 @@ class DrawingSurfaceView @JvmOverloads constructor(
             else -> currentSearchHit.coerceAtMost(searchHits.lastIndex)
         }
         notifySearchChanged()
+    }
+
+    private fun triggerBackgroundIndexing(targetDoc: Document) {
+        if (indexingDoc === targetDoc && (handwritingIndex != null || isIndexingActive)) return
+        indexingDoc = targetDoc
+        isIndexingActive = true
+        val taskGen = ++indexingGeneration
+        handwritingExecutor.execute {
+            try {
+                val index = HandwritingIndex.build(targetDoc) { indexingGeneration != taskGen }
+                if (indexingGeneration == taskGen) {
+                    mainHandler.post {
+                        if (indexingGeneration == taskGen && doc === targetDoc) {
+                            handwritingIndex = index
+                            isIndexingActive = false
+                            if (searchQuery.isNotEmpty()) {
+                                rebuildSearch()
+                                render()
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                isIndexingActive = false
+            }
+        }
     }
 
     private fun notifySearchChanged(): SearchStatus =

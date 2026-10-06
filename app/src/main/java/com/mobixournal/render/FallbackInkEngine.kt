@@ -175,11 +175,12 @@ object FallbackInkEngine {
         val scored = mutableListOf<Pair<Char, Double>>()
 
         for (tmpl in HandwritingTemplates.all) {
-            if (abs(tmpl.strokeCount - strokes.size) > 2) continue
             var score = scoreMatch(candidatePoints, tmpl.points)
 
             if (tmpl.strokeCount == strokes.size) {
                 score += 0.06
+            } else if (abs(tmpl.strokeCount - strokes.size) > 2) {
+                score -= 0.12
             }
 
             if (tmpl.hasLoop == candidateHasLoop) {

@@ -15,10 +15,7 @@ import kotlin.math.max
 object HandwritingRecognizer {
 
     private const val MIN_STROKE_POINTS = 2
-    private const val MAX_STROKE_POINTS = 600
     private const val MIN_STROKE_EXTENT = 2.0
-    private const val MAX_STROKE_WIDTH = 380.0
-    private const val MAX_STROKE_HEIGHT = 280.0
 
     private class BoundedStroke(
         val stroke: Stroke,
@@ -68,13 +65,10 @@ object HandwritingRecognizer {
     }
 
     private fun isHandwritingCandidate(stroke: Stroke, b: Bounds): Boolean {
-        if (stroke.points.size < MIN_STROKE_POINTS || stroke.points.size > MAX_STROKE_POINTS) return false
+        if (stroke.points.size < MIN_STROKE_POINTS) return false
         val w = b.right - b.left
         val h = b.bottom - b.top
-        if (w < MIN_STROKE_EXTENT && h < MIN_STROKE_EXTENT) return false
-        if (w > MAX_STROKE_WIDTH || h > MAX_STROKE_HEIGHT) return false
-        if (w > 250.0 && h < 3.0) return false
-        return true
+        return w >= MIN_STROKE_EXTENT || h >= MIN_STROKE_EXTENT
     }
 
     /** Recognizes words from a list of strokes on a single page. */
@@ -154,21 +148,25 @@ object HandwritingRecognizer {
         if (wordStrokes.isEmpty()) return null
         val bounds = computeWordBounds(wordStrokes)
 
-        // 1. Try ML Kit Digital Ink Recognition if available on device
+        // 1. Compute fallback word (fast offline template matcher)
+        val fallbackWord = FallbackInkEngine.recognizeWord(wordStrokes, bounds)
+
+        // 2. Try ML Kit Digital Ink Recognition if available on device
         if (MlKitInkEngine.isAvailable()) {
             val mlCandidates = MlKitInkEngine.recognizeWord(wordStrokes)
             if (mlCandidates.isNotEmpty()) {
+                val combinedCandidates = (mlCandidates + (fallbackWord?.candidates ?: emptyList())).distinct()
                 return HandwrittenWord(
                     text = mlCandidates.first(),
                     bounds = bounds,
                     confidence = 1.0,
-                    candidates = mlCandidates,
+                    candidates = combinedCandidates,
                 )
             }
         }
 
-        // 2. Fallback to robust offline template engine
-        return FallbackInkEngine.recognizeWord(wordStrokes, bounds)
+        // 3. Fallback to robust offline template engine
+        return fallbackWord
     }
 
     fun strokeBounds(stroke: Stroke): Bounds {
