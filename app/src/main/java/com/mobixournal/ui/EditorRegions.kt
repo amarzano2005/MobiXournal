@@ -213,40 +213,43 @@ private fun SearchIndexingDialog(
         properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false),
     ) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
-            modifier = Modifier.widthIn(min = 280.dp, max = 340.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(24.dp),
                     color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 3.5.dp,
+                    strokeWidth = 2.5.dp,
                 )
-                Spacer(Modifier.height(18.dp))
-                Text(
-                    text = "Loading text...",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (progress != null) {
-                    Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.width(16.dp))
+                Column(
+                    modifier = Modifier.weight(1f, fill = false),
+                ) {
                     Text(
-                        text = progress,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
+                        text = "Loading text...",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
+                    if (progress != null) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = progress,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.width(12.dp))
                 TextButton(
                     onClick = onCancel,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                 ) {
                     Text("Cancel")
