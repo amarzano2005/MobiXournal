@@ -118,7 +118,8 @@ object HandwritingRecognizer {
         if (wordStrokes.isEmpty()) return null
         val bounds = computeWordBounds(wordStrokes)
 
-        val charClusters = segmentIntoCharClusters(wordStrokes)
+        val decomposedStrokes = wordStrokes.flatMap { segmentCursiveStroke(it) }
+        val charClusters = segmentIntoCharClusters(decomposedStrokes)
         val sb = StringBuilder()
         var totalConfidence = 0.0
 
@@ -137,28 +138,88 @@ object HandwritingRecognizer {
         return HandwrittenWord(text = recognizedText, bounds = bounds, confidence = avgConfidence)
     }
 
+    /**
+     * Splits a wide continuous cursive stroke into letter sub-strokes by detecting
+     * baseline valleys and ascending connecting ligatures.
+     */
+    private fun segmentCursiveStroke(stroke: Stroke): List<Stroke> {
+        val b = strokeBounds(stroke)
+        val w = b.right - b.left
+        val h = b.bottom - b.top
+        val pts = stroke.points
+        if (h < 5.0 || w / h < 1.3 || pts.size < 8) {
+            return listOf(stroke)
+        }
+
+        val baselineY = b.top + 0.55 * h
+        val splitIndices = mutableListOf<Int>()
+        var lastSplitX = b.left
+
+        for (i in 2 until pts.size - 2) {
+            val p = pts[i]
+            val prev = pts[i - 1]
+            val next = pts[i + 1]
+
+            val isValley = p.y >= baselineY && p.y >= prev.y && p.y >= next.y
+            val movesRight = next.x >= prev.x
+            val distFromLast = p.x - lastSplitX
+            val distToEnd = b.right - p.x
+
+            if (isValley && movesRight && distFromLast >= h * 0.35 && distToEnd >= h * 0.35) {
+                splitIndices.add(i)
+                lastSplitX = p.x
+            }
+        }
+
+        if (splitIndices.isEmpty()) return listOf(stroke)
+
+        val subStrokes = mutableListOf<Stroke>()
+        var startIdx = 0
+        for (splitIdx in splitIndices) {
+            val slice = pts.subList(startIdx, minOf(splitIdx + 1, pts.size))
+            if (slice.size >= 2) {
+                subStrokes.add(stroke.copy(points = slice))
+            }
+            startIdx = splitIdx
+        }
+        val tail = pts.subList(startIdx, pts.size)
+        if (tail.size >= 2) {
+            subStrokes.add(stroke.copy(points = tail))
+        }
+
+        return if (subStrokes.isNotEmpty()) subStrokes else listOf(stroke)
+    }
+
     private fun segmentIntoCharClusters(wordStrokes: List<Stroke>): List<List<Stroke>> {
         val sorted = wordStrokes.sortedBy { strokeBounds(it).left }
         if (sorted.isEmpty()) return emptyList()
 
         val clusters = mutableListOf<MutableList<Stroke>>()
         var current = mutableListOf(sorted[0])
-        var currentRight = strokeBounds(sorted[0]).right
+        var currentBounds = strokeBounds(sorted[0])
 
         for (i in 1 until sorted.size) {
             val s = sorted[i]
             val b = strokeBounds(s)
-            val overlap = currentRight - b.left
-            val strokeW = b.right - b.left
+            val currentW = currentBounds.right - currentBounds.left
 
-            // Strokes that overlap horizontally or have negligible gap belong to the same multi-stroke char
-            if (overlap >= -1.5 || (b.left <= currentRight + 2.0)) {
+            // A stroke belongs to the same character if it starts at the same horizontal origin
+            // or deeply overlaps within the existing character width (like crossbars, dots, accents)
+            val sameOrigin = b.left <= currentBounds.left + 2.5
+            val deepOverlap = b.left < currentBounds.right - (currentW * 0.35).coerceAtLeast(3.5)
+
+            if (sameOrigin || deepOverlap) {
                 current.add(s)
-                currentRight = max(currentRight, b.right)
+                currentBounds = Bounds(
+                    left = minOf(currentBounds.left, b.left),
+                    top = minOf(currentBounds.top, b.top),
+                    right = maxOf(currentBounds.right, b.right),
+                    bottom = maxOf(currentBounds.bottom, b.bottom),
+                )
             } else {
                 clusters.add(current)
                 current = mutableListOf(s)
-                currentRight = b.right
+                currentBounds = b
             }
         }
         clusters.add(current)

@@ -89,8 +89,15 @@ object HandwritingTemplates {
         template('o', listOf(stroke(0.5, 0.2, 0.2, 0.5, 0.5, 1.0, 0.8, 0.5, 0.5, 0.2)), hasLoop = true),
         template('p', listOf(stroke(0.2, 0.3, 0.2, 1.2), stroke(0.2, 0.4, 0.5, 0.3, 0.8, 0.5, 0.8, 0.7, 0.5, 0.9, 0.2, 0.8)), hasLoop = true),
         template('r', listOf(stroke(0.2, 0.3, 0.2, 1.0), stroke(0.2, 0.5, 0.5, 0.3, 0.8, 0.4))),
+        template('s', listOf(stroke(0.8, 0.3, 0.5, 0.2, 0.2, 0.4, 0.5, 0.6, 0.8, 0.8, 0.5, 1.0, 0.2, 0.9))),
         template('t', listOf(stroke(0.45, 0.0, 0.45, 0.9, 0.7, 1.0), stroke(0.2, 0.3, 0.7, 0.3))),
         template('u', listOf(stroke(0.2, 0.3, 0.2, 0.8, 0.5, 1.0, 0.8, 0.8, 0.8, 0.3, 0.8, 1.0))),
+        template('v', listOf(stroke(0.2, 0.3, 0.5, 1.0, 0.8, 0.3))),
+        template('w', listOf(stroke(0.1, 0.3, 0.3, 1.0, 0.5, 0.5, 0.7, 1.0, 0.9, 0.3))),
+        template('f', listOf(stroke(0.7, 0.1, 0.4, 0.0, 0.3, 0.2, 0.3, 1.0), stroke(0.15, 0.4, 0.65, 0.4))),
+        template('g', listOf(stroke(0.7, 0.3, 0.4, 0.2, 0.2, 0.4, 0.4, 0.7, 0.7, 0.5, 0.7, 1.1, 0.4, 1.3, 0.2, 1.1)), hasLoop = true),
+        template('y', listOf(stroke(0.2, 0.3, 0.4, 0.7, 0.7, 0.3), stroke(0.7, 0.3, 0.3, 1.2))),
+        template('z', listOf(stroke(0.2, 0.3, 0.8, 0.3, 0.2, 1.0, 0.8, 1.0))),
     )
 
     fun resampleAndNormalize(strokes: List<List<NormPoint>>, n: Int): List<NormPoint> {

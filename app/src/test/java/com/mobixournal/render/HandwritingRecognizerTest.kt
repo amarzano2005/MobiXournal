@@ -105,4 +105,29 @@ class HandwritingRecognizerTest {
         assertEquals(1, pageWords.size)
         assertTrue(pageWords[0].bounds.left >= 30.0)
     }
+
+    @Test fun recognizesCursiveConnectedStroke() {
+        // Continuous cursive stroke connecting two glyphs with a baseline ligature
+        val cursiveStroke = stroke(
+            // First glyph down and loop at baseline
+            10.0, 15.0,
+            10.0, 35.0,
+            15.0, 38.0,
+            20.0, 35.0,
+            20.0, 15.0,
+            // Valley and upward ligature
+            22.0, 38.0,
+            27.0, 25.0,
+            // Second glyph
+            32.0, 15.0,
+            32.0, 38.0,
+            37.0, 35.0,
+            42.0, 15.0,
+        )
+
+        val words = HandwritingRecognizer.recognizePage(listOf(cursiveStroke))
+        println("cursive words: ${words.map { it.text }}")
+        assertEquals(1, words.size)
+        assertTrue(words[0].text.length >= 2)
+    }
 }
