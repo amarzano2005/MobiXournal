@@ -6,9 +6,15 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
@@ -27,6 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -67,6 +77,89 @@ internal fun MenuHeading(text: String) {
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+/** Cell width when a row holds three tools, and when it holds only one or two. */
+private val ToolPickerCellWidth = 76.dp
+private val ToolPickerWideCellWidth = 104.dp
+
+/**
+ * The body of a **tool group's picker**: the group's members as rows of icon-and-label buttons, with
+ * the members that belong together sharing a row ([pickerRows]) — the diode family across one row,
+ * the two transistors side by side on the next — instead of every member taking a full-width row. The
+ * slot's live tool is tinted in the primary container colour, the same "this one is on" language as
+ * the rail, and each button is a radio item, so picking one face of the slot reads as one setting
+ * with several choices.
+ *
+ * Shared by the rail's slots ([ToolGroupButton] in SideToolbar.kt) and the modern top bar's compact
+ * ones (`CompactTopBarToolButton` in EditorRegions.kt), so the two pickers cannot drift apart.
+ *
+ * @param members the tools to offer, in order — the group's own list, or the Shapes slot's
+ *   user-ordered one.
+ */
+@Composable
+internal fun ToolGroupPicker(
+    group: ToolGroup,
+    members: List<EditorTool>,
+    selected: EditorTool,
+    onPick: (EditorTool) -> Unit,
+) {
+    MenuHeading(group.label)
+    val rows = pickerRows(group.pickerLayout, members)
+    // A group that pairs its members up has room for the longer names ("DC voltage source") on one
+    // line; the three-to-a-row grid is narrower and lets those wrap onto two.
+    val cellWidth = if (rows.any { it.size > 2 }) ToolPickerCellWidth else ToolPickerWideCellWidth
+    Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)) {
+        for (row in rows) {
+            Row(modifier = Modifier.selectableGroup()) {
+                for (tool in row) {
+                    ToolPickerCell(
+                        tool = tool,
+                        selected = tool == selected,
+                        width = cellWidth,
+                        onClick = { onPick(tool) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One button in a picker row: the tool's glyph over its name, tinted while it is the slot's live
+ * tool. The name wraps to two lines so a narrow cell stays readable and the longest labels ellipsise
+ * rather than pushing their neighbours out of the menu.
+ */
+@Composable
+private fun ToolPickerCell(tool: EditorTool, selected: Boolean, width: Dp, onClick: () -> Unit) {
+    val tint = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Column(
+        modifier = Modifier
+            .width(width)
+            .padding(2.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            )
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(vertical = 6.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(tool.icon, contentDescription = null, tint = tint)
+        Text(
+            text = tool.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+    }
 }
 
 /**

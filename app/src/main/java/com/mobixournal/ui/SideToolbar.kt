@@ -18,15 +18,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -258,17 +254,7 @@ private fun ToolGroupButton(
         // button and must not look like it opens a menu.
         if (members.size > 1) MenuChevron()
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            MenuHeading(group.label)
-            for (member in members) {
-                DropdownMenuItem(
-                    text = { Text(member.label) },
-                    leadingIcon = { Icon(member.icon, contentDescription = null) },
-                    trailingIcon = {
-                        if (member == selected) Icon(Icons.Filled.Check, contentDescription = "selected")
-                    },
-                    onClick = { onPick(member); open = false },
-                )
-            }
+            ToolGroupPicker(group, members, selected) { picked -> onPick(picked); open = false }
         }
     }
 }

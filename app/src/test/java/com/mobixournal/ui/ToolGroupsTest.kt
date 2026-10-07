@@ -138,6 +138,100 @@ class ToolGroupsTest {
     }
 
     @Test
+    fun `similar members share a picker row`() {
+        val active = groupOf(EditorTool.BJT_NPN)!!
+        val rows = pickerRows(active.pickerLayout, active.tools)
+        assertTrue(
+            "the two transistors share a row",
+            rows.any { EditorTool.BJT_NPN in it && EditorTool.BJT_PNP in it },
+        )
+        assertTrue(
+            "the diode family shares a row",
+            rows.any { row ->
+                row.containsAll(listOf(EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE))
+            },
+        )
+        assertTrue(
+            "the two sources share a row",
+            rows.any { row ->
+                row.containsAll(listOf(EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE))
+            },
+        )
+    }
+
+    @Test
+    fun `every picker layout places each of its members once and keeps rows menu-width`() {
+        for (group in TOOL_GROUPS) {
+            val rows = pickerRows(group.pickerLayout, group.tools)
+            val flat = rows.flatten()
+            assertEquals("members for ${group.id}", group.tools.toSet(), flat.toSet())
+            assertEquals("no repeats for ${group.id}", group.tools.size, flat.size)
+            assertTrue(
+                "rows fit a phone's menu for ${group.id}",
+                rows.all { it.size <= PICKER_ROW_SIZE },
+            )
+        }
+    }
+
+    @Test
+    fun `members a layout does not name still get a row of their own`() {
+        // The safety net: a tool added to a group before its layout is updated (or a picker shown
+        // a list the layout knows nothing about) must still be reachable.
+        val members = listOf(
+            EditorTool.ARROW, EditorTool.DOUBLE_ARROW,
+            EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.TEXT, EditorTool.IMAGE,
+        )
+        val rows = pickerRows(listOf(listOf(EditorTool.DOUBLE_ARROW, EditorTool.ARROW)), members)
+        assertEquals(listOf(EditorTool.DOUBLE_ARROW, EditorTool.ARROW), rows.first())
+        // The declared row leads in the layout's own order; the unnamed tail keeps the caller's.
+        assertEquals(
+            listOf(
+                EditorTool.DOUBLE_ARROW, EditorTool.ARROW,
+                EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.TEXT, EditorTool.IMAGE,
+            ),
+            rows.flatten(),
+        )
+        assertEquals(
+            listOf(
+                listOf(EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.TEXT),
+                listOf(EditorTool.IMAGE),
+            ),
+            rows.drop(1),
+        )
+    }
+
+    @Test
+    fun `the shapes slot declares no layout and wraps the user's order`() {
+        val shapes = groupOf(EditorTool.ELLIPSE)!!
+        assertTrue("the Shapes slot is user-ordered, so it declares no grouping", shapes.pickerLayout.isEmpty())
+        val ordered = listOf(
+            EditorTool.HEXAGON, EditorTool.TRIANGLE,
+            EditorTool.ELLIPSE, EditorTool.SPLINE,
+        )
+        assertEquals(
+            listOf(
+                listOf(EditorTool.HEXAGON, EditorTool.TRIANGLE, EditorTool.ELLIPSE),
+                listOf(EditorTool.SPLINE),
+            ),
+            pickerRows(shapes.pickerLayout, ordered),
+        )
+    }
+
+    @Test
+    fun `a hidden member drops out of its declared row without unseating the rest`() {
+        val active = groupOf(EditorTool.BJT_NPN)!!
+        val members = active.tools - EditorTool.LED
+        val rows = pickerRows(active.pickerLayout, members)
+        assertEquals(members.toSet(), rows.flatten().toSet())
+        assertTrue(rows.none { EditorTool.LED in it })
+        assertEquals(
+            "the diode row closes up instead of leaving a gap",
+            listOf(EditorTool.DIODE, EditorTool.ZENER_DIODE),
+            rows.first(),
+        )
+    }
+
+    @Test
     fun `an empty preference decodes to no selections`() {
         assertEquals(emptyMap<String, EditorTool>(), decodeToolGroupSelections(null))
         assertEquals(emptyMap<String, EditorTool>(), decodeToolGroupSelections(""))

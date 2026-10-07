@@ -995,17 +995,7 @@ private fun CompactTopBarToolButton(
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            MenuHeading(group.label)
-            for (member in members) {
-                DropdownMenuItem(
-                    text = { Text(member.label) },
-                    leadingIcon = { Icon(member.icon, contentDescription = null) },
-                    trailingIcon = {
-                        if (member == selected) Icon(Icons.Filled.Check, contentDescription = "selected")
-                    },
-                    onClick = { onPick(member); open = false },
-                )
-            }
+            ToolGroupPicker(group, members, selected) { picked -> onPick(picked); open = false }
         }
     }
 }

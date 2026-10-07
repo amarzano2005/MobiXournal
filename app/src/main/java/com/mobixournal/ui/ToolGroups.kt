@@ -15,7 +15,42 @@ data class ToolGroup(
     val label: String,
     /** The group's members, in picker order; the first is the factory-default selection. */
     val tools: List<EditorTool>,
+    /**
+     * Which members share a **picker row**, in display order — the transistor pair, the diode family,
+     * the two sources. Empty means the picker simply wraps [tools] [PICKER_ROW_SIZE] to a row, which
+     * is what a group whose members have no kinship worth expressing (the Shapes slot, whose order the
+     * user controls) wants.
+     */
+    val pickerLayout: List<List<EditorTool>> = emptyList(),
 )
+
+/**
+ * How many members share a picker row when their group declares no [ToolGroup.pickerLayout] of its
+ * own. Three fits a phone's menu width with room for a two-line label per tool.
+ */
+const val PICKER_ROW_SIZE = 3
+
+/**
+ * The rows a group's picker lays [members] out in: [layout] first — so members that belong together
+ * share a row instead of each taking a full row of its own — then every member the layout doesn't
+ * name, wrapped [PICKER_ROW_SIZE] to a row. That tail is what keeps a newly added tool (or the Shapes
+ * slot's user-ordered list, which declares no layout) from going missing from the picker. Members that
+ * aren't shown and repeats in [layout] are dropped.
+ */
+fun pickerRows(
+    layout: List<List<EditorTool>>,
+    members: List<EditorTool>,
+): List<List<EditorTool>> {
+    val shown = members.toHashSet()
+    val placed = HashSet<EditorTool>()
+    val rows = ArrayList<List<EditorTool>>()
+    for (row in layout) {
+        val kept = row.filter { it in shown && placed.add(it) }
+        if (kept.isNotEmpty()) rows.add(kept)
+    }
+    rows.addAll(members.filterNot { it in placed }.chunked(PICKER_ROW_SIZE))
+    return rows
+}
 
 /**
  * The rail's tool slots, in display order. Every [EditorTool] belongs to exactly one group; a group
@@ -28,6 +63,8 @@ data class ToolGroup(
  * Some slots use membership to express what used to be a separate mode menu: the eraser's
  * partial-vs-whole-stroke choice and the marquee's rectangle-vs-lasso-vs-text choice are each just
  * another member of their group, picked from the slot's menu (`ToolGroupButton` in SideToolbar.kt).
+ * The menu lays those members out in rows ([pickerRows]), so related tools sit side by side rather
+ * than each taking a row of its own; [ToolGroup.pickerLayout] says which ones belong together.
  */
 val TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup("pen", "Pen", listOf(EditorTool.PEN)),
@@ -56,6 +93,11 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
             EditorTool.GROUND,
         ),
+        // Two by two, so the slot's four passives don't leave a lone straggler on a second row.
+        pickerLayout = listOf(
+            listOf(EditorTool.RESISTOR, EditorTool.CAPACITOR),
+            listOf(EditorTool.INDUCTOR, EditorTool.GROUND),
+        ),
     ),
     ToolGroup(
         "circuit_active", "Active circuits",
@@ -63,6 +105,13 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE,
             EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP,
             EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE,
+        ),
+        // The diode family together; the amplifiers and the two transistors (which are read as a
+        // pair) together; then the two sources.
+        pickerLayout = listOf(
+            listOf(EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE),
+            listOf(EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP),
+            listOf(EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE),
         ),
     ),
     ToolGroup(
@@ -72,6 +121,13 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.NAND_GATE, EditorTool.NOR_GATE, EditorTool.XOR_GATE,
             EditorTool.XNOR_GATE,
         ),
+        // Each gate beside its inverted twin, which is how the family is read.
+        pickerLayout = listOf(
+            listOf(EditorTool.AND_GATE, EditorTool.NAND_GATE),
+            listOf(EditorTool.OR_GATE, EditorTool.NOR_GATE),
+            listOf(EditorTool.XOR_GATE, EditorTool.XNOR_GATE),
+            listOf(EditorTool.NOT_GATE),
+        ),
     ),
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
     ToolGroup(
@@ -79,6 +135,11 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
         listOf(
             EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT,
             EditorTool.BG_SELECT,
+        ),
+        // The two ink marquees, then the two that pick text and backgrounds out of the page.
+        pickerLayout = listOf(
+            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
+            listOf(EditorTool.TEXT_SELECT, EditorTool.BG_SELECT),
         ),
     ),
     // Text authoring lives in a slot of its own (below), so Insert is only about pictures.

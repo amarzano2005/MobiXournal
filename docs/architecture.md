@@ -1690,7 +1690,15 @@ insert · vspace · play). **Line** and **Rectangle** are one-tool groups of the
 figure shares the **shape** group, faced by default with the ellipse (the circle). `ToolGroupButton`
 renders each as a single button faced with that group's current tool — a tap activates that tool, and
 tapping the slot **again** once it is the live tool opens a `DropdownMenu` over the group's members (a
-long-press opens it too, but is no longer required). A tool slot whose group has **more than one member** wears a small **chevron in its bottom-right
+long-press opens it too, but is no longer required). `ToolGroupPicker` (`ToolbarPopup.kt`, shared with
+the modern top bar's compact slots) lays those members out as **rows of compact icon-and-label
+buttons** rather than one full-width row each, with related tools sharing a row: a group declares its
+grouping in `ToolGroup.pickerLayout` and `pickerRows()` resolves it against the members actually shown
+(so the diode family, the two transistors and the two sources sit together, each inverted logic gate
+beside its twin, and any member a layout doesn't name still wraps three to a row rather than going
+missing; the user-ordered Shapes slot declares no grouping at all, so its order is preserved). Every
+button is a radio item and the slot's live member is tinted in the primary container colour — the same
+"this one is on" language as the rail — so the picker reads as one setting with several choices. A tool slot whose group has **more than one member** wears a small **chevron in its bottom-right
 corner** (`BoxScope.MenuChevron`, `ToolbarPopup.kt`, drawn by `ToolGroupButton`), so a slot that can
 be re-faced reads at a glance differently from one that just activates a single tool; the panel
 pop-ups (`ToolbarPopupButton`) deliberately do **not** wear it — they each open a panel, not a
