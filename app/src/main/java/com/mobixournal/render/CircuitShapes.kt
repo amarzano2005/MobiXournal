@@ -48,9 +48,15 @@ object CircuitShapes {
 
     /**
      * The diode family's anode triangle, drawn solid: a `.xopp` stroke cannot be filled, so it is
-     * shaded row by row like a hand-scribbled triangle. Rows pitch at the stroke width so they merge
-     * into one tone, and the walk enters on the base's top corner and leaves at the apex — every
-     * joining segment runs along one of the triangle's own edges, so no wire crosses its interior.
+     * shaded row by row like a hand-scribbled triangle, rows pitched at the stroke width so they
+     * merge into one tone.
+     *
+     * The rows alone would leave a **scalloped** slanted edge: each row ends in a round cap centred
+     * on the hypotenuse, so the stroke reaches its half width past the edge at every row — a sawtooth
+     * fringing the hypotenuse — and the stretches of edge between two facing row ends are never
+     * stroked at all. Walking the triangle's true perimeter last covers both: the silhouette becomes
+     * the edge itself, offset by exactly the stroke's half width, like a hand-inked triangle. The
+     * perimeter runs *along* the edges, so still nothing is drawn across the interior.
      */
     private fun anodeTriangle(
         p: (u: Double, v: Double) -> StrokePoint,
@@ -60,7 +66,7 @@ object CircuitShapes {
         var rows = ceil(2.0 * h / pitch).toInt().coerceAtLeast(1)
         if (rows % 2 == 0) rows++          // odd count ⇒ the last row ends on the hypotenuse
         val dy = 2.0 * h / rows
-        val pts = ArrayList<StrokePoint>(rows * 2 + 2)
+        val pts = ArrayList<StrokePoint>(rows * 2 + 5)
         pts += p(baseU, -h)
         for (i in 0 until rows) {
             val v = -h + (i + 0.5) * dy
@@ -73,6 +79,10 @@ object CircuitShapes {
                 pts += p(baseU, v)
             }
         }
+        // The true outline, last: apex -> top corner -> bottom corner -> apex.
+        pts += p(apexU, 0.0)
+        pts += p(baseU, -h)
+        pts += p(baseU, h)
         pts += p(apexU, 0.0)
         return pts
     }

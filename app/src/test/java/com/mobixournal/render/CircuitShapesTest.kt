@@ -139,6 +139,18 @@ class CircuitShapesTest {
     }
 
     @Test
+    fun `anode triangle walks its true outline so the slanted edge is not scalloped`() {
+        val pts = CircuitShapes.diode(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        // The shaded rows alone would fringe the hypotenuse with the rows' round caps; the walk
+        // closes with the true perimeter: apex -> top corner -> bottom corner -> apex.
+        val bottomCorner = pts.indexOfFirst { abs(it.x - 32.0) < 1e-6 && abs(it.y - 16.0) < 1e-6 }
+        assertTrue("the outline is traced", bottomCorner > 0 && bottomCorner < pts.size - 1)
+        assertEquals("down the base from the top corner", -16.0, pts[bottomCorner - 1].y, 1e-6)
+        assertEquals("back up the lower hypotenuse to the apex", 68.0, pts[bottomCorner + 1].x, 1e-6)
+        assertEquals(0.0, pts[bottomCorner + 1].y, 1e-6)
+    }
+
+    @Test
     fun `led is a diode body plus two detached light rays`() {
         val strokes = CircuitShapes.led(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
         assertEquals("body + one stroke per ray", 3, strokes.size)
