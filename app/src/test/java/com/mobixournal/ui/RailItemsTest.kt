@@ -71,7 +71,7 @@ class RailItemsTest {
     @Test
     fun `line, rectangle, shapes group, arrows and table each have a rail slot`() {
         val ids = RAIL_ITEMS.map { it.id }
-        assertTrue(listOf("line", "rectangle", "shape", "arrow", "table", "circuit", "logic").all { it in ids })
+        assertTrue(listOf("line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic").all { it in ids })
     }
 
     @Test
@@ -81,7 +81,7 @@ class RailItemsTest {
             listOf(
                 "pen", "highlighter", "color", "eraser", "pan", "select",
                 "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
-                "line", "rectangle", "shape", "arrow", "table", "circuit", "logic", "guides",
+                "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "guides",
             ),
             ids,
         )

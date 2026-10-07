@@ -585,4 +585,335 @@ object CircuitShapes {
             pts += p(len, 0.0)
             pts
         }
+
+    /**
+     * Diode: Lead-in wire -> triangular anode body -> vertical cathode bar -> lead-out wire.
+     */
+    fun diode(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(16.0, len * 0.28)
+            val aStart = len * 0.32
+            val cEnd = len * 0.68
+            listOf(
+                p(0.0, 0.0),
+                p(aStart, 0.0),
+                p(aStart, -h),
+                p(cEnd, 0.0),
+                p(aStart, h),
+                p(aStart, 0.0),
+                p(cEnd, 0.0),
+                p(cEnd, -h),
+                p(cEnd, h),
+                p(cEnd, 0.0),
+                p(len, 0.0),
+            )
+        }
+
+    /**
+     * LED: Diode body with two light emission arrows radiating outward.
+     */
+    fun led(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(16.0, len * 0.28)
+            val aStart = len * 0.32
+            val cEnd = len * 0.68
+            val rayLen = minOf(7.0, len * 0.12)
+            val barb = rayLen * 0.45
+            val r1u = aStart + (cEnd - aStart) * 0.35
+            val r1v = -h * 1.15
+            val r2u = aStart + (cEnd - aStart) * 0.75
+            val r2v = -h * 1.15
+
+            val pts = ArrayList<StrokePoint>()
+            pts += p(0.0, 0.0)
+            pts += p(aStart, 0.0)
+            pts += p(aStart, -h)
+            pts += p(cEnd, 0.0)
+            pts += p(aStart, h)
+            pts += p(aStart, 0.0)
+            pts += p(cEnd, 0.0)
+            pts += p(cEnd, -h)
+
+            // Ray 1
+            pts += p(r1u, r1v)
+            val tip1u = r1u + rayLen
+            val tip1v = r1v - rayLen
+            pts += p(tip1u, tip1v)
+            pts += p(tip1u - barb, tip1v)
+            pts += p(tip1u, tip1v)
+            pts += p(tip1u, tip1v + barb)
+            pts += p(tip1u, tip1v)
+            pts += p(r1u, r1v)
+
+            // Ray 2
+            pts += p(r2u, r2v)
+            val tip2u = r2u + rayLen
+            val tip2v = r2v - rayLen
+            pts += p(tip2u, tip2v)
+            pts += p(tip2u - barb, tip2v)
+            pts += p(tip2u, tip2v)
+            pts += p(tip2u, tip2v + barb)
+            pts += p(tip2u, tip2v)
+            pts += p(r2u, r2v)
+
+            // Return to cathode bar
+            pts += p(cEnd, -h)
+            pts += p(cEnd, h)
+            pts += p(cEnd, 0.0)
+            pts += p(len, 0.0)
+            pts
+        }
+
+    /**
+     * Zener Diode: Diode body with cathode bar bent into characteristic 'Z' wings.
+     */
+    fun zenerDiode(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(16.0, len * 0.28)
+            val aStart = len * 0.32
+            val cEnd = len * 0.68
+            val zBend = minOf(5.0, len * 0.08)
+            listOf(
+                p(0.0, 0.0),
+                p(aStart, 0.0),
+                p(aStart, -h),
+                p(cEnd, 0.0),
+                p(aStart, h),
+                p(aStart, 0.0),
+                p(cEnd, 0.0),
+                // Cathode bar with Z-bend: top bends right (+u), bottom bends left (-u)
+                p(cEnd, -h),
+                p(cEnd + zBend, -h),
+                p(cEnd, -h),
+                p(cEnd, h),
+                p(cEnd - zBend, h),
+                p(cEnd, h),
+                p(cEnd, 0.0),
+                p(len, 0.0),
+            )
+        }
+
+    /**
+     * Operational Amplifier (Op-Amp): Inverting (-) & non-inverting (+) inputs, triangular body with
+     * '-' and '+' signs, and single output pin.
+     */
+    fun opAmp(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(22.0, len * 0.32)
+            val inSep = h * 0.50
+            val gBack = len * 0.25
+            val gTip = len * 0.75
+            val signInset = minOf(4.0, len * 0.05)
+            val signW = minOf(5.0, len * 0.07)
+            val pts = ArrayList<StrokePoint>()
+
+            // Inverting (-) input pin
+            pts += p(0.0, -inSep)
+            pts += p(gBack, -inSep)
+
+            // Minus sign inside triangle
+            pts += p(gBack + signInset, -inSep)
+            pts += p(gBack + signInset + signW, -inSep)
+            pts += p(gBack, -inSep)
+
+            // Triangle top corner
+            pts += p(gBack, -h)
+            pts += p(gTip, 0.0)
+
+            // Output lead (out to len and back to tip)
+            pts += p(len, 0.0)
+            pts += p(gTip, 0.0)
+
+            // Triangle bottom corner
+            pts += p(gBack, h)
+
+            // Retrace back edge to close triangle and reach non-inverting (+) input
+            pts += p(gBack, -h)
+            pts += p(gBack, inSep)
+
+            // Plus sign inside triangle
+            val plusC = gBack + signInset + signW / 2.0
+            val plusHalf = signW / 2.0
+            pts += p(gBack + signInset, inSep)
+            pts += p(gBack + signInset + signW, inSep)
+            pts += p(plusC, inSep)
+            pts += p(plusC, inSep - plusHalf)
+            pts += p(plusC, inSep + plusHalf)
+            pts += p(plusC, inSep)
+            pts += p(gBack, inSep)
+
+            // Non-inverting (+) input pin
+            pts += p(0.0, inSep)
+            pts
+        }
+
+    /**
+     * BJT NPN Transistor: Base lead at origin -> base bar -> collector lead (top) ->
+     * emitter lead (bottom) with arrow pointing outwards (away from base).
+     */
+    fun bjtNpn(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(18.0, len * 0.30)
+            val bPos = len * 0.35
+            val cJuncV = -h * 0.45
+            val eJuncV = h * 0.45
+            val cornerU = len * 0.75
+            val barb = minOf(4.5, len * 0.06)
+            val pts = ArrayList<StrokePoint>()
+
+            // Base wire
+            pts += p(0.0, 0.0)
+            pts += p(bPos, 0.0)
+
+            // Base bar: down to bottom corner, then up to collector junction
+            pts += p(bPos, h)
+            pts += p(bPos, cJuncV)
+
+            // Collector branch
+            pts += p(cornerU, -h)
+            pts += p(len, -h)
+            pts += p(cornerU, -h)
+            pts += p(bPos, cJuncV)
+
+            // Base bar up to top, then down to emitter junction
+            pts += p(bPos, -h)
+            pts += p(bPos, eJuncV)
+
+            // Emitter branch with arrow pointing outward
+            val midU = (bPos + cornerU) / 2.0
+            val midV = (eJuncV + h) / 2.0
+            pts += p(midU, midV)
+            val arrowBarbU = barb * 0.8
+            val arrowBarbV = barb * 0.6
+            pts += p(midU - arrowBarbU, midV - arrowBarbV)
+            pts += p(midU, midV)
+            pts += p(midU - arrowBarbU + arrowBarbV * 0.5, midV)
+            pts += p(midU, midV)
+            pts += p(cornerU, h)
+            pts += p(len, h)
+            pts
+        }
+
+    /**
+     * BJT PNP Transistor: Base lead at origin -> base bar -> collector lead (top) ->
+     * emitter lead (bottom) with arrow pointing inwards (towards base).
+     */
+    fun bjtPnp(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(18.0, len * 0.30)
+            val bPos = len * 0.35
+            val cJuncV = -h * 0.45
+            val eJuncV = h * 0.45
+            val cornerU = len * 0.75
+            val barb = minOf(4.5, len * 0.06)
+            val pts = ArrayList<StrokePoint>()
+
+            // Base wire
+            pts += p(0.0, 0.0)
+            pts += p(bPos, 0.0)
+
+            // Base bar: down to bottom corner, then up to collector junction
+            pts += p(bPos, h)
+            pts += p(bPos, cJuncV)
+
+            // Collector branch
+            pts += p(cornerU, -h)
+            pts += p(len, -h)
+            pts += p(cornerU, -h)
+            pts += p(bPos, cJuncV)
+
+            // Base bar up to top, then down to emitter junction
+            pts += p(bPos, -h)
+            pts += p(bPos, eJuncV)
+
+            // Emitter branch with arrow pointing inward (towards base)
+            val midU = (bPos + cornerU) / 2.0
+            val midV = (eJuncV + h) / 2.0
+            pts += p(midU, midV)
+            val arrowBarbU = barb * 0.8
+            val arrowBarbV = barb * 0.6
+            pts += p(midU + arrowBarbU, midV + arrowBarbV)
+            pts += p(midU, midV)
+            pts += p(midU + arrowBarbU - arrowBarbV * 0.5, midV)
+            pts += p(midU, midV)
+            pts += p(cornerU, h)
+            pts += p(len, h)
+            pts
+        }
+
+    /**
+     * DC Voltage Source (Battery): Positive long plate and negative short plate separated by an air gap.
+     * Decomposes into two disconnected strokes to preserve the open gap in .xopp format.
+     */
+    fun dcSource(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<List<StrokePoint>> {
+        val dx = ex - sx
+        val dy = ey - sy
+        val len = hypot(dx, dy)
+        if (len == 0.0) return listOf(line(sx, sy, ex, ey, widthPt))
+        val ux = dx / len
+        val uy = dy / len
+        val vx = -uy
+        val vy = ux
+        val p = { u: Double, v: Double ->
+            StrokePoint(sx + u * ux + v * vx, sy + u * uy + v * vy, widthPt)
+        }
+        val mid = len / 2.0
+        val gap = minOf(8.0, len * 0.14)
+        val h = minOf(18.0, len * 0.32)
+        val p1X = mid - gap / 2.0
+        val p2X = mid + gap / 2.0
+
+        val stroke1 = listOf(
+            p(0.0, 0.0),
+            p(p1X, 0.0),
+            p(p1X, -h),
+            p(p1X, h),
+            p(p1X, 0.0),
+        )
+        val stroke2 = listOf(
+            p(p2X, 0.0),
+            p(p2X, -h * 0.5),
+            p(p2X, h * 0.5),
+            p(p2X, 0.0),
+            p(len, 0.0),
+        )
+        return listOf(stroke1, stroke2)
+    }
+
+    /**
+     * Current Source: Lead-in wire -> circular body with directional current arrow -> lead-out wire.
+     */
+    fun currentSource(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val mid = len / 2.0
+            val radius = minOf(14.0, len * 0.22)
+            val barb = minOf(4.0, radius * 0.45)
+            val pts = ArrayList<StrokePoint>()
+
+            // Lead-in wire to circle left edge
+            pts += p(0.0, 0.0)
+            pts += p(mid - radius, 0.0)
+
+            // Circle outline (360 degrees)
+            val steps = 16
+            for (i in 0..steps) {
+                val theta = PI + 2.0 * PI * (i.toDouble() / steps)
+                pts += p(mid + radius * cos(theta), radius * sin(theta))
+            }
+
+            // Internal arrow from circle left to circle right
+            val arrowStart = mid - radius * 0.65
+            val arrowTip = mid + radius * 0.65
+            pts += p(arrowStart, 0.0)
+            pts += p(arrowTip, 0.0)
+            pts += p(arrowTip - barb, -barb)
+            pts += p(arrowTip, 0.0)
+            pts += p(arrowTip - barb, barb)
+            pts += p(arrowTip, 0.0)
+
+            // Lead-out wire from circle right edge to end
+            pts += p(mid + radius, 0.0)
+            pts += p(len, 0.0)
+            pts
+        }
 }

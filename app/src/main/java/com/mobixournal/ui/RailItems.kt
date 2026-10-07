@@ -39,7 +39,7 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
 private val FACTORY_RAIL_ORDER: List<String> = listOf(
     "pen", "highlighter", "color", "eraser", "pan", "select",
     "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
-    "line", "rectangle", "shape", "arrow", "table", "circuit", "logic", "guides",
+    "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "guides",
 )
 
 /**

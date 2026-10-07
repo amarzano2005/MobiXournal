@@ -711,7 +711,7 @@ app/
       ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list (pure)
       TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
       TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
-      CircuitShapes.kt       # circuits & logic gates (resistor, capacitor, inductor, ground, AND, OR, NOT, NAND, NOR, XOR, XNOR) (pure)
+      CircuitShapes.kt       # passive & active circuits and logic gates (resistor, capacitor, inductor, ground, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR) (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)

@@ -23,7 +23,8 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     // Multi-tool dropdown groups & tools
     RailItem("arrow", "Arrows"),
     RailItem("table", "Table"),
-    RailItem("circuit", "Physical circuits"),
+    RailItem("circuit", "Passive circuits"),
+    RailItem("circuit_active", "Active circuits"),
     RailItem("logic", "Logic gates"),
     // Popups
     RailItem("guides", "Drawing guides"),
@@ -31,12 +32,12 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 
 /**
  * Default order of buttons in the Secondary Toolbar: line, rectangle, square, individual shapes,
- * arrows (dropdown), table, physical circuits, logic gates, and drawing guides.
+ * arrows (dropdown), table, passive circuits, active circuits, logic gates, and drawing guides.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
     "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
-    "table", "circuit", "logic", "guides",
+    "table", "circuit", "circuit_active", "logic", "guides",
 )
 
 /** The Secondary Toolbar positions in the user's [order], followed by any unlisted items in factory order. */

@@ -121,24 +121,125 @@ class CircuitShapesTest {
     }
 
     @Test
+    fun `diode generates triangle and cathode bar with correct terminals`() {
+        val pts = CircuitShapes.diode(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size >= 10)
+        assertEquals(0.0, pts.first().x, 1e-6)
+        assertEquals(100.0, pts.last().x, 1e-6)
+        assertTrue(pts.all { it.width == 2.0 })
+        assertTrue("diode has height span", pts.any { it.y < 0 } && pts.any { it.y > 0 })
+    }
+
+    @Test
+    fun `led generates diode body and radiation rays`() {
+        val pts = CircuitShapes.led(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size > 20)
+        assertEquals(0.0, pts.first().x, 1e-6)
+        assertEquals(100.0, pts.last().x, 1e-6)
+        assertTrue(pts.all { it.width == 2.0 })
+        assertTrue("led has rays deviating in negative y", pts.any { it.y < -15.0 })
+    }
+
+    @Test
+    fun `zener diode generates cathode bar with bent wings`() {
+        val pts = CircuitShapes.zenerDiode(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size >= 12)
+        assertEquals(0.0, pts.first().x, 1e-6)
+        assertEquals(100.0, pts.last().x, 1e-6)
+        assertTrue(pts.all { it.width == 2.0 })
+        assertTrue("zener wings present", pts.any { it.y < 0 } && pts.any { it.y > 0 })
+    }
+
+    @Test
+    fun `opAmp produces triangle with plus minus and terminals`() {
+        val pts = CircuitShapes.opAmp(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size >= 15)
+        assertTrue(pts.all { it.width == 2.0 })
+        // Output pin reaches len
+        assertTrue(pts.any { abs(it.x - 100.0) < 1e-6 })
+        // Inputs are situated at x = 0
+        assertTrue(pts.first().x < 1e-6)
+        assertTrue(pts.last().x < 1e-6)
+    }
+
+    @Test
+    fun `bjtNpn produces base collector and emitter with outward arrow`() {
+        val pts = CircuitShapes.bjtNpn(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size >= 15)
+        assertEquals(0.0, pts.first().x, 1e-6)
+        // Collector and emitter reach x = 100
+        assertTrue(pts.any { abs(it.x - 100.0) < 1e-6 && it.y < 0 })
+        assertTrue(pts.any { abs(it.x - 100.0) < 1e-6 && it.y > 0 })
+        assertTrue(pts.all { it.width == 2.0 })
+    }
+
+    @Test
+    fun `bjtPnp produces base collector and emitter with inward arrow`() {
+        val pts = CircuitShapes.bjtPnp(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size >= 15)
+        assertEquals(0.0, pts.first().x, 1e-6)
+        assertTrue(pts.any { abs(it.x - 100.0) < 1e-6 && it.y < 0 })
+        assertTrue(pts.any { abs(it.x - 100.0) < 1e-6 && it.y > 0 })
+        assertTrue(pts.all { it.width == 2.0 })
+    }
+
+    @Test
+    fun `dcSource produces two disconnected strokes with open gap and correct plate sizes`() {
+        val strokes = CircuitShapes.dcSource(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertEquals("dcSource decomposes into 2 strokes", 2, strokes.size)
+        val s1 = strokes[0]
+        val s2 = strokes[1]
+        assertEquals(0.0, s1.first().x, 1e-6)
+        assertEquals(100.0, s2.last().x, 1e-6)
+        val s1Height = s1.maxOf { it.y } - s1.minOf { it.y }
+        val s2Height = s2.maxOf { it.y } - s2.minOf { it.y }
+        assertTrue("positive plate is taller than negative plate", s1Height > s2Height)
+        val maxX1 = s1.maxOf { it.x }
+        val minX2 = s2.minOf { it.x }
+        assertTrue("gap between plates > 0", minX2 - maxX1 > 0)
+    }
+
+    @Test
+    fun `currentSource produces circle with directional arrow and terminals`() {
+        val pts = CircuitShapes.currentSource(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
+        assertTrue(pts.size >= 20)
+        assertEquals(0.0, pts.first().x, 1e-6)
+        assertEquals(100.0, pts.last().x, 1e-6)
+        assertTrue(pts.all { it.width == 2.0 })
+    }
+
+    @Test
     fun `zero length drag falls back gracefully`() {
         val r = CircuitShapes.resistor(10.0, 10.0, 10.0, 10.0, widthPt = 1.0)
         assertEquals(2, r.size)
         val c = CircuitShapes.capacitor(10.0, 10.0, 10.0, 10.0, widthPt = 1.0)
         assertEquals(1, c.size)
         assertEquals(2, c[0].size)
+        val d = CircuitShapes.diode(10.0, 10.0, 10.0, 10.0, widthPt = 1.0)
+        assertEquals(2, d.size)
+        val dc = CircuitShapes.dcSource(10.0, 10.0, 10.0, 10.0, widthPt = 1.0)
+        assertEquals(1, dc.size)
+        assertEquals(2, dc[0].size)
     }
 
     @Test
     fun `shapeBuilder delegating works for all circuit kinds`() {
         val kinds = listOf(
             ShapeKind.RESISTOR, ShapeKind.CAPACITOR, ShapeKind.INDUCTOR,
-            ShapeKind.GROUND, ShapeKind.AND_GATE, ShapeKind.OR_GATE, ShapeKind.NOT_GATE,
+            ShapeKind.GROUND,
+            ShapeKind.DIODE, ShapeKind.LED, ShapeKind.ZENER_DIODE,
+            ShapeKind.OPAMP, ShapeKind.BJT_NPN, ShapeKind.BJT_PNP,
+            ShapeKind.DC_SOURCE, ShapeKind.CURRENT_SOURCE,
+            ShapeKind.AND_GATE, ShapeKind.OR_GATE, ShapeKind.NOT_GATE,
             ShapeKind.NAND_GATE, ShapeKind.NOR_GATE, ShapeKind.XOR_GATE, ShapeKind.XNOR_GATE,
         )
         for (kind in kinds) {
             val pts = ShapeBuilder.build(kind, 0.0, 0.0, 80.0, 0.0, 1.0)
             assertTrue("ShapeKind $kind produced points", pts.size >= 2)
         }
+        val multiCap = ShapeBuilder.buildMulti(ShapeKind.CAPACITOR, 0.0, 0.0, 80.0, 0.0, 1.0)
+        assertEquals(2, multiCap?.size)
+        val multiDc = ShapeBuilder.buildMulti(ShapeKind.DC_SOURCE, 0.0, 0.0, 80.0, 0.0, 1.0)
+        assertEquals(2, multiDc?.size)
     }
 }

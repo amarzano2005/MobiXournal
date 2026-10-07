@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "add-active-circuit-components"
+title = "Add active circuit components"
+description = "Add active electronic components (diode, LED, zener, op-amp, BJT NPN/PNP, DC source, current source) with dedicated Active circuits group, Passive circuits renaming, and full tests"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-07
+completed = 2026-10-07
+tags = []
+
+[[task]]
 id = "make-secondary-toolbar-floating-dock-enclose-only-figures-with-adaptive-width"
 title = "Make Secondary Toolbar floating dock enclose only figures with adaptive width"
 description = "Refine top bar modern UI so that the floating dock surface encloses only the Secondary Toolbar figures (TopBarToolsRow) with wrapContentWidth, dynamically adapting to the number of visible figures rather than wrapping the entire TopAppBar."

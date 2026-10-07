@@ -51,10 +51,18 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ),
     ToolGroup("table", "Table", listOf(EditorTool.TABLE)),
     ToolGroup(
-        "circuit", "Circuits",
+        "circuit", "Passive circuits",
         listOf(
             EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
             EditorTool.GROUND,
+        ),
+    ),
+    ToolGroup(
+        "circuit_active", "Active circuits",
+        listOf(
+            EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE,
+            EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP,
+            EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE,
         ),
     ),
     ToolGroup(

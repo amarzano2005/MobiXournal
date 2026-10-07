@@ -67,6 +67,14 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.CAPACITOR -> ShapeKind.CAPACITOR
         EditorTool.INDUCTOR -> ShapeKind.INDUCTOR
         EditorTool.GROUND -> ShapeKind.GROUND
+        EditorTool.DIODE -> ShapeKind.DIODE
+        EditorTool.LED -> ShapeKind.LED
+        EditorTool.ZENER_DIODE -> ShapeKind.ZENER_DIODE
+        EditorTool.OPAMP -> ShapeKind.OPAMP
+        EditorTool.BJT_NPN -> ShapeKind.BJT_NPN
+        EditorTool.BJT_PNP -> ShapeKind.BJT_PNP
+        EditorTool.DC_SOURCE -> ShapeKind.DC_SOURCE
+        EditorTool.CURRENT_SOURCE -> ShapeKind.CURRENT_SOURCE
         EditorTool.AND_GATE -> ShapeKind.AND_GATE
         EditorTool.OR_GATE -> ShapeKind.OR_GATE
         EditorTool.NOT_GATE -> ShapeKind.NOT_GATE
@@ -91,7 +99,11 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.PENTAGON, EditorTool.HEXAGON,
         EditorTool.TABLE,
         EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
-        EditorTool.GROUND, EditorTool.AND_GATE, EditorTool.OR_GATE,
+        EditorTool.GROUND,
+        EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE,
+        EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP,
+        EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE,
+        EditorTool.AND_GATE, EditorTool.OR_GATE,
         EditorTool.NOT_GATE, EditorTool.NAND_GATE, EditorTool.NOR_GATE,
         EditorTool.XOR_GATE, EditorTool.XNOR_GATE,
         -> this.tool = Tool.PEN

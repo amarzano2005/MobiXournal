@@ -40,7 +40,9 @@ enum class EditorTool {
     TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
-    RESISTOR, CAPACITOR, INDUCTOR, GROUND, AND_GATE, OR_GATE, NOT_GATE,
+    RESISTOR, CAPACITOR, INDUCTOR, GROUND,
+    DIODE, LED, ZENER_DIODE, OPAMP, BJT_NPN, BJT_PNP, DC_SOURCE, CURRENT_SOURCE,
+    AND_GATE, OR_GATE, NOT_GATE,
     NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE,
 }
 
@@ -52,6 +54,9 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.PENTAGON, EditorTool.HEXAGON,
     EditorTool.TABLE,
     EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR, EditorTool.GROUND,
+    EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE,
+    EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP,
+    EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE,
     EditorTool.AND_GATE, EditorTool.OR_GATE, EditorTool.NOT_GATE,
     EditorTool.NAND_GATE, EditorTool.NOR_GATE, EditorTool.XOR_GATE, EditorTool.XNOR_GATE,
 )
@@ -80,6 +85,14 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.CAPACITOR, "Capacitor", CapacitorIcon),
     ToolInfo(EditorTool.INDUCTOR, "Inductor", InductorIcon),
     ToolInfo(EditorTool.GROUND, "Ground", GroundIcon),
+    ToolInfo(EditorTool.DIODE, "Diode", DiodeIcon),
+    ToolInfo(EditorTool.LED, "LED", LedIcon),
+    ToolInfo(EditorTool.ZENER_DIODE, "Zener diode", ZenerDiodeIcon),
+    ToolInfo(EditorTool.OPAMP, "Op-Amp", OpAmpIcon),
+    ToolInfo(EditorTool.BJT_NPN, "BJT NPN", BjtNpnIcon),
+    ToolInfo(EditorTool.BJT_PNP, "BJT PNP", BjtPnpIcon),
+    ToolInfo(EditorTool.DC_SOURCE, "DC voltage source", DcSourceIcon),
+    ToolInfo(EditorTool.CURRENT_SOURCE, "Current source", CurrentSourceIcon),
     ToolInfo(EditorTool.AND_GATE, "AND Gate", AndGateIcon),
     ToolInfo(EditorTool.OR_GATE, "OR Gate", OrGateIcon),
     ToolInfo(EditorTool.NOT_GATE, "NOT Gate", NotGateIcon),

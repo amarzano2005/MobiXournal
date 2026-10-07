@@ -106,8 +106,9 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 MobiXournal includes a dedicated technical toolset engineered for science, engineering, and mathematics note-taking:
 
-- **Electronic Circuits**:
-  - Drag to place and orient passive components: **Resistors** (zigzag), **Capacitors** (parallel plates), **Inductors** (multi-loop coils), and **Earth Ground**.
+- **Electronic Circuits (Passive & Active)**:
+  - **Passive Circuits**: Drag to place and orient passive components: **Resistors** (zigzag), **Capacitors** (parallel plates), **Inductors** (multi-loop coils), and **Earth Ground**.
+  - **Active Circuits**: Full set of semiconductor and active components: **Diodes** (p-n junction), **LEDs** (light-emitting rays), **Zener Diodes** (voltage regulation with Z-wings), **Operational Amplifiers (Op-Amps)** (with `-`/`+` inputs, triangle body, and output pin), **BJT NPN** and **BJT PNP Transistors** (Base, Collector, Emitter with directional arrows), **DC Voltage Sources / Batteries** (open-gap parallel plates), and **Current Sources** (circle with internal direction arrow).
 - **IEEE Logic Gates**:
   - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, and **NOT (Inverter)** with standard input/output terminals and inversion bubbles.
 - **Relational Database Tables**:

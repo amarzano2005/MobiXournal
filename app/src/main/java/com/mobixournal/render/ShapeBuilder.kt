@@ -14,7 +14,9 @@ enum class ShapeKind {
     TRIANGLE, SQUARE, RHOMBUS, TRAPEZOID, PENTAGON, HEXAGON,
     TABLE,
     // Electronic circuits & logic gates
-    RESISTOR, CAPACITOR, INDUCTOR, GROUND, AND_GATE, OR_GATE, NOT_GATE,
+    RESISTOR, CAPACITOR, INDUCTOR, GROUND,
+    DIODE, LED, ZENER_DIODE, OPAMP, BJT_NPN, BJT_PNP, DC_SOURCE, CURRENT_SOURCE,
+    AND_GATE, OR_GATE, NOT_GATE,
     NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE,
 }
 
@@ -80,6 +82,14 @@ object ShapeBuilder {
         ShapeKind.CAPACITOR -> CircuitShapes.capacitor(startX, startY, endX, endY, widthPt).flatten()
         ShapeKind.INDUCTOR -> CircuitShapes.inductor(startX, startY, endX, endY, widthPt)
         ShapeKind.GROUND -> CircuitShapes.ground(startX, startY, endX, endY, widthPt)
+        ShapeKind.DIODE -> CircuitShapes.diode(startX, startY, endX, endY, widthPt)
+        ShapeKind.LED -> CircuitShapes.led(startX, startY, endX, endY, widthPt)
+        ShapeKind.ZENER_DIODE -> CircuitShapes.zenerDiode(startX, startY, endX, endY, widthPt)
+        ShapeKind.OPAMP -> CircuitShapes.opAmp(startX, startY, endX, endY, widthPt)
+        ShapeKind.BJT_NPN -> CircuitShapes.bjtNpn(startX, startY, endX, endY, widthPt)
+        ShapeKind.BJT_PNP -> CircuitShapes.bjtPnp(startX, startY, endX, endY, widthPt)
+        ShapeKind.DC_SOURCE -> CircuitShapes.dcSource(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.CURRENT_SOURCE -> CircuitShapes.currentSource(startX, startY, endX, endY, widthPt)
         ShapeKind.AND_GATE -> CircuitShapes.andGate(startX, startY, endX, endY, widthPt)
         ShapeKind.OR_GATE -> CircuitShapes.orGate(startX, startY, endX, endY, widthPt)
         ShapeKind.NOT_GATE -> CircuitShapes.notGate(startX, startY, endX, endY, widthPt)
@@ -106,6 +116,7 @@ object ShapeBuilder {
         hasHeader: Boolean = false,
     ): List<List<StrokePoint>>? = when (kind) {
         ShapeKind.CAPACITOR -> CircuitShapes.capacitor(startX, startY, endX, endY, widthPt)
+        ShapeKind.DC_SOURCE -> CircuitShapes.dcSource(startX, startY, endX, endY, widthPt)
         else -> null
     }
 

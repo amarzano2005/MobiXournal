@@ -46,6 +46,7 @@ class TopBarItemsTest {
         assertNull(singleToolForTopBarId("trapezoid"))
         assertNull(singleToolForTopBarId("arrow"))
         assertNull(singleToolForTopBarId("circuit"))
+        assertNull(singleToolForTopBarId("circuit_active"))
         assertNull(singleToolForTopBarId("logic"))
         assertNull(singleToolForTopBarId("guides"))
         assertNull(singleToolForTopBarId("color"))
