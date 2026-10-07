@@ -795,9 +795,10 @@ private fun CompactSingleToolButton(
 
 /**
  * A figure tool that ships in several geometric variants (the triangle and the trapezoid): tapping
- * the button picks the tool, tapping it again — or a long press — opens the variant menu, and while a
- * variant that has something to configure (the scalene kind's angles) is the live one, a pencil sits
- * beside the button to reopen its dialog.
+ * the button picks the tool, tapping it again — or a long press — opens the variant menu
+ * ([ToolVariantPicker], the same row layout the tool-group pickers use), and while a variant that has
+ * something to configure (the scalene kind's angles) is the live one, a pencil sits beside the button
+ * to reopen its dialog.
  *
  * Shared by both figures rather than copied, so the two behave identically: same tap-to-pick /
  * tap-again-to-change-the-variant gesture, same pencil, same menu shape.
@@ -851,44 +852,24 @@ private fun CompactShapeKindButton(
                     .size(10.dp),
             )
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                MenuHeading(heading)
-                kinds.forEachIndexed { index, label ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(label)
-                                if (index == editableKind) {
-                                    Spacer(Modifier.width(6.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .clickable {
-                                                open = false
-                                                onSelectKind(index)
-                                                onEditKind()
-                                            },
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.Edit,
-                                            contentDescription = editorHint,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp),
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        trailingIcon = {
-                            if (index == selectedKind) Icon(Icons.Filled.Check, contentDescription = "selected")
-                        },
-                        onClick = {
-                            onSelectKind(index)
-                            open = false
-                        },
-                    )
-                }
+                ToolVariantPicker(
+                    heading = heading,
+                    labels = kinds,
+                    selectedIndex = selectedKind,
+                    onPick = { index ->
+                        onSelectKind(index)
+                        open = false
+                    },
+                    editableIndex = editableKind,
+                    editHint = editorHint,
+                    // The scalene cell's pencil picks that kind and opens its angle dialog, so
+                    // choosing "set my own angles" stays a single gesture.
+                    onEdit = {
+                        open = false
+                        onSelectKind(editableKind)
+                        onEditKind()
+                    },
+                )
             }
         }
         if (showEditor) {

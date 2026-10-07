@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.render.TriangleKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -229,6 +231,20 @@ class ToolGroupsTest {
             listOf(EditorTool.DIODE, EditorTool.ZENER_DIODE),
             rows.first(),
         )
+    }
+
+    @Test
+    fun `a variant picker wraps its kinds two to a row without losing one`() {
+        // The pure row layout behind `ToolVariantPicker`, which the triangle's and the trapezoid's
+        // submenus both use: a kind must never fall out of the menu however many there are.
+        for (count in 0..7) {
+            val rows = variantRows(count)
+            assertEquals("kinds for $count", (0 until count).toList(), rows.flatten())
+            assertTrue("rows fit the menu for $count", rows.all { it.size <= VARIANT_ROW_SIZE })
+        }
+        // The two figures that ship variants, laid out the way their pickers show them.
+        assertEquals(listOf(listOf(0, 1), listOf(2, 3)), variantRows(TriangleKind.values().size))
+        assertEquals(listOf(listOf(0, 1), listOf(2)), variantRows(TrapezoidKind.values().size))
     }
 
     @Test

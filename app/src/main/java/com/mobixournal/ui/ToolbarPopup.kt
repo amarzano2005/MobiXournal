@@ -2,12 +2,14 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,6 +18,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -159,6 +162,116 @@ private fun ToolPickerCell(tool: EditorTool, selected: Boolean, width: Dp, onCli
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp),
         )
+    }
+}
+
+/**
+ * The body of a **variant picker**: a figure tool that ships in several geometric kinds (the triangle, the trapezoid)
+ * offers those kinds as rows of compact label buttons ([variantRows]) rather than one full-width menu row each, so its
+ * submenu reads the same as the tool pickers ([ToolGroupPicker]). The live kind is tinted in the primary container
+ * colour and each button is a radio item — one setting with several choices, not a list of commands.
+ *
+ * The one kind that carries something to configure (the scalene kind's angles) wears a small pencil; tapping the pencil
+ * picks that kind **and** opens its dialog in one gesture, while tapping the rest of the cell just picks it.
+ *
+ * Shared by both figures rather than copied, so the two submenus cannot drift apart.
+ *
+ * @param labels the kinds in menu order.
+ * @param selectedIndex the live kind, or an out-of-range index when none is picked.
+ * @param editableIndex the kind that opens a dialog, or null when no kind does.
+ */
+@Composable
+internal fun ToolVariantPicker(
+    heading: String,
+    labels: List<String>,
+    selectedIndex: Int,
+    onPick: (Int) -> Unit,
+    editableIndex: Int? = null,
+    editHint: String = "",
+    onEdit: (() -> Unit)? = null,
+) {
+    MenuHeading(heading)
+    Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)) {
+        for (row in variantRows(labels.size)) {
+            Row(modifier = Modifier.selectableGroup()) {
+                for (index in row) {
+                    VariantCell(
+                        label = labels[index],
+                        selected = index == selectedIndex,
+                        width = ToolPickerWideCellWidth,
+                        onPick = { onPick(index) },
+                        editHint = editHint,
+                        onEdit = if (index == editableIndex) onEdit else null,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One button in a variant picker row: the kind's name, tinted while it is the live one, with the pencil affordance in
+ * its top corner when this is the kind that has a dialog behind it. The name wraps to two lines so the longest kind
+ * stays readable in a narrow cell.
+ */
+@Composable
+private fun VariantCell(
+    label: String,
+    selected: Boolean,
+    width: Dp,
+    onPick: () -> Unit,
+    editHint: String,
+    onEdit: (() -> Unit)?,
+) {
+    val tint = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Box(
+        modifier = Modifier
+            .width(width)
+            .padding(2.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            )
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onPick)
+            .heightIn(min = 40.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = tint,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(
+                start = 6.dp,
+                end = if (onEdit != null) 22.dp else 6.dp,
+                top = 10.dp,
+                bottom = 10.dp,
+            ),
+        )
+        if (onEdit != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(2.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onEdit),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = editHint,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
     }
 }
 

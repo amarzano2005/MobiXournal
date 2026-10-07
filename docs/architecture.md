@@ -1696,8 +1696,13 @@ buttons** rather than one full-width row each, with related tools sharing a row:
 grouping in `ToolGroup.pickerLayout` and `pickerRows()` resolves it against the members actually shown
 (so the diode family, the two transistors and the two sources sit together, each inverted logic gate
 beside its twin, and any member a layout doesn't name still wraps three to a row rather than going
-missing; the user-ordered Shapes slot declares no grouping at all, so its order is preserved). Every
-button is a radio item and the slot's live member is tinted in the primary container colour — the same
+missing; the user-ordered Shapes slot declares no grouping at all, so its order is preserved). The two
+figures that ship in several geometric **kinds** rather than a group — the triangle and the trapezoid,
+whose secondary-toolbar buttons carry a variant submenu — get the same row treatment from
+`ToolVariantPicker` (`ToolbarPopup.kt`), which lays the kinds out through the pure `variantRows()`
+two to a row: the live kind is tinted, and the kind that has a dialog behind it (the scalene, whose
+angles are configurable) keeps its pencil so picking it and opening that dialog stays one gesture.
+Every button is a radio item and the slot's live member is tinted in the primary container colour — the same
 "this one is on" language as the rail — so the picker reads as one setting with several choices. A tool slot whose group has **more than one member** wears a small **chevron in its bottom-right
 corner** (`BoxScope.MenuChevron`, `ToolbarPopup.kt`, drawn by `ToolGroupButton`), so a slot that can
 be re-faced reads at a glance differently from one that just activates a single tool; the panel

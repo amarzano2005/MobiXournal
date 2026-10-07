@@ -53,6 +53,20 @@ fun pickerRows(
 }
 
 /**
+ * How many geometric variants share a **variant picker** row. Two keeps the longest kind names ("Right-angled") on one
+ * line and leaves no lone straggler: the triangle's four kinds fall 2 + 2 and the trapezoid's three fall 2 + 1.
+ */
+const val VARIANT_ROW_SIZE = 2
+
+/**
+ * The rows a **variant picker** lays [count] variants out in — the same row language [pickerRows] gives a tool group's
+ * members, so a figure's own submenu (the triangle's kinds, the trapezoid's) reads like the tool pickers instead of a
+ * list of full-width rows. Variants are a plain sequence with no kinship to express, so they just wrap
+ * [VARIANT_ROW_SIZE] to a row.
+ */
+fun variantRows(count: Int): List<List<Int>> = (0 until maxOf(count, 0)).chunked(VARIANT_ROW_SIZE)
+
+/**
  * The rail's tool slots, in display order. Every [EditorTool] belongs to exactly one group; a group
  * with a single member (line, rectangle, pan) is just a plain button with nothing to pick.
  *
