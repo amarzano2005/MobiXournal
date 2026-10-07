@@ -19,6 +19,7 @@ you pull in a spoke only when the task touches it, instead of reading everything
 | **How the system works internally** (data flow, layout) | `docs/architecture.md` |
 | **How a user runs/uses it** (setup, build & run) | `README.md`               |
 | **External tools & build pipelines** (Android, deploy, device harnesses) | `docs/tools.md` |
+| **What a release shipped** (per-version changelogs) | `docs/releases/[version].md` (procedure in `docs/tools.md`) |
 | **[Any other spoke — protocol, commands, API…]** | `docs/[name].md`          |
 
 **Two classes of fact:**

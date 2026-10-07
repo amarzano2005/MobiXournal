@@ -14,6 +14,7 @@ lives, how to invoke it, and the non-obvious gotchas.
 |-----------------|---------------|--------|
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [below](#android-emulator) |
+| Release publishing | Tag a version, publish the GitHub Release + APK | [below](#cutting-a-release) |
 
 ---
 
@@ -96,3 +97,33 @@ change with a runtime surface must be installed and exercised on the emulator, n
   - `scripts/connected-test.sh -e class com.mobixournal.SmokeTest` — extra args pass through to
     `am instrument` (class/method/size filters, etc.).
 - **Gotchas:** the emulator needs host KVM (`/dev/kvm`, VT-x enabled in BIOS).
+
+---
+
+## Cutting a release
+
+Releases are produced by CI, never by hand. Pushing an annotated tag `vX.Y.Z` runs
+`.github/workflows/build.yml`, which builds the debug APK and creates the GitHub Release with
+that APK attached and its notes read from `docs/releases/vX.Y.Z.md` (the step's `body_path`).
+
+1. **Bump the version** in `app/build.gradle.kts`: `versionName` is the tag without its `v`
+   (`1.1.0`), `versionCode` is the previous code plus one (a monotonic counter, not derived
+   from the name).
+2. **Write `docs/releases/vX.Y.Z.md`** — the curated, user-facing changelog for the version.
+   Draw it from `FINISHED.toml` (the completed-work archive) plus the commits since the last
+   tag; the file name must match the tag exactly.
+3. **Commit and push `main`**, then create and push the tag:
+
+   ```sh
+   git push origin main
+   git tag -a v1.1.0 -m "MobiXournal v1.1.0"
+   git push origin v1.1.0
+   ```
+
+4. **Watch the workflow.** The release appears on GitHub with `app-debug.apk` attached.
+
+- **Notes are curated, so `generate_release_notes` is off.** GitHub's auto-generated commit
+  list would never see this file.
+- **A tag without its notes file fails the release step** — deliberately: the workflow's
+  `body_path` finds nothing and errors, rather than silently publishing an empty body. Write
+  `docs/releases/vX.Y.Z.md` *before* pushing the tag.

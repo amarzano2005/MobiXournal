@@ -39,6 +39,7 @@ MobiXournal follows a hub-and-spoke documentation model:
 | **Build Tools, Container & Emulator** | [`docs/tools.md`](docs/tools.md) |
 | **Active Tasks & Roadmap** | [`TODO.toml`](TODO.toml) (via `scripts/todo.sh list`) |
 | **Completed Work Archive** | [`FINISHED.toml`](FINISHED.toml) |
+| **Release Notes (per version)** | [`docs/releases/`](docs/releases/) |
 
 ---
 
@@ -59,7 +60,7 @@ scripts/build.sh testDebugUnitTest
 # Clean release-path build of the debug APK
 scripts/build.sh clean assembleDebug
 ```
-For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md).
+For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release — bump `versionName`/`versionCode`, write `docs/releases/v<version>.md`, then push the `v<version>` tag so CI builds the APK and publishes the Release — is documented there too.
 
 ---
 
