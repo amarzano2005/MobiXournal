@@ -108,7 +108,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 
 - **Electronic Circuits (Passive & Active)**:
   - **Passive Circuits**: Drag to place and orient passive components: **Resistors** (zigzag), **Capacitors** (parallel plates), **Inductors** (multi-loop coils), and **Earth Ground**.
-  - **Active Circuits**: Full set of semiconductor and active components: **Diodes** (p-n junction), **LEDs** (light-emitting rays), **Zener Diodes** (voltage regulation with Z-wings), **Operational Amplifiers (Op-Amps)** (with `-`/`+` inputs, triangle body, and output pin), **BJT NPN** and **BJT PNP Transistors** (Base, Collector, Emitter with directional arrows), **DC Voltage Sources / Batteries** (open-gap parallel plates), and **Current Sources** (circle with internal direction arrow).
+  - **Active Circuits**: Full set of semiconductor and active components: **Diodes** (solid p-n junction triangle with cathode bar), **LEDs** (same solid body plus two detached light-emitting rays), **Zener Diodes** (solid body, cathode bar bent into Z-wings), **Operational Amplifiers (Op-Amps)** (triangle body, `-`/`+` input signs clear of the pins, and output pin), **BJT NPN** and **BJT PNP Transistors** (Base, Collector, Emitter with directional arrows, base bar inside a circular envelope), **DC Voltage Sources / Batteries** (open-gap parallel plates), and **Current Sources** (circle with internal direction arrow).
 - **IEEE Logic Gates**:
   - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, and **NOT (Inverter)** with standard input/output terminals and inversion bubbles.
 - **Relational Database Tables**:

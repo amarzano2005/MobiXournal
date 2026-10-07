@@ -83,9 +83,9 @@ object ShapeBuilder {
         ShapeKind.INDUCTOR -> CircuitShapes.inductor(startX, startY, endX, endY, widthPt)
         ShapeKind.GROUND -> CircuitShapes.ground(startX, startY, endX, endY, widthPt)
         ShapeKind.DIODE -> CircuitShapes.diode(startX, startY, endX, endY, widthPt)
-        ShapeKind.LED -> CircuitShapes.led(startX, startY, endX, endY, widthPt)
+        ShapeKind.LED -> CircuitShapes.led(startX, startY, endX, endY, widthPt).flatten()
         ShapeKind.ZENER_DIODE -> CircuitShapes.zenerDiode(startX, startY, endX, endY, widthPt)
-        ShapeKind.OPAMP -> CircuitShapes.opAmp(startX, startY, endX, endY, widthPt)
+        ShapeKind.OPAMP -> CircuitShapes.opAmp(startX, startY, endX, endY, widthPt).flatten()
         ShapeKind.BJT_NPN -> CircuitShapes.bjtNpn(startX, startY, endX, endY, widthPt)
         ShapeKind.BJT_PNP -> CircuitShapes.bjtPnp(startX, startY, endX, endY, widthPt)
         ShapeKind.DC_SOURCE -> CircuitShapes.dcSource(startX, startY, endX, endY, widthPt).flatten()
@@ -103,8 +103,9 @@ object ShapeBuilder {
     }
 
     /**
-     * When a shape decomposes into multiple disconnected strokes (such as a capacitor with an open gap),
-     * returns the list of stroke point-lists; returns null for single-stroke figures.
+     * When a shape decomposes into multiple disconnected strokes (a capacitor with an open gap, an
+     * LED's detached light rays, an op-amp's input signs), returns the list of stroke point-lists;
+     * returns null for single-stroke figures.
      */
     fun buildMulti(
         kind: ShapeKind,
@@ -117,6 +118,8 @@ object ShapeBuilder {
     ): List<List<StrokePoint>>? = when (kind) {
         ShapeKind.CAPACITOR -> CircuitShapes.capacitor(startX, startY, endX, endY, widthPt)
         ShapeKind.DC_SOURCE -> CircuitShapes.dcSource(startX, startY, endX, endY, widthPt)
+        ShapeKind.LED -> CircuitShapes.led(startX, startY, endX, endY, widthPt)
+        ShapeKind.OPAMP -> CircuitShapes.opAmp(startX, startY, endX, endY, widthPt)
         else -> null
     }
 
