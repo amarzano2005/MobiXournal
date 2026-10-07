@@ -270,39 +270,38 @@ val DiodeIcon: ImageVector by lazy {
 
 val LedIcon: ImageVector by lazy {
     ImageVector.Builder("LED", 24.dp, 24.dp, 24f, 24f).apply {
+        // Hollow diode body + cathode bar + lead wires
         path(
             stroke = SolidColor(Color.Black),
             strokeLineWidth = 2f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
-            moveTo(2f, 14f); lineTo(7f, 14f)
-            moveTo(14f, 7.5f); lineTo(14f, 20.5f)
-            moveTo(14f, 14f); lineTo(21f, 14f)
-            moveTo(10f, 7f); lineTo(14.5f, 2.5f)
-            moveTo(14f, 9f); lineTo(18.5f, 4.5f)
+            moveTo(2f, 13f); lineTo(7.5f, 13f)
+            moveTo(7.5f, 7.5f); lineTo(14.5f, 13f); lineTo(7.5f, 18.5f); close()
+            moveTo(14.5f, 6.5f); lineTo(14.5f, 19.5f)
+            moveTo(14.5f, 13f); lineTo(22f, 13f)
         }
-        path(fill = SolidColor(Color.Black)) {
-            moveTo(7f, 8f)
-            lineTo(14f, 14f)
-            lineTo(7f, 20f)
-            close()
-        }
-        path(fill = SolidColor(Color.Black)) {
-            moveTo(15.5f, 2.5f)
-            lineTo(12f, 2.5f)
-            lineTo(15.5f, 6f)
-            close()
-            moveTo(19.5f, 4.5f)
-            lineTo(16f, 4.5f)
-            lineTo(19.5f, 8f)
-            close()
+        // Optical emission rays with open V-barb arrowheads
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.75f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            // Ray 1
+            moveTo(10.5f, 6f); lineTo(14.5f, 2f)
+            moveTo(12.2f, 2f); lineTo(14.5f, 2f); lineTo(14.5f, 4.3f)
+            // Ray 2
+            moveTo(15f, 7.5f); lineTo(19f, 3.5f)
+            moveTo(16.7f, 3.5f); lineTo(19f, 3.5f); lineTo(19f, 5.8f)
         }
     }.build()
 }
 
 val ZenerDiodeIcon: ImageVector by lazy {
     ImageVector.Builder("ZenerDiode", 24.dp, 24.dp, 24f, 24f).apply {
+        // Hollow diode body + 90-degree Z-bend cathode bar + lead wires
         path(
             stroke = SolidColor(Color.Black),
             strokeLineWidth = 2f,
@@ -310,17 +309,10 @@ val ZenerDiodeIcon: ImageVector by lazy {
             strokeLineJoin = StrokeJoin.Round,
         ) {
             moveTo(2f, 12f); lineTo(8f, 12f)
-            moveTo(18f, 8.5f)
-            lineTo(15.5f, 6f)
-            lineTo(15.5f, 18f)
-            lineTo(13f, 15.5f)
+            moveTo(8f, 6.5f); lineTo(15.5f, 12f); lineTo(8f, 17.5f); close()
+            // Z-shaped cathode bar: top bend right (towards K), bottom bend left (towards A)
+            moveTo(18f, 6.5f); lineTo(15.5f, 6.5f); lineTo(15.5f, 17.5f); lineTo(13f, 17.5f)
             moveTo(15.5f, 12f); lineTo(22f, 12f)
-        }
-        path(fill = SolidColor(Color.Black)) {
-            moveTo(8f, 6f)
-            lineTo(15.5f, 12f)
-            lineTo(8f, 18f)
-            close()
         }
     }.build()
 }
@@ -346,27 +338,45 @@ val OpAmpIcon: ImageVector by lazy {
 
 val BjtNpnIcon: ImageVector by lazy {
     ImageVector.Builder("BjtNpn", 24.dp, 24.dp, 24f, 24f).apply {
+        // Enclosing circular body
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.5f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(6.5f, 12f)
+            curveTo(6.5f, 8.41f, 9.41f, 5.5f, 13f, 5.5f)
+            curveTo(16.59f, 5.5f, 19.5f, 8.41f, 19.5f, 12f)
+            curveTo(19.5f, 15.59f, 16.59f, 18.5f, 13f, 18.5f)
+            curveTo(9.41f, 18.5f, 6.5f, 15.59f, 6.5f, 12f)
+        }
+        // Base lead, collector lead (top) and emitter lead (bottom)
         path(
             stroke = SolidColor(Color.Black),
             strokeLineWidth = 2f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
-            moveTo(2f, 12f); lineTo(8f, 12f)
-            moveTo(8f, 8.5f); lineTo(16f, 4.5f); lineTo(22f, 4.5f)
-            moveTo(8f, 15.5f); lineTo(16f, 19.5f); lineTo(22f, 19.5f)
+            moveTo(2f, 12f); lineTo(9.5f, 12f)
+            // Collector branch: slanted then straight UP
+            moveTo(9.5f, 10f); lineTo(15.5f, 6f); lineTo(15.5f, 2f)
+            // Emitter branch: slanted then straight DOWN
+            moveTo(9.5f, 14f); lineTo(15.5f, 18f); lineTo(15.5f, 22f)
         }
+        // Semiconductor base bar
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 3f,
+            strokeLineWidth = 2.5f,
             strokeLineCap = StrokeCap.Round,
         ) {
-            moveTo(8f, 5f); lineTo(8f, 19f)
+            moveTo(9.5f, 7.5f); lineTo(9.5f, 16.5f)
         }
+        // Emitter arrow pointing OUTWARD (down-right)
         path(fill = SolidColor(Color.Black)) {
-            moveTo(16.5f, 19.75f)
-            lineTo(12.5f, 18.5f)
-            lineTo(14f, 14.5f)
+            moveTo(15.5f, 18f)
+            lineTo(12.2f, 17.8f)
+            lineTo(13.6f, 15f)
             close()
         }
     }.build()
@@ -374,27 +384,45 @@ val BjtNpnIcon: ImageVector by lazy {
 
 val BjtPnpIcon: ImageVector by lazy {
     ImageVector.Builder("BjtPnp", 24.dp, 24.dp, 24f, 24f).apply {
+        // Enclosing circular body
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.5f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(6.5f, 12f)
+            curveTo(6.5f, 8.41f, 9.41f, 5.5f, 13f, 5.5f)
+            curveTo(16.59f, 5.5f, 19.5f, 8.41f, 19.5f, 12f)
+            curveTo(19.5f, 15.59f, 16.59f, 18.5f, 13f, 18.5f)
+            curveTo(9.41f, 18.5f, 6.5f, 15.59f, 6.5f, 12f)
+        }
+        // Base lead, collector lead (top) and emitter lead (bottom)
         path(
             stroke = SolidColor(Color.Black),
             strokeLineWidth = 2f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
-            moveTo(2f, 12f); lineTo(8f, 12f)
-            moveTo(8f, 8.5f); lineTo(16f, 4.5f); lineTo(22f, 4.5f)
-            moveTo(8f, 15.5f); lineTo(16f, 19.5f); lineTo(22f, 19.5f)
+            moveTo(2f, 12f); lineTo(9.5f, 12f)
+            // Collector branch: slanted then straight UP
+            moveTo(9.5f, 10f); lineTo(15.5f, 6f); lineTo(15.5f, 2f)
+            // Emitter branch: slanted then straight DOWN
+            moveTo(9.5f, 14f); lineTo(15.5f, 18f); lineTo(15.5f, 22f)
         }
+        // Semiconductor base bar
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 3f,
+            strokeLineWidth = 2.5f,
             strokeLineCap = StrokeCap.Round,
         ) {
-            moveTo(8f, 5f); lineTo(8f, 19f)
+            moveTo(9.5f, 7.5f); lineTo(9.5f, 16.5f)
         }
+        // Emitter arrow pointing INWARD (up-left towards base)
         path(fill = SolidColor(Color.Black)) {
-            moveTo(9.5f, 16.25f)
-            lineTo(13.5f, 14.5f)
-            lineTo(12f, 18.5f)
+            moveTo(10.2f, 14.4f)
+            lineTo(13.6f, 14.2f)
+            lineTo(12.2f, 17f)
             close()
         }
     }.build()

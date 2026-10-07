@@ -600,6 +600,7 @@ object CircuitShapes {
                 p(aStart, -h),
                 p(cEnd, 0.0),
                 p(aStart, h),
+                p(aStart, -h),
                 p(aStart, 0.0),
                 p(cEnd, 0.0),
                 p(cEnd, -h),
@@ -630,6 +631,7 @@ object CircuitShapes {
             pts += p(aStart, -h)
             pts += p(cEnd, 0.0)
             pts += p(aStart, h)
+            pts += p(aStart, -h)
             pts += p(aStart, 0.0)
             pts += p(cEnd, 0.0)
             pts += p(cEnd, -h)
@@ -679,6 +681,7 @@ object CircuitShapes {
                 p(aStart, -h),
                 p(cEnd, 0.0),
                 p(aStart, h),
+                p(aStart, -h),
                 p(aStart, 0.0),
                 p(cEnd, 0.0),
                 // Cathode bar with Z-bend: top bends right (+u), bottom bends left (-u)
@@ -748,25 +751,38 @@ object CircuitShapes {
         }
 
     /**
-     * BJT NPN Transistor: Base lead at origin -> base bar -> collector lead (top) ->
-     * emitter lead (bottom) with arrow pointing outwards (away from base).
+     * BJT NPN Transistor: Base lead at origin -> circular body envelope -> base bar ->
+     * collector lead (top) -> emitter lead (bottom) with arrow pointing outwards (away from base).
      */
     fun bjtNpn(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
         withBasis(sx, sy, ex, ey, widthPt) { len, p ->
             val h = minOf(18.0, len * 0.30)
-            val bPos = len * 0.35
+            val bPos = len * 0.42
             val cJuncV = -h * 0.45
             val eJuncV = h * 0.45
-            val cornerU = len * 0.75
+            val cornerU = len * 0.70
             val barb = minOf(4.5, len * 0.06)
+            val circleR = minOf(h * 1.15, len * 0.25)
+            val circleCenterU = len * 0.56
+            val circleLeftU = circleCenterU - circleR
             val pts = ArrayList<StrokePoint>()
 
-            // Base wire
+            // Base wire: lead-in up to circle perimeter
             pts += p(0.0, 0.0)
+            pts += p(circleLeftU, 0.0)
+
+            // Circular transistor envelope
+            val circleSteps = 16
+            for (i in 0..circleSteps) {
+                val theta = PI + 2.0 * PI * (i.toDouble() / circleSteps)
+                pts += p(circleCenterU + circleR * cos(theta), circleR * sin(theta))
+            }
+
+            // Lead-in continues inside circle to base bar
             pts += p(bPos, 0.0)
 
             // Base bar: down to bottom corner, then up to collector junction
-            pts += p(bPos, h)
+            pts += p(bPos, h * 0.75)
             pts += p(bPos, cJuncV)
 
             // Collector branch
@@ -776,7 +792,7 @@ object CircuitShapes {
             pts += p(bPos, cJuncV)
 
             // Base bar up to top, then down to emitter junction
-            pts += p(bPos, -h)
+            pts += p(bPos, -h * 0.75)
             pts += p(bPos, eJuncV)
 
             // Emitter branch with arrow pointing outward
@@ -795,25 +811,38 @@ object CircuitShapes {
         }
 
     /**
-     * BJT PNP Transistor: Base lead at origin -> base bar -> collector lead (top) ->
-     * emitter lead (bottom) with arrow pointing inwards (towards base).
+     * BJT PNP Transistor: Base lead at origin -> circular body envelope -> base bar ->
+     * collector lead (top) -> emitter lead (bottom) with arrow pointing inwards (towards base).
      */
     fun bjtPnp(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
         withBasis(sx, sy, ex, ey, widthPt) { len, p ->
             val h = minOf(18.0, len * 0.30)
-            val bPos = len * 0.35
+            val bPos = len * 0.42
             val cJuncV = -h * 0.45
             val eJuncV = h * 0.45
-            val cornerU = len * 0.75
+            val cornerU = len * 0.70
             val barb = minOf(4.5, len * 0.06)
+            val circleR = minOf(h * 1.15, len * 0.25)
+            val circleCenterU = len * 0.56
+            val circleLeftU = circleCenterU - circleR
             val pts = ArrayList<StrokePoint>()
 
-            // Base wire
+            // Base wire: lead-in up to circle perimeter
             pts += p(0.0, 0.0)
+            pts += p(circleLeftU, 0.0)
+
+            // Circular transistor envelope
+            val circleSteps = 16
+            for (i in 0..circleSteps) {
+                val theta = PI + 2.0 * PI * (i.toDouble() / circleSteps)
+                pts += p(circleCenterU + circleR * cos(theta), circleR * sin(theta))
+            }
+
+            // Lead-in continues inside circle to base bar
             pts += p(bPos, 0.0)
 
             // Base bar: down to bottom corner, then up to collector junction
-            pts += p(bPos, h)
+            pts += p(bPos, h * 0.75)
             pts += p(bPos, cJuncV)
 
             // Collector branch
@@ -823,7 +852,7 @@ object CircuitShapes {
             pts += p(bPos, cJuncV)
 
             // Base bar up to top, then down to emitter junction
-            pts += p(bPos, -h)
+            pts += p(bPos, -h * 0.75)
             pts += p(bPos, eJuncV)
 
             // Emitter branch with arrow pointing inward (towards base)
