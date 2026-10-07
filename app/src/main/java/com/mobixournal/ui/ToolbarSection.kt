@@ -12,12 +12,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/** Toolbar layout: where the rail is docked, and which buttons it shows in what order. */
+/** Toolbar layout: where the Main Toolbar is docked, and which buttons the Main and Secondary toolbars show in what order. */
 @Composable
 fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     OptionGroup(
-        title = "Toolbar position",
-        subtitle = "Which edge the tool rail is docked to.",
+        title = "Main Toolbar position",
+        subtitle = "Which edge the Main Toolbar is docked to.",
         options = ToolbarPosition.values().toList(),
         selected = settings.toolbarPosition,
         label = { it.label },
@@ -26,17 +26,17 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 
     Spacer(Modifier.height(8.dp))
     SwitchRow(
-        title = "Show tools in top bar (Dual toolbar)",
-        subtitle = "Display drawing tools in the empty space of the top app bar without shrinking the page, keeping tools and side rail accessible together.",
+        title = "Show Secondary Toolbar (Dual toolbar)",
+        subtitle = "Display geometric figures and drawing tools in the Secondary Toolbar within the top bar, keeping Main Toolbar and Secondary Toolbar accessible together.",
         checked = settings.showToolsInTopBar,
         onCheckedChange = { onChange(settings.copy(showToolsInTopBar = it)) },
     )
 
     Spacer(Modifier.height(12.dp))
-    Text("Rail buttons", style = MaterialTheme.typography.titleSmall)
+    Text("Main Toolbar buttons", style = MaterialTheme.typography.titleSmall)
     Text(
         "Switch a button off to hide it, or press and hold a row and drag it up or down to reorder. " +
-            "The rail draws them top-to-bottom (left-to-right when docked horizontally).",
+            "The Main Toolbar draws them top-to-bottom (left-to-right when docked horizontally).",
         style = MaterialTheme.typography.bodySmall,
     )
     Spacer(Modifier.height(8.dp))
@@ -57,14 +57,14 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 onChange(settings.copy(railHidden = settings.railHidden + AppSettings.DEFAULT_RAIL_HIDDEN))
             },
         ) {
-            Text("Hide top bar tools in rail")
+            Text("Hide Secondary Toolbar tools in Main Toolbar")
         }
     }
 
     Spacer(Modifier.height(16.dp))
-    Text("Top bar buttons", style = MaterialTheme.typography.titleSmall)
+    Text("Secondary Toolbar buttons", style = MaterialTheme.typography.titleSmall)
     Text(
-        "Customize the tools shown in the additional top bar. Switch a button off to hide it, or press and " +
+        "Customize the tools and geometric figures shown in the Secondary Toolbar. Switch a button off to hide it, or press and " +
             "hold a row and drag it up or down to reorder.",
         style = MaterialTheme.typography.bodySmall,
     )

@@ -17,6 +17,17 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "make-top-bar-floating-in-modern-ui-and-disambiguate-main-vs-secondary-toolbars"
+title = "Make top bar floating in modern UI and disambiguate Main vs Secondary Toolbars"
+description = "Make the top bar floating in modern UI matching the Main Toolbar floating dock style with rounded corners, tonal elevation, and subtle border. Disambiguate toolbar naming across settings, documentation, and components: the figure/shapes toolbar is the Secondary Toolbar and the primary rail is the Main Toolbar."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-07
+completed = 2026-10-07
+tags = []
+
+[[task]]
 id = "add-modern-interface-option-with-settings-switch-between-classic-and-modern-ui"
 title = "Add modern interface option with settings switch between classic and modern UI"
 description = "Introduce modern interface design with floating rounded toolbars, sleek Material 3 chrome, modern pill tabs, and refined badges. Add a toggle switch in Settings Appearance to switch between the modern and classic UI."

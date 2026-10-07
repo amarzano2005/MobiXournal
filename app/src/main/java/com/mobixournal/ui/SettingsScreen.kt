@@ -40,8 +40,8 @@ enum class SettingsSection(val title: String, val summary: String) {
     STYLUS("Stylus", "Finger drawing, hover preview, barrel button, pressure feel."),
     /** Editor behaviour: default tool, shape recognition, snapping to grid or angles. */
     EDITOR("Editor", "Default tool and snapping to the grid or to 15° rotations."),
-    /** Toolbar configuration: which rail buttons appear and their order. */
-    TOOLBAR("Toolbar", "Which rail buttons appear, and in what order."),
+    /** Toolbar configuration: which buttons appear in the Main and Secondary Toolbars and their order. */
+    TOOLBAR("Toolbar", "Main Toolbar position and buttons, and Secondary Toolbar (figures) configuration."),
     /** Figures: the default figure size and the Shapes submenu's figures and order. */
     FIGURES("Figures", "Default figure size, and the Shapes submenu's figures and order."),
     /** Colors: the pen palette every colour picker offers. */

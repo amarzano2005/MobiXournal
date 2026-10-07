@@ -216,7 +216,7 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     HorizontalDivider(Modifier.padding(vertical = 12.dp))
     Text("Figures", style = MaterialTheme.typography.bodyLarge)
     Text(
-        "The geometric figures offered in the secondary toolbar and shapes menu. Switch a figure off to hide it, or press and " +
+        "The geometric figures offered in the Secondary Toolbar and shapes menu. Switch a figure off to hide it, or press and " +
             "hold a row and drag it up or down to reorder.",
         style = MaterialTheme.typography.bodySmall,
     )

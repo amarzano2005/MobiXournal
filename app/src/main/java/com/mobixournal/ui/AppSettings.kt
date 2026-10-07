@@ -191,9 +191,9 @@ data class AppSettings(
     val momentumCurve: MomentumCurve = MomentumCurve.QUADRATIC,
     /** How far the document moves per unit of pan travel (0 = frozen, 1 = one-to-one, >1 = faster). */
     val panSensitivity: Float = PanSensitivity.NORMAL,
-    /** Which edge of the editor the tool rail is docked to. */
+    /** Which edge of the editor the Main Toolbar is docked to. */
     val toolbarPosition: ToolbarPosition = ToolbarPosition.LEFT,
-    /** When true, drawing tools are displayed in the empty space of the top app bar (dual toolbar mode). */
+    /** When true, the Secondary Toolbar (geometric figures and tools) is displayed in the top bar (dual toolbar mode). */
     val showToolsInTopBar: Boolean = DEFAULT_SHOW_TOOLS_IN_TOP_BAR,
     /**
      * The pen palette every colour picker draws from, in display order. Seeded with [PEN_COLORS] and
@@ -260,14 +260,14 @@ data class AppSettings(
      */
     val railOrder: List<String> = emptyList(),
     /**
-     * The [RailItem.id]s the user has hidden from the rail. The factory default hides the
-     * drawing-tool groups already shown in the secondary top bar (see [DEFAULT_RAIL_HIDDEN]),
+     * The [RailItem.id]s the user has hidden from the Main Toolbar. The factory default hides the
+     * geometric figure groups already shown in the Secondary Toolbar (see [DEFAULT_RAIL_HIDDEN]),
      * so dual-toolbar installs avoid redundancy out of the box.
      */
     val railHidden: Set<String> = DEFAULT_RAIL_HIDDEN,
-    /** The secondary (top) bar's button positions in display order. Empty falls back to factory default. */
+    /** The Secondary Toolbar's button positions in display order. Empty falls back to factory default. */
     val topBarOrder: List<String> = DEFAULT_TOP_BAR_ORDER,
-    /** The button ids the user has hidden from the secondary top bar. */
+    /** The button ids the user has hidden from the Secondary Toolbar. */
     val topBarHidden: Set<String> = emptySet(),
     /**
      * The persisted `OpenDocumentTree` URI of the folder audio sidecars are kept in (empty = none
@@ -451,10 +451,10 @@ data class AppSettings(
         const val DEFAULT_MODERN_UI: Boolean = true
 
         /**
-         * Rail items hidden by default — the drawing-tool groups the secondary top bar already
-         * shows (geometric shapes, arrows, table, circuits, logic gates, guides). Hides them from
-         * the primary rail to avoid redundancy when [DEFAULT_SHOW_TOOLS_IN_TOP_BAR] is on.
-         * The user can re-enable any of them in **Settings → Toolbar → Rail buttons**.
+         * Main Toolbar items hidden by default — the geometric figures and drawing tools the
+         * Secondary Toolbar already shows (line, rectangle, shape, arrow, table, circuit, logic, guides).
+         * Hides them from the Main Toolbar to avoid redundancy when [DEFAULT_SHOW_TOOLS_IN_TOP_BAR] is on.
+         * The user can re-enable any of them in **Settings → Toolbar → Main Toolbar buttons**.
          */
         val DEFAULT_RAIL_HIDDEN: Set<String> = setOf(
             "line", "rectangle", "shape", "arrow", "table", "circuit", "logic", "guides",

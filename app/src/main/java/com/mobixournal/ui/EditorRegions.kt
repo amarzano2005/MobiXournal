@@ -66,6 +66,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
@@ -114,9 +115,10 @@ import android.view.KeyEvent
 import androidx.compose.ui.input.key.onKeyEvent
 
 /**
- * The editor's top bar: undo/redo for the active pane, the tab overview, then the overflow menu.
- * When [AppSettings.showToolsInTopBar] is enabled, the empty title slot displays a compact row of
- * drawing tools and color button without increasing the 40dp height or shrinking the sheet.
+ * The editor's top bar: undo/redo for the active pane, document title, then the overflow menu.
+ * In Modern UI, renders as a floating dock surface matching the Main Toolbar.
+ * When [AppSettings.showToolsInTopBar] is enabled, the title slot displays the Secondary Toolbar
+ * (compact row of geometric figures and tools).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,6 +134,7 @@ fun EditorTopBar(
     onExportPdf: () -> Unit,
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val isModern = settings?.modernUi ?: true
     val effectivePosition = if (settings?.showToolsInTopBar == true && settings.toolbarPosition == ToolbarPosition.TOP) {
@@ -140,122 +143,151 @@ fun EditorTopBar(
         settings?.toolbarPosition ?: ToolbarPosition.LEFT
     }
     val topBarHeight = if (isModern) 48.dp else 40.dp
-    TopAppBar(
-        navigationIcon = {
-            if (settings != null && settings.showToolsInTopBar && effectivePosition == ToolbarPosition.LEFT && !ui.fullPage) {
-                val spacerWidth = if (isModern) SideToolbarModernTotalWidth else SideToolbarWidth
-                Spacer(Modifier.width(spacerWidth))
-            }
-        },
-        title = {
-            if (settings != null && onSettingsChange != null && settings.showToolsInTopBar) {
-                TopBarToolsRow(
-                    ui = ui,
-                    pane = pane,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                )
-            } else if (isModern) {
-                val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+    val topAppBar = @Composable {
+        TopAppBar(
+            navigationIcon = {
+                if (settings != null && settings.showToolsInTopBar && effectivePosition == ToolbarPosition.LEFT && !ui.fullPage) {
+                    val spacerWidth = if (isModern) (SideToolbarModernTotalWidth - 10.dp).coerceAtLeast(0.dp) else SideToolbarWidth
+                    Spacer(Modifier.width(spacerWidth))
+                }
+            },
+            title = {
+                if (settings != null && onSettingsChange != null && settings.showToolsInTopBar) {
+                    TopBarToolsRow(
+                        ui = ui,
+                        pane = pane,
+                        settings = settings,
+                        onSettingsChange = onSettingsChange,
                     )
-                }
-            }
-        },
-        modifier = Modifier.height(topBarHeight),
-        actions = {
-            // Order is deliberate: split view sits directly right of the search button, and Save —
-            // the more frequent action — takes the slot split view used to hold, right before the
-            // overflow menu. Undo/redo stay paired between them.
-            SearchControls(pane)
-            if (isModern) {
-                IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        Icons.Filled.VerticalSplit,
-                        contentDescription = if (splitView) "Close split view" else "Split view",
-                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
-                        }
-                        IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
-                        }
-                    }
-                }
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                ) {
-                    IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                    }
-                }
-            } else {
-                IconButton(onClick = onToggleSplitView) {
-                    Icon(
-                        Icons.Filled.VerticalSplit,
-                        contentDescription = if (splitView) "Close split view" else "Split view",
-                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
-                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-                }
-                IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
-                    Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
-                }
-                IconButton(onClick = onSave) {
-                    Icon(Icons.Filled.Save, contentDescription = "Save")
-                }
-            }
-            OverflowMenu(
-                settings = settings,
-                onSelectPenPreset = { preset ->
-                    if (settings != null && onSettingsChange != null) {
-                        val updated = settings.copy(
-                            selectedPenPresetId = preset.id,
-                            minimumPressure = preset.minimumPressure,
-                            pressureMultiplier = preset.pressureMultiplier,
+                } else if (isModern) {
+                    val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         )
-                        onSettingsChange(updated)
-                        pane.surface?.applySettings(updated)
                     }
-                },
-                onOpen = onOpen,
-                onNewTab = onNewTab,
-                onSave = onSave,
-                onSaveAs = { ui.showSaveAs = true },
-                onImportPdf = { ui.showImportPdf = true },
-                onExportPdf = onExportPdf,
-                onSettings = { ui.showSettings = true },
-                penDiagnostics = ui.penDiagnostics,
-                onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
-                onOpenPenParameters = { ui.showPenParametersDialog = true },
-            )
-        },
-    )
+                }
+            },
+            modifier = Modifier.height(topBarHeight),
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = if (isModern) Color.Transparent else MaterialTheme.colorScheme.surface,
+            ),
+            actions = {
+                // Order is deliberate: split view sits directly right of the search button, and Save —
+                // the more frequent action — takes the slot split view used to hold, right before the
+                // overflow menu. Undo/redo stay paired between them.
+                SearchControls(pane, modern = isModern)
+                if (isModern) {
+                    IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Filled.VerticalSplit,
+                            contentDescription = if (splitView) "Close split view" else "Split view",
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                        tonalElevation = 1.dp,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                            }
+                            IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                    ) {
+                        IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                } else {
+                    IconButton(onClick = onToggleSplitView) {
+                        Icon(
+                            Icons.Filled.VerticalSplit,
+                            contentDescription = if (splitView) "Close split view" else "Split view",
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
+                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                    }
+                    IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
+                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+                    }
+                    IconButton(onClick = onSave) {
+                        Icon(Icons.Filled.Save, contentDescription = "Save")
+                    }
+                }
+                OverflowMenu(
+                    settings = settings,
+                    onSelectPenPreset = { preset ->
+                        if (settings != null && onSettingsChange != null) {
+                            val updated = settings.copy(
+                                selectedPenPresetId = preset.id,
+                                minimumPressure = preset.minimumPressure,
+                                pressureMultiplier = preset.pressureMultiplier,
+                            )
+                            onSettingsChange(updated)
+                            pane.surface?.applySettings(updated)
+                        }
+                    },
+                    onOpen = onOpen,
+                    onNewTab = onNewTab,
+                    onSave = onSave,
+                    onSaveAs = { ui.showSaveAs = true },
+                    onImportPdf = { ui.showImportPdf = true },
+                    onExportPdf = onExportPdf,
+                    onSettings = { ui.showSettings = true },
+                    penDiagnostics = ui.penDiagnostics,
+                    onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
+                    onOpenPenParameters = { ui.showPenParametersDialog = true },
+                )
+                if (isModern) {
+                    Spacer(Modifier.width(4.dp))
+                }
+            },
+        )
+    }
+
+    if (isModern) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 3.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            ) {
+                topAppBar()
+            }
+        }
+    } else {
+        topAppBar()
+    }
 }
 
 @Composable
@@ -315,16 +347,21 @@ private fun SearchIndexingDialog(
 }
 
 @Composable
-private fun SearchControls(pane: PaneState) {
+private fun SearchControls(pane: PaneState, modern: Boolean = false) {
     fun apply(status: SearchStatus) {
         pane.searchCurrent = status.current
         pane.searchTotal = status.total
     }
     if (!pane.searchOpen) {
-        IconButton(onClick = {
-            pane.searchOpen = true
-        }) {
-            Icon(Icons.Filled.Search, contentDescription = "Search")
+        IconButton(
+            onClick = { pane.searchOpen = true },
+            modifier = if (modern) Modifier.size(36.dp) else Modifier,
+        ) {
+            Icon(
+                Icons.Filled.Search,
+                contentDescription = "Search",
+                modifier = if (modern) Modifier.size(20.dp) else Modifier,
+            )
         }
         return
     }
@@ -524,8 +561,8 @@ private fun CompactIconButton(
 }
 
 /**
- * The control rail, wired to the active pane's surface. Every callback either drives the canvas
- * directly or writes back through [onSettingsChange] so the choice is persisted.
+ * The editor's Main Toolbar (rail), wired to the active pane's surface. Every callback either drives
+ * the canvas directly or writes back through [onSettingsChange] so the choice is persisted.
  */
 @Composable
 fun EditorToolbar(
@@ -623,8 +660,8 @@ fun rememberToolbarStyleCallbacks(
 )
 
 /**
- * A compact, horizontal scrollable row of drawing tools and color button that sits inside the
- * empty title slot of the 40dp top app bar, allowing quick access without shrinking the canvas.
+ * Secondary Toolbar: a compact, horizontal scrollable row of geometric figures and tools that sits
+ * inside the top bar, allowing quick access without shrinking the canvas.
  */
 @Composable
 fun TopBarToolsRow(
@@ -1314,10 +1351,18 @@ private fun OverflowMenu(
     onTogglePenDiagnostics: () -> Unit,
     onOpenPenParameters: () -> Unit,
 ) {
+    val isModern = settings?.modernUi ?: true
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) {
-            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+        IconButton(
+            onClick = { open = true },
+            modifier = if (isModern) Modifier.size(36.dp) else Modifier,
+        ) {
+            Icon(
+                Icons.Filled.Menu,
+                contentDescription = "Menu",
+                modifier = if (isModern) Modifier.size(20.dp) else Modifier,
+            )
         }
         DropdownMenu(
             expanded = open,

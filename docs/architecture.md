@@ -745,13 +745,13 @@ app/
     ui/                      # Compose Material 3
       EditorScreen.kt        # the editor's assembly: scaffold + body layout (rail edge, split panes)
       EditorUiState.kt       # the screen's remembered chrome state (pen, open dialogs, panes) in one holder + switchToolTo, the one tool-switch rule
-      EditorRegions.kt       # the screen's regions: top bar (with optional tools row in empty title space), ☰ menu, the rail's wiring, one pane's canvas
+      EditorRegions.kt       # the screen's regions: top bar (floating in modern UI, optional Secondary Toolbar tools row), ☰ menu, Main Toolbar wiring, one pane's canvas
       EditorBackHandler.kt   # back peels off one transient editor state at a time before leaving the app
       PaneState.kt           # per-pane canvas state the chrome mirrors (zoom, page, layer, undo) + the pane count
       SplitLayout.kt         # two panes side by side with a draggable bar down the middle
       EditorOverlays.kt      # what layers over the canvas: selection bars + author/save/import dialogs
       PenDiagnosticsPanel.kt # the on-canvas pen-diagnostics log: the raw stylus stream, with Copy/Clear
-      SideToolbar.kt         # left vertical rail: the shell + tool-group slots; each pop-up is a Toolbar*.kt below
+      SideToolbar.kt         # Main Toolbar (rail): the shell + tool-group slots; each pop-up is a Toolbar*.kt below
       EditorTool.kt          # the editor's tool modes + their labels/icons (pure)
       ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
       ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog
@@ -761,7 +761,7 @@ app/
       ToolbarViewPopups.kt   # rail slots: zoom, page background, drawing guides, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog
       ToolbarLayersPopup.kt  # rail slot: the layer manager list + rename dialog
-      TopBarItems.kt         # secondary top bar buttons definition, default order, and codecs
+      TopBarItems.kt         # Secondary Toolbar buttons definition (figures & tools), default order, and codecs
       TabStrip.kt            # the horizontal strip of open-tab titles: select, reorder, close, long-press menu
       TabOverviewPopup.kt    # a grid of every open tab shown as the page it was left on
       ColorPalette.kt        # the one colour picker (swatches + custom slot) all three sites use
@@ -1674,12 +1674,14 @@ to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawText
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 
-**Chrome (`ui/`).** `EditorScreen` is the one editor screen (a `Row`): a top bar with undo/redo
+**Chrome (`ui/`).** `EditorScreen` is the one editor screen: a top bar (`EditorTopBar`) with undo/redo
 icon buttons and a **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save,
-Pen diagnostics, and Settings; a **left vertical rail `SideToolbar`** with five buttons — Tool, Colour, Size, Zoom,
-Pages; and the canvas filling the rest. Chrome styling is governed by `AppSettings.modernUi` (toggled under **Settings → Appearance**, enabled by default):
-- **Modern UI (`modernUi = true`)**: The tool rail renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation, subtle border, and squircle tool buttons (`12.dp`); the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), an accent-tonal Save button, and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
-- **Classic UI (`modernUi = false`)**: Compact edge-to-edge flat tool rail (`SideToolbarClassicWidth` = 48dp) with 48dp circular buttons, flat 40dp top bar, 32dp rectangular tab chips, and compact badges for maximum canvas density.
+Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (rail dockable to Left, Right, Top, Bottom)
+with core drawing tool slots and pop-up panels; an optional **Secondary Toolbar** (`TopBarToolsRow`) for geometric
+figures and tools embedded in the top bar (`AppSettings.showToolsInTopBar`); and the canvas filling the rest.
+Chrome styling is governed by `AppSettings.modernUi` (toggled under **Settings → Appearance**, enabled by default):
+- **Modern UI (`modernUi = true`)**: The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`); the top bar renders as a matching floating dock surface (`48.dp` height) with rounded corners (`20.dp`), tonal and shadow elevation, subtle border, grouped undo/redo pill container (`18.dp`), an accent-tonal Save button, and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
+- **Classic UI (`modernUi = false`)**: Compact edge-to-edge flat Main Toolbar (`SideToolbarClassicWidth` = 48dp) with 48dp circular buttons, flat 40dp top bar, 32dp rectangular tab chips, and compact badges for maximum canvas density.
 Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. The
 rail's head is **one slot per tool group** (`ToolGroups.kt`): `TOOL_GROUPS` partitions every

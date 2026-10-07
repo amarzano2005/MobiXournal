@@ -1,7 +1,7 @@
 package com.mobixournal.ui
 
 /**
- * Items available for the secondary (top) toolbar.
+ * Items available for the Secondary Toolbar (top bar).
  *
  * Geometric figures are exposed individually so users can tap any shape with one touch,
  * while multi-member slots (arrows, triangles, physical circuits, logic gates, select, eraser) have
@@ -30,7 +30,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 )
 
 /**
- * Default order of buttons in the secondary top bar: line, rectangle, square, individual shapes,
+ * Default order of buttons in the Secondary Toolbar: line, rectangle, square, individual shapes,
  * arrows (dropdown), table, physical circuits, logic gates, and drawing guides.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
@@ -39,7 +39,7 @@ val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "table", "circuit", "logic", "guides",
 )
 
-/** The top bar positions in the user's [order], followed by any unlisted items in factory order. */
+/** The Secondary Toolbar positions in the user's [order], followed by any unlisted items in factory order. */
 fun orderedTopBarItems(order: List<String>): List<RailItem> {
     val byId = TOP_BAR_ITEMS.associateBy { it.id }
     val listed = order.distinct().mapNotNull { byId[it] }
@@ -47,7 +47,7 @@ fun orderedTopBarItems(order: List<String>): List<RailItem> {
 }
 
 /**
- * Mapping between geometric figure tools and their secondary top bar item ids.
+ * Mapping between geometric figure tools and their Secondary Toolbar item ids.
  */
 val FIGURE_TOOL_TO_TOP_BAR_ID: Map<EditorTool, String> = mapOf(
     EditorTool.LINE to "line",
@@ -64,13 +64,13 @@ val FIGURE_TOOL_TO_TOP_BAR_ID: Map<EditorTool, String> = mapOf(
 )
 
 /**
- * Reverse mapping from secondary top bar item id to EditorTool for geometric figures.
+ * Reverse mapping from Secondary Toolbar item id to EditorTool for geometric figures.
  */
 val TOP_BAR_ID_TO_FIGURE_TOOL: Map<String, EditorTool> =
     FIGURE_TOOL_TO_TOP_BAR_ID.entries.associate { (k, v) -> v to k }
 
 /**
- * All secondary top bar ids that correspond to geometric figures.
+ * All Secondary Toolbar ids that correspond to geometric figures.
  */
 val ALL_FIGURE_TOP_BAR_IDS: Set<String> = FIGURE_TOOL_TO_TOP_BAR_ID.values.toSet()
 
