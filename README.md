@@ -165,11 +165,11 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
   - **Stylus Calibration**: Independent pressure multiplier (up to 4×) and minimum pressure floor (up to 1.00) — desktop Xournal++'s own ranges — plus precision budgets (Economy to Maximum).
 - **Toolbars & Interface**:
-  - **Modern vs Classic Interface**: Toggle between the **Modern UI** (default: floating dock tool rail and floating top bar dock with rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, and Material 3 tonal elevation) and **Classic UI** (dense edge-to-edge flat tool rail, circular buttons, compact tabs) via **Settings → Appearance → Modern interface**.
-  - **Top Bar**: Floating dock in Modern UI with document title chip, one-tap **Save** (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
+  - **Modern vs Classic Interface**: Toggle between the **Modern UI** (default: floating dock Main Toolbar and adaptive floating Secondary Toolbar dock with rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, and Material 3 tonal elevation) and **Classic UI** (dense edge-to-edge flat tool rail, circular buttons, compact tabs) via **Settings → Appearance → Modern interface**.
+  - **Top Bar**: Clean top bar with document title chip, one-tap **Save** (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
   - **Main Toolbar & Secondary Toolbar (Dual Toolbar)**:
     - **Main Toolbar**: The primary tool rail (pen, highlighter, eraser, select, color & size, zoom, layers, pages) dockable to Left, Right, Top, or Bottom.
-    - **Secondary Toolbar**: The geometric figures and tools toolbar (lines, rectangles, shapes, tables, circuits, logic gates, guides), displayed in the top bar without shrinking canvas space, or organized within the shapes menu.
+    - **Secondary Toolbar**: The geometric figures and tools toolbar (lines, rectangles, shapes, tables, circuits, logic gates, guides), displayed as an adaptive floating dock in the top bar enclosing only the active figures (adapting its width to their count).
   - Reorder, hide, or show buttons in both the Main Toolbar and Secondary Toolbar under **Settings → Toolbar**.
 - **Navigation & Scrolling**:
   - Configurable momentum scrolling (linear, quadratic, cubic, exponential curves) and panning sensitivity.

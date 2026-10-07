@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
@@ -143,151 +144,125 @@ fun EditorTopBar(
         settings?.toolbarPosition ?: ToolbarPosition.LEFT
     }
     val topBarHeight = if (isModern) 48.dp else 40.dp
-    val topAppBar = @Composable {
-        TopAppBar(
-            navigationIcon = {
-                if (settings != null && settings.showToolsInTopBar && effectivePosition == ToolbarPosition.LEFT && !ui.fullPage) {
-                    val spacerWidth = if (isModern) (SideToolbarModernTotalWidth - 10.dp).coerceAtLeast(0.dp) else SideToolbarWidth
-                    Spacer(Modifier.width(spacerWidth))
-                }
-            },
-            title = {
-                if (settings != null && onSettingsChange != null && settings.showToolsInTopBar) {
-                    TopBarToolsRow(
-                        ui = ui,
-                        pane = pane,
-                        settings = settings,
-                        onSettingsChange = onSettingsChange,
-                    )
-                } else if (isModern) {
-                    val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                    ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-            },
-            modifier = Modifier.height(topBarHeight),
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (isModern) Color.Transparent else MaterialTheme.colorScheme.surface,
-            ),
-            actions = {
-                // Order is deliberate: split view sits directly right of the search button, and Save —
-                // the more frequent action — takes the slot split view used to hold, right before the
-                // overflow menu. Undo/redo stay paired between them.
-                SearchControls(pane, modern = isModern)
-                if (isModern) {
-                    IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.Filled.VerticalSplit,
-                            contentDescription = if (splitView) "Close split view" else "Split view",
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-                        tonalElevation = 1.dp,
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
-                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
-                            }
-                            IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
-                                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
-                            }
-                        }
-                    }
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(horizontal = 2.dp),
-                    ) {
-                        IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                } else {
-                    IconButton(onClick = onToggleSplitView) {
-                        Icon(
-                            Icons.Filled.VerticalSplit,
-                            contentDescription = if (splitView) "Close split view" else "Split view",
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-                    }
-                    IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
-                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
-                    }
-                    IconButton(onClick = onSave) {
-                        Icon(Icons.Filled.Save, contentDescription = "Save")
-                    }
-                }
-                OverflowMenu(
-                    settings = settings,
-                    onSelectPenPreset = { preset ->
-                        if (settings != null && onSettingsChange != null) {
-                            val updated = settings.copy(
-                                selectedPenPresetId = preset.id,
-                                minimumPressure = preset.minimumPressure,
-                                pressureMultiplier = preset.pressureMultiplier,
-                            )
-                            onSettingsChange(updated)
-                            pane.surface?.applySettings(updated)
-                        }
-                    },
-                    onOpen = onOpen,
-                    onNewTab = onNewTab,
-                    onSave = onSave,
-                    onSaveAs = { ui.showSaveAs = true },
-                    onImportPdf = { ui.showImportPdf = true },
-                    onExportPdf = onExportPdf,
-                    onSettings = { ui.showSettings = true },
-                    penDiagnostics = ui.penDiagnostics,
-                    onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
-                    onOpenPenParameters = { ui.showPenParametersDialog = true },
-                )
-                if (isModern) {
-                    Spacer(Modifier.width(4.dp))
-                }
-            },
-        )
-    }
-
-    if (isModern) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 3.dp,
-                shadowElevation = 4.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-            ) {
-                topAppBar()
+    TopAppBar(
+        navigationIcon = {
+            if (settings != null && settings.showToolsInTopBar && effectivePosition == ToolbarPosition.LEFT && !ui.fullPage) {
+                val spacerWidth = if (isModern) SideToolbarModernTotalWidth else SideToolbarWidth
+                Spacer(Modifier.width(spacerWidth))
             }
-        }
-    } else {
-        topAppBar()
-    }
+        },
+        title = {
+            if (settings != null && onSettingsChange != null && settings.showToolsInTopBar) {
+                TopBarToolsRow(
+                    ui = ui,
+                    pane = pane,
+                    settings = settings,
+                    onSettingsChange = onSettingsChange,
+                )
+            } else if (isModern) {
+                val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                }
+            }
+        },
+        modifier = modifier.height(topBarHeight),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+        ),
+        actions = {
+            // Order is deliberate: split view sits directly right of the search button, and Save —
+            // the more frequent action — takes the slot split view used to hold, right before the
+            // overflow menu. Undo/redo stay paired between them.
+            SearchControls(pane, modern = isModern)
+            if (isModern) {
+                IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Filled.VerticalSplit,
+                        contentDescription = if (splitView) "Close split view" else "Split view",
+                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                    tonalElevation = 1.dp,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                ) {
+                    IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    }
+                }
+            } else {
+                IconButton(onClick = onToggleSplitView) {
+                    Icon(
+                        Icons.Filled.VerticalSplit,
+                        contentDescription = if (splitView) "Close split view" else "Split view",
+                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
+                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                }
+                IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
+                    Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+                }
+                IconButton(onClick = onSave) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save")
+                }
+            }
+            OverflowMenu(
+                settings = settings,
+                onSelectPenPreset = { preset ->
+                    if (settings != null && onSettingsChange != null) {
+                        val updated = settings.copy(
+                            selectedPenPresetId = preset.id,
+                            minimumPressure = preset.minimumPressure,
+                            pressureMultiplier = preset.pressureMultiplier,
+                        )
+                        onSettingsChange(updated)
+                        pane.surface?.applySettings(updated)
+                    }
+                },
+                onOpen = onOpen,
+                onNewTab = onNewTab,
+                onSave = onSave,
+                onSaveAs = { ui.showSaveAs = true },
+                onImportPdf = { ui.showImportPdf = true },
+                onExportPdf = onExportPdf,
+                onSettings = { ui.showSettings = true },
+                penDiagnostics = ui.penDiagnostics,
+                onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
+                onOpenPenParameters = { ui.showPenParametersDialog = true },
+            )
+        },
+    )
 }
 
 @Composable
@@ -662,6 +637,8 @@ fun rememberToolbarStyleCallbacks(
 /**
  * Secondary Toolbar: a compact, horizontal scrollable row of geometric figures and tools that sits
  * inside the top bar, allowing quick access without shrinking the canvas.
+ * In Modern UI, renders as a floating dock surface enclosing only the figures, adapting its width
+ * dynamically to the number of visible figures.
  */
 @Composable
 fun TopBarToolsRow(
@@ -673,89 +650,119 @@ fun TopBarToolsRow(
 ) {
     val surface = pane.surface
     val modern = settings.modernUi
-    Row(
-        modifier = modifier
-            .fillMaxHeight()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        for (item in visibleTopBarItems(settings.topBarOrder, settings.topBarHidden, settings.shapeHidden)) {
-            val single = singleToolForTopBarId(item.id)
-            if (single != null) {
-                CompactSingleToolButton(
-                    tool = single,
-                    active = ui.tool == single,
-                    modern = modern,
-                    onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
-                )
-            } else if (item.id == "triangle" || item.id == "trapezoid") {
-                val triangle = item.id == "triangle"
-                val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
-                val kindLabels = if (triangle) {
-                    TriangleKind.values().map { it.label }
-                } else {
-                    TrapezoidKind.values().map { it.label }
-                }
-                val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
-                CompactShapeKindButton(
-                    tool = tool,
-                    active = ui.tool == tool,
-                    modern = modern,
-                    heading = if (triangle) "Triangle" else "Trapezoid",
-                    kinds = kindLabels,
-                    selectedKind = kind,
-                    editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
-                    onSelectKind = { index ->
-                        val updated = if (triangle) {
-                            settings.copy(triangleKind = TriangleKind.values()[index])
-                        } else {
-                            settings.copy(trapezoidKind = TrapezoidKind.values()[index])
-                        }
-                        onSettingsChange(updated)
-                        surface?.activateTool(tool, ui, updated, onSettingsChange)
-                    },
-                    // The scalene variant is the one with angles to set, so while it is the live one the
-                    // button keeps its pencil: one tap reopens the dialog instead of digging into a menu.
-                    showEditor = ui.tool == tool &&
-                        (if (triangle) settings.triangleKind == TriangleKind.SCALENE
-                        else settings.trapezoidKind == TrapezoidKind.SCALENE),
-                    editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
-                    onEditKind = {
-                        if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
-                    },
-                    onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
-                )
+    val items = visibleTopBarItems(settings.topBarOrder, settings.topBarHidden, settings.shapeHidden)
+    if (items.isEmpty()) return
+
+    val content = @Composable {
+        Row(
+            modifier = if (modern) {
+                Modifier
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .horizontalScroll(rememberScrollState())
             } else {
-                val group = toolGroupForRailItem(item.id)
-                if (group != null) {
-                    CompactTopBarToolButton(
-                        group = group,
-                        members = group.tools,
-                        selected = group.selected(settings.toolGroupSelections),
-                        active = ui.tool in group.tools,
+                Modifier
+                    .fillMaxHeight()
+                    .horizontalScroll(rememberScrollState())
+            },
+            horizontalArrangement = Arrangement.spacedBy(if (modern) 4.dp else 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            for (item in items) {
+                val single = singleToolForTopBarId(item.id)
+                if (single != null) {
+                    CompactSingleToolButton(
+                        tool = single,
+                        active = ui.tool == single,
                         modern = modern,
-                        onTool = { tool ->
-                            surface?.activateTool(tool, ui, settings, onSettingsChange)
-                        },
-                        onPick = { picked ->
-                            val base = settings.copy(
-                                toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
-                            )
-                            surface?.activateTool(picked, ui, base, onSettingsChange)
-                        },
+                        onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                     )
-                } else if (item.id == "guides") {
-                    CompactGuidePopupButton(
-                        kind = settings.guideKind,
+                } else if (item.id == "triangle" || item.id == "trapezoid") {
+                    val triangle = item.id == "triangle"
+                    val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
+                    val kindLabels = if (triangle) {
+                        TriangleKind.values().map { it.label }
+                    } else {
+                        TrapezoidKind.values().map { it.label }
+                    }
+                    val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
+                    CompactShapeKindButton(
+                        tool = tool,
+                        active = ui.tool == tool,
                         modern = modern,
-                        onKind = {
-                            onSettingsChange(settings.copy(guideKind = it))
-                            pane.surface?.placeGuide(it)
+                        heading = if (triangle) "Triangle" else "Trapezoid",
+                        kinds = kindLabels,
+                        selectedKind = kind,
+                        editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
+                        onSelectKind = { index ->
+                            val updated = if (triangle) {
+                                settings.copy(triangleKind = TriangleKind.values()[index])
+                            } else {
+                                settings.copy(trapezoidKind = TrapezoidKind.values()[index])
+                            }
+                            onSettingsChange(updated)
+                            surface?.activateTool(tool, ui, updated, onSettingsChange)
                         },
+                        // The scalene variant is the one with angles to set, so while it is the live one the
+                        // button keeps its pencil: one tap reopens the dialog instead of digging into a menu.
+                        showEditor = ui.tool == tool &&
+                            (if (triangle) settings.triangleKind == TriangleKind.SCALENE
+                            else settings.trapezoidKind == TrapezoidKind.SCALENE),
+                        editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
+                        onEditKind = {
+                            if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
+                        },
+                        onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
                     )
+                } else {
+                    val group = toolGroupForRailItem(item.id)
+                    if (group != null) {
+                        CompactTopBarToolButton(
+                            group = group,
+                            members = group.tools,
+                            selected = group.selected(settings.toolGroupSelections),
+                            active = ui.tool in group.tools,
+                            modern = modern,
+                            onTool = { tool ->
+                                surface?.activateTool(tool, ui, settings, onSettingsChange)
+                            },
+                            onPick = { picked ->
+                                val base = settings.copy(
+                                    toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
+                                )
+                                surface?.activateTool(picked, ui, base, onSettingsChange)
+                            },
+                        )
+                    } else if (item.id == "guides") {
+                        CompactGuidePopupButton(
+                            kind = settings.guideKind,
+                            modern = modern,
+                            onKind = {
+                                onSettingsChange(settings.copy(guideKind = it))
+                                pane.surface?.placeGuide(it)
+                            },
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    if (modern) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 3.dp,
+            shadowElevation = 4.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            modifier = modifier
+                .wrapContentWidth()
+                .height(40.dp),
+        ) {
+            content()
+        }
+    } else {
+        Box(modifier = modifier) {
+            content()
         }
     }
 }
