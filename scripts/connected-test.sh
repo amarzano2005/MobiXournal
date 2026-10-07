@@ -13,10 +13,13 @@ set -eu
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLCHAIN="${ANDROID_TOOLCHAIN:-/data/android}"
-RUNNER="$TOOLCHAIN/.claude/skills/android-dev/scripts/connected-test.sh"
+RUNNER="$TOOLCHAIN/scripts/connected-test.sh"
+if [ ! -x "$RUNNER" ] && [ -x "$TOOLCHAIN/.claude/skills/android-dev/scripts/connected-test.sh" ]; then
+    RUNNER="$TOOLCHAIN/.claude/skills/android-dev/scripts/connected-test.sh"
+fi
 
 if [ ! -x "$RUNNER" ]; then
-    echo "Shared connected-test runner not found at $RUNNER (set ANDROID_TOOLCHAIN)." >&2
+    echo "Shared connected-test runner not found at $TOOLCHAIN/scripts/connected-test.sh (set ANDROID_TOOLCHAIN)." >&2
     exit 1
 fi
 

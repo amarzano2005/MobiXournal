@@ -22,7 +22,7 @@ write stays diff-friendly and every task carries full metadata.
 ```sh
 scripts/todo.sh <command> [options]          # operator wrapper (from repo root)
 # or directly:
-python3 .claude/skills/todo/scripts/todo.py <command> [options]
+python3 scripts/todo/todo.py <command> [options]
 ```
 
 Run `scripts/todo.sh <command> --help` for a command's options.

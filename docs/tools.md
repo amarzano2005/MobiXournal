@@ -59,7 +59,7 @@ emulator you drive over `adb`, plus physical devices on the tailnet (see its `co
 change with a runtime surface must be installed and exercised on the emulator, not just built.
 
 - **Where it lives:** `/data/android/` — `docker-compose.yml` (the emulator container) and
-  `.claude/skills/android-dev/scripts/emulator.sh` (the driver), alongside `adb-targets.sh`
+  the emulator driver scripts (`emulator.sh`), alongside `adb-targets.sh`
   which lists every target across the two isolated adb worlds (host adb → physical devices,
   container adb → emulator). Full details in that directory's `README.md`; don't duplicate them here.
 - **How to run it:** `emulator.sh` dispatches `status | up | boot-wait | down | install <apk> |
@@ -81,14 +81,12 @@ change with a runtime surface must be installed and exercised on the emulator, n
      drawing, tool selection, open/save, and other interactions end-to-end.
   Report what the screenshots and logs actually showed; a change isn't verified until it's
   been run this way on the emulator.
-- **Promoting to the owner's physical devices — not our job.** Emulator verification is where
-  our loop ends. The owner's Android tooling picks up the built APK and moves it into the **BAM
-  store**, and the physical devices (Pixel 8a, Galaxy Tab S9 Ultra) install the current build from
-  there. Don't `adb install` to those devices as a routine step. (Manual `adb -s <ip>:5555 install
-  -r …` over the tailnet still works if you ever need a one-off, but it isn't part of the standard
-  flow.)
+- **Promoting to physical devices — not our job.** Emulator verification is where
+  our loop ends. Deployment tooling or manual installation handles moving the built APK to
+  physical devices as needed. Don't `adb install` to those devices as a routine step. (Manual `adb -s <ip>:5555 install
+  -r …` still works if you ever need a one-off, but it isn't part of the standard flow.)
 - **Running the instrumented (`androidTest`) suite:** use `scripts/connected-test.sh`
-  (wrapper over `/data/android/.claude/skills/android-dev/scripts/connected-test.sh`), **not**
+  (wrapper over the toolchain's `connected-test.sh`), **not**
   Gradle's `connectedDebugAndroidTest`. Gradle's task starts an adb server inside the throwaway
   build container — a different adb world than the emulator — so it dies with "No connected
   devices!". The wrapper instead builds the app + `androidTest` APKs in the builder, reads the

@@ -85,24 +85,24 @@ The **repository layout** (every package/module and what it does) lives in
 either here.
 
 ```sh
-# The canonical build + check loop for this project. Builds run through the SHARED Android
-# toolchain in /data/android (the one front door for every APK on this box); scripts/build.sh
-# is a thin wrapper over it. See docs/tools.md for the pipeline.
-scripts/build.sh                       # build: unit tests + debug APK (default loop)
-scripts/build.sh testDebugUnitTest     # tests only (JVM; no device needed)
-scripts/build.sh clean assembleDebug   # clean release-path build of the debug APK
+# The canonical build + check loop for this project:
+# On host systems (Windows / macOS / Linux):
+./gradlew testDebugUnitTest            # unit tests (JVM; no device needed)
+./gradlew assembleDebug                # build debug APK
+
+# On environments with the shared Android toolchain in /data/android:
+scripts/build.sh                       # build: unit tests + debug APK
+scripts/build.sh testDebugUnitTest     # tests only
 ```
 
-**Use the `/data/android` toolchain for everything Android — going forward there is no other
-path.** Never build against a host JDK/SDK/Gradle or an in-repo container. The full build +
-emulator-test loop is owned by `docs/tools.md`.
+**Build loop:** use the Gradle wrapper (`./gradlew` or `.\gradlew.bat`), or `scripts/build.sh` when using the containerized pipeline. See `docs/tools.md` for tooling details.
 
 **The task's `rebuild` and `emulator_debug` flags decide how far to go — they are load-bearing,
 not advisory.** Every `TODO.toml` task carries these two flags (owned by the `todo` skill; see
-`.claude/skills/todo/SKILL.md`), and they are the authoritative answer to two questions:
+`skills/todo/SKILL.md`), and they are the authoritative answer to two questions:
 - **`rebuild`** — whether to build the APK **at all** for this task. `false` means the change
   doesn't warrant a fresh APK build (e.g. docs, or a run of rapid-fire tweaks); `true` (the
-  default) means build it through `scripts/build.sh`.
+  default) means build it.
 - **`emulator_debug`** — whether to **install and exercise on the `/data/android` emulator**.
   `false` (the default) means **skip the emulator pass entirely** for this task; a clean build +
   unit tests is sufficient. `true` is the full pass: install the APK and actually drive it —
@@ -227,7 +227,7 @@ pile of done items. Status lives in these two files only — not here and not in
 
 Both are **TOML**, not Markdown, and each task carries structured metadata (`id`, `status`,
 `category`, `urgency`, `order`, `created`/`completed`, `tags`). **Drive them through the
-`todo` skill** (`scripts/todo.sh <command>`, documented in `.claude/skills/todo/SKILL.md`)
+`todo` skill** (`scripts/todo.sh <command>`, documented in `skills/todo/SKILL.md`)
 rather than hand-editing, so ids, ordering, and metadata stay consistent and the files stay
 diff-friendly. The skill also answers the "how many tasks / bugs / features are left" kind
 of question (`scripts/todo.sh stats`).
