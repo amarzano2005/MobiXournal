@@ -17,6 +17,39 @@ finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-o
 growth = "This file only grows; nothing is removed from it."
 
 [[task]]
+id = "refuse-a-settings-import-that-is-not-a-compatible-backup"
+title = "Refuse a settings import that is not a compatible backup"
+description = "Settings backup import now runs through AppSettingsBackup.validate, which refuses anything that is not a MobiXournal backup (unparseable JSON, non-object root, missing/non-numeric/zero version) and names a backup from a newer app version with its version, instead of silently accepting it; BackupSection reports the reason in a Toast. The reader stays tolerant of older partial v1 backups. Five new AppSettingsBackupTest cases; README and docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-07
+completed = 2026-10-07
+tags = []
+
+[[task]]
+id = "row-layout-for-figure-variant-menus"
+title = "Lay the triangle and trapezoid variant menus out in rows"
+description = "Share one ToolVariantPicker composable between the triangle and trapezoid variant menus so a figure kind is picked from a two-per-row cell list instead of the old single-column pop-up; an inline pencil on the editable kind picks it and opens its angle dialog in one gesture (VariantCell in ui/ToolbarPopup.kt, variantRows()/VARIANT_ROW_SIZE in ui/ToolGroups.kt). ToolGroupsTest covers variantRows for 0-7 kinds plus both figures' concrete layouts. docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-07
+completed = 2026-10-07
+tags = []
+
+[[task]]
+id = "row-layout-for-tool-group-pickers"
+title = "Lay tool group pickers out in rows"
+description = "Replace the old heading-plus-item pop-up for a tool group with one row-based picker: ToolGroup.pickerLayout marks the wide group (Geometric Shapes, PICKER_ROW_SIZE per row) while the rest lay out two to a row, ToolGroupPicker/ToolPickerCell in ui/ToolbarPopup.kt render it, and ToolGroupsTest covers pickerRows and every group layout. docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-07
+completed = 2026-10-07
+tags = []
+
+[[task]]
 id = "add-active-circuit-components"
 title = "Add active circuit components"
 description = "Add active electronic components (diode, LED, zener, op-amp, BJT NPN/PNP, DC source, current source) with dedicated Active circuits group, Passive circuits renaming, and full tests"
