@@ -147,6 +147,61 @@ class AppSettingsBackupTest {
     }
 
     @Test
+    fun `a freshly exported backup is accepted`() {
+        val original = AppSettings(fingerDraws = true, themeMode = ThemeMode.DARK)
+        assertEquals(
+            BackupCheck.Ok(original),
+            AppSettingsBackup.validate(AppSettingsBackup.toJson(original)),
+        )
+    }
+
+    @Test
+    fun `an older partial backup is still compatible`() {
+        val check = AppSettingsBackup.validate("""{"version": 1, "fingerDraws": true}""")
+        assertTrue("a version-1 backup imports", check is BackupCheck.Ok)
+        val settings = (check as BackupCheck.Ok).settings
+        assertTrue(settings.fingerDraws)
+        // Fields this backup predates fall back to their defaults rather than failing the import.
+        assertEquals(AppSettings().themeMode, settings.themeMode)
+        assertEquals(AppSettings().penColors, settings.penColors)
+    }
+
+    @Test
+    fun `a backup from a newer version is refused instead of silently downgraded`() {
+        val check = AppSettingsBackup.validate("""{"version": 99, "fingerDraws": true}""")
+        assertEquals(BackupCheck.TooNew(99), check)
+        assertTrue("the message names the offending version", check.message.contains("99"))
+        assertTrue(
+            "the message says what this build reads",
+            check.message.contains(AppSettingsBackup.CURRENT_VERSION.toString()),
+        )
+    }
+
+    @Test
+    fun `files that are not settings backups are refused`() {
+        for (json in listOf(
+            "{ this is not valid json :;;;",
+            "",
+            "[]",
+            "\"a string\"",
+            "42",
+            "{}",
+            """{"fingerDraws": true}""",
+            """{"version": "1"}""",
+            """{"version": 0}""",
+        )) {
+            assertEquals("for <$json>", BackupCheck.NotABackup, AppSettingsBackup.validate(json))
+        }
+    }
+
+    @Test
+    fun `a refused import carries a reason and an accepted one does not`() {
+        assertTrue(BackupCheck.NotABackup.message.isNotBlank())
+        assertTrue(BackupCheck.TooNew(2).message.isNotBlank())
+        assertTrue(BackupCheck.Ok(AppSettings()).message.isEmpty())
+    }
+
+    @Test
     fun `corrupt json string returns fallback without throwing`() {
         val fallback = AppSettings(fingerDraws = true)
         val restored = AppSettingsBackup.fromJson("{ this is not valid json :;;;", fallback)

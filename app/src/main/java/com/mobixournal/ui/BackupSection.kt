@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Backup and restore settings: export current configuration to a JSON file or import
- * from an existing backup. Fully compatible across app versions.
+ * from an existing backup. An import accepts **only** a compatible backup ([AppSettingsBackup.validate])
+ * and reports the reason otherwise; older backups still import, newer ones are refused rather than
+ * silently downgraded.
  */
 @Composable
 fun BackupSection(
@@ -69,9 +71,14 @@ fun BackupSection(
                     stream.bufferedReader(Charsets.UTF_8).readText()
                 } ?: throw IllegalStateException("Could not open file")
 
-                val imported = AppSettingsBackup.fromJson(json, fallback = AppSettings())
-                onChange(imported)
-                Toast.makeText(context, "Settings imported successfully", Toast.LENGTH_SHORT).show()
+                when (val check = AppSettingsBackup.validate(json)) {
+                    is BackupCheck.Ok -> {
+                        onChange(check.settings)
+                        Toast.makeText(context, "Settings imported successfully", Toast.LENGTH_SHORT).show()
+                    }
+                    // Anything that isn't a compatible backup is refused outright, with the reason.
+                    else -> Toast.makeText(context, check.message, Toast.LENGTH_LONG).show()
+                }
             } catch (e: Exception) {
                 Toast.makeText(
                     context,
@@ -105,7 +112,8 @@ fun BackupSection(
     Spacer(Modifier.height(4.dp))
     Text(
         "Load preferences from a previously exported JSON file. Missing settings will default to factory " +
-            "values, and unrecognized settings from newer versions are safely ignored.",
+            "values; a file that isn't a MobiXournal backup — or one written by a newer version of the app — " +
+            "is refused with an error.",
         style = MaterialTheme.typography.bodySmall,
     )
     Spacer(Modifier.height(8.dp))

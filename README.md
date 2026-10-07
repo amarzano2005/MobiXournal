@@ -178,7 +178,9 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - Fast scroll thumb with page number bubble; persistent page counter and zoom indicator (tap to reset to 100%).
 - **Theming & Backups**:
   - Material 3 theme (System, Light, Dark) with optional Material You dynamic wallpaper colors (Android 12+).
-  - Complete settings and custom palette export/import to standard JSON.
+  - Complete settings and custom palette export/import to standard JSON. An import accepts only a
+    compatible MobiXournal backup (older versions included) and reports an error for anything else — a
+    wrong file, or a backup written by a newer app version.
 
 ### 💾 Saving & Exporting
 

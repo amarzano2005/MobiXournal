@@ -778,10 +778,10 @@ app/
       SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
       ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour
       AppearanceSection.kt   # the Appearance page: theme mode, dynamic theme, modern interface switch
-      BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework
+      BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework; an import is refused unless it is a compatible backup
       AboutSection.kt        # the About page and the links it sends people to
       AppSettings.kt         # AppSettings model + SettingsStore (SharedPreferences persistence)
-      AppSettingsBackup.kt   # JSON serializer/parser for AppSettings: versioned, resilient to missing/unknown keys (pure)
+      AppSettingsBackup.kt   # JSON serializer/parser for AppSettings: versioned, tolerant reader + a compatibility gate (BackupCheck) for imports (pure)
       theme/                 # XoppTheme (Material You), Color
   src/test/java/com/mobixournal/format/                         # JVM unit tests for the format layer
   src/test/java/com/mobixournal/render/                         # JVM unit tests for layout/grid/LaTeX geometry

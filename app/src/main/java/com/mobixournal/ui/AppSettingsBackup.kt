@@ -12,11 +12,15 @@ import com.mobixournal.render.TriangleKind
 /**
  * Pure Kotlin JSON serialization and deserialization for [AppSettings].
  *
- * Guarantees forward and backward compatibility across versions:
+ * Guarantees backward compatibility across versions:
  * - Missing properties in older backups fall back to the default values of [AppSettings].
- * - Unknown or future properties from newer backups are ignored.
  * - Malformed values fall back gracefully without failing the entire import.
  * - [AppSettings.sanitized] is always applied to the parsed result.
+ *
+ * [fromJson] stays deliberately tolerant — it is the reader for a file already known to be a backup.
+ * [validate] is the gate in front of it, which **refuses** anything that isn't a settings backup this
+ * build can read (see [BackupCheck]), so an import can never quietly load the wrong file or silently
+ * drop the settings a newer version wrote.
  */
 object AppSettingsBackup {
 
@@ -142,11 +146,41 @@ object AppSettingsBackup {
 
     /** Parses [jsonStr] into [AppSettings], falling back to [fallback] for any missing or invalid fields. */
     fun fromJson(jsonStr: String, fallback: AppSettings = AppSettings()): AppSettings {
-        val root = try {
-            JsonParser.parse(jsonStr) as? JsonNode.Obj ?: return fallback
+        val node = try {
+            JsonParser.parse(jsonStr)
         } catch (_: Exception) {
             return fallback
         }
+        return fromNode(node, fallback)
+    }
+
+    /**
+     * Checks a **picked file** before importing it: only a backup this build understands is accepted, so
+     * a wrong file — or a newer one whose settings this build would silently drop — is refused with a
+     * reason the UI can show ([BackupCheck.message]).
+     *
+     * A backup is compatible when it is a JSON object carrying this format's version stamp and that
+     * version is no newer than what this build writes ([CURRENT_VERSION]). Older and partial backups are
+     * welcome: from there the parse is the tolerant one [fromJson] already does, so a missing field falls
+     * back to its default instead of failing the import.
+     */
+    fun validate(jsonStr: String): BackupCheck {
+        val node = try {
+            JsonParser.parse(jsonStr)
+        } catch (_: Exception) {
+            return BackupCheck.NotABackup
+        }
+        val root = node as? JsonNode.Obj ?: return BackupCheck.NotABackup
+        val version = (root.map["version"] as? JsonNode.Num)?.value?.toInt()
+            ?: return BackupCheck.NotABackup
+        if (version > CURRENT_VERSION) return BackupCheck.TooNew(version)
+        if (version < 1) return BackupCheck.NotABackup
+        return BackupCheck.Ok(fromNode(root))
+    }
+
+    /** [fromNode] for an already-parsed JSON value; a non-object root degrades to [fallback]. */
+    internal fun fromNode(node: JsonNode, fallback: AppSettings = AppSettings()): AppSettings {
+        val root = node as? JsonNode.Obj ?: return fallback
 
         fun <E : Enum<E>> readEnum(key: String, values: Array<E>, default: E): E {
             val s = root.getStrOrNull(key) ?: return default
@@ -272,6 +306,31 @@ object AppSettingsBackup {
             }
         }
     }
+}
+
+/**
+ * The result of checking a picked file before importing it: whether it is a settings backup this build
+ * can read, and why not when it isn't. [AppSettingsBackup.validate] is the only producer.
+ */
+sealed interface BackupCheck {
+    /** A compatible backup, already parsed (tolerantly, like [AppSettingsBackup.fromJson]). */
+    data class Ok(val settings: AppSettings) : BackupCheck
+
+    /** Not a settings backup at all: unreadable JSON, a non-object root, or no version stamp. */
+    data object NotABackup : BackupCheck
+
+    /** A backup written by a **newer** app version, whose settings this build can't read faithfully. */
+    data class TooNew(val version: Int) : BackupCheck
+
+    /** A user-facing one-liner for a refused import; empty when [Ok]. */
+    val message: String
+        get() = when (this) {
+            is Ok -> ""
+            NotABackup -> "Not a MobiXournal settings backup"
+            is TooNew ->
+                "Backup from a newer MobiXournal (v$version); " +
+                    "this build reads up to v${AppSettingsBackup.CURRENT_VERSION}"
+        }
 }
 
 /** Lightweight JSON representation. */
