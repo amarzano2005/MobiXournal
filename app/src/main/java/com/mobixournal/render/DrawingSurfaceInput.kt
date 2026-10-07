@@ -480,6 +480,10 @@ internal fun DrawingSurfaceView.endGesture() {
     gesturePointerId = -1
     stylusOwner = false
     if (wasScrolling) momentum.launch(panSensitivity)
+    if (searchQuery.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
+        rebuildSearch()
+        render()
+    }
 }
 
 /** Record one undo step if this gesture actually changed the document. */

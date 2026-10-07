@@ -79,8 +79,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
             indexingGeneration++
             handwritingIndex = null
             indexingDoc = null
-            triggerBackgroundIndexing(value)
-            rebuildSearch()
+            if (searchQuery.isNotEmpty() && !isLiveGestureActive) {
+                rebuildSearch()
+            }
             onDocumentEdited?.invoke(value)
         }
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
@@ -557,8 +558,17 @@ class DrawingSurfaceView @JvmOverloads constructor(
     @Volatile private var indexingGeneration = 0
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val handwritingExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
-        Thread(r, "handwriting-index").apply { isDaemon = true }
+        Thread({
+            try {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (_: Throwable) {}
+            r.run()
+        }, "handwriting-index").apply { isDaemon = true }
     }
+
+    /** True during live continuous transforms/moves where intermediate search rebuilding would thrash. */
+    internal val isLiveGestureActive: Boolean
+        get() = gestures.moving || gestures.resizing || gestures.rotating || vspace.active
 
     // Live vertical-space drag: the grabbed page, the grab line (page pt) and its view-px Y for the
     // guide overlay. Like a selection move, each frame recomputes from the gesture-start snapshot.
@@ -613,7 +623,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
             mainHandler.post {
                 handwritingIndex = null
                 indexingDoc = null
-                triggerBackgroundIndexing(doc)
+                if (searchQuery.isNotEmpty()) {
+                    triggerBackgroundIndexing(doc)
+                }
             }
         }
     }
@@ -638,7 +650,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         notifySearchChanged()
         handwritingIndex = null
         indexingDoc = null
-        triggerBackgroundIndexing(this.docValue)
+        if (searchQuery.isNotEmpty()) {
+            triggerBackgroundIndexing(this.docValue)
+        }
         relayout()
         render()
         onLayersChanged?.invoke()
@@ -671,7 +685,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         notifySearchChanged()
         handwritingIndex = null
         indexingDoc = null
-        triggerBackgroundIndexing(docValue)
+        if (searchQuery.isNotEmpty()) {
+            triggerBackgroundIndexing(docValue)
+        }
         relayout()
         render()
         onLayersChanged?.invoke()
@@ -840,11 +856,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun searchStatus(): SearchStatus =
         SearchStatus(current = if (currentSearchHit >= 0) currentSearchHit + 1 else 0, total = searchHits.size)
 
-    private fun rebuildSearch() {
+    internal fun rebuildSearch() {
         val currentDoc = doc
-        if (handwritingIndex == null && DocumentSearch.totalStrokeCount(currentDoc) <= 800) {
-            handwritingIndex = HandwritingIndex.build(currentDoc)
-        } else if (searchQuery.isNotEmpty() && handwritingIndex == null && !isIndexingActive) {
+        if (searchQuery.isEmpty()) {
+            searchHits = emptyList()
+            currentSearchHit = -1
+            notifySearchChanged()
+            return
+        }
+        if (handwritingIndex == null && !isIndexingActive) {
             triggerBackgroundIndexing(currentDoc)
         }
         searchHits = DocumentSearch.find(doc, pdfTextIndex, searchQuery, handwritingIndex)

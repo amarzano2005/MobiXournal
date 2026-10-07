@@ -76,20 +76,8 @@ class DocumentSearchTest {
         )
     }
 
-    @Test fun autoIndexesHandwritingWhenIndexIsNullForNormalDocuments() {
+    @Test fun ignoresHandwritingWhenIndexIsNull() {
         val strokes = letterT(20.0, 50.0) + letterO(45.0, 50.0)
-        val doc = document(*strokes.toTypedArray())
-
-        val hits = DocumentSearch.find(doc, null, "to", null)
-        assertEquals(1, hits.size)
-        assertEquals(0, hits[0].pageIndex)
-    }
-
-    @Test fun skipsSynchronousHandwritingWhenHeavyDocumentIndexIsNull() {
-        val strokes = ArrayList<Stroke>()
-        for (i in 0 until 805) {
-            strokes.add(stroke(10.0 + i, 10.0, 20.0 + i, 20.0))
-        }
         val doc = document(*strokes.toTypedArray())
 
         val hits = DocumentSearch.find(doc, null, "to", null)
