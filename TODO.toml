@@ -22,15 +22,183 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .xopp format can represent on disk. If a capability cannot round-trip through the file, it is out of scope."
 
 [[task]]
-id = "give-the-dc-source-its-polarity-marks-on-canvas"
-title = "Give the DC source its polarity marks on canvas"
-description = "The DC voltage source's drawn symbol is two plain plates (long positive, short negative), while its rail glyph (DcSourceIcon) also shows a '+' above the positive lead and a thick short negative plate. Add the matching cues to CircuitShapes.dcSource in app/src/main/java/com/mobixournal/render/CircuitShapes.kt: emit the '+' as its own small two-segment stroke above the lead (like the op-amp's plus in opAmp), so the extra cue costs no extra width; the thick negative plate would need a per-point width on stroke 2, which currently breaks the 'all points carry the same widthPt' contract in ShapeBuilder, so leave the plate thin unless that contract is revisited. Verify with app/src/test/java/com/mobixournal/render/CircuitShapesTest.kt: buildMulti(DC_SOURCE) should then return 3 strokes and the '+' must sit above the positive (left) plate clear of the lead wire. Update the active-circuits bullet in README.md in the same commit."
+id = "two-finger-tap-undo-and-three-finger-redo"
+title = "Multi-touch gesture shortcuts: two-finger tap for Undo and three-finger tap for Redo"
+description = "Implement multi-touch gesture detection on DrawingSurfaceView: two-finger tap triggers Undo, three-finger tap triggers Redo. Add settings toggle in Settings -> Input -> Shortcuts, with palm-rejection guarding."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 10
+created = 2026-10-09
+tags = ["gestures", "input"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "recent-documents-dashboard-with-previews"
+title = "Recent documents dashboard with visual thumbnails (Future milestone)"
+description = "[Pianificato per versioni successive / Future milestone]: Implement a visual Recent Documents dashboard/dialog displaying .xopp document thumbnails decoded from the <preview> PNG tag, last opened timestamps, and pin-to-top support."
 status = "active"
 level = "task"
 category = "feature"
 urgency = "low"
-order = 10
-created = 2026-10-07
-tags = []
+order = 20
+created = 2026-10-09
+tags = ["documents", "ui", "future-milestone"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "pdf-table-of-contents-outline-navigation"
+title = "PDF Table of Contents outline navigation for annotated documents"
+description = "Extract and display the PDF outline/TOC bookmarks hierarchy in a navigation drawer or sheet, allowing one-tap jumping to target pages in multi-page annotated PDF documents."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 30
+created = 2026-10-09
+tags = ["pdf", "navigation"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "selection-alignment-and-distribution-tools"
+title = "Selection alignment and distribution layout tools"
+description = "Add alignment (left, center, right, top, middle, bottom) and even distribution (horizontal, vertical) actions to the floating selection action bar for multi-element selections, translating stroke/element coordinates directly."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 40
+created = 2026-10-09
+tags = ["selection", "tools"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "circuit-and-logic-symbols-expansion"
+title = "Circuit and logic symbols library expansion"
+description = "Expand active/passive circuit and logic components in CircuitShapes.kt / LogicGateShapes.kt: add DC voltage source polarity marks, electrical switches (open/closed), transformers (coupled inductor pairs), buffer gate, and electrical junction dots."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 50
+created = 2026-10-09
+tags = ["stem", "circuits"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "dimensioning-and-measurement-arrows"
+title = "Dimensioning and measurement arrows with integrated values"
+description = "Add technical dimensioning arrow figure tool with double-ended arrowheads and a break / center offset for length or label annotation in the Secondary Toolbar figures."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 60
+created = 2026-10-09
+tags = ["stem", "tools"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "page-stationery-templates-isometric-and-cornell"
+title = "Page stationery templates: isometric grid, Cornell notes, and millimeter paper"
+description = "Add technical and note-taking page stationery templates to page background styles: 60-degree isometric grid for 3D sketching, Cornell notes layout with cue column and summary footer, and engineering millimeter grid."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 70
+created = 2026-10-09
+tags = ["pages", "backgrounds"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "customizable-grid-and-line-spacing"
+title = "Customizable ruling spacing and line intervals for solid backgrounds"
+description = "Allow user-configurable line and grid pitch/spacing (in mm/pt) and margin offsets for solid ruled and graph backgrounds, preserving default attributes and desktop compatibility."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 80
+created = 2026-10-09
+tags = ["pages", "backgrounds"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "hold-to-snap-shape-recognition"
+title = "Hold-to-snap line and shape auto-straightening"
+description = "Add hold-to-snap gesture: holding the stylus tip still on canvas for ~500ms after drawing a stroke automatically snaps the stroke into a straight segment, arc, or recognized polygon before lift-off."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 90
+created = 2026-10-09
+tags = ["drawing", "gestures", "stylus"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "export-single-page-as-png-or-svg"
+title = "Export active page as PNG or SVG image"
+description = "Add an export option in the top bar / overflow menu to export the current active page directly as a high-resolution PNG image or scalable SVG vector file, suitable for quick sharing."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 100
+created = 2026-10-09
+tags = ["export", "io"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-2d-math-function-graph-plotter"
+title = "2D mathematical function graph plotter"
+description = "Add a STEM tool dialog to input analytic 2D mathematical expressions (e.g. y = sin(x), polynomial functions) over a specified domain [xmin, xmax], generating and placing standard vector strokes on the canvas."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 110
+created = 2026-10-09
+tags = ["stem", "math", "tools"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "stem-chemical-structures-and-bonds-tool"
+title = "Chemical molecular structures and carbon skeleton tool"
+description = "Add a STEM chemistry drawing guide with 60°/120° angular snapping for skeletal formulas, benzene rings, and single/double/triple chemical bonds."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 120
+created = 2026-10-09
+tags = ["stem", "chemistry", "tools"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "custom-page-bookmarks-and-labels"
+title = "Custom page bookmarks and color-coded labels"
+description = "Add page bookmarking support allowing users to mark key pages with custom labels or colors, accessible via a bookmarks list in the pages overview for quick navigation in large notebooks."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 130
+created = 2026-10-09
+tags = ["pages", "navigation"]
 rebuild = true
 emulator_debug = false
