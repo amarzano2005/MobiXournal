@@ -49,7 +49,7 @@ object AppSettingsBackup {
         b.append("  \"penWidths\": [")
             .append(settings.penWidths.joinToString(", "))
             .append("],\n")
-        b.append("  \"customColor\": ").append(settings.customColor).append(",\n")
+        b.append("  \"customColor\": ").append(settings.customColor?.toString() ?: "null").append(",\n")
         b.append("  \"defaultTool\": \"").append(settings.defaultTool.name).append("\",\n")
         b.append("  \"penEraserToggleKey\": \"").append(escape(settings.penEraserToggleKey)).append("\",\n")
         b.append("  \"handToggleKey\": \"").append(escape(settings.handToggleKey)).append("\",\n")
@@ -57,9 +57,14 @@ object AppSettingsBackup {
         b.append("  \"momentumCurve\": \"").append(settings.momentumCurve.name).append("\",\n")
         b.append("  \"panSensitivity\": ").append(settings.panSensitivity).append(",\n")
         b.append("  \"toolbarPosition\": \"").append(settings.toolbarPosition.name).append("\",\n")
-        b.append("  \"showToolsInTopBar\": ").append(settings.showToolsInTopBar).append(",\n")
         b.append("  \"penColors\": [")
             .append(settings.penColors.joinToString(", "))
+            .append("],\n")
+        b.append("  \"penFavorites\": [")
+            .append(settings.penFavorites.joinToString(", "))
+            .append("],\n")
+        b.append("  \"highlighterFavorites\": [")
+            .append(settings.highlighterFavorites.joinToString(", "))
             .append("],\n")
         b.append("  \"lastColor\": ").append(settings.lastColor).append(",\n")
         b.append("  \"lastWidth\": ").append(settings.lastWidth).append(",\n")
@@ -103,7 +108,6 @@ object AppSettingsBackup {
         b.append("  \"pageCounterHorizontal\": \"").append(settings.pageCounterHorizontal.name).append("\",\n")
         b.append("  \"themeMode\": \"").append(settings.themeMode.name).append("\",\n")
         b.append("  \"dynamicColor\": ").append(settings.dynamicColor).append(",\n")
-        b.append("  \"modernUi\": ").append(settings.modernUi).append(",\n")
         b.append("  \"toolShortcutKeys\": {")
             .append(settings.toolShortcutKeys.entries.joinToString(", ") { "\"${it.key.name}\": \"${escape(it.value)}\"" })
             .append("},\n")
@@ -244,7 +248,13 @@ object AppSettingsBackup {
             snapRotation = root.getBool("snapRotation", fallback.snapRotation),
             guideKind = readEnum("guideKind", GuideKind.values(), fallback.guideKind),
             penWidths = root.getFloatList("penWidths") ?: fallback.penWidths,
-            customColor = root.getInt("customColor", fallback.customColor),
+            // Presence, not fallback: a backup that carries an explicit null is "the custom slot is
+            // empty", which must clear the slot rather than leave the importing device's colour in it.
+            customColor = if (root.map.containsKey("customColor")) {
+                root.getIntOrNull("customColor")
+            } else {
+                fallback.customColor
+            },
             defaultTool = readEnum("defaultTool", EditorTool.values(), fallback.defaultTool),
             penEraserToggleKey = root.getStr("penEraserToggleKey", fallback.penEraserToggleKey),
             handToggleKey = root.getStr("handToggleKey", fallback.handToggleKey),
@@ -252,8 +262,9 @@ object AppSettingsBackup {
             momentumCurve = readEnum("momentumCurve", MomentumCurve.values(), fallback.momentumCurve),
             panSensitivity = root.getFloat("panSensitivity", fallback.panSensitivity),
             toolbarPosition = readEnum("toolbarPosition", ToolbarPosition.values(), fallback.toolbarPosition),
-            showToolsInTopBar = root.getBool("showToolsInTopBar", fallback.showToolsInTopBar),
             penColors = root.getIntList("penColors") ?: fallback.penColors,
+            penFavorites = root.getIntList("penFavorites") ?: fallback.penFavorites,
+            highlighterFavorites = root.getIntList("highlighterFavorites") ?: fallback.highlighterFavorites,
             lastColor = root.getInt("lastColor", fallback.lastColor),
             lastWidth = root.getFloat("lastWidth", fallback.lastWidth),
             highlighterColor = root.getInt("highlighterColor", fallback.highlighterColor),
@@ -282,7 +293,6 @@ object AppSettingsBackup {
             pageCounterHorizontal = readEnum("pageCounterHorizontal", PageCounterHorizontal.values(), fallback.pageCounterHorizontal),
             themeMode = readEnum("themeMode", ThemeMode.values(), fallback.themeMode),
             dynamicColor = root.getBool("dynamicColor", fallback.dynamicColor),
-            modernUi = root.getBool("modernUi", fallback.modernUi),
             toolShortcutKeys = toolShortcutKeys,
             colorShortcutKeys = colorShortcutKeys,
             presets = presets,

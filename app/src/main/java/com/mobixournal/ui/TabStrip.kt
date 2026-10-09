@@ -49,6 +49,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.rememberChromeColor
 
 /**
  * Everything the [TabStrip] needs, bundled so [EditorScreen]'s parameter list stays readable.
@@ -97,7 +98,7 @@ data class TabsUiState(
  * (no tabs at all) draws nothing.
  */
 @Composable
-fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier, modern: Boolean = false) {
+fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
     if (state.titles.isEmpty()) return
     // Drag-reorder state lives here, not in the chip: a drag walks the tab past its neighbours, so the
     // slot the gesture started in stops being the dragged tab after the first swap. [dragIndex] is
@@ -119,11 +120,12 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier, modern: Boolean 
         }
         scroll.animateScrollTo(target.toInt().coerceIn(0, scroll.maxValue))
     }
-    val stripHeight = if (modern) 38.dp else TAB_STRIP_HEIGHT
-    val containerColor = if (modern) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainer
+    // The strip is the chrome, not a fifth surface: same colour as the top bar it sits under, so the
+    // bar and the tabs read as one band.
+    val containerColor = rememberChromeColor()
     Row(
         modifier = modifier
-            .height(stripHeight)
+            .height(TAB_STRIP_HEIGHT)
             .background(containerColor)
             .onSizeChanged { viewportWidth = it.width.toFloat() }
             .horizontalScroll(scroll),
@@ -134,7 +136,6 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier, modern: Boolean 
                 title = title,
                 dotColor = state.dotColors.getOrNull(index),
                 selected = index == state.activeIndex,
-                modern = modern,
                 onSelect = { state.onSelect(index) },
                 onClose = { state.onClose(index) },
                 onMove = { state.onMove(index) },
@@ -163,24 +164,18 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier, modern: Boolean 
                 onBounds = { left, width -> activeBounds = left to width },
             )
         }
-        if (modern) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.padding(start = 4.dp, end = 8.dp),
-            ) {
-                IconButton(onClick = state.onNew, modifier = Modifier.size(30.dp)) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "New document",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        } else {
-            IconButton(onClick = state.onNew, modifier = Modifier.size(TAB_TOUCH_TARGET)) {
-                Icon(Icons.Filled.Add, contentDescription = "New document", modifier = Modifier.size(TAB_NEW_ICON))
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+        ) {
+            IconButton(onClick = state.onNew, modifier = Modifier.size(30.dp)) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "New document",
+                    modifier = Modifier.size(TAB_NEW_ICON),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -200,7 +195,6 @@ private fun TabChip(
     title: String,
     dotColor: Int?,
     selected: Boolean,
-    modern: Boolean = false,
     onSelect: () -> Unit,
     onClose: () -> Unit,
     onMove: () -> Unit,
@@ -217,14 +211,14 @@ private fun TabChip(
     var chipWidth by remember { mutableFloatStateOf(1f) }
     Row(
         modifier = Modifier
-            .padding(horizontal = 4.dp, vertical = if (modern) 3.dp else TAB_CHIP_VERTICAL_PADDING)
+            .padding(horizontal = 4.dp, vertical = TAB_CHIP_VERTICAL_PADDING)
             .heightIn(min = TAB_TOUCH_TARGET)
             .graphicsLayer { translationX = dragOffset }
             .onSizeChanged { chipWidth = it.width.toFloat().coerceAtLeast(1f) }
             .onGloballyPositioned {
                 if (selected) onBounds(it.positionInParent().x, it.size.width.toFloat())
             }
-            .tabChipInteractions(selected, modern, onSelect, { menuOpen = true }, drag, chipWidth)
+            .tabChipInteractions(selected, onSelect, { menuOpen = true }, drag, chipWidth)
             .padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -243,10 +237,8 @@ private fun TabChip(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (modern && selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) {
-                if (modern) colors.onSurface else colors.onSecondaryContainer
-            } else colors.onSurfaceVariant,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) colors.onSurface else colors.onSurfaceVariant,
             modifier = Modifier.widthIn(min = 64.dp, max = 180.dp),
         )
         TabCloseButton(title = title, selected = selected, onClose = onClose)
@@ -257,19 +249,18 @@ private fun TabChip(
 @Composable
 private fun Modifier.tabChipInteractions(
     selected: Boolean,
-    modern: Boolean,
     onSelect: () -> Unit,
     onLongClick: () -> Unit,
     drag: androidx.compose.runtime.State<Triple<() -> Unit, (Float, Float) -> Unit, () -> Unit>>,
     chipWidth: Float,
 ): Modifier {
-    val shape = if (modern) RoundedCornerShape(14.dp) else RoundedCornerShape(8.dp)
-    val background = if (modern) {
-        if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.45f)
+    val shape = RoundedCornerShape(TAB_CHIP_CORNER)
+    val background = if (selected) {
+        MaterialTheme.colorScheme.surfaceContainerHighest
     } else {
-        if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.45f)
     }
-    val borderModifier = if (modern && selected) {
+    val borderModifier = if (selected) {
         Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)), shape)
     } else {
         Modifier
@@ -326,7 +317,7 @@ private fun TabCloseButton(
             Icons.Filled.Close,
             contentDescription = "Close $title",
             modifier = Modifier.size(TAB_CLOSE_ICON),
-            tint = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
+            tint = if (selected) colors.onSurface else colors.onSurfaceVariant,
         )
     }
 }
@@ -348,5 +339,8 @@ private val TAB_NEW_ICON = 18.dp
 /** Vertical breathing room above and below each chip. */
 private val TAB_CHIP_VERTICAL_PADDING = 3.dp
 
-/** Strip height: one touch target plus the breathing room above and below each chip. */
-private val TAB_STRIP_HEIGHT = TAB_TOUCH_TARGET + TAB_CHIP_VERTICAL_PADDING * 2
+/** The strip's height: a touch target's worth of tab, trimmed by two dp so the band stays slim. */
+private val TAB_STRIP_HEIGHT = TAB_TOUCH_TARGET + TAB_CHIP_VERTICAL_PADDING * 2 - 4.dp
+
+/** Corner of a tab chip — rounded enough to read as a pill, square enough to pack several. */
+private val TAB_CHIP_CORNER = 14.dp

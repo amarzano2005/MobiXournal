@@ -55,16 +55,24 @@ import androidx.compose.ui.window.DialogProperties
 /**
  * Onboarding dialog presented on the first launch of the app.
  *
- * Walks the user through three core aspects of the app:
+ * Walks the user through four core aspects of the app:
  * 1. Stylus setup: pressure sensitivity, barrel-button shortcuts, and palm rejection.
  * 2. Shape sizing & pressure sensitivity: explains why shapes have uniform thickness
  *    and how to match or balance them with freehand pen strokes in Settings.
  * 3. Graphics tablet support: using hardware tablets and assigning tool shortcuts.
+ * 4. Handedness: which vertical edge the Main Toolbar docks to (left by default).
+ *
+ * Step 4 edits [AppSettings.toolbarPosition] through [onToolbarPosition], so the choice takes effect
+ * while the dialog is still up — the rail visibly moves behind it.
  */
 @Composable
-fun OnboardingDialog(onDismiss: () -> Unit) {
+fun OnboardingDialog(
+    onDismiss: () -> Unit,
+    toolbarPosition: ToolbarPosition = ToolbarPosition.LEFT,
+    onToolbarPosition: (ToolbarPosition) -> Unit = {},
+) {
     var step by remember { mutableIntStateOf(1) }
-    val totalSteps = 3
+    val totalSteps = 4
 
     BackHandler(enabled = true) {
         if (step > 1) step-- else onDismiss()
@@ -94,6 +102,7 @@ fun OnboardingDialog(onDismiss: () -> Unit) {
                         1 -> OnboardingStep1Stylus()
                         2 -> OnboardingStep2Figures()
                         3 -> OnboardingStep3Tablet()
+                        4 -> OnboardingStep4Handedness(toolbarPosition, onToolbarPosition)
                     }
                 }
 

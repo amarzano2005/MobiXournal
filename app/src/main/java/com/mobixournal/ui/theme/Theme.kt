@@ -71,17 +71,24 @@ fun XoppTheme(
         darkTheme -> DarkColors
         else -> LightColors
     }
-    // Paint the status bar with the app's own surface colour instead of leaving it transparent over
+    // Paint both system bars with the app's own chrome colour instead of leaving them transparent over
     // the launch theme's (always white) window background, then pick the icon contrast from that
-    // colour's luminance. Deriving it from `darkTheme` alone gave white icons on a white bar.
-    val statusBar = colorScheme.surface
+    // colour's luminance. Deriving it from `darkTheme` alone gave white icons on a white bar. The bars
+    // take the *same* value as the top bar and the tab strip (`rememberChromeColor`), so the frame
+    // around the document is one continuous field from the status bar to the navigation bar.
+    // `colorScheme.background` directly: [rememberChromeColor] reads the ambient theme, and this runs
+    // above the `MaterialTheme` below, so it would report the *outer* scheme rather than this one.
+    val chrome = colorScheme.background
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = statusBar.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                statusBar.luminance() > 0.5f
+            window.statusBarColor = chrome.toArgb()
+            window.navigationBarColor = chrome.toArgb()
+            val controller = WindowCompat.getInsetsController(window, view)
+            val lightIcons = chrome.luminance() > 0.5f
+            controller.isAppearanceLightStatusBars = lightIcons
+            controller.isAppearanceLightNavigationBars = lightIcons
         }
     }
     MaterialTheme(colorScheme = colorScheme, content = content)

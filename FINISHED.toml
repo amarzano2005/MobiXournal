@@ -2,6 +2,12 @@
 #
 # Append-only, newest first (see AGENTS.md -> documentation map). Tasks land
 # here when `scripts/todo.sh done <id>` moves them out of TODO.toml.
+#
+# `release` separates shipped work from work pending the next version:
+#   absent        -> pending; belongs to the next release's changelog
+#   "X.Y.Z"       -> shipped in that version
+# `scripts/todo.sh release --version X.Y.Z` stamps the pending set and drafts
+# docs/releases/vX.Y.Z.md; `list --finished --unreleased` shows the pending set.
 
 schema_version = 1
 
@@ -11,10 +17,228 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
+latest_release = "1.2.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-only."
 growth = "This file only grows; nothing is removed from it."
+release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
+
+[[task]]
+id = "settings-ui-polish-and-permanent-secondary-toolbar"
+title = "Settings UI polish and permanent Secondary Toolbar"
+description = "Permanent secondary toolbar (removed dual mode toggle), modernized Material 3 grouped settings interface, rounded search bar, 3-subpage shortcuts menu, and matching transparent color rail slot."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "remove-the-classic-ui-and-its-modern-interface-toggle"
+title = "Remove the classic UI and its Modern interface toggle"
+description = "Delete the classic compact layout and the AppSettings.modernUi switch that selected it, leaving the Material 3 floating dock as the only chrome. Drop modernUi from AppSettings (property, KEY_MODERN_UI, load/save), AppSettingsBackup's JSON, the SwitchRow in AppearanceSection.kt, and APPEARANCE's search keywords; remove every modern/isModern parameter and classic branch in EditorRegions.kt, SideToolbar.kt (incl. the dead SideToolbarWidth), TabStrip.kt, PageCounter.kt, EditorActionBars.kt and SelectionActionAnchor.kt. An old backup still carrying a modernUi key imports cleanly, since unknown keys are ignored. README.md and docs/architecture.md updated. Verified: compileDebugKotlin + full unit suite green."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "paint-every-chrome-surface-with-one-colour"
+title = "Give the chrome one colour per job: bars, and tools"
+description = "The top bar, tab strip, canvas surround and both Android system bars were four different neutrals, and the surround was deliberately lifted off the bars. Split the chrome by job, one value each, in app/src/main/java/com/mobixournal/ui/theme/ChromeColors.kt. rememberChromeColor() (colorScheme.background) is the bars: the Scaffold container in EditorScreen.kt, TabStrip's container, and window.statusBarColor/navigationBarColor in Theme.kt. rememberToolbarColor() (colorScheme.surfaceContainer) is the implement colour: it fills the Main Toolbar rail (SideToolbar.kt) and the Secondary Toolbar's dock (EditorRegions.kt) — both were hard-coding that role, so they now read the constant and cannot drift — and it is what CanvasChromeColors.backdrop takes, so the desk behind the page stack is the material the tools are made of. Add the pageOutline hairline (scheme.outlineVariant) drawn per sheet in DrawingSurfacePaint.drawPageOutline, NOT in BackgroundRenderer, which the PDF exporter also calls, so a near-white page stays findable on a light surround. README.md and docs/architecture.md updated. Verified: :app:testDebugUnitTest 989 tests 0 failures + :app:assembleDebug."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "let-the-vertical-space-block-cross-the-line"
+title = "Let the vertical-space block cross the line"
+description = "The grab line no longer stops the block: clampShift is gone and dragShift is now only the ruling snap, so the shift is the pointer's travel in either direction and pulling up carries the block above the line it was grabbed at (and, pulled far enough, off the top of the sheet, where it stays and can be dragged back down - the same recoverable state the desktop leaves). The old clamp made closing a gap below an element impossible without first inserting space elsewhere. What did NOT change is which elements move: the block is still decided once, at grab time, from the line's original position, so a block sliding upward past the elements above it does not recruit them (pinned by theBlockIsDecidedAtGrabTimeAndNoElementJoinsItMidDrag). Tests updated rather than weakened: removingSpaceStopsAtTheGrabLine is replaced by pullingUpCarriesTheBlockAcrossTheGrabLine (-80 pt on a stroke at 139.5 lands at 59.5, i.e. above the line at 100) and ElementBoundsTest's clampShift assertion - whose real subject is that ElementBounds inflation is shared by the selection and the grab line - now pins the shared inflation through the new semantics (a line at 85 counts the fat stroke in, a line at 95 does not). VerticalSpaceOpsTest additionally pins that snapping applies to a pull-up too. README.md + docs/architecture.md updated in the same change. NOT verified on a device (no emulator/tablet attached here): the feel of the crossing drag rests on the tested arithmetic plus a green build."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["render", "tools"]
+
+[[task]]
+id = "settings-side-menu-and-search"
+title = "Settings: side menu and search"
+description = "The settings screen is now shaped like a tablet's system settings, with two shapes over one set of areas. At 600dp wide or more (SETTINGS_TWO_PANE_MIN_WIDTH) the four SettingsAreas are a permanent side menu (SettingsSidebar.kt: the search field, then one row per area carrying a tonal pill and an icon - TouchApp/Brush/Tune/Info, declared beside the list that draws it) with the selected area's sections in the pane beside it; an opened section takes that pane and the bar's back arrow returns to the list. Narrower than that the menu is dropped for the pushed index -> area -> section, since a permanent list on a phone would leave the controls a strip to live in. Back pops one step of whichever shape is on screen (section -> results -> area -> out of settings), so the system back button keeps mirroring the title-bar arrow. Search (SettingsSearch.kt, pure) matches a section's title, summary or its new keyword aliases - the words people actually type instead of the app's labels (momentum, wallpaper, cache, left-handed, expresskey, trapezoid) - filters live from either shape, labels each result with the area it lives in via areaOf, and opens it directly. SettingsSearchTest pins the everyday queries, requires every section to carry aliases and to answer to its own title, and requires every section to belong to an area; SettingsAreaTest still pins that the areas cover every section exactly once and no area owns a single child. README.md + docs/architecture.md updated in the same change. NOT verified on a device (no emulator/tablet attached here): the two-pane breakpoint and the search-as-you-type behaviour rest on the green unit tests and build."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["settings", "ui"]
+
+[[task]]
+id = "browse-settings-in-four-areas"
+title = "Browse settings in four areas"
+description = "Shipped as a two-level settings browser, the option chosen from the three reorganisations offered. SettingsArea (SettingsScreen.kt) names the four things the preferences are about - Input (Stylus, Shortcuts), Drawing (Editor, Figures, Colors), Interface (Toolbar, Appearance, Navigation) and App & data (Storage, Backup, About) - and each owns the SettingsSection list it holds. The index lists the areas, an area lists its sections, a section is still the page with the controls; both levels are one clickable row pushing a page, and back pops one level at a time (section -> area -> index -> out of settings) so the system back button mirrors the title-bar arrow. The flat eleven-row index grew a row with every feature; the area list is four rows and each page explains itself with the area's summary line. SettingsAreaTest pins the structure: the areas cover every section exactly once (a section nothing lists would be an unreachable page) and no area owns a single child (a one-child area is a tap that explains nothing). README.md + docs/architecture.md updated in the same change. NOT verified on a device (no emulator/tablet attached here): the navigation rests on the green unit tests and build."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["settings", "ui"]
+
+[[task]]
+id = "ask-right-or-left-handed-on-first-launch"
+title = "Ask right- or left-handed on first launch"
+description = "Shipped as the fourth onboarding step. OnboardingDialog now carries four steps (totalSteps = 4) and takes toolbarPosition + onToolbarPosition, wired from EditorScreen to settings.copy(toolbarPosition = ...); the new OnboardingHandedness.kt draws two selectable cards - Right-handed (the default, Main Toolbar on the left) and Left-handed (on the right) - each the whole row as one click target, with the current choice marked. Because the editor is composed behind the dialog, tapping a card moves the rail live: the choice is answered by looking at it, not by reading about it. The setting already existed (AppSettings.toolbarPosition, LEFT by default); what was missing was asking for it at first launch. README.md + docs/architecture.md updated in the same change. NOT verified on a device (no emulator/tablet attached here)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["onboarding", "toolbar"]
+
+[[task]]
+id = "draw-the-selection-on-the-ink-and-resize-out-of-proportion"
+title = "Draw the selection on the ink and resize out of proportion"
+description = "Two selection fixes. (1) The dashed marquee is now drawn exactly on the selected elements' ink box: SELECT_PAD_PX went from 6 to 0, so the outline no longer overhangs the element it claims to hold (ease of grabbing comes from HANDLE_HIT_PX / MOVE_GRAB_PAD, not from an inflated rectangle). (2) Resize is no longer uniform-only: the outline carries eight handles - the four corners resize proportionally as before (SelectionOps.scale, both factors the pointer's distance ratio), and the four edge midpoints stretch a single axis (new ResizeAxis in SelectionResize.kt (pure, no Android types), with the pure axisScaleFactor measuring travel from the opposite edge's midpoint, applied by the new SelectionOps.scaleXY). A per-axis stretch scales stroke widths and text sizes by the geometric mean sqrt(sx*sy) - of two axes neither is right for a scalar, and the mean keeps the ink in proportion to the box. Grabbing the right-edge handle does not fight the rotate knob: the knob is 40 px out and is hit-tested first from that arm. Tests: SelectionTest (scaleXY geometry, anchor pinning, sqrt width, per-axis boxes, identity) and the new SelectionResizeTest (ratio, anchor as fixed point, no-travel, drag starting on the anchor, clamp both ways). One expectation of mine was wrong on the first run (a y value I had written as scaled when the point of the test is that it is not); fixed the expectation, not the assertion. README.md + docs/architecture.md updated in the same change. NOT verified on a device: the feel of the edge handles rests on the tested arithmetic plus a green build."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["selection", "render"]
+
+[[task]]
+id = "match-the-desktop-s-vertical-space-tool"
+title = "Match the desktop's vertical-space tool"
+description = "Checked against Xournal's own manual, which states the desktop rule for this tool: all the items which lie entirely between the cursor position and the end of the page are moved, the amount snaps to the grid, and dragging past the page edge re-homes the block. Two parts were already implemented here and are now pinned rather than assumed: an element moves only when its ink box top is at or below the grabbed line (VerticalSpaceOpsTest.straddlingElementStaysPutRatherThanBeingTorn) and pulling up is clamped so nothing crosses the line it was grabbed at. What was missing was SNAPPING: a new dragShift snaps the amount inserted to the page's ruling when Snap to grid is on (Snapping.spacingY -> Snapping.snap, a whole number of ruled lines), matching desktop 1.1.2's 'Added snapping for vertical space'; a plain sheet (spacing 0) leaves the drag continuous, so nothing changes for users who never turned snapping on. The layer scope is a DELIBERATE difference from the desktop, documented as such: every layer of the page moves together, whereas desktop reflows only the current layer - a note written on one layer must not be left behind by space opened on another. The cross-page re-homing the manual also describes was offered and explicitly NOT chosen, so it stays unimplemented. Tests: VerticalSpaceOpsTest (snap of the amount, snapped shift, the whole-below rule surviving snapping). README.md + docs/architecture.md updated in the same change."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["render", "tools"]
+
+[[task]]
+id = "make-the-palette-yours-favourites-empty-custom-slot-and-new-colours"
+title = "Make the palette yours: favourites, empty custom slot and new colours"
+description = "A batch of colour changes. (1) Factory favourites are the stated ones: pen black-red-green (DEFAULT_PEN_FAVORITES) and highlighter yellow-green-blue (DEFAULT_HIGHLIGHTER_FAVORITES), pinned by SettingsSanitizeTest. (2) The custom slot (the pencil swatch) starts EMPTY: AppSettings.customColor is now nullable and defaults to null, so a fresh install no longer claims a violet nobody picked; an empty slot is stored as an absent pref key (SettingsStore removes it, so empty and black stay distinguishable) and as an explicit null in the JSON backup (AppSettingsBackup writes null, and an explicit null on import clears the slot instead of falling back to the local colour). The slot is drawn as an unfilled ring with the pencil, and a tap on an empty slot opens the editor rather than picking nothing; CustomColorEditor opens on DEFAULT_CUSTOM_COLOR, the placeholder the picker starts from. (3) The picker can reuse a colour that already exists: CustomColorPickerDialog gained an optional palette and an Existing colours row (scrolling, so the dialog does not grow with the palette), which loads a swatch into the HSV/hex editor without committing it. (4) New colours can be made from the canvas: the Colour & size pop-up's swatch row ends in an add-colour swatch (onAdd in ColorPaletteRows, addPenColor in EditorRegions appending opaque, de-duplicated, capped at MAX_PEN_COLORS - the same write Settings > Colors makes, then selecting the new colour), and the compact row now scrolls horizontally instead of wrapping so adding colours cannot change the pop-up's height. Tests: SettingsSanitizeTest (empty slot, set slot survives, factory favourites order), AppSettingsBackupTest (null round-trips, explicit null clears, absent key leaves the local value), ColorSizeRailSlotTest updated to the new ternas. README.md + docs/architecture.md updated in the same change. NOT verified on a device (no emulator/tablet attached here)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["colors", "settings"]
+
+[[task]]
+id = "keep-the-rail-s-last-button-fully-visible"
+title = "Keep the rail's last button fully visible"
+description = "Shipped as whole-slot sizing. ToolbarShell measures the height it is given (BoxWithConstraints) and hands the visible slot count to the pure railContentScale (RailSizing.kt): it counts the slots that fit whole at their own size (m slots take m*slot + (m-1)*spacing) and spreads exactly that many over the space, so the slot after them starts at the rail's bottom edge instead of being cut in half by it. The scale is never below 1 - a rail button is never drawn smaller than its own size, which is what keeps it usable at a glance - and capped at RAIL_MAX_SCALE (1.08) so the slot stays inside the rail's inner width; the leftover strip becomes slightly larger buttons rather than a sliver of the next one. What does not fit is one scroll away (the goal was reaching the page settings, not the last figure tool), and a rail that fits entirely is left at scale 1. The scale is published as LocalRailSlotSize (read by tool buttons, pop-up buttons, the one-tap colour slot; the zoom label reads LocalRailSlotScale, its content being text) and applied to the gaps, not the column padding, so the whole-number fit stays exact. Pinned by RailSizingTest (8 cases). README.md + docs/architecture.md updated in the same change. NOT verified on a device: no emulator or tablet was attached to this host, so the fit rests on the tested arithmetic plus a green build, not on a screenshot."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "unify-the-quick-colour-row-with-the-full-stroke-settings"
+title = "Unify the quick colour row with the full stroke settings"
+description = "Shipped as ONE rail slot, with the three dots vertical. The separate Colour & size position is retired (PANEL_RAIL_ITEMS no longer names the id color; decodeRailIds drops it from a saved order) and the favourites slot became the unified Colour & size slot (ColorSizeRailSlot): the three favourite dots of the tool in play stacked vertically down its left side (tap takes the colour, long-press redefines it from the palette) and a chevron beside them opening the full pop-up (palette, three tip sizes, line style) through the extracted ColorSizePopup, so the richer panel stayed one tap away. The one-terna rule is unchanged (favoriteToolFor: the highlighter's while the highlighter is live, the pen's otherwise). The slot measures exactly one slot (LocalRailSlotSize), so it cannot cost the rail the tools it shows at a glance, and its width is split 52% dots / 4% gap / 40% chevron, the chevron a centred square button rather than a full-height strip. Tests: ColorSizeRailSlotTest (renamed from FavoritesRailTest) plus RailItemsTest pinning the retired color id and the new label. README.md + docs/architecture.md updated in the same change."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "three-favourite-colours-at-a-glance-on-the-rail"
+title = "Three favourite colours at a glance on the rail"
+description = "Shipped as the rail slot. A compact Favourites row (FavoritesRail.kt) of three dots sits one place under Colour and size: FavoriteCell is 16dp, so three fill the 48dp inner width of both rail widths, and the row is about 22dp - half a tool button - so no drawing tool leaves the rail because of it. The row draws the terna of the tool in play (favoriteToolFor: the highlighter's while the highlighter is live, the pen's otherwise), so the pen and the highlighter each keep their own three (AppSettings.penFavorites / highlighterFavorites) without the rail ever holding two rows. Tap takes that colour (pickFavoriteColor writes the owning tool's colour slot - lastColor for the pen, highlighterColor for the highlighter - and a tool that is already live takes it directly instead of re-activating); long-press reassigns the dot from the palette (assignFavorite). sanitizeFavorites pads a short, long or corrupt pref to exactly three opaque distinct colours; SharedPreferences and AppSettingsBackup both carry the two lists; both ternas are edited under Settings - Colors. README.md and docs/architecture.md updated in the same change."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["rail", "colors"]
+
+[[task]]
+id = "automate-the-per-version-release-freeze-and-changelog"
+title = "Automate the per-version release freeze and changelog"
+description = "Separate shipped work from work pending the next version in FINISHED.toml: every finished task carries a release stamp once it has shipped, and the unstamped set is exactly what the next version ships. New scripts/todo/release.py plus todo.py commands: release --version X.Y.Z (stamps the pending set, records latest_release in the archive meta, drafts docs/releases/vX.Y.Z.md grouped by category with a compare link; --bump-gradle, --force, --through for the one-shot backfill, --dry-run), list --finished --unreleased, stats release totals, and verify-release --version X.Y.Z. CI now lints the task files, runs scripts/todo/test_release.py (30 checks) and, on a v* tag, verify-release, so an unfrozen version cannot publish. Historical entries backfilled with release = 1.1.0. README.md, AGENTS.md, skills/todo/SKILL.md and docs/tools.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = ["tooling", "release"]
+
+[[task]]
+id = "float-the-selection-action-bar-beside-the-selection"
+title = "Float the selection action bar beside the selection"
+description = "The element-selection action bar (cut/copy/duplicate/recolor/width/delete/done) now rides with the selection instead of sitting at the bottom edge: DrawingSurfaceView publishes the selection box in view px (selectionScreenRect/onSelectionRectChanged, reported from the render pass alongside reportScroll) through PaneState.selectionRect, and EditorPaneView renders ui/SelectionActionAnchor.kt inside the canvas box whose coordinates equal the surface's, positioning the bar above the selection (below when the top edge leaves no room, clamped inside). Placement geometry is pinned by SelectionActionAnchorTest (6 cases). The mode bars (paste/region, table, spline, PDF text) stay on the bottom edge. README.md and docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "restrict-the-main-toolbar-to-the-left-or-right-edge"
+title = "Restrict the Main Toolbar to the left or right edge"
+description = "ToolbarPosition (app/src/main/java/com/mobixournal/ui/AppSettings.kt) now offers only LEFT and RIGHT: the TOP/BOTTOM dock positions and the isHorizontal property are gone, SideToolbar/ToolbarShell (ui/SideToolbar.kt) no longer carry a horizontal layout branch, EditorScreen and EditorRegions drop their top/bottom and showToolsInTopBar-override branches, and AppSettingsBackupTest stores RIGHT. README.md and docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "raise-the-save-progress-overlay-the-moment-save-is-tapped"
+title = "Raise the save progress overlay the moment Save is tapped"
+description = "saveDocument (app/src/main/java/com/mobixournal/MainActivityDocuments.kt) now snapshots the immutable document on the UI thread (toDocument is a reference read) and runs both encoding and the staged write on the worker inside inBackground, so the blocking Saving overlay appears the instant Save is tapped instead of only after the previously-inline encode finished (which froze the app silently on large documents). README.md and docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
+
+[[task]]
+id = "quick-export-pdf-button-in-the-top-bar"
+title = "Quick Export PDF button in the top bar"
+description = "Add a compact Export PDF button beside the Save button in EditorTopBar (app/src/main/java/com/mobixournal/ui/EditorRegions.kt), in both the Modern and Classic chrome branches, wired to the existing onExportPdf callback; the overflow menu Export PDF entry stays. README.md and docs/architecture.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-09
+release = "1.2.0"
+tags = []
 
 [[task]]
 id = "refuse-a-settings-import-that-is-not-a-compatible-backup"
@@ -25,6 +249,7 @@ level = "task"
 category = "feature"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -36,6 +261,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -47,6 +273,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -58,6 +285,7 @@ level = "task"
 category = "feature"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -69,6 +297,7 @@ level = "task"
 category = "feature"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -80,6 +309,7 @@ level = "task"
 category = "feature"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -91,6 +321,7 @@ level = "task"
 category = "feature"
 created = 2026-10-07
 completed = 2026-10-07
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -102,6 +333,7 @@ level = "task"
 category = "feature"
 created = 2026-10-06
 completed = 2026-10-06
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -113,6 +345,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -124,6 +357,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -135,6 +369,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -146,6 +381,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -157,6 +393,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -168,6 +405,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -179,6 +417,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -190,6 +429,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -201,6 +441,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -212,6 +453,7 @@ level = "task"
 category = "chore"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -223,6 +465,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -234,6 +477,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -245,6 +489,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -256,6 +501,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -267,6 +513,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -278,6 +525,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -289,6 +537,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -300,6 +549,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -311,6 +561,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -322,6 +573,7 @@ level = "task"
 category = "feature"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -333,6 +585,7 @@ level = "task"
 category = "bug"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -344,6 +597,7 @@ level = "task"
 category = "refactor"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []
 
 [[task]]
@@ -355,4 +609,5 @@ level = "task"
 category = "refactor"
 created = 2026-10-05
 completed = 2026-10-05
+release = "1.1.0"
 tags = []

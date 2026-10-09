@@ -1,10 +1,12 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Page
 
 /**
  * The vertical-space tool's live drag: grab a line across a page and everything below it slides,
- * making or closing room (the pure page maths is [VerticalSpaceOps.shiftBelow]).
+ * making room (down) or closing it (up) — including past the line itself, since nothing stops the
+ * block at the line it was grabbed at (the pure page maths is [VerticalSpaceOps.shiftBelow]).
  *
  * It holds the whole gesture — the grabbed page, the grab line in page pt, its view-px Y for the
  * overlay, and the gesture-start document the shift is recomputed from each frame so the drag never
@@ -22,6 +24,11 @@ internal class VerticalSpaceDrag(
     private val viewport: ViewportState,
     /** Latch the pre-gesture document, so the whole drag records as one undo step on release. */
     private val beginGesture: (Document) -> Unit,
+    /**
+     * The ruling spacing (pt) the inserted gap snaps to on [Page] — 0 when **Snap to grid** is off or
+     * the sheet is plain, which leaves the drag continuous (see [VerticalSpaceOps.dragShift]).
+     */
+    private val snapSpacingPt: (Page) -> Double,
     /** Re-fit the layout and repaint after the shift changed the document. */
     private val refresh: () -> Unit,
 ) {
@@ -63,7 +70,13 @@ internal class VerticalSpaceDrag(
         val start = startDoc ?: return
         val box = layout().boxes.getOrNull(page) ?: return
         val dy = ptY(box, y) - linePt
-        setDocument(document().copy(pages = VerticalSpaceOps.shiftBelow(start.pages, page, linePt, dy)))
+        setDocument(
+            document().copy(
+                pages = VerticalSpaceOps.shiftBelow(
+                    start.pages, page, linePt, dy, snapSpacingPt(box.page),
+                ),
+            ),
+        )
         refresh()
     }
 

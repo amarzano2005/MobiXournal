@@ -1,10 +1,12 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.Check
@@ -24,12 +26,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mobixournal.render.GuideKind
 import kotlin.math.roundToInt
 
+/** The zoom slot's percentage label at full size; it is typeset at this times the rail's scale. */
+private val ZOOM_LABEL = 14.sp
+
 /**
- * The zoom level popup: shows the current zoom percentage with −/+/reset controls.
+ * The zoom level popup: shows the current zoom percentage with −/+/reset controls. The label is the
+ * only slot face whose content is text rather than a glyph, so it is the one that reads the rail's
+ * scale directly ([LocalRailSlotScale]) — a "100%" drawn at full size would not fit a shrunken slot.
  *
  * @param zoom Current zoom factor (1.0 = 100%).
  * @param onZoomIn Zoom in by one step.
@@ -40,15 +51,24 @@ import kotlin.math.roundToInt
 internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () -> Unit, onZoomReset: () -> Unit) {
     ToolbarPopupButton(
         face = { open ->
-            TextButton(
-                onClick = open,
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                modifier = Modifier.defaultMinSize(minWidth = ToolbarButtonSize, minHeight = ToolbarButtonSize),
+            // A plain clickable box rather than a TextButton: a Button enforces Material's 48dp minimum
+            // touch target (and its own 40dp minimum height) whatever its modifier asks for, which
+            // would put the slot straight back to the size the rail's adaptive pitch shrank it out of.
+            // The label shrinks with the slot for the same reason — "100%" has to keep fitting inside.
+            val slot = LocalRailSlotSize.current
+            Box(
+                modifier = Modifier
+                    .size(slot)
+                    .clip(CircleShape)
+                    .clickable(onClick = open)
+                    .semantics { contentDescription = "Zoom" },
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "${(zoom * 100).roundToInt()}%",
                     maxLines = 1,
                     softWrap = false,
+                    fontSize = ZOOM_LABEL * LocalRailSlotScale.current,
                 )
             }
         },

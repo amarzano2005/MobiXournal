@@ -250,6 +250,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private var lastReportedPage = -1
     /** Last (scrollY, totalHeightPx, viewportPx) reported to [onScrollChanged], to suppress duplicate calls. */
     private var lastScrollReport = Triple(-1f, -1f, -1f)
+    /** Last selection box reported to [onSelectionRectChanged], to suppress duplicate calls. */
+    private var lastSelectionRect: android.graphics.RectF? = null
 
     /** Undo/redo snapshots of the whole [Document] (cheap: immutable pages/layers share structure). */
     internal val history = EditHistory<Document>()
@@ -467,6 +469,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Notified whenever the selection appears or clears, so the chrome can show contextual actions. */
     var onSelectionChanged: ((Boolean) -> Unit)? = null
 
+    /**
+     * Notified whenever the selection's on-screen box changes — it appears, clears, is moved, resized
+     * or rotated, or the view scrolls/zooms under it. Box is in this view's own px, so the chrome can
+     * anchor the contextual action bar to the selection (see [EditorPaneView][com.mobixournal.ui.EditorPaneView]).
+     */
+    var onSelectionRectChanged: ((android.graphics.RectF?) -> Unit)? = null
+
     /** Notified when the copy/cut clipboard gains or loses content (drives the Paste affordance). */
     var onClipboardChanged: ((Boolean) -> Unit)? = null
 
@@ -493,7 +502,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         beginGesture = { gestureStartDoc = it },
         refresh = { relayout(); render() },
         render = { render() },
-        onSelectionChanged = { onSelectionChanged?.invoke(it) },
+        onSelectionChanged = { onSelectionChanged?.invoke(it); reportSelectionRect() },
     )
 
     /** The current selection (a page index + the refs of its selected elements), or null. */
@@ -578,6 +587,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         layout = { layout },
         viewport = viewport,
         beginGesture = { gestureStartDoc = it },
+        // Snap to grid on → the gap opened is a whole number of ruled lines (desktop behaviour).
+        // Read live, so toggling the setting mid-session applies to the next drag.
+        snapSpacingPt = { page -> if (snapToGrid) Snapping.spacingY(page.background) else 0.0 },
         refresh = { relayout(); render() },
     )
 
@@ -610,8 +622,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * outside the Compose tree, so the colours are pushed in from the hosting composable; see
      * `com.mobixournal.ui.theme.CanvasChromeColors`.
      */
-    fun applyChromeColors(backdrop: Int, selection: Int, guide: Int) {
-        chrome.applyColors(backdrop, selection, guide)
+    fun applyChromeColors(backdrop: Int, pageOutline: Int, selection: Int, guide: Int) {
+        chrome.applyColors(backdrop, pageOutline, selection, guide)
         requestRender()
     }
 
@@ -1178,6 +1190,34 @@ class DrawingSurfaceView @JvmOverloads constructor(
         if (t != lastScrollReport) {
             lastScrollReport = t
             onScrollChanged?.invoke(t.first, t.second, t.third)
+        }
+    }
+
+    /**
+     * The active selection's bounding box in view px, padded like the drawn marquee, or null when
+     * nothing is selected or its page isn't laid out. The same box [drawSelectionBox] outlines, so the
+     * chrome can hang actions directly off what the user sees.
+     */
+    fun selectionScreenRect(): android.graphics.RectF? {
+        val sel = selection ?: return null
+        val box = layout.boxes.getOrNull(sel.pageIndex) ?: return null
+        val page = doc.pages.getOrNull(sel.pageIndex) ?: return null
+        val b = SelectionTester.boundsOf(page, sel.refs) ?: return null
+        val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
+        return android.graphics.RectF(
+            (b.left * box.scale + box.leftPx - scrollX).toFloat() - pad,
+            (b.top * box.scale + box.topPx - scrollY).toFloat() - pad,
+            (b.right * box.scale + box.leftPx - scrollX).toFloat() + pad,
+            (b.bottom * box.scale + box.topPx - scrollY).toFloat() + pad,
+        )
+    }
+
+    /** Emit [onSelectionRectChanged] if the selection box moved since the last report. */
+    internal fun reportSelectionRect() {
+        val rect = selectionScreenRect()
+        if (rect != lastSelectionRect) {
+            lastSelectionRect = rect
+            onSelectionRectChanged?.invoke(rect)
         }
     }
 

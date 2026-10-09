@@ -12,9 +12,20 @@ data class RailItem(
     val label: String,
 )
 
-/** The popup-panel positions, in factory order. Tool slots come from [TOOL_GROUPS]. */
+/**
+ * The popup-panel positions, in factory order. Tool slots come from [TOOL_GROUPS].
+ *
+ * `favorites` is the odd one out: its main surface is not a button that opens something, it *is* the
+ * control — the three favourite colours of the tool in play stacked one tap away, with the chevron
+ * beside them onto the full pop-up ([ColorSizeRailSlot]).
+ *
+ * Its **id stays `favorites`** because the id is the SharedPreferences identity of the position and is
+ * never renamed; its *label* reads **Colour & size** because that is now the whole errand the slot
+ * covers. The separate `color` position the two used to occupy is retired — two rail slots for one job
+ * cost a button each and made the rail taller than the screen.
+ */
 val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
-    RailItem("color", "Colour & size"),
+    RailItem("favorites", "Colour & size"),
     RailItem("shapes", "Shape recognition"),
     RailItem("guides", "Guides"),
     RailItem("layers", "Layers"),
@@ -30,14 +41,17 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  * highlighter, colour & size, eraser), then the rest of the tools, then the popup panels, with the
  * rarer controls (shape recognition, guides) trailing the rail.
  *
- * There is no **Style** slot: line style and fill both live in the **Colour & size** pop-up, since
- * they are set together with the colour and the width.
+ * **Colour & size** (id `favorites`) sits directly under **Highlighter** and covers the whole errand:
+ * the three colours you keep coming back to as a stack of dots, and the chevron beside them onto every
+ * colour there is plus the tip size and the line style. There is no separate colour slot any more, and
+ * no **Style** slot either — line style and fill live in that same pop-up, since they are set together
+ * with the colour and the width.
  *
  * This is the default an install starts from; the user can reorder and hide rows in the Toolbar
  * section (persisted in `AppSettings.railOrder` / `railHidden`).
  */
 private val FACTORY_RAIL_ORDER: List<String> = listOf(
-    "pen", "highlighter", "color", "eraser", "pan", "select",
+    "pen", "highlighter", "favorites", "eraser", "pan", "select",
     "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
     "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "guides",
 )

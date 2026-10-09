@@ -1,11 +1,9 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -24,6 +22,7 @@ import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.tracePenParameters
+import com.mobixournal.ui.theme.rememberChromeColor
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
@@ -174,7 +173,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
 
 /**
  * The single editor screen: a Material 3 top bar (undo/redo plus an overflow menu for open/save/
- * settings), a vertical control [SideToolbar] down the left edge, and the stylus canvas filling the
+ * settings), a vertical control [SideToolbar] down the docked edge (left or right), and the stylus canvas filling the
  * rest. The canvas is a classic [DrawingSurfaceView] hosted via [AndroidView] for low-latency stylus
  * rendering (see `docs/architecture.md`).
  *
@@ -233,6 +232,9 @@ fun EditorScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            // The one chrome colour: the top bar is transparent over this, so the bar, the tab strip,
+            // the canvas surround and both system bars are literally the same value.
+            containerColor = rememberChromeColor(),
             topBar = {
                 if (!ui.fullPage) {
                     val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
@@ -312,15 +314,19 @@ fun EditorScreen(
                 onDismiss = {
                     onSettingsChange(settings.copy(hasSeenOnboarding = true))
                 },
+                // The handedness step writes the rail's edge straight through, so the last page of
+                // the tour can be answered by watching the toolbar move behind the dialog.
+                toolbarPosition = settings.toolbarPosition,
+                onToolbarPosition = { onSettingsChange(settings.copy(toolbarPosition = it)) },
             )
         }
     }
 }
 
 /**
- * The rail and the drawing area, laid out per [AppSettings.toolbarPosition] — the rail on any of the
- * four edges, the canvas taking the rest. In full-page mode the rail is simply absent and the canvas
- * has the lot.
+ * The rail and the drawing area, laid out per [AppSettings.toolbarPosition] — the rail down either
+ * vertical edge, the canvas taking the rest. In full-page mode the rail is simply absent and the
+ * canvas has the lot.
  */
 @Composable
 private fun EditorBody(
@@ -369,23 +375,12 @@ private fun EditorBody(
             paneAt(0, canvasModifier)
         }
     }
-    val effectivePosition = if (settings.showToolsInTopBar && settings.toolbarPosition == ToolbarPosition.TOP) {
-        ToolbarPosition.LEFT
-    } else {
-        settings.toolbarPosition
-    }
-    when (effectivePosition) {
+    when (settings.toolbarPosition) {
         ToolbarPosition.LEFT -> Row(modifier = modifier) {
             toolbar(); canvas(Modifier.fillMaxHeight().weight(1f))
         }
         ToolbarPosition.RIGHT -> Row(modifier = modifier) {
             canvas(Modifier.fillMaxHeight().weight(1f)); toolbar()
-        }
-        ToolbarPosition.TOP -> Column(modifier = modifier) {
-            toolbar(); canvas(Modifier.fillMaxWidth().weight(1f))
-        }
-        ToolbarPosition.BOTTOM -> Column(modifier = modifier) {
-            canvas(Modifier.fillMaxWidth().weight(1f)); toolbar()
         }
     }
 }

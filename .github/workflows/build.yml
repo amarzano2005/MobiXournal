@@ -29,6 +29,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Check the task list and the release tooling
+        run: |
+          python3 scripts/todo/todo.py validate
+          python3 scripts/todo/test_release.py
+
+      - name: Verify the release was frozen
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: python3 scripts/todo/todo.py verify-release --version "${{ github.ref_name }}"
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 

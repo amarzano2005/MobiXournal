@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.DropdownMenu
@@ -32,9 +34,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -52,20 +57,23 @@ fun dragTargetIndex(from: Int, offset: Float, rowHeight: Int, count: Int): Int {
     return (from + Math.round(offset / rowHeight)).coerceIn(0, count - 1)
 }
 
-/** A labelled switch with a title and subtitle. */
+/** A labelled switch with a title and subtitle; the whole row toggles it, not just the thumb. */
 @Composable
 fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        ControlHeader(title, subtitle, Modifier.weight(1f))
+        Spacer(Modifier.width(16.dp))
+        // The row owns the toggle; the switch is only its picture (null callback), so a tap is
+        // never handled twice.
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -79,18 +87,22 @@ fun <T> OptionGroup(
     label: (T) -> String,
     onSelect: (T) -> Unit,
 ) {
-    Text(title, style = MaterialTheme.typography.bodyLarge)
-    Text(subtitle, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 4.dp))
+    ControlHeader(title, subtitle, Modifier.padding(top = 8.dp, bottom = 4.dp))
     options.forEach { option ->
         Row(
             modifier = Modifier.fillMaxWidth()
-                .selectable(selected = option == selected, onClick = { onSelect(option) })
-                .padding(vertical = 4.dp),
+                .clip(RoundedCornerShape(12.dp))
+                .selectable(selected = option == selected, role = Role.RadioButton, onClick = { onSelect(option) })
+                .padding(vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RadioButton(selected = option == selected, onClick = { onSelect(option) })
-            Spacer(Modifier.width(8.dp))
-            Text(label(option), modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+            RadioButton(selected = option == selected, onClick = null, modifier = Modifier.padding(12.dp))
+            Text(
+                label(option),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start,
+            )
         }
     }
 }
@@ -133,12 +145,11 @@ fun <T> DropdownRow(
  */
 @Composable
 fun MomentumSlider(value: Float, onChange: (Float) -> Unit) {
-    Text("Momentum scrolling", style = MaterialTheme.typography.bodyLarge)
-    Text(
+    ControlHeader(
+        "Momentum scrolling",
         "How far a one-finger pan keeps gliding after you flick it — the faster you flick, the much " +
             "farther it coasts. 0 turns momentum off; 1 is normal. (Two-finger pans never glide.)",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
+        Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
     val label = if (value <= Momentum.OFF) "Off" else "%.1f×".format(value)
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -161,11 +172,10 @@ fun MomentumSlider(value: Float, onChange: (Float) -> Unit) {
  */
 @Composable
 fun PanSensitivitySlider(value: Float, onChange: (Float) -> Unit) {
-    Text("Panning sensitivity", style = MaterialTheme.typography.bodyLarge)
-    Text(
+    ControlHeader(
+        "Panning sensitivity",
         "How far the canvas moves as you pan. 1 matches your finger; lower is slower, higher is faster; 0 turns panning off.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
+        Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
     val label = if (value <= PanSensitivity.OFF) "Off" else "%.1f×".format(value)
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -198,16 +208,15 @@ fun MinimumPressureSlider(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    Text("Minimum pressure", style = MaterialTheme.typography.bodyLarge)
-    Text(
+    ControlHeader(
+        "Minimum pressure",
         if (enabled) {
             "The lightest a stroke can get, as a fraction of the pen's width. 0.05 is desktop " +
                 "Xournal++'s default; raise it if a very light touch should still draw a visible line."
         } else {
             PRESSURE_FILTER_OFF_HINT
         },
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
+        Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Slider(
@@ -239,8 +248,8 @@ fun PressureMultiplierSlider(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    Text("Pressure multiplier", style = MaterialTheme.typography.bodyLarge)
-    Text(
+    ControlHeader(
+        "Pressure multiplier",
         if (enabled) {
             "Scales the pen's pressure before it thickens the line. Raise it if you write lightly and " +
                 "want thicker strokes (up to %.1f×); 1 leaves your pressure as the tablet reports it, and " +
@@ -248,8 +257,7 @@ fun PressureMultiplierSlider(
         } else {
             PRESSURE_FILTER_OFF_HINT
         },
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
+        Modifier.padding(top = 8.dp, bottom = 4.dp),
     )
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Slider(
@@ -344,6 +352,8 @@ fun RailItemRow(
     val dragEnd by rememberUpdatedState(onDragEnd)
     val height by rememberUpdatedState(onHeight)
     Surface(
+        color = if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
+        shape = RoundedCornerShape(12.dp),
         tonalElevation = if (dragging) 6.dp else 0.dp,
         shadowElevation = if (dragging) 6.dp else 0.dp,
         modifier = Modifier

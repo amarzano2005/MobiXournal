@@ -1,12 +1,10 @@
 package com.mobixournal.ui
 
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 
 /** Xournal++ palette colour `#000000` (black) — the pen a fresh document starts with. */
 internal val XOPP_BLACK: Int = 0xFF000000.toInt()
@@ -90,34 +88,40 @@ fun predefinedColorName(argb: Int): String? =
     PREDEFINED_COLOR_NAMES[argb or 0xFF000000.toInt()]
 
 /**
- * The rail's stroke-appearance slot: colour, tip size and line style in one drop-down. The face is
- * the size dot from [WidthDot], scaled to the live width and filled with the live colour, so the
- * button shows both settings at a glance.
+ * The full stroke-settings pop-up: colour, tip size and line style in one drop-down, anchored to
+ * whatever [face] draws.
  *
- * The menu is deliberately **compact** — colour swatches in a tight grid, the three tip sizes as one
- * bar of dots ([WidthSlotBar]) and line style as one row of chips ([LineStyleChips]) — because
- * colour, size and style are the three things you change together, and a menu you have to scroll to
- * reach the bottom of is one you stop opening. Fill no longer has a control anywhere: it is off for
- * every stroke drawn from here on.
+ * The rail hangs it off the chevron of its **Colour & size** slot ([ColorSizeRailSlot]), which is why
+ * the face is a parameter: the slot's own surface belongs to the favourite dots, so the pop-up gets
+ * the one affordance beside them rather than a button face of its own.
+ *
+ * The menu is deliberately **compact** — one horizontally scrolling row of colour swatches, the three
+ * tip sizes as one bar of dots ([WidthSlotBar]) and line style as one row of chips ([LineStyleChips])
+ * — because colour, size and style are the three things you change together, and a menu you have to
+ * scroll to reach the bottom of is one you stop opening. Fill no longer has a control anywhere: it is
+ * off for every stroke drawn from here on.
+ *
+ * The colour row ends with an **add colour** swatch: the palette can grow from the canvas itself (the
+ * new colour is appended to [AppSettings.penColors] and selected), and because the row scrolls
+ * rather than wraps, however many colours are added the pop-up keeps the same height.
  */
 @Composable
-internal fun ColorSizePopupButton(callbacks: ToolbarStyleCallbacks) {
+internal fun ColorSizePopup(
+    callbacks: ToolbarStyleCallbacks,
+    /** The anchor the pop-up hangs off; it must call the `open` lambda it is handed on a tap. */
+    face: @Composable (open: () -> Unit) -> Unit,
+) {
     var editing by remember { mutableStateOf(false) }
+    var adding by remember { mutableStateOf(false) }
     var editingSlot by remember { mutableStateOf(-1) }
-    val maxPt = (callbacks.widthSlots + callbacks.width).maxOrNull() ?: callbacks.width
-    ToolbarPopupButton(
-        face = { open ->
-            IconButton(onClick = open) {
-                WidthDot(callbacks.width, maxPt, Color(callbacks.color), bordered = true)
-            }
-        },
-    ) { dismiss ->
+    ToolbarPopupButton(face = face) { dismiss ->
         MenuHeading("Colour")
         ColorPaletteRows(
             selected = callbacks.color,
             palette = callbacks.palette,
             onPick = { c -> callbacks.onColor(c); dismiss() },
             onEditCustom = { editing = true; dismiss() },
+            onAdd = { adding = true; dismiss() },
             compact = true,
         )
         MenuHeading("Size")
@@ -139,6 +143,18 @@ internal fun ColorSizePopupButton(callbacks: ToolbarStyleCallbacks) {
         onDismiss = { editing = false },
         onRedefine = callbacks.onRedefineCustom,
     )
+    if (adding) {
+        CustomColorPickerDialog(
+            initial = callbacks.palette.custom ?: AppSettings.DEFAULT_CUSTOM_COLOR,
+            palette = callbacks.palette.colors,
+            onConfirm = { newColor ->
+                callbacks.onAddColor(newColor)
+                callbacks.onColor(newColor)
+                adding = false
+            },
+            onDismiss = { adding = false },
+        )
+    }
     if (editingSlot in callbacks.widthSlots.indices) {
         WidthSlotSliderDialog(
             label = PEN_WIDTH_LABELS[editingSlot],

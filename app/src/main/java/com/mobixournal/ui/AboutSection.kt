@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,71 +42,47 @@ fun AboutSection() {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
-    Text("MobiXournal", style = MaterialTheme.typography.titleLarge)
-    Text(
-        "An unofficial, stylus-first Android reader and editor for Xournal++ (.xopp) documents.",
-        style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier.padding(bottom = 12.dp),
-    )
+    SettingsGroup("MobiXournal") {
+        InfoRow("Version", BuildConfig.VERSION_NAME)
+    }
 
-    InfoRow("Version", BuildConfig.VERSION_NAME)
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+    SettingsGroup("Credits") {
+        SettingsNote(
+            "MobiXournal continues NeXopp — the Android .xopp editor written by Brian Monroe " +
+                "(bamonroe). The document layer, the editor, the build tooling and the documentation " +
+                "structure all come from that project, which is licensed under the GNU General Public " +
+                "License, version 2 or later; this build renames, rebrands and extends it. NeXopp's " +
+                "author holds the copyright in the portions inherited from there.",
+        )
+        LinkRow("NeXopp (GitHub)", AboutLinks.NEXOPP, open)
+        SettingsDivider()
+        SettingsNote(
+            "This app is built on and for Xournal++, the open-source handwriting app for Linux and " +
+                "the .xopp format it defines. The format handling, colour palette, shape recogniser " +
+                "and highlighter behaviour are derived from or matched to the Xournal++ project, whose " +
+                "authors hold the copyright in that work.",
+        )
+        SettingsNote(
+            "This is an independent, unofficial project: it is not affiliated with, endorsed by, or " +
+                "maintained by the Xournal++ authors.",
+        )
+        LinkRow("Xournal++ desktop app", AboutLinks.XOURNALPP, open)
+    }
 
-    Text("Credits", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "MobiXournal continues NeXopp — the Android .xopp editor written by Brian Monroe " +
-            "(bamonroe). The document layer, the editor, the build tooling and the documentation " +
-            "structure all come from that project, which is licensed under the GNU General Public " +
-            "License, version 2 or later; this build renames, rebrands and extends it. NeXopp's " +
-            "author holds the copyright in the portions inherited from there.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
-    LinkRow("NeXopp — github.com/bamonroe/NeXopp", AboutLinks.NEXOPP, open)
-    Text(
-        "NeXopp, by Brian Monroe (bamonroe) — the upstream project this app is built on.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 12.dp),
-    )
-    Text(
-        "This app is built on and for Xournal++, the open-source handwriting app for Linux and " +
-            "the .xopp format it defines. The format handling, colour palette, shape recogniser " +
-            "and highlighter behaviour are derived from or matched to the Xournal++ project, whose " +
-            "authors hold the copyright in that work. Xournal++ is licensed under the GNU General " +
-            "Public License, version 2 or later.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
-    Text(
-        "This is an independent, unofficial project: it is not affiliated with, endorsed by, or " +
-            "maintained by the Xournal++ authors.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
-    LinkRow("Xournal++, the desktop app", AboutLinks.XOURNALPP, open)
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+    SettingsGroup("Licence") {
+        SettingsNote(
+            "MobiXournal is free software under the GNU General Public License, " +
+                "version 2 or later — the same licence as the work it derives from. You may use, study, " +
+                "share and modify it; if you distribute a modified version, it must stay free under the " +
+                "same terms and ship its source. It comes with no warranty.",
+        )
+        LinkRow("Read the GPL v2 Licence", AboutLinks.LICENSE, open)
+    }
 
-    Text("Licence", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "MobiXournal is free software under the GNU General Public License, " +
-            "version 2 or later — the same licence as the work it derives from. You may use, study, " +
-            "share and modify it; if you distribute a modified version, it must stay free under the " +
-            "same terms and ship its source. It comes with no warranty. The full text is in the " +
-            "LICENSE file in the source.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
-    LinkRow("Read the GPL v2", AboutLinks.LICENSE, open)
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-
-    Text("Source", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "Developed in the open. Bug reports and patches are welcome.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
-    LinkRow("github.com/amarzano2005/MobiXournal", AboutLinks.SOURCE, open)
+    SettingsGroup("Source code") {
+        SettingsNote("Developed in the open. Bug reports and patches are welcome.")
+        LinkRow("github.com/amarzano2005/MobiXournal", AboutLinks.SOURCE, open)
+    }
 }
 
 /** A read-only "label … value" line, for facts about the build. */
@@ -128,7 +103,7 @@ private fun LinkRow(label: String, url: String, open: (String) -> Unit) {
     ) {
         Text(
             label,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
         )
     }

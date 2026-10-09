@@ -4,6 +4,7 @@ import android.graphics.DashPathEffect
 import com.mobixournal.format.XoppColor.withAlpha
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 
 /**
  * Every non-document brush the canvas paints with: the backdrop behind the page stack, the
@@ -21,6 +22,19 @@ internal class CanvasChrome {
     /** Backdrop behind the pages — replaced by the app's colour scheme via [applyChromeColors]. */
     var backdropColor = BACKDROP
         private set
+
+    /**
+     * Hairline traced around each sheet. The backdrop is the same colour as the app's bars now, so on a
+     * light chrome this outline is the only thing separating a near-white page from a near-white surround.
+     */
+    val pageOutline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1f
+        color = PAGE_OUTLINE
+    }
+
+    /** Scratch rect for the page outline — reused each frame so the paint loop allocates nothing. */
+    val pageOutlineRect = RectF()
 
     /** Selection outline: 2 px dashed stroke (10 px dash, 8 px gap). */
     val selectionStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -197,8 +211,9 @@ internal class CanvasChrome {
      * Repaint the chrome from the app's Material 3 colour scheme. The translucent fills keep their
      * original alphas so the washes stay faint enough to draw over.
      */
-    fun applyColors(backdrop: Int, selection: Int, guide: Int) {
+    fun applyColors(backdrop: Int, outline: Int, selection: Int, guide: Int) {
         backdropColor = backdrop
+        pageOutline.color = outline
         selectionStroke.color = selection
         handle.color = selection
         handleArm.color = selection
@@ -221,6 +236,8 @@ internal class CanvasChrome {
 
     internal companion object {
         const val BACKDROP = 0xFF3A3A3A.toInt()
+        /** Page hairline before the app's colour scheme arrives — faint white, since [BACKDROP] is dark. */
+        const val PAGE_OUTLINE = 0x40FFFFFF
         const val SELECTION_COLOR = 0xFF2060E0.toInt()
 
         /** Outline colour of the setsquare/compass overlay — amber, so it reads as an instrument

@@ -240,6 +240,12 @@ of question (`scripts/todo.sh stats`).
   `scripts/todo.sh done <id>` to move it out of `TODO.toml` and into `FINISHED.toml`,
   newest-first and dated. Don't leave completed items sitting in `TODO.toml`, and don't
   delete the history; `FINISHED.toml` only grows.
+- **A release freezes the pending set — never hand-write a changelog.** Every finished
+  task carries a `release` stamp once it has shipped; the tasks without one are exactly
+  what the next version ships, so `scripts/todo.sh release --version X.Y.Z` turns that
+  set into the version (stamping the tasks and drafting `docs/releases/vX.Y.Z.md`). The
+  separation is mechanical rather than remembered — the procedure is owned by
+  `docs/tools.md` (*Cutting a release*).
 - **Respect a task's `level`** (`task` · `scope` · `epic`, owned by the `todo` skill):
   only `task`-level items get implemented directly. Picking up a `scope` means
   investigating the code and `add`ing the atomic tasks it breaks into; picking up an

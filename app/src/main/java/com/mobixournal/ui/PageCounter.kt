@@ -62,28 +62,28 @@ fun PageCounter(
     currentPage: Int,
     pageCount: Int,
     modifier: Modifier = Modifier,
-    modern: Boolean = false,
 ) {
-    val shape = if (modern) RoundedCornerShape(14.dp) else MaterialTheme.shapes.small
-    val color = if (modern) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-    val border = if (modern) BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) else null
+    val shape = RoundedCornerShape(BADGE_CORNER)
     Surface(
         modifier = modifier,
         shape = shape,
-        color = color,
-        border = border,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         tonalElevation = 3.dp,
-        shadowElevation = if (modern) 2.dp else 0.dp,
+        shadowElevation = 2.dp,
     ) {
         Text(
             text = pageLabel(currentPage, pageCount),
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (modern) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = if (modern) 10.dp else 8.dp, vertical = if (modern) 4.dp else 3.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
+
+/** Corner of the frosted pill both badges wear. */
+private val BADGE_CORNER = 14.dp
 
 /**
  * The always-visible zoom badge: [PageCounter]'s twin, stacked directly above it so the two read as
@@ -95,26 +95,23 @@ fun ZoomBadge(
     zoom: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    modern: Boolean = false,
 ) {
-    val shape = if (modern) RoundedCornerShape(14.dp) else MaterialTheme.shapes.small
-    val color = if (modern) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-    val border = if (modern) BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) else null
+    val shape = RoundedCornerShape(BADGE_CORNER)
     Surface(
         // Clip before the click so the ripple stays inside the badge's rounded corners.
         modifier = modifier.clip(shape).clickable(onClick = onClick),
         shape = shape,
-        color = color,
-        border = border,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         tonalElevation = 3.dp,
-        shadowElevation = if (modern) 2.dp else 0.dp,
+        shadowElevation = 2.dp,
     ) {
         Text(
             text = zoomLabel(zoom),
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (modern) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = if (modern) 10.dp else 8.dp, vertical = if (modern) 4.dp else 3.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }

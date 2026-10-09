@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -78,37 +79,59 @@ internal fun WidthDot(
 /**
  * A colour swatch: a filled circle with a selection ring. Passing [onLongClick] makes it respond to a
  * long-press (used by the editable custom slot); [editable] overlays a small pencil to mark that slot.
+ *
+ * [color] is nullable for the one slot that can legitimately hold no colour — the user's custom slot
+ * before they have set one. That slot is drawn as an unfilled ring carrying only the pencil, so the
+ * empty state reads as "set a colour here" instead of as a colour the user never chose.
+ *
+ * [add] draws the trailing **add colour** affordance instead: an outlined ring with a plus, the one
+ * swatch in the row that makes a new colour rather than picking an existing one.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ColorSwatch(
-    color: Int,
+    color: Int?,
     selected: Boolean,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     editable: Boolean = false,
+    add: Boolean = false,
 ) {
     val ring = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     val ringWidth = if (selected) 3.dp else 1.dp
     val clickModifier = if (onLongClick != null)
         Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
     else Modifier.clickable(onClick = onClick)
-    val label = colorDisplayName(color)
+    val label = when {
+        add -> "Add colour"
+        color == null -> "Custom colour (not set)"
+        else -> colorDisplayName(color)
+    }
     Box(
         modifier = Modifier
             .size(32.dp)
             .clip(CircleShape)
-            .background(Color(color))
+            .background(if (color == null) Color.Transparent else Color(color))
             .border(ringWidth, ring, CircleShape)
             .semantics { contentDescription = label }
             .then(clickModifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (editable) {
-            Icon(
+        when {
+            add -> Icon(
+                Icons.Filled.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            editable -> Icon(
                 Icons.Filled.Edit,
                 contentDescription = "Edit custom colour",
-                tint = if (Color(color).luminance() < 0.5f) Color.White else Color.Black,
+                tint = when {
+                    color == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                    Color(color).luminance() < 0.5f -> Color.White
+                    else -> Color.Black
+                },
                 modifier = Modifier.size(16.dp),
             )
         }

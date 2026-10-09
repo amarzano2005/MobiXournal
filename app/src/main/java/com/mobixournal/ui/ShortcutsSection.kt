@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material3.HorizontalDivider
@@ -48,45 +51,95 @@ import androidx.compose.ui.window.DialogProperties
  * `EditorRegions.kt`), which resolves a character against these maps — first the colour map, then
  * the tool map — so the whole table is data, not code.
  */
+enum class ShortcutSubpage(val title: String, val summary: String) {
+    TOGGLES("Toggles", "Flip between two tools with one key."),
+    TOOLS("Tool shortcuts", "One key for each drawing and editing tool."),
+    COLOURS("Colour shortcuts", "One key for each pen colour in your palette."),
+}
+
 @Composable
 fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    Text("Toggles", style = MaterialTheme.typography.titleSmall)
-    Text(
-        "Flip between two tools with one key.",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Spacer(Modifier.height(4.dp))
-    KeySettingField("Pen ↔ Eraser", settings.penEraserToggleKey) {
-        onChange(settings.copy(penEraserToggleKey = it))
-    }
-    KeySettingField("Hand/Pan", settings.handToggleKey) {
-        onChange(settings.copy(handToggleKey = it))
-    }
+    var subpage by remember { mutableStateOf<ShortcutSubpage?>(null) }
 
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    Text("Tool shortcuts", style = MaterialTheme.typography.titleSmall)
-    Text(
-        "One key for every tool — jumping straight to it, exactly as its rail slot would.",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Spacer(Modifier.height(4.dp))
-    for (tool in EditorTool.entries) {
-        KeySettingField(tool.label, settings.toolShortcutKeys[tool].orEmpty()) {
-            onChange(settings.copy(toolShortcutKeys = settings.toolShortcutKeys.with(tool, it)))
+    when (val active = subpage) {
+        null -> {
+            Surface(
+                shape = SettingsCardShape,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    val pages = ShortcutSubpage.values()
+                    pages.forEachIndexed { index, page ->
+                        SectionRow(title = page.title, summary = page.summary) {
+                            subpage = page
+                        }
+                        if (index < pages.size - 1) {
+                            SettingsDivider()
+                        }
+                    }
+                }
+            }
+        }
+        ShortcutSubpage.TOGGLES -> {
+            SubpageHeader(active.title) { subpage = null }
+            SettingsGroup("Toggles") {
+                SettingsNote("Flip between two tools with one key. Leave a field empty to disable it.")
+                KeySettingField("Pen ↔ Eraser", settings.penEraserToggleKey) {
+                    onChange(settings.copy(penEraserToggleKey = it))
+                }
+                KeySettingField("Hand/Pan", settings.handToggleKey) {
+                    onChange(settings.copy(handToggleKey = it))
+                }
+            }
+        }
+        ShortcutSubpage.TOOLS -> {
+            SubpageHeader(active.title) { subpage = null }
+            SettingsGroup("Tools") {
+                SettingsNote("One key for every tool — jumping straight to it, exactly as its rail slot would.")
+                for (tool in EditorTool.entries) {
+                    KeySettingField(tool.label, settings.toolShortcutKeys[tool].orEmpty()) {
+                        onChange(settings.copy(toolShortcutKeys = settings.toolShortcutKeys.with(tool, it)))
+                    }
+                }
+            }
+        }
+        ShortcutSubpage.COLOURS -> {
+            SubpageHeader(active.title) { subpage = null }
+            SettingsGroup("Colours") {
+                SettingsNote(
+                    "One key for every pen colour in your palette (Settings → Colors) — selecting the pen in that swatch.",
+                )
+                for (color in settings.penColors) {
+                    KeySettingField(colorDisplayName(color), settings.colorShortcutKeys[color].orEmpty()) {
+                        onChange(settings.copy(colorShortcutKeys = settings.colorShortcutKeys.with(color, it)))
+                    }
+                }
+            }
         }
     }
+}
 
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    Text("Colour shortcuts", style = MaterialTheme.typography.titleSmall)
-    Text(
-        "One key for every pen colour in your palette (Settings → Colors) — selecting the pen in that swatch.",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Spacer(Modifier.height(4.dp))
-    for (color in settings.penColors) {
-        KeySettingField(colorDisplayName(color), settings.colorShortcutKeys[color].orEmpty()) {
-            onChange(settings.copy(colorShortcutKeys = settings.colorShortcutKeys.with(color, it)))
-        }
+@Composable
+private fun SubpageHeader(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onBack)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

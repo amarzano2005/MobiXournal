@@ -41,12 +41,17 @@ array of `[[task]]` tables. A task carries **more** metadata rather than less:
 | `level`       | both             | task · scope · epic — how big it is, and how to work it |
 | `category`    | both             | feature · bug · docs · refactor · test · chore     |
 | `urgency`     | TODO             | low · normal · high · critical                     |
-| `order`       | TODO             | manual sort key (10, 20, 30…); lower = sooner       |
-| `created`     | both             | date the task was added (`YYYY-MM-DD`)             |
-| `completed`   | archive          | date it shipped                                     |
+| `order`       | TODO             | manual sort key (10, 20, 30…); lower = sooner       || `created`     | both             | date the task was added (`YYYY-MM-DD`)              |
+| `completed`   | archive          | date it was finished                                |
+| `release`     | archive          | version it shipped in (`"1.2.0"`); **absent = pending the next version** |
 | `tags`        | TODO             | freeform string list                                |
 | `rebuild`     | TODO             | rebuild the Android app for this task? (default `true`) |
 | `emulator_debug` | TODO          | run the full emulator verify loop for this task? (default `false`) |
+
+`release` is the one field that separates *shipped* work from work still on its way out, and it is
+what makes a changelog correct: the archive holds **every** finished task forever, so without the
+stamp you cannot tell what the next version actually contains. It is written by `release` (below),
+never by hand.
 
 ## Levels — task, scope, epic
 
@@ -94,7 +99,9 @@ newest-`completed`-first.
 
 ## Commands
 
-- **`list`** `[--finished] [--status S] [--category C] [--level L] [--json]` — list tasks.
+- **`list`** `[--finished] [--unreleased] [--status S] [--category C] [--level L] [--json]` —
+  list tasks. `--unreleased` (with `--finished`) is the **pending set**: the finished tasks the next
+  version will ship, i.e. what its changelog is drawn from.
 - **`show <id>`** `[--json]` — print one task with its full description.
 - **`stats`** `[--json]` — totals plus counts by status, category, and urgency
   (active) and by category (finished). This is the "how many …" answer.
@@ -111,15 +118,36 @@ newest-`completed`-first.
   — change fields on an active task.
 - **`done <id>`** `[--date YYYY-MM-DD]` — move an active task into
   `FINISHED.toml`, stamped `completed` (today unless `--date`), newest-first.
+- **`release`** `--version X.Y.Z` `[--date D] [--through D] [--no-changelog]
+  [--bump-gradle] [--force] [--dry-run]` — **freeze a release**: stamp every pending archive task
+  with the version, record `latest_release` in the archive meta, and write the draft
+  `docs/releases/vX.Y.Z.md` grouped by category (plus a compare link to the previous version).
+  Refuses to overwrite an existing changelog (`--force`), refuses a version that is not newer than
+  the last recorded one, and refuses to run with nothing pending. `--bump-gradle` also sets
+  `versionName` and increments `versionCode` in `app/build.gradle.kts`. `--through YYYY-MM-DD`
+  narrows the stamp to tasks finished by that date — the one-shot backfill for a release older than
+  this field. `--dry-run` prints the draft and changes nothing. Implementation: `release.py`;
+  regression check: `python3 scripts/todo/test_release.py`.
 - **`remove <id>`** `[--reason "…"]` — drop an active task (e.g. descoped).
+- **`verify-release --version X.Y.Z`** — check a version was frozen before it is tagged: the
+  archive must record that version as released, `docs/releases/vX.Y.Z.md` must exist, and
+  `versionName` in `app/build.gradle.kts` must match. Exits non-zero with the reason otherwise.
+  CI runs it on every `v*` tag, so a tag whose release was skipped cannot publish.
 - **`validate`** — lint both files: required fields, unique ids, valid enum
-  values, archive tasks have a `completed` date. Exits non-zero on any problem.
+  values, archive tasks have a `completed` date, and `release` (archive) an X.Y.Z version.
+  Exits non-zero on any problem.
 - **`migrate`** `[--created YYYY-MM-DD]` — one-shot cleanup of legacy/rough TOML
   into the current schema. Already run during the Markdown→TOML migration; kept
   for re-runs.
 
 ## Working rules (mirror of `AGENTS.md`)
 
+- **A release freezes the pending set; never hand-pick a changelog.** Everything finished since
+  the last release has no `release` stamp, and `todo.sh release --version X.Y.Z` turns exactly that
+  set into a version: it stamps the tasks and drafts the changelog. So the correct workflow is
+  `done <id>` as work lands, then `release` at the tag — a finished task forgotten in `TODO.toml`
+  or left unstamped is a changelog that lies. The release procedure is owned by `docs/tools.md`
+  (see *Cutting a release*).
 - When you finish a task (built, tested, documented), run **`done <id>`** in the
   same commit that completes the work — don't leave shipped items in `TODO.toml`.
 - **After every `done <id>`, run `stats` and report how many open items remain in

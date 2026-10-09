@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,12 +42,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
  * The Select tool's contextual action bar, shown while a selection is active: cut / copy /
- * duplicate / delete, recolour and re-width the selected strokes, and deselect. Horizontally
- * scrollable so it fits narrow screens. (Resize and rotate are on-canvas handles, not buttons.)
+ * duplicate / delete, recolour and re-width the selected strokes. Horizontally scrollable so it fits
+ * narrow screens. (Resize and rotate are on-canvas handles, not buttons.)
+ *
+ * It carries **no Done button**: the bar floats on the selection itself (see
+ * [SelectionActionAnchor]), so tapping off the selection is the way out — and that tap already starts
+ * the next stroke, which is what a Done button would have interrupted. Its controls are
+ * [SelectionBarButton] wide rather than Material's 48dp, which is what keeps the bar small enough to
+ * sit against the element it acts on instead of covering the page.
  */
 @Composable
 fun SelectionActionBar(
@@ -58,12 +68,12 @@ fun SelectionActionBar(
     palette: ColorPaletteState,
     onReWidth: (Float) -> Unit,
     widthSlots: List<Float>,
-    onDeselect: () -> Unit,
     modifier: Modifier = Modifier,
-    modern: Boolean = false,
 ) {
-    val shape = if (modern) RoundedCornerShape(24.dp) else MaterialTheme.shapes.large
-    val border = if (modern) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)) else null
+    // 50% corners: a pill that follows whatever height the compact buttons give the bar, instead of a
+    // fixed radius that a shorter bar would read as a lozenge.
+    val shape = RoundedCornerShape(50)
+    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     Surface(
         modifier = modifier,
         shape = shape,
@@ -74,19 +84,49 @@ fun SelectionActionBar(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 6.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onCut) { Icon(Icons.Filled.ContentCut, contentDescription = "Cut") }
-            IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, contentDescription = "Copy") }
-            IconButton(onClick = onDuplicate) { Icon(Icons.Filled.LibraryAdd, contentDescription = "Duplicate") }
+            BarIconButton("Cut", Icons.Filled.ContentCut, onCut)
+            BarIconButton("Copy", Icons.Filled.ContentCopy, onCopy)
+            BarIconButton("Duplicate", Icons.Filled.LibraryAdd, onDuplicate)
             RecolorMenu(onRecolor, palette)
             ReWidthMenu(widthSlots, onReWidth)
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete") }
-            TextButton(onClick = onDeselect) { Text("Done") }
+            BarIconButton("Delete", Icons.Filled.Delete, onDelete)
         }
     }
 }
+
+/**
+ * One button of the compact action bars: a 32dp tap square around an 18dp glyph, over the 48dp
+ * [IconButton] that would have set the bar's height.
+ *
+ * Built as a plain [Box] because [IconButton] enforces Material's 48dp minimum touch target, which no
+ * `Modifier.size` can undo — using it is what previously made this bar as tall as a rail button and
+ * twice as wide as it needed to be.
+ */
+@Composable
+private fun BarIconButton(
+    contentDescription: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(SelectionBarButton)
+            .semantics { this.contentDescription = contentDescription }
+            .clickable(onClick = onClick),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(SelectionBarIcon))
+    }
+}
+
+/** The tap square one [BarIconButton] occupies; the bar's height is this plus its 2dp of padding. */
+private val SelectionBarButton = 32.dp
+
+/** The glyph inside a [BarIconButton] — 18dp, so a couple of pixels of the square stay as margin. */
+private val SelectionBarIcon = 18.dp
 
 /**
  * A drop-down that recolours the selection, offering the shared [ColorPaletteRows] — the same
@@ -97,7 +137,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     var open by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) { Icon(Icons.Filled.Palette, contentDescription = "Recolour") }
+        BarIconButton("Recolour", Icons.Filled.Palette) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             ColorPaletteRows(
                 selected = null,
@@ -115,7 +155,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
 private fun ReWidthMenu(widthSlots: List<Float>, onReWidth: (Float) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) { Icon(Icons.Filled.LineWeight, contentDescription = "Width") }
+        BarIconButton("Width", Icons.Filled.LineWeight) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             widthSlots.forEachIndexed { i, pt ->
                 DropdownMenuItem(

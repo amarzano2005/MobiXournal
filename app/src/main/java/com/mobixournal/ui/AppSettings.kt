@@ -15,24 +15,17 @@ import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
 /**
- * Which edge of the editor the tool rail is docked to.
+ * Which vertical edge of the editor the tool rail is docked to.
  *
- * The rail's buttons are laid out in a row when [isHorizontal] is true (top/bottom), or in a column
- * when docked to a vertical edge (left/right).
+ * Only the two vertical edges are offered: the rail always lays its buttons in a column down the
+ * side, which keeps it clear of the top bar (where the Secondary Toolbar lives) and leaves the full
+ * height beside the canvas for the buttons a hand actually reaches.
  */
 enum class ToolbarPosition(val label: String) {
-    /** Rail along the top edge, buttons in a horizontal row. */
-    TOP("Top"),
-    /** Rail along the bottom edge, buttons in a horizontal row. */
-    BOTTOM("Bottom"),
     /** Rail down the left edge, buttons in a vertical column. */
     LEFT("Left"),
     /** Rail down the right edge, buttons in a vertical column. */
     RIGHT("Right"),
-    ;
-
-    /** True when the rail runs along a horizontal edge (top/bottom) and so lays its buttons in a row. */
-    val isHorizontal: Boolean get() = this == TOP || this == BOTTOM
 }
 
 /**
@@ -98,16 +91,26 @@ enum class ThemeMode(val label: String) {
  * @property snapRotation Pull a selection's rotate handle onto 15-degree increments.
  * @property guideKind Which on-canvas drawing guide (setsquare/compass) is laid on the page, restored on launch.
  * @property penWidths The three user-configurable pen-tip widths (pt) behind the S/M/L size slots, in slot order.
- * @property customColor The user-defined colour (opaque ARGB) behind the palette's editable custom slot.
+ * @property customColor The user-defined colour (opaque ARGB) behind the palette's editable custom slot,
+ *   or null while the slot is still empty — the factory state. An empty slot is drawn as an outlined
+ *   placeholder and the picker's editor opens with [DEFAULT_CUSTOM_COLOR] as its starting point; the
+ *   moment the user confirms a colour it is stored here and the slot becomes one-tap pickable again.
  * @property defaultTool Which tool is active when a document first opens.
  * @property momentum How far a released pan keeps gliding — the momentum-strength factor (0 = off, 1 = normal).
  * @property momentumCurve The velocity→coast response shape for momentum (linear … exponential).
  * @property panSensitivity How far the document moves per unit of pan travel (0 = frozen, 1 = one-to-one, >1 = faster).
- * @property toolbarPosition Which edge of the editor the tool rail is docked to.
+ * @property toolbarPosition Which vertical edge of the editor the tool rail is docked to.
  * @property penColors The pen palette every colour picker draws from, in display order — seeded with
  *   [PEN_COLORS] (desktop Xournal++) and editable under **Settings → Colors**. Sanitised to a
  *   non-empty, de-duplicated list of opaque colours, so a corrupt pref degrades instead of blanking
  *   the palette.
+ * @property penFavorites The three pen colours behind the three dots of the rail's **Colour & size**
+ *   slot, in slot order, editable under **Settings → Colors**. Always exactly [FAVORITE_COUNT] opaque,
+ *   distinct colours: a short or corrupt pref is padded from [DEFAULT_PEN_FAVORITES] rather than
+ *   leaving the slot half-empty.
+ * @property highlighterFavorites The three highlighter colours behind the same three dots. Only one
+ *   set is ever on screen — the dots show whichever belongs to the tool in play (see
+ *   [favoriteToolFor]), so the rail never stacks two ternas.
  * @property lastColor The pen colour in use when the app last ran, restored on the next launch.
  *   The palette itself is [penColors]; the factory default is [PEN_COLORS], desktop Xournal++'s black.
  * @property lastWidth The pen width (pt) in use when the app last ran, restored on the next launch.
@@ -126,7 +129,6 @@ enum class ThemeMode(val label: String) {
  * @property toolShortcutKeys Per-tool keyboard shortcut, keyed by [EditorTool]; empty/absent means disabled.
  * @property colorShortcutKeys Per-colour keyboard shortcut, keyed by the ARGB value of the swatch; empty/absent means disabled.
  * @property presets The user's saved tool snapshots, in display order.
- * @property modernUi Whether to use the modern Material 3 interface (floating rounded toolbars, pill tabs, grouped controls) or the classic compact layout.
  * @property textImportLimitMb Largest plain-text file (MiB) that may be typeset into a background PDF.
  * @property pdfCacheLimitMb How much (MiB) the generated/background PDF cache may keep.
  */
@@ -177,8 +179,8 @@ data class AppSettings(
     val guideKind: GuideKind = GuideKind.NONE,
     /** The three user-configurable pen-tip widths (pt) behind the S/M/L size slots, in slot order. */
     val penWidths: List<Float> = DEFAULT_PEN_WIDTHS,
-    /** The user-defined colour (opaque ARGB) behind the palette's editable custom slot. */
-    val customColor: Int = DEFAULT_CUSTOM_COLOR,
+    /** The user-defined colour behind the palette's editable custom slot; null until the user sets one. */
+    val customColor: Int? = null,
     /** Which tool is active when a document first opens. */
     val defaultTool: EditorTool = EditorTool.PEN,
     /** Key to toggle between pen and eraser (empty = disabled). */
@@ -191,16 +193,18 @@ data class AppSettings(
     val momentumCurve: MomentumCurve = MomentumCurve.QUADRATIC,
     /** How far the document moves per unit of pan travel (0 = frozen, 1 = one-to-one, >1 = faster). */
     val panSensitivity: Float = PanSensitivity.NORMAL,
-    /** Which edge of the editor the Main Toolbar is docked to. */
+    /** Which vertical edge of the editor the Main Toolbar is docked to. */
     val toolbarPosition: ToolbarPosition = ToolbarPosition.LEFT,
-    /** When true, the Secondary Toolbar (geometric figures and tools) is displayed in the top bar (dual toolbar mode). */
-    val showToolsInTopBar: Boolean = DEFAULT_SHOW_TOOLS_IN_TOP_BAR,
     /**
      * The pen palette every colour picker draws from, in display order. Seeded with [PEN_COLORS] and
      * edited under **Settings → Colors**; an empty or unparsable stored list falls back to the
      * factory palette rather than leaving the app with no swatches at all.
      */
     val penColors: List<Int> = PEN_COLORS,
+    /** The three pen colours behind the colour slot's three dots, in slot order. */
+    val penFavorites: List<Int> = DEFAULT_PEN_FAVORITES,
+    /** The three highlighter colours behind the same rail slot, in slot order. */
+    val highlighterFavorites: List<Int> = DEFAULT_HIGHLIGHTER_FAVORITES,
     /** The pen colour in use when the app last ran, restored on the next launch. */
     val lastColor: Int = DEFAULT_LAST_COLOR,
     /** The pen width (pt) in use when the app last ran, restored on the next launch. */
@@ -262,7 +266,7 @@ data class AppSettings(
     /**
      * The [RailItem.id]s the user has hidden from the Main Toolbar. The factory default hides the
      * geometric figure groups already shown in the Secondary Toolbar (see [DEFAULT_RAIL_HIDDEN]),
-     * so dual-toolbar installs avoid redundancy out of the box.
+     * so the two toolbars avoid redundancy out of the box.
      */
     val railHidden: Set<String> = DEFAULT_RAIL_HIDDEN,
     /** The Secondary Toolbar's button positions in display order. Empty falls back to factory default. */
@@ -283,11 +287,6 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** Whether to use Android 12+ dynamic colours from the wallpaper (Material You). */
     val dynamicColor: Boolean = true,
-    /**
-     * Whether to use the modern Material 3 interface (floating rounded toolbars, pill tabs,
-     * grouped controls) or the classic compact layout. On by default.
-     */
-    val modernUi: Boolean = DEFAULT_MODERN_UI,
     /**
      * Per-tool keyboard shortcut, keyed by [EditorTool]. Absent or empty means that tool has no
      * shortcut. Every tool is covered, so the Settings screen can offer a key field for each.
@@ -349,6 +348,8 @@ data class AppSettings(
                 .distinct()
                 .take(MAX_PEN_COLORS)
                 .ifEmpty { PEN_COLORS },
+            penFavorites = sanitizeFavorites(penFavorites, DEFAULT_PEN_FAVORITES),
+            highlighterFavorites = sanitizeFavorites(highlighterFavorites, DEFAULT_HIGHLIGHTER_FAVORITES),
             penWidths = penWidths.map { it.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX) },
             lastWidth = lastWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
             shapeWidth = shapeWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
@@ -414,7 +415,12 @@ data class AppSettings(
         /** Factory defaults for the three pen-width slots — the old fixed S/M/L values. */
         val DEFAULT_PEN_WIDTHS: List<Float> = listOf(0.85f, 1.5f, 2.6f)
 
-        /** Factory default for the custom colour slot — a violet not already in the fixed palette. */
+        /**
+         * The colour the custom picker **opens with** while the slot is still empty — a violet that is
+         * not in the fixed palette, so a fresh slot is obviously the user's own. The slot itself
+         * starts empty ([customColor] null): a first launch must not claim a colour the user never
+         * picked, and an empty slot is what makes the pencil read as "set one" rather than "edit".
+         */
         val DEFAULT_CUSTOM_COLOR: Int = 0xFF9C27B0.toInt()
 
         /**
@@ -426,6 +432,21 @@ data class AppSettings(
 
         /** Factory default highlighter colour — the palette's yellow, as on desktop Xournal++. */
         val DEFAULT_HIGHLIGHTER_COLOR: Int = XOPP_YELLOW
+
+        /**
+         * How many colours the rail's Colour & size slot holds as dots — one set per tool, stacked
+         * down the slot beside the chevron onto the full pop-up.
+         * Fixed rather than configurable: the dots' whole point is three colours you can reach
+         * without opening anything, and a growing strip would cost the rail the buttons it shows.
+         */
+        const val FAVORITE_COUNT: Int = 3
+
+        /** Factory pen favourites — black, red, green: the three colours handwriting actually uses. */
+        val DEFAULT_PEN_FAVORITES: List<Int> = listOf(XOPP_BLACK, XOPP_RED, XOPP_GREEN)
+
+        /** Factory highlighter favourites — yellow first, then green and blue. */
+        val DEFAULT_HIGHLIGHTER_FAVORITES: List<Int> =
+            listOf(XOPP_YELLOW, XOPP_GREEN, XOPP_BLUE)
 
         /** Factory default highlighter width — the largest pen-width slot, the one width that stays bold. */
         val DEFAULT_HIGHLIGHTER_WIDTH: Float = DEFAULT_PEN_WIDTHS[2]
@@ -447,13 +468,11 @@ data class AppSettings(
         const val DEFAULT_TABLE_ROWS: Int = 3
         const val DEFAULT_TABLE_COLS: Int = 3
         const val DEFAULT_TABLE_HEADER: Boolean = false
-        const val DEFAULT_SHOW_TOOLS_IN_TOP_BAR: Boolean = true
-        const val DEFAULT_MODERN_UI: Boolean = true
 
         /**
          * Main Toolbar items hidden by default — the geometric figures and drawing tools the
          * Secondary Toolbar already shows (line, rectangle, shape, arrow, table, circuit, circuit_active, logic, guides).
-         * Hides them from the Main Toolbar to avoid redundancy when [DEFAULT_SHOW_TOOLS_IN_TOP_BAR] is on.
+         * Hides them from the Main Toolbar to avoid redundancy, since the Secondary Toolbar is always shown.
          * The user can re-enable any of them in **Settings → Toolbar → Main Toolbar buttons**.
          */
         val DEFAULT_RAIL_HIDDEN: Set<String> = setOf(
@@ -532,14 +551,23 @@ class SettingsStore(context: Context) {
             snapRotation = prefs.getBoolean(KEY_SNAP_ROTATION, d.snapRotation),
             guideKind = enumOr(prefs.getString(KEY_GUIDE_KIND, null), d.guideKind),
             penWidths = d.penWidths.mapIndexed { i, w -> prefs.getFloat(keyPenWidth(i), w) },
-            customColor = prefs.getInt(KEY_CUSTOM_COLOR, d.customColor),
+            // Absent means "the slot is still empty"; the stored key is removed rather than zeroed when
+            // the user clears it, so an empty slot and a stored black stay distinguishable.
+            customColor = if (prefs.contains(KEY_CUSTOM_COLOR)) {
+                prefs.getInt(KEY_CUSTOM_COLOR, AppSettings.DEFAULT_CUSTOM_COLOR)
+            } else {
+                d.customColor
+            },
             defaultTool = enumOr(prefs.getString(KEY_DEFAULT_TOOL, null), d.defaultTool),
             momentum = Momentum.coerce(prefs.getFloat(KEY_MOMENTUM, d.momentum)),
             momentumCurve = enumOr(prefs.getString(KEY_MOMENTUM_CURVE, null), d.momentumCurve),
             panSensitivity = PanSensitivity.coerce(prefs.getFloat(KEY_PAN_SENSITIVITY, d.panSensitivity)),
             toolbarPosition = enumOr(prefs.getString(KEY_TOOLBAR_POSITION, null), d.toolbarPosition),
-            showToolsInTopBar = prefs.getBoolean(KEY_SHOW_TOOLS_IN_TOP_BAR, d.showToolsInTopBar),
             penColors = decodePenColors(prefs.getString(KEY_PEN_COLORS, null), d.penColors),
+            penFavorites = decodeFavorites(prefs.getString(KEY_PEN_FAVORITES, null), d.penFavorites),
+            highlighterFavorites = decodeFavorites(
+                prefs.getString(KEY_HIGHLIGHTER_FAVORITES, null), d.highlighterFavorites,
+            ),
             lastColor = prefs.getInt(KEY_LAST_COLOR, d.lastColor),
             lastWidth = prefs.getFloat(KEY_LAST_WIDTH, d.lastWidth),
             highlighterColor = prefs.getInt(KEY_HIGHLIGHTER_COLOR, d.highlighterColor),
@@ -584,7 +612,6 @@ class SettingsStore(context: Context) {
                 enumOr(prefs.getString(KEY_PAGE_COUNTER_H, null), d.pageCounterHorizontal),
             themeMode = enumOr(prefs.getString(KEY_THEME_MODE, null), d.themeMode),
             dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, d.dynamicColor),
-            modernUi = prefs.getBoolean(KEY_MODERN_UI, d.modernUi),
             toolShortcutKeys = loadToolShortcutKeys(),
             colorShortcutKeys = loadColorShortcutKeys(),
             presets = decodeToolPresets(prefs.getString(KEY_PRESETS, null)),
@@ -642,14 +669,15 @@ class SettingsStore(context: Context) {
             .putBoolean(KEY_SNAP_ROTATION, s.snapRotation)
             .putString(KEY_GUIDE_KIND, s.guideKind.name)
         s.penWidths.forEachIndexed { i, w -> e.putFloat(keyPenWidth(i), w) }
-        e.putInt(KEY_CUSTOM_COLOR, s.customColor)
+        if (s.customColor == null) e.remove(KEY_CUSTOM_COLOR) else e.putInt(KEY_CUSTOM_COLOR, s.customColor)
         e.putString(KEY_DEFAULT_TOOL, s.defaultTool.name)
         e.putFloat(KEY_MOMENTUM, s.momentum)
         e.putString(KEY_MOMENTUM_CURVE, s.momentumCurve.name)
         e.putFloat(KEY_PAN_SENSITIVITY, s.panSensitivity)
         e.putString(KEY_TOOLBAR_POSITION, s.toolbarPosition.name)
-        e.putBoolean(KEY_SHOW_TOOLS_IN_TOP_BAR, s.showToolsInTopBar)
         e.putString(KEY_PEN_COLORS, encodePenColors(s.penColors))
+        e.putString(KEY_PEN_FAVORITES, encodeFavorites(s.penFavorites))
+        e.putString(KEY_HIGHLIGHTER_FAVORITES, encodeFavorites(s.highlighterFavorites))
         e.putInt(KEY_LAST_COLOR, s.lastColor)
         e.putFloat(KEY_LAST_WIDTH, s.lastWidth)
         e.putInt(KEY_HIGHLIGHTER_COLOR, s.highlighterColor)
@@ -678,7 +706,6 @@ class SettingsStore(context: Context) {
         e.putString(KEY_PAGE_COUNTER_H, s.pageCounterHorizontal.name)
         e.putString(KEY_THEME_MODE, s.themeMode.name)
         e.putBoolean(KEY_DYNAMIC_COLOR, s.dynamicColor)
-        e.putBoolean(KEY_MODERN_UI, s.modernUi)
         e.putString(KEY_TOOL_SHORTCUTS, encodeToolShortcuts(s.toolShortcutKeys))
         e.putString(KEY_COLOR_SHORTCUTS, encodeColorShortcuts(s.colorShortcutKeys))
         // The legacy per-shortcut keys are gone once the generic maps exist, so the migration above
@@ -746,8 +773,9 @@ class SettingsStore(context: Context) {
         const val KEY_MOMENTUM_CURVE = "momentum_curve"
         const val KEY_PAN_SENSITIVITY = "pan_sensitivity"
         const val KEY_TOOLBAR_POSITION = "toolbar_position"
-        const val KEY_SHOW_TOOLS_IN_TOP_BAR = "show_tools_in_top_bar"
         const val KEY_PEN_COLORS = "pen_colors"
+        const val KEY_PEN_FAVORITES = "pen_favorites"
+        const val KEY_HIGHLIGHTER_FAVORITES = "highlighter_favorites"
         const val KEY_LAST_COLOR = "last_color"
         const val KEY_LAST_WIDTH = "last_width"
         const val KEY_HIGHLIGHTER_COLOR = "highlighter_color"
@@ -777,7 +805,6 @@ class SettingsStore(context: Context) {
         const val KEY_PAGE_COUNTER_H = "page_counter_horizontal"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_DYNAMIC_COLOR = "dynamic_color"
-        const val KEY_MODERN_UI = "modern_ui"
         const val KEY_TOOL_SHORTCUTS = "tool_shortcuts"
         const val KEY_COLOR_SHORTCUTS = "color_shortcuts"
         const val KEY_PRESETS = "tool_presets"
@@ -822,6 +849,38 @@ fun decodeToolShortcuts(raw: String?): Map<EditorTool, String> =
  * store. Kept separate from [encodeColorShortcuts] so the two lists can diverge in what they filter.
  */
 fun encodePenColors(colors: Collection<Int>): String = colors.joinToString(",") { it.toString() }
+
+/**
+ * Encode a Favourites terna for `SharedPreferences`: the ARGB values, comma-separated — the same
+ * shape [encodePenColors] writes, kept separate because the two lists have different lengths and
+ * different failure modes.
+ */
+fun encodeFavorites(colors: Collection<Int>): String = colors.joinToString(",") { it.toString() }
+
+/**
+ * Parse what [encodeFavorites] wrote, falling back to [fallback] when nothing usable is stored.
+ * Whatever it returns goes through [sanitizeFavorites] on load, so a short, long or corrupt value
+ * still ends up as exactly the three colours the rail can draw.
+ */
+fun decodeFavorites(raw: String?, fallback: List<Int>): List<Int> =
+    raw?.split(',')?.mapNotNull { it.trim().toIntOrNull() }
+        ?.takeIf { it.isNotEmpty() }
+        ?: fallback
+
+/**
+ * Exactly [AppSettings.FAVORITE_COUNT] opaque, distinct colours: whatever usable entries [colors]
+ * holds, padded from [fallback] so a pref that lost entries still fills every dot in the slot. The
+ * rail draws a fixed row, so "three" is a shape the slot depends on, not a preference.
+ */
+fun sanitizeFavorites(colors: List<Int>, fallback: List<Int>): List<Int> {
+    val out = ArrayList<Int>(AppSettings.FAVORITE_COUNT)
+    for (candidate in colors + fallback) {
+        val opaque = candidate or 0xFF000000.toInt()
+        if (out.none { it == opaque }) out.add(opaque)
+        if (out.size == AppSettings.FAVORITE_COUNT) break
+    }
+    return out
+}
 
 /**
  * Parse what [encodePenColors] wrote, falling back to [fallback] when nothing usable is stored — a

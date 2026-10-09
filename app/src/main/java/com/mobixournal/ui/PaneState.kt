@@ -53,6 +53,12 @@ class PaneState {
     var canRedo by mutableStateOf(false)
     /** Whether there is an active element selection. */
     var hasSelection by mutableStateOf(false)
+    /**
+     * The active selection's box in this canvas's own view px, or null when nothing is selected.
+     * Republished by the surface whenever the selection or the view moves, and used to float the
+     * contextual action bar next to what is selected.
+     */
+    var selectionRect by mutableStateOf<android.graphics.RectF?>(null)
     /** Whether there is an active text selection (caret inside a text box). */
     var hasTextSelection by mutableStateOf(false)
     /** Whether there is content on the clipboard (cut or copied selection/pages). */

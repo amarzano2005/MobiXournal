@@ -88,9 +88,10 @@ internal fun LineStyleChips(lineStyle: LineStyle, onLineStyle: (LineStyle) -> Un
 internal fun ShapeRecognitionButton(enabled: Boolean, onEnabled: (Boolean) -> Unit) {
     val tint =
         if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val slot = LocalRailSlotSize.current
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(slot)
             .clip(CircleShape)
             .then(
                 if (enabled) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
@@ -103,6 +104,7 @@ internal fun ShapeRecognitionButton(enabled: Boolean, onEnabled: (Boolean) -> Un
             Icons.Filled.AutoFixHigh,
             contentDescription = if (enabled) "Shape recognition on" else "Shape recognition off",
             tint = tint,
+            modifier = Modifier.size(slot / 2),
         )
     }
 }

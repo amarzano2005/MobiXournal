@@ -60,7 +60,7 @@ scripts/build.sh testDebugUnitTest
 # Clean release-path build of the debug APK
 scripts/build.sh clean assembleDebug
 ```
-For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release — bump `versionName`/`versionCode`, write `docs/releases/v<version>.md`, then push the `v<version>` tag so CI builds the APK and publishes the Release — is documented there too.
+For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release is documented there too, and it is a command rather than a chore: `scripts/todo.sh release --version <version> --bump-gradle` stamps everything finished since the last release and drafts `docs/releases/v<version>.md` from it, then you curate that draft and push the `v<version>` tag so CI builds the APK and publishes the Release.
 
 ---
 
@@ -97,6 +97,8 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
   - Tip size adjusts with width slots; visual contact radius ring follows the cursor.
 - **Color Palette & Stroke Width**:
   - 8 standard desktop Xournal++ colors in a fixed order — black, red, green, blue, orange, yellow, magenta, white — plus a custom HSV/hex picker.
+  - **The custom slot starts empty**, not pre-filled with a colour nobody chose: it is drawn as an outline until you set one, then shows and offers that colour everywhere. The picker also offers **the colours already in the app** as a tap-to-start-from row, so a new colour can begin from an existing one instead of from a hex you would have to know.
+  - **New colours from the canvas**: the Colour & size pop-up's swatch row ends with an **add-colour** swatch, which appends to the palette (and selects the new colour). The row scrolls rather than wraps, so however many colours you add the pop-up keeps the same height.
   - 3 customizable width slots per tool (`S` / `M` / `L`).
   - Tools remember their own active color and stroke width independently.
   - Line styles: **Solid**, **Dashed**, **Dash-dot**, **Dotted**.
@@ -139,9 +141,10 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 
 - **Selection & Manipulation**:
   - **Rectangle & Lasso Selection**: Select active-layer objects.
-  - **Transformations**: Move (with auto-scrolling at screen edges), uniform resize, and stroke rotation.
+  - **Transformations**: Move (with auto-scrolling at screen edges), resize — **proportional from the corner handles and single-axis from the edge handles**, so a drawing can be stretched wider or taller out of proportion — and stroke rotation. Stroke width follows a per-axis stretch by the geometric mean of the two factors.
+  - **A precise outline**: the dashed box is drawn **exactly on the selected elements' ink**, with no padding, so a selection shows what it actually holds; the ease of grabbing a handle comes from the hit radii, not from drawing the box bigger than the element.
   - **Edge Auto-Scroll**: Dragging either a move or the rectangle/lasso marquee into the top or bottom edge scrolls the page vertically, so a selection can reach past the viewport (matching desktop Xournal++).
-  - **Action Bar**: Cut, Copy, Paste (centers on visible viewport), Duplicate, Recolor, Change line weight, and Delete.
+  - **Action Bar**: Cut, Copy, Duplicate, Recolor, Change line weight, and Delete (Paste and the region actions stay on the bottom edge). It **floats right under the selection** (lifting above it only when the sheet ends below the selection) instead of sitting at the bottom of the screen, so the actions stay by the hand holding the stylus. It is compact — 32dp buttons and no Done button, since tapping off the selection already clears it — so it covers about half the canvas it used to.
   - **Select Background (Flatten)**: Marquee-select a region to copy or cut a flattened raster image including all layers and page background.
 - **PDF Text Selection**: Drag across vector PDF text to highlight and copy text to the system clipboard (no OCR needed).
 - **Full-Document Search & Handwriting Recognition**:
@@ -149,7 +152,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Dual Handwriting Engine**: On Android devices, powered by **Google ML Kit Digital Ink Recognition** for high-accuracy neural recognition of print and cursive handwriting across 300+ languages, backed by a robust offline pure-Kotlin fallback with ligature-based stroke segmentation and topological feature classification.
   - **Fuzzy & Multi-Candidate Search**: Tolerates handwriting variations via candidate hypothesis matching, diacritic/accent normalization, multi-word continuous phrase matching, and Levenshtein distance tolerance.
   - **Modern UI & High-Performance Search**: Material 3 search pill with dynamic match badge (`1/3` or `0/0`), auto-focus, keyboard Search action, quick clear button, AI handwriting indexing dialog when opening search (`SearchIndexingDialog`), followed by instantaneous real-time querying while typing and rounded canvas highlights with smooth navigation.
-- **Vertical Space Tool**: Drag down to insert blank space across all layers simultaneously; drag up to close gaps.
+- **Vertical Space Tool**: Drag to open room on a page, exactly as desktop Xournal++ does it: **only elements that lie entirely below the grabbed line move** (one the line passes through stays put rather than being torn in half) and that is decided once, when you grab, so a block sliding upward doesn't pick up the elements it passes. Dragging down inserts and dragging up closes the gap — **and keeps going: nothing stops the block at the line**, so content can be pulled above the line it was grabbed at (and, pulled far enough, off the top of the sheet, where it stays and can be dragged back down). The amount inserted **snaps to the page ruling** when *Snap to grid* is on. Every layer moves together — a deliberate difference from the desktop, which reflows only the current layer, so no note is left behind by space opened on another layer. This is a reflow of coordinates only, so it round-trips through the `.xopp` file.
 - **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images.
 - **Synchronized Audio Notes**:
   - Record audio while handwriting. Strokes are tagged with precise timestamps (`fn`/`ts`).
@@ -162,15 +165,20 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 
 ### ⚙️ Hardware Optimization & Settings
 
+- **Settings laid out like a tablet's**: on a screen at least 600dp wide the four areas — **Input**, **Drawing**, **Interface**, **App & data** — are a **permanent side menu** with the selected area's sections beside it (an opened section takes that pane, and back returns to the list); narrower screens drop the menu for the pushed index → area → section. Back steps whichever shape is on screen one level at a time, mirroring the title-bar arrow.
+- **Settings search**: the field at the top of the menu (or of the index on a phone) filters live to the sections that match — by name, by what they cover, and by the words people actually type (*"momentum"*, *"wallpaper"*, *"cache"*, *"left-handed"*). Each result names the area it lives in and opens straight to the section.
+- **First-launch tour (4 steps)**: stylus setup, harmonising figures with handwriting, graphics tablets and shortcuts, and **handedness** — right-handed (the default, Main Toolbar on the left) or left-handed (toolbar on the right), chosen while the toolbar moves behind the dialog. All of it is changeable later in Settings.
 - **Graphics Tablets**:
   - Plug-and-play USB OTG and Bluetooth tablet support (Wacom, Huion, XP-Pen, Gaomon).
   - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
   - **Stylus Calibration**: Independent pressure multiplier (up to 4×) and minimum pressure floor (up to 1.00) — desktop Xournal++'s own ranges — plus precision budgets (Economy to Maximum).
 - **Toolbars & Interface**:
-  - **Modern vs Classic Interface**: Toggle between the **Modern UI** (default: floating dock Main Toolbar and adaptive floating Secondary Toolbar dock with rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, and Material 3 tonal elevation) and **Classic UI** (dense edge-to-edge flat tool rail, circular buttons, compact tabs) via **Settings → Appearance → Modern interface**.
-  - **Top Bar**: Clean top bar with document title chip, one-tap **Save** (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
+  - **One colour per job**: the *bars* are one colour and the *toolbars* another, one tonal step up. The top bar, the tab strip and both Android system bars share the first, so the frame around the document is a single field from the status bar down to the navigation bar instead of three tonal steps; the Main Toolbar rail, the Secondary Toolbar's floating dock and **the surround behind the pages** share the second, so the desk a page lies on reads as the same material as the tools floating over it. A hairline traces each sheet — that is what keeps a page readable when the light theme makes chrome and paper nearly the same white. The floating docks (rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, Material 3 tonal elevation) are the only layout, and the theme is set under **Settings → Interface → Appearance**.
+  - **Top Bar**: Clean top bar with document title chip, a compact quick **Export PDF** button followed by the one-tap **Save** button at the far right (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
   - **Main Toolbar & Secondary Toolbar (Dual Toolbar)**:
-    - **Main Toolbar**: The primary tool rail (pen, highlighter, eraser, select, color & size, zoom, layers, pages) dockable to Left, Right, Top, or Bottom.
+    - **Main Toolbar**: The primary tool rail (pen, highlighter, eraser, select, colour & size, zoom, layers, pages) dockable to the **Left or Right** edge.
+    - **Colour & Size (one slot)**: A single rail position covers the whole stroke. Its left half is the **three favourite colours** of the tool in use, stacked vertically — tap one to take that colour at once, long-press one to redefine it from the palette — and just over a third of the slot is a **chevron button** that opens the full pop-up with the palette, the three tip sizes and the line style. The pen and the highlighter keep **separate** sets, and the slot shows the set belonging to the tool in use (reach for the highlighter and its three appear in place of the pen's), so it never spends two rail positions on colour. The favourites and the pop-up used to be two separate slots; they are one now, which gives the rail a button back. Both sets are set up under **Settings → Drawing → Colors**, and the factory sets are the ones you would reach for: the pen's **black, red, green** and the highlighter's **yellow, green, blue**. The pop-up's palette row also carries an add-colour swatch and scrolls instead of wrapping, so the menu's height is fixed.
+    - **Never a half button**: The rail fills its height with a **whole number** of buttons, at the size they are meant to be. It measures the height it has and spreads as many slots as fit *whole* over it, so the next button starts exactly at the rail's bottom edge instead of being cut in half by it; a couple of dp left over become buttons a few percent larger rather than a sliver of the next one. **A button is never drawn smaller than its own size** — what doesn't fit is one scroll away — so everything down to the page settings is visible without scrolling. A rail whose buttons all fit is left exactly as it was.
     - **Secondary Toolbar**: The geometric figures and tools toolbar (lines, rectangles, shapes, tables, circuits, logic gates, guides), displayed as an adaptive floating dock in the top bar enclosing only the active figures (adapting its width to their count).
   - Reorder, hide, or show buttons in both the Main Toolbar and Secondary Toolbar under **Settings → Toolbar**.
 - **Navigation & Scrolling**:
@@ -186,7 +194,8 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 ### 💾 Saving & Exporting
 
 - **Cloud & Remote Storage**: Save and export PDF to any destination the system file picker offers, including cloud providers (Google Drive, OneDrive, Dropbox) and mounted remote shares. Every write is serialised to a local staging file first and pushed across in a single pass, so a slow or failed upload can never leave a half-written `.xopp` behind.
-- **Save**: Writes directly to the open file without prompts.
+- **Save**: Writes directly to the open file without prompts. A blocking progress overlay ("Saving …") appears the moment Save is tapped and stays up until the bytes have landed — encoding a large document no longer freezes the app before the note appears.
+- **Quick Export PDF**: The compact PDF button in the top bar (to the left of Save) exports straight away, without a trip through the overflow menu. The overflow menu's **Export PDF** entry does the same.
 - **Save As**:
   - **Original (`.xopp`)**: Standard gzip-compressed XML file with external PDF/image linking. Best for desktop interchange.
   - **Zipped (`.xopp`)**: Self-contained archive with PDFs and images bundled internally. Ideal for standalone sharing.

@@ -45,17 +45,55 @@ class VerticalSpaceOpsTest {
         assertEquals(listOf(174.5, 225.0), topsOf(out[0]))
     }
 
-    @Test fun removingSpaceStopsAtTheGrabLine() {
+    @Test fun pullingUpCarriesTheBlockAcrossTheGrabLine() {
+        // The desktop behaviour: the shift is the pointer's travel, so pulling up moves the block past
+        // the line it was grabbed at (139.5 - 80 = 59.5, well above the line at 100) instead of
+        // stopping level with it.
         val pages = listOf(page(Layer(listOf(stroke(140.0)))))
-        // Asking for -80 would drag the stroke's top (139.5) above the line at 100.
-        assertEquals(-39.5, VerticalSpaceOps.clampShift(pages, 0, yPt = 100.0, dy = -80.0), 1e-6)
         val out = VerticalSpaceOps.shiftBelow(pages, 0, yPt = 100.0, dy = -80.0)
-        assertEquals("pulled up exactly to the line", 100.0, topsOf(out[0])[0], 1e-6)
+        assertEquals(59.5, topsOf(out[0])[0], 1e-6)
+    }
+
+    @Test fun theBlockIsDecidedAtGrabTimeAndNoElementJoinsItMidDrag() {
+        // The element above the line (top 19.5) was outside the block when the drag started, so it
+        // stays put even as the block slides up past where it sits — a moving block must not recruit
+        // the elements it passes.
+        val pages = listOf(page(Layer(listOf(stroke(20.0, 30.0), stroke(140.0)))))
+        val out = VerticalSpaceOps.shiftBelow(pages, 0, yPt = 100.0, dy = -60.0)
+        assertEquals(listOf(19.5, 79.5), topsOf(out[0]))
     }
 
     @Test fun pullingUpWithNothingBelowIsANoOp() {
         val pages = listOf(page(Layer(listOf(stroke(20.0)))))
         assertSame(pages, VerticalSpaceOps.shiftBelow(pages, 0, yPt = 300.0, dy = -50.0))
+    }
+
+    @Test fun theInsertedGapSnapsToTheRulingWhenSnappingIsOn() {
+        // A 27 pt drag on a 20 pt ruling becomes exactly one ruled line of space…
+        assertEquals(20.0, VerticalSpaceOps.dragShift(dy = 27.0, snapSpacingPt = 20.0), 1e-9)
+        // …and a plain sheet (spacing 0) leaves the drag continuous, as it was before snapping.
+        assertEquals(27.0, VerticalSpaceOps.dragShift(dy = 27.0, snapSpacingPt = 0.0), 1e-9)
+    }
+
+    @Test fun snappingAppliesToAPullUpAsWell() {
+        // Snapping is a property of the amount, not of the direction: -27 pt on a 20 pt ruling closes
+        // exactly one ruled line, and can carry the block past the line just the same.
+        assertEquals(-20.0, VerticalSpaceOps.dragShift(dy = -27.0, snapSpacingPt = 20.0), 1e-9)
+    }
+
+    @Test fun aSnappedShiftMovesTheElementsByTheRuledGap() {
+        val pages = listOf(page(Layer(listOf(stroke(120.0)))))
+        val out = VerticalSpaceOps.shiftBelow(pages, 0, yPt = 100.0, dy = 26.0, snapSpacingPt = 20.0)
+        // 119.5 (the ink top) + one ruled line of 20, not the 26 pt the pointer actually travelled.
+        assertEquals(139.5, topsOf(out[0])[0], 1e-6)
+    }
+
+    @Test fun snappingToTheRulingStillOnlyMovesWhatIsWhollyBelowTheLine() {
+        // The desktop rule survives snapping: the block moves, the element the line passes through
+        // does not — snapping changes *how far* the block goes, never *what* it is.
+        val pages = listOf(page(Layer(listOf(stroke(20.0, 30.0), stroke(150.0)))))
+        val out = VerticalSpaceOps.shiftBelow(pages, 0, yPt = 100.0, dy = 27.0, snapSpacingPt = 20.0)
+        assertEquals(listOf(19.5, 169.5), topsOf(out[0]))
     }
 
     @Test fun zeroDragAndBadPageIndexAreNoOps() {

@@ -97,8 +97,11 @@ class ElementBoundsTest {
         val shifted = VerticalSpaceOps.shiftBelow(listOf(page), 0, 85.0, 30.0)
         val moved = shifted[0].layers[0].elements[0]
         assertEquals(120.0, ElementBounds.of(moved).top, 1e-9)
-        // A pull-up can only close the 5pt gap between the inflated top and the grab line.
-        assertEquals(-5.0, VerticalSpaceOps.clampShift(listOf(page), 0, 85.0, -50.0), 1e-9)
+        // The same inflation decides a pull-up: the line at 85 is above the inflated top (90) but
+        // below the raw vertex y (100), so the stroke is in the block and travels the whole drag
+        // (90 - 50 = 40) rather than being stopped level with the line.
+        val pulled = VerticalSpaceOps.shiftBelow(listOf(page), 0, 85.0, -50.0)
+        assertEquals(40.0, ElementBounds.of(pulled[0].layers[0].elements[0]).top, 1e-9)
         // A line at 95pt is already inside the ink, so the stroke stays put rather than tearing.
         assertEquals(listOf(page), VerticalSpaceOps.shiftBelow(listOf(page), 0, 95.0, 30.0))
     }

@@ -159,6 +159,57 @@ class SelectionTest {
         assertEquals(60.0, r.x, 1e-9)
     }
 
+    // --- non-uniform resize (per-axis scale) -----------------------------------------------------
+
+    @Test fun scaleXYStretchesOneAxisAndLeavesTheOtherAlone() {
+        val s = wide(2.0, 10.0 to 10.0, 20.0 to 30.0)
+        val pg = page(Layer(listOf(s)))
+        // 3× wider about the origin, height untouched: the element is out of proportion.
+        val out = SelectionOps.scaleXY(listOf(pg), 0, setOf(ElementRef(0, 0)), 3.0, 1.0, 0.0, 0.0)
+        val r = out[0].layers[0].elements[0] as Stroke
+        // x triples…
+        assertEquals(30.0, r.points[0].x, 1e-9)
+        assertEquals(60.0, r.points[1].x, 1e-9)
+        // …while y is carried through untouched (10 and 30 stay 10 and 30).
+        assertEquals(10.0, r.points[0].y, 1e-9)
+        assertEquals(30.0, r.points[1].y, 1e-9)
+    }
+
+    @Test fun scaleXYScalesStrokeWidthByTheGeometricMean() {
+        // 4:1 out-of-proportion stretch: sqrt(4·1) = 2, so the ink doubles rather than quadrupling at
+        // the whim of one axis (and rather than staying hairline under a widened stroke).
+        val s = wide(2.0, 10.0 to 10.0)
+        val pg = page(Layer(listOf(s)))
+        val out = SelectionOps.scaleXY(listOf(pg), 0, setOf(ElementRef(0, 0)), 4.0, 1.0, 0.0, 0.0)
+        val r = out[0].layers[0].elements[0] as Stroke
+        assertEquals(4.0, r.points[0].width, 1e-9)
+    }
+
+    @Test fun scaleXYKeepsTheOppositeEdgePinned() {
+        // A horizontal drag on the right edge anchors on the left edge: a vertex on the anchor keeps
+        // its x, and the far vertex moves by the factor.
+        val s = wide(1.0, 100.0 to 50.0, 200.0 to 50.0)
+        val pg = page(Layer(listOf(s)))
+        val out = SelectionOps.scaleXY(listOf(pg), 0, setOf(ElementRef(0, 0)), 0.5, 1.0, 100.0, 50.0)
+        val r = out[0].layers[0].elements[0] as Stroke
+        assertEquals(100.0, r.points[0].x, 1e-9)
+        assertEquals(150.0, r.points[1].x, 1e-9)
+        assertEquals(50.0, r.points[1].y, 1e-9)
+    }
+
+    @Test fun scaleXYScalesBoxesPerAxis() {
+        val img = ImageElement(0.0, 0.0, 10.0, 20.0, ByteArray(0))
+        val out = SelectionOps.scaleXY(listOf(page(Layer(listOf(img)))), 0, setOf(ElementRef(0, 0)), 2.0, 3.0, 0.0, 0.0)
+        val r = out[0].layers[0].elements[0] as ImageElement
+        assertEquals(20.0, r.right, 1e-9)
+        assertEquals(60.0, r.bottom, 1e-9)
+    }
+
+    @Test fun scaleXYIdentityReturnsTheSameList() {
+        val pages = listOf(p)
+        assertSame(pages, SelectionOps.scaleXY(pages, 0, setOf(ElementRef(0, 0)), 1.0, 1.0, 0.0, 0.0))
+    }
+
     // --- rotate (strokes only) -------------------------------------------------------------------
 
     @Test fun rotateStroke90AboutOrigin() {

@@ -6,6 +6,7 @@ import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.MomentumCurve
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -43,9 +44,10 @@ class AppSettingsBackupTest {
             momentum = 0.5f,
             momentumCurve = MomentumCurve.LINEAR,
             panSensitivity = 1.5f,
-            toolbarPosition = ToolbarPosition.TOP,
-            showToolsInTopBar = true,
+            toolbarPosition = ToolbarPosition.RIGHT,
             penColors = listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0xFFFF0000.toInt()),
+            penFavorites = listOf(0xFF000000.toInt(), 0xFF00FF00.toInt(), 0xFF0000FF.toInt()),
+            highlighterFavorites = listOf(0xFFFFFF00.toInt(), 0xFFFF00FF.toInt(), 0xFF00FFFF.toInt()),
             lastColor = 0xFFFF0000.toInt(),
             lastWidth = 2.0f,
             highlighterColor = 0xFF00FF00.toInt(),
@@ -74,7 +76,6 @@ class AppSettingsBackupTest {
             pageCounterHorizontal = PageCounterHorizontal.LEFT,
             themeMode = ThemeMode.DARK,
             dynamicColor = false,
-            modernUi = false,
             toolShortcutKeys = mapOf(EditorTool.PEN to "p", EditorTool.ERASER to "e"),
             colorShortcutKeys = mapOf(0xFF000000.toInt() to "1"),
             presets = listOf(ToolPreset("p1", "My Pen", EditorTool.PEN, 0xFF000000.toInt(), 1.0f, LineStyle.DASHED)),
@@ -86,6 +87,20 @@ class AppSettingsBackupTest {
         val json = AppSettingsBackup.toJson(original)
         val restored = AppSettingsBackup.fromJson(json)
         assertEquals(original, restored)
+    }
+
+    @Test
+    fun `an empty custom colour round-trips as empty, and clears a set one`() {
+        // The slot starts empty: a backup taken then must hand the importing device an empty slot,
+        // not a colour the user never chose.
+        val json = AppSettingsBackup.toJson(AppSettings(customColor = null))
+        assertTrue(json.contains("\"customColor\": null"))
+        assertNull(AppSettingsBackup.fromJson(json).customColor)
+        // And an explicit null in someone's backup clears a slot that holds a colour today, which is
+        // what "import these settings" means — falling back would silently keep the local colour.
+        assertNull(AppSettingsBackup.fromJson("""{"version": 1, "customColor": null}""").customColor)
+        // Absent, by contrast, is an older backup that predates the field: leave the local value be.
+        assertNull(AppSettingsBackup.fromJson("""{"version": 1}""").customColor)
     }
 
     @Test
@@ -111,6 +126,8 @@ class AppSettingsBackupTest {
         assertEquals(AppSettings().showHover, restored.showHover)
         assertEquals(AppSettings().pressureEnabled, restored.pressureEnabled)
         assertEquals(AppSettings().penColors, restored.penColors)
+        assertEquals(AppSettings().penFavorites, restored.penFavorites)
+        assertEquals(AppSettings().highlighterFavorites, restored.highlighterFavorites)
         assertEquals(AppSettings().penWidths, restored.penWidths)
         assertEquals(AppSettings().presets, restored.presets)
     }

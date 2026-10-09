@@ -91,6 +91,7 @@ internal fun DrawingSurfaceView.paint() {
                 width.toFloat(), height.toFloat(),
             )
             drawPageElements(canvas, box)
+            drawPageOutline(canvas, box)
         }
         inkCache.retain(visible.mapTo(HashSet()) { it.index })
         retainPdfPins(visible)
@@ -115,6 +116,7 @@ internal fun DrawingSurfaceView.paint() {
     }
     reportCurrentPage()
     reportScroll()
+    reportSelectionRect()
 }
 
 /**
@@ -197,6 +199,22 @@ internal fun DrawingSurfaceView.prefetchAround(visible: List<PageBox>) {
         val bg = box.page.background as? Background.Pdf ?: continue
         src.prefetch(bg.pageNo, box.widthPx.toInt())
     }
+}
+
+/**
+ * Trace a hairline around the sheet, just inside its edge.
+ *
+ * The surround is painted the same colour as the app's bars (see `rememberChromeColor`), which on a light
+ * theme means a near-white desk under a near-white page — the sheet would only be findable by its ruling.
+ * The outline is the page's own boundary rather than an added frame, so it is drawn *inset* by half a pixel
+ * and never covers the outermost ruling line.
+ */
+internal fun DrawingSurfaceView.drawPageOutline(canvas: Canvas, box: PageBox) {
+    val left = box.toViewX(0.0, scrollX)
+    val top = box.toViewY(0.0, scrollY)
+    val rect = chrome.pageOutlineRect
+    rect.set(left + 0.5f, top + 0.5f, left + box.widthPx - 0.5f, top + box.heightPx - 0.5f)
+    canvas.drawRect(rect, chrome.pageOutline)
 }
 
 /**
@@ -319,8 +337,15 @@ internal fun DrawingSurfaceView.drawTextSelection(canvas: Canvas) {
     }
 }
 
-/** Draw the dashed selection outline (padded a little), the four resize handles, and — for an
- * all-stroke selection — the top rotate knob. */
+/**
+ * Draw the dashed selection outline — sitting exactly on the elements' ink box — the eight resize
+ * handles, and, for an all-stroke selection, the top rotate knob.
+ *
+ * The four corner handles resize proportionally; the four edge-midpoint handles stretch a single axis
+ * (out-of-proportion resize), which is why they are drawn at all. The right-edge one sits under the
+ * rotate arm's foot: the arm starts there and the knob it leads to is what the rotate hit-test
+ * answers to, so the two never fight over the same touch.
+ */
 internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSelection) {
     val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
     val page = doc.pages.getOrNull(sel.pageIndex) ?: return
@@ -331,10 +356,17 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     val bot = (b.bottom * box.scale + box.topPx - scrollY).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
     canvas.drawRect(l, t, r, bot, chrome.selectionFill)
     canvas.drawRect(l, t, r, bot, chrome.selectionStroke)
-    // Corner resize handles.
+    // Corner resize handles: proportional (both axes together).
     for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bot)) {
         canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
     }
+    // Edge-midpoint handles: one axis each, the out-of-proportion resize.
+    val midX = (l + r) / 2f
+    val midY = (t + bot) / 2f
+    canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
+    canvas.drawCircle(midX, bot, HANDLE_DRAW_PX, chrome.handle)
+    canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
+    canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     // Rotate knob poking out midway from the right edge (strokes only).
     if (gestures.isAllStrokes(sel)) {
         val midY = (t + bot) / 2f

@@ -14,7 +14,8 @@ internal data class ActiveSelection(val pageIndex: Int, val refs: Set<ElementRef
 
 /**
  * Every gesture that creates or transforms a selection: the rubber-band/lasso that picks elements,
- * and the move / uniform-resize / rotate drags of what is picked.
+ * and the move / resize / rotate drags of what is picked. A resize is proportional from a corner
+ * handle and single-axis from an edge handle (see [ResizeAxis]).
  *
  * This is the one owner of [selection] and of the transform's gesture-start snapshot — a live
  * resize or rotate recomputes from that snapshot each frame, so a drag never accumulates rounding
@@ -87,12 +88,16 @@ internal class SelectionGestureController(
     private var moveStartPtX = 0.0
     private var moveStartPtY = 0.0
 
-    // Live uniform resize about a fixed anchor (the opposite corner), in page-local pt.
+    // Live resize about a fixed anchor (the opposite corner, or the opposite edge for a one-axis
+    // stretch), in page-local pt.
     var resizing = false
         private set
     private var resizeAnchorX = 0.0
     private var resizeAnchorY = 0.0
     private var resizeStartDist = 1.0
+    private var resizeAxis = ResizeAxis.BOTH
+    private var resizeStartPtX = 0.0
+    private var resizeStartPtY = 0.0
 
     // Live rotate about the selection centre (pt); strokes only.
     var rotating = false
@@ -126,9 +131,10 @@ internal class SelectionGestureController(
     }
 
     /**
-     * Down in Select mode. With a live selection, a touch near a corner **resizes**, near the
-     * right-edge rotate knob (strokes only) **rotates**, and inside the outline **moves**; otherwise it
-     * starts a new rubber-band (or lasso). The handle hit-tests run in view px against the drawn outline.
+     * Down in Select mode. With a live selection, a touch near a corner **resizes proportionally**, near
+     * an edge midpoint **resizes that one axis**, near the right-edge rotate knob (strokes only)
+     * **rotates**, and inside the outline **moves**; otherwise it starts a new rubber-band (or lasso).
+     * The handle hit-tests run in view px against the drawn outline.
      */
     fun beginSelect(event: MotionEvent) {
         val sel = selection
@@ -170,7 +176,28 @@ internal class SelectionGestureController(
             val hy = (cornersPt[i].second * box.scale + box.topPx - viewport.scrollY).toFloat() + padY
             if (hypot(event.x - hx, event.y - hy) <= handleHit) {
                 val anchor = cornersPt[(i + 2) % 4]
-                beginResize(event, box, anchor.first, anchor.second)
+                beginResize(event, box, anchor.first, anchor.second, ResizeAxis.BOTH)
+                return true
+            }
+        }
+        // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is
+        // the opposite edge's midpoint, so the far edge stays pinned while this one follows the
+        // pointer: pull the right edge out and the element gets wider without getting taller.
+        val midXpt = (b.left + b.right) / 2
+        val midYpt = (b.top + b.bottom) / 2
+        val edges = arrayOf(
+            Triple(b.left to midYpt, b.right to midYpt, ResizeAxis.X),
+            Triple(b.right to midYpt, b.left to midYpt, ResizeAxis.X),
+            Triple(midXpt to b.top, midXpt to b.bottom, ResizeAxis.Y),
+            Triple(midXpt to b.bottom, midXpt to b.top, ResizeAxis.Y),
+        )
+        for ((handle, anchor, axis) in edges) {
+            val hx = (handle.first * box.scale + box.leftPx - viewport.scrollX).toFloat() +
+                if (handle.first == b.left) -pad else if (handle.first == b.right) pad else 0f
+            val hy = (handle.second * box.scale + box.topPx - viewport.scrollY).toFloat() +
+                if (handle.second == b.top) -pad else if (handle.second == b.bottom) pad else 0f
+            if (hypot(event.x - hx, event.y - hy) <= handleHit) {
+                beginResize(event, box, anchor.first, anchor.second, axis)
                 return true
             }
         }
@@ -198,12 +225,21 @@ internal class SelectionGestureController(
         moveStartPtY = box.toPtY(event.y, viewport.scrollY)
     }
 
-    private fun beginResize(event: MotionEvent, box: PageBox, anchorX: Double, anchorY: Double) {
+    private fun beginResize(
+        event: MotionEvent,
+        box: PageBox,
+        anchorX: Double,
+        anchorY: Double,
+        axis: ResizeAxis,
+    ) {
         resizing = true
         snapshot()
+        resizeAxis = axis
         resizeAnchorX = anchorX
         resizeAnchorY = anchorY
-        resizeStartDist = hypot(box.toPtX(event.x, viewport.scrollX) - anchorX, box.toPtY(event.y, viewport.scrollY) - anchorY).coerceAtLeast(1e-3)
+        resizeStartPtX = box.toPtX(event.x, viewport.scrollX)
+        resizeStartPtY = box.toPtY(event.y, viewport.scrollY)
+        resizeStartDist = hypot(resizeStartPtX - anchorX, resizeStartPtY - anchorY).coerceAtLeast(1e-3)
     }
 
     private fun beginRotate(event: MotionEvent, box: PageBox, pivotX: Double, pivotY: Double) {
@@ -238,12 +274,30 @@ internal class SelectionGestureController(
         )
     }
 
-    /** Resize the selection: a uniform scale by (current distance / start distance) about the anchor. */
+    /**
+     * Resize the selection about the gesture's anchor. A corner drag ([ResizeAxis.BOTH]) scales both
+     * axes by the pointer's distance ratio; an edge drag scales **only its own axis**, so an element
+     * can be stretched wider or taller out of proportion. Either way the transform is recomputed from
+     * the gesture-start snapshot each frame, so a long drag accumulates no rounding drift.
+     */
     fun resizeSelect(event: MotionEvent) = transform { sel, start, box ->
-        val dist = hypot(box.toPtX(event.x, viewport.scrollX) - resizeAnchorX, box.toPtY(event.y, viewport.scrollY) - resizeAnchorY)
-        val factor = (dist / resizeStartDist)
-            .coerceIn(DrawingSurfaceDefaults.MIN_RESIZE, DrawingSurfaceDefaults.MAX_RESIZE)
-        SelectionOps.scale(start.pages, sel.pageIndex, sel.refs, factor, resizeAnchorX, resizeAnchorY)
+        val (sx, sy) = resizeFactors(box, event)
+        SelectionOps.scaleXY(start.pages, sel.pageIndex, sel.refs, sx, sy, resizeAnchorX, resizeAnchorY)
+    }
+
+    /** The live per-axis factors for a pointer position: see [ResizeAxis] and [axisScaleFactor]. */
+    private fun resizeFactors(box: PageBox, event: MotionEvent): Pair<Double, Double> {
+        val x = box.toPtX(event.x, viewport.scrollX)
+        val y = box.toPtY(event.y, viewport.scrollY)
+        return when (resizeAxis) {
+            ResizeAxis.BOTH -> {
+                val factor = (hypot(x - resizeAnchorX, y - resizeAnchorY) / resizeStartDist)
+                    .coerceIn(DrawingSurfaceDefaults.MIN_RESIZE, DrawingSurfaceDefaults.MAX_RESIZE)
+                factor to factor
+            }
+            ResizeAxis.X -> axisScaleFactor(resizeStartPtX, x, resizeAnchorX) to 1.0
+            ResizeAxis.Y -> 1.0 to axisScaleFactor(resizeStartPtY, y, resizeAnchorY)
+        }
     }
 
     /** Rotate the selection's strokes by the angle swept around the pivot since the gesture start. */

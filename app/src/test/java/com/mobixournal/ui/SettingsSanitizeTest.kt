@@ -5,6 +5,7 @@ import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -28,6 +29,30 @@ class SettingsSanitizeTest {
     @Test fun outOfRangeShapeWidthIsClamped() {
         assertEquals(PEN_WIDTH_MAX, AppSettings(shapeWidth = 1e6f).sanitized().shapeWidth)
         assertEquals(PEN_WIDTH_MIN, AppSettings(shapeWidth = -1f).sanitized().shapeWidth)
+    }
+
+    @Test fun theCustomColourSlotStartsEmpty() {
+        // A fresh install must not claim a colour the user never picked: the custom slot is empty
+        // until they set one, and sanitising never invents a value for it.
+        assertNull(AppSettings().customColor)
+        assertNull(AppSettings(customColor = null).sanitized().customColor)
+    }
+
+    @Test fun aSetCustomColourSurvivesSanitising() {
+        val violet = 0xFF9C27B0.toInt()
+        assertEquals(violet, AppSettings(customColor = violet).sanitized().customColor)
+    }
+
+    @Test fun factoryFavouritesAreTheStatedColoursInTheStatedOrder() {
+        // Pen: black, red, green. Highlighter: yellow, green, blue.
+        assertEquals(
+            listOf(XOPP_BLACK, XOPP_RED, XOPP_GREEN),
+            AppSettings().penFavorites,
+        )
+        assertEquals(
+            listOf(XOPP_YELLOW, XOPP_GREEN, XOPP_BLUE),
+            AppSettings().highlighterFavorites,
+        )
     }
 
     @Test fun penAndFigureWidthsDefaultToTheMiddleSlot() {
@@ -121,6 +146,34 @@ class SettingsSanitizeTest {
             many.take(AppSettings.MAX_PEN_COLORS),
             AppSettings(penColors = many).sanitized().penColors,
         )
+    }
+
+    @Test fun favouriteColoursAreAlwaysThreeOpaqueAndDistinct() {
+        // The rail draws three dots, so the terna has to be three however the pref was written: a
+        // short list is padded from the factory colours instead of leaving the slot half-empty.
+        assertEquals(
+            listOf(XOPP_BLACK, 0xFF445566.toInt(), XOPP_RED),
+            AppSettings(penFavorites = listOf(0x00000000, XOPP_BLACK, 0xFF445566.toInt()))
+                .sanitized().penFavorites,
+        )
+        // Duplicates collapse (a colour twice would be a dead dot) and the tail past three is dropped.
+        assertEquals(
+            listOf(XOPP_RED, XOPP_GREEN, XOPP_BLUE),
+            AppSettings(
+                penFavorites = listOf(XOPP_RED, XOPP_RED, XOPP_GREEN, XOPP_BLUE, XOPP_WHITE),
+            ).sanitized().penFavorites,
+        )
+        // Each tool has its own terna, and each falls back to its own factory set.
+        assertEquals(
+            AppSettings.DEFAULT_PEN_FAVORITES,
+            AppSettings(penFavorites = emptyList()).sanitized().penFavorites,
+        )
+        assertEquals(
+            AppSettings.DEFAULT_HIGHLIGHTER_FAVORITES,
+            AppSettings(highlighterFavorites = emptyList()).sanitized().highlighterFavorites,
+        )
+        assertEquals(AppSettings.FAVORITE_COUNT, AppSettings().penFavorites.size)
+        assertEquals(AppSettings.FAVORITE_COUNT, AppSettings().highlighterFavorites.size)
     }
 
     @Test fun outOfRangeTableDimensionsAreClamped() {

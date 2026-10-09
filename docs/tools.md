@@ -14,7 +14,7 @@ lives, how to invoke it, and the non-obvious gotchas.
 |-----------------|---------------|--------|
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [below](#android-emulator) |
-| Release publishing | Tag a version, publish the GitHub Release + APK | [below](#cutting-a-release) |
+| Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
 
 ---
 
@@ -106,12 +106,30 @@ Releases are produced by CI, never by hand. Pushing an annotated tag `vX.Y.Z` ru
 `.github/workflows/build.yml`, which builds the debug APK and creates the GitHub Release with
 that APK attached and its notes read from `docs/releases/vX.Y.Z.md` (the step's `body_path`).
 
-1. **Bump the version** in `app/build.gradle.kts`: `versionName` is the tag without its `v`
-   (`1.1.0`), `versionCode` is the previous code plus one (a monotonic counter, not derived
-   from the name).
-2. **Write `docs/releases/vX.Y.Z.md`** — the curated, user-facing changelog for the version.
-   Draw it from `FINISHED.toml` (the completed-work archive) plus the commits since the last
-   tag; the file name must match the tag exactly.
+**A version's contents are the *pending* set in `FINISHED.toml`** — every finished task that does
+not carry a `release` stamp — so what the next release ships is a fact about the archive, not a
+recollection. Freezing the version is therefore a command:
+
+```sh
+scripts/todo.sh list --finished --unreleased            # what the next version will ship
+scripts/todo.sh release --version X.Y.Z --bump-gradle   # freeze + changelog draft + version bump
+```
+
+`release` stamps every pending task with that version (so the next release starts from an empty
+pending set) and writes `docs/releases/vX.Y.Z.md` grouped by category. It refuses to overwrite a
+changelog that already exists (`--force` to mean it), refuses a version that is not newer than the
+last recorded one, and refuses to run with nothing pending. `--dry-run` prints the draft and
+changes nothing; `--no-changelog` stamps without writing a file; `--through YYYY-MM-DD` is the
+one-shot backfill for a release that predates the field. Implementation: `scripts/todo/release.py`.
+Regression check: `python3 scripts/todo/test_release.py` (dependency-free, exits non-zero on
+failure).
+
+1. **Run the release command** (above). With `--bump-gradle` it sets `versionName` to the version
+   and increments `versionCode` in `app/build.gradle.kts` — the counter is monotonic, not derived
+   from the name.
+2. **Curate `docs/releases/vX.Y.Z.md`.** The generated file is a *draft*: group the bullets,
+   reword them, add the highlights a raw list cannot show. The file name must match the tag
+   exactly.
 3. **Commit and push `main`**, then create and push the tag:
 
    ```sh
@@ -122,6 +140,16 @@ that APK attached and its notes read from `docs/releases/vX.Y.Z.md` (the step's 
 
 4. **Watch the workflow.** The release appears on GitHub with `app-debug.apk` attached.
 
+The workflow enforces the freeze rather than trusting it: every run lints both task files and runs
+`scripts/todo/test_release.py`, and a `v*` tag additionally runs
+`scripts/todo/todo.py verify-release --version <tag>`, which fails the build when the archive does
+not record that version as released, when `docs/releases/vX.Y.Z.md` is missing, or when
+`versionName` does not match the tag — i.e. when `release` was skipped. Run the same command
+locally before pushing a tag to catch it in a second instead of a CI cycle.
+
+- **The changelog is generated, then curated.** `todo.sh release` guarantees the *collection* is
+  complete and correctly scoped to the version; the curation (grouping, wording, highlights) is
+  still a human pass on `docs/releases/vX.Y.Z.md`.
 - **Notes are curated, so `generate_release_notes` is off.** GitHub's auto-generated commit
   list would never see this file.
 - **A tag without its notes file fails the release step** — deliberately: the workflow's

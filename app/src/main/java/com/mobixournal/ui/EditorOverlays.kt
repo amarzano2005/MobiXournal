@@ -37,9 +37,11 @@ import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.undoLastSplineNode
 
 /**
- * Everything layered over the canvas: the contextual action bars along the bottom edge, and the
- * authoring/chooser dialogs. Each one is driven by a single flag on [ui] or [pane], so this is where
- * the screen's "what is open right now" logic lives instead of being strewn through the layout.
+ * Everything layered over the canvas: the contextual *mode* bars along the bottom edge (the element
+ * selection's own action bar is not among them — it floats beside the selection, see
+ * [SelectionActionAnchor]), and the authoring/chooser dialogs. Each one is driven by a single flag on
+ * [ui] or [pane], so this is where the screen's "what is open right now" logic lives instead of being
+ * strewn through the layout.
  */
 @Composable
 fun BoxScope.EditorOverlays(
@@ -56,7 +58,7 @@ fun BoxScope.EditorOverlays(
     val palette = rememberColorPaletteState(settings, onSettingsChange)
     val barModifier = Modifier.align(Alignment.BottomCenter).padding(24.dp)
 
-    SelectionOverlays(ui, pane, palette, barModifier, settings, onSettingsChange)
+    SelectionOverlays(ui, pane, barModifier, settings, onSettingsChange)
 
     ui.textPlacement?.let { placement ->
         val existing = placement.existing
@@ -172,27 +174,16 @@ fun BoxScope.EditorOverlays(
 private fun BoxScope.SelectionOverlays(
     ui: EditorUiState,
     pane: PaneState,
-    palette: ColorPaletteState,
     barModifier: Modifier,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
 ) {
     val surface = pane.surface
-    if (pane.hasSelection) {
-        SelectionActionBar(
-            onCut = { surface?.cutSelection() },
-            onCopy = { surface?.copySelection() },
-            onDuplicate = { surface?.duplicateSelection() },
-            onDelete = { surface?.deleteSelection() },
-            onRecolor = { c -> surface?.restyleSelection(c, null) },
-            palette = palette,
-            onReWidth = { w -> surface?.restyleSelection(null, w.toDouble()) },
-            widthSlots = settings.penWidths,
-            onDeselect = { surface?.clearSelection() },
-            modifier = barModifier,
-            modern = settings.modernUi,
-        )
-    } else if (ui.tool == EditorTool.SELECT || ui.tool == EditorTool.LASSO_SELECT || ui.tool == EditorTool.BG_SELECT) {
+    // The element selection's own bar is no longer here: it floats beside the selection itself
+    // (see [SelectionActionAnchor], rendered by each pane). What stays at the bottom edge are the
+    // mode bars — the marquee's paste/region actions, table insert, spline and PDF-text selection —
+    // none of which belong to a selected element.
+    if (!pane.hasSelection && (ui.tool == EditorTool.SELECT || ui.tool == EditorTool.LASSO_SELECT || ui.tool == EditorTool.BG_SELECT)) {
         SelectModeBar(
             canPaste = pane.hasClipboard,
             onPaste = {

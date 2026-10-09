@@ -6,17 +6,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
@@ -24,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,27 +32,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.GuideKind
+import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
- * The vertical control rail down the left edge: Tool, Colour & size, Presets, Zoom, and a page
- * navigator —
- * each a button opening a small [DropdownMenu] anchored to its own button (which opens to the right
- * of the rail). [EditorScreen] pushes the picked value onto the
- * [com.mobixournal.render.DrawingSurfaceView].
+ * The vertical control rail down its docked edge (left or right): the tool slots, the one
+ * **Colour & size** slot (three favourite colours a tap away plus the chevron for colour, tip size
+ * and line style), and a button per pop-up panel (zoom, pages, layers, …) — each opening a small
+ * [DropdownMenu] anchored to its own button (which opens to the right of the rail). [EditorScreen]
+ * pushes the picked value onto the [com.mobixournal.render.DrawingSurfaceView].
  *
  * The rail is only the shell and the dispatch: each slot's pop-up lives in its own
- * `Toolbar*Popup.kt` sibling file.
+ * `Toolbar*Popup.kt` sibling file. The shell also owns the rail's **adaptive pitch**: see
+ * [ToolbarShell].
  */
 @Composable
 fun SideToolbar(
-    horizontal: Boolean = false,
-    modern: Boolean = false,
     tool: EditorTool,
     onTool: (EditorTool) -> Unit,
     toolGroupSelections: Map<String, EditorTool>,
     /** A member picked from a group slot's menu: **both** re-face the slot and activate the tool. */
     onToolGroupPick: (ToolGroup, EditorTool) -> Unit,
     styleCallbacks: ToolbarStyleCallbacks,
+    /** The Colour & size slot's two ternas of favourite colours and what a tap or a long-press does. */
+    favoritesCallbacks: ToolbarFavoritesCallbacks,
     recognizeShapes: Boolean = true,
     onRecognizeShapes: (Boolean) -> Unit = {},
     guideKind: GuideKind,
@@ -74,8 +75,9 @@ fun SideToolbar(
     shapeHidden: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
-    ToolbarShell(horizontal = horizontal, modern = modern, modifier = modifier) {
-        for (item in visibleRailItems(railOrder, railHidden)) {
+    val items = visibleRailItems(railOrder, railHidden)
+    ToolbarShell(slotCount = items.size, modifier = modifier) {
+        for (item in items) {
             val group = toolGroupForRailItem(item.id)
             if (group != null) {
                 ToolGroupButton(
@@ -89,7 +91,6 @@ fun SideToolbar(
                     },
                     selected = group.selected(toolGroupSelections),
                     active = tool in group.tools,
-                    modern = modern,
                     onTool = onTool,
                     // One callback for the whole pick: the slot's new face and the tool activation
                     // are a single settings write. Split in two they would both start from the same
@@ -98,7 +99,14 @@ fun SideToolbar(
                     onPick = { picked -> onToolGroupPick(group, picked) },
                 )
             } else when (item.id) {
-                "color" -> ColorSizePopupButton(styleCallbacks)
+                // One slot, both errands: the three favourite colours for the tool in play, and the
+                // chevron beside them for the full pop-up (colour, tip size, line style). This is
+                // where the old "colour & size" slot went: two slots for one errand became one.
+                "favorites" -> ColorSizeRailSlot(
+                    tool = tool,
+                    favorites = favoritesCallbacks,
+                    style = styleCallbacks,
+                )
                 "shapes" -> ShapeRecognitionButton(recognizeShapes, onRecognizeShapes)
                 "guides" -> GuidePopupButton(guideKind, onGuideKind)
                 "layers" -> LayersPopupButton(layerCallbacks)
@@ -111,99 +119,90 @@ fun SideToolbar(
     }
 }
 
-/** Width of the vertical tool rail: 48dp buttons + horizontal padding, wide enough for zoom percentage text. */
-val SideToolbarWidth = 64.dp
-
-/** Modern floating rail width: 44dp buttons + horizontal padding. */
+/** The floating rail's width: 44dp buttons + horizontal padding. */
 val SideToolbarModernWidth = 56.dp
 /** Margin around the modern floating rail. */
 val SideToolbarModernPadding = 6.dp
+/** The modern floating rail's vertical margin, top and bottom. */
+private val SideToolbarModernOuterPadding = 8.dp
+
 /** Total width occupied by the modern vertical rail including its margins. */
 val SideToolbarModernTotalWidth = SideToolbarModernWidth + (SideToolbarModernPadding * 2)
 
-/** The rail's surface: a scrolling column down the edge, or a scrolling row across the top. */
+/** One slot at full scale in each UI style: the modern dock's buttons are 4dp tighter than the rail's. */
+private val SideToolbarModernSlot = 44.dp
+
+/**
+ * The rail's shell: a column of slots down whichever vertical edge it is docked to, sized so that it
+ * never shows half a button.
+ *
+ * The column measures the height it has been given and hands [railContentScale] the number of slots: it
+ * shows as many as fit **whole**, at their own size, spread over the space — so the next slot's top
+ * edge sits exactly on the rail's bottom edge instead of being cut by it. The slots are never drawn
+ * smaller than their own size (that is what would cost the rail its at-a-glance buttons); what does not
+ * fit is a scroll away. A rail whose slots all fit is left untouched.
+ */
 @Composable
 private fun ToolbarShell(
-    horizontal: Boolean,
-    modern: Boolean,
+    /** The visible slot count — the adaptive pitch's one input it cannot read off the layout. */
+    slotCount: Int,
     modifier: Modifier,
     buttons: @Composable () -> Unit,
 ) {
-    if (modern) {
-        val shape = RoundedCornerShape(20.dp)
-        if (horizontal) {
-            Box(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
+    val baseSlot = SideToolbarModernSlot
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(
+                horizontal = SideToolbarModernPadding,
+                vertical = SideToolbarModernOuterPadding,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        // maxHeight is already net of the margins above, so the slots fill the height they were
+        // handed. The rail's own *width* is never touched: the top bar reserves it with a constant
+        // (SideToolbarModernTotalWidth), and the slot size is capped to stay inside it.
+        val scale = railContentScale(
+            availableHeightDp = maxHeight.value,
+            slotCount = slotCount,
+            slotDp = baseSlot.value,
+            spacingDp = RailSpacing.value,
+            paddingDp = RailColumnPadding.value,
+        )
+        CompositionLocalProvider(
+            LocalRailSlotSize provides baseSlot * scale,
+            LocalRailSlotScale provides scale,
+        ) {
+            Surface(
+                modifier = Modifier.width(SideToolbarModernWidth),
+                shape = RoundedCornerShape(20.dp),
+                // The rail is the app's implement colour; the canvas surround reads the same value, so
+                // the desk and the tools are visibly one material. See `rememberToolbarColor`.
+                color = rememberToolbarColor(),
+                tonalElevation = 3.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             ) {
-                Surface(
-                    shape = shape,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 3.dp,
-                    shadowElevation = 4.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) { buttons() }
-                }
-            }
-        } else {
-            Box(
-                modifier = modifier
-                    .fillMaxHeight()
-                    .padding(horizontal = SideToolbarModernPadding, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier = Modifier.width(SideToolbarModernWidth),
-                    shape = shape,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 3.dp,
-                    shadowElevation = 4.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 8.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) { buttons() }
-                }
-            }
-        }
-    } else {
-        if (horizontal) {
-            Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 3.dp) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) { buttons() }
-            }
-        } else {
-            Surface(modifier = modifier.fillMaxHeight().width(SideToolbarWidth), tonalElevation = 3.dp) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 8.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) { buttons() }
+                RailColumn(scale) { buttons() }
             }
         }
     }
+}
+
+/**
+ * The rail's scrolling column. The gaps take the scale, since the whole-number fit is measured with
+ * them; the padding does not, so the rail's edges stay where the dock puts them.
+ */
+@Composable
+private fun RailColumn(scale: Float, buttons: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = RailColumnPadding)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(RailSpacing * scale),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) { buttons() }
 }
 
 /**
@@ -226,14 +225,13 @@ private fun ToolGroupButton(
     members: List<EditorTool> = group.tools,
     selected: EditorTool,
     active: Boolean,
-    modern: Boolean = false,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = if (modern) RoundedCornerShape(12.dp) else CircleShape
-    val buttonSize = if (modern) 44.dp else ToolbarButtonSize
+    val shape = RoundedCornerShape(12.dp)
+    val buttonSize = LocalRailSlotSize.current
     Box {
         Box(
             modifier = Modifier
@@ -248,7 +246,12 @@ private fun ToolGroupButton(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(selected.icon, contentDescription = "Tool: ${selected.label}", tint = tint)
+            Icon(
+                selected.icon,
+                contentDescription = "Tool: ${selected.label}",
+                tint = tint,
+                modifier = Modifier.size(buttonSize / 2),
+            )
         }
         // Only a group with something to choose wears the chevron; a single-member slot is a plain
         // button and must not look like it opens a menu.

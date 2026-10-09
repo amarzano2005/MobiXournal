@@ -40,14 +40,20 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    Text("Default figure size", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "The size a new figure starts at. A figure is drawn at this width with no pressure, so with " +
-            "the pen's pressure sensitivity on it can look thicker than a light pen stroke — pick a " +
-            "smaller slot here to close that gap, or turn pressure sensitivity off under Stylus and " +
-            "the pen and the figures match exactly.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
+    SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }
+    SettingsGroup("Triangle") { TriangleGeometry(settings, onChange) }
+    SettingsGroup("Trapezoid") { TrapezoidGeometry(settings, onChange) }
+    SettingsGroup("Table") { TableDefaults(settings, onChange) }
+    SettingsGroup("Figures shown") { FigureList(settings, onChange) }
+}
+
+/** The pen width slot a new figure starts at. */
+@Composable
+private fun DefaultFigureSize(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    SettingsNote(
+        "A figure is drawn at this width with no pressure, so with the pen's pressure sensitivity on " +
+            "it can look thicker than a light pen stroke — pick a smaller slot here to close that gap, " +
+            "or turn pressure sensitivity off under Stylus and the pen and the figures match exactly.",
     )
     OptionGroup(
         title = "Slot",
@@ -64,58 +70,52 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onChange(settings.copy(defaultShapeSlot = i, shapeWidth = settings.penWidths[i]))
         },
     )
+}
 
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    Text("Table grid", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "Default number of rows and columns for inserted tables.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
+/** Default rows/columns for inserted tables, and the relational header line. */
+@Composable
+private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    ControlHeader("Grid", "Default number of rows and columns for inserted tables.", Modifier.padding(top = 8.dp))
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Rows: ${settings.tableRows}")
-        IconButton(
-            onClick = { onChange(settings.copy(tableRows = (settings.tableRows - 1).coerceAtLeast(1))) },
-            enabled = settings.tableRows > 1,
-        ) { Icon(Icons.Filled.Remove, contentDescription = "Fewer rows") }
-        IconButton(
-            onClick = { onChange(settings.copy(tableRows = (settings.tableRows + 1).coerceAtMost(50))) },
-            enabled = settings.tableRows < 50,
-        ) { Icon(Icons.Filled.Add, contentDescription = "More rows") }
-
+        Stepper("Rows", settings.tableRows, "rows") { onChange(settings.copy(tableRows = it)) }
         Spacer(Modifier.width(16.dp))
-
-        Text("Cols: ${settings.tableCols}")
-        IconButton(
-            onClick = { onChange(settings.copy(tableCols = (settings.tableCols - 1).coerceAtLeast(1))) },
-            enabled = settings.tableCols > 1,
-        ) { Icon(Icons.Filled.Remove, contentDescription = "Fewer columns") }
-        IconButton(
-            onClick = { onChange(settings.copy(tableCols = (settings.tableCols + 1).coerceAtMost(50))) },
-            enabled = settings.tableCols < 50,
-        ) { Icon(Icons.Filled.Add, contentDescription = "More columns") }
+        Stepper("Cols", settings.tableCols, "columns") { onChange(settings.copy(tableCols = it)) }
     }
-
-    Spacer(Modifier.height(8.dp))
+    SettingsDivider()
     SwitchRow(
-        title = "Table header (relational)",
+        title = "Header row (relational)",
         subtitle = "Draw a double separator line under the first row for relational schema attributes.",
         checked = settings.tableHeader,
         onCheckedChange = { onChange(settings.copy(tableHeader = it)) },
     )
+}
 
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    var showScaleneDialog by remember { mutableStateOf(false) }
-    if (showScaleneDialog) {
+/** A label with −/+ buttons stepping [value] within 1..50. */
+@Composable
+private fun Stepper(label: String, value: Int, noun: String, onValue: (Int) -> Unit) {
+    Text("$label: $value")
+    IconButton(onClick = { onValue((value - 1).coerceAtLeast(1)) }, enabled = value > 1) {
+        Icon(Icons.Filled.Remove, contentDescription = "Fewer $noun")
+    }
+    IconButton(onClick = { onValue((value + 1).coerceAtMost(50)) }, enabled = value < 50) {
+        Icon(Icons.Filled.Add, contentDescription = "More $noun")
+    }
+}
+
+/** The triangle tool's default variant, with the custom-angles dialog for scalene. */
+@Composable
+private fun TriangleGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+    if (showDialog) {
         ScaleneAnglesDialog(
             angleA = settings.scaleneAngleA,
             angleB = settings.scaleneAngleB,
             angleC = settings.scaleneAngleC,
             onConfirm = { a, b, c ->
-                showScaleneDialog = false
+                showDialog = false
                 onChange(
                     settings.copy(
                         triangleKind = TriangleKind.SCALENE,
@@ -125,50 +125,35 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                     )
                 )
             },
-            onDismiss = { showScaleneDialog = false },
+            onDismiss = { showDialog = false },
         )
     }
-
-    Text("Triangle geometry", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "Default shape variant for the triangle tool.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
     OptionGroup(
         title = "Type",
-        subtitle = "Choose equilateral (default), right-angled, isosceles, or scalene.",
+        subtitle = "Default variant for the triangle tool: equilateral (default), right-angled, isosceles, or scalene.",
         options = TriangleKind.values().toList(),
         selected = settings.triangleKind,
         label = { it.label },
         onSelect = { onChange(settings.copy(triangleKind = it)) },
     )
     if (settings.triangleKind == TriangleKind.SCALENE) {
-        Spacer(Modifier.height(8.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                "Angles: A=${settings.scaleneAngleA.roundToInt()}°, B=${settings.scaleneAngleB.roundToInt()}°, C=${settings.scaleneAngleC.roundToInt()}°",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            OutlinedButton(onClick = { showScaleneDialog = true }) {
-                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Customize angles")
-            }
-        }
+        CustomAnglesRow(
+            "Angles: A=${settings.scaleneAngleA.roundToInt()}°, B=${settings.scaleneAngleB.roundToInt()}°, " +
+                "C=${settings.scaleneAngleC.roundToInt()}°",
+        ) { showDialog = true }
     }
+}
 
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    var showTrapezoidDialog by remember { mutableStateOf(false) }
-    if (showTrapezoidDialog) {
+/** The trapezoid tool's default variant, with the custom-angles dialog for scalene. */
+@Composable
+private fun TrapezoidGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+    if (showDialog) {
         TrapezoidAnglesDialog(
             angleA = settings.trapezoidAngleA,
             angleB = settings.trapezoidAngleB,
             onConfirm = { a, b ->
-                showTrapezoidDialog = false
+                showDialog = false
                 onChange(
                     settings.copy(
                         trapezoidKind = TrapezoidKind.SCALENE,
@@ -177,50 +162,52 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                     )
                 )
             },
-            onDismiss = { showTrapezoidDialog = false },
+            onDismiss = { showDialog = false },
         )
     }
-
-    Text("Trapezoid geometry", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "Default shape variant for the trapezoid tool.",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 4.dp),
-    )
     OptionGroup(
         title = "Type",
-        subtitle = "Choose isosceles (default), right-angled, or scalene.",
+        subtitle = "Default variant for the trapezoid tool: isosceles (default), right-angled, or scalene.",
         options = TrapezoidKind.values().toList(),
         selected = settings.trapezoidKind,
         label = { it.label },
         onSelect = { onChange(settings.copy(trapezoidKind = it)) },
     )
     if (settings.trapezoidKind == TrapezoidKind.SCALENE) {
-        Spacer(Modifier.height(8.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                "Base angles: left=${settings.trapezoidAngleA.roundToInt()}°, right=${settings.trapezoidAngleB.roundToInt()}°",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            OutlinedButton(onClick = { showTrapezoidDialog = true }) {
-                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Customize angles")
-            }
+        CustomAnglesRow(
+            "Base angles: left=${settings.trapezoidAngleA.roundToInt()}°, " +
+                "right=${settings.trapezoidAngleB.roundToInt()}°",
+        ) { showDialog = true }
+    }
+}
+
+/** The current custom angles and the button that opens their editor. */
+@Composable
+private fun CustomAnglesRow(summary: String, onEdit: () -> Unit) {
+    Row(
+        modifier = Modifier.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(summary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        OutlinedButton(onClick = onEdit) {
+            Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Customize angles")
         }
     }
+}
 
-    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-    Text("Figures", style = MaterialTheme.typography.bodyLarge)
-    Text(
-        "The geometric figures offered in the Secondary Toolbar and shapes menu. Switch a figure off to hide it, or press and " +
-            "hold a row and drag it up or down to reorder.",
-        style = MaterialTheme.typography.bodySmall,
+/**
+ * Which figures the Shapes submenu and the Secondary Toolbar offer, and in what order. A reorder or
+ * hide here is written through to the Secondary Toolbar's own order/hidden lists.
+ */
+@Composable
+private fun FigureList(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    SettingsNote(
+        "The geometric figures offered in the Secondary Toolbar and shapes menu. Switch a figure off " +
+            "to hide it, or press and hold a row and drag it to reorder.",
     )
-    Spacer(Modifier.height(8.dp))
     ReorderableRowList(
         items = orderedShapeTools(settings.shapeOrder).map { RailItem(it.name, it.label) },
         hidden = settings.shapeHidden,

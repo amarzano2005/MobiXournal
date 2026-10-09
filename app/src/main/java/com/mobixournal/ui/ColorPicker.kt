@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,12 +55,18 @@ fun hexToArgb(hex: String): Int? {
  * The arbitrary-colour picker opened by long-pressing the palette's custom slot: a saturation/value
  * [SatValSquare] over a hue slider, plus a two-way `#RRGGBB` hex field and a live preview. Colours are
  * always opaque; the parent persists the result via [onConfirm].
+ *
+ * [palette] is the list of colours already in the app — the pen palette. It is offered as a row of
+ * swatches at the top, so an existing colour can be **reused** (a starting point for a hue tweak, or
+ * the colour you actually want) instead of having to be re-typed as a hex. Tapping one loads it into
+ * the editor; it is not committed until **Set**, so browsing the row costs nothing.
  */
 @Composable
 fun CustomColorPickerDialog(
     initial: Int,
     onConfirm: (Int) -> Unit,
     onDismiss: () -> Unit,
+    palette: List<Int> = emptyList(),
 ) {
     val hsv0 = remember { FloatArray(3).also { AndroidColor.colorToHSV(initial, it) } }
     var hue by remember { mutableStateOf(hsv0[0]) }
@@ -77,6 +85,13 @@ fun CustomColorPickerDialog(
         title = { Text("Custom colour") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (palette.isNotEmpty()) {
+                    ExistingColorsRow(palette) { c ->
+                        val hsv = FloatArray(3)
+                        AndroidColor.colorToHSV(c or 0xFF000000.toInt(), hsv)
+                        apply(hsv[0], hsv[1], hsv[2])
+                    }
+                }
                 SatValSquare(hue, sat, value) { s, v -> apply(hue, s, v) }
                 Text("Hue")
                 Slider(value = hue, onValueChange = { apply(it, sat, value) }, valueRange = 0f..360f)
@@ -113,6 +128,28 @@ fun CustomColorPickerDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+/**
+ * The app's existing colours as a scrollable strip of swatches, so a colour picker can start from a
+ * colour the user already has rather than from a hex they would have to know. Scrolling keeps the
+ * dialog from growing with the palette.
+ */
+@Composable
+private fun ExistingColorsRow(palette: List<Int>, onPick: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Existing colours", style = MaterialTheme.typography.labelMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            for (c in palette) {
+                ColorSwatch(color = c, selected = false, onClick = { onPick(c) })
+            }
+        }
+    }
 }
 
 /**

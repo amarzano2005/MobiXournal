@@ -27,6 +27,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,8 +46,28 @@ import androidx.compose.ui.unit.dp
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
  * 24.dp, so the extra room is what keeps the rail from reading as a squished run of glyphs.
+ *
+ * This is only the fallback for a slot drawn outside the rail; inside it, a slot reads the size it is
+ * actually drawn at from [LocalRailSlotSize], which the rail sets from its adaptive pitch
+ * ([railContentScale]). A slot that hard-codes [ToolbarButtonSize] would keep the rail overflowing.
  */
 internal val ToolbarButtonSize = 48.dp
+
+/**
+ * The height/width one rail slot is drawn at **here**, as decided by the rail's adaptive pitch: the
+ * rail's own 44dp when every visible slot fits, a few percent larger when that is what swallows the
+ * leftover strip (see [railContentScale]).
+ *
+ * It is a composition local rather than a parameter so that every slot — tool buttons, pop-up
+ * buttons, the one-tap slots — shrinks together without each of them growing a size argument.
+ */
+internal val LocalRailSlotSize = compositionLocalOf { ToolbarButtonSize }
+
+/**
+ * The rail's current scale (1 at full size), for the few slots whose **content** is not a dp size —
+ * the zoom slot's percentage label, which has to be typeset smaller as its button shrinks.
+ */
+internal val LocalRailSlotScale = compositionLocalOf { 1f }
 
 /**
  * A tiny chevron in the bottom-right corner of a **tool-group slot** whose picker offers a choice —
@@ -301,9 +322,10 @@ internal fun ToolbarPopupButton(
     var open by remember { mutableStateOf(false) }
     val iconTint = tint ?: if (active) MaterialTheme.colorScheme.primary else LocalContentColor.current
     Box {
+        val slotSize = LocalRailSlotSize.current
         Box(
             modifier = Modifier
-                .size(ToolbarButtonSize)
+                .size(slotSize)
                 .clip(CircleShape)
                 .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                 .combinedClickable(
@@ -312,7 +334,12 @@ internal fun ToolbarPopupButton(
                 ),
             contentAlignment = androidx.compose.ui.Alignment.Center,
         ) {
-            Icon(icon, contentDescription = contentDescription, tint = iconTint)
+            Icon(
+                icon,
+                contentDescription = contentDescription,
+                tint = iconTint,
+                modifier = Modifier.size(slotSize / 2),
+            )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             if (heading != null) MenuHeading(heading)

@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -89,59 +89,48 @@ fun BackupSection(
         }
     }
 
-    Text("Export settings", style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.height(4.dp))
-    Text(
-        "Save your preferences, colors, shortcuts, toolbars, and stylus settings to a JSON file. " +
-            "The exported backup can be restored on another device or a different version of MobiXournal.",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Spacer(Modifier.height(8.dp))
-    Button(
-        onClick = { exportLauncher.launch("mobixournal-settings.json") },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Icon(Icons.Filled.FileDownload, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text("Export to JSON")
+    SettingsGroup("Export") {
+        SettingsNote(
+            "Save your preferences, colors, shortcuts, toolbars, and stylus settings to a JSON file. " +
+                "The exported backup can be restored on another device or a different version of MobiXournal.",
+        )
+        Button(
+            onClick = { exportLauncher.launch("mobixournal-settings.json") },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        ) {
+            Icon(Icons.Filled.FileDownload, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Export to JSON")
+        }
     }
 
-    HorizontalDivider(Modifier.padding(vertical = 16.dp))
-
-    Text("Import settings", style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.height(4.dp))
-    Text(
-        "Load preferences from a previously exported JSON file. Missing settings will default to factory " +
-            "values; a file that isn't a MobiXournal backup — or one written by a newer version of the app — " +
-            "is refused with an error.",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Spacer(Modifier.height(8.dp))
-    OutlinedButton(
-        onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Icon(Icons.Filled.FileUpload, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text("Import from JSON")
+    SettingsGroup("Import") {
+        SettingsNote(
+            "Load preferences from a previously exported JSON file. Missing settings will default to factory " +
+                "values; a file that isn't a MobiXournal backup — or one written by a newer version of the app — " +
+                "is refused with an error.",
+        )
+        OutlinedButton(
+            onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        ) {
+            Icon(Icons.Filled.FileUpload, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Import from JSON")
+        }
     }
 
-    HorizontalDivider(Modifier.padding(vertical = 16.dp))
-
-    Text("Reset settings", style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.height(4.dp))
-    Text(
-        "Restore all preferences back to factory defaults.",
-        style = MaterialTheme.typography.bodySmall,
-    )
-    Spacer(Modifier.height(8.dp))
-    OutlinedButton(
-        onClick = { showResetDialog = true },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Icon(Icons.Filled.RestartAlt, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text("Reset to Defaults")
+    SettingsGroup("Reset") {
+        SettingsNote("Restore all preferences back to factory defaults.")
+        OutlinedButton(
+            onClick = { showResetDialog = true },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) {
+            Icon(Icons.Filled.RestartAlt, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Reset to Defaults")
+        }
     }
 
     if (showResetDialog) {

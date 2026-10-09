@@ -73,7 +73,14 @@ internal object DrawingSurfaceDefaults {
     const val PINCH_MIN_SPAN_PX = 40f
 
     const val TAP_SLOP_PX = 16f
-    const val SELECT_PAD_PX = 6f
+    /**
+     * How far outside the selected elements' ink box the marquee is drawn. **Zero**: the outline sits
+     * exactly on the ink, so a selection reads as the element and nothing else — a padded box looks
+     * like it grabbed more than the user picked, which is precisely what a selection tool must never
+     * suggest. Ease of grabbing comes from the hit radii instead ([HANDLE_HIT_PX], [MOVE_GRAB_PAD]),
+     * not from drawing the box bigger than the thing it claims to hold.
+     */
+    const val SELECT_PAD_PX = 0f
     const val MOVE_GRAB_PAD = 8.0
     const val HANDLE_HIT_PX = 30f      // touch radius for grabbing a resize/rotate handle
     const val ROTATE_ARM_PX = 40f      // gap from the right edge out to the rotate knob

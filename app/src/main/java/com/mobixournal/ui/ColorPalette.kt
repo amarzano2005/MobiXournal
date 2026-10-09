@@ -1,10 +1,13 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,14 +29,27 @@ class ColorPaletteState(
     private val settings: AppSettings,
     private val onSettingsChange: (AppSettings) -> Unit,
 ) {
-    /** The user-defined colour behind the palette's editable slot. */
-    val custom: Int get() = settings.customColor
+    /** The user-defined colour behind the palette's editable slot, or null while it is still empty. */
+    val custom: Int? get() = settings.customColor
 
     /** The pen palette the swatches are drawn from — [AppSettings.penColors], user-editable. */
     val colors: List<Int> get() = settings.penColors
 
-    /** Persist a new colour for the editable custom slot. */
-    fun redefineCustom(color: Int) = onSettingsChange(settings.copy(customColor = color))
+    /** Persist a new colour for the editable custom slot (null clears the slot back to empty). */
+    fun redefineCustom(color: Int?) = onSettingsChange(settings.copy(customColor = color))
+
+    /**
+     * Append [color] to the pen palette — what the toolbar pop-up's **add colour** swatch does. The
+     * list is de-duplicated (re-adding a colour that is already there selects it rather than making a
+     * twin) and capped at [AppSettings.MAX_PEN_COLORS], the same ceiling Settings → Colors enforces.
+     */
+    fun addColor(color: Int) = onSettingsChange(
+        settings.copy(
+            penColors = (settings.penColors + (color or 0xFF000000.toInt()))
+                .distinct()
+                .take(AppSettings.MAX_PEN_COLORS),
+        ),
+    )
 }
 
 @Composable
@@ -56,8 +72,13 @@ fun rememberColorPaletteState(
  * closes whatever menu it is in and shows the [CustomColorEditor], which must sit *outside* that menu
  * so dismissing the menu doesn't take the dialog with it.
  *
- * [compact] drops the hint line and tightens the swatch grid's padding — the shape the toolbar's
- * Colour & size pop-up uses, so the menu stays short. The dialogs keep the hints.
+ * [compact] switches the swatches to a **single horizontally scrolling row** (no hint line, tighter
+ * padding) — the shape the toolbar's Colour & size pop-up uses. A fixed row is what keeps the menu's
+ * height constant however many colours the palette holds: a wrapping grid would grow the pop-up with
+ * every swatch added. The dialogs keep the wrapping grid and the hint.
+ *
+ * [onAdd] appends a trailing **add colour** swatch, so a new palette colour can be made from the
+ * picker itself rather than only from Settings → Colors.
  */
 @Composable
 fun ColorPaletteRows(
@@ -67,6 +88,7 @@ fun ColorPaletteRows(
     onEditCustom: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    onAdd: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         if (!compact) PaletteHint("Tap to pick · long-press ✎ to edit")
@@ -76,11 +98,15 @@ fun ColorPaletteRows(
             }
             ColorSwatch(
                 color = palette.custom,
-                selected = palette.custom == selected,
-                onClick = { onPick(palette.custom) },
+                selected = palette.custom != null && palette.custom == selected,
+                // An empty slot has no colour to pick, so a tap sets one instead of selecting nothing.
+                onClick = { palette.custom?.let(onPick) ?: onEditCustom() },
                 onLongClick = onEditCustom,
                 editable = true,
             )
+            if (onAdd != null) {
+                ColorSwatch(color = null, selected = false, onClick = onAdd, editable = false, add = true)
+            }
         }
     }
 }
@@ -98,7 +124,8 @@ fun CustomColorEditor(
 ) {
     if (!visible) return
     CustomColorPickerDialog(
-        initial = palette.custom,
+        initial = palette.custom ?: AppSettings.DEFAULT_CUSTOM_COLOR,
+        palette = palette.colors,
         onConfirm = { newColor -> onRedefine(newColor); onDismiss() },
         onDismiss = onDismiss,
     )
@@ -112,13 +139,20 @@ fun CustomColorEditor(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SwatchRow(compact: Boolean = false, content: @Composable () -> Unit) {
+    if (compact) {
+        // One scrolling row of fixed height: adding swatches scrolls, it does not grow the menu.
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) { content() }
+        return
+    }
     FlowRow(
-        modifier = Modifier.padding(
-            horizontal = if (compact) 8.dp else 12.dp,
-            vertical = if (compact) 2.dp else 8.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp),
-        verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp),
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) { content() }
 }
 

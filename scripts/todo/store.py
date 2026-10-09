@@ -37,6 +37,10 @@ DEFAULT_LEVEL = "task"
 # Field write-order within a [[task]] block. `completed` only appears in the
 # archive; absent fields are simply skipped. `rebuild`/`emulator_debug` are
 # TODO-only build hints (like `urgency`/`order`) dropped when a task is archived.
+#
+# `release` is archive-only too, and it is what separates shipped work from work
+# pending the next version: absent means "pending", a version string means it
+# shipped there. `todo.py release --version X.Y.Z` writes it (see release.py).
 _TASK_FIELDS = (
     "id",
     "title",
@@ -48,6 +52,7 @@ _TASK_FIELDS = (
     "order",
     "created",
     "completed",
+    "release",
     "tags",
     "rebuild",
     "emulator_debug",
@@ -67,6 +72,12 @@ _FINISHED_HEADER = """\
 #
 # Append-only, newest first (see AGENTS.md -> documentation map). Tasks land
 # here when `scripts/todo.sh done <id>` moves them out of TODO.toml.
+#
+# `release` separates shipped work from work pending the next version:
+#   absent        -> pending; belongs to the next release's changelog
+#   "X.Y.Z"       -> shipped in that version
+# `scripts/todo.sh release --version X.Y.Z` stamps the pending set and drafts
+# docs/releases/vX.Y.Z.md; `list --finished --unreleased` shows the pending set.
 """
 
 
@@ -126,7 +137,8 @@ def save_todo(doc, path):
 
 
 def save_finished(doc, path):
-    order = ("title", "kind", "purpose", "documentation_map", "source", "order")
+    order = ("title", "kind", "purpose", "documentation_map", "source", "order",
+             "latest_release")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(_dump(doc, _FINISHED_HEADER, order))
 

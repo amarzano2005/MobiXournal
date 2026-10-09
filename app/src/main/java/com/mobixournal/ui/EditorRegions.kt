@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -84,6 +83,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,14 +113,15 @@ import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
+import com.mobixournal.ui.theme.rememberToolbarColor
 import android.view.KeyEvent
 import androidx.compose.ui.input.key.onKeyEvent
 
 /**
  * The editor's top bar: undo/redo for the active pane, document title, then the overflow menu.
  * In Modern UI, renders as a floating dock surface matching the Main Toolbar.
- * When [AppSettings.showToolsInTopBar] is enabled, the title slot displays the Secondary Toolbar
- * (compact row of geometric figures and tools).
+ * The title slot always displays the Secondary Toolbar (compact row of geometric figures and tools);
+ * the plain document-title chip is only the fallback for callers that pass no [settings].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,29 +139,25 @@ fun EditorTopBar(
     onToggleSplitView: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isModern = settings?.modernUi ?: true
-    val effectivePosition = if (settings?.showToolsInTopBar == true && settings.toolbarPosition == ToolbarPosition.TOP) {
-        ToolbarPosition.LEFT
-    } else {
-        settings?.toolbarPosition ?: ToolbarPosition.LEFT
-    }
-    val topBarHeight = if (isModern) 48.dp else 40.dp
+    // The rail can only be docked to a vertical edge now, so the spacer that keeps the top bar's
+    // content clear of it is simply needed whenever that edge is the left one.
+    val railOnLeft = (settings?.toolbarPosition ?: ToolbarPosition.LEFT) == ToolbarPosition.LEFT
     TopAppBar(
         navigationIcon = {
-            if (settings != null && settings.showToolsInTopBar && effectivePosition == ToolbarPosition.LEFT && !ui.fullPage) {
-                val spacerWidth = if (isModern) SideToolbarModernTotalWidth else SideToolbarWidth
+            if (settings != null && railOnLeft && !ui.fullPage) {
+                val spacerWidth = SideToolbarModernTotalWidth
                 Spacer(Modifier.width(spacerWidth))
             }
         },
         title = {
-            if (settings != null && onSettingsChange != null && settings.showToolsInTopBar) {
+            if (settings != null && onSettingsChange != null) {
                 TopBarToolsRow(
                     ui = ui,
                     pane = pane,
                     settings = settings,
                     onSettingsChange = onSettingsChange,
                 )
-            } else if (isModern) {
+            } else {
                 val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -177,64 +175,60 @@ fun EditorTopBar(
                 }
             }
         },
-        modifier = modifier.height(topBarHeight),
+        modifier = modifier.height(48.dp),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
         ),
         actions = {
-            // Order is deliberate: split view sits directly right of the search button, and Save —
-            // the more frequent action — takes the slot split view used to hold, right before the
-            // overflow menu. Undo/redo stay paired between them.
-            SearchControls(pane, modern = isModern)
-            if (isModern) {
-                IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+            // Order is deliberate: split view sits directly right of the search button, then the
+            // paired undo/redo. The two glyph-shaped file actions follow — a compact quick Export PDF
+            // and then Save, which lands the most-used of the two under the thumb at the far right —
+            // so neither costs a trip into the overflow menu.
+            SearchControls(pane)
+            IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Filled.VerticalSplit,
+                    contentDescription = if (splitView) "Close split view" else "Split view",
+                    tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                tonalElevation = 1.dp,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 2.dp),
+            ) {
+                IconButton(onClick = onExportPdf, modifier = Modifier.size(36.dp)) {
                     Icon(
-                        Icons.Filled.VerticalSplit,
-                        contentDescription = if (splitView) "Close split view" else "Split view",
-                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        Icons.Filled.PictureAsPdf,
+                        contentDescription = "Export PDF",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
-                        }
-                        IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
-                        }
-                    }
-                }
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                ) {
-                    IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                    }
-                }
-            } else {
-                IconButton(onClick = onToggleSplitView) {
-                    Icon(
-                        Icons.Filled.VerticalSplit,
-                        contentDescription = if (splitView) "Close split view" else "Split view",
-                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo) {
-                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-                }
-                IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo) {
-                    Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
-                }
-                IconButton(onClick = onSave) {
-                    Icon(Icons.Filled.Save, contentDescription = "Save")
+            }
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 2.dp),
+            ) {
+                IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 }
             }
             OverflowMenu(
@@ -322,7 +316,7 @@ private fun SearchIndexingDialog(
 }
 
 @Composable
-private fun SearchControls(pane: PaneState, modern: Boolean = false) {
+private fun SearchControls(pane: PaneState) {
     fun apply(status: SearchStatus) {
         pane.searchCurrent = status.current
         pane.searchTotal = status.total
@@ -330,12 +324,12 @@ private fun SearchControls(pane: PaneState, modern: Boolean = false) {
     if (!pane.searchOpen) {
         IconButton(
             onClick = { pane.searchOpen = true },
-            modifier = if (modern) Modifier.size(36.dp) else Modifier,
+            modifier = Modifier.size(36.dp),
         ) {
             Icon(
                 Icons.Filled.Search,
                 contentDescription = "Search",
-                modifier = if (modern) Modifier.size(20.dp) else Modifier,
+                modifier = Modifier.size(20.dp),
             )
         }
         return
@@ -548,14 +542,7 @@ fun EditorToolbar(
     audio: AudioUiState,
 ) {
     val surface = pane.surface
-    val effectivePosition = if (settings.showToolsInTopBar && settings.toolbarPosition == ToolbarPosition.TOP) {
-        ToolbarPosition.LEFT
-    } else {
-        settings.toolbarPosition
-    }
     SideToolbar(
-        horizontal = effectivePosition.isHorizontal,
-        modern = settings.modernUi,
         tool = ui.tool,
         onTool = { tool ->
             // One rule for every path: the outgoing tool's style goes into its own slot, the
@@ -580,6 +567,18 @@ fun EditorToolbar(
             surface?.activateTool(picked, ui, base, onSettingsChange)
         },
         styleCallbacks = rememberToolbarStyleCallbacks(ui, surface, settings, onSettingsChange),
+        favoritesCallbacks = ToolbarFavoritesCallbacks(
+            penFavorites = settings.penFavorites,
+            highlighterFavorites = settings.highlighterFavorites,
+            // A tap takes the colour (and the tool that owns it); the settings are read fresh each
+            // time rather than captured, so a favourite added in Settings is reachable at once.
+            onPick = { colorOwner, color ->
+                pickFavoriteColor(surface, ui, settings, onSettingsChange, colorOwner, color)
+            },
+            onAssign = { colorOwner, index, color ->
+                onSettingsChange(assignFavorite(settings, colorOwner, index, color))
+            },
+        ),
         recognizeShapes = settings.recognizeShapes,
         onRecognizeShapes = {
             surface?.recognizeShapes = it
@@ -621,6 +620,7 @@ fun rememberToolbarStyleCallbacks(
     },
     palette = rememberColorPaletteState(settings, onSettingsChange),
     onRedefineCustom = { newColor -> redefineCustomColor(newColor, ui, surface, settings, onSettingsChange) },
+    onAddColor = { newColor -> addPenColor(newColor, settings, onSettingsChange) },
     width = ui.width,
     onWidth = { newWidth ->
         ui.width = newWidth
@@ -636,9 +636,8 @@ fun rememberToolbarStyleCallbacks(
 
 /**
  * Secondary Toolbar: a compact, horizontal scrollable row of geometric figures and tools that sits
- * inside the top bar, allowing quick access without shrinking the canvas.
- * In Modern UI, renders as a floating dock surface enclosing only the figures, adapting its width
- * dynamically to the number of visible figures.
+ * inside the top bar, allowing quick access without shrinking the canvas. It renders as a floating dock
+ * surface enclosing only the figures, adapting its width dynamically to the number of visible figures.
  */
 @Composable
 fun TopBarToolsRow(
@@ -649,22 +648,15 @@ fun TopBarToolsRow(
     modifier: Modifier = Modifier,
 ) {
     val surface = pane.surface
-    val modern = settings.modernUi
     val items = visibleTopBarItems(settings.topBarOrder, settings.topBarHidden, settings.shapeHidden)
     if (items.isEmpty()) return
 
     val content = @Composable {
         Row(
-            modifier = if (modern) {
-                Modifier
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                    .horizontalScroll(rememberScrollState())
-            } else {
-                Modifier
-                    .fillMaxHeight()
-                    .horizontalScroll(rememberScrollState())
-            },
-            horizontalArrangement = Arrangement.spacedBy(if (modern) 4.dp else 2.dp),
+            modifier = Modifier
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             for (item in items) {
@@ -673,7 +665,6 @@ fun TopBarToolsRow(
                     CompactSingleToolButton(
                         tool = single,
                         active = ui.tool == single,
-                        modern = modern,
                         onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                     )
                 } else if (item.id == "triangle" || item.id == "trapezoid") {
@@ -688,7 +679,6 @@ fun TopBarToolsRow(
                     CompactShapeKindButton(
                         tool = tool,
                         active = ui.tool == tool,
-                        modern = modern,
                         heading = if (triangle) "Triangle" else "Trapezoid",
                         kinds = kindLabels,
                         selectedKind = kind,
@@ -721,7 +711,6 @@ fun TopBarToolsRow(
                             members = group.tools,
                             selected = group.selected(settings.toolGroupSelections),
                             active = ui.tool in group.tools,
-                            modern = modern,
                             onTool = { tool ->
                                 surface?.activateTool(tool, ui, settings, onSettingsChange)
                             },
@@ -735,7 +724,6 @@ fun TopBarToolsRow(
                     } else if (item.id == "guides") {
                         CompactGuidePopupButton(
                             kind = settings.guideKind,
-                            modern = modern,
                             onKind = {
                                 onSettingsChange(settings.copy(guideKind = it))
                                 pane.surface?.placeGuide(it)
@@ -747,23 +735,19 @@ fun TopBarToolsRow(
         }
     }
 
-    if (modern) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 3.dp,
-            shadowElevation = 4.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-            modifier = modifier
-                .wrapContentWidth()
-                .height(40.dp),
-        ) {
-            content()
-        }
-    } else {
-        Box(modifier = modifier) {
-            content()
-        }
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        // The dock is the app's implement colour — the same value the rail and the canvas surround take
+        // (see `rememberToolbarColor`), so the tools and the desk are visibly one material.
+        color = rememberToolbarColor(),
+        tonalElevation = 3.dp,
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        modifier = modifier
+            .wrapContentWidth()
+            .height(40.dp),
+    ) {
+        content()
     }
 }
 
@@ -771,11 +755,10 @@ fun TopBarToolsRow(
 private fun CompactSingleToolButton(
     tool: EditorTool,
     active: Boolean,
-    modern: Boolean = false,
     onClick: () -> Unit,
 ) {
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
+    val shape = RoundedCornerShape(8.dp)
     Box(
         modifier = Modifier
             .size(32.dp)
@@ -815,13 +798,12 @@ private fun CompactShapeKindButton(
     onSelectKind: (Int) -> Unit,
     showEditor: Boolean,
     editorHint: String,
-    modern: Boolean = false,
     onEditKind: () -> Unit,
     onClick: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
+    val shape = RoundedCornerShape(8.dp)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box {
             Box(
@@ -894,13 +876,12 @@ private fun CompactShapeKindButton(
 @Composable
 private fun CompactGuidePopupButton(
     kind: GuideKind,
-    modern: Boolean = false,
     onKind: (GuideKind) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val active = kind != GuideKind.NONE
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
+    val shape = RoundedCornerShape(8.dp)
     Box {
         Box(
             modifier = Modifier
@@ -938,13 +919,12 @@ private fun CompactTopBarToolButton(
     members: List<EditorTool> = group.tools,
     selected: EditorTool,
     active: Boolean,
-    modern: Boolean = false,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = if (modern) RoundedCornerShape(8.dp) else CircleShape
+    val shape = RoundedCornerShape(8.dp)
     Box {
         Box(
             modifier = Modifier
@@ -997,6 +977,29 @@ private fun redefineCustomColor(
         surface?.colorArgb = newColor
         onSettingsChange(settings.copy(customColor = newColor).withColorUsed(newColor))
     }
+}
+
+/**
+ * Append [newColor] to the pen palette from the toolbar pop-up's **add colour** swatch — the same
+ * de-duplicated, capped append that Settings → Colors performs, so a colour made at the canvas shows
+ * up in every picker and in the palette list. The caller selects the new colour afterwards: being
+ * asked for a colour and then having to pick it again would be two taps for one intent.
+ *
+ * A palette already at [AppSettings.MAX_PEN_COLORS] keeps the swatches it has: the new colour is then
+ * only *used*, not stored. Evicting a swatch the user made — or refusing the colour they just chose —
+ * would both be worse than a one-off colour that simply isn't a swatch yet.
+ */
+private fun addPenColor(
+    newColor: Int,
+    settings: AppSettings,
+    onSettingsChange: (AppSettings) -> Unit,
+) {
+    val opaque = newColor or 0xFF000000.toInt()
+    onSettingsChange(
+        settings.copy(
+            penColors = (settings.penColors + opaque).distinct().take(AppSettings.MAX_PEN_COLORS),
+        ),
+    )
 }
 
 private fun redefineWidthSlot(
@@ -1116,6 +1119,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     }
     onScrollChanged = { y, total, vp -> state.scrollY = y; state.contentHeight = total; state.viewportHeight = vp }
     onSelectionChanged = { s -> state.hasSelection = s }
+    onSelectionRectChanged = { r -> state.selectionRect = r }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
@@ -1248,8 +1252,11 @@ fun EditorPaneView(
             }
         },
     ) {
-        if (!ui.fullPage) TabStrip(tabs[index.coerceIn(tabs.indices)], modifier = Modifier.fillMaxWidth(), modern = settings.modernUi)
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        if (!ui.fullPage) TabStrip(tabs[index.coerceIn(tabs.indices)], modifier = Modifier.fillMaxWidth())
+        // The canvas box doubles as the coordinate space for the floating selection bar: its px are
+        // the surface's own view px, so the box the surface reports needs no conversion here.
+        var canvasSizePx by remember { mutableStateOf(IntSize.Zero) }
+        Box(modifier = Modifier.fillMaxWidth().weight(1f).onSizeChanged { canvasSizePx = it }) {
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
@@ -1266,7 +1273,7 @@ fun EditorPaneView(
                     }
                 },
                 update = {
-                    it.applyChromeColors(chrome.backdrop, chrome.selection, chrome.guide)
+                    it.applyChromeColors(chrome.backdrop, chrome.pageOutline, chrome.selection, chrome.guide)
                     it.setPenDebug(ui.penDiagnostics)
                 },
                 modifier = Modifier.fillMaxSize(),
@@ -1292,12 +1299,10 @@ fun EditorPaneView(
                 ZoomBadge(
                     zoom = state.zoom,
                     onClick = { state.surface?.resetZoom() },
-                    modern = settings.modernUi,
                 )
                 PageCounter(
                     currentPage = state.currentPage,
                     pageCount = state.pageCount,
-                    modern = settings.modernUi,
                 )
             }
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the
@@ -1307,6 +1312,17 @@ fun EditorPaneView(
                     lines = state.penDebugLines,
                     onClear = { state.surface?.clearPenDebug() },
                     modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                )
+            }
+            // The selection's own options ride with the selection instead of sitting at the bottom
+            // of the screen, where a hand holding the stylus has to reach for them.
+            if (state.hasSelection && state.selectionRect != null) {
+                SelectionActionAnchor(
+                    pane = state,
+                    settings = settings,
+                    onSettingsChange = onSettingsChange,
+                    canvasSizePx = canvasSizePx,
+                    modifier = Modifier.align(Alignment.TopStart),
                 )
             }
         }
@@ -1329,17 +1345,16 @@ private fun OverflowMenu(
     onTogglePenDiagnostics: () -> Unit,
     onOpenPenParameters: () -> Unit,
 ) {
-    val isModern = settings?.modernUi ?: true
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(
             onClick = { open = true },
-            modifier = if (isModern) Modifier.size(36.dp) else Modifier,
+            modifier = Modifier.size(36.dp),
         ) {
             Icon(
                 Icons.Filled.Menu,
                 contentDescription = "Menu",
-                modifier = if (isModern) Modifier.size(20.dp) else Modifier,
+                modifier = Modifier.size(20.dp),
             )
         }
         DropdownMenu(

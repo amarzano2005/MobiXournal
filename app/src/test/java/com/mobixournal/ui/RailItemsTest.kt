@@ -79,7 +79,7 @@ class RailItemsTest {
         val ids = RAIL_ITEMS.map { it.id }
         assertEquals(
             listOf(
-                "pen", "highlighter", "color", "eraser", "pan", "select",
+                "pen", "highlighter", "favorites", "eraser", "pan", "select",
                 "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
                 "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "guides",
             ),
@@ -92,6 +92,15 @@ class RailItemsTest {
         assertTrue(RAIL_ITEMS.none { it.id == "presets" })
         assertTrue(visibleRailItems(listOf("presets", "zoom"), emptySet()).none { it.id == "presets" })
         assertEquals(emptyList<String>(), decodeRailIds("presets"))
+    }
+
+    @Test
+    fun `the retired colour and size slot is gone, folded into the favourites slot`() {
+        // The two positions were one errand: the dots live in the `favorites` slot now, along with the
+        // chevron onto the pop-up, and a saved order naming `color` simply drops it.
+        assertTrue(RAIL_ITEMS.none { it.id == "color" })
+        assertEquals(emptyList<String>(), decodeRailIds("color"))
+        assertEquals("Colour & size", RAIL_ITEMS.first { it.id == "favorites" }.label)
     }
 
     @Test

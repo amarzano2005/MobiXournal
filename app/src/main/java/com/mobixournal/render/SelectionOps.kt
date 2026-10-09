@@ -13,7 +13,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Pure edits the selection tool applies to a page list: translate, resize (affine scale), rotate,
+ * Pure edits the selection tool applies to a page list: translate, resize (affine scale, uniform or
+ * per-axis), rotate,
  * delete, recolour/re-width, and cut/copy/paste (move between pages) the elements named by a set of
  * [ElementRef]s. Every op returns a new page list (immutable pages/layers share structure, so a
  * snapshot is cheap); in-place ops never reorder elements, so the refs stay valid across a live
@@ -76,18 +77,46 @@ object SelectionOps {
      * @param dy Translation Y in points.
      * @return Transformed element, or unchanged if unmodelled.
      */
-    fun affine(element: Element, s: Double, dx: Double, dy: Double): Element = when (element) {
-        is Stroke -> element.copy(points = element.points.map { StrokePoint(it.x * s + dx, it.y * s + dy, it.width * s) })
-        is TextElement -> element.copy(x = element.x * s + dx, y = element.y * s + dy, size = element.size * s)
-        is ImageElement -> element.copy(
-            left = element.left * s + dx, top = element.top * s + dy,
-            right = element.right * s + dx, bottom = element.bottom * s + dy,
-        )
-        is TexImageElement -> element.copy(
-            left = element.left * s + dx, top = element.top * s + dy,
-            right = element.right * s + dx, bottom = element.bottom * s + dy,
-        )
-        is RawElement -> element
+    fun affine(element: Element, s: Double, dx: Double, dy: Double): Element = affineXY(element, s, s, dx, dy)
+
+    /**
+     * Apply the axis-independent affine `x' = x·sx + dx`, `y' = y·sy + dy` to one element — the
+     * primitive behind a **non-uniform** resize, where a drag on an edge handle stretches the
+     * selection in one axis only. Scalar sizes (a stroke's per-vertex width, a text box's font size)
+     * have no single axis, so they scale by the **geometric mean** `sqrt(sx·sy)`: stretching a square
+     * into a 4:1 rectangle makes its ink twice as thick (not 4×, which of the two axes would be
+     * arbitrary, and not 1×, which would leave the ink hair-thin under a doubled stroke). [sx] and
+     * [sy] are expected positive so image/box corner order is preserved.
+     * @param element Element to transform.
+     * @param sx Horizontal scale factor (positive).
+     * @param sy Vertical scale factor (positive).
+     * @param dx Translation X in points.
+     * @param dy Translation Y in points.
+     * @return Transformed element, or unchanged if unmodelled.
+     */
+    fun affineXY(element: Element, sx: Double, sy: Double, dx: Double, dy: Double): Element {
+        val scalar = kotlin.math.sqrt(sx * sy)
+        return when (element) {
+            is Stroke -> element.copy(
+                points = element.points.map {
+                    StrokePoint(it.x * sx + dx, it.y * sy + dy, it.width * scalar)
+                },
+            )
+            is TextElement -> element.copy(
+                x = element.x * sx + dx,
+                y = element.y * sy + dy,
+                size = element.size * scalar,
+            )
+            is ImageElement -> element.copy(
+                left = element.left * sx + dx, top = element.top * sy + dy,
+                right = element.right * sx + dx, bottom = element.bottom * sy + dy,
+            )
+            is TexImageElement -> element.copy(
+                left = element.left * sx + dx, top = element.top * sy + dy,
+                right = element.right * sx + dx, bottom = element.bottom * sy + dy,
+            )
+            is RawElement -> element
+        }
     }
 
     /**
@@ -105,12 +134,33 @@ object SelectionOps {
     fun scale(
         pages: List<Page>, pageIndex: Int, refs: Set<ElementRef>,
         factor: Double, anchorX: Double, anchorY: Double,
+    ): List<Page> = scaleXY(pages, pageIndex, refs, factor, factor, anchorX, anchorY)
+
+    /**
+     * Return [pages] with the elements at [refs] on page [pageIndex] scaled by [sx] horizontally and
+     * [sy] vertically about the anchor point (`anchorX`, `anchorY`) pt — the corner/edge handle
+     * opposite the one being dragged, which stays fixed. Pass `sx == sy` for the ordinary uniform
+     * resize; differing factors are the edge handles' out-of-proportion stretch, which is what lets a
+     * drawing be widened without being given a matching increase in height. Both factors should be
+     * positive.
+     * @param pages Document page list.
+     * @param pageIndex Index of page to modify (0-based).
+     * @param refs Set of element references to scale.
+     * @param sx Horizontal scale factor (1.0 = no change).
+     * @param sy Vertical scale factor (1.0 = no change).
+     * @param anchorX Anchor X in points (fixed point of transform).
+     * @param anchorY Anchor Y in points.
+     * @return New page list with scaled elements, or [pages] if no change.
+     */
+    fun scaleXY(
+        pages: List<Page>, pageIndex: Int, refs: Set<ElementRef>,
+        sx: Double, sy: Double, anchorX: Double, anchorY: Double,
     ): List<Page> {
-        if (refs.isEmpty() || factor == 1.0) return pages
-        val dx = anchorX * (1.0 - factor)
-        val dy = anchorY * (1.0 - factor)
+        if (refs.isEmpty() || (sx == 1.0 && sy == 1.0)) return pages
+        val dx = anchorX * (1.0 - sx)
+        val dy = anchorY * (1.0 - sy)
         return mapPage(pages, pageIndex) { li, ei, el ->
-            if (ElementRef(li, ei) in refs) affine(el, factor, dx, dy) else el
+            if (ElementRef(li, ei) in refs) affineXY(el, sx, sy, dx, dy) else el
         }
     }
 

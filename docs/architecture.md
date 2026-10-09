@@ -298,14 +298,33 @@ native for stylus latency and platform fit).
 - **App chrome / UI:** **Jetpack Compose with Material 3** (Material You) for all app chrome —
   app bar, menus, dialogs, the tool palette. Satisfies the Material Design requirement in
   `TODO.toml`.
-- **One colour scheme drives every surface.** All chrome — app bar, rail/toolbar, dialogs, the
-  elevated popovers — takes its colours from `MaterialTheme.colorScheme` (`ui/theme/Theme.kt`);
-  no surface hardcodes a colour. The canvas is the one exception by construction: it's a
-  `SurfaceView` outside the Compose tree, so `ui/theme/ChromeColors.kt` maps the scheme onto its
-  three chrome colours (page backdrop, selection marquee/handles, guide overlay) as ARGB ints and
-  `EditorScreen` pushes them in via `DrawingSurfaceView.applyChromeColors`. **Ink, pen palette and
-  page backgrounds are document data, not chrome, and are deliberately never themed** — they must
-  round-trip to the file byte-for-byte.
+- **One colour scheme drives every surface, and one chrome colour paints it.** All chrome — app
+  bar, rail/toolbar, dialogs, the elevated popovers — takes its colours from
+  `MaterialTheme.colorScheme` (`ui/theme/Theme.kt`); no surface hardcodes a colour. The canvas is the
+  one exception by construction: it's a `SurfaceView` outside the Compose tree, so
+  `ui/theme/ChromeColors.kt` maps the scheme onto its four chrome colours (page backdrop and its
+  hairline outline, selection marquee/handles, guide overlay) as ARGB ints and `EditorScreen` pushes
+  them in via `DrawingSurfaceView.applyChromeColors`.
+
+  The chrome then splits in two, by job, and each half has one value:
+
+  - **`rememberChromeColor()` — the bars** (`background`): the `Scaffold`'s container under the
+    transparent top bar, the tab strip, and both Android system bars (`Theme.kt` sets
+    `statusBarColor`/`navigationBarColor` from it). Three dark greys stacked down the screen read as
+    three unrelated surfaces, so all of them take this one.
+  - **`rememberToolbarColor()` — the implement colour** (`surfaceContainer`): the Main Toolbar rail
+    (`SideToolbar.kt`) and the Secondary Toolbar's floating dock (`EditorRegions.kt`) are filled with
+    it, and **the canvas backdrop takes the same value**, so the desk around the page stack is literally
+    the material the tools are made of rather than a darker void behind them. The docks keep their one
+    tonal step over the bars, which is what makes a floating dock read as floating instead of dissolving
+    into the bar it hangs from. Rail, dock and surround all read this, so they cannot drift apart.
+
+  A new *bar* surface takes `rememberChromeColor`, a new *tool* surface takes `rememberToolbarColor`;
+  neither is a `surfaceContainer*` role spelled out by hand. `pageOutline` (the scheme's
+  `outlineVariant` hairline around each sheet, drawn in `DrawingSurfacePaint.drawPageOutline` — **not**
+  in `BackgroundRenderer`, which the PDF exporter also calls) is what keeps a near-white page findable
+  against a light-themed surround. **Ink, pen palette and page backgrounds are document data, not
+  chrome, and are deliberately never themed** — they must round-trip to the file byte-for-byte.
 - **Drawing surface:** a custom low-latency **`SurfaceView`** (not Compose `Canvas`) hosted in
   the Compose tree via `AndroidView`. Stylus input comes from raw **`MotionEvent`** with
   `getPressure()` / `getAxisValue(AXIS_PRESSURE)` and historical points
@@ -727,7 +746,8 @@ app/
       ElementBounds.kt       # pt bounding box of any element + a Bounds value type (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
       SelectionOps.kt        # translate / delete selected elements on a page (pure)
-      VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below (pure)
+      VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
+                             #   snapping the gap to the ruling when snapping is on (pure)
       InputClassifier.kt     # pointer kind + button + active tool + settings -> gesture intent (pure)
       PressureCurve.kt       # pressure -> width multiplier + sensitivity presets (pure)
       Fling.kt               # decelerating two-axis momentum-scroll kinematics (pure)
@@ -774,7 +794,9 @@ app/
       RailItems.kt           # the rail's button positions + their persisted order/hidden set (pure)
       ScrollThumb.kt         # right-edge PDF-style scroll thumb: drag to page fast, faint-when-idle, page bubble
       PageCounter.kt         # always-visible "page X of Y" badge (its corner is a setting) + the zoom badge above it (tap = reset to 100%)
-      SettingsScreen.kt      # settings index: one clickable row per section, each opening its own page
+      SettingsScreen.kt      # settings: side menu + sections on a wide screen, pushed index on a narrow one
+      SettingsSidebar.kt     # the wide screen's permanent side menu (search field + the four areas)
+      SettingsSearch.kt      # which sections answer a query, by title/summary/alias keywords (pure)
       SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
       ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour
       AppearanceSection.kt   # the Appearance page: theme mode, dynamic theme, modern interface switch
@@ -881,11 +903,19 @@ recolour menu), plus the shortcut tables that jump straight to a colour or a too
   `AppSettings`. One instance is threaded to every picker
   (toolbar palette, text-box dialog, selection recolour menu), so a colour redefined anywhere reads
   the *same* custom slot. There is no recently-used list: the palette itself is the list.
+  `custom` is **nullable**: the slot is empty on a fresh install (`AppSettings.customColor` is null)
+  rather than pre-filled with a colour nobody chose, and an empty slot is stored as an *absent* pref
+  key and an explicit `null` in the JSON backup, so "empty" and "black" stay distinguishable.
+  `addColor` is the pop-up's append (opaque, de-duplicated, capped at `MAX_PEN_COLORS`).
 - **`ColorPaletteRows`** — the one colour picker composable: the user's palette (`penColors`,
   seeded with the eight hexes of `PEN_COLORS` and predefined English names) then the
-  editable custom slot (marked with a pencil, long-press to redefine).
+  editable custom slot (marked with a pencil, long-press to redefine; an empty slot *opens* the
+  editor on a tap, since it holds no colour to pick).
   A tap reports the colour through `onPick`; the host decides what it means (set the pen,
-  restyle the selection, colour the text).
+  restyle the selection, colour the text). `compact` (the toolbar pop-up) lays the swatches in a
+  **single horizontally scrolling row** so the menu's height is fixed however many colours the
+  palette holds — a wrapping grid would grow the pop-up with every swatch added — and `onAdd`
+  appends the trailing add-colour swatch.
 - **Colour parity with desktop.** Beyond the palette, every colour that names a *document* or *paper*
   appearance is taken from desktop Xournal++: the named `.xopp` colours (`format/XoppColor.kt`,
   upstream's `PREDEFINED_COLORS` → `Colors::xopp_royalblue` / `xopp_deepskyblue` / `lime` /
@@ -896,7 +926,10 @@ recolour menu), plus the shortcut tables that jump straight to a colour or a too
   margin — are deliberately left alone; `DesktopColorParityTest` pins the ones that do.
 - **`CustomColorPickerDialog`** — the HSV/hex dialog behind the custom slot: a
   saturation/value square over a hue slider, plus a two-way `#RRGGBB` hex field and a live
-  preview. Always opaque; the parent persists the result.
+  preview. Always opaque; the parent persists the result. Its optional `palette` argument adds an
+  **Existing colours** row — the app's own swatches, scrolled horizontally — so a new colour can
+  start from one that already exists instead of from a hex the user would have to know; tapping a
+  swatch loads it into the editor and nothing is committed until **Set**.
 
 **What the unit tests cover** (this section is the one authoritative inventory — `README.md`
 and `docs/tools.md` link here rather than restating it). The `format/` tests exercise the
@@ -1214,11 +1247,19 @@ reduced to a bare file name before use, so a hand-edited path in a document can'
 page-local Y of the grab line, and each move frame re-applies `VerticalSpaceOps.shiftBelow` to the
 **gesture-start snapshot** (the same recompute-from-the-start discipline as a selection move, so a
 live drag never drifts or compounds). An element moves when its `ElementBounds.of(...).top` is at or
-below the line — so the line never tears an element in half — and every layer of the page moves
-together, matching desktop. Dragging up is clamped by `clampShift` so content can close a gap but
-never crosses above the line it was grabbed at; a drag that can't move anything returns the same page
-list, which keeps `finishGesture` from recording an empty undo step. The whole drag is one undo step,
-and because it only rewrites coordinates the result round-trips through save unchanged.
+below the line — desktop's *"items which lie entirely between the cursor position and the end of the
+page"*, so the line never tears an element in half — and that decision is taken **once, at grab time**:
+a block that slides past the elements above it does not recruit them on the way. **Nothing stops the
+block at the line.** The shift is the pointer's travel in either direction, so pulling up carries the
+block above the line it was grabbed at (and, pulled far enough, off the top of the sheet — where it
+stays, as on the desktop, recoverable by dragging back down). A drag that can't move anything returns
+the same page list, which keeps `finishGesture` from recording an empty undo step. With
+**Snap to grid** on, `dragShift` snaps the *amount* inserted to the page's ruling (`Snapping.spacingY`
+→ `Snapping.snap`, i.e. a whole number of ruled lines), which is desktop 1.1.2's *"Added snapping for
+vertical space"*; a plain sheet (spacing 0) leaves the drag continuous. **Every layer of the page
+moves together — a deliberate difference from the desktop**, which reflows only the current layer: a
+note written on one layer must not be left behind by space opened on another. The whole drag is one
+undo step, and because it only rewrites coordinates the result round-trips through save unchanged.
 
 ### Document search and handwriting recognition (`DocumentSearch`, `HandwritingRecognizer`, `HandwritingIndex`)
 
@@ -1257,13 +1298,32 @@ frame so there's no drift) and commits as **one undoable edit**. Dragging into t
 edge band starts a **drag auto-scroll** (`updateDragAutoScroll` + the `autoScrollCallback` frame
 loop): the page scrolls one step per frame and the move is re-applied at the finger's last
 position (`SelectionGestureController.moveSelectTo`), so the element rides the scrolling sheet even
-under a held finger; a floating **Delete / Deselect** bar
-(`EditorOverlays.SelectionActionBar`, shown via `onSelectionChanged`) deletes (undoable) or clears the
-selection. The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
+under a held finger; a floating **Cut / Copy / Duplicate / Recolour / Width / Delete** bar
+(`SelectionActionBar` in `ui/EditorActionBars.kt`, placed by `ui/SelectionActionAnchor.kt`) acts on the
+selection (all undoable). That bar **rides with the
+selection** rather than sitting at the bottom edge: the view publishes the selection's box in its own
+view px (`DrawingSurfaceView.selectionScreenRect` / `onSelectionRectChanged`, reported from the render
+pass next to `reportScroll`) through `PaneState.selectionRect`, and `EditorPaneView` — whose canvas
+`Box` *is* the surface's coordinate space — hangs the bar just **below** the box (above it only when
+the canvas ends below the selection, clamped inside the canvas either way). It carries **no Done
+button**: tapping off the selection clears it, and that same tap starts the next stroke. Its controls
+are 32dp squares rather than Material's 48dp (`SelectionBarButton`), which halves the bar's footprint,
+and it is held at zero alpha until it has been measured so it fades in where it belongs instead of
+flickering there. Pure placement geometry lives in `ui/SelectionActionAnchor.kt`'s
+`selectionBarOffset`, pinned by `SelectionActionAnchorTest`. The
+other mode bars (paste/region, table, spline, PDF-text selection) stay on the bottom edge. The dashed outline and marquee are drawn by the view over the page stack. Two-finger pan still
 works in Select mode (it abandons the in-progress selection gesture).
 
-Beyond move/delete, the outline carries **four corner resize handles** (a uniform scale about the
-opposite corner, `SelectionOps.scale`). Their grab radius is capped at half the selection's
+The outline itself is drawn **exactly on the elements' ink box** (`SELECT_PAD_PX` = 0): a padded box
+claims more than the user picked, and the handles' hit radii are what make it grabbable, not an
+inflated rectangle. Beyond move/delete, the outline carries **eight resize handles**: the four
+**corners** resize proportionally (a uniform scale about the opposite corner, `SelectionOps.scale`,
+both factors being the pointer's distance ratio), and the four **edge midpoints** stretch **one axis
+only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring travel from the opposite
+edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
+widened without being made taller. A per-axis stretch scales stroke widths (and text sizes) by the
+**geometric mean** `sqrt(sx·sy)`: of the two axes neither is the right one for a scalar, and the mean
+keeps the ink in proportion to the box it fills. Their grab radius is capped at half the selection's
 on-screen size (`min(HANDLE_HIT_PX, min(w, h) / 2)`), because a fixed 30 px radius swallows a small
 selection whole — every touch inside it lands within 30 px of a corner, turning an intended *move*
 into a resize. The cap keeps the corner zones from overlapping in the middle so a small element
@@ -1675,13 +1735,62 @@ selection is a **view-only** overlay derived from the PDF — it isn't part of t
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 
 **Chrome (`ui/`).** `EditorScreen` is the one editor screen: a top bar (`EditorTopBar`) with undo/redo
-icon buttons and a **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save,
-Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (rail dockable to Left, Right, Top, Bottom)
-with core drawing tool slots and pop-up panels; an optional **Secondary Toolbar** (`TopBarToolsRow`) for geometric
-figures and tools embedded in the top bar (`AppSettings.showToolsInTopBar`); and the canvas filling the rest.
-Chrome styling is governed by `AppSettings.modernUi` (toggled under **Settings → Appearance**, enabled by default):
-- **Modern UI (`modernUi = true`)**: The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing only the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures; the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), an accent-tonal Save button, and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
-- **Classic UI (`modernUi = false`)**: Compact edge-to-edge flat Main Toolbar (`SideToolbarClassicWidth` = 48dp) with 48dp circular buttons, flat 40dp top bar, 32dp rectangular tab chips, and compact badges for maximum canvas density.
+icon buttons, a compact quick **Export PDF** button and a one-tap **Save** button after it (Save
+outermost, i.e. under the thumb), and a
+**☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As,
+Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (rail dockable to the left or right
+edge — `ToolbarPosition` offers only those two, so the rail always runs as a vertical column and
+never fights the Secondary Toolbar for the top edge)
+with core drawing tool slots and pop-up panels; a permanent **Secondary Toolbar** (`TopBarToolsRow`) for geometric
+figures and tools embedded in the top bar; and the canvas filling the rest.
+The element selection's action bar floats beside the selection itself (see [Selecting objects](#selecting-objects-render)).
+
+The rail also carries the **Colour & size slot** (`ColorSizeRailSlot`, `ui/ColorSizeRailSlot.kt`) — the
+one rail slot that is not a button opening a menu: its main surface *is* the control. It is a vertical
+stack of `AppSettings.FAVORITE_COUNT` (3) favourite-colour dots, one tap away, with a **chevron** beside
+them onto the full **Colour & size** pop-up (`ColorSizePopup`: palette, tip sizes, line style). That
+chevron is where the *separate* Colour & size rail position went — the two slots were one errand, and
+retiring `color` (`PANEL_RAIL_ITEMS` no longer names it, and a saved order naming it is dropped) gave
+the rail a position back while the richer pop-up stayed one tap away. `favoriteToolFor` decides whose
+terna the dots draw — the highlighter's while the highlighter
+is live, the pen's otherwise (a non-inking tool such as the eraser offers the pen's rather than an empty
+strip) — so the pen and the highlighter keep **separate** favourite colours, exactly as they already keep
+separate colour fields, while the slot never holds two ternas. The slot measures exactly **one slot**
+(`LocalRailSlotSize`), so it cannot cost the rail the tools it shows at a glance: the dots take 52% of
+its width as a column of three cells, each `slot / 3` tall with the dot inset 2dp inside it, and a
+centred **square** chevron button of 40% of the slot sits beside them across a 4dp gap — a square
+button rather than a full-height strip, because a strip as tall as the slot and only as wide as a
+glyph reads as empty space with an arrow in it and puts a target where the hand expects none. A tap goes through `pickFavoriteColor`, which writes the colour into
+the **owning tool's** slot (`AppSettings.lastColor` for the pen, `highlighterColor` for the highlighter —
+the same write the Colour & size pop-up makes) and, when that tool is already live, takes the colour
+directly rather than re-activating the tool, since switching *to* the tool it is already on re-reads the
+live field and would undo the pick. A long-press opens the palette over that dot and rewrites it
+(`assignFavorite`). `sanitizeFavorites` pads a short, long or corrupt pref to exactly three opaque,
+distinct colours — the row is a fixed three, so "three" is a shape the slot depends on, not a
+preference — and `AppSettingsBackup` carries both lists verbatim. The factory sets are
+`DEFAULT_PEN_FAVORITES` = **black, red, green** and `DEFAULT_HIGHLIGHTER_FAVORITES` = **yellow, green,
+blue**. Both ternas are edited side by side under **Settings → Drawing → Colors**
+(`ColorsSection.FavoritesEditor`), where seeing them together *is* the point; the rail draws one at a
+time.
+
+**The rail never cuts a slot — and never shrinks one.** `ToolbarShell` (`ui/SideToolbar.kt`) measures
+the height it is given (`BoxWithConstraints`) and hands the visible slot count to `railContentScale`
+(`ui/RailSizing.kt`), a pure function: it counts the slots that fit **whole** at their own size (`m`
+slots take `m·slot + (m−1)·spacing`) and spreads exactly that many over the space, so the slot after
+them starts at the rail's bottom edge instead of being cut by it. The scale it returns is therefore
+never below 1 — a rail button is never drawn smaller than the size it was designed at, which is what
+keeps the rail usable at a glance, and what an all-slots-visible rail wastes most of its length on —
+and only a few percent above it, capped at `RAIL_MAX_SCALE` (1.08) so the slot stays within the rail's
+inner width. The leftover strip below the last whole slot is spent on slightly larger buttons rather
+than on a sliver of the next one. Slots the height cannot hold are a **scroll away**, and a rail that
+fits entirely is left at scale 1. The shell publishes the scale as the slot size
+(`LocalRailSlotSize`, read by every slot — tool buttons, pop-up buttons, the one-tap colour slot; the
+zoom slot's percentage label reads the factor itself via `LocalRailSlotScale`, since its content is
+text and not a dp size) and applies it to the gaps but **not** to the column's padding, so the
+whole-number fit stays exact.
+
+Chrome styling is one design, with no switch: the Material 3 floating dock.
+- The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing only the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures; the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
 Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. The
 rail's head is **one slot per tool group** (`ToolGroups.kt`): `TOOL_GROUPS` partitions every
@@ -1725,7 +1834,9 @@ figure reads thicker than a light pen stroke — the slot is the knob that close
 leaving the desktop's width semantics. The line **style** (Solid/Dashed/Dash-dot/Dotted) lives
 only in the Colour & size pop-up — the separate **Style** rail slot was
 removed — so a dashed pen is one tap away as in the desktop's pen options. The
-pop-up itself is deliberately compact: swatches in a tight grid (`ColorPaletteRows(compact = true)`),
+pop-up itself is deliberately compact: one **horizontally scrolling** row of swatches
+(`ColorPaletteRows(compact = true)`, ending in the add-colour swatch that appends to `penColors` and
+selects the new colour — the row scrolls so the menu's height never changes with the palette's size),
 the three tip sizes as one bar of small boxes (`WidthSlotBar`) and line style as one row of chips
 (`LineStyleChips`). **Which positions the rail shows, and in what order**, is data too
 (`RailItems.kt`):
@@ -1757,10 +1868,26 @@ thumb sits faint when idle, brightens after a scroll, and is brightest while dra
 page-number bubble beside it. A rounded grip "peninsula" bulges out of the thumb's centre (purely
 visual — the whole band already catches touches) so there's an obvious finger-sized target to grab. It is a pure navigation affordance — no `.xopp` state, so nothing
 round-trips. Choosing Settings
-from the ☰ menu swaps in `SettingsScreen`, which is an **index of sections** (`SettingsSection` —
-Stylus, Editor, Toolbar, Figures, Colors, Shortcuts, Navigation, Appearance, Storage, Backup, About): each row opens that section as its own page, with back returning to the
-index and back from the index leaving settings. Section bodies live in their own `*Section.kt`
-files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Shortcuts** section
+from the ☰ menu swaps in `SettingsScreen`, which is shaped like a tablet's system settings and has **two
+shapes** for one set of areas. On a screen at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide the four
+`SettingsArea`s — **Input**, **Drawing**, **Interface**, **App & data** — are a **permanent side menu**
+(`SettingsSidebar.kt`: its own search field and one row per area) with the selected area's
+`SettingsSection`s in the pane beside it, and an opened section replaces that pane (the title bar and the
+back arrow return to the list). Narrower than that the side menu is dropped for the pushed flow — index,
+then area, then section — because a permanent list on a phone would leave the controls a strip to live
+in. Back pops whichever shape is on screen one step at a time (section → search results → area → out of
+settings), so the system back button mirrors the title-bar arrow either way.
+
+**Search** runs over the sections from both shapes (`SettingsSearch.kt`, pure): a query matches a
+section's title, its summary, or its `keywords` aliases — the everyday words for the controls a user
+might type instead of the app's label ("momentum", "wallpaper", "cache", "left-handed"). The aliases
+are what makes search *find* rather than filter titles, so `SettingsSearchTest` pins a handful of those
+queries to their sections and requires every section to carry aliases and answer to its own title. A
+result names the area it lives in (`areaOf`), so a hit found by an alias still says where the setting
+belongs; opening one goes straight to the section. `SettingsAreaTest` pins the structure the whole
+screen rests on: the areas cover every section exactly once (an unlisted section would be unreachable)
+and no area owns a single child (a one-child area is a tap that explains nothing). Section bodies live
+in their own `*Section.kt` files (`StylusSection.kt`, `EditorSection.kt`, …, `ShortcutsSection.kt`). The **Shortcuts** section
 owns the whole keyboard-shortcut table: `AppSettings.penEraserToggleKey` / `handToggleKey` (the two
 toggles) plus two maps — `toolShortcutKeys` (one key per `EditorTool`) and `colorShortcutKeys` (one
 key per palette swatch). They are persisted by `encodeToolShortcuts` / `decodeToolShortcuts`
@@ -1768,7 +1895,7 @@ and `encodeColorShortcuts` / `decodeColorShortcuts` (the same `key:value` comma-
 other codecs, dropping unknown tools/colours and blank keys), migrating the old per-colour keys
 (`black_pen_key` etc.) once. `EditorRegions.onKeyPressed` resolves a character against those maps —
 toggles first, then colour, then tool — so the table is data, not code. The factory pen palette (`PEN_COLORS` — desktop Xournal++'s default palette, hex for hex; see `PaletteColorsTest`) and `PEN_WIDTH_LABELS`
-lives beside its pop-up (`ToolbarColorPopup.kt` / `ToolbarSizePopup.kt`); the **live** palette is `AppSettings.penColors`, seeded with `PEN_COLORS` and edited under **Settings → Colors**
+lives beside its pop-up (`ToolbarColorPopup.kt` / `ToolbarSizePopup.kt`); the **live** palette is `AppSettings.penColors`, seeded with `PEN_COLORS` and edited under **Settings → Drawing → Colors**
 (`ColorsSection.kt`: add / redefine / delete, capped at `MAX_PEN_COLORS`, opaque and
 de-duplicated by `sanitized()`, round-tripped by `encodePenColors` / `decodePenColors` which falls
 back to the factory list rather than blanking the pickers). The user's own colours are part of the
@@ -1988,8 +2115,11 @@ them through two complementary paths:
    multi-touch reserve touch strictly for navigation (pan/zoom), preventing stray marks from a resting palm.
 
 **First-launch onboarding.** Fresh installs display `OnboardingDialog.kt` over `EditorScreen`, controlled
-by `AppSettings.hasSeenOnboarding`. It guides the user through stylus pressure and barrel button configuration,
-harmonizing figure sizes with handwriting pressure, and setting up graphics tablet ExpressKeys.
+by `AppSettings.hasSeenOnboarding`. Its four steps are stylus pressure and barrel-button configuration,
+harmonizing figure sizes with handwriting pressure, graphics-tablet ExpressKeys, and **handedness**
+(`OnboardingHandedness.kt`: right-handed — the default, Main Toolbar on the left — or left-handed, on the
+right). The last step edits `AppSettings.toolbarPosition` live through `onToolbarPosition`, so the rail is
+seen moving behind the dialog rather than described.
 
 **Mouse wheel.** `ACTION_SCROLL` events from a mouse arrive in `onGenericMotionEvent` and are turned
 into a vertical viewport move (`handleWheelScroll` → `ViewportState.scrollBy`, `WHEEL_SCROLL_DP` per

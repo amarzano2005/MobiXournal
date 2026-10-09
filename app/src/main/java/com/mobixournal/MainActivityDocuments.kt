@@ -278,15 +278,28 @@ internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
  */
 internal fun MainActivity.saveDocument(uri: Uri) {
     val view = surface ?: return
-    // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
-    // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
-    val staged = runCatching {
-        io.encode(view.toDocument(), view.pdfSourceFile(), saveFormat, uri, view.imageSources())
-    }
-        .getOrElse { toast("Save failed: ${it.message}"); return }
-
-    inBackground("Saving ${displayName(uri)}…", { io.stageOut(staged, uri) }) { result ->
-        staged.delete()
+    // Snapshot the document here, on the UI thread (the canvas isn't thread-safe) — [toDocument] is
+    // just a reference to the immutable model, so it is instant. The *encoding*, by contrast, is
+    // real work (XML + gzip) and used to run inline before the wait overlay appeared, so a large
+    // document froze the app silently and then showed the note only for the final write. Both steps
+    // now run on the worker: tapping Save raises "Saving …" immediately and it stays up until the
+    // bytes have actually landed.
+    val document = view.toDocument()
+    val pdf = view.pdfSourceFile()
+    val images = view.imageSources()
+    inBackground(
+        label = "Saving ${displayName(uri)}…",
+        work = {
+            // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
+            // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
+            val staged = io.encode(document, pdf, saveFormat, uri, images)
+            try {
+                io.stageOut(staged, uri)
+            } finally {
+                staged.delete()
+            }
+        },
+    ) { result ->
         result.onFailure { toast("Save failed: ${it.message}") }
             .onSuccess { afterSaved(view, uri) }
     }
