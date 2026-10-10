@@ -675,9 +675,8 @@ fun sizeLetterFor(width: Float, widthSlots: List<Float>): String {
  * An indicator in the corner between the primary and secondary toolbars that displays:
  * - Selected tool (icon)
  * - Selected colour (swatch circle)
- * - Selected stroke size ("S", "M", or "L" + visual thickness bar)
+ * - Selected stroke size ("S", "M", or "L")
  *
- * Its button background matches the active buttons in the toolbar ([MaterialTheme.colorScheme.primaryContainer]).
  * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]).
  */
 @Composable
@@ -697,9 +696,8 @@ fun ActiveToolIndicator(
             modifier = modifier
                 .height(32.dp)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
                 .clickable(onClick = open)
-                .padding(horizontal = 7.dp, vertical = 2.dp)
+                .padding(horizontal = 6.dp, vertical = 2.dp)
                 .semantics {
                     contentDescription = if (hasColorAndSize) {
                         "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, size $sizeLabel"
@@ -711,43 +709,30 @@ fun ActiveToolIndicator(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
                     imageVector = ui.tool.icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp),
                 )
                 if (hasColorAndSize) {
                     Box(
                         modifier = Modifier
-                            .size(11.dp)
+                            .size(12.dp)
                             .clip(CircleShape)
                             .background(Color(effectiveColor))
                             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(10.dp)
-                                .height((ui.width * 1.4f).coerceIn(1.5f, 5.5f).dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color(effectiveColor))
-                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(50)),
-                        )
-                        Text(
-                            text = sizeLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = 1,
-                        )
-                    }
+                    Text(
+                        text = sizeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
                 }
             }
         }
