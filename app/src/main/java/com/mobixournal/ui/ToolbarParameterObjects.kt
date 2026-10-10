@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.LayerInfo
+import com.mobixournal.render.PdfOutline
 
 /**
  * Grouped layer-management callbacks for the toolbar. Replaces the 10 individual layer parameters
@@ -50,6 +51,14 @@ data class ToolbarPagesCallbacks(
     val bookmarks: List<PageBookmark> = emptyList(),
     /** Open the bookmark editor for a page — adding one, or editing/deleting the one it has. */
     val onBookmarkPage: (Int) -> Unit = {},
+    /**
+     * The backing PDF's Contents tree (its bookmark outline), or null when there is no PDF or the
+     * PDF has none. Read off the file by `PdfOutlineExtractor`; it is navigation the *file* carries,
+     * so unlike [bookmarks] it travels with the PDF rather than living in the app stores.
+     */
+    val outline: PdfOutline? = null,
+    /** Jump to the page a Contents entry names — a **PDF** page index, resolved by the canvas. */
+    val onGoToPdfPage: (Int) -> Unit = {},
 )
 
 /**

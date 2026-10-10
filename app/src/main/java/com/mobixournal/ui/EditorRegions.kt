@@ -1471,6 +1471,8 @@ private fun toolbarPagesCallbacks(
         },
         bookmarks = pane.bookmarks,
         onBookmarkPage = { ui.bookmarkPage = it },
+        outline = pane.outline,
+        onGoToPdfPage = { surface?.goToPdfPage(it) },
     )
 
 /**
@@ -1519,6 +1521,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onSelectionChanged = { s -> state.hasSelection = s }
     onSelectionRectChanged = { r -> state.selectionRect = r }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
+    onPdfOutlineChanged = { outline -> state.outline = outline }
     onClipboardChanged = { c -> state.hasClipboard = c }
     onBackgroundRegionChanged = { r -> state.hasBackgroundRegion = r }
     onSplineChanged = { n -> state.splineNodes = n }

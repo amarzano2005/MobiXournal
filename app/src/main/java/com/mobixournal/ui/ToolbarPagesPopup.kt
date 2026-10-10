@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -107,11 +108,21 @@ private fun BookmarkItems(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit)
 internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var open by remember { mutableStateOf(false) }
     var sizing by remember { mutableStateOf(false) }
+    var contents by remember { mutableStateOf(false) }
     ToolbarPopupButton(
         icon = Icons.Filled.Description,
         contentDescription = "Pages",
     ) { dismiss ->
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
+        // The PDF's own table of contents sits right above the app-side bookmarks: both are "jump to a
+        // page", and the nearer one to the page navigator is the one that came with the document.
+        if (callbacks.outline?.isEmpty == false) {
+            DropdownMenuItem(
+                text = { Text("Contents…") },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Toc, contentDescription = null) },
+                onClick = { contents = true; dismiss() },
+            )
+        }
         BookmarkItems(callbacks) { dismiss() }
         DropdownMenuItem(
             text = { Text("Add page") },
@@ -143,6 +154,14 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             trailingIcon = { callbacks.pageSize?.let { Text(pageSizeLabel(it.first, it.second)) } },
             enabled = callbacks.pageSize != null,
             onClick = { sizing = true; dismiss() },
+        )
+    }
+    val outline = callbacks.outline
+    if (contents && outline != null) {
+        PdfContentsDialog(
+            outline = outline,
+            onGoToPdfPage = callbacks.onGoToPdfPage,
+            onDismiss = { contents = false },
         )
     }
     if (sizing && callbacks.pageSize != null) {

@@ -36,20 +36,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "pdf-table-of-contents-outline-navigation"
-title = "PDF Table of Contents outline navigation for annotated documents"
-description = "Extract and display the PDF outline/TOC bookmarks hierarchy in a navigation drawer or sheet, allowing one-tap jumping to target pages in multi-page annotated PDF documents."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 30
-created = 2026-10-09
-tags = ["pdf", "navigation"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "stem-chemical-structures-and-bonds-tool"
 title = "Chemical molecular structures and carbon skeleton tool"
 description = "Add a STEM chemistry drawing guide with 60°/120° angular snapping for skeletal formulas, benzene rings, and single/double/triple chemical bonds."

@@ -581,8 +581,14 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The imported PDF's positioned text layer, or null when no PDF (or no text) is loaded. */
     internal var pdfTextIndex: PdfTextIndex? = null
 
+    /** The imported PDF's outline (its Contents tree), or null when no PDF (or no outline) is loaded. */
+    internal var pdfOutline: PdfOutline? = null
+
     /** Notified when a PDF-text selection appears or clears, so the chrome can offer Copy. */
     var onTextSelectionChanged: ((Boolean) -> Unit)? = null
+
+    /** Notified when a PDF's outline lands (or is cleared), so the chrome can offer Contents. */
+    var onPdfOutlineChanged: ((PdfOutline?) -> Unit)? = null
 
     // Live/committed PDF-text selection: a page and an inclusive reading-order word range.
     internal var textSelecting = false
@@ -795,6 +801,29 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** True when the PDF has a usable text layer, so the chrome can enable the text-select tool. */
     fun hasPdfText(): Boolean = pdfTextIndex?.hasAnyText == true
+
+    /**
+     * Supply the imported PDF's outline (its Contents tree), or null to clear it. Purely navigation
+     * state: the chrome reads it through [onPdfOutlineChanged], and nothing about it is written to
+     * the `.xopp` — the format has no place to keep a bookmark tree.
+     */
+    fun setPdfOutline(outline: PdfOutline?) {
+        pdfOutline = outline
+        onPdfOutlineChanged?.invoke(outline)
+    }
+
+    /** True when the loaded PDF carries an outline, so the chrome can offer a Contents list. */
+    fun hasPdfOutline(): Boolean = pdfOutline?.isEmpty == false
+
+    /**
+     * Forget both derived layers of the PDF — its text layer and its outline — while a fresh
+     * extraction runs for a newly loaded, imported or merged file. They describe one PDF's bytes, so
+     * they are always dropped together rather than left to describe a file that is no longer there.
+     */
+    fun clearPdfAnalysis() {
+        setPdfTextIndex(null)
+        setPdfOutline(null)
+    }
 
     /** Search authored text and background-PDF text, repainting highlights as the query changes. */
     fun setSearchQuery(query: String): SearchStatus {
@@ -1226,6 +1255,21 @@ class DrawingSurfaceView @JvmOverloads constructor(
         scrollY = box.topPx.coerceIn(0f, maxScrollY())
         render()
     }
+
+    /**
+     * Scroll to the document page whose PDF background is **PDF** page [pdfPage] (0-based) — the jump
+     * a Contents entry makes. The two numbering schemes agree only by construction, so the page is
+     * found by its `pageNo` rather than assumed to sit at the same index: merging a second PDF in
+     * renumbers every appended page against the joined file, and a desktop-authored `.xopp` may order
+     * its pages however it likes.
+     */
+    fun goToPdfPage(pdfPage: Int) {
+        documentPageForPdfPage(pdfPage)?.let(::goToPage)
+    }
+
+    /** Index of the document page showing PDF page [pdfPage], or null when none does. */
+    internal fun documentPageForPdfPage(pdfPage: Int): Int? =
+        doc.pages.indexOfFirst { (it.background as? Background.Pdf)?.pageNo == pdfPage }.takeIf { it >= 0 }
 
     /** Set the vertical scroll offset to [y] px from the top, clamped (driven by the right-edge scroll thumb). */
     fun scrollToY(y: Float) {

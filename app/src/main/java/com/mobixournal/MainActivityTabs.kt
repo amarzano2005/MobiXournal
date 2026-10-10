@@ -149,10 +149,10 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     val pdf = tab.pdfPath?.let(::File)?.takeIf(File::exists)
     // Shared, so a document mirrored into both panes rasterises from one renderer, not two.
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
-    view.setPdfTextIndex(null) // cleared until extraction below finishes
+    view.clearPdfAnalysis() // cleared until extraction below finishes
     view.load(tab.document)
     if (tab.page > 0) view.goToPage(tab.page)
-    if (pdf != null) extractPdfTextInBackground(pdf, view)
+    if (pdf != null) analyzePdfInBackground(pdf, view)
 }
 
 /**

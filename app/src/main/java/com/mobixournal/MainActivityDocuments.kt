@@ -14,6 +14,8 @@ import com.mobixournal.render.ImageImport
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PdfImport
 import com.mobixournal.render.blankDocument
+import com.mobixournal.render.PdfOutlineCache
+import com.mobixournal.render.PdfOutlineExtractor
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.PdfTextExtractor
 import com.mobixournal.render.PdfTextIndexCache
@@ -131,12 +133,12 @@ internal fun MainActivity.loadDocument(staged: File, source: Uri) {
         is LoadedFile.Doc -> {
             saveFormat = loaded.format
             surface?.setPdfSource(loaded.pdf?.let(PdfPageCache::shared))
-            surface?.setPdfTextIndex(null) // cleared until extraction below finishes
+            surface?.clearPdfAnalysis() // cleared until extraction below finishes
             // The pictures behind pixmap backgrounds were copied out to local files on load;
             // hand them over before the document, so the first frame already has them.
             surface?.setImageSources(loaded.images)
             surface?.load(loaded.document)
-            if (loaded.pdf != null) extractPdfTextInBackground(loaded.pdf)
+            if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
             else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
             else if (loaded.missingImage) toast("Background image not found; those pages will be blank")
         }
@@ -183,7 +185,7 @@ internal fun MainActivity.adoptPdf(source: File, mode: ImportPdfMode, reference:
     }
     val cache = PdfPageCache.shared(file)
     view?.setPdfSource(cache)
-    view?.setPdfTextIndex(null) // cleared until extraction below finishes
+    view?.clearPdfAnalysis() // cleared until extraction below finishes
     when (mode) {
         // A replaced document keeps none of the old one's pixmap pictures.
         ImportPdfMode.REPLACE -> {
@@ -195,7 +197,7 @@ internal fun MainActivity.adoptPdf(source: File, mode: ImportPdfMode, reference:
     if (view == null) cache.close() // nobody took the claim; don't hold the renderer open
     // Freshly imported bytes: whatever was extracted for this path before doesn't describe them.
     PdfTextIndexCache.forget(file)
-    extractPdfTextInBackground(file)
+    analyzePdfInBackground(file)
 }
 
 /**
@@ -212,7 +214,7 @@ internal fun MainActivity.adoptPdf(source: File, mode: ImportPdfMode, reference:
 internal fun MainActivity.adoptImage(source: File, reference: String): Boolean {
     val (widthPx, heightPx) = ImageImport.pixelSize(source) ?: return false
     surface?.setPdfSource(null)
-    surface?.setPdfTextIndex(null)
+    surface?.clearPdfAnalysis()
     // The document links the picture by its source URI, but the staged copy is swept and the
     // grant expires — so keep our own copy and render (and bundle) from that.
     surface?.setImageSources(mapOf(reference to io.adoptImage(source)))
@@ -235,25 +237,42 @@ internal fun MainActivity.appendMergedPdf(view: DrawingSurfaceView, existing: Fi
     // Size the new pages from the incoming PDF before anything is closed or replaced.
     val added = PdfPageCache(incoming).use { PdfImport.pagesFor(it, reference = null, pageNoOffset = offset) }
     val joined = io.merge(existing, incoming)
-    PdfTextIndexCache.forget(joined) // the merge rewrote these bytes; any cached index is stale
+    PdfTextIndexCache.forget(joined) // the merge rewrote these bytes; any cached result is stale
+    PdfOutlineCache.forget(joined)
     view.setPdfSource(PdfPageCache.shared(joined)) // releases the old rasteriser, freeing the old file
-    view.setPdfTextIndex(null) // cleared until extraction below finishes
+    view.clearPdfAnalysis() // cleared until extraction below finishes
     view.appendPdfPages(added, joined.absolutePath)
-    extractPdfTextInBackground(joined)
+    analyzePdfInBackground(joined)
 }
 
-/** Extract a PDF's text layer off the UI thread (slow on big PDFs), then attach it for text-select. */
-internal fun MainActivity.extractPdfTextInBackground(file: File, into: DrawingSurfaceView? = surface) {
-    // Bind the destination canvas up front: with two panes open, the focus may well have moved
-    // by the time a big PDF finishes extracting, and the index belongs to the pane that asked.
+/**
+ * Read a PDF's derived layers — its positioned text and its Contents outline — off the UI thread
+ * (both walks are slow on a big file), then attach them to the canvas.
+ *
+ * Both are read in one thread on purpose: they load and parse the same bytes, and doing that twice
+ * for one open buys nothing. Either may already be cached by the other pane showing the same file (a
+ * mirrored document), so each half is skipped when it is; only what is missing is actually walked.
+ */
+internal fun MainActivity.analyzePdfInBackground(file: File, into: DrawingSurfaceView? = surface) {
+    // Bind the destination canvas up front: with two panes open, the focus may well have moved by the
+    // time a big PDF finishes extracting, and both results belong to the pane that asked.
     val view = into ?: return
-    // The other pane may already have extracted this very file (a mirrored document); reuse its
-    // index rather than paying for the walk — and for a second copy of the words — again.
-    PdfTextIndexCache.get(file)?.let { return view.setPdfTextIndex(it) }
+    val cachedText = PdfTextIndexCache.get(file)
+    val cachedOutline = PdfOutlineCache.get(file)
+    if (cachedText != null && cachedOutline != null) {
+        view.setPdfTextIndex(cachedText)
+        view.setPdfOutline(cachedOutline)
+        return
+    }
     Thread {
-        val index = PdfTextExtractor().extract(file)
-        PdfTextIndexCache.put(file, index)
-        view.post { view.setPdfTextIndex(index) }
+        val text = cachedText ?: PdfTextExtractor().extract(file)
+        val outline = cachedOutline ?: PdfOutlineExtractor().extract(file)
+        PdfTextIndexCache.put(file, text)
+        PdfOutlineCache.put(file, outline)
+        view.post {
+            view.setPdfTextIndex(text)
+            view.setPdfOutline(outline)
+        }
     }.start()
 }
 

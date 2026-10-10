@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.LayerInfo
+import com.mobixournal.render.PdfOutline
 
 /** How many panes the editor can show. Two: one document per half of the screen. */
 const val PANE_COUNT = 2
@@ -93,6 +94,11 @@ class PaneState {
     var backgroundConfig by mutableStateOf<String?>(null)
     /** The open document's page bookmarks, in page order (see [PageBookmarks]). */
     var bookmarks by mutableStateOf<List<PageBookmark>>(emptyList())
+    /**
+     * The backing PDF's Contents tree, or null when there is no PDF (or it carries no outline).
+     * Extracted off the UI thread once the file is opened, so it lands a moment after the pages do.
+     */
+    var outline by mutableStateOf<PdfOutline?>(null)
     /**
      * Adopt an edited bookmark list: assign it and persist it against the document this pane is
      * showing. Wired by `EditorScreen`, which owns the store and the document key — the toolbar and

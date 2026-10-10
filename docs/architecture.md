@@ -712,6 +712,9 @@ app/
       PdfText.kt             # positioned word model + grouping + range selection (pure, tested)
       PdfTextExtractor.kt    # pulls a PDF's positioned text layer via PDFBox PDFTextStripper
       PdfTextIndexCache.kt   # one extracted text layer per PDF file, shared across mirrored views
+      PdfOutline.kt          # the Contents model: one row per bookmark + the tree flattening (pure)
+      PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox
+      PdfOutlineCache.kt     # one extracted outline per PDF file, shared across mirrored views
       PdfExporter.kt         # flattens a Document to a PDF (PDFBox; preserves source vector pages)
       PageSvgWriter.kt       # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
       PdfVectorPainter.kt    # draws a page's strokes/text/images as vector overlay onto a PDFBox stream
@@ -1850,6 +1853,24 @@ to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawText
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 
+**PDF Contents (the outline).** The same worker that extracts the text layer also reads the PDF's
+**`/Outlines` bookmark tree** (`PdfOutlineExtractor`, PDFBox's `PDOutlineItem.findDestinationPage`),
+turning it into a flat, Android-free `PdfOutline` of `PdfOutlineEntry(title, pageIndex, depth)` rows.
+The two walks are done in one pass on purpose — they load and parse the same bytes — and both results
+are cached by file (`PdfOutlineCache` mirrors `PdfTextIndexCache`), so mirroring a document into the
+second pane reuses them instead of walking the PDF twice. A destination-less entry inherits the page
+of its nearest descendant that has one, so a chapter header still leads to the chapter's first page;
+an entry that points nowhere at all is shown but not tappable. `setPdfOutline` publishes the outline
+to the chrome through `onPdfOutlineChanged` (pane state), and the Pages menu grows a **Contents…**
+entry that opens `PdfContentsDialog` — an indented, page-numbered list. Tapping a row calls
+`goToPdfPage`, which finds the document page whose `Background.Pdf.pageNo` matches rather than
+assuming the PDF index and the `.xopp` page index agree (merging a second PDF in renumbers every
+appended page, and a desktop-authored file may order its pages freely).
+
+This is deliberately **navigation only, never document content**: the `.xopp` format has nowhere to
+keep a bookmark tree, so the outline is read from the PDF and the file is untouched by it — the same
+reasoning that keeps desktop Xournal++'s PDF text selection out of the saved document.
+
 **Chrome (`ui/`).** `EditorScreen` is the one editor screen: a top bar (`EditorTopBar`) with undo/redo
 icon buttons, a compact quick **Export PDF** button and a one-tap **Save** button after it (Save
 outermost, i.e. under the thumb), and a
@@ -1976,7 +1997,8 @@ drops ids that no longer exist. The tools are UI-level
 so `EditorScreen.applyTool` maps them to the surface's `handMode` / `placeKind` and maps the three
 drawing tools to the document `Tool`). The **Pages** pop-up is a page navigator: `Page N / M` with
 ◀ / ▶ to jump to the previous/next page (`goToPage` scrolls the stack; the surface reports the page
-under the viewport centre via `onCurrentPageChanged`), plus Add / Remove page. A **right-edge scroll
+under the viewport centre via `onCurrentPageChanged`), plus Add / Remove page, a **Contents…** row (the
+backing PDF's outline — see _PDF Contents_ above) and a **Bookmarks** section (see _Page bookmarks_). A **right-edge scroll
 thumb** (`ScrollThumb.kt`, overlaid on the canvas in a `Box` sibling of the `AndroidView`) gives
 PDF-style fast paging: the surface reports its vertical scroll geometry via
 `onScrollChanged(scrollY, totalHeightPx, viewportPx)` (all content px, already zoom-scaled), the thumb
