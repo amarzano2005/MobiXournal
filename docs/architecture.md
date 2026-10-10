@@ -386,9 +386,11 @@ native for stylus latency and platform fit).
   page through a raster bitmap — a no-op import→export bloated files ~10× and discarded vector
   content. PDFBox is the only mature, permissively-licensed (Apache-2.0) library that can import
   an existing PDF page **preserving its vector content** and append a vector overlay; iText's
-  AGPL licence ruled it out. Scope is contained to `PdfExporter`/`PdfVectorPainter`/
-  `PdfBackgroundPainter`; the `.xopp` I/O layer above stays dependency-free, and display still
-  uses the framework `PdfRenderer`.
+  AGPL licence ruled it out.  Scope is contained to `PdfExporter`/`PdfVectorPainter`/
+  `PdfBackgroundPainter` — the *export* path only. (An experiment that also used PDFBox to draw a
+  page **on screen** through its Android `PDFRenderer` was retired in 2026-10-11 — a per-frame
+  content-stream replay that made interaction laggy; see the vector-PDF note below.) The `.xopp` I/O
+  layer above stays dependency-free, and the display path is the framework `PdfRenderer` alone.
 - **File access:** the Storage Access Framework (`ACTION_OPEN_DOCUMENT` /
   `ACTION_CREATE_DOCUMENT`) so a `.xopp` opens/saves in place on the device — the file on disk
   is the only source of truth (per `AGENTS.md` non-goals: no cloud, no custom format).
@@ -655,6 +657,7 @@ app/
       DrawingSurfacePaint.kt # the surface's render loop, page compositing and chrome overlays (extensions)
       DrawingSurfaceInput.kt # the surface's touch/hover state machine: pointer routing, scroll and gesture end (extensions)
       DrawingSurfaceStrokes.kt # the surface's ink capture: stroke, spline, erase and place gestures (extensions)
+      DrawingSurfaceHoldSnap.kt # hold-to-snap: the stillness timer that rewrites a stroke in progress as geometry (extensions)
       DrawingSurfacePenDebug.kt # the surface's pen-diagnostics trace hooks: raw pointer/key events into PenInputLog
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the
@@ -699,6 +702,7 @@ app/
       PdfTextExtractor.kt    # pulls a PDF's positioned text layer via PDFBox PDFTextStripper
       PdfTextIndexCache.kt   # one extracted text layer per PDF file, shared across mirrored views
       PdfExporter.kt         # flattens a Document to a PDF (PDFBox; preserves source vector pages)
+      PageSvgWriter.kt       # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
       PdfVectorPainter.kt    # draws a page's strokes/text/images as vector overlay onto a PDFBox stream
       PdfBackgroundPainter.kt # draws a fresh (non-PDF) page's background ruling as PDFBox vectors
       PdfPageTransform.kt    # maps .xopp top-left points into PDF bottom-left user space (pure)
@@ -730,7 +734,7 @@ app/
       ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list (pure)
       TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
       TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
-      CircuitShapes.kt       # passive & active circuits and logic gates (resistor, capacitor, inductor, ground, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR) (pure)
+      CircuitShapes.kt       # passive & active circuits, gates, switching and dimensioning (resistor, capacitor, inductor, ground, switches, junction, transformer, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR, buffer, dimension arrow) (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
@@ -745,7 +749,7 @@ app/
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       ElementBounds.kt       # pt bounding box of any element + a Bounds value type (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
-      SelectionOps.kt        # translate / delete selected elements on a page (pure)
+      SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure)
       VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
                              #   snapping the gap to the ruling when snapping is on (pure)
       InputClassifier.kt     # pointer kind + button + active tool + settings -> gesture intent (pure)
@@ -1058,6 +1062,22 @@ decode, called *without* the cache lock), `index`/`unindex` (its width index beh
 `spared` (PdfPageCache's on-screen pinned tiles), and the `onCacheChanged`/`onDiscard` hooks.
 `BitmapLruCache.MAX_RASTER_WIDTH` (4096 px), `PAGE_SHARE` (a quarter of the budget per raster) and
 `bucket` (64 px width buckets) live there once for all three caches.
+
+**Vector PDF pages — retired (2026-10-11).** *Decision (2026-10-10), reversed (2026-10-11).* A first
+revision drew a `pdf` background's page as **vector geometry** on the drawing thread (PDFBox's
+`PDFRenderer.renderPageToGraphics`, replayed every frame) behind an `AppSettings.vectorPdf` toggle,
+with a `PdfVectorGuard` to send a page back to raster when its replay overran a time budget. That is
+a full content-stream replay **per frame on the UI thread**, and on a born-digital
+PDF it made panning, pinching and — above all — drawing and hovering visibly laggy: the frame (and the
+input behind it) was spent replaying the page instead of being served. Gating the replay to frames at
+rest only moved the stall to every settle. So the whole on-screen vector path was **removed**
+(`PdfVectorSource`, `PdfVectorBackground`, `PdfVectorGuard`, `PdfPageClip` and the setting all went),
+and a `pdf` background now always goes through the raster cache and its tiles above — exactly like any
+other PDF page, and exactly the smooth, cached rendering desktop Xournal++ uses. Nothing is lost in
+sharpness: the whole-page bitmap is bucketed and capped, and past that ceiling the **visible tiles are
+rasterised at the true on-screen resolution**, so text and line art stay sharp however far you zoom.
+`PdfVectorPainter`/`PdfBackgroundPainter` (the *export* path) still emit real vector PDF pages; only
+the on-screen replay is gone.
 Both bitmap caches allocate through **one** `BitmapBudget` (`BitmapBudget.shared`, sized at startup
 from `ActivityManager.memoryClass`), so a PDF-backed document has a single memory bound rather than
 two independent guesses. A cache `charge`s each bitmap it rasterises; when the total goes over, the
@@ -1096,6 +1116,19 @@ denominator with a rule), super/subscripts (smaller and shifted), square roots (
 and a Unicode table for Greek letters and common operators/relations; the tree is measured at a
 reference size then uniformly scaled to fit the element's box. Any parse/draw failure falls back to
 the raw source text, so a malformed formula can't crash a frame.
+
+**Hold-to-snap (`DrawingSurfaceHoldSnap.kt`).** The shape recogniser is also reachable *before* lift-off:
+resting the stylus on the glass for `HOLD_SNAP_MS` (500 ms) rewrites the stroke in progress as the
+recognised geometry, so the user watches the snap happen. Each sample that moves the tip past
+`HOLD_SNAP_SLOP_PX` (6 view px, converted to pt through the page's own `scale`) re-arms a
+`postDelayed` timer; the timer firing replaces `current` with the recogniser's vertex list and marks
+the stroke `holdSnapped`, so the commit that follows keeps it uniform-width like a shape tool's
+output (`commitCurrent` ORs that flag into its own `snapped`). It is a **preview, not a lock** — no
+state outside the stroke is touched until lift-off, so carrying on drawing simply gives the recogniser
+a longer stroke to read, and a wrong guess costs nothing. The timer is cancelled by every move,
+commit, cancelled gesture and stylus takeover (`abandonInProgress`/`cancelGesture`), which is why the
+gesture plumbing had to know about it at all. It shares the `recognizeShapes` setting — and the pen
+and highlighter tool filter — with the on-lift path, so there is one recogniser and one switch.
 
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Spline/Table) turn a
 one-finger drag into an ordinary constant-width pen stroke: `ShapeBuilder` (pure, tested) converts the
@@ -1354,8 +1387,17 @@ touches to `SelectionGestureController`, so pasting under `BG_SELECT` would othe
 as selected while they stayed undraggable — and the next touch would start a new marquee and clear
 them. Dropping a move over a **different page** re-homes the
 elements onto that page (`SelectionOps.moveToPage`, mapping through both pages' pt frames). The
-floating action bar also **recolours / re-widths** the selection (`SelectionOps.restyle`). The scope
-and round-trip reasoning for what rotate/resize can touch lives in
+floating action bar also **recolours / re-widths** the selection (`SelectionOps.restyle`).
+
+**Align & distribute (`SelectionOps.align` / `distribute`).** With two or more elements selected the
+same bar offers the six alignments — left/centre/right and top/middle/bottom — plus horizontal and
+vertical distribution. Alignment translates every selected element but the **anchor**: the outermost
+one on that axis, so the group lines up on its own extent and nothing moves further than it has to
+(aligning left moves everything right of the leftmost element onto it, not all of them across the
+page). Distribution keeps the two end elements and respaces the rest evenly between them, sorting by
+centre so a straggler doesn't jump the queue. Both are pure page-list rewrites recorded as **one**
+undo step, and both are no-ops — with no history entry — when the selection is too small to align
+(two) or distribute (three). The scope and round-trip reasoning for what rotate/resize can touch lives in
 [Stylus & selection roadmap](#stylus--selection-roadmap).
 
 The background-copy variant (`backgroundSelectMode`) is intentionally not a selection transform. A
@@ -1446,6 +1488,16 @@ a `PdfOverlayMatrix` (a pure, unit-tested `cm` matrix — the inverse of the dis
 crop-box origin folded in) that maps visual coordinates into the page's unrotated content space; the
 viewer's `/Rotate` then cancels back to the drawn position, so strokes, text, and images all land
 correctly. For `/Rotate 0` the matrix is just the crop-origin shift.
+
+**One page as an image (`PageSvgWriter`, `DrawingSurfaceView.writePagePng`/`writePageSvg`).** The
+overflow menu's two page-export entries write the **active page alone** through a
+`MainActivityDocuments` staging file, exactly like the PDF export does (so a share/cloud target can
+ever see a half-written file). PNG is the page rendered at 2× its point size through the same
+`PageRenderer`/`BackgroundRenderer` pair the canvas uses; SVG is generated by `PageSvgWriter`, which
+walks the page's elements and emits one `<path>` per stroke (`d=`, the element's own width/colour) with
+the ruling, text boxes and images alongside, and the whole document wrapped in a viewBox of the page's
+pt size. It is deliberately **not** a screenshot: no Android type is involved, so the writer stays
+pure and unit-testable, and the output scales without the raster's pixel ceiling.
 
 **Fonts in generated PDFs.** The PDF **base-14** fonts (`PDType1Font.HELVETICA` and friends) only
 encode WinAnsi, so `PdfVectorPainter` drops any codepoint outside `0x20..0xFF`. That is acceptable
@@ -2208,6 +2260,19 @@ nothing for the synthetic events used in tests), so the kinematics are unit-test
 `scrollX`/`scrollY` — 1 tracks the finger one-to-one, `<1` pans slower, `>1` faster, `0` freezes the
 document — and the same factor scales the seeded release velocity so the fling coasts at the pan's
 visual rate.
+
+**Multi-touch gesture shortcuts: tap with two fingers to undo, three to redo.** The tap tracker
+already used for the double-tap gesture keeps a per-gesture high-water mark of concurrent pointers
+(`multiTapMaxPointers`), so a gesture that never drew, panned or zoomed can be classified by **how
+many** fingers it held: two → `undo()`, three → `redo()` on the release that takes the last finger
+off the canvas. The count has to survive the lift order (`ACTION_POINTER_UP` while one finger stays
+down), and the whole gesture is disqualified the moment a pointer moves past the slop
+(`multiTapMoved`) or the pinch/scroll paths take it. The two actions are the surface's own
+`undo()`/`redo()`, so the history, the toolbar buttons and the barrel-button shortcuts stay one
+implementation. Both gestures hang off the one **`AppSettings.multiFingerShortcuts`** switch (on by
+default, round-tripped by the settings backup and offered in **Settings → Shortcuts → Gestures**),
+because a finger tap that silently rewrites the document is exactly the kind of thing a user must be
+able to turn off.
 
 **Out of scope: tilt / orientation.** The `.xopp` format stores only per-vertex width — it has no
 place for stylus **tilt / orientation** (`AXIS_TILT` / `AXIS_ORIENTATION`), so tilt-driven width

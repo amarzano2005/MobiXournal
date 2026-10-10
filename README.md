@@ -76,7 +76,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 - **Session Restore**: Open tabs and unsaved drafts are cached locally and restored automatically on next launch.
 - **Universal File Import**:
   - **`.xopp` / `.xopp.gz`**: Standard Xournal++ documents (both gzip and zipped single-file archives).
-  - **PDF Documents**: Open or import any PDF for vector annotation. Choose **Replace** or **Append** (appends merge seamlessly into a single document).
+  - **PDF Documents**: Open or import any PDF for annotation. Choose **Replace** or **Append** (appends merge seamlessly into a single document). Pages are drawn on screen through the raster cache and its tiles — smooth to pan, pinch and draw on, and still sharp at any zoom because the visible tiles are rasterised at the true on-screen resolution.
   - **Plain Text & Markdown (`.txt`, `.md`)**: Automatically typeset into annotatable pages with rich headings, monospace code blocks, and lists. Text remains selectable and copyable.
   - **Images (`PNG`, `JPEG`, `WebP`)**: Opened as annotatable pages with the image as the background.
   - **System Integration**: MobiXournal registers as a document handler for `.xopp`, PDF, and images in the Android "Open with" / "Share" menu. Remote shares (WebDAV, Nextcloud, SSHFS) are supported via Storage Access Framework.
@@ -87,6 +87,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
   - **Palm Rejection**: Capacitive fingers only pan/zoom while the pen writes (finger drawing can be toggled on in settings).
   - **Pressure Sensitivity, Multiplier & Presets**: Dynamic line width matching desktop Xournal++ tapering curves. The two knobs are the desktop's own filter — **Minimum pressure** (the floor, 0.01 → 1.00) and **Pressure multiplier** (0.5 → 4.00×, so a light hand can thicken a stroke well past its size) — with customizable presets and editable names, adjustable on the fly via the top-bar overflow menu ("Pen parameters…") or in Settings → Stylus. With **Pressure sensitivity** switched off both controls are shown disabled with the reason, instead of silently doing nothing. **Pen diagnostics** prints the live filter and the raw pressure the tablet reports, so a value that never reaches the pen is visible rather than guessed at.
   - **Hover Preview**: S-Pen / Active Pen hover ring indicates exact tip contact point.
+  - **Hold to Snap**: rest the tip on the glass for half a second and the stroke you are drawing turns into clean geometry **before you lift** — a straight line, an arc, a triangle, a rectangle. Nothing is committed by the pause: keep drawing and the recogniser simply runs again over the longer stroke, so a wrong guess costs nothing. The hold uses the same recogniser as **Shape recognition** in Settings → Drawing, and is off with it.
   - **Hardware Barrel Buttons**: Hold barrel button to erase or lasso select (supported on Android 14+ stylus buttons, Bluetooth pens, and mouse right-clicks). Double-click to undo or toggle tools.
 - **Pen & Realistic Highlighter**:
   - **Pen**: Smooth vector strokes with digitizer wobble filtering and pressure dynamics.
@@ -113,7 +114,11 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Passive Circuits**: Drag to place and orient passive components: **Resistors** (zigzag), **Capacitors** (parallel plates), **Inductors** (multi-loop coils), and **Earth Ground**.
   - **Active Circuits**: Full set of semiconductor and active components: **Diodes** (solid p-n junction triangle with cathode bar), **LEDs** (same solid body plus two detached light-emitting rays), **Zener Diodes** (solid body, cathode bar bent into Z-wings), **Operational Amplifiers (Op-Amps)** (triangle body, `-`/`+` input signs clear of the pins, and output pin), **BJT NPN** and **BJT PNP Transistors** (Base, Collector, Emitter with directional arrows, base bar inside a circular envelope), **DC Voltage Sources / Batteries** (open-gap parallel plates), and **Current Sources** (circle with internal direction arrow).
 - **IEEE Logic Gates**:
-  - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, and **NOT (Inverter)** with standard input/output terminals and inversion bubbles.
+  - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, **NOT (Inverter)** and a **Buffer**, with standard input/output terminals and inversion bubbles.
+- **Dimensioning & Measuring Arrows**:
+  - Drag a **dimension line** — a double-ended arrow whose gap is filled in for you: on release the measured length is written into the gap as a text box (**millimetres**, to a tenth), so the drawing carries its own numbers. The value is ordinary text, so it can be moved, restyled or edited like any other text box.
+- **Switching & Magnetics**:
+  - **Open** and **Closed Switches**, a **Transformer** (two coupled windings with core bars) and a **Junction** dot, alongside the passive components above.
 - **Relational Database Tables**:
   - Interactive grid tables with dynamic row and column counters. The row counter counts **data** rows only; the optional header stacks one extra row above them instead of consuming a data row.
   - Optional **Relational Header** format (double line dividing attribute columns from data rows).
@@ -145,6 +150,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **A precise outline**: the dashed box is drawn **exactly on the selected elements' ink**, with no padding, so a selection shows what it actually holds; the ease of grabbing a handle comes from the hit radii, not from drawing the box bigger than the element.
   - **Edge Auto-Scroll**: Dragging either a move or the rectangle/lasso marquee into the top or bottom edge scrolls the page vertically, so a selection can reach past the viewport (matching desktop Xournal++).
   - **Action Bar**: Cut, Copy, Duplicate, Recolor, Change line weight, and Delete (Paste and the region actions stay on the bottom edge). It **floats right under the selection** (lifting above it only when the sheet ends below the selection) instead of sitting at the bottom of the screen, so the actions stay by the hand holding the stylus. It is compact — 32dp buttons and no Done button, since tapping off the selection already clears it — so it covers about half the canvas it used to.
+  - **Align & Distribute**: with two or more elements selected, line them up on either edge or either centre, or spread them evenly — horizontally or vertically. Each action is one undoable step, and the action bar's alignment menu shows which tools are available (alignment needs two elements, distribution three).
   - **Select Background (Flatten)**: Marquee-select a region to copy or cut a flattened raster image including all layers and page background.
 - **PDF Text Selection**: Drag across vector PDF text to highlight and copy text to the system clipboard (no OCR needed).
 - **Full-Document Search & Handwriting Recognition**:
@@ -183,6 +189,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - Reorder, hide, or show buttons in both the Main Toolbar and Secondary Toolbar under **Settings → Toolbar**.
 - **Navigation & Scrolling**:
   - Configurable momentum scrolling (linear, quadratic, cubic, exponential curves) and panning sensitivity.
+  - **Touch gesture shortcuts**: a **two-finger tap undoes** and a **three-finger tap redoes**, anywhere on the canvas — no trip to the toolbar with the stylus in hand. Switch them off under **Settings → Shortcuts → Gestures** if a finger tap is not how you want to undo.
   - Distraction-free **Full-Page View** (double-tap canvas center with Hand tool to hide all chrome).
   - Fast scroll thumb with page number bubble; persistent page counter and zoom indicator (tap to reset to 100%).
 - **Theming & Backups**:
@@ -196,10 +203,11 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Cloud & Remote Storage**: Save and export PDF to any destination the system file picker offers, including cloud providers (Google Drive, OneDrive, Dropbox) and mounted remote shares. Every write is serialised to a local staging file first and pushed across in a single pass, so a slow or failed upload can never leave a half-written `.xopp` behind.
 - **Save**: Writes directly to the open file without prompts. A blocking progress overlay ("Saving …") appears the moment Save is tapped and stays up until the bytes have landed — encoding a large document no longer freezes the app before the note appears.
 - **Quick Export PDF**: The compact PDF button in the top bar (to the left of Save) exports straight away, without a trip through the overflow menu. The overflow menu's **Export PDF** entry does the same.
+- **Export page as image**: The overflow menu's **Export page as PNG** and **Export page as SVG** write the active page on its own — a raster PNG for sharing or a picture slot, or an SVG that keeps the page as editable vector geometry (strokes, shapes, text and the ruling, with embedded background images).
 - **Save As**:
   - **Original (`.xopp`)**: Standard gzip-compressed XML file with external PDF/image linking. Best for desktop interchange.
   - **Zipped (`.xopp`)**: Self-contained archive with PDFs and images bundled internally. Ideal for standalone sharing.
-- **Export PDF**: Flattens annotations over vector backgrounds. Original vector PDFs remain crisp vectors without ballooning rasterization; bundled DejaVu fonts ensure accurate rendering across all PDF readers.
+- **Export PDF**: Flattens annotations over vector backgrounds. Original vector PDFs are written back as real page content — crisp vectors, no ballooning rasterization — and the bundled DejaVu fonts ensure accurate rendering across all PDF readers. An imported PDF therefore stays vector through the whole document, from import to export.
 
 ---
 

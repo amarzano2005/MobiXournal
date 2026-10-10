@@ -25,6 +25,83 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "hold-to-snap-shape-recognition"
+title = "Hold-to-snap line and shape auto-straightening"
+description = "Add hold-to-snap gesture: holding the stylus tip still on canvas for ~500ms after drawing a stroke automatically snaps the stroke into a straight segment, arc, or recognized polygon before lift-off."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["drawing", "gestures", "stylus"]
+
+[[task]]
+id = "export-single-page-as-png-or-svg"
+title = "Export active page as PNG or SVG image"
+description = "Add an export option in the top bar / overflow menu to export the current active page directly as a high-resolution PNG image or scalable SVG vector file, suitable for quick sharing."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["export", "io"]
+
+[[task]]
+id = "dimensioning-and-measurement-arrows"
+title = "Dimensioning and measurement arrows with integrated values"
+description = "Add technical dimensioning arrow figure tool with double-ended arrowheads and a break / center offset for length or label annotation in the Secondary Toolbar figures."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["stem", "tools"]
+
+[[task]]
+id = "circuit-and-logic-symbols-expansion"
+title = "Circuit and logic symbols library expansion"
+description = "Expand active/passive circuit and logic components in CircuitShapes.kt / LogicGateShapes.kt: add DC voltage source polarity marks, electrical switches (open/closed), transformers (coupled inductor pairs), buffer gate, and electrical junction dots."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["stem", "circuits"]
+
+[[task]]
+id = "selection-alignment-and-distribution-tools"
+title = "Selection alignment and distribution layout tools"
+description = "Add alignment (left, center, right, top, middle, bottom) and even distribution (horizontal, vertical) actions to the floating selection action bar for multi-element selections, translating stroke/element coordinates directly."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["selection", "tools"]
+
+[[task]]
+id = "two-finger-tap-undo-and-three-finger-redo"
+title = "Multi-touch gesture shortcuts: two-finger tap for Undo and three-finger tap for Redo"
+description = "Implement multi-touch gesture detection on DrawingSurfaceView: two-finger tap triggers Undo, three-finger tap triggers Redo. Add settings toggle in Settings -> Input -> Shortcuts, with palm-rejection guarding."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["gestures", "input"]
+
+[[task]]
+id = "vector-pdf-page-rendering"
+title = "Vector PDF pages: draw a background PDF's page as vector geometry"
+description = "Add an option (Settings > Storage > Vector PDF pages, on by default) that draws a pdf background's page as vector geometry on the canvas through PDFBox's Android renderer (PDFRenderer.renderPageToGraphics) instead of blitting the raster cache's bitmaps and tiles, so the page stays sharp at any zoom. PdfVectorSource parses the PDF off the drawing thread (mixed memory so a large file spills to scratch), serialises every draw, and gives up for good on a draw that throws; PdfVectorGuard times each page's draw and sends that page back to raster after consecutive over-budget draws; PdfPageClip bounds the draw to the page box intersected with the viewport. BackgroundRenderer takes an optional PdfVectorBackground and falls back to raster when it declines."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-10
+completed = 2026-10-10
+tags = ["pdf", "rendering", "performance"]
+
+[[task]]
 id = "quick-colour-dots-light-up-as-the-dot-not-the-cell"
 title = "Quick-colour dots light up as the dot, not the cell"
 description = "A tap's ripple and a hovering stylus' state layer on the rail slot's three favourite colours were clipped by the bare tap cell, which is wider than it is tall (three cells share one rail slot's height), so selecting a colour lit a grey box around a round dot. The cell is now clipped to DotCellShape (ColorSizeRailSlot.kt, internal): a TRUE circle centred in the rectangle, unlike CircleShape which inscribes an oval in a non-square node, applied before the clickable so the indication is drawn inside it while the cell keeps its rectangle as the touch target (a clip does not shrink hit-testing). Verified on the Pixel_Tablet AVD with a before/after against the same probe points: with the clip removed the cell's left and right flanks go #1E1F25 -> #313238 (the box), with it they stay #1E1F25 while the point inside the circle is tinted (the dot's halo). New DotCellShapeTest pins the shape (wide cell -> circle as wide as the cell is tall and centred, tall cell capped by width, square cell untouched, and not what CircleShape draws). README.md and docs/architecture.md updated in the same change. 1002 unit tests 0 failures + assembleDebug green."

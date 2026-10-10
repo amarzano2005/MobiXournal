@@ -478,6 +478,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
             lineStyle = currentLineStyle,
         )
         appendStroke(currentPage, stroke)
+        // A dimension line carries its value: the measurement goes in as a text box of its own.
+        if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
     render()
 }
