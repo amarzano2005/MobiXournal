@@ -653,11 +653,31 @@ private val NON_INKING_TOOLS: Set<EditorTool> = setOf(
 )
 
 /**
+ * Maps stroke width [width] to its pen-width size label ("S", "M", or "L") based on [widthSlots].
+ */
+fun sizeLetterFor(width: Float, widthSlots: List<Float>): String {
+    val exactIndex = widthSlots.indexOfFirst { kotlin.math.abs(it - width) < 0.01f }
+    if (exactIndex in PEN_WIDTH_LABELS.indices) {
+        return PEN_WIDTH_LABELS[exactIndex]
+    }
+    if (widthSlots.isNotEmpty()) {
+        val closestIndex = widthSlots.indices.minByOrNull { kotlin.math.abs(widthSlots[it] - width) } ?: 0
+        return PEN_WIDTH_LABELS.getOrElse(closestIndex) { "M" }
+    }
+    return when {
+        width < 1.0f -> "S"
+        width < 2.5f -> "M"
+        else -> "L"
+    }
+}
+
+/**
  * An indicator in the corner between the primary and secondary toolbars that displays:
  * - Selected tool (icon)
  * - Selected colour (swatch circle)
- * - Selected stroke width (visual thickness bar + numeric pt label)
+ * - Selected stroke size ("S", "M", or "L" + visual thickness bar)
  *
+ * Its button background matches the active buttons in the toolbar ([MaterialTheme.colorScheme.primaryContainer]).
  * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]).
  */
 @Composable
@@ -669,26 +689,27 @@ fun ActiveToolIndicator(
     val isHighlighter = ui.tool == EditorTool.HIGHLIGHTER
     val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
     val hasColorAndSize = ui.tool !in NON_INKING_TOOLS
+    val sizeLabel = sizeLetterFor(ui.width, styleCallbacks.widthSlots)
+    val shape = RoundedCornerShape(8.dp)
 
     ColorSizePopup(styleCallbacks) { open ->
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        Box(
             modifier = modifier
                 .height(32.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
                 .clickable(onClick = open)
+                .padding(horizontal = 7.dp, vertical = 2.dp)
                 .semantics {
                     contentDescription = if (hasColorAndSize) {
-                        "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, width ${ptLabel(ui.width)} pt"
+                        "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, size $sizeLabel"
                     } else {
                         "Active tool: ${ui.tool.label}"
                     }
                 },
+            contentAlignment = Alignment.Center,
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
@@ -696,7 +717,7 @@ fun ActiveToolIndicator(
                     imageVector = ui.tool.icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(17.dp),
+                    modifier = Modifier.size(18.dp),
                 )
                 if (hasColorAndSize) {
                     Box(
@@ -712,18 +733,18 @@ fun ActiveToolIndicator(
                     ) {
                         Box(
                             modifier = Modifier
-                                .width(12.dp)
+                                .width(10.dp)
                                 .height((ui.width * 1.4f).coerceIn(1.5f, 5.5f).dp)
                                 .clip(RoundedCornerShape(50))
                                 .background(Color(effectiveColor))
                                 .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(50)),
                         )
                         Text(
-                            text = ptLabel(ui.width),
+                            text = sizeLabel,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             maxLines = 1,
                         )
                     }
@@ -761,10 +782,11 @@ fun TopBarToolsRow(
     val divider = @Composable {
         Box(
             modifier = Modifier
-                .padding(horizontal = 4.dp)
-                .width(1.dp)
-                .height(20.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                .padding(horizontal = 5.dp)
+                .width(1.5.dp)
+                .height(22.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)),
         )
     }
 

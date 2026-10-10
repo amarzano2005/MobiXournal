@@ -89,4 +89,16 @@ class TopBarItemsTest {
         assertEquals(emptyList<String>(), decodeTopBarIds(null))
         assertEquals(listOf("line"), decodeTopBarIds("line,unknown"))
     }
+
+    @Test
+    fun `sizeLetterFor maps pen width to S, M, or L`() {
+        val slots = listOf(0.42f, 0.85f, 1.41f)
+        assertEquals("S", sizeLetterFor(0.42f, slots))
+        assertEquals("M", sizeLetterFor(0.85f, slots))
+        assertEquals("L", sizeLetterFor(1.41f, slots))
+        // Closest match for custom values
+        assertEquals("S", sizeLetterFor(0.5f, slots))
+        assertEquals("M", sizeLetterFor(1.0f, slots))
+        assertEquals("L", sizeLetterFor(2.0f, slots))
+    }
 }
