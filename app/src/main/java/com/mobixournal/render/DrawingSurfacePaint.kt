@@ -524,3 +524,52 @@ internal fun DrawingSurfaceView.drawBackgroundRegion(canvas: Canvas) {
 internal fun DrawingSurfaceView.erasesNow(): Boolean =
     InputClassifier.classify(hoverKind, barrelButton.held, activeTool(), inputSettings) ==
         GestureIntent.ERASE
+
+/** Points→pixels for a page PNG export: 2× the pt size (≈150 dpi) without ballooning the file. */
+private const val EXPORT_PAGE_SCALE = 2f
+
+/**
+ * Flatten one page into a PNG at [EXPORT_PAGE_SCALE]. Draws through the same [BackgroundRenderer] /
+ * [PageRenderer] the editor uses, so the file matches what is on screen — including a `pdf` or
+ * `pixmap` background, whose cached bitmap is fetched synchronously (this runs off the drawing frame).
+ * Returns false for a missing/degenerate page or a bitmap the heap could not take.
+ */
+internal fun DrawingSurfaceView.writePagePng(pageIndex: Int, out: java.io.OutputStream): Boolean {
+    val page = doc.pages.getOrNull(pageIndex) ?: return false
+    if (page.width <= 0.0 || page.height <= 0.0) return false
+    val width = (page.width * EXPORT_PAGE_SCALE).toInt().coerceAtLeast(1)
+    val height = (page.height * EXPORT_PAGE_SCALE).toInt().coerceAtLeast(1)
+    val bitmap = try {
+        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    } catch (_: Throwable) {
+        return false
+    }
+    return try {
+        val canvas = Canvas(bitmap)
+        val box = PageBox(
+            index = pageIndex, topPx = 0f, leftPx = 0f,
+            heightPx = height.toFloat(), scale = EXPORT_PAGE_SCALE, page = page,
+        )
+        val pageImage = when (val bg = page.background) {
+            is Background.Pdf -> pdfSource?.request(bg.pageNo, width)
+            is Background.Pixmap -> imageSource.request(bg.filename, width)
+            else -> null
+        }
+        BackgroundRenderer.draw(canvas, box, 0f, 0f, pageImage)
+        PageRenderer.drawElements(canvas, page, EXPORT_PAGE_SCALE, 0f, 0f, strokePainter, elementRenderer)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+    } catch (_: Throwable) {
+        false
+    } finally {
+        bitmap.recycle()
+    }
+}
+
+/** Serialise one page to SVG (see [PageSvgWriter]) and write it to [out]. */
+internal fun DrawingSurfaceView.writePageSvg(pageIndex: Int, out: java.io.OutputStream): Boolean {
+    val page = doc.pages.getOrNull(pageIndex) ?: return false
+    return runCatching {
+        out.write(PageSvgWriter.write(page).toByteArray(Charsets.UTF_8))
+        true
+    }.getOrDefault(false)
+}

@@ -81,6 +81,12 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.NOR_GATE -> ShapeKind.NOR_GATE
         EditorTool.XOR_GATE -> ShapeKind.XOR_GATE
         EditorTool.XNOR_GATE -> ShapeKind.XNOR_GATE
+        EditorTool.BUFFER_GATE -> ShapeKind.BUFFER_GATE
+        EditorTool.SWITCH_OPEN -> ShapeKind.SWITCH_OPEN
+        EditorTool.SWITCH_CLOSED -> ShapeKind.SWITCH_CLOSED
+        EditorTool.TRANSFORMER -> ShapeKind.TRANSFORMER
+        EditorTool.JUNCTION -> ShapeKind.JUNCTION
+        EditorTool.DIMENSION -> ShapeKind.DIMENSION
         else -> null
     }
     if (tool == EditorTool.ERASER || tool == EditorTool.ERASER_WHOLE) {
@@ -105,6 +111,9 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.AND_GATE, EditorTool.OR_GATE,
         EditorTool.NOT_GATE, EditorTool.NAND_GATE, EditorTool.NOR_GATE,
         EditorTool.XOR_GATE, EditorTool.XNOR_GATE,
+        EditorTool.BUFFER_GATE,
+        EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED, EditorTool.TRANSFORMER,
+        EditorTool.JUNCTION, EditorTool.DIMENSION,
         -> this.tool = Tool.PEN
         else -> Unit // Hand / authoring tools keep the last drawing tool for when they're turned off
     }
@@ -138,6 +147,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
         barrelDoubleAction = s.barrelDoubleAction,
     )
     showHover = s.showHover
+    multiFingerShortcuts = s.multiFingerShortcuts
     pressureEnabled = s.pressureEnabled
     pressureMultiplier = s.pressureMultiplier
     minimumPressure = s.minimumPressure
@@ -192,6 +202,9 @@ fun EditorScreen(
     currentSaveName: () -> String = { "Untitled.xopp" },
     onImportPdf: (ImportPdfMode) -> Unit,
     onExportPdf: () -> Unit,
+    /** Export the active page alone, as a PNG image or an SVG vector file. */
+    onExportPagePng: () -> Unit = {},
+    onExportPageSvg: () -> Unit = {},
     /** An image-placement tap: open the file/gallery picker and insert what it returns. */
     onPickImage: (Placement) -> Unit,
     /** A pane's canvas has just been built: its index, then the view. */
@@ -251,6 +264,8 @@ fun EditorScreen(
                             onNewTab = { activeTabs.onNew() },
                             onSave = onSave,
                             onExportPdf = onExportPdf,
+                            onExportPagePng = onExportPagePng,
+                            onExportPageSvg = onExportPageSvg,
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
                         )

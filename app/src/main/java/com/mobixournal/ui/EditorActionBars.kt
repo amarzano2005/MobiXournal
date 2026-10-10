@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FormatAlignLeft
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.LineWeight
 import androidx.compose.material.icons.filled.Palette
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.SelectionOps
 
 /**
  * The Select tool's contextual action bar, shown while a selection is active: cut / copy /
@@ -68,6 +70,8 @@ fun SelectionActionBar(
     palette: ColorPaletteState,
     onReWidth: (Float) -> Unit,
     widthSlots: List<Float>,
+    onAlign: (SelectionOps.SelectionAlign) -> Unit,
+    onDistribute: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 50% corners: a pill that follows whatever height the compact buttons give the bar, instead of a
@@ -92,7 +96,41 @@ fun SelectionActionBar(
             BarIconButton("Duplicate", Icons.Filled.LibraryAdd, onDuplicate)
             RecolorMenu(onRecolor, palette)
             ReWidthMenu(widthSlots, onReWidth)
+            AlignMenu(onAlign, onDistribute)
             BarIconButton("Delete", Icons.Filled.Delete, onDelete)
+        }
+    }
+}
+
+/**
+ * A drop-down with the alignment and distribution actions for a multi-element selection: six edges
+ * (left/centre/right, top/middle/bottom) and even spacing along each axis. Text-only rows — the bar
+ * is too small to carry eight more glyphs, and the labels read faster than abstract alignment icons.
+ */
+@Composable
+private fun AlignMenu(
+    onAlign: (SelectionOps.SelectionAlign) -> Unit,
+    onDistribute: (Boolean) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        BarIconButton("Align & distribute", Icons.Filled.FormatAlignLeft) { open = true }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            @Composable
+            fun row(label: String, action: () -> Unit) {
+                DropdownMenuItem(
+                    text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+                    onClick = { open = false; action() },
+                )
+            }
+            row("Align left") { onAlign(SelectionOps.SelectionAlign.LEFT) }
+            row("Align horizontal centre") { onAlign(SelectionOps.SelectionAlign.H_CENTRE) }
+            row("Align right") { onAlign(SelectionOps.SelectionAlign.RIGHT) }
+            row("Align top") { onAlign(SelectionOps.SelectionAlign.TOP) }
+            row("Align vertical middle") { onAlign(SelectionOps.SelectionAlign.V_MIDDLE) }
+            row("Align bottom") { onAlign(SelectionOps.SelectionAlign.BOTTOM) }
+            row("Distribute horizontally") { onDistribute(true) }
+            row("Distribute vertically") { onDistribute(false) }
         }
     }
 }

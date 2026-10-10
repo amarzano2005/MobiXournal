@@ -143,6 +143,7 @@ object AppSettingsBackup {
         b.append("  \"selectedPenPresetId\": \"").append(escape(settings.selectedPenPresetId)).append("\",\n")
         b.append("  \"textImportLimitMb\": ").append(settings.textImportLimitMb).append(",\n")
         b.append("  \"pdfCacheLimitMb\": ").append(settings.pdfCacheLimitMb).append(",\n")
+        b.append("  \"multiFingerShortcuts\": ").append(settings.multiFingerShortcuts).append(",\n")
         b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append("\n")
         b.append("}\n")
         return b.toString()
@@ -300,6 +301,7 @@ object AppSettingsBackup {
             selectedPenPresetId = root.getStr("selectedPenPresetId", fallback.selectedPenPresetId),
             textImportLimitMb = root.getInt("textImportLimitMb", fallback.textImportLimitMb),
             pdfCacheLimitMb = root.getInt("pdfCacheLimitMb", fallback.pdfCacheLimitMb),
+            multiFingerShortcuts = root.getBool("multiFingerShortcuts", fallback.multiFingerShortcuts),
             hasSeenOnboarding = root.getBool("hasSeenOnboarding", fallback.hasSeenOnboarding),
         ).sanitized()
     }

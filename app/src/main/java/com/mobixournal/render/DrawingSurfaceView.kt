@@ -154,6 +154,33 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var eraseX = 0f
     internal var eraseY = 0f
     internal var scrolling = false
+
+    /**
+     * Whether a two-finger tap undoes and a three-finger tap redoes (the "Shortcuts" setting). The
+     * detector in `DrawingSurfaceInput.kt` reads it; off, a multi-finger tap is just a no-op pan.
+     */
+    internal var multiFingerShortcuts = true
+
+    // Multi-finger tap detection state, owned by the touch state machine in `DrawingSurfaceInput.kt`.
+    /** A candidate two/three-finger tap is in progress (still still and within the time window). */
+    internal var multiTapCandidate = false
+    /** Set once the fingers have travelled past the touch slop, which disqualifies the tap. */
+    internal var multiTapMoved = false
+    /** Most pointers seen during the candidate gesture (2 = undo, 3 = redo). */
+    internal var multiTapMaxPointers = 0
+    internal var multiTapStartTime = 0L
+    internal var multiTapStartX = 0f
+    internal var multiTapStartY = 0f
+    /** Touch slop in px, resolved lazily from this view's configuration. */
+    internal var multiTapSlop = 0f
+
+    // Hold-to-snap state (see `DrawingSurfaceHoldSnap.kt`): a timer that turns an in-progress
+    // freehand stroke into clean geometry when the stylus rests, and the anchor that arms it.
+    internal var holdSnapRunnable: Runnable? = null
+    internal var holdAnchorX = 0.0
+    internal var holdAnchorY = 0.0
+    /** True once the in-progress stroke was snapped by a hold, so the commit keeps the clean shape. */
+    internal var holdSnapped = false
     internal var erasing = false
     internal var placing = false
     internal var placeDownX = 0f
@@ -938,6 +965,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Flatten the current document (backgrounds, PDF pages, and all annotations) to a PDF. */
     fun exportPdf(out: java.io.OutputStream) = PdfExporter(pdfSource, imageSource).export(doc, out)
+
+    /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
+    fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)
+
+    /** Serialise one page to a scalable SVG vector document. */
+    fun exportPageSvg(pageIndex: Int, out: java.io.OutputStream): Boolean = writePageSvg(pageIndex, out)
 
     // --- undo / redo ---------------------------------------------------------------------------
 

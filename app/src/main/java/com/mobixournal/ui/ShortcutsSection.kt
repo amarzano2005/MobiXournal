@@ -69,6 +69,15 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    SettingsGroup("Touch gestures") {
+                        SwitchRow(
+                            title = "Two-finger tap undo / three-finger tap redo",
+                            subtitle = "A quick, still tap with two fingers undoes; with three it redoes. " +
+                                "A pan is unaffected, and the fingers must not travel.",
+                            checked = settings.multiFingerShortcuts,
+                            onCheckedChange = { onChange(settings.copy(multiFingerShortcuts = it)) },
+                        )
+                    }
                     val pages = ShortcutSubpage.values()
                     pages.forEachIndexed { index, page ->
                         SectionRow(title = page.title, summary = page.summary) {

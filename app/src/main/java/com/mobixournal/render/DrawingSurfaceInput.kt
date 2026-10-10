@@ -9,6 +9,7 @@ package com.mobixournal.render
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.SurfaceView
+import android.view.ViewConfiguration
 import com.mobixournal.format.model.Tool
 import kotlin.math.hypot
 
@@ -74,6 +75,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             backgroundSelecting -> { cancelPageDrag(); commitBackgroundSelect() }
             else -> {
                 cancelPageDrag()
+                if (scrolling && finishMultiFingerTap(event)) { cancelGesture(); return true }
                 captureReleaseVelocity(event); handleHandTapUp(event); endGesture()
             }
         }
@@ -92,6 +94,24 @@ internal fun DrawingSurfaceView.handleGenericMotion(event: MotionEvent): Boolean
     if (event.actionMasked == MotionEvent.ACTION_SCROLL && handleWheelScroll(event)) return true
     return null
 }
+
+/**
+ * If the gesture that just ended was a still, quick two- or three-finger tap, run its shortcut
+ * (two fingers → Undo, three → Redo) and return true. Movement past the touch slop, a slow hold, or
+ * any other pointer count disqualifies it, so an ordinary pan is never read as a tap.
+ */
+internal fun DrawingSurfaceView.finishMultiFingerTap(event: MotionEvent): Boolean {
+    if (!multiTapCandidate || multiTapMoved) return false
+    val pointers = multiTapMaxPointers
+    if (pointers != 2 && pointers != 3) return false
+    if (event.eventTime - multiTapStartTime > MULTI_TAP_MAX_MS) return false
+    multiTapCandidate = false
+    if (pointers == 2) undo() else redo()
+    return true
+}
+
+/** Longest a still two/three-finger contact may last and still count as a tap (ms). */
+private const val MULTI_TAP_MAX_MS = 350L
 
 /** The hover preview's state machine; null means "not ours" and falls through to [SurfaceView]. */
 internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
@@ -184,6 +204,8 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
 internal fun DrawingSurfaceView.abandonInProgress() {
     clearSpline()
     stopAutoScroll()
+    cancelHoldSnap()
+    holdSnapped = false
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestures.reset()
@@ -192,6 +214,8 @@ internal fun DrawingSurfaceView.abandonInProgress() {
 internal fun DrawingSurfaceView.cancelGesture() {
     momentum.stop()
     stopAutoScroll()
+    cancelHoldSnap()
+    holdSnapped = false
     guideDrag.end(null)
     clearSpline()
     current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
@@ -364,6 +388,7 @@ internal fun DrawingSurfaceView.runBarrelDoubleAction(action: BarrelDoubleAction
 
 /** A second finger (or the Hand tool) started panning: abandon any partial stroke/erase/place. */
 internal fun DrawingSurfaceView.beginScroll(event: MotionEvent) {
+    val fresh = !scrolling
     current = null
     erasing = false
     placing = false
@@ -371,6 +396,19 @@ internal fun DrawingSurfaceView.beginScroll(event: MotionEvent) {
     lastFocusY = focusY(event, skip = -1)
     lastFocusX = focusX(event, skip = -1)
     lastSpan = spanOf(event)
+    // Arm the multi-finger tap detector: a fresh two/three-finger gesture that never moves and lifts
+    // quickly is an Undo/Redo tap rather than a pan (see [finishMultiFingerTap]).
+    if (fresh) {
+        multiTapCandidate = multiFingerShortcuts && event.pointerCount in 2..3
+        multiTapMoved = false
+        multiTapMaxPointers = event.pointerCount
+        multiTapStartTime = event.eventTime
+        multiTapStartX = lastFocusX
+        multiTapStartY = lastFocusY
+        if (multiTapSlop <= 0f) multiTapSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+    } else {
+        multiTapMaxPointers = maxOf(multiTapMaxPointers, event.pointerCount)
+    }
     // A fresh pan starts with no carried flick — otherwise a near-motionless release could keep a
     // latched velocity from the previous gesture (see [captureReleaseVelocity]).
     momentum.clearRelease()
@@ -385,6 +423,10 @@ internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
     scrollX = (scrollX + (lastFocusX - fx) * panSensitivity).coerceIn(0f, maxScrollX())
     lastFocusY = fy
     lastFocusX = fx
+    if (multiTapCandidate) {
+        multiTapMaxPointers = maxOf(multiTapMaxPointers, event.pointerCount)
+        if (hypot(fx - multiTapStartX, fy - multiTapStartY) > multiTapSlop) multiTapMoved = true
+    }
     // Two fingers also pinch-zoom: a change in span since the last frame scales zoom about the focus.
     val span = spanOf(event)
     if (lastSpan > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX && span > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX) zoomAbout(fx, fy, span / lastSpan)

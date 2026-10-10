@@ -344,4 +344,85 @@ object SelectionOps {
         }
         return pages.toMutableList().also { it[pageIndex] = page.copy(layers = layers) }
     }
+
+    /** How a multi-element selection is aligned (the two horizontal and three vertical edges). */
+    enum class SelectionAlign { LEFT, H_CENTRE, RIGHT, TOP, V_MIDDLE, BOTTOM }
+
+    /**
+     * Align the elements at [refs] on page [pageIndex] to the selection's bounding box: each element
+     * is translated so the chosen edge (or centre line) matches the box's. A move is a pure
+     * translation, so every element round-trips unchanged in kind — see [translate]. A selection of
+     * fewer than two elements is returned untouched (nothing to align against).
+     */
+    fun align(
+        pages: List<Page>, pageIndex: Int, refs: Set<ElementRef>, alignment: SelectionAlign,
+    ): List<Page> {
+        if (refs.size < 2) return pages
+        val page = pages.getOrNull(pageIndex) ?: return pages
+        val boxes = selectedBounds(page, refs)
+        if (boxes.size < 2) return pages
+        val union = boxes.map { it.second }.reduce { a, b -> a.union(b) }
+        val deltas = HashMap<ElementRef, Pair<Double, Double>>(boxes.size)
+        for ((ref, b) in boxes) {
+            val dx = when (alignment) {
+                SelectionAlign.LEFT -> union.left - b.left
+                SelectionAlign.H_CENTRE -> union.centreX() - b.centreX()
+                SelectionAlign.RIGHT -> union.right - b.right
+                else -> 0.0
+            }
+            val dy = when (alignment) {
+                SelectionAlign.TOP -> union.top - b.top
+                SelectionAlign.V_MIDDLE -> union.centreY() - b.centreY()
+                SelectionAlign.BOTTOM -> union.bottom - b.bottom
+                else -> 0.0
+            }
+            deltas[ref] = dx to dy
+        }
+        return mapPage(pages, pageIndex) { li, ei, el ->
+            val d = deltas[ElementRef(li, ei)]
+            if (d != null) translate(el, d.first, d.second) else el
+        }
+    }
+
+    /**
+     * Spread the elements at [refs] on page [pageIndex] so their centres are **evenly spaced** between
+     * the two outermost ones, which stay put — evenly distributing *gaps* would need equal element
+     * sizes, while equal centre spacing always works. [horizontal] distributes along x, otherwise y.
+     * Fewer than three elements is returned untouched (the two ends already define both extremes).
+     */
+    fun distribute(
+        pages: List<Page>, pageIndex: Int, refs: Set<ElementRef>, horizontal: Boolean,
+    ): List<Page> {
+        if (refs.size < 3) return pages
+        val page = pages.getOrNull(pageIndex) ?: return pages
+        val boxes = selectedBounds(page, refs)
+        if (boxes.size < 3) return pages
+        val sorted = boxes.sortedBy { if (horizontal) it.second.centreX() else it.second.centreY() }
+        val first = if (horizontal) sorted.first().second.centreX() else sorted.first().second.centreY()
+        val last = if (horizontal) sorted.last().second.centreX() else sorted.last().second.centreY()
+        val step = (last - first) / (sorted.size - 1)
+        val deltas = HashMap<ElementRef, Pair<Double, Double>>(sorted.size)
+        sorted.forEachIndexed { i, (ref, b) ->
+            if (i == 0 || i == sorted.size - 1) return@forEachIndexed
+            val target = first + step * i
+            val current = if (horizontal) b.centreX() else b.centreY()
+            deltas[ref] = if (horizontal) (target - current) to 0.0 else 0.0 to (target - current)
+        }
+        return mapPage(pages, pageIndex) { li, ei, el ->
+            val d = deltas[ElementRef(li, ei)]
+            if (d != null) translate(el, d.first, d.second) else el
+        }
+    }
+
+    /** Each selected element's bounds, skipping unmodelled/non-hit-testable ones. */
+    private fun selectedBounds(page: Page, refs: Set<ElementRef>): List<Pair<ElementRef, Bounds>> =
+        refs.mapNotNull { ref ->
+            val el = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+                ?: return@mapNotNull null
+            if (!ElementBounds.isHitTestable(el)) return@mapNotNull null
+            ref to ElementBounds.of(el)
+        }
+
+    private fun Bounds.centreX(): Double = (left + right) / 2.0
+    private fun Bounds.centreY(): Double = (top + bottom) / 2.0
 }

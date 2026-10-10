@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
@@ -140,6 +141,8 @@ fun EditorTopBar(
     onNewTab: () -> Unit,
     onSave: () -> Unit,
     onExportPdf: () -> Unit,
+    onExportPagePng: () -> Unit,
+    onExportPageSvg: () -> Unit,
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
     modifier: Modifier = Modifier,
@@ -274,6 +277,8 @@ fun EditorTopBar(
                 onSaveAs = { ui.showSaveAs = true },
                 onImportPdf = { ui.showImportPdf = true },
                 onExportPdf = onExportPdf,
+                onExportPagePng = onExportPagePng,
+                onExportPageSvg = onExportPageSvg,
                 onSettings = { ui.showSettings = true },
                 penDiagnostics = ui.penDiagnostics,
                 onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
@@ -1714,6 +1719,8 @@ private fun OverflowMenu(
     onSaveAs: () -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
+    onExportPagePng: () -> Unit,
+    onExportPageSvg: () -> Unit,
     onSettings: () -> Unit,
     penDiagnostics: Boolean,
     onTogglePenDiagnostics: () -> Unit,
@@ -1793,6 +1800,33 @@ private fun OverflowMenu(
                 Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Export PDF", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+
+        // Export the active page alone, as a shareable raster image or a scalable vector file.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { open = false; onExportPagePng() },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Page as PNG", style = MaterialTheme.typography.labelMedium)
+            }
+            OutlinedButton(
+                onClick = { open = false; onExportPageSvg() },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Page as SVG", style = MaterialTheme.typography.labelMedium)
             }
         }
 

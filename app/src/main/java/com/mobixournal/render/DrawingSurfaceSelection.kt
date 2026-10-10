@@ -57,6 +57,32 @@ fun DrawingSurfaceView.restyleSelection(color: Int?, widthPt: Double?) {
     render()
 }
 
+/** Align the selected elements to the selection's bounding box (one undoable edit; selection stays). */
+fun DrawingSurfaceView.alignSelection(alignment: SelectionOps.SelectionAlign) {
+    val sel = selection ?: return
+    val before = doc
+    val pages = SelectionOps.align(doc.pages, sel.pageIndex, sel.refs, alignment)
+    if (pages === doc.pages) return
+    doc = doc.copy(pages = pages)
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
+/** Spread the selected elements evenly along one axis (one undoable edit; selection stays). */
+fun DrawingSurfaceView.distributeSelection(horizontal: Boolean) {
+    val sel = selection ?: return
+    val before = doc
+    val pages = SelectionOps.distribute(doc.pages, sel.pageIndex, sel.refs, horizontal)
+    if (pages === doc.pages) return
+    doc = doc.copy(pages = pages)
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
 // --- the element clipboard: copy, cut, paste, duplicate ----------------------------------------
 
 /** Copy the selected elements to the clipboard (leaves the document and selection unchanged). */

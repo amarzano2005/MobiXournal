@@ -21,6 +21,8 @@ import kotlin.math.hypot
 internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: Int) {
     scrolling = false
     shaping = shapeKind != null
+    cancelHoldSnap()
+    holdSnapped = false
     gestureStartDoc = doc
     gesturePointerId = event.getPointerId(pointerIndex)
     val box = layout.pageAt(event.getX(pointerIndex) + scrollX, event.getY(pointerIndex) + scrollY)
@@ -44,6 +46,10 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
         // multi-column view keeps the same document-space detail as one drawn at 100%.
         smoother.reset(strokePrecision.stepPxFor(box.scale))
         current = ArrayList<StrokePoint>().also { addSamples(event, pointerIndex, box, it) }
+        // Hold-to-snap starts counting from where the tip first landed.
+        holdAnchorX = current?.lastOrNull()?.x ?: 0.0
+        holdAnchorY = current?.lastOrNull()?.y ?: 0.0
+        armHoldSnap()
     }
 }
 
@@ -77,7 +83,12 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
         }
         render()
     } else {
-        current?.let { addSamples(event, pointerIndex, box, it); render() }
+        current?.let {
+            addSamples(event, pointerIndex, box, it)
+            // Rest the tip and the stroke snaps to geometry before lift-off.
+            maybeArmHoldSnap(it)
+            render()
+        }
     }
 }
 
@@ -398,10 +409,14 @@ internal fun DrawingSurfaceView.commitCurrent() {
         render()
         return
     }
+    // Lift-off ends any pending hold, and a stroke the hold already snapped stays snapped.
+    cancelHoldSnap()
     val raw = current ?: return
     current = null
     val wasShaping = shaping
     shaping = false
+    val holdWasSnapped = holdSnapped
+    holdSnapped = false
 
     // A tap/click with the table tool places a default-sized table centered at the tapped point.
     if (wasShaping && shapeKind == ShapeKind.TABLE && raw.size <= 2) {
@@ -451,7 +466,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
         } else {
             null
         }
-        snapped = shape != null
+        snapped = shape != null || holdWasSnapped
         shape ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
     }
     if (pts.size >= 2) {
