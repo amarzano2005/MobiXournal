@@ -71,6 +71,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
@@ -671,19 +672,54 @@ fun sizeLetterFor(width: Float, widthSlots: List<Float>): String {
     }
 }
 
+/** The Secondary Toolbar dock's height and corner: what its end cap has to match to be one shape. */
+internal val TOP_BAR_DOCK_HEIGHT = 40.dp
+internal val TOP_BAR_DOCK_CORNER = 20.dp
+
+/** How much smaller the cap's inner corners are than the dock's: it caps one end, it doesn't echo it. */
+internal val TOP_BAR_CAP_INNER_CORNER = 8.dp
+
 /**
- * An indicator in the corner between the primary and secondary toolbars that displays:
+ * The end cap's shape: the dock's own corner ([TOP_BAR_DOCK_CORNER]) on the end the cap closes, and the
+ * smaller [TOP_BAR_CAP_INNER_CORNER] on the side facing the figures. The cap's outer corner has to
+ * match the dock's exactly, or the dock's own tone shows through as a crescent between the two curves
+ * at the very corner the grey is meant to reach.
+ *
+ * It is a function rather than two dp values at the call site because the *mirror* is the fiddly part —
+ * the rail can be docked to the right, and the cap then closes the dock's right end — so the rule is
+ * pinned by a unit test instead of by eye.
+ */
+internal fun topBarCapShape(capOnLeft: Boolean): RoundedCornerShape {
+    val outer = TOP_BAR_DOCK_CORNER
+    val inner = TOP_BAR_CAP_INNER_CORNER
+    return RoundedCornerShape(
+        topStart = if (capOnLeft) outer else inner,
+        bottomStart = if (capOnLeft) outer else inner,
+        topEnd = if (capOnLeft) inner else outer,
+        bottomEnd = if (capOnLeft) inner else outer,
+    )
+}
+
+/**
+ * The Secondary Toolbar dock's **end cap** — the end nearest the Main Toolbar — displaying
  * - Selected tool (icon)
  * - Selected colour (swatch circle)
  * - Selected stroke size ("S", "M", or "L")
  *
- * The three sit on one **neutral grey chip**, not on the tool buttons' `primaryContainer` and no
- * longer on a bar drawing the stroke's own thickness. The indicator *reports* the live stroke; it is
- * not a tool that can be picked, so painting it the blue a lit-up tool button wears made it read as a
- * second active button beside the figures — and a thickness bar beside the size letter said the same
- * thing (how thick the tip is) twice, in less room than the letter needs. The grey is the scheme's
- * `surfaceContainerHighest` role — a surface step, never the accent — one tonal step above the dock,
- * so the chip still reads as a control you can tap rather than dissolving into the bar behind it.
+ * It is the dock's own end rather than a chip floating inside it: as tall as the dock
+ * ([TOP_BAR_DOCK_HEIGHT]), flush with its edge, and wearing the dock's corner
+ * ([TOP_BAR_DOCK_CORNER]) on the end it caps, while the corners facing the figures stay smaller so the
+ * cap reads as part of the bar rather than as a second bar. The flush, full-height grey is the point:
+ * an inset chip leaves a crescent of the dock's own tone around itself, and the toolbar's rounded
+ * border then encloses the dock instead of enclosing the indicator.
+ *
+ * Nothing divides the cap from the figures either: a vertical divider cut the dock in two for a
+ * boundary the grey already draws, so the tools simply start a padding-width after the cap.
+ *
+ * The grey is the scheme's `surfaceContainerHighest` role, a surface step and never the accent: the
+ * indicator *reports* the live stroke, it is not a tool that can be picked, so the blue a lit-up tool
+ * button wears made it read as a second active button beside the figures. Nothing draws the stroke's
+ * own thickness either — the size letter reports it through [sizeLetterFor], with room to read it.
  *
  * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]).
  */
@@ -691,22 +727,24 @@ fun sizeLetterFor(width: Float, widthSlots: List<Float>): String {
 fun ActiveToolIndicator(
     ui: EditorUiState,
     styleCallbacks: ToolbarStyleCallbacks,
+    /** True when the cap is the dock's left end, which is where the Main Toolbar is docked. */
+    capOnLeft: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val isHighlighter = ui.tool == EditorTool.HIGHLIGHTER
     val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
     val hasColorAndSize = ui.tool !in NON_INKING_TOOLS
     val sizeLabel = sizeLetterFor(ui.width, styleCallbacks.widthSlots)
-    val shape = RoundedCornerShape(8.dp)
+    val shape = topBarCapShape(capOnLeft)
 
     ColorSizePopup(styleCallbacks) { open ->
         Box(
             modifier = modifier
-                .height(32.dp)
+                .fillMaxHeight()
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(onClick = open)
-                .padding(horizontal = 6.dp, vertical = 2.dp)
+                .padding(horizontal = 10.dp)
                 .semantics {
                     contentDescription = if (hasColorAndSize) {
                         "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, size $sizeLabel"
@@ -753,8 +791,9 @@ fun ActiveToolIndicator(
  * inside the top bar, allowing quick access without shrinking the canvas. It renders as a floating dock
  * surface enclosing the active tool indicator and figures, adapting its width dynamically.
  *
- * In the corner between primary and secondary toolbars, [ActiveToolIndicator] displays the currently
- * selected tool, colour, and stroke width, separated from the rest of the tools by a vertical divider.
+ * The dock's end nearest the Main Toolbar belongs to [ActiveToolIndicator]: it fills that end rather
+ * than floating inside the dock (see that composable), so the grey cap and the dock's edge are one
+ * shape. Nothing divides the cap from the figures — the grey already draws the boundary.
  */
 @Composable
 fun TopBarToolsRow(
@@ -770,23 +809,16 @@ fun TopBarToolsRow(
     val styleCallbacks = rememberToolbarStyleCallbacks(ui, surface, settings, onSettingsChange)
 
     val indicator = @Composable {
-        ActiveToolIndicator(ui = ui, styleCallbacks = styleCallbacks)
-    }
-
-    val divider = @Composable {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 5.dp)
-                .width(1.5.dp)
-                .height(22.dp)
-                .clip(RoundedCornerShape(1.dp))
-                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)),
-        )
+        ActiveToolIndicator(ui = ui, styleCallbacks = styleCallbacks, capOnLeft = railOnLeft)
     }
 
     val toolsRow = @Composable {
         Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            // The cap is flush with the dock's edge, so the air at that end belongs to the tools row
+            // rather than to a padding wrapped around both of them.
+            modifier = Modifier
+                .padding(horizontal = 6.dp)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -867,7 +899,7 @@ fun TopBarToolsRow(
     }
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
         // The dock is the app's implement colour — the same value the rail and the canvas surround take
         // (see `rememberToolbarColor`), so the tools and the desk are visibly one material.
         color = rememberToolbarColor(),
@@ -876,23 +908,14 @@ fun TopBarToolsRow(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         modifier = modifier
             .wrapContentWidth()
-            .height(40.dp),
+            .height(TOP_BAR_DOCK_HEIGHT),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             if (railOnLeft) {
                 indicator()
-                if (items.isNotEmpty()) {
-                    divider()
-                    toolsRow()
-                }
+                if (items.isNotEmpty()) toolsRow()
             } else {
-                if (items.isNotEmpty()) {
-                    toolsRow()
-                    divider()
-                }
+                if (items.isNotEmpty()) toolsRow()
                 indicator()
             }
         }
