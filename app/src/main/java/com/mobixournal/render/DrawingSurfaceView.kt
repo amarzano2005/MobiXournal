@@ -1372,6 +1372,18 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun visiblePageIndex(): Int =
         layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: currentPage
 
+    /**
+     * The page-local point (pt) at the middle of the viewport on page [index] — where a fresh insert
+     * should land so it appears under the user's eye rather than at the sheet's own centre. Before the
+     * canvas has been laid out there is no viewport to speak of, so the page's own middle stands in
+     * (the same fallback [placeGuide] uses).
+     */
+    internal fun viewportCentrePt(index: Int): Pair<Double, Double> {
+        val box = layout.boxes.getOrNull(index) ?: return 0.0 to 0.0
+        if (width <= 0 || height <= 0) return box.page.width / 2 to box.page.height / 2
+        return box.toPtX(width / 2f, scrollX) to box.toPtY(height / 2f, scrollY)
+    }
+
     /** [x] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on. */
     internal fun snapX(box: PageBox, x: Double): Double =
         if (snapToGrid) Snapping.snap(x, Snapping.spacingX(box.page.background)) else x

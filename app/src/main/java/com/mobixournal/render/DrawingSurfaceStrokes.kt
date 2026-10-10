@@ -550,11 +550,16 @@ fun DrawingSurfaceView.insertPlot(
 ) {
     val index = visiblePageIndex()
     val page = doc.pages.getOrNull(index) ?: return
-    // A graph that fills most of the page width, with the classic 3:2 plotting box, a quarter down.
+    // A graph that fills most of the page width, with the classic 3:2 plotting box, centred on the
+    // point the user is actually looking at — the middle of the viewport, not the middle of the sheet —
+    // so turning the plotter on while zoomed into a corner lands the graph where the eye already is.
     val widthPt = page.width * 0.7
     val heightPt = widthPt * 0.6
-    val leftPt = (page.width - widthPt) / 2.0
-    val topPt = page.height * 0.25
+    val (centreX, centreY) = viewportCentrePt(index)
+    // Then pulled back inside the sheet, so a plot asked for near an edge comes out whole rather than
+    // half off the page.
+    val leftPt = (centreX - widthPt / 2).coerceIn(0.0, (page.width - widthPt).coerceAtLeast(0.0))
+    val topPt = (centreY - heightPt / 2).coerceIn(0.0, (page.height - heightPt).coerceAtLeast(0.0))
     val color = strokeColor()
     val plot = FunctionPlot.plot(
         source = source,
