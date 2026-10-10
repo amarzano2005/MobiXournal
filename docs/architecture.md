@@ -1966,7 +1966,21 @@ whole-number fit stays exact.
 Chrome styling is one design, with no switch: the Material 3 floating dock.
 - The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures, and not drawn at all while none are visible; the **active tool indicator** stands outside that dock as a button of its own (`StandaloneToolIndicator`), which on a left-docked rail is the top bar's leading slot — the corner between the rail's column and the dock, and the slot whose fixed width (`TOP_BAR_INDICATOR_WIDTH`) leaves the dock starting on the document tab strip's own line — and trails the dock when the rail is docked right (`standaloneIndicatorSlot`, pinned by `IndicatorSlotTest`), so the run always reads rail → indicator → figures; it is `TOP_BAR_DOCK_HEIGHT` (40dp) tall with `TOP_BAR_DOCK_CORNER` (`20.dp`) on all four sides plus the dock's tonal and shadow elevation and hairline border, its face is shared with the old cap (`ToolIndicatorFace`) and shows the selected tool, colour and stroke width with no thickness bar beside the size letter, tapping it opens the Colour & size pop-up, and its grey is the `surfaceContainerHighest` role — a surface step, never the accent `primaryContainer` a picked tool button wears; the style it replaced (the indicator as the dock's own **end cap**, grey flush to the dock's rounded border, `ActiveToolIndicator`) is kept behind the `INDICATOR_AS_DOCK_CAP` constant as a one-flip restore path; the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
 Each rail button owns its own `DropdownMenu`, so the pop-up
-is anchored to that button (opening to the right of the rail) rather than filling the screen. The
+is anchored to that button (opening to the right of the rail) rather than filling the screen. Every
+one of those menus — the rail's, the dock's, the views'/pages'/layers' panels, the ☰ overflow and
+the settings drop-downs — is built by `ToolbarMenu` (`ToolbarPopup.kt`), the app's **one menu
+material**: the toolbars' own `surfaceContainer` fill with `surfaceTint` pinned to it (M3 paints the
+menu's 3dp `ContainerElevation` as a tint wash, which otherwise lands it a step off the bar) and the
+dock's 20dp corner in place of M3's 4dp `Shapes.extraSmall`, since neither the fill nor the corner is
+a parameter `DropdownMenu` exposes in 1.2.1 — the ambient theme is the only lever, and the override
+stays inside the menu's own scope. On top of that material the menu wears a **lit rim**: a 1dp
+hairline drawn after the panel in a vertical gradient of the surface's own ink (bright along the top
+edge, faint along the bottom), so a pop-up reads as a panel lying above the bar it hangs from rather
+than dissolving into the same grey. A raised shadow is deliberately not the cue — the pop-up's window
+is no larger than the panel, so an elevated menu paints its blur *inside* its own top edge and clips
+away at the sides (both measured on the emulator). `ToolbarMenuGuardTest` fails the build if any other
+source file calls `DropdownMenu(`, which is what keeps a new pop-up from quietly bringing the paler,
+squarer panel back. The
 rail's head is **one slot per tool group** (`ToolGroups.kt`): `TOOL_GROUPS` partitions every
 `EditorTool` into named groups (pen · highlighter · eraser · line · rectangle · shape · pan · select ·
 insert · vspace · play). **Line** and **Rectangle** are one-tool groups of their own; every other
@@ -2366,8 +2380,19 @@ Both are covered by `StrokeSmootherTest`. **Hover** (`ACTION_HOVER_MOVE` from a
 stylus, via `onHoverEvent`) draws a preview ring where the tip will land. All of these are settings in
 `AppSettings`, persisted by `SettingsStore` (SharedPreferences) and pushed live onto the surface by
 `EditorScreen.applySettings`; the on-device `StylusInputTest` drives synthetic tool-typed
-`MotionEvent`s to prove the wiring (eraser tip, barrel erase, barrel double-click, finger-draw gate, palm rejection, and
-that the same page-space gesture keeps its detail at 100% and zoomed out).
+`MotionEvent`s — carrying a tool type, a button state and a per-sample **pressure**, none of which
+`adb shell input` can send and a JVM test cannot build — to prove the wiring: the eraser tip, barrel
+erase (motion button *and* the vendor key a Bluetooth pen sends), barrel double-click, the
+finger-draw gate, palm rejection, the pressure stream (a rising press stores rising vertex widths,
+and **Pressure sensitivity** off stores one width), and the **guide hook** (a stylus stroke 8pt off
+a setsquare's edge is stored *on* the edge and keeps its offset once the guide is cleared; a ruling
+guide pulls every vertex onto the page's own ruling, and clearing it gives the vertex back). It runs
+on any attached device with `scripts/host-build.sh connectedDebugAndroidTest
+-Pandroid.testInstrumentationRunnerArguments.class=com.mobixournal.StylusInputTest` (or through
+`scripts/connected-test.sh` in the container), and it is the only place these paths are exercised:
+the pure halves are unit-tested in `InputClassifierTest`, `PressureCurveTest` and `DrawingGuideTest`.
+The stroke's vertices are its **motion** samples — the lift-off adds none — and `StrokeSmoother`
+low-passes the pressure, so a stored width lags the reading rather than equalling it.
 `AppSettings` also carries the **default tool** (`DEFAULT_TOOL_CHOICES` — pen/highlighter/eraser/hand),
 which seeds `EditorScreen`'s active-tool state so a document opens in the user's chosen mode.
 

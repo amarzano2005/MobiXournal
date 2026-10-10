@@ -16,8 +16,11 @@ import com.mobixournal.format.model.Tool
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.BarrelClickDetector
 import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.InputSettings
+import com.mobixournal.render.PressureCurve
+import com.mobixournal.render.Snapping
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,11 +28,15 @@ import org.junit.runner.RunWith
 
 /**
  * On-device verification of the stylus input layer (see `docs/architecture.md` → "Stylus &
- * selection roadmap"): the eraser tip, the finger-draw palm gate, the barrel button, and palm
- * rejection while a stylus writes. These need real Android `MotionEvent`s carrying a *tool type* and
- * *button state* (which `adb input` can't inject and JVM unit tests can't build), so they live here
- * and run via `connectedDebugAndroidTest`. The pure decision logic is unit-tested in
- * `InputClassifierTest`; this proves the view is wired to it.
+ * selection roadmap"): the eraser tip, the finger-draw palm gate, the barrel button, palm rejection
+ * while a stylus writes, the pressure stream, and the guide hook. These need real Android
+ * `MotionEvent`s carrying a *tool type*, *button state* or per-pointer *pressure* (none of which
+ * `adb shell input` can inject, and JVM unit tests can't build), so they live here and run via
+ * `connectedDebugAndroidTest`. The pure logic is unit-tested in `InputClassifierTest`,
+ * `PressureCurveTest` and `DrawingGuideTest`; these prove the view is wired to it.
+ *
+ * Run them on a host with an attached emulator/device:
+ * `scripts/host-build.sh connectedDebugAndroidTest` (see `docs/tools.md` → "Host fallback").
  */
 @RunWith(AndroidJUnit4::class)
 class StylusInputTest {
@@ -224,6 +231,150 @@ class StylusInputTest {
         )
     }
 
+    /**
+     * Pressure reaches the document. A stroke whose samples press harder and harder must store, per
+     * vertex, the width [PressureCurve] makes of that sample's own reading — the wiring that `adb`
+     * cannot exercise, because `input tap`/`input swipe` send no pressure at all (every sample would
+     * arrive at 1.0 and every stroke would be uniformly thick).
+     *
+     * The path curves, so the simplifier can't reduce it to its two ends and every stored vertex is
+     * one of the samples. A stroke's vertices are its **motion** samples (down, then each move): the
+     * lift-off closes the gesture and leaves the geometry where the pen's last movement put it.
+     *
+     * The pressure itself is low-pass filtered by `StrokeSmoother` — a digitiser's reading is noisy,
+     * and the stored width is the filtered one — so the assertions are about the *taper* the press
+     * produces (every vertex wider than the one before it, starting from the first sample's own
+     * reading) rather than about each width matching the number this test happened to send.
+     */
+    @Test
+    fun pressureIsReadFromEverySampleAndWidthsTheVertices() = onView { view ->
+        view.tool = Tool.PEN
+        view.baseWidthPt = 2f
+        val pressures = floatArrayOf(0.05f, 0.2f, 0.35f, 0.5f, 0.65f, 0.8f, 0.95f)
+        drawGradedStroke(view, pressures)
+
+        val widths = strokesOf(view).single().points.map { it.width }
+        val expected = pressures.map {
+            PressureCurve.widthPt(view.baseWidthPt, it, view.pressureEnabled, view.pressureMultiplier, view.minimumPressure)
+        }
+        assertTrue("the stroke stored several vertices ($widths)", widths.size >= 3)
+        assertEquals(
+            "the first vertex is the first sample's own pressure",
+            expected.first(),
+            widths.first(),
+            1e-9,
+        )
+        assertTrue(
+            "harder presses stored wider vertices ($widths)",
+            widths.zipWithNext().all { (a, b) -> b > a },
+        )
+        assertTrue(
+            "and the taper is substantial, not rounding ($widths)",
+            widths.last() > widths.first() * 5,
+        )
+    }
+
+    /**
+     * With **Pressure sensitivity** off the very same pressured stroke stores one uniform width, so
+     * a pen stroke and a figure keep matching thickness (the desktop's own behaviour when the
+     * setting is unchecked).
+     */
+    @Test
+    fun pressureSensitivityOffStoresOneUniformWidth() = onView { view ->
+        view.tool = Tool.PEN
+        view.baseWidthPt = 2f
+        view.pressureEnabled = false
+        drawGradedStroke(view, floatArrayOf(0.05f, 0.5f, 1f))
+
+        val widths = strokesOf(view).single().points.map { it.width }
+        assertEquals("pressure off means one width, not a taper ($widths)", 1, widths.distinct().size)
+        assertEquals(2.0, widths.first(), 1e-9)
+    }
+
+    /**
+     * The pen **rules along a placed guide**: with a setsquare on the page, a stylus stroke drawn
+     * 8pt off its hypotenuse — wobbling, so the raw samples never line up — is stored with every
+     * vertex pulled onto that edge, and the same stroke out of the guide's reach is stored exactly
+     * as drawn. "Within reach" and "out of reach" are both `DrawingGuide.GRAB_PT`'s decision, made on
+     * the point after it has been mapped to page pt; what is verified here is that drawn vertices
+     * really pass through it, which is what makes a guide behave like a straightedge.
+     */
+    @Test
+    fun stylusVerticesHookOntoTheSetsquareAndReleaseBeyondItsReach() = onView { view ->
+        view.tool = Tool.PEN
+        val guide = DrawingGuide.Setsquare(x = 120.0, y = 400.0)
+        val samples = offEdgeStroke(guide, offsetPt = 8.0)
+
+        view.restoreGuide(guide, page = 0)
+        drawStroke(view, samples)
+        val hooked = strokesOf(view).last().points
+        // The capture makes the stroke a straight line on the edge, so the simplifier is entitled to
+        // keep only its ends — what matters is where those stored vertices are, not how many.
+        assertTrue("the guide-captured stroke was committed (${hooked.size} vertices)", hooked.size >= 2)
+        val worstHook = hooked.maxOf { distanceToNearestEdge(it, guide) }
+        assertTrue("every vertex was pulled onto the edge (worst was ${worstHook}pt)", worstHook < 0.5)
+
+        // Cleared, the same gesture is stored as drawn: it follows the 8pt offset instead.
+        view.restoreGuide(null, page = 0)
+        drawStroke(view, samples)
+        val free = strokesOf(view).last().points
+        val worstFree = free.maxOf { distanceToNearestEdge(it, guide) }
+        assertTrue("out of reach the stroke keeps its offset (worst was ${worstFree}pt)", worstFree > 4.0)
+        assertTrue("and the guide is gone", view.guide == null)
+        assertTrue("both strokes are ordinary ink in the document", strokesOf(view).size == 2)
+    }
+
+    /**
+     * The **ruling guide** hooks *every* vertex — it has no edge to leave and no reach limit — so a
+     * stroke drawn between the ruled lines of a graph sheet lands on them, and clearing the guide
+     * hands the same gesture back untouched. This is the guide a live session verified by eye; the
+     * assertion of where each vertex landed is what an `adb`-driven check cannot make.
+     */
+    @Test
+    fun rulingGuidePullsEveryVertexOntoThePagesRuling() = onView { view ->
+        view.tool = Tool.PEN
+        val lattice = Snapping.lattice(blankDocument().pages[0].background)
+        assertTrue("a graph sheet rules lines to land on ($lattice)", lattice.active)
+        // Deliberately halfway between ruled lines on both axes, and stepping line by line through
+        // the *middle* of the page, so a stored vertex sitting on a line can only have been pulled
+        // there. The rows zig-zag (two lines down, five down, two, five…) to keep the path off a
+        // single straight diagonal, which the simplifier would be entitled to flatten.
+        val samples = (0 until 6).map { k ->
+            val x = lattice.phaseX + lattice.stepX * (20 + k) + lattice.stepX / 2
+            val y = lattice.phaseY + lattice.stepY * (20 + if (k % 2 == 0) 2 else 5) + lattice.stepY / 2
+            x to y
+        }
+        assertTrue(
+            "the samples were chosen off the ruling (lattice=$lattice)",
+            samples.all { (x, y) ->
+                lattice.stepX > 0.0 && lattice.stepY > 0.0 &&
+                    kotlin.math.abs(x - lattice.snapX(x)) > 1.0 &&
+                    kotlin.math.abs(y - lattice.snapY(y)) > 1.0
+            },
+        )
+
+        view.restoreGuide(DrawingGuide.Ruling(0.0, 0.0, lattice), page = 0)
+        drawStroke(view, samples)
+        assertEquals("the ruled stroke was committed", 1, strokesOf(view).size)
+        val ruled = strokesOf(view).last().points
+        assertTrue("the ruled stroke stored vertices (${ruled.size})", ruled.size >= 3)
+        assertTrue(
+            "every vertex sits on a ruled line ($ruled)",
+            ruled.all { p ->
+                kotlin.math.abs(p.x - lattice.snapX(p.x)) < 0.01 &&
+                    kotlin.math.abs(p.y - lattice.snapY(p.y)) < 0.01
+            },
+        )
+
+        view.restoreGuide(null, page = 0)
+        drawStroke(view, samples)
+        val free = strokesOf(view).last().points
+        assertTrue(
+            "cleared, the vertex between the lines is kept off them",
+            free.any { kotlin.math.abs(it.y - lattice.snapY(it.y)) > 1.0 },
+        )
+    }
+
     // --- harness -------------------------------------------------------------------------------
 
     /**
@@ -233,17 +384,13 @@ class StylusInputTest {
      */
     private fun drawRipple(view: DrawingSurfaceView, zoom: Float): List<StrokePoint> {
         val before = strokesOf(view).size
-        // Page → view, mirroring PageStacker.stack: a single column fits the page to the view
-        // width, rows are centred horizontally, and the first row starts one gap down.
-        val scale = (VIEW_W / A4_WIDTH_PT).toFloat() * zoom
-        val left = (maxOf(VIEW_W.toFloat(), A4_WIDTH_PT.toFloat() * scale) - A4_WIDTH_PT.toFloat() * scale) / 2f
-        val top = GAP_PX
+        val map = pageMap(zoom)
         // 0.4pt per sample along 200pt, rippling ±2.5pt every 10pt — detail a fixed 1.6 view-px
         // decimation radius keeps at 100% (0.9pt) but erases when zoomed out (3.4pt).
         fun pageX(i: Int) = 100.0 + i * 0.4
         fun pageY(i: Int) = 300.0 + kotlin.math.sin(pageX(i) * 2 * Math.PI / 10.0) * 2.5
-        fun px(i: Int) = left + (pageX(i) * scale).toFloat()
-        fun py(i: Int) = top + (pageY(i) * scale).toFloat()
+        fun px(i: Int) = map.x(pageX(i))
+        fun py(i: Int) = map.y(pageY(i))
 
         val downTime = SystemClock.uptimeMillis()
         send(view, downTime, downTime, MotionEvent.ACTION_DOWN, floatArrayOf(px(0)), floatArrayOf(py(0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
@@ -280,6 +427,97 @@ class StylusInputTest {
     /** Total page-space length of the stored polyline — how much of the real path survived. */
     private fun lengthPt(points: List<StrokePoint>): Double =
         points.zipWithNext().sumOf { (a, b) -> kotlin.math.hypot(b.x - a.x, b.y - a.y) }
+
+    /**
+     * A stylus stroke along the **same short path**, pressing [pressures] harder sample by sample —
+     * one event per sample, so each one survives decimation and its own pressure is what the stored
+     * vertex is made of.
+     */
+    private fun drawGradedStroke(view: DrawingSurfaceView, pressures: FloatArray) {
+        val map = pageMap()
+        val downTime = SystemClock.uptimeMillis()
+        pressures.indices.forEach { i ->
+            val action = when (i) {
+                0 -> MotionEvent.ACTION_DOWN
+                pressures.lastIndex -> MotionEvent.ACTION_UP
+                else -> MotionEvent.ACTION_MOVE
+            }
+            // A gentle arc, so the sampled path is not a straight line the simplifier may collapse.
+            val pageX = 200.0 + i * 18.0
+            val pageY = 400.0 + kotlin.math.sin(i * 1.1) * 6.0
+            send(
+                view, downTime, if (i == 0) downTime else now(), action,
+                floatArrayOf(map.x(pageX)), floatArrayOf(map.y(pageY)),
+                intArrayOf(MotionEvent.TOOL_TYPE_STYLUS), pressures = floatArrayOf(pressures[i]),
+            )
+        }
+    }
+
+    /** One stylus stroke through [samples] (page pt), down -> moves -> up. */
+    private fun drawStroke(view: DrawingSurfaceView, samples: List<Pair<Double, Double>>) {
+        val map = pageMap()
+        val downTime = SystemClock.uptimeMillis()
+        samples.forEachIndexed { i, (pageX, pageY) ->
+            val action = when (i) {
+                0 -> MotionEvent.ACTION_DOWN
+                samples.lastIndex -> MotionEvent.ACTION_UP
+                else -> MotionEvent.ACTION_MOVE
+            }
+            send(
+                view, downTime, if (i == 0) downTime else now(), action,
+                floatArrayOf(map.x(pageX)), floatArrayOf(map.y(pageY)),
+                intArrayOf(MotionEvent.TOOL_TYPE_STYLUS),
+            )
+        }
+    }
+
+    /**
+     * A stroke running along the guide's nearest drawing edge, held [offsetPt] off it and wobbling —
+     * too far away to be captured by accident, near enough to be captured at all, and never quite on
+     * the edge, so a stored vertex sitting exactly on it can only have been pulled there.
+     */
+    private fun offEdgeStroke(guide: DrawingGuide.Setsquare, offsetPt: Double): List<Pair<Double, Double>> {
+        val corners = guide.corners()
+        val (a, b) = corners[0] to corners[1]
+        val midX = (a.first + b.first) / 2
+        val midY = (a.second + b.second) / 2
+        val ux = (b.first - a.first) / kotlin.math.hypot(b.first - a.first, b.second - a.second)
+        val uy = (b.second - a.second) / kotlin.math.hypot(b.first - a.first, b.second - a.second)
+        // Perpendicular pointing away from the right-angle corner, i.e. off the outside of the leg.
+        val sign = if ((midX - corners[2].first) * -uy + (midY - corners[2].second) * ux < 0) -1.0 else 1.0
+        val nx = -uy * sign * offsetPt
+        val ny = ux * sign * offsetPt
+        return listOf(-30.0, -10.0, 10.0, 30.0).map { step ->
+            (midX + ux * step + nx + step / 20.0) to (midY + uy * step + ny + step / 20.0)
+        }
+    }
+
+    /** Distance (pt) from [point] to the closest of the setsquare's three drawing edges. */
+    private fun distanceToNearestEdge(point: StrokePoint, guide: DrawingGuide.Setsquare): Double {
+        val corners = guide.corners()
+        // Each edge as the pair of corners it runs between, so `(a, b)` in the lambda is its ends.
+        val edges = listOf(corners[0] to corners[1], corners[0] to corners[2], corners[1] to corners[2])
+        return edges.minOf { (a, b) ->
+            val (qx, qy) = DrawingGuide.closestOnSegment(point.x, point.y, a.first, a.second, b.first, b.second)
+            kotlin.math.hypot(point.x - qx, point.y - qy)
+        }
+    }
+
+    /**
+     * Page pt -> view px for the single-column page at [zoom], mirroring `PageStacker.stack`: the
+     * page is fitted to the view width, centred horizontally, and the first page starts one gap
+     * down. Tests need it to aim a gesture at a known page-space spot.
+     */
+    private class PageMap(val scale: Float, val left: Float, val top: Float) {
+        fun x(pageX: Double): Float = left + (pageX * scale).toFloat()
+        fun y(pageY: Double): Float = top + (pageY * scale).toFloat()
+    }
+
+    private fun pageMap(zoom: Float = 1f): PageMap {
+        val scale = (VIEW_W / A4_WIDTH_PT).toFloat() * zoom
+        val left = (maxOf(VIEW_W.toFloat(), A4_WIDTH_PT.toFloat() * scale) - A4_WIDTH_PT.toFloat() * scale) / 2f
+        return PageMap(scale, left, GAP_PX)
+    }
 
     private fun onView(body: (DrawingSurfaceView) -> Unit) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -346,13 +584,21 @@ class StylusInputTest {
         toolTypes: IntArray,
         buttonState: Int = 0,
         actionIndex: Int = 0,
+        pressures: FloatArray? = null,
     ) {
         val n = xs.size
         val props = Array(n) { i ->
             MotionEvent.PointerProperties().apply { id = i; this.toolType = toolTypes[i] }
         }
         val coords = Array(n) { i ->
-            MotionEvent.PointerCoords().apply { x = xs[i]; y = ys[i]; pressure = 1f; size = 1f }
+            MotionEvent.PointerCoords().apply {
+                x = xs[i]
+                y = ys[i]
+                // A real digitiser reports pressure per sample; every caller that doesn't care gets
+                // a full press, exactly as before this parameter existed.
+                pressure = pressures?.get(i) ?: 1f
+                size = 1f
+            }
         }
         val maskedAction = action or (actionIndex shl MotionEvent.ACTION_POINTER_INDEX_SHIFT)
         val event = MotionEvent.obtain(
