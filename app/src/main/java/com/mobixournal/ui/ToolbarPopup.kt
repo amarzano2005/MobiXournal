@@ -37,13 +37,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.MENU_RIM_ALPHA_BOTTOM
+import com.mobixournal.ui.theme.MENU_RIM_ALPHA_TOP
+import com.mobixournal.ui.theme.rememberMenuRimColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
@@ -113,7 +122,22 @@ internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurf
  *   own corner; nothing outside this menu sees the override.
  *
  * Routing every toolbar menu through here is what keeps the whole chrome on one colour and one
- * corner: a stray raw [DropdownMenu] brings the paler, squarer panel back.
+ * corner: a stray raw [DropdownMenu] brings the paler, squarer panel back (see
+ * `ToolbarMenuGuardTest`, which fails the build on one).
+ *
+ * On top of that material the menu carries an **edge of its own**, because the fill that ties a
+ * pop-up to its bar is also what lets it dissolve into the surface it hangs over: the toolbars sit
+ * in the same grey as the canvas desk, and a menu opened from the bar lands on that same grey with
+ * nothing between them. The cue is a hairline drawn around the panel in [rememberMenuRimColor] — the
+ * ambient surface's own ink, so it is an edge in the light theme and in the dark one — painted
+ * *after* the panel so it reads as the panel's own boundary rather than as something behind it, and
+ * shaded along its length (bright at the top edge, faint at the bottom) so the panel reads as lit
+ * from above instead of as an outlined box.
+ *
+ * A raised shadow is deliberately **not** the cue here. The pop-up's window is only as large as the
+ * panel, so a shadow has nowhere to fall: built and measured on the emulator, an elevated menu
+ * (14dp, both `clip` settings) painted a grey wash *inside* the panel's top 50px — the blur has no
+ * room outside it — and clipped away entirely at the sides; a rim reads the same on all four edges.
  */
 @Composable
 internal fun ToolbarMenu(
@@ -125,6 +149,8 @@ internal fun ToolbarMenu(
     val toolbar = rememberToolbarColor()
     val scheme = MaterialTheme.colorScheme
     val shapes = MaterialTheme.shapes
+    val rim = rememberMenuRimColor()
+    val shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER)
     MaterialTheme(
         colorScheme = scheme.copy(surface = toolbar, surfaceTint = toolbar),
         shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
@@ -132,11 +158,36 @@ internal fun ToolbarMenu(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = onDismissRequest,
-            modifier = modifier,
+            // The menu's own `modifier` lands on the panel itself (the `Surface` inside
+            // [DropdownMenu]), which is what lets the rim be drawn on the panel's own bounds — there
+            // is no other handle on the panel in this Material3 version.
+            modifier = modifier.drawWithContent {
+                    drawContent()
+                    val width = MENU_RIM_WIDTH.toPx()
+                    // Half a hairline in from the edge: a stroke straddles its path, and the outer
+                    // half would be wasted on the corner's own curve.
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                rim.copy(alpha = MENU_RIM_ALPHA_TOP),
+                                rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM),
+                            ),
+                            startY = 0f,
+                            endY = size.height,
+                        ),
+                        topLeft = Offset(width / 2f, width / 2f),
+                        size = Size(size.width - width, size.height - width),
+                        cornerRadius = CornerRadius(TOP_BAR_DOCK_CORNER.toPx()),
+                        style = Stroke(width = width),
+                    )
+                },
             content = content,
         )
     }
 }
+
+/** The rim's thickness — one hairline, drawn inside the panel's edge. */
+private val MENU_RIM_WIDTH = 1.dp
 
 /**
  * A small non-clickable section heading inside a dropdown menu.

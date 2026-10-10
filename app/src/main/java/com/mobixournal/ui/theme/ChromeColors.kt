@@ -61,6 +61,27 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
 @Composable
 fun rememberToolbarColor(): Color = MaterialTheme.colorScheme.surfaceContainer
 
+/**
+ * The ink the pop-up menus' rim is drawn with: the surface's own ink, so the edge is dark in the
+ * light theme and light in the dark one — an edge in both, rather than one.
+ *
+ * The menus take the toolbars' own fill ([rememberToolbarColor]), which is what makes a pop-up read
+ * as part of the bar it belongs to — but that also means, over the light canvas, a menu's edge can
+ * vanish into the desk. This ink drawn around the panel is what keeps the two readable as two
+ * layers. How strong it is at each end is [MENU_RIM_ALPHA_TOP] / [MENU_RIM_ALPHA_BOTTOM]: the stroke
+ * runs in a vertical gradient, brightest along the top, so the panel reads as a lit plate rather
+ * than as an outlined box. Both ends are faint by design — a rim strong enough to notice as a line
+ * is a border.
+ */
+@Composable
+fun rememberMenuRimColor(): Color = MaterialTheme.colorScheme.onSurface
+
+/** Strength of the pop-up rim along the panel's lit top edge. */
+const val MENU_RIM_ALPHA_TOP = 0.30f
+
+/** Strength of the pop-up rim along the panel's shaded bottom edge. */
+const val MENU_RIM_ALPHA_BOTTOM = 0.10f
+
 /** Derives the canvas chrome colours from the ambient Material 3 scheme. */
 @Composable
 fun rememberCanvasChromeColors(): CanvasChromeColors {
