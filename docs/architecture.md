@@ -1092,7 +1092,13 @@ pen colour — as **one undoable edit** on the active layer. That is what keeps 
 project's scope rule: the format has nowhere to keep a formula, but it does have strokes, so the plot
 *is* the strokes and nothing else is invented. An unparsable formula inserts nothing at all rather than
 an empty frame, and the dialog validates with the very same `compile` call, so it can't accept a graph
-the plotter would refuse to draw.
+the plotter would refuse to draw. It is opened from the Secondary Toolbar (`RailItem` id `graph`, the
+row's penultimate button — a dialog opener rather than a tool, so it gets a plain action button, not a
+pop-up), and the plot is placed **where the user is looking**: `insertPlot` centres it on
+`viewportCentrePt(pageIndex)` — the page-local point under the middle of the viewport — and then pulls
+it back inside the sheet, so turning the plotter on while zoomed into a corner lands the graph where
+the eye already is rather than at the sheet's own middle. Same idea as `placeGuide`, and the same
+fallback to the page centre before the canvas has been laid out.
 
 **Page bookmarks (`ui/PageBookmarks.kt`).** A labelled, colour-coded flag on a page, plus the list of
 them that makes a long document navigable. The `.xopp` format has **no page label, name or bookmark**
@@ -1129,6 +1135,14 @@ all of this (`PageTemplates`): millimetre paper, 5 mm graph, 7 mm ruled and 5/10
 style + `config` pair — real paper the desktop renders too — while **Cornell notes**, which no
 Xournal++ version has, is drawn instead: its three rules land as ordinary strokes on a layer named
 after the template, so it round-trips like any ink and can be deleted by deleting the layer.
+
+**The page-background chooser (`BackgroundPopupButton`).** The three sections are ordered as the sheet
+is set up — *what it is* (paper style), *how it is ruled* (rule spacing), then a finished template over
+the top (stationery) — and each is **one line**: the six styles are chips you scroll along rather than
+six stacked menu rows, and the spacing chips carry the custom millimetre field at the end of their own
+row. The stacked list had buried spacing and stationery below the fold for what is a single either/or
+choice. A section that can't apply (spacing on a PDF-backed page) says so in a `MenuHint` line instead
+of a disabled item, which would claim a whole row to state only that.
 
 **Vector PDF pages — retired (2026-10-11).** *Decision (2026-10-10), reversed (2026-10-11).* A first
 revision drew a `pdf` background's page as **vector geometry** on the drawing thread (PDFBox's
@@ -1448,7 +1462,13 @@ zooming mid-trace can't drift the shaded region away from the polygon that is te
 overlay's closing segment is the same last→first wrap `inPolygon` assumes. **Cut / copy / paste / duplicate** run through a view-held element clipboard
 (`SelectionOps.elementsAt` + `addToTopLayer`, which reports the pasted refs so the copies are
 selected); paste lands on the visible page, **centred on the current viewport** (`SelectionOps.boundsOf`
-+ the target box's `toPt`) rather than back at the copied-from spot. The bar's **Paste** first switches the tool to
++ the target box's `toPt`) rather than back at the copied-from spot. **Paste lives in this floating bar**
+(`SelectionActionBar`, via `pasteFromActionBar`) rather than in a bar of its own: it sits beside Copy,
+and since it needs no selection the same bar stands in at the bottom centre — the page-level spot —
+carrying Paste alone when nothing is selected. That is what keeps it reachable *while* something is
+selected (so a second copy can be pasted without deselecting first) and keeps the button with the
+actions it belongs to, instead of a lone pill that vanished the moment anything was picked. `Paste`
+first switches the tool to
 `EditorTool.SELECT` unless a select tool is already active: only `SELECT`/`LASSO_SELECT` route
 touches to `SelectionGestureController`, so pasting under `BG_SELECT` would otherwise draw the copies
 as selected while they stayed undraggable — and the next touch would start a new marquee and clear
@@ -1478,7 +1498,8 @@ tool; the copied result is one flat bitmap rather than editable elements.
 The marquee **survives the release**: `commitBackgroundSelect` keeps it as `backgroundRegion` (page
 index + `Bounds` in page-local pt, so it stays put under scroll and zoom — `drawBackgroundRegion`
 maps it back through the `PageBox`) and reports it through `onBackgroundRegionChanged`, which drives
-the **Copy** and **Cut** buttons in `SelectModeBar`. The release itself **never writes the clipboard**
+the **Copy** and **Cut** buttons in `SelectModeBar` — now purely the *region* bar, since Paste moved
+to the selection action bar above. The release itself **never writes the clipboard**
 — only an explicit Copy/Cut does — so marking out a region can't silently discard what the user had
 copied. Copy runs `captureBackgroundRegion`, and can be pressed again after the clipboard has moved
 on; **Cut** captures and then deletes, as **one undoable edit**, the elements `SelectionTester.inRect` finds
@@ -1879,7 +1900,13 @@ Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (rail dockable t
 edge — `ToolbarPosition` offers only those two, so the rail always runs as a vertical column and
 never fights the Secondary Toolbar for the top edge)
 with core drawing tool slots and pop-up panels; a permanent **Secondary Toolbar** (`TopBarToolsRow`) for geometric
-figures and tools embedded in the top bar; and the canvas filling the rest.
+figures and tools embedded in the top bar — geometric figures, the arrow/table/circuit/logic pop-ups,
+the **function graph** button (penultimate slot: one tap from the tools' end, with the drawing-guides
+pop-up still last) and the guides pop-up; and the canvas filling the rest. `orderedTopBarItems` places
+a slot the saved order doesn't name (one added since that order was written) at its **factory
+position** — just ahead of the next factory item the order does name — rather than appending it past
+everything the user arranged, which is what would otherwise park a new button at the wrong end of an
+existing install's row.
 The element selection's action bar floats beside the selection itself (see [Selecting objects](#selecting-objects-render)).
 
 The rail also carries the **Colour & size slot** (`ColorSizeRailSlot`, `ui/ColorSizeRailSlot.kt`) — the
