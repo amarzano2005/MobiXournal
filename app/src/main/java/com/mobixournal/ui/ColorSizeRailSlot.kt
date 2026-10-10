@@ -242,12 +242,11 @@ fun settingsWithFavoriteColor(settings: AppSettings, colorOwner: EditorTool, col
     else settings.withColorUsed(color)
 
 /**
- * A tap on a favourite: put [colorOwner] in that colour.
+ * A tap on a favourite: take the chosen colour without switching the active tool back to pen.
  *
- * When the tool is **already live** the colour is simply taken, exactly as the Colour & size pop-up
- * would; going through [DrawingSurfaceView.activateTool] instead would re-read the live field and undo
- * the pick (switching *to* the tool it is already on re-saves the current colour). Otherwise the
- * colour is seeded into the settings first and the switch does the rest.
+ * The chosen colour is applied directly to [ui.color] and [DrawingSurfaceView.colorArgb], without
+ * switching tools away from whichever tool is currently active. The owning tool's settings slot
+ * is persisted so that switching tools later retains the chosen colour.
  */
 internal fun pickFavoriteColor(
     surface: DrawingSurfaceView?,
@@ -258,17 +257,17 @@ internal fun pickFavoriteColor(
     color: Int,
 ) {
     val next = settingsWithFavoriteColor(settings, colorOwner, color)
-    if (ui.tool == colorOwner) {
+    if (colorOwner == EditorTool.HIGHLIGHTER) {
+        ui.highlighterColor = color
+        if (ui.tool == EditorTool.HIGHLIGHTER) {
+            ui.color = color
+            surface?.colorArgb = color
+        }
+    } else {
         ui.color = color
         surface?.colorArgb = color
-        if (colorOwner == EditorTool.HIGHLIGHTER) ui.highlighterColor = color
-        onSettingsChange(next)
-        return
     }
-    // The live field is what the switch reads back for the incoming tool, so seed it for the
-    // highlighter; the pen is handed its colour by the settings themselves.
-    if (colorOwner == EditorTool.HIGHLIGHTER) ui.highlighterColor = color
-    surface?.activateTool(colorOwner, ui, next, onSettingsChange)
+    onSettingsChange(next)
 }
 
 /** [this] with the entry at [index] replaced by [value]; out-of-range indices are a no-op. */

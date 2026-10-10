@@ -639,6 +639,108 @@ fun rememberToolbarStyleCallbacks(
  * inside the top bar, allowing quick access without shrinking the canvas. It renders as a floating dock
  * surface enclosing only the figures, adapting its width dynamically to the number of visible figures.
  */
+private val NON_INKING_TOOLS: Set<EditorTool> = setOf(
+    EditorTool.ERASER,
+    EditorTool.ERASER_WHOLE,
+    EditorTool.HAND,
+    EditorTool.SELECT,
+    EditorTool.LASSO_SELECT,
+    EditorTool.TEXT_SELECT,
+    EditorTool.BG_SELECT,
+    EditorTool.VERTICAL_SPACE,
+    EditorTool.PLAY_OBJECT,
+    EditorTool.IMAGE,
+)
+
+/**
+ * An indicator in the corner between the primary and secondary toolbars that displays:
+ * - Selected tool (icon)
+ * - Selected colour (swatch circle)
+ * - Selected stroke width (visual thickness bar + numeric pt label)
+ *
+ * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]).
+ */
+@Composable
+fun ActiveToolIndicator(
+    ui: EditorUiState,
+    styleCallbacks: ToolbarStyleCallbacks,
+    modifier: Modifier = Modifier,
+) {
+    val isHighlighter = ui.tool == EditorTool.HIGHLIGHTER
+    val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
+    val hasColorAndSize = ui.tool !in NON_INKING_TOOLS
+
+    ColorSizePopup(styleCallbacks) { open ->
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            modifier = modifier
+                .height(32.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = open)
+                .semantics {
+                    contentDescription = if (hasColorAndSize) {
+                        "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, width ${ptLabel(ui.width)} pt"
+                    } else {
+                        "Active tool: ${ui.tool.label}"
+                    }
+                },
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Icon(
+                    imageVector = ui.tool.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(17.dp),
+                )
+                if (hasColorAndSize) {
+                    Box(
+                        modifier = Modifier
+                            .size(11.dp)
+                            .clip(CircleShape)
+                            .background(Color(effectiveColor))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(12.dp)
+                                .height((ui.width * 1.4f).coerceIn(1.5f, 5.5f).dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(effectiveColor))
+                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(50)),
+                        )
+                        Text(
+                            text = ptLabel(ui.width),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Secondary Toolbar: a compact, horizontal scrollable row of geometric figures and tools that sits
+ * inside the top bar, allowing quick access without shrinking the canvas. It renders as a floating dock
+ * surface enclosing the active tool indicator and figures, adapting its width dynamically.
+ *
+ * In the corner between primary and secondary toolbars, [ActiveToolIndicator] displays the currently
+ * selected tool, colour, and stroke width, separated from the rest of the tools by a vertical divider.
+ */
 @Composable
 fun TopBarToolsRow(
     ui: EditorUiState,
@@ -649,13 +751,26 @@ fun TopBarToolsRow(
 ) {
     val surface = pane.surface
     val items = visibleTopBarItems(settings.topBarOrder, settings.topBarHidden, settings.shapeHidden)
-    if (items.isEmpty()) return
+    val railOnLeft = settings.toolbarPosition == ToolbarPosition.LEFT
+    val styleCallbacks = rememberToolbarStyleCallbacks(ui, surface, settings, onSettingsChange)
 
-    val content = @Composable {
-        Row(
+    val indicator = @Composable {
+        ActiveToolIndicator(ui = ui, styleCallbacks = styleCallbacks)
+    }
+
+    val divider = @Composable {
+        Box(
             modifier = Modifier
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-                .horizontalScroll(rememberScrollState()),
+                .padding(horizontal = 4.dp)
+                .width(1.dp)
+                .height(20.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        )
+    }
+
+    val toolsRow = @Composable {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -747,7 +862,24 @@ fun TopBarToolsRow(
             .wrapContentWidth()
             .height(40.dp),
     ) {
-        content()
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (railOnLeft) {
+                indicator()
+                if (items.isNotEmpty()) {
+                    divider()
+                    toolsRow()
+                }
+            } else {
+                if (items.isNotEmpty()) {
+                    toolsRow()
+                    divider()
+                }
+                indicator()
+            }
+        }
     }
 }
 

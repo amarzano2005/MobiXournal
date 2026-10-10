@@ -137,6 +137,26 @@ class ColorSizeRailSlotTest {
             settingsWithFavoriteColor(AppSettings(), EditorTool.HIGHLIGHTER, XOPP_MAGENTA).lastColor,
         )
     }
+
+    @Test
+    fun `tapping a favourite while on a shape tool changes colour without switching to pen`() {
+        val ui = EditorUiState(EditorTool.RECTANGLE, XOPP_BLACK, AppSettings().lastWidth, XOPP_YELLOW, 1f)
+        var written: AppSettings? = null
+        pickFavoriteColor(null, ui, AppSettings(), { written = it }, EditorTool.PEN, XOPP_RED)
+        assertEquals(XOPP_RED, ui.color)
+        assertEquals(EditorTool.RECTANGLE, ui.tool)
+        assertEquals(XOPP_RED, written?.lastColor)
+    }
+
+    @Test
+    fun `tapping a favourite while on eraser changes colour without switching to pen`() {
+        val ui = EditorUiState(EditorTool.ERASER, XOPP_BLACK, AppSettings().lastWidth, XOPP_YELLOW, 1f)
+        var written: AppSettings? = null
+        pickFavoriteColor(null, ui, AppSettings(), { written = it }, EditorTool.PEN, XOPP_BLUE)
+        assertEquals(XOPP_BLUE, ui.color)
+        assertEquals(EditorTool.ERASER, ui.tool)
+        assertEquals(XOPP_BLUE, written?.lastColor)
+    }
 }
 
 /** The unchanged pen colour in the highlighter test above, read from the factory defaults. */

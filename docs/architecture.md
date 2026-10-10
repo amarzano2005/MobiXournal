@@ -1762,9 +1762,8 @@ centred **square** chevron button of 40% of the slot sits beside them across a 4
 button rather than a full-height strip, because a strip as tall as the slot and only as wide as a
 glyph reads as empty space with an arrow in it and puts a target where the hand expects none. A tap goes through `pickFavoriteColor`, which writes the colour into
 the **owning tool's** slot (`AppSettings.lastColor` for the pen, `highlighterColor` for the highlighter —
-the same write the Colour & size pop-up makes) and, when that tool is already live, takes the colour
-directly rather than re-activating the tool, since switching *to* the tool it is already on re-reads the
-live field and would undo the pick. A long-press opens the palette over that dot and rewrites it
+the same write the Colour & size pop-up makes) and applies it to the active canvas stroke directly without switching
+the active tool away (so drawing tools like line, rectangle, or eraser keep their tool without reverting to the pen). A long-press opens the palette over that dot and rewrites it
 (`assignFavorite`). `sanitizeFavorites` pads a short, long or corrupt pref to exactly three opaque,
 distinct colours — the row is a fixed three, so "three" is a shape the slot depends on, not a
 preference — and `AppSettingsBackup` carries both lists verbatim. The factory sets are
@@ -1790,7 +1789,7 @@ text and not a dp size) and applies it to the gaps but **not** to the column's p
 whole-number fit stays exact.
 
 Chrome styling is one design, with no switch: the Material 3 floating dock.
-- The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing only the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures; the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
+- The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing an active tool indicator (`ActiveToolIndicator` displaying the selected tool, colour, and stroke width in the corner closest to the Main Toolbar, with a vertical divider) and the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures; the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
 Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. The
 rail's head is **one slot per tool group** (`ToolGroups.kt`): `TOOL_GROUPS` partitions every
