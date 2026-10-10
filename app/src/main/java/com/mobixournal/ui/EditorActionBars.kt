@@ -50,9 +50,15 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.render.SelectionOps
 
 /**
- * The Select tool's contextual action bar, shown while a selection is active: cut / copy /
- * duplicate / delete, recolour and re-width the selected strokes. Horizontally scrollable so it fits
- * narrow screens. (Resize and rotate are on-canvas handles, not buttons.)
+ * The Select tool's contextual action bar: cut / copy / paste / duplicate / delete, recolour and
+ * re-width the selected strokes. Horizontally scrollable so it fits narrow screens. (Resize and
+ * rotate are on-canvas handles, not buttons.)
+ *
+ * With a selection it carries the whole set; with **none** it carries Paste alone — the one action
+ * that needs no selection — so the bar is the single home of paste in either state. That matters
+ * twice over: paste used to sit in a bar of its own that hid the moment anything was selected, so
+ * pasting a second copy meant deselecting first; and as one button floating by itself at the bottom
+ * edge it read as unrelated to the actions it belongs with.
  *
  * It carries **no Done button**: the bar floats on the selection itself (see
  * [SelectionActionAnchor]), so tapping off the selection is the way out — and that tap already starts
@@ -62,6 +68,9 @@ import com.mobixournal.render.SelectionOps
  */
 @Composable
 fun SelectionActionBar(
+    hasSelection: Boolean,
+    canPaste: Boolean,
+    onPaste: () -> Unit,
     onCut: () -> Unit,
     onCopy: () -> Unit,
     onDuplicate: () -> Unit,
@@ -91,13 +100,22 @@ fun SelectionActionBar(
                 .padding(horizontal = 6.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BarIconButton("Cut", Icons.Filled.ContentCut, onCut)
-            BarIconButton("Copy", Icons.Filled.ContentCopy, onCopy)
-            BarIconButton("Duplicate", Icons.Filled.LibraryAdd, onDuplicate)
-            RecolorMenu(onRecolor, palette)
-            ReWidthMenu(widthSlots, onReWidth)
-            AlignMenu(onAlign, onDistribute)
-            BarIconButton("Delete", Icons.Filled.Delete, onDelete)
+            if (hasSelection) {
+                BarIconButton("Cut", Icons.Filled.ContentCut, onCut)
+                BarIconButton("Copy", Icons.Filled.ContentCopy, onCopy)
+            }
+            // Paste rides with Copy: the same idea in the opposite direction, and putting it here is
+            // what keeps it usable while something *is* selected.
+            if (canPaste) {
+                BarIconButton("Paste", Icons.Filled.ContentPaste, onPaste)
+            }
+            if (hasSelection) {
+                BarIconButton("Duplicate", Icons.Filled.LibraryAdd, onDuplicate)
+                RecolorMenu(onRecolor, palette)
+                ReWidthMenu(widthSlots, onReWidth)
+                AlignMenu(onAlign, onDistribute)
+                BarIconButton("Delete", Icons.Filled.Delete, onDelete)
+            }
         }
     }
 }
@@ -206,23 +224,25 @@ private fun ReWidthMenu(widthSlots: List<Float>, onReWidth: (Float) -> Unit) {
 }
 
 /**
- * Shown in a marquee mode when nothing is selected: paste the clipboard onto the visible page, and —
- * once a background-select marquee has been dragged — Copy or Cut the region it left behind. Copy
- * re-captures the region (so it can be re-copied after the clipboard has moved on) and Cut also
- * erases the ink it covers. The marquee shape isn't picked here — rectangle and lasso are separate
- * rail tools (see [EditorTool]) — so the bar composes to nothing when there is nothing to act on.
+ * The background-select **region bar**: once a marquee has been dragged, Copy or Cut the flattened
+ * region it left behind, or drop the region. Copy re-captures the region (so it can be re-copied
+ * after the clipboard has moved on) and Cut also erases the ink it covers. The marquee shape isn't
+ * picked here — rectangle and lasso are separate rail tools (see [EditorTool]) — so the bar composes
+ * to nothing until a region actually exists.
+ *
+ * Paste deliberately does **not** live here. It is an action on the document, not on a region, so it
+ * belongs to the action bar that also carries Copy and Cut — [SelectionActionBar] — which is where it
+ * stays reachable while something is selected.
  */
 @Composable
 fun SelectModeBar(
-    canPaste: Boolean,
-    onPaste: () -> Unit,
     modifier: Modifier = Modifier,
     hasRegion: Boolean = false,
     onCopyRegion: () -> Unit = {},
     onCutRegion: () -> Unit = {},
     onClearRegion: () -> Unit = {},
 ) {
-    if (!canPaste && !hasRegion) return
+    if (!hasRegion) return
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -244,13 +264,6 @@ fun SelectModeBar(
                     Icon(Icons.Filled.ContentCut, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Cut")
-                }
-            }
-            if (canPaste) {
-                TextButton(onClick = onPaste) {
-                    Icon(Icons.Filled.ContentPaste, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Paste")
                 }
             }
             if (hasRegion) {

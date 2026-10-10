@@ -1716,10 +1716,12 @@ fun EditorPaneView(
                 )
             }
             // The selection's own options ride with the selection instead of sitting at the bottom
-            // of the screen, where a hand holding the stylus has to reach for them.
-            if (state.hasSelection && state.selectionRect != null) {
+            // of the screen, where a hand holding the stylus has to reach for them. The same bar also
+            // stands in for Paste when nothing is selected (see [SelectionActionAnchor]).
+            if (state.selectionRect != null || canPasteOnCanvas(state, ui)) {
                 SelectionActionAnchor(
                     pane = state,
+                    ui = ui,
                     settings = settings,
                     onSettingsChange = onSettingsChange,
                     canvasSizePx = canvasSizePx,

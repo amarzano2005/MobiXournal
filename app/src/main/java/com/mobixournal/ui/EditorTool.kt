@@ -49,6 +49,13 @@ enum class EditorTool {
     DIMENSION,
 }
 
+/**
+ * The marquee tools — rectangle select, lasso and background select. All three drag out a region and
+ * can act on elements, so they are the tools under which a paste (which lands a fresh selection) makes
+ * sense to offer.
+ */
+val MARQUEE_TOOLS: Set<EditorTool> = setOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.BG_SELECT)
+
 /** The geometric shape tools — drawn as ordinary pen strokes (see [ShapeKind]). */
 val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,

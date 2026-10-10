@@ -73,6 +73,13 @@ class SelectionActionAnchorTest {
     }
 
     @Test
+    fun `with nothing selected it takes the page-level spot at the bottom centre`() {
+        // The paste-only bar: no selection to hang on, so the bottom edge is passed as "below" and the
+        // bar lands just inside it — centred, and in the same pill the selection bar uses.
+        assertEquals(IntOffset(240, 1810), offset(anchorX = 540f, top = 1920f, bottom = 1920f))
+    }
+
+    @Test
     fun `parks at the margin before the bar has been measured`() {
         val offset = selectionBarOffset(
             anchorX = 540f,

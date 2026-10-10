@@ -22,6 +22,7 @@ import com.mobixournal.render.distributeSelection
 import com.mobixournal.render.cutSelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
+import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
 import kotlin.math.roundToInt
 
@@ -51,43 +52,52 @@ private fun rememberAppearAlpha(measured: Boolean): Float =
     ).value
 
 /**
- * The element-selection action bar (cut / copy / duplicate / recolour / width / delete), floating
- * against the selection instead of in a fixed corner of the screen: **below** it, since that is the
- * side the eye expects the controls of something to be on, and **above** it only when the canvas runs
- * out below (a selection at the foot of the page would otherwise push the bar off-screen).
+ * The element-selection action bar (cut / copy / paste / duplicate / recolour / width / delete),
+ * floating against the selection instead of in a fixed corner of the screen: **below** it, since that
+ * is the side the eye expects the controls of something to be on, and **above** it only when the
+ * canvas runs out below (a selection at the foot of the page would otherwise push the bar off-screen).
+ *
+ * With no selection — but something on the clipboard, in a tool that can act on what a paste lands —
+ * the same bar stands in at the **bottom centre** carrying Paste alone, rather than a second, separate
+ * bar appearing for it. One bar, one place, whichever state the canvas is in.
  *
  * It is rendered by [EditorPaneView] **inside the canvas box** that hosts the surface, so the
  * selection box the surface reports — its own view px — maps to this composable's coordinates with
  * no further conversion, and in split view the bar lands on whichever pane holds the selection.
- *
- * The bar is not rendered when [PaneState.selectionRect] is null (nothing selected, or the
- * selection's page isn't laid out); [EditorPaneView] still guards on the same value.
  */
 @Composable
 fun SelectionActionAnchor(
     pane: PaneState,
+    ui: EditorUiState,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
 ) {
     val surface = pane.surface
-    val rect = pane.selectionRect ?: return
+    val rect = pane.selectionRect
+    val canPaste = canPasteOnCanvas(pane, ui)
+    if (rect == null && !canPaste) return
     val palette = rememberColorPaletteState(settings, onSettingsChange)
     var barSize by remember { mutableStateOf(IntSize.Zero) }
     val appear = rememberAppearAlpha(measured = barSize.width > 0)
     val gapPx = with(LocalDensity.current) { SELECTION_BAR_GAP.roundToPx() }
     val marginPx = with(LocalDensity.current) { SELECTION_BAR_MARGIN.roundToPx() }
     val offset = selectionBarOffset(
-        anchorX = rect.centerX(),
-        selectionTop = rect.top,
-        selectionBottom = rect.bottom,
+        // With nothing selected there is no box to hang the bar on, so it takes the page-level spot: the
+        // bottom edge is passed as "below" and the existing rule lifts it just inside.
+        anchorX = rect?.centerX() ?: canvasSizePx.width / 2f,
+        selectionTop = rect?.top ?: canvasSizePx.height.toFloat(),
+        selectionBottom = rect?.bottom ?: canvasSizePx.height.toFloat(),
         barSize = barSize,
         canvasSize = canvasSizePx,
         gapPx = gapPx,
         marginPx = marginPx,
     )
     SelectionActionBar(
+        hasSelection = rect != null,
+        canPaste = canPaste,
+        onPaste = { pasteFromActionBar(ui, pane, settings, onSettingsChange) },
         onCut = { surface?.cutSelection() },
         onCopy = { surface?.copySelection() },
         onDuplicate = { surface?.duplicateSelection() },
@@ -103,6 +113,44 @@ fun SelectionActionAnchor(
             .alpha(appear)
             .onSizeChanged { barSize = it },
     )
+}
+
+/**
+ * Whether the action bar should offer **Paste** right now: something is on the clipboard, the canvas
+ * is in a tool that can act on what a paste lands, and the background-region bar isn't already up —
+ * pasting needs no selection, so this is the bar that carries it either way.
+ */
+internal fun canPasteOnCanvas(pane: PaneState, ui: EditorUiState): Boolean =
+    pane.hasClipboard && !pane.hasBackgroundRegion && ui.tool in MARQUEE_TOOLS
+
+/**
+ * Paste the clipboard onto the visible page.
+ *
+ * A paste lands a **fresh selection**, so the canvas is switched to SELECT first: under BG_SELECT the
+ * gesture layer never reaches the selection controller, and the pasted elements would draw as selected
+ * yet be undraggable (and die on the next touch).
+ */
+internal fun pasteFromActionBar(
+    ui: EditorUiState,
+    pane: PaneState,
+    settings: AppSettings,
+    onSettingsChange: (AppSettings) -> Unit,
+) {
+    if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
+        ui.tool = EditorTool.SELECT
+        pane.surface?.applyTool(ui.tool)
+        // Point the rail's Select slot at SELECT too, or it would keep facing the tool we just left
+        // and misreport what the canvas is actually in.
+        groupOf(EditorTool.SELECT)?.let {
+            onSettingsChange(
+                settings.copy(
+                    toolGroupSelections =
+                        it.withSelection(settings.toolGroupSelections, EditorTool.SELECT),
+                ),
+            )
+        }
+    }
+    pane.surface?.pasteClipboard()
 }
 
 /**

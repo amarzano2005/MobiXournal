@@ -33,7 +33,6 @@ import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.finishSpline
 import com.mobixournal.render.insertPlot
 import com.mobixournal.render.insertTable
-import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.undoLastSplineNode
 
@@ -212,29 +211,11 @@ private fun BoxScope.SelectionOverlays(
     // (see [SelectionActionAnchor], rendered by each pane). What stays at the bottom edge are the
     // mode bars — the marquee's paste/region actions, table insert, spline and PDF-text selection —
     // none of which belong to a selected element.
-    if (!pane.hasSelection && (ui.tool == EditorTool.SELECT || ui.tool == EditorTool.LASSO_SELECT || ui.tool == EditorTool.BG_SELECT)) {
+    // Paste is deliberately not in this bar: it acts on the document rather than on a region, so it
+    // rides with Copy and Cut in the selection action bar ([SelectionActionAnchor]) — where it also
+    // stays reachable while something is selected. What is left here is the region bar itself.
+    if (!pane.hasSelection && ui.tool in MARQUEE_TOOLS) {
         SelectModeBar(
-            canPaste = pane.hasClipboard,
-            onPaste = {
-                // Paste lands a fresh selection, so switch to SELECT first: under BG_SELECT the
-                // gesture layer never reaches the selection controller, and the pasted elements
-                // would draw as selected yet be undraggable (and die on the next touch).
-                if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
-                    ui.tool = EditorTool.SELECT
-                    surface?.applyTool(ui.tool)
-                    // Point the rail's Select slot at SELECT too, or it would keep facing the
-                    // tool we just left and misreport what the canvas is actually in.
-                    groupOf(EditorTool.SELECT)?.let {
-                        onSettingsChange(
-                            settings.copy(
-                                toolGroupSelections =
-                                    it.withSelection(settings.toolGroupSelections, EditorTool.SELECT),
-                            ),
-                        )
-                    }
-                }
-                surface?.pasteClipboard()
-            },
             modifier = barModifier,
             hasRegion = pane.hasBackgroundRegion,
             onCopyRegion = { surface?.captureBackgroundRegion() },
