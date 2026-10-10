@@ -26,25 +26,46 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("circuit", "Passive circuits"),
     RailItem("circuit_active", "Active circuits"),
     RailItem("logic", "Logic gates"),
-    // Popups
+    // STEM + popups
+    RailItem("graph", "Function graph"),
     RailItem("guides", "Drawing guides"),
 )
 
 /**
  * Default order of buttons in the Secondary Toolbar: line, rectangle, square, individual shapes,
- * arrows (dropdown), table, passive circuits, active circuits, logic gates, and drawing guides.
+ * arrows (dropdown), table, passive circuits, active circuits, logic gates, the function graph, and
+ * drawing guides. The graph sits second from the end — one tap from the tools' end of the row, but
+ * before the guides pop-up, which stays the row's last slot.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
     "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
-    "table", "circuit", "circuit_active", "logic", "guides",
+    "table", "circuit", "circuit_active", "logic", "graph", "guides",
 )
 
-/** The Secondary Toolbar positions in the user's [order], followed by any unlisted items in factory order. */
+/**
+ * The Secondary Toolbar positions in the user's [order], with any item the order doesn't name — one
+ * added since that order was written — dropped in at its **factory position** rather than tacked onto
+ * the end.
+ *
+ * Simply appending unlisted items would put a brand-new slot after everything the user has, which is
+ * not where it was designed to sit: the function-graph button belongs next to the guides pop-up, not
+ * past it. Each unknown item therefore goes immediately ahead of the next factory item the saved order
+ * *does* name, so an added slot arrives where it belongs in a row the user has already arranged.
+ */
 fun orderedTopBarItems(order: List<String>): List<RailItem> {
     val byId = TOP_BAR_ITEMS.associateBy { it.id }
     val listed = order.distinct().mapNotNull { byId[it] }
-    return listed + TOP_BAR_ITEMS.filterNot { it in listed }
+    if (listed.isEmpty()) return TOP_BAR_ITEMS
+    val known = listed.mapTo(HashSet()) { it.id }
+    val positioned = listed.toMutableList()
+    for ((index, item) in TOP_BAR_ITEMS.withIndex()) {
+        if (item.id in known) continue
+        val nextKnown = TOP_BAR_ITEMS.drop(index + 1).firstOrNull { it.id in known }?.id
+        val at = if (nextKnown == null) positioned.size else positioned.indexOfFirst { it.id == nextKnown }
+        positioned.add(at, item)
+    }
+    return positioned
 }
 
 /**
