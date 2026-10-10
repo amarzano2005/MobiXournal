@@ -187,6 +187,16 @@ class MainActivity : ComponentActivity() {
             uri?.let { exportPdf(it) }
         }
 
+    private val exportPagePngLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(PNG_MIME)) { uri ->
+            uri?.let { exportPagePng(it) }
+        }
+
+    private val exportPageSvgLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(SVG_MIME)) { uri ->
+            uri?.let { exportPageSvg(it) }
+        }
+
     /**
      * Hardware-keyboard shortcuts for the spline tool, which is the one tool whose gesture spans
      * several taps: Enter commits the open curve, Backspace drops its last control point, and Escape
@@ -265,6 +275,8 @@ class MainActivity : ComponentActivity() {
                         importPdfLauncher.launch(arrayOf(PDF_MIME))
                     },
                     onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
+                    onExportPagePng = { exportPagePngLauncher.launch(suggestedPageImageName("png")) },
+                    onExportPageSvg = { exportPageSvgLauncher.launch(suggestedPageImageName("svg")) },
                     onPickImage = { placement ->
                         pendingImagePlacement = placement
                         pickImageLauncher.launch(arrayOf("image/*"))
@@ -384,6 +396,8 @@ class MainActivity : ComponentActivity() {
         // intent filters have to agree with it: it is the app's declaration that these files are
         // Xournal++ documents, not untyped blobs. See that constant for why it maps to no extension.
         const val PDF_MIME = "application/pdf"
+        const val PNG_MIME = "image/png"
+        const val SVG_MIME = "image/svg+xml"
 
         /**
          * Folders under `filesDir` holding each pane's cached tab session (see [TabStore]), in pane

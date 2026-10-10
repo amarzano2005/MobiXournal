@@ -2,7 +2,8 @@ package com.mobixournal.ui
 
 import androidx.compose.runtime.Composable
 
-/** Storage budgets: the largest text import allowed, and how much background-PDF cache to keep. */
+/** Storage budgets and PDF handling: the largest text import and how much of the background-PDF
+ * cache to keep. */
 @Composable
 fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Import") {

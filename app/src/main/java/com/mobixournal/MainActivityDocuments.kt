@@ -262,6 +262,24 @@ internal fun MainActivity.exportPdf(uri: Uri) = runCatching {
     staging.writeTo(uri) { output: java.io.OutputStream -> surface?.exportPdf(output) }
 }.onFailure { toast("PDF export failed: ${it.message}") }
 
+/** Export the active page alone as a high-resolution PNG at the chosen location. */
+internal fun MainActivity.exportPagePng(uri: Uri) = runCatching {
+    val view = surface
+    val index = view?.currentPageIndex() ?: 0
+    staging.writeTo(uri) { output: java.io.OutputStream -> view?.exportPagePng(index, output) }
+}.onFailure { toast("PNG export failed: ${it.message}") }
+
+/** Export the active page alone as an SVG vector file at the chosen location. */
+internal fun MainActivity.exportPageSvg(uri: Uri) = runCatching {
+    val view = surface
+    val index = view?.currentPageIndex() ?: 0
+    staging.writeTo(uri) { output: java.io.OutputStream -> view?.exportPageSvg(index, output) }
+}.onFailure { toast("SVG export failed: ${it.message}") }
+
+/** Suggested file name for a single-page PNG/SVG export, from the document's own name. */
+internal fun MainActivity.suggestedPageImageName(extension: String): String =
+    suggestedPdfName().removeSuffix(".pdf") + "." + extension
+
 /** Read the picked image's bytes and place it at the tap that started the pick. */
 internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
     val placement = pendingImagePlacement ?: return@runCatching
