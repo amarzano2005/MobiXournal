@@ -531,18 +531,21 @@ val TransformerIcon: ImageVector by lazy {
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
-            moveTo(2f, 8f); lineTo(5f, 8f)
-            curveTo(5f, 4f, 9f, 4f, 9f, 8f)
-            curveTo(9f, 4f, 13f, 4f, 13f, 8f)
-            curveTo(13f, 4f, 17f, 4f, 17f, 8f)
-            lineTo(22f, 8f)
-            moveTo(2f, 16f); lineTo(5f, 16f)
-            curveTo(5f, 20f, 9f, 20f, 9f, 16f)
-            curveTo(9f, 20f, 13f, 20f, 13f, 16f)
-            curveTo(13f, 20f, 17f, 20f, 17f, 16f)
-            lineTo(22f, 16f)
-            moveTo(11f, 11f); lineTo(11f, 13f)
-            moveTo(13f, 11f); lineTo(13f, 13f)
+            // Primary (top) coil, humps toward the core.
+            moveTo(2f, 7f); lineTo(5f, 7f)
+            curveTo(5f, 11f, 9f, 11f, 9f, 7f)
+            curveTo(9f, 11f, 13f, 11f, 13f, 7f)
+            curveTo(13f, 11f, 17f, 11f, 17f, 7f)
+            lineTo(22f, 7f)
+            // Secondary (bottom) coil, humps toward the core.
+            moveTo(2f, 17f); lineTo(5f, 17f)
+            curveTo(5f, 13f, 9f, 13f, 9f, 17f)
+            curveTo(9f, 13f, 13f, 13f, 13f, 17f)
+            curveTo(13f, 13f, 17f, 13f, 17f, 17f)
+            lineTo(22f, 17f)
+            // Laminated core: two bars running along the coils, never joined across.
+            moveTo(6f, 11f); lineTo(18f, 11f)
+            moveTo(6f, 13f); lineTo(18f, 13f)
         }
     }.build()
 }

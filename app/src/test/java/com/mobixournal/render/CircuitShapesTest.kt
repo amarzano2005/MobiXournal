@@ -6,6 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.round
 
 class CircuitShapesTest {
 
@@ -35,11 +36,132 @@ class CircuitShapesTest {
     }
 
     @Test
-    fun `ground generates decreasing parallel bars`() {
-        val pts = CircuitShapes.ground(0.0, 0.0, 50.0, 0.0, widthPt = 1.0)
-        assertTrue(pts.size >= 10)
+    fun `ground hangs three shrinking plates below the middle of the wire`() {
+        val pts = CircuitShapes.ground(0.0, 0.0, 120.0, 0.0, widthPt = 1.0)
         assertEquals(0.0, pts.first().x, 1e-6)
+        assertEquals(0.0, pts.first().y, 1e-6)
+        assertEquals(120.0, pts.last().x, 1e-6)
+        assertEquals(0.0, pts.last().y, 1e-6)
         assertTrue(pts.all { it.width == 1.0 })
+        // The drag is the wire, so the symbol hangs *off* it: below the line (+v), never above it,
+        // and never reaching past either end of the drag.
+        assertTrue("the symbol hangs below the wire", pts.all { it.y >= -1e-9 })
+        assertTrue("the symbol has depth", pts.any { it.y > 1.0 })
+        assertTrue(pts.all { it.x >= -1e-9 && it.x <= 120.0 + 1e-9 })
+        // Exactly three plates, each narrower than the one before, evenly spaced down the stem, the
+        // widest one dropping from the wire's midpoint.
+        val plates = pts.filter { it.y > 1e-9 }
+            .groupBy { round(it.y * 1e6) / 1e6 }
+            .toSortedMap()
+        assertEquals("three plates", 3, plates.size)
+        val widths = plates.values.map { pl -> pl.maxOf { it.x } - pl.minOf { it.x } }
+        assertTrue("each plate is narrower than the one above it", widths[0] > widths[1] && widths[1] > widths[2])
+        val step = plates.keys.toList()
+        assertEquals("the plates are evenly spaced", step[1] - step[0], step[2] - step[1], 1e-6)
+        // Plates closer together than the shortest one is wide would read as one blob.
+        assertTrue("the plates do not crowd into each other", step[1] - step[0] < widths[2])
+        assertEquals(
+            "the stem drops from the wire's midpoint",
+            60.0,
+            (plates.values.first().minOf { it.x } + plates.values.first().maxOf { it.x }) / 2.0,
+            1e-6,
+        )
+    }
+
+    @Test
+    fun `closed switch draws no wire between its two contacts`() {
+        val strokes = CircuitShapes.switchClosed(0.0, 0.0, 120.0, 0.0, widthPt = 2.0)
+        // The blade plus one stroke per contact tick: a single polyline through both ticks would have
+        // to jump from the first to the second, and that jump is a wire drawn across the closed span.
+        assertEquals(3, strokes.size)
+        val (blade, near, far) = strokes
+        assertEquals("the blade is one straight segment along the leads", 2, blade.size)
+        assertEquals(0.0, blade[0].x, 1e-6)
+        assertEquals(120.0, blade[1].x, 1e-6)
+        assertTrue("the blade lies on the leads' own line", blade.all { abs(it.y) < 1e-9 })
+        for (tick in listOf(near, far)) {
+            assertEquals("a tick is a single bar", 2, tick.size)
+            assertEquals("a tick crosses the leads", tick[0].x, tick[1].x, 1e-9)
+            assertTrue("a tick sits on both sides of the leads", tick[0].y < 0 && tick[1].y > 0)
+        }
+        assertTrue("the ticks are at two different terminals", near[0].x < far[0].x)
+    }
+
+    @Test
+    fun `transformer draws one stroke per part with no stray wire down the core`() {
+        val strokes = CircuitShapes.transformer(0.0, 0.0, 120.0, 0.0, widthPt = 2.0)
+        // Two coils and two core bars. The core used to be a single polyline through both bars, and
+        // the segment joining them drew a diagonal straight down the middle of the symbol.
+        assertEquals("a coil each side of the core, plus its two bars", 4, strokes.size)
+        val (primary, secondary, topBar, bottomBar) = strokes
+        for (bar in listOf(topBar, bottomBar)) {
+            assertEquals("a core bar is one straight segment", 2, bar.size)
+            assertEquals("the core bar runs along the coils", bar[0].y, bar[1].y, 1e-9)
+        }
+        assertTrue("the bars straddle the axis", topBar[0].y < 0 && bottomBar[0].y > 0)
+        assertTrue("the coils sit on opposite sides of the core", primary.first().y < secondary.first().y)
+        // Both windings hump *towards* the core, which is what reads as magnetic coupling.
+        assertTrue(
+            "the primary's humps face the core",
+            primary.any { it.y > primary.first().y + 1.0 },
+        )
+        assertTrue(
+            "the secondary's humps face the core",
+            secondary.any { it.y < secondary.first().y - 1.0 },
+        )
+    }
+
+    @Test
+    fun `buffer gate draws nothing across its own interior`() {
+        val len = 120.0
+        val h = minOf(16.0, len * 0.26)
+        val back = len * 0.28
+        val tip = len * 0.72
+        val pts = CircuitShapes.bufferGate(0.0, 0.0, len, 0.0, widthPt = 2.0)
+        // Every segment must lie on an edge (or on the pins, which sit outside the body). One that
+        // crosses the middle — the old trace reached the output straight from the back edge — puts
+        // its own midpoint strictly inside the triangle.
+        fun inside(x: Double, y: Double): Boolean {
+            if (x <= back + 1e-9 || x >= tip - 1e-9) return false
+            val halfHeight = h * (tip - x) / (tip - back)
+            return abs(y) < halfHeight - 1e-9
+        }
+        for (i in 1 until pts.size) {
+            val a = pts[i - 1]
+            val b = pts[i]
+            assertTrue(
+                "segment ${i} crosses the body: ${a.x},${a.y} -> ${b.x},${b.y}",
+                !inside((a.x + b.x) / 2, (a.y + b.y) / 2),
+            )
+        }
+        assertTrue("the output leaves from the tip", pts.any { abs(it.x - len) < 1e-9 })
+    }
+
+    @Test
+    fun `junction is a solid dot, not a ring around a hole`() {
+        val width = 2.0
+        val r = 5.0
+        val pts = CircuitShapes.junction(0.0, 0.0, 120.0, 0.0, widthPt = width)
+        assertTrue(pts.all { it.width == width })
+        // The dot sits at the drag's start, sized only by the drag's length.
+        assertTrue(
+            "the dot is centred on the drag's start",
+            pts.all { hypot(it.x, it.y) <= r + 1e-9 },
+        )
+        // A `.xopp` stroke cannot be filled, so "solid" can only mean the pen's own path paints every
+        // part of the disc: sample its centre line and require a stroke segment within half a pen
+        // width of each sample. A bare ring leaves the middle — and everything else off its
+        // circumference — unpainted, which is exactly what the dot must not do.
+        for (k in -9..9) {
+            val y = r * k / 10.0
+            val painted = (0 until pts.size - 1).any { i ->
+                val a = pts[i]
+                val b = pts[i + 1]
+                val (cx, cy) = DrawingGuide.closestOnSegment(0.0, y, a.x, a.y, b.x, b.y)
+                hypot(cx, cy - y) <= width / 2 + 1e-9
+            }
+            assertTrue("nothing paints the dot's centre line at y=$y", painted)
+        }
     }
 
     @Test
