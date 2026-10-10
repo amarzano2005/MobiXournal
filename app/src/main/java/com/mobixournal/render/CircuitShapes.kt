@@ -872,7 +872,16 @@ object CircuitShapes {
             p(p2X, 0.0),
             p(len, 0.0),
         )
-        return listOf(stroke1, stroke2)
+        // Polarity marks above the plates: a plus sign over the long (positive) plate and a minus
+        // over the short (negative) one, each its own stroke so no wire joins them.
+        val markR = minOf(4.0, h * 0.30)
+        val markY = -h - markR * 1.6
+        val plus = listOf(
+            p(p1X - markR, markY), p(p1X + markR, markY),
+            p(p1X, markY), p(p1X, markY - markR), p(p1X, markY), p(p1X, markY + markR),
+        )
+        val minus = listOf(p(p2X - markR, markY), p(p2X + markR, markY))
+        return listOf(stroke1, stroke2, plus, minus)
     }
 
     /**
@@ -910,5 +919,112 @@ object CircuitShapes {
             pts += p(mid + radius, 0.0)
             pts += p(len, 0.0)
             pts
+        }
+
+    /**
+     * Junction dot: the small node where schematic wires meet. A `.xopp` stroke cannot be filled, so
+     * it is drawn as a tight ring at the pen width — with any ordinary pen that reads as the solid
+     * dot the convention wants. The dot sits at the drag's start; the drag's length only sizes it.
+     */
+    fun junction(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val r = minOf(4.5, maxOf(2.0, len * 0.08))
+            val steps = 12
+            (0..steps).map { i ->
+                val a = 2.0 * PI * (i.toDouble() / steps)
+                p(r * cos(a), r * sin(a))
+            }
+        }
+
+    /**
+     * Open switch: an incoming lead up to a hinge, a blade lifted off the far contact, and the
+     * outgoing lead with a short contact tick. Two strokes, so the blade never trails a wire across
+     * the open gap.
+     */
+    fun switchOpen(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<List<StrokePoint>> {
+        val (len, p) = frame(sx, sy, ex, ey, widthPt)
+            ?: return listOf(line(sx, sy, ex, ey, widthPt))
+        val lead = len * 0.22
+        val contact = len - lead
+        val tick = minOf(4.0, len * 0.06)
+        val blade = listOf(p(0.0, 0.0), p(lead, 0.0), p(contact - lead * 0.15, -len * 0.22))
+        val far = listOf(
+            p(contact, 0.0), p(len, 0.0), p(contact, 0.0),
+            p(contact, -tick), p(contact, 0.0), p(contact, tick), p(contact, 0.0),
+        )
+        return listOf(blade, far)
+    }
+
+    /** Closed switch: the blade lies along the leads, with contact ticks at both terminals. */
+    fun switchClosed(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<List<StrokePoint>> {
+        val (len, p) = frame(sx, sy, ex, ey, widthPt)
+            ?: return listOf(line(sx, sy, ex, ey, widthPt))
+        val lead = len * 0.22
+        val contact = len - lead
+        val tick = minOf(4.0, len * 0.06)
+        val blade = listOf(p(0.0, 0.0), p(lead, 0.0), p(contact, 0.0), p(len, 0.0))
+        val ticks = listOf(
+            p(lead, -tick), p(lead, 0.0), p(lead, tick),
+            p(contact, -tick), p(contact, 0.0), p(contact, tick),
+        )
+        return listOf(blade, ticks)
+    }
+
+    /**
+     * Transformer: two facing coils (primary above, secondary below) with a two-bar core between
+     * them. Three strokes — one per coil and the core — so the coils keep their separate loops and
+     * the core reads as the laminated bars of the symbol.
+     */
+    fun transformer(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<List<StrokePoint>> {
+        val (len, p) = frame(sx, sy, ex, ey, widthPt)
+            ?: return listOf(line(sx, sy, ex, ey, widthPt))
+        val lead = len * 0.15
+        val coilLen = len * 0.70
+        val loops = 4
+        val loopW = coilLen / loops
+        val radius = minOf(9.0, loopW / 2.0)
+        val gap = radius * 2.4
+
+        // A coil whose humps face the core: [up] puts the bumps on the +v side of its line.
+        fun coil(offset: Double, up: Boolean): List<StrokePoint> {
+            val pts = ArrayList<StrokePoint>()
+            pts += p(0.0, offset)
+            pts += p(lead, offset)
+            val sign = if (up) -1.0 else 1.0
+            for (i in 0 until loops) {
+                val cx = lead + i * loopW + loopW / 2.0
+                for (s in 0..8) {
+                    val theta = PI * s / 8
+                    pts += p(cx - (loopW / 2.0) * cos(theta), offset + sign * radius * sin(theta))
+                }
+            }
+            pts += p(len, offset)
+            return pts
+        }
+
+        val coreHalf = coilLen / 2.0
+        val coreCentre = lead + coreHalf
+        val coreGap = gap * 0.28
+        val core = listOf(
+            p(coreCentre - coreGap, -gap * 0.5), p(coreCentre - coreGap, gap * 0.5),
+            p(coreCentre + coreGap, -gap * 0.5), p(coreCentre + coreGap, gap * 0.5),
+        )
+        return listOf(coil(-gap, up = true), coil(gap, up = false), core)
+    }
+
+    /**
+     * Buffer gate: the plain amplifier triangle — the NOT gate without its inversion bubble — with
+     * its input and output pins. One stroke, traced around the triangle so nothing crosses it.
+     */
+    fun bufferGate(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
+        withBasis(sx, sy, ex, ey, widthPt) { len, p ->
+            val h = minOf(16.0, len * 0.26)
+            val gBack = len * 0.28
+            val gTip = len * 0.72
+            listOf(
+                p(0.0, 0.0), p(gBack, 0.0),
+                p(gBack, -h), p(gTip, 0.0), p(gBack, h), p(gBack, 0.0),
+                p(0.0, 0.0), p(gBack, 0.0), p(gTip, 0.0), p(len, 0.0),
+            )
         }
 }

@@ -75,7 +75,11 @@ class ToolGroupsTest {
         val arrows = groupOf(EditorTool.ARROW)!!
         assertEquals("arrow", arrows.id)
         assertEquals(EditorTool.ARROW, arrows.tools.first())
-        assertEquals(listOf(EditorTool.ARROW, EditorTool.DOUBLE_ARROW), arrows.tools)
+        // The measuring arrow shares the slot: it is an arrow with a gap for the value.
+        assertEquals(
+            listOf(EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
+            arrows.tools,
+        )
     }
 
     @Test

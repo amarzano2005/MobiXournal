@@ -18,6 +18,10 @@ enum class ShapeKind {
     DIODE, LED, ZENER_DIODE, OPAMP, BJT_NPN, BJT_PNP, DC_SOURCE, CURRENT_SOURCE,
     AND_GATE, OR_GATE, NOT_GATE,
     NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE,
+    BUFFER_GATE,
+    SWITCH_OPEN, SWITCH_CLOSED, TRANSFORMER, JUNCTION,
+    // Technical dimensioning: a double-ended arrow with a gap for the measured value.
+    DIMENSION,
 }
 
 /**
@@ -97,6 +101,12 @@ object ShapeBuilder {
         ShapeKind.NOR_GATE -> CircuitShapes.norGate(startX, startY, endX, endY, widthPt)
         ShapeKind.XOR_GATE -> CircuitShapes.xorGate(startX, startY, endX, endY, widthPt)
         ShapeKind.XNOR_GATE -> CircuitShapes.xnorGate(startX, startY, endX, endY, widthPt)
+        ShapeKind.BUFFER_GATE -> CircuitShapes.bufferGate(startX, startY, endX, endY, widthPt)
+        ShapeKind.SWITCH_OPEN -> CircuitShapes.switchOpen(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.SWITCH_CLOSED -> CircuitShapes.switchClosed(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.TRANSFORMER -> CircuitShapes.transformer(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.JUNCTION -> CircuitShapes.junction(startX, startY, endX, endY, widthPt)
+        ShapeKind.DIMENSION -> dimension(startX, startY, endX, endY, widthPt).flatten()
         // A spline is laid down over many taps, so its real geometry comes from [SplineBuilder]; the
         // two-point case this signature can express is just a straight line between the ends.
         ShapeKind.SPLINE -> line(startX, startY, endX, endY, widthPt)
@@ -120,10 +130,37 @@ object ShapeBuilder {
         ShapeKind.DC_SOURCE -> CircuitShapes.dcSource(startX, startY, endX, endY, widthPt)
         ShapeKind.LED -> CircuitShapes.led(startX, startY, endX, endY, widthPt)
         ShapeKind.OPAMP -> CircuitShapes.opAmp(startX, startY, endX, endY, widthPt)
+        ShapeKind.SWITCH_OPEN -> CircuitShapes.switchOpen(startX, startY, endX, endY, widthPt)
+        ShapeKind.SWITCH_CLOSED -> CircuitShapes.switchClosed(startX, startY, endX, endY, widthPt)
+        ShapeKind.TRANSFORMER -> CircuitShapes.transformer(startX, startY, endX, endY, widthPt)
+        ShapeKind.DIMENSION -> dimension(startX, startY, endX, endY, widthPt)
         else -> null
     }
 
     private fun p(x: Double, y: Double, w: Double) = StrokePoint(x, y, w)
+
+    /**
+     * A dimensioning arrow: a shaft with an arrowhead at each end and a **gap in the middle** where
+     * the measured value is written. Two strokes — the left half (tail head + shaft up to the gap)
+     * and the right half (shaft from the gap to the tip head) — so nothing is drawn across the gap.
+     * The gap is a fixed fraction of the span, so the room for a label scales with the figure.
+     */
+    private fun dimension(
+        sx: Double, sy: Double, ex: Double, ey: Double, w: Double,
+    ): List<List<StrokePoint>> {
+        val len = hypot(ex - sx, ey - sy)
+        if (len == 0.0) return listOf(line(sx, sy, ex, ey, w))
+        val ux = (ex - sx) / len
+        val uy = (ey - sy) / len
+        val gapHalf = (len * 0.12).coerceIn(6.0, 40.0)
+        val midX = (sx + ex) / 2.0
+        val midY = (sy + ey) / 2.0
+        val leftGap = p(midX - ux * gapHalf, midY - uy * gapHalf, w)
+        val rightGap = p(midX + ux * gapHalf, midY + uy * gapHalf, w)
+        val left = head(ex, ey, sx, sy, len, w).reversed() + leftGap
+        val right = listOf(rightGap) + head(sx, sy, ex, ey, len, w)
+        return listOf(left, right)
+    }
 
     private fun line(sx: Double, sy: Double, ex: Double, ey: Double, w: Double) =
         listOf(p(sx, sy, w), p(ex, ey, w))

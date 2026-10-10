@@ -98,19 +98,21 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ),
     ToolGroup(
         "arrow", "Arrows",
-        listOf(EditorTool.ARROW, EditorTool.DOUBLE_ARROW),
+        listOf(EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
     ),
     ToolGroup("table", "Table", listOf(EditorTool.TABLE)),
     ToolGroup(
         "circuit", "Passive circuits",
         listOf(
             EditorTool.RESISTOR, EditorTool.CAPACITOR, EditorTool.INDUCTOR,
-            EditorTool.GROUND,
+            EditorTool.GROUND, EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED,
+            EditorTool.JUNCTION,
         ),
-        // Two by two, so the slot's four passives don't leave a lone straggler on a second row.
         pickerLayout = listOf(
             listOf(EditorTool.RESISTOR, EditorTool.CAPACITOR),
             listOf(EditorTool.INDUCTOR, EditorTool.GROUND),
+            listOf(EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED),
+            listOf(EditorTool.JUNCTION),
         ),
     ),
     ToolGroup(
@@ -119,13 +121,15 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE,
             EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP,
             EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE,
+            EditorTool.TRANSFORMER,
         ),
         // The diode family together; the amplifiers and the two transistors (which are read as a
-        // pair) together; then the two sources.
+        // pair) together; then the two sources; then the transformer, which joins the sources in
+        // the "energy" row.
         pickerLayout = listOf(
             listOf(EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE),
             listOf(EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP),
-            listOf(EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE),
+            listOf(EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE, EditorTool.TRANSFORMER),
         ),
     ),
     ToolGroup(
@@ -133,14 +137,15 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
         listOf(
             EditorTool.AND_GATE, EditorTool.OR_GATE, EditorTool.NOT_GATE,
             EditorTool.NAND_GATE, EditorTool.NOR_GATE, EditorTool.XOR_GATE,
-            EditorTool.XNOR_GATE,
+            EditorTool.XNOR_GATE, EditorTool.BUFFER_GATE,
         ),
-        // Each gate beside its inverted twin, which is how the family is read.
+        // Each gate beside its inverted twin, which is how the family is read; the buffer joins the
+        // NOT gate on the "plain gate" row.
         pickerLayout = listOf(
             listOf(EditorTool.AND_GATE, EditorTool.NAND_GATE),
             listOf(EditorTool.OR_GATE, EditorTool.NOR_GATE),
             listOf(EditorTool.XOR_GATE, EditorTool.XNOR_GATE),
-            listOf(EditorTool.NOT_GATE),
+            listOf(EditorTool.NOT_GATE, EditorTool.BUFFER_GATE),
         ),
     ),
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),

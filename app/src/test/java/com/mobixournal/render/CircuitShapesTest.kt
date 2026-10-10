@@ -231,9 +231,11 @@ class CircuitShapesTest {
     }
 
     @Test
-    fun `dcSource produces two disconnected strokes with open gap and correct plate sizes`() {
+    fun `dcSource produces two disconnected plates plus polarity marks`() {
         val strokes = CircuitShapes.dcSource(0.0, 0.0, 100.0, 0.0, widthPt = 2.0)
-        assertEquals("dcSource decomposes into 2 strokes", 2, strokes.size)
+        // Two plate strokes with their wires, then the +/- marks above them — each its own stroke so
+        // no wire is drawn between them.
+        assertEquals("dcSource decomposes into 4 strokes", 4, strokes.size)
         val s1 = strokes[0]
         val s2 = strokes[1]
         assertEquals(0.0, s1.first().x, 1e-6)
@@ -293,7 +295,7 @@ class CircuitShapesTest {
         val multiCap = ShapeBuilder.buildMulti(ShapeKind.CAPACITOR, 0.0, 0.0, 80.0, 0.0, 1.0)
         assertEquals(2, multiCap?.size)
         val multiDc = ShapeBuilder.buildMulti(ShapeKind.DC_SOURCE, 0.0, 0.0, 80.0, 0.0, 1.0)
-        assertEquals(2, multiDc?.size)
+        assertEquals(4, multiDc?.size)
         val multiLed = ShapeBuilder.buildMulti(ShapeKind.LED, 0.0, 0.0, 80.0, 0.0, 1.0)
         assertEquals(3, multiLed?.size)
         val multiOpAmp = ShapeBuilder.buildMulti(ShapeKind.OPAMP, 0.0, 0.0, 80.0, 0.0, 1.0)

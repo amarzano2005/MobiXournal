@@ -478,3 +478,103 @@ val CurrentSourceIcon: ImageVector by lazy {
     }.build()
 }
 
+val BufferGateIcon: ImageVector by lazy {
+    ImageVector.Builder("BufferGate", 24.dp, 24.dp, 24f, 24f).apply {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(2f, 12f); lineTo(6f, 12f)
+            moveTo(6f, 5f); lineTo(18f, 12f); lineTo(6f, 19f); close()
+            moveTo(18f, 12f); lineTo(22f, 12f)
+        }
+    }.build()
+}
+
+val SwitchOpenIcon: ImageVector by lazy {
+    ImageVector.Builder("SwitchOpen", 24.dp, 24.dp, 24f, 24f).apply {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(2f, 15f); lineTo(7f, 15f); lineTo(17f, 6f)
+            moveTo(17f, 15f); lineTo(22f, 15f)
+            moveTo(17f, 12f); lineTo(17f, 18f)
+        }
+    }.build()
+}
+
+val SwitchClosedIcon: ImageVector by lazy {
+    ImageVector.Builder("SwitchClosed", 24.dp, 24.dp, 24f, 24f).apply {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(2f, 12f); lineTo(22f, 12f)
+            moveTo(7f, 9f); lineTo(7f, 15f)
+            moveTo(17f, 9f); lineTo(17f, 15f)
+        }
+    }.build()
+}
+
+val TransformerIcon: ImageVector by lazy {
+    ImageVector.Builder("Transformer", 24.dp, 24.dp, 24f, 24f).apply {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.8f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(2f, 8f); lineTo(5f, 8f)
+            curveTo(5f, 4f, 9f, 4f, 9f, 8f)
+            curveTo(9f, 4f, 13f, 4f, 13f, 8f)
+            curveTo(13f, 4f, 17f, 4f, 17f, 8f)
+            lineTo(22f, 8f)
+            moveTo(2f, 16f); lineTo(5f, 16f)
+            curveTo(5f, 20f, 9f, 20f, 9f, 16f)
+            curveTo(9f, 20f, 13f, 20f, 13f, 16f)
+            curveTo(13f, 20f, 17f, 20f, 17f, 16f)
+            lineTo(22f, 16f)
+            moveTo(11f, 11f); lineTo(11f, 13f)
+            moveTo(13f, 11f); lineTo(13f, 13f)
+        }
+    }.build()
+}
+
+val JunctionDotIcon: ImageVector by lazy {
+    ImageVector.Builder("JunctionDot", 24.dp, 24.dp, 24f, 24f).apply {
+        path(fill = SolidColor(Color.Black)) {
+            moveTo(9f, 12f)
+            curveTo(9f, 10.34f, 10.34f, 9f, 12f, 9f)
+            curveTo(13.66f, 9f, 15f, 10.34f, 15f, 12f)
+            curveTo(15f, 13.66f, 13.66f, 15f, 12f, 15f)
+            curveTo(10.34f, 15f, 9f, 13.66f, 9f, 12f)
+            close()
+        }
+    }.build()
+}
+
+val DimensionIcon: ImageVector by lazy {
+    ImageVector.Builder("Dimension", 24.dp, 24.dp, 24f, 24f).apply {
+        path(
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            moveTo(2f, 12f); lineTo(5f, 9f)
+            moveTo(2f, 12f); lineTo(5f, 15f)
+            moveTo(22f, 12f); lineTo(19f, 9f)
+            moveTo(22f, 12f); lineTo(19f, 15f)
+            moveTo(2f, 12f); lineTo(10f, 12f)
+            moveTo(14f, 12f); lineTo(22f, 12f)
+        }
+    }.build()
+}
+

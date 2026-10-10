@@ -43,7 +43,10 @@ enum class EditorTool {
     RESISTOR, CAPACITOR, INDUCTOR, GROUND,
     DIODE, LED, ZENER_DIODE, OPAMP, BJT_NPN, BJT_PNP, DC_SOURCE, CURRENT_SOURCE,
     AND_GATE, OR_GATE, NOT_GATE,
-    NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE,
+    NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, BUFFER_GATE,
+    SWITCH_OPEN, SWITCH_CLOSED, TRANSFORMER, JUNCTION,
+    // Technical dimensioning.
+    DIMENSION,
 }
 
 /** The geometric shape tools — drawn as ordinary pen strokes (see [ShapeKind]). */
@@ -59,6 +62,9 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE,
     EditorTool.AND_GATE, EditorTool.OR_GATE, EditorTool.NOT_GATE,
     EditorTool.NAND_GATE, EditorTool.NOR_GATE, EditorTool.XOR_GATE, EditorTool.XNOR_GATE,
+    EditorTool.BUFFER_GATE,
+    EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED, EditorTool.TRANSFORMER, EditorTool.JUNCTION,
+    EditorTool.DIMENSION,
 )
 
 private data class ToolInfo(val tool: EditorTool, val label: String, val icon: ImageVector)
@@ -100,6 +106,12 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.NOR_GATE, "NOR Gate", NorGateIcon),
     ToolInfo(EditorTool.XOR_GATE, "XOR Gate", XorGateIcon),
     ToolInfo(EditorTool.XNOR_GATE, "XNOR Gate", XnorGateIcon),
+    ToolInfo(EditorTool.BUFFER_GATE, "Buffer", BufferGateIcon),
+    ToolInfo(EditorTool.SWITCH_OPEN, "Switch (open)", SwitchOpenIcon),
+    ToolInfo(EditorTool.SWITCH_CLOSED, "Switch (closed)", SwitchClosedIcon),
+    ToolInfo(EditorTool.TRANSFORMER, "Transformer", TransformerIcon),
+    ToolInfo(EditorTool.JUNCTION, "Junction dot", JunctionDotIcon),
+    ToolInfo(EditorTool.DIMENSION, "Dimension arrow", DimensionIcon),
     ToolInfo(EditorTool.SPLINE, "Spline", Icons.Filled.Gesture),
     ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Filled.PanTool),
     ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Filled.HighlightAlt),
