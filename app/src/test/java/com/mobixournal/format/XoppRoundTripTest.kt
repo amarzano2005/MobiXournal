@@ -80,6 +80,32 @@ class XoppRoundTripTest {
         assertEquals(doc1, doc2)
     }
 
+    /**
+     * The ruling parameters (`config`) are modelled, not pushed into `extraAttrs`: the reader must
+     * take them out of the extras map and the writer must emit the attribute **once**, or a
+     * load→save would either duplicate it or drop the page's custom spacing.
+     */
+    @Test fun backgroundRulingConfigRoundTripsOnce() {
+        val xml = """
+            <?xml version="1.0" standalone="no"?>
+            <xournal creator="xournalpp 1.2.3" fileversion="4">
+            <page width="595.27559100" height="841.88976400">
+            <background type="solid" color="#ffffffff" style="graph" config="r1=14.173,bli=10"/>
+            <layer/>
+            </page>
+            </xournal>
+        """.trimIndent()
+        val doc = Xopp.parseXml(xml)
+        val bg = doc.pages.single().background as Background.Solid
+        assertEquals("r1=14.173,bli=10", bg.config)
+        assertTrue("config is modelled, not an unknown extra", !bg.extraAttrs.containsKey("config"))
+
+        val out = Xopp.toXml(doc)
+        assertEquals(1, Regex("config=").findAll(out).count())
+        assertTrue(out.contains("config=\"r1=14.173,bli=10\""))
+        assertEquals(doc, Xopp.parseXml(out))
+    }
+
     @Test fun survivesGzipRoundTrip() {
         val doc1 = Xopp.parseXml(sample)
         val bytes = ByteArrayOutputStream().also { Xopp.save(doc1, it) }.toByteArray()

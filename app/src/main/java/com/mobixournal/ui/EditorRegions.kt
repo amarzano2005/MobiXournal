@@ -626,6 +626,9 @@ fun EditorToolbar(
         pageCallbacks = toolbarPagesCallbacks(pane, settings, onSettingsChange, surface),
         backgroundStyle = pane.backgroundStyle,
         onBackgroundStyle = { surface?.setPageBackgroundStyle(it) },
+        backgroundConfig = pane.backgroundConfig,
+        onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
+        onStationery = { surface?.applyStationery(it) },
     )
 }
 
@@ -1481,10 +1484,12 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onLayersChanged = {
         state.layers = visibleLayers()
         state.backgroundStyle = visiblePageBackgroundStyle()
+        state.backgroundConfig = visiblePageBackgroundConfig()
         state.pageSize = visiblePageSize()
     }
     state.layers = visibleLayers()
     state.backgroundStyle = visiblePageBackgroundStyle()
+    state.backgroundConfig = visiblePageBackgroundConfig()
     state.pageSize = visiblePageSize()
     onHistoryChanged = { u, r -> state.canUndo = u; state.canRedo = r }
     onZoomChanged = { z -> state.zoom = z }
@@ -1494,6 +1499,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onCurrentPageChanged = { page ->
         state.currentPage = page
         state.backgroundStyle = visiblePageBackgroundStyle()
+        state.backgroundConfig = visiblePageBackgroundConfig()
         state.pageSize = visiblePageSize()
     }
     onScrollChanged = { y, total, vp -> state.scrollY = y; state.contentHeight = total; state.viewportHeight = vp }

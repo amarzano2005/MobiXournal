@@ -27,7 +27,7 @@ class XoppReader(xml: String) {
     private val strokeKnownAttrs = setOf("tool", "color", "width", "capStyle", "style", "fill")
     private val pageKnownAttrs = setOf("width", "height")
     private val layerKnownAttrs = setOf("name")
-    private val backgroundKnownAttrs = setOf("type", "color", "style", "domain", "filename", "pageno")
+    private val backgroundKnownAttrs = setOf("type", "color", "style", "config", "domain", "filename", "pageno")
     private val textKnownAttrs = setOf("font", "size", "x", "y", "color")
     private val imageKnownAttrs = setOf("left", "top", "right", "bottom")
     private val texKnownAttrs = setOf("left", "top", "right", "bottom", "color", "text")
@@ -96,6 +96,7 @@ class XoppReader(xml: String) {
             else -> Background.Solid(
                 color = XoppColor.parse(r.attr("color")),
                 style = r.attr("style") ?: "plain",
+                config = r.attr("config"),
                 extraAttrs = extra,
             )
         }

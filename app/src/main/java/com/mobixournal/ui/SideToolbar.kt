@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.GuideKind
+import com.mobixournal.render.Stationery
 import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
@@ -67,6 +68,9 @@ fun SideToolbar(
     pageCallbacks: ToolbarPagesCallbacks,
     backgroundStyle: String?,
     onBackgroundStyle: (String) -> Unit,
+    backgroundConfig: String? = null,
+    onBackgroundConfig: (String?) -> Unit = {},
+    onStationery: (Stationery) -> Unit = {},
     audio: AudioUiState = AudioUiState(),
     railOrder: List<String> = emptyList(),
     railHidden: Set<String> = emptySet(),
@@ -111,7 +115,13 @@ fun SideToolbar(
                 "guides" -> GuidePopupButton(guideKind, onGuideKind)
                 "layers" -> LayersPopupButton(layerCallbacks)
                 "zoom" -> ZoomPopupButton(zoom, onZoomIn, onZoomOut, onZoomReset)
-                "background" -> BackgroundPopupButton(backgroundStyle, onBackgroundStyle)
+                "background" -> BackgroundPopupButton(
+                    backgroundStyle,
+                    backgroundConfig,
+                    onBackgroundStyle,
+                    onBackgroundConfig,
+                    onStationery,
+                )
                 "pages" -> PagesPopupButton(pageCallbacks)
                 "audio" -> AudioPopupButton(audio)
             }

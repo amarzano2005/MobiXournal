@@ -175,7 +175,16 @@ regenerate it on write (or omit it — desktop tolerates its absence).
 `<layer>`.
 
 **`<background>`** — empty element, attributes depend on `type`:
-- `type="solid"`: `color` (hex or named), `style` ∈ `plain | lined | ruled | graph | dotted`.
+- `type="solid"`: `color` (hex or named), `style` ∈ `plain | lined | ruled | graph | dotted |
+  isograph | isodotted` — these are desktop's own style strings, the map being
+  `PageTypeHandler::getPageTypeFormatForString` (`isograph`/`isodotted` are its isometric papers), and
+  `style` is otherwise a free name that desktop resolves against `pagetemplates.ini`. **`config`** is
+  an optional comma-separated `key=value` list of ruling parameters (`BackgroundConfig.cpp` splits on
+  `,` and each entry at its **last** `=`): `r1` spacing in pt (line spacing for lined/ruled, square
+  size for graph/dotted, **triangle side** for the isometric styles), `m1` margin, `lw` line width,
+  `bli`/`blw` bold-line interval and width, and colour keys (`f1`/`f2`/`af1`/`af2`) we preserve
+  without interpreting. This app models the whole attribute (`BackgroundRuling`) and writes only the
+  keys it changes, so a page's own spacing survives a round trip.
 - `type="pixmap"`: `domain` ∈ `absolute | attach | clone`, `filename` (image path/URI).
 - `type="pdf"`: `filename` (PDF path/URI), `pageno` (**1-based** PDF page index, matching desktop
   Xournal++'s `SaveHandler`; converted to/from the 0-based `Background.Pdf.pageNo` used internally
@@ -676,10 +685,12 @@ app/
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
       PageStacker.kt         # lays pages out in rows of N columns, fit to column (pure geometry)
       BackgroundGrid.kt      # ruling line/dot offsets + the pt spacings themselves (pure geometry)
+      BackgroundRuling.kt   # `<background config=…>`: parse/edit/serialize desktop's ruling params (pure)
+      PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
       Snapping.kt            # shape endpoints -> the ruling; rotation -> 15-degree steps (pure)
       DrawingGuide.kt        # setsquare/compass/protractor overlay geometry: project drawn point onto edge or ray (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
-      BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted, or a PDF page image)
+      BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
       PageRegionRenderer.kt  # synchronous flattened rectangular page-region copies
       StrokePainter.kt       # paints a stroke's pressure polyline (shared by screen + PDF export)
       PageRenderer.kt        # draws a page's layers/elements at a scale/offset (shared)
@@ -971,7 +982,9 @@ split-screen window stayed smooth. On the GPU canvas fill rate is effectively fr
 bitmaps are plain textured blits. The `DrawingSurfaceView` holds the whole [Document] and renders every
 page in a single vertical stack, each page scaled to fit the view width via `PageStacker` and
 drawn with its background ruling (`BackgroundRenderer`, using the pure `BackgroundGrid` offsets and
-colours — lined rules in desktop Xournal++'s `xopp_dodgerblue`, graph/dotted in its `xopp_silver`)
+colours — lined rules in desktop Xournal++'s `xopp_dodgerblue`, graph/dotted in its `xopp_silver`),
+resolved per page through `BackgroundRuling` so a sheet rules at **its own spacing, margin and line
+width** rather than at a constant (see *Ruling parameters and stationery* below)
 plus all of its layers in z-order. The geometry (page placement, gridlines) is factored into
 `PageStacker`/`BackgroundGrid` precisely so it's unit-testable off-device. **One finger draws**
 (a new stroke lands on the top layer of the page under the touch) — or **erases** when the
@@ -1062,6 +1075,29 @@ decode, called *without* the cache lock), `index`/`unindex` (its width index beh
 `spared` (PdfPageCache's on-screen pinned tiles), and the `onCacheChanged`/`onDiscard` hooks.
 `BitmapLruCache.MAX_RASTER_WIDTH` (4096 px), `PAGE_SHARE` (a quarter of the budget per raster) and
 `bucket` (64 px width buckets) live there once for all three caches.
+
+**Ruling parameters and stationery (`BackgroundRuling`, `PageTemplates`).** A page's paper is not
+just a style: desktop writes the ruling's parameters — spacing, margin, line width, bold lines — into
+`<background config=…>`, and reading them is what lets a 7 mm ruled sheet or a millimetre grid look
+right in both apps. `BackgroundRuling` is that attribute as an **ordered key/value map** (desktop's
+own `BackgroundConfig`, split on `,` and each entry at its last `=`), so unknown parameters — the
+colour keys, anything a future desktop adds — are preserved in place exactly like an element's
+`extraAttrs`, while the keys we do understand are edited by key and written back with three decimals.
+`BackgroundRulings` resolves the numbers a renderer needs (`r1` else the style's default from
+`BackgroundGrid`, `m1`, `lw`, `bli`/`blw`), and the three consumers — `BackgroundRenderer` on screen,
+`PageSvgWriter` for the SVG export, `PdfBackgroundPainter` for the PDF flatten — all go through it,
+so a custom grid can't rule one way on screen and another in the export. `Snapping` resolves the same
+numbers, so *Snap to grid* pulls onto the lines the user can actually see. The renderer caches the
+parsed ruling against the config string (one entry), because `draw` runs every frame and a fresh parse
+per frame was pure churn. Isometric paper is the same story one level up: `isograph`/`isodotted` are
+desktop styles, `r1` is the triangle's side, and the mesh is the pure `BackgroundGrid.isometric`
+clipped to the sheet — the two ±30° families whose diagonals are what desktop paints. (A desktop page
+ruled `isodotted` is drawn as that same mesh rather than as its dotted variant: a cosmetic difference
+on a style we never produce, recorded here rather than guessed at.) **Stationery** is the menu over
+all of this (`PageTemplates`): millimetre paper, 5 mm graph, 7 mm ruled and 5/10 mm isometric write a
+style + `config` pair — real paper the desktop renders too — while **Cornell notes**, which no
+Xournal++ version has, is drawn instead: its three rules land as ordinary strokes on a layer named
+after the template, so it round-trips like any ink and can be deleted by deleting the layer.
 
 **Vector PDF pages — retired (2026-10-11).** *Decision (2026-10-10), reversed (2026-10-11).* A first
 revision drew a `pdf` background's page as **vector geometry** on the drawing thread (PDFBox's

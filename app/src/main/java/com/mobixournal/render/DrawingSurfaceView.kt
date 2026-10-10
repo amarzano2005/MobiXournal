@@ -1120,6 +1120,19 @@ class DrawingSurfaceView @JvmOverloads constructor(
      */
     fun setPageBackgroundStyle(style: String) = pages.setPageBackgroundStyle(style)
 
+    /**
+     * The visible page's ruling parameters (desktop's `<background config=…>`), or null when the page
+     * has none (or isn't a solid sheet). See [BackgroundRuling].
+     */
+    fun visiblePageBackgroundConfig(): String? =
+        (doc.pages.getOrNull(visiblePageIndex())?.background as? Background.Solid)?.config
+
+    /** Set the visible page's ruling parameters as one undoable edit (null restores the defaults). */
+    fun setPageBackgroundConfig(config: String?) = pages.setPageBackgroundConfig(config)
+
+    /** Apply a **stationery** preset to the visible page as one undoable edit ([PageTemplates]). */
+    fun applyStationery(kind: Stationery) = pages.applyStationery(kind)
+
     /** The visible page's size in points (width to height), or null when the document has no pages. */
     fun visiblePageSize(): Pair<Double, Double>? =
         doc.pages.getOrNull(visiblePageIndex())?.let { it.width to it.height }

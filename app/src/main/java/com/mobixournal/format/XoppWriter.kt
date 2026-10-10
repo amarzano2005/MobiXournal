@@ -45,9 +45,11 @@ class XoppWriter(out: Appendable) {
         w.start("background")
         writeExtras(bg.extraAttrs)
         when (bg) {
-            is Background.Solid ->
+            is Background.Solid -> {
                 w.attr("type", "solid").attr("color", XoppColor.format(bg.color))
                     .attr("style", bg.style)
+                bg.config?.let { w.attr("config", it) }
+            }
             is Background.Pixmap ->
                 w.attr("type", "pixmap").attr("domain", bg.domain).attr("filename", bg.filename)
             is Background.Pdf -> {

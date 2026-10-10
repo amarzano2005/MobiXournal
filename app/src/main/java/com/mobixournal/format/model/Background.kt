@@ -5,8 +5,7 @@ package com.mobixournal.format.model
  * `solid` / `pixmap` / `pdf` values. Styles and domains are kept as raw strings so unknown
  * desktop values round-trip unchanged.
  *
- * [extraAttrs] carries the attributes we don't interpret (newer desktop builds put custom ruling
- * configuration on a solid background, for instance) so they survive a load/save round trip.
+ * [extraAttrs] carries the attributes we don't interpret so they survive a load/save round trip.
  */
 sealed interface Background {
 
@@ -18,11 +17,15 @@ sealed interface Background {
      *
      * @param color The background colour as an ARGB int.
      * @param style The ruling style (e.g., "plain", "ruled", "graph").
+     * @param config Desktop Xournal++'s comma-separated ruling parameters (`r1` spacing, `m1` margin,
+     *   `lw` line width, `bli`/`blw` bold lines) — see `BackgroundRuling`. Null when the page rules at
+     *   desktop's defaults, which keeps the attribute off the file entirely.
      * @param extraAttrs Extra attributes preserved for round-trip.
      */
     data class Solid(
         val color: Int,
         val style: String,
+        val config: String? = null,
         override val extraAttrs: Map<String, String> = emptyMap(),
     ) : Background
 

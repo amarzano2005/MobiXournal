@@ -166,7 +166,9 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Page Management & Overview**:
   - **Page Layout**: Single-page stack or multi-column grid overview (**1, 2, 3, or 4 pages per row**).
   - **Page Grid Edit Mode**: Select, reorder by dragging, copy, paste, or delete entire pages.
-  - **Background Rulings**: Plain, Lined, Ruled, Graph, and Dotted in standard Xournal++ colors.
+  - **Background Rulings**: Plain, Lined, Ruled, Graph, Dotted, and **Isometric** (desktop Xournal++'s triangular mesh) in standard Xournal++ colors.
+  - **Rule spacing**: the sheet's own line spacing, set from the background menu — **2, 3, 5, 7 or 10 mm** chips or any value you type, with a millimetre grid marking every centimetre bold. The spacing is written in the file as desktop Xournal++'s own ruling parameter, so a page ruled at 7 mm reopens at 7 mm on the desktop instead of quietly reverting.
+  - **Stationery**: ready-made paper — **Millimetre paper**, **5 mm graph**, **7 mm ruled** and **Isometric 5 mm / 10 mm** are real Xournal++ rulings (they look right in the desktop app too), while **Cornell notes** — a layout no Xournal++ version has — is laid down as a layer of rules named after the template, so it stays normal ink you can hide, restyle or delete.
   - **Page Dimensions**: Presets (A4, A5, Letter, Legal) or custom dimensions (mm, in, pt). Configurable default page size.
 
 ### ⚙️ Hardware Optimization & Settings

@@ -88,6 +88,9 @@ class PaneState {
     var layers by mutableStateOf<List<LayerInfo>>(emptyList())
     /** Background style of the current page (plain/lined/ruled/graph/dotted), or null for PDF backgrounds. */
     var backgroundStyle by mutableStateOf<String?>(null)
+
+    /** The visible page's ruling parameters (desktop's `<background config=…>`), or null. */
+    var backgroundConfig by mutableStateOf<String?>(null)
     /** Page size as (widthPt, heightPt) in points, or null when unavailable. */
     var pageSize by mutableStateOf<Pair<Double, Double>?>(null)
     /** Monotonically increasing version counter bumped whenever a new document is loaded into the canvas. */

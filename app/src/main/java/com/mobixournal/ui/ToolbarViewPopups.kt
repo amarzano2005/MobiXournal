@@ -1,11 +1,13 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Straighten
@@ -21,9 +23,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,7 +38,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobixournal.render.BackgroundRuling
+import com.mobixournal.render.BackgroundRulings
 import com.mobixournal.render.GuideKind
+import com.mobixournal.render.PageTemplates
+import com.mobixournal.render.Stationery
 import kotlin.math.roundToInt
 
 /** The zoom slot's percentage label at full size; it is typeset at this times the rail's scale. */
@@ -95,19 +106,36 @@ private val BACKGROUND_STYLES: List<Pair<String, String>> = listOf(
     "ruled" to "Ruled",
     "graph" to "Graph",
     "dotted" to "Dotted",
+    // Desktop Xournal++'s isometric paper (`isograph`); its `r1` is the triangle's side.
+    "isograph" to "Isometric",
 )
 
+/** Ruling-spacing chips, in millimetres — the sizes people actually ask for, 1 mm to 10 mm. */
+private val RULE_SPACING_MM = listOf(2.0, 3.0, 5.0, 7.0, 10.0)
+
 /**
- * The page-background chooser: sets the current page's paper style (plain/lined/ruled/graph/dotted).
- * [style] is the current page's style, or null when the page is a PDF/pixmap (no solid sheet to
- * restyle) — in which case the items are disabled.
+ * The page-background chooser: the current page's paper style (plain/lined/ruled/graph/dotted /
+ * isometric), the **spacing** its ruling is ruled at, and the stationery presets.
+ *
+ * [style] and [config] are the current page's, or null when the page is a PDF/pixmap (no solid sheet
+ * to re-rule) — in which case the paper and spacing controls are disabled. Spacing is written as
+ * desktop's own `r1` parameter ([BackgroundRuling]), so a page ruled at 7 mm reopens at 7 mm on the
+ * desktop rather than silently reverting to the default.
  */
 @Composable
-internal fun BackgroundPopupButton(style: String?, onBackgroundStyle: (String) -> Unit) {
+internal fun BackgroundPopupButton(
+    style: String?,
+    config: String?,
+    onBackgroundStyle: (String) -> Unit,
+    onBackgroundConfig: (String?) -> Unit,
+    onStationery: (Stationery) -> Unit,
+) {
+    val ruling = remember(config) { BackgroundRuling.parse(config) }
     ToolbarPopupButton(
         icon = Icons.Filled.GridOn,
         contentDescription = "Page background",
     ) { dismiss ->
+        MenuHeading("Paper")
         for ((value, label) in BACKGROUND_STYLES) {
             DropdownMenuItem(
                 text = { Text(label) },
@@ -118,7 +146,76 @@ internal fun BackgroundPopupButton(style: String?, onBackgroundStyle: (String) -
                 onClick = { onBackgroundStyle(value); dismiss() },
             )
         }
+        MenuHeading("Rule spacing")
+        if (style == null) {
+            DropdownMenuItem(
+                text = { Text("Not available on a PDF or image page") },
+                enabled = false,
+                onClick = {},
+            )
+        } else {
+            RuleSpacingRow(style, ruling) { mm ->
+                onBackgroundConfig(
+                    ruling.withPt(BackgroundRuling.KEY_SPACING, mm * PageTemplates.MM_PT).text(),
+                )
+            }
+        }
+        MenuHeading("Stationery")
+        for (kind in Stationery.entries) {
+            DropdownMenuItem(
+                text = { Text(kind.label) },
+                // A paper preset needs a solid sheet to re-rule; Cornell is drawn, so it works on any page.
+                enabled = style != null || kind == Stationery.CORNELL,
+                onClick = { onStationery(kind); dismiss() },
+            )
+        }
     }
+}
+
+/**
+ * The spacing choices: a row of millimetre chips — the tapped one written straight to the page — and
+ * a small field for any other value. The chips mark the spacing the page currently rules at, so the
+ * menu says which one is live instead of leaving the user to remember.
+ */
+@Composable
+private fun RuleSpacingRow(
+    style: String,
+    ruling: BackgroundRuling,
+    onSpacingMm: (Double) -> Unit,
+) {
+    val currentMm = BackgroundRulings.spacingPt(style, ruling) / PageTemplates.MM_PT
+    Row(
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        for (mm in RULE_SPACING_MM) {
+            val chosen = kotlin.math.abs(currentMm - mm) < 0.05
+            TextButton(onClick = { onSpacingMm(mm) }) {
+                Text(
+                    text = "${mm.toInt()} mm",
+                    color = if (chosen) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                )
+            }
+        }
+    }
+    var text by remember(currentMm) { mutableStateOf(String.format(java.util.Locale.US, "%.1f", currentMm)) }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { typed ->
+            // Millimetres, one decimal: anything else is a typo, and a spacing of zero would
+            // divide the ruling into an infinite number of lines.
+            val clean = typed.filter { it.isDigit() || it == '.' }.take(5)
+            text = clean
+            clean.toDoubleOrNull()?.takeIf { it in 0.5..50.0 }?.let(onSpacingMm)
+        },
+        label = { Text("Custom (mm)") },
+        singleLine = true,
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .width(150.dp),
+    )
 }
 
 /**

@@ -22,20 +22,29 @@ object Snapping {
      * Horizontal ruling spacing (pt) for [background], or 0 when it rules no vertical lines.
      * @return Spacing in points, or 0.0 if no horizontal snapping.
      */
-    fun spacingX(background: Background?): Double = when (styleOf(background)) {
-        "graph", "dotted" -> BackgroundGrid.GRID_SPACING_PT
-        else -> 0.0
+    fun spacingX(background: Background?): Double {
+        val style = styleOf(background)
+        if (style != "graph" && style != "dotted") return 0.0
+        return spacingPt(background, style)
     }
 
     /**
      * Vertical ruling spacing (pt) for [background], or 0 when it rules no horizontal lines.
      * @return Spacing in points, or 0.0 if no vertical snapping.
      */
-    fun spacingY(background: Background?): Double = when (styleOf(background)) {
-        "lined", "ruled" -> BackgroundGrid.RULE_SPACING_PT
-        "graph", "dotted" -> BackgroundGrid.GRID_SPACING_PT
-        else -> 0.0
+    fun spacingY(background: Background?): Double {
+        val style = styleOf(background)
+        if (style != "lined" && style != "ruled" && style != "graph" && style != "dotted") return 0.0
+        return spacingPt(background, style)
     }
+
+    /**
+     * The spacing the page actually rules at: its own `<background config=…>` `r1` when it has one,
+     * else the style's default. Snapping to a constant while the page draws a custom spacing would
+     * pull a shape off the very line the user can see, so the two resolve the ruling the same way.
+     */
+    private fun spacingPt(background: Background?, style: String): Double =
+        BackgroundRulings.spacingPt(style, BackgroundRuling.parse((background as? Background.Solid)?.config))
 
     /**
      * [v] pulled to the nearest multiple of [spacing]; a non-positive spacing leaves it alone.

@@ -2,7 +2,11 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.Tool
 
 /**
  * The document-editing command surface: every page-level and layer-level edit the chrome can ask
@@ -141,12 +145,60 @@ internal class PageCommands(
     }
 
     /**
-     * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted) as one undoable edit.
-     * No-op on PDF/pixmap pages, whose background isn't a solid sheet.
+     * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted/isograph) as one undoable
+     * edit. No-op on PDF/pixmap pages, whose background isn't a solid sheet.
      */
     fun setPageBackgroundStyle(style: String) = editVisiblePage(resetViewState = false, op = { page ->
         val bg = page.background
         if (bg is Background.Solid && bg.style != style) page.copy(background = bg.copy(style = style)) else page
+    })
+
+    /**
+     * Set the visible page's ruling parameters — desktop's `<background config=…>` string, which is
+     * where custom spacing, margins and line widths live ([BackgroundRuling]) — as one undoable edit.
+     * Null (or an empty ruling) drops the attribute, returning the page to the style's defaults.
+     * No-op on PDF/pixmap pages, whose background isn't a solid sheet.
+     */
+    fun setPageBackgroundConfig(config: String?) = editVisiblePage(resetViewState = false, op = { page ->
+        val bg = page.background
+        val text = config?.takeIf { it.isNotBlank() }
+        if (bg is Background.Solid && bg.config != text) page.copy(background = bg.copy(config = text)) else page
+    })
+
+    /**
+     * Apply a **stationery** preset to the visible page as one undoable edit.
+     *
+     * A paper preset (millimetre, 5 mm graph, 7 mm ruled, isometric) swaps the page's ruling for the
+     * preset's own style and spacing, so it reopens as that same paper on the desktop. A drawn preset
+     * (Cornell) appends its rules as a **new layer** named after the template, so the template is
+     * ordinary ink the user can hide, restyle or delete — see [PageTemplates].
+     *
+     * No-op on PDF/pixmap pages for the paper presets (there is no solid sheet to re-rule); the drawn
+     * one works anywhere, because it only adds strokes.
+     */
+    fun applyStationery(kind: Stationery) = editVisiblePage(resetViewState = true, op = { page ->
+        val style = PageTemplates.styleOf(kind)
+        val bg = page.background
+        if (style != null) {
+            if (bg is Background.Solid) {
+                page.copy(background = bg.copy(style = style, config = PageTemplates.configOf(kind)))
+            } else {
+                page
+            }
+        } else {
+            val rules = PageTemplates.strokesOf(kind, page.width, page.height)
+            if (rules.isEmpty()) {
+                page
+            } else {
+                val elements = rules.map { points ->
+                    Stroke(
+                        Tool.PEN, TEMPLATE_INK, "round", points, true,
+                        lineStyle = LineStyle.PLAIN,
+                    )
+                }
+                page.copy(layers = page.layers + Layer(elements, PageTemplates.layerName(kind)))
+            }
+        }
     })
 
     /**
@@ -241,3 +293,9 @@ internal class PageCommands(
         onLayersChanged()
     }
 }
+
+/**
+ * The ink a **drawn** stationery template's rules are laid down in: the ruling's own blue, opaque,
+ * so a Cornell page's lines read as paper rather than as something the user drew.
+ */
+private val TEMPLATE_INK: Int = 0xFF000000.toInt() or BackgroundGrid.LINED_RGB

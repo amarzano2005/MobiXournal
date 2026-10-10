@@ -14,8 +14,9 @@ import java.util.Base64
  * Serialises a single [Page] to an **SVG** document — real vector output for the "Export page as SVG"
  * action, the counterpart of [PageThumbnail]'s raster preview.
  *
- * Everything the page holds is re-emitted as vector geometry: the sheet fill and its ruling as
- * `<rect>`/`<line>`, strokes as `<polyline>` (round caps and joins, the stroke's own colour and
+ * Everything the page holds is re-emitted as vector geometry: the sheet fill and its ruling —
+ * including an isometric page's triangular mesh ([BackgroundGrid.isometric]) — as
+ * `<rect>`/`<line>`/`<circle>`, strokes as `<polyline>` (round caps and joins, the stroke's own colour and
  * average width, its alpha as `stroke-opacity`), text as `<text>`, and images/LaTeX as `<image>` with
  * the element's own encoded bytes inline as a `data:` URL. Elements we don't model ([Element.RawElement])
  * are skipped — SVG has no faithful translation for a shape we never interpreted.
@@ -49,30 +50,79 @@ object PageSvgWriter {
         return sb.toString()
     }
 
-    /** The background ruling (lined / ruled / graph) as SVG lines, matching [BackgroundRenderer]. */
+    /**
+     * The background ruling (lined / ruled / graph / dotted) as SVG geometry, matching
+     * [BackgroundRenderer] — the page's own `<background config=…>` spacing, margin and line widths
+     * included, so an exported sheet rules exactly like the one on screen.
+     */
     private fun ruling(sb: StringBuilder, page: Page, solid: Background.Solid?) {
         val style = solid?.style ?: return
+        val ruling = BackgroundRuling.parse(solid?.config)
+        val widthPt = BackgroundRulings.lineWidthPt(ruling)
+        val boldInterval = BackgroundRulings.boldInterval(ruling)
+        val boldWidthPt = BackgroundRulings.boldWidthPt(ruling, widthPt)
+        fun widthOf(offsetPt: Double, spacing: Double): Double {
+            val index = if (spacing > 0.0) Math.round(offsetPt / spacing).toInt() else 0
+            return if (BackgroundRulings.isBold(index, boldInterval)) boldWidthPt else widthPt
+        }
         when (style) {
             "lined", "ruled" -> {
                 val colour = opaque(BackgroundGrid.LINED_RGB)
-                for (y in BackgroundGrid.lines(page.height, BackgroundGrid.RULE_SPACING_PT)) {
-                    line(sb, 0.0, y, page.width, y, colour, 1.0)
+                val spacing = BackgroundRulings.spacingPt(style, ruling)
+                for (y in BackgroundGrid.lines(page.height, spacing)) {
+                    line(sb, 0.0, y, page.width, y, colour, widthOf(y, spacing))
                 }
                 if (style == "ruled") {
-                    line(sb, BackgroundGrid.MARGIN_PT, 0.0, BackgroundGrid.MARGIN_PT, page.height, opaque(BackgroundGrid.MARGIN_RGB), 1.5)
+                    val marginPt = BackgroundRulings.marginPt(ruling) ?: BackgroundGrid.MARGIN_PT
+                    line(
+                        sb, marginPt, 0.0, marginPt, page.height, opaque(BackgroundGrid.MARGIN_RGB),
+                        BackgroundRulings.lineWidthPt(ruling, 1.5),
+                    )
                 }
             }
             "graph" -> {
                 val colour = opaque(BackgroundGrid.GRAPH_RGB)
-                for (y in BackgroundGrid.lines(page.height, BackgroundGrid.GRID_SPACING_PT)) {
-                    line(sb, 0.0, y, page.width, y, colour, 1.0)
+                val spacing = BackgroundRulings.spacingPt("graph", ruling)
+                val m = BackgroundRulings.marginPt(ruling) ?: 0.0
+                val x1 = (page.width - m).coerceAtLeast(m)
+                val y1 = (page.height - m).coerceAtLeast(m)
+                for (y in BackgroundGrid.lines(y1 - m, spacing)) {
+                    val abs = m + y
+                    line(sb, m, abs, x1, abs, colour, widthOf(abs, spacing))
                 }
-                for (x in BackgroundGrid.lines(page.width, BackgroundGrid.GRID_SPACING_PT)) {
-                    line(sb, x, 0.0, x, page.height, colour, 1.0)
+                for (x in BackgroundGrid.lines(x1 - m, spacing)) {
+                    val abs = m + x
+                    line(sb, abs, m, abs, y1, colour, widthOf(abs, spacing))
+                }
+            }
+            "isograph", "isodotted" -> {
+                val colour = opaque(BackgroundGrid.GRAPH_RGB)
+                val size = BackgroundRulings.spacingPt(style, ruling)
+                val width = BackgroundRulings.lineWidthPt(ruling)
+                for (seg in BackgroundGrid.isometric(page.width, page.height, size)) {
+                    line(sb, seg[0], seg[1], seg[2], seg[3], colour, width)
+                }
+            }
+            "dotted" -> {
+                val colour = opaque(BackgroundGrid.DOT_RGB)
+                val spacing = BackgroundRulings.spacingPt("dotted", ruling)
+                val m = BackgroundRulings.marginPt(ruling) ?: 0.0
+                val x1 = (page.width - m).coerceAtLeast(m)
+                val y1 = (page.height - m).coerceAtLeast(m)
+                val r = 1.0
+                for (y in BackgroundGrid.lines(y1 - m, spacing)) {
+                    for (x in BackgroundGrid.lines(x1 - m, spacing)) {
+                        dot(sb, m + x, m + y, r, colour)
+                    }
                 }
             }
             else -> Unit
         }
+    }
+
+    private fun dot(sb: StringBuilder, cx: Double, cy: Double, r: Double, colour: Int) {
+        sb.append("  <circle cx=\"").append(num(cx)).append("\" cy=\"").append(num(cy))
+            .append("\" r=\"").append(num(r)).append("\" fill=\"").append(hex(colour)).append("\"/>\n")
     }
 
     private fun line(sb: StringBuilder, x1: Double, y1: Double, x2: Double, y2: Double, colour: Int, width: Double) {

@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "page-stationery-templates-isometric-and-cornell"
+title = "Page stationery templates: isometric grid, Cornell notes, and millimeter paper"
+description = "Add technical and note-taking page stationery templates to page background styles: 60-degree isometric grid for 3D sketching, Cornell notes layout with cue column and summary footer, and engineering millimeter grid."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["pages", "backgrounds"]
+
+[[task]]
+id = "customizable-grid-and-line-spacing"
+title = "Customizable ruling spacing and line intervals for solid backgrounds"
+description = "Allow user-configurable line and grid pitch/spacing (in mm/pt) and margin offsets for solid ruled and graph backgrounds, preserving default attributes and desktop compatibility."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["pages", "backgrounds"]
+
+[[task]]
 id = "hold-to-snap-shape-recognition"
 title = "Hold-to-snap line and shape auto-straightening"
 description = "Add hold-to-snap gesture: holding the stylus tip still on canvas for ~500ms after drawing a stroke automatically snaps the stroke into a straight segment, arc, or recognized polygon before lift-off."

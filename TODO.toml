@@ -50,34 +50,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "page-stationery-templates-isometric-and-cornell"
-title = "Page stationery templates: isometric grid, Cornell notes, and millimeter paper"
-description = "Add technical and note-taking page stationery templates to page background styles: 60-degree isometric grid for 3D sketching, Cornell notes layout with cue column and summary footer, and engineering millimeter grid."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 70
-created = 2026-10-09
-tags = ["pages", "backgrounds"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "customizable-grid-and-line-spacing"
-title = "Customizable ruling spacing and line intervals for solid backgrounds"
-description = "Allow user-configurable line and grid pitch/spacing (in mm/pt) and margin offsets for solid ruled and graph backgrounds, preserving default attributes and desktop compatibility."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 80
-created = 2026-10-09
-tags = ["pages", "backgrounds"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "stem-2d-math-function-graph-plotter"
 title = "2D mathematical function graph plotter"
 description = "Add a STEM tool dialog to input analytic 2D mathematical expressions (e.g. y = sin(x), polynomial functions) over a specified domain [xmin, xmax], generating and placing standard vector strokes on the canvas."
