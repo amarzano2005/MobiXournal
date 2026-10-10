@@ -31,6 +31,7 @@ import com.mobixournal.render.cutSelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.finishSpline
+import com.mobixournal.render.insertPlot
 import com.mobixournal.render.insertTable
 import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
@@ -141,6 +142,15 @@ fun BoxScope.EditorOverlays(
                 surface?.activateTool(EditorTool.TRAPEZOID, ui, updated, onSettingsChange)
             },
             onDismiss = { ui.showTrapezoidAnglesDialog = false },
+        )
+    }
+    if (ui.showGraphDialog) {
+        FunctionGraphDialog(
+            onConfirm = { source, xMin, xMax ->
+                ui.showGraphDialog = false
+                surface?.insertPlot(source, xMin, xMax)
+            },
+            onDismiss = { ui.showGraphDialog = false },
         )
     }
     ui.bookmarkPage?.let { page ->

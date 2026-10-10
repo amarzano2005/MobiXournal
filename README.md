@@ -126,6 +126,10 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **LaTeX Math Formulae**:
   - On-device formula editor with live preview.
   - Curated STEM symbol palette for fast symbol insertion: Calculus integrals/differentials, Greek letters, algebraic operators, and physics shortcuts.
+- **2D Function Plotter**:
+  - **Insert graph** from the overflow menu: type `f(x)` (sin, cos, tan, inverse and hyperbolic trig, sqrt, abs, ln, log, exp, floor/ceil/round, `pi`/`e`, `+ - * / ^`, parentheses) with the x range to plot it over, and the plot is laid on the page.
+  - The dialog checks the formula as you type — the same parser the plotter uses — so it never accepts something it can't draw.
+  - The plot is inserted as **ordinary strokes** and text: a frame, the axes with a tick and a number on every nice step, and the curve, broken wherever the function is undefined or leaps (a pole stays a gap, not a line drawn across it). It saves to the `.xopp` like anything you drew, opens in desktop Xournal++, and can be selected, moved, restyled or erased.
 - **Geometry & Vectors**:
   - **Geometric Polygons & Shapes**: Squares, rhombuses, trapezoids, pentagons, hexagons, ellipses/circles, and rectangles.
   - **Triangles with Variants & Custom Angles**: Submenu with 4 geometric kinds: **Equilateral** (default, equal sides/angles), **Right-angled**, **Isosceles**, and **Scalene** with fully customizable interior angles (A, B, C; sum = 180°) and live preview.

@@ -745,6 +745,7 @@ app/
       ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list (pure)
       TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
       TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
+      FunctionPlot.kt        # f(x): expression parser, sampling, and the plot's page geometry (pure, tested)
       CircuitShapes.kt       # passive & active circuits, gates, switching and dimensioning (resistor, capacitor, inductor, ground, switches, junction, transformer, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR, buffer, dimension arrow) (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
@@ -1075,6 +1076,20 @@ decode, called *without* the cache lock), `index`/`unindex` (its width index beh
 `spared` (PdfPageCache's on-screen pinned tiles), and the `onCacheChanged`/`onDiscard` hooks.
 `BitmapLruCache.MAX_RASTER_WIDTH` (4096 px), `PAGE_SHARE` (a quarter of the budget per raster) and
 `bucket` (64 px width buckets) live there once for all three caches.
+
+**The 2D function plotter (`FunctionPlot`).** *Insert graph* turns `f(x)` into **ink**: `FunctionPlot`
+holds a small recursive-descent parser (`+ - * / ^`, unary minus, parentheses, `x`, `pi`/`e`, and the
+function table), the sampling, and the mapping onto page points — all pure and unit-tested, including
+the case that matters most, a **pole**: a sample that isn't finite, or a step between samples larger
+than a quarter of the visible height, breaks the curve, so `1/x` comes out as two branches instead of
+one line through the origin. The plot is a frame, the axes (drawn only where zero actually falls
+inside the sampled range), a tick and a number on every "nice" step (1/2/5 × a power of ten), and the
+curve; `DrawingSurfaceView.insertPlot` inserts all of it — plus a text box per tick number, in the live
+pen colour — as **one undoable edit** on the active layer. That is what keeps the feature inside the
+project's scope rule: the format has nowhere to keep a formula, but it does have strokes, so the plot
+*is* the strokes and nothing else is invented. An unparsable formula inserts nothing at all rather than
+an empty frame, and the dialog validates with the very same `compile` call, so it can't accept a graph
+the plotter would refuse to draw.
 
 **Page bookmarks (`ui/PageBookmarks.kt`).** A labelled, colour-coded flag on a page, plus the list of
 them that makes a long document navigable. The `.xopp` format has **no page label, name or bookmark**

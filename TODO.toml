@@ -50,20 +50,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "stem-2d-math-function-graph-plotter"
-title = "2D mathematical function graph plotter"
-description = "Add a STEM tool dialog to input analytic 2D mathematical expressions (e.g. y = sin(x), polynomial functions) over a specified domain [xmin, xmax], generating and placing standard vector strokes on the canvas."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 110
-created = 2026-10-09
-tags = ["stem", "math", "tools"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "stem-chemical-structures-and-bonds-tool"
 title = "Chemical molecular structures and carbon skeleton tool"
 description = "Add a STEM chemistry drawing guide with 60°/120° angular snapping for skeletal formulas, benzene rings, and single/double/triple chemical bonds."

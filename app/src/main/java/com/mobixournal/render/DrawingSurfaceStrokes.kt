@@ -15,6 +15,7 @@ import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import kotlin.math.hypot
 
@@ -529,6 +530,66 @@ internal fun DrawingSurfaceView.appendStroke(pageIndex: Int, stroke: Stroke) {
     doc = doc.copy(pages = pages)
     relayout() // rebuild boxes so they reference the updated pages, not stale ones
 }
+
+/**
+ * Insert a **plotted function** on the visible page as one undoable edit: the graph's frame, axes,
+ * ticks and curve ([FunctionPlot]) in the live pen colour, plus a text box for every tick number.
+ *
+ * The whole plot is ordinary ink, so it selects, moves, restyles, erases and saves like anything else
+ * drawn by hand — and nothing about the formula reaches the file, which has nowhere to keep it.
+ *
+ * @param source The formula, e.g. `sin(x)`; an unparsable one inserts nothing at all.
+ * @param xMin Left edge of the x range the curve is sampled over.
+ * @param xMax Right edge of the x range.
+ */
+fun DrawingSurfaceView.insertPlot(
+    source: String,
+    xMin: Double,
+    xMax: Double,
+    samples: Int = FunctionPlot.DEFAULT_SAMPLES,
+) {
+    val index = visiblePageIndex()
+    val page = doc.pages.getOrNull(index) ?: return
+    // A graph that fills most of the page width, with the classic 3:2 plotting box, a quarter down.
+    val widthPt = page.width * 0.7
+    val heightPt = widthPt * 0.6
+    val leftPt = (page.width - widthPt) / 2.0
+    val topPt = page.height * 0.25
+    val color = strokeColor()
+    val plot = FunctionPlot.plot(
+        source = source,
+        xMin = xMin,
+        xMax = xMax,
+        leftPt = leftPt,
+        topPt = topPt,
+        widthPt = widthPt,
+        heightPt = heightPt,
+        strokeWidthPt = baseWidthPt.toDouble().coerceAtLeast(0.5),
+        samples = samples,
+    )
+    if (plot.strokes.isEmpty()) return
+
+    val curve = plot.strokes.map { points -> Stroke(tool, color, "round", points, true, lineStyle = currentLineStyle) }
+    val labels = plot.labels.map { (text, x, y) ->
+        TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, x, y, color, text)
+    }
+
+    val before = doc
+    val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
+    val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
+    layers[target] = Layer(layers[target].elements + curve + labels, layers[target].name)
+    val pages = doc.pages.toMutableList()
+    pages[index] = page.copy(layers = layers)
+    doc = doc.copy(pages = pages)
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
+/** Font of a plot's tick numbers, and its size in pt — the text tool's own default, at 8 pt. */
+private const val PLOT_LABEL_FONT = "Sans"
+private const val PLOT_LABEL_SIZE_PT = 8.0
 
 /** The layer new ink lands on for [page]: [activeLayerIndex] when in range, else the top layer. */
 internal fun DrawingSurfaceView.resolvedActiveLayer(page: Page): Int =

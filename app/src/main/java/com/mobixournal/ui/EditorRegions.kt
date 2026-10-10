@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.Search
@@ -276,6 +277,7 @@ fun EditorTopBar(
                 onSave = onSave,
                 onSaveAs = { ui.showSaveAs = true },
                 onImportPdf = { ui.showImportPdf = true },
+                onInsertGraph = { ui.showGraphDialog = true },
                 onExportPdf = onExportPdf,
                 onExportPagePng = onExportPagePng,
                 onExportPageSvg = onExportPageSvg,
@@ -1735,6 +1737,8 @@ private fun OverflowMenu(
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
     onImportPdf: () -> Unit,
+    /** Open the 2D function plotter: a formula in, a plot onto the page. */
+    onInsertGraph: () -> Unit,
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
@@ -1817,6 +1821,23 @@ private fun OverflowMenu(
                 Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Export PDF", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+
+        // The graph plotter: a formula in, a plot on the page as ordinary ink.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 2.dp),
+        ) {
+            OutlinedButton(
+                onClick = { open = false; onInsertGraph() },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Icon(Icons.Filled.ShowChart, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Insert graph", style = MaterialTheme.typography.labelMedium)
             }
         }
 

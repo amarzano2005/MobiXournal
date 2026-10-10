@@ -52,6 +52,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import com.mobixournal.format.FontDescription
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.render.FunctionPlot
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.ShapeBuilder
@@ -791,5 +792,85 @@ fun PageBookmarkDialog(
                 TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
+    )
+}
+/**
+ * The **2D function plotter** dialog: a formula, the x range to plot it over, and an honest answer to
+ * whether the formula parses — the parse is the same `FunctionPlot.compile` the insert uses, so the
+ * dialog can never accept something the plotter then refuses to draw.
+ *
+ * @param onConfirm Called with the formula and the x range, in that order.
+ */
+@Composable
+fun FunctionGraphDialog(
+    onConfirm: (source: String, xMin: Double, xMax: Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var source by remember { mutableStateOf(FunctionPlot.DEFAULT_SOURCE) }
+    var xMinText by remember { mutableStateOf("-10") }
+    var xMaxText by remember { mutableStateOf("10") }
+    val compiled = remember(source) { FunctionPlot.compile(source) }
+    val xMin = xMinText.toDoubleOrNull()
+    val xMax = xMaxText.toDoubleOrNull()
+    val rangeOk = xMin != null && xMax != null && xMax > xMin
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 380.dp),
+        title = { Text("Insert graph", style = MaterialTheme.typography.titleMedium) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = source,
+                    onValueChange = { source = it },
+                    label = { Text("f(x)") },
+                    singleLine = true,
+                    isError = compiled == null,
+                    supportingText = {
+                        Text(
+                            if (compiled == null) {
+                                "Can't read that formula — try sin(x), 2*x+1, x^2/4, e^-x, sqrt(x)"
+                            } else {
+                                "Functions: ${FunctionPlot.FUNCTIONS.keys.sorted().joinToString(", ")}"
+                            },
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = xMinText,
+                        onValueChange = { xMinText = it },
+                        label = { Text("x from") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = xMaxText,
+                        onValueChange = { xMaxText = it },
+                        label = { Text("x to") },
+                        singleLine = true,
+                        isError = !rangeOk,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Text(
+                    "The plot is inserted as ordinary strokes, so it saves to the .xopp and opens in " +
+                        "desktop Xournal++ like anything else you drew.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = compiled != null && rangeOk,
+                onClick = { onConfirm(source, xMin!!, xMax!!) },
+            ) { Text("Insert") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
