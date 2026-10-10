@@ -118,3 +118,17 @@ created = 2026-10-11
 tags = ["stylus"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "define-one-visual-language-for-what-sits-above-what-in-the-chrome"
+title = "Define one visual language for what sits above what in the chrome"
+description = "Decide how the chrome says \"this surface is above that one\" and apply it to every floating surface (rail and secondary-toolbar docks, pills such as the tab chips and badges, pop-up menus, dialogs). The menus now carry a 1dp lit rim — a gradient of the theme's own ink, bright on the top edge and faint at the bottom — while the docks use M3 tonal and shadow elevation plus a hairline border; two languages for the same question, and today the rim reads as a one-off. Settle on the cues (elevation, rim, border, tone), record the decision in docs/architecture.md, and bring dock, pill, pop-up and dialog onto it, with the emulator used to check each surface in both themes."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 190
+created = 2026-10-11
+tags = ["ui", "chrome", "design"]
+rebuild = true
+emulator_debug = true
