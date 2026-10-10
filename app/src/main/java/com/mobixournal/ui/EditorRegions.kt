@@ -85,6 +85,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -123,6 +124,9 @@ import androidx.compose.ui.input.key.onKeyEvent
  * In Modern UI, renders as a floating dock surface matching the Main Toolbar.
  * The title slot always displays the Secondary Toolbar (compact row of geometric figures and tools);
  * the plain document-title chip is only the fallback for callers that pass no [settings].
+ * The **leading** slot carries the active tool indicator on a left-docked rail — the button that stands
+ * between the two toolbars, over the rail's own column ([StandaloneToolIndicator]) — where the backup
+ * dock-cap style instead only needs a spacer to keep the dock clear of that column.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,9 +149,28 @@ fun EditorTopBar(
     val railOnLeft = (settings?.toolbarPosition ?: ToolbarPosition.LEFT) == ToolbarPosition.LEFT
     TopAppBar(
         navigationIcon = {
+            // In the current style the active tool indicator *is* the top bar's leading slot: it stands in
+            // the corner between the two toolbars, and its width is what puts the figures' dock on the
+            // document tabs' own line ([TOP_BAR_INDICATOR_WIDTH]). In the backup dock-cap style the slot
+            // only keeps the top bar's content clear of the rail.
             if (settings != null && railOnLeft && !ui.fullPage) {
-                val spacerWidth = SideToolbarModernTotalWidth
-                Spacer(Modifier.width(spacerWidth))
+                if (!INDICATOR_AS_DOCK_CAP &&
+                    onSettingsChange != null &&
+                    standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
+                ) {
+                    StandaloneToolIndicator(
+                        ui = ui,
+                        styleCallbacks = rememberToolbarStyleCallbacks(
+                            ui = ui,
+                            surface = pane.surface,
+                            settings = settings,
+                            onSettingsChange = onSettingsChange,
+                        ),
+                        modifier = Modifier,
+                    )
+                } else {
+                    Spacer(Modifier.width(SideToolbarModernTotalWidth))
+                }
             }
         },
         title = {
@@ -672,7 +695,10 @@ fun sizeLetterFor(width: Float, widthSlots: List<Float>): String {
     }
 }
 
-/** The Secondary Toolbar dock's height and corner: what its end cap has to match to be one shape. */
+/**
+ * The Secondary Toolbar dock's height and corner: what its end cap has to match to be one shape, and
+ * what the standalone indicator borrows for a shape of its own ([StandaloneToolIndicator]).
+ */
 internal val TOP_BAR_DOCK_HEIGHT = 40.dp
 internal val TOP_BAR_DOCK_CORNER = 20.dp
 
@@ -701,50 +727,106 @@ internal fun topBarCapShape(capOnLeft: Boolean): RoundedCornerShape {
 }
 
 /**
- * The Secondary Toolbar dock's **end cap** — the end nearest the Main Toolbar — displaying
+ * Which of the indicator's two styles the chrome draws — the one line that makes the move reversible.
+ *
+ * `true` is the **dock cap** the indicator shipped with: the Secondary Toolbar dock's own end cap,
+ * flush with the dock's edge and wearing the dock's corner ([ActiveToolIndicator]). `false` — the
+ * current style — lifts the indicator out of the dock into a floating button of its own
+ * ([StandaloneToolIndicator]) that stands *between the two toolbars*: in the corner the rail's column and
+ * the dock leave between them, sized ([TOP_BAR_INDICATOR_WIDTH]) so the dock starts on the document tabs'
+ * line — which from there on holds the figures alone.
+ *
+ * Both styles stay live code — the branch is compiled either way, so the backup cannot rot — and the
+ * choice is a constant rather than a user setting, as asked: flip it and rebuild for the old look.
+ */
+internal val INDICATOR_AS_DOCK_CAP = false
+
+/** The air between the standalone indicator and the dock it was cut out of. */
+private val TOP_BAR_INDICATOR_GAP = 6.dp
+
+/** Air on each side of the indicator's face while it fills the dock's own end as the cap. */
+private val TOP_BAR_FACE_PADDING = 10.dp
+
+/** The same, for the standalone pill: its width is spoken for ([TOP_BAR_INDICATOR_WIDTH]), so this is what
+ *  is left of that width once the face has its icon, swatch and letter. */
+private val TOP_BAR_FACE_PADDING_TIGHT = 5.dp
+
+/**
+ * The standalone indicator's own width — and, because the figures' dock starts right after it, the line
+ * that dock starts on.
+ *
+ * Two insets sit between the window's edge and the dock: the 4dp the top bar keeps in front of its leading
+ * slot and the 4dp between that slot and the dock (Material 3's own, one on each side of the slot). The
+ * document tab strip starts 72dp in — the rail's column ([SideToolbarModernTotalWidth]) plus the tab chip's
+ * own 4dp lead-in — so a 64dp slot is exactly what lands the dock on the tabs' line: the bar's content and
+ * the tab row below it begin on one vertical line.
+ *
+ * The width is *fixed* rather than left to the face, so the dock cannot drift with the tool in play (the
+ * size letter "S"/"M"/"L" is not the same width in every glyph) — the face is padded to fit inside it
+ * instead. It also keeps the pill inside the rail's column, which is what leaves the pill standing in the
+ * corner between the two toolbars rather than pushing the dock right.
+ */
+internal val TOP_BAR_INDICATOR_WIDTH = 64.dp
+
+/** Which end of the figures' dock the standalone indicator stands at. */
+internal enum class IndicatorSlot {
+    /** The top bar's **leading** slot: the corner between the rail's column and the dock. */
+    LEADING,
+    /** **Trailing** the dock — for a right-docked rail, its end nearest the Main Toolbar. */
+    TRAILING,
+}
+
+/**
+ * Which side of the figures' dock the standalone indicator belongs on: always the side the Main Toolbar
+ * is docked to, so the run always reads rail → indicator → figures rather than the indicator drifting to
+ * the far edge from the hand's toolbar. On a left-docked rail that is the corner the rail and the dock
+ * leave between them ([TOP_BAR_INDICATOR_WIDTH]), which is also the line the tabs start on.
+ *
+ * A rule read by both places that can draw it — [EditorTopBar]'s leading slot and [TopBarToolsRow]'s
+ * trailing one — so the two cannot disagree about the mirror, and pinned by a unit test instead of by eye
+ * (the same reason [topBarCapShape] is a function).
+ */
+internal fun standaloneIndicatorSlot(railOnLeft: Boolean): IndicatorSlot =
+    if (railOnLeft) IndicatorSlot.LEADING else IndicatorSlot.TRAILING
+
+/**
+ * The indicator's **face**, shared by its two styles ([ActiveToolIndicator] and
+ * [StandaloneToolIndicator]) so they can only differ in *which surface the face is drawn on* — and in how
+ * much air that surface gives it ([horizontalPadding]) — never in what the indicator says:
  * - Selected tool (icon)
  * - Selected colour (swatch circle)
  * - Selected stroke size ("S", "M", or "L")
  *
- * It is the dock's own end rather than a chip floating inside it: as tall as the dock
- * ([TOP_BAR_DOCK_HEIGHT]), flush with its edge, and wearing the dock's corner
- * ([TOP_BAR_DOCK_CORNER]) on the end it caps, while the corners facing the figures stay smaller so the
- * cap reads as part of the bar rather than as a second bar. The flush, full-height grey is the point:
- * an inset chip leaves a crescent of the dock's own tone around itself, and the toolbar's rounded
- * border then encloses the dock instead of enclosing the indicator.
+ * The grey behind it is the scheme's `surfaceContainerHighest` role, a surface step and never the
+ * accent: the indicator *reports* the live stroke, it is not a tool that can be picked, so the blue a
+ * lit-up tool button wears made it read as a second active button beside the figures. Nothing draws the
+ * stroke's own thickness either — the size letter reports it through [sizeLetterFor], with room to read
+ * it.
  *
- * Nothing divides the cap from the figures either: a vertical divider cut the dock in two for a
- * boundary the grey already draws, so the tools simply start a padding-width after the cap.
- *
- * The grey is the scheme's `surfaceContainerHighest` role, a surface step and never the accent: the
- * indicator *reports* the live stroke, it is not a tool that can be picked, so the blue a lit-up tool
- * button wears made it read as a second active button beside the figures. Nothing draws the stroke's
- * own thickness either — the size letter reports it through [sizeLetterFor], with room to read it.
- *
- * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]).
+ * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]). The caller supplies the chrome —
+ * the modifier chain that paints the surface under the face — because that chain is exactly what
+ * differs between a cap flush inside the dock and a button floating on its own, and it supplies the air
+ * around the face for the same reason: a cap has the whole dock's width to breathe in, while the
+ * standalone pill is held to [TOP_BAR_INDICATOR_WIDTH] so it cannot push the dock off the tabs' line.
  */
 @Composable
-fun ActiveToolIndicator(
+private fun ToolIndicatorFace(
     ui: EditorUiState,
     styleCallbacks: ToolbarStyleCallbacks,
-    /** True when the cap is the dock's left end, which is where the Main Toolbar is docked. */
-    capOnLeft: Boolean = true,
     modifier: Modifier = Modifier,
+    /** Air on each side of the face, inside whatever surface the caller paints. */
+    horizontalPadding: Dp = TOP_BAR_FACE_PADDING,
 ) {
     val isHighlighter = ui.tool == EditorTool.HIGHLIGHTER
     val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
     val hasColorAndSize = ui.tool !in NON_INKING_TOOLS
     val sizeLabel = sizeLetterFor(ui.width, styleCallbacks.widthSlots)
-    val shape = topBarCapShape(capOnLeft)
 
     ColorSizePopup(styleCallbacks) { open ->
         Box(
             modifier = modifier
-                .fillMaxHeight()
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(onClick = open)
-                .padding(horizontal = 10.dp)
+                .padding(horizontal = horizontalPadding)
                 .semantics {
                     contentDescription = if (hasColorAndSize) {
                         "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, size $sizeLabel"
@@ -787,13 +869,103 @@ fun ActiveToolIndicator(
 }
 
 /**
+ * The indicator's **dock cap** style — the Secondary Toolbar dock's own end, the end nearest the Main
+ * Toolbar, rather than a chip floating inside it.
+ *
+ * It is as tall as the dock ([TOP_BAR_DOCK_HEIGHT]), flush with its edge, and wears the dock's corner
+ * ([TOP_BAR_DOCK_CORNER]) on the end it caps, while the corners facing the figures stay smaller so the
+ * cap reads as part of the bar rather than as a second bar. The flush, full-height grey is the point:
+ * an inset chip leaves a crescent of the dock's own tone around itself, and the toolbar's rounded
+ * border then encloses the dock instead of enclosing the indicator.
+ *
+ * Nothing divides the cap from the figures either: a vertical divider cut the dock in two for a
+ * boundary the grey already draws, so the tools simply start a padding-width after the cap.
+ *
+ * It is kept as the restore path behind [INDICATOR_AS_DOCK_CAP] — the style the indicator wore before
+ * it was moved out to [StandaloneToolIndicator] — and is private because that constant is now its only
+ * way on screen.
+ */
+@Composable
+private fun ActiveToolIndicator(
+    ui: EditorUiState,
+    styleCallbacks: ToolbarStyleCallbacks,
+    /** True when the cap is the dock's left end, which is where the Main Toolbar is docked. */
+    capOnLeft: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    ToolIndicatorFace(
+        ui = ui,
+        styleCallbacks = styleCallbacks,
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(topBarCapShape(capOnLeft))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+    )
+}
+
+/**
+ * The indicator as a **floating button of its own** — the current style ([INDICATOR_AS_DOCK_CAP] off).
+ * It is cut out of the dock and stands between the two toolbars instead of being the first thing *inside*
+ * the figures' dock: in the corner the rail's column and the dock leave between them, so the run reads
+ * rail → indicator → figures. Its width is what leaves the dock on the document tabs' line below
+ * ([TOP_BAR_INDICATOR_WIDTH]), so the toolbar of figures starts exactly where the `Untitled` chip does.
+ *
+ * Freed of the dock's edge it can be a whole shape: the dock's corner ([TOP_BAR_DOCK_CORNER]) on all
+ * four sides — a capsule at [TOP_BAR_DOCK_HEIGHT] — and the dock's tonal and shadow elevation and
+ * hairline border, so it reads as one of the floating docks rather than as a bare patch of grey. A
+ * [TOP_BAR_INDICATOR_GAP] keeps it visibly its own surface wherever it trails the dock.
+ *
+ * Its width is [TOP_BAR_INDICATOR_WIDTH], which is what keeps the figures' dock on the document tabs'
+ * line: the dock starts where this pill ends (plus Material 3's own gap), so the pill is sized to the
+ * corner between the rail's column and that line rather than to its own face. The face is padded tighter
+ * ([TOP_BAR_FACE_PADDING_TIGHT]) to fit, and because the width is fixed rather than measured, the dock
+ * cannot shift sideways when the tool in play changes the size letter.
+ *
+ * The face is shared with the cap ([ToolIndicatorFace]): the same icon, live colour and size letter,
+ * and the same tap into the Colour & Size pop-up. Only the surface it is drawn on moved.
+ */
+@Composable
+private fun StandaloneToolIndicator(
+    ui: EditorUiState,
+    styleCallbacks: ToolbarStyleCallbacks,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        tonalElevation = 3.dp,
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        modifier = modifier
+            .width(TOP_BAR_INDICATOR_WIDTH)
+            .height(TOP_BAR_DOCK_HEIGHT),
+    ) {
+        ToolIndicatorFace(
+            ui = ui,
+            styleCallbacks = styleCallbacks,
+            modifier = Modifier.fillMaxSize(),
+            horizontalPadding = TOP_BAR_FACE_PADDING_TIGHT,
+        )
+    }
+}
+
+/**
  * Secondary Toolbar: a compact, horizontal scrollable row of geometric figures and tools that sits
  * inside the top bar, allowing quick access without shrinking the canvas. It renders as a floating dock
- * surface enclosing the active tool indicator and figures, adapting its width dynamically.
+ * surface adapting its width dynamically to the visible figures.
  *
- * The dock's end nearest the Main Toolbar belongs to [ActiveToolIndicator]: it fills that end rather
- * than floating inside the dock (see that composable), so the grey cap and the dock's edge are one
- * shape. Nothing divides the cap from the figures — the grey already draws the boundary.
+ * In the current style it encloses the **figures alone**: the active tool indicator was cut out of it
+ * and now stands beside it as its own button ([StandaloneToolIndicator]), which on a left-docked rail is
+ * the top bar's leading slot — so [EditorTopBar] is what places it, on the tab strip's starting line —
+ * and on a right-docked rail trails the dock from here.
+ *
+ * In the backup **dock cap** style ([INDICATOR_AS_DOCK_CAP] on) the dock's end nearest the Main Toolbar
+ * belongs to [ActiveToolIndicator]: it fills that end rather than floating inside the dock (see that
+ * composable), so the grey cap and the dock's edge are one shape. Nothing divides the cap from the
+ * figures — the grey already draws the boundary.
+ *
+ * With no visible figures there is nothing left to enclose: the dock is not drawn at all while the
+ * indicator is out of it (the backup style still draws the cap, having the indicator inside).
  */
 @Composable
 fun TopBarToolsRow(
@@ -811,11 +983,15 @@ fun TopBarToolsRow(
     val indicator = @Composable {
         ActiveToolIndicator(ui = ui, styleCallbacks = styleCallbacks, capOnLeft = railOnLeft)
     }
+    val standaloneIndicator = @Composable {
+        StandaloneToolIndicator(ui = ui, styleCallbacks = styleCallbacks)
+    }
 
     val toolsRow = @Composable {
         Row(
-            // The cap is flush with the dock's edge, so the air at that end belongs to the tools row
-            // rather than to a padding wrapped around both of them.
+            // In the backup style the cap is flush with the dock's edge, so the air at that end belongs to
+            // the tools row rather than to a padding wrapped around both of them; with the indicator out of
+            // the dock (the current style) this same padding is what gives both ends their air.
             modifier = Modifier
                 .padding(horizontal = 6.dp)
                 .horizontalScroll(rememberScrollState()),
@@ -898,26 +1074,53 @@ fun TopBarToolsRow(
         }
     }
 
-    Surface(
-        shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
-        // The dock is the app's implement colour — the same value the rail and the canvas surround take
-        // (see `rememberToolbarColor`), so the tools and the desk are visibly one material.
-        color = rememberToolbarColor(),
-        tonalElevation = 3.dp,
-        shadowElevation = 4.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-        modifier = modifier
-            .wrapContentWidth()
-            .height(TOP_BAR_DOCK_HEIGHT),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (railOnLeft) {
-                indicator()
-                if (items.isNotEmpty()) toolsRow()
-            } else {
-                if (items.isNotEmpty()) toolsRow()
-                indicator()
+    val dock = @Composable {
+        Surface(
+            shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
+            // The dock is the app's implement colour — the same value the rail and the canvas surround take
+            // (see `rememberToolbarColor`), so the tools and the desk are visibly one material.
+            color = rememberToolbarColor(),
+            tonalElevation = 3.dp,
+            shadowElevation = 4.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            modifier = modifier
+                .wrapContentWidth()
+                .height(TOP_BAR_DOCK_HEIGHT),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (INDICATOR_AS_DOCK_CAP) {
+                    if (railOnLeft) {
+                        indicator()
+                        if (items.isNotEmpty()) toolsRow()
+                    } else {
+                        if (items.isNotEmpty()) toolsRow()
+                        indicator()
+                    }
+                } else if (items.isNotEmpty()) {
+                    // The figures alone, so the tools row's own 6dp carries both ends where the cap used
+                    // to own one of them.
+                    toolsRow()
+                }
             }
+        }
+    }
+
+    if (INDICATOR_AS_DOCK_CAP) {
+        // The backup style keeps the indicator inside the dock, so the dock is always worth drawing.
+        dock()
+    } else if (standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING) {
+        // Leading slot: EditorTopBar draws the indicator there, so all that is left here is the dock —
+        // and a dock with no figures in it is nothing at all.
+        if (items.isNotEmpty()) dock()
+    } else {
+        // Trailing the dock: still the end nearest the Main Toolbar, with the gap that says the two are
+        // separate surfaces.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(TOP_BAR_INDICATOR_GAP),
+        ) {
+            if (items.isNotEmpty()) dock()
+            standaloneIndicator()
         }
     }
 }

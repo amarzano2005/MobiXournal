@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "active-tool-indicator-stands-between-the-two-toolbars-dock-aligned-with-the-tab-strip"
+title = "Active tool indicator stands between the two toolbars, dock aligned with the tab strip"
+description = "The active tool indicator is no longer the Secondary Toolbar dock's end cap: it is a floating pill of its own (StandaloneToolIndicator, private) in the corner the Main Toolbar's column and the figures' dock leave between them, and the dock now holds the figures alone. Its width is fixed (TOP_BAR_INDICATOR_WIDTH = 64dp) so the dock starts on the document tab strip's own line (72dp on a 320dpi tablet) instead of drifting with the tool in play; TOP_BAR_FACE_PADDING/_TIGHT give the shared face its air per style, ToolIndicatorFace is the shared face, and standaloneIndicatorSlot + IndicatorSlot pick the rail's side of the dock (leading slot left, trailing right) pinned by IndicatorSlotTest. The old dock-cap style is kept live behind INDICATOR_AS_DOCK_CAP = false as a one-flip restore path. Verified on the Pixel_Tablet AVD (/data/android absent, AVD started from %LOCALAPPDATA%/Android/Sdk): uiautomator bounds put the pill at 4..68dp, the dock at 72dp and the Untitled chip at 72dp (pixel-level: dock fill at 145-146px, chip ink at 144px), in both light and dark schemes; testDebugUnitTest 998 tests 0 failures + assembleDebug green. README.md and docs/architecture.md updated in the same change."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-10
+completed = 2026-10-10
+tags = []
+
+[[task]]
 id = "the-active-tool-indicator-caps-the-dock-grey-to-the-rounded-border-no-divider"
 title = "The active tool indicator caps the dock: grey to the rounded border, no divider"
 description = "The top bar's active tool indicator is now the Secondary Toolbar dock's own end cap instead of a chip floating inside it, and the vertical divider that separated it from the figures is gone. The cap is as tall as the dock (TOP_BAR_DOCK_HEIGHT = 40dp), flush with its edge, and wears the dock's own corner (TOP_BAR_DOCK_CORNER = 20dp) on the end it closes - only the corners facing the figures stay at 8dp - so the light grey surfaceContainerHighest reaches the toolbar's rounded border instead of leaving a crescent of the dock's darker tone in the corner. It mirrors to the right end when the Main Toolbar is docked right (topBarCapShape, pinned by TopBarCapShapeTest), and the tools row now carries its own 6dp padding where the shared outer padding used to be. No divider: a 1.5dp outline line cut the dock in two for a boundary the grey already draws. README.md and docs/architecture.md updated in the same change. Built green (testDebugUnitTest + assembleDebug), APK refreshed at app/build/outputs/apk/debug/app-debug.apk; NOT seen on a device - this host has no /data/android emulator, so the flush cap and its shared corner are pinned by the shape unit test and by the dock's own clip, not eyeballed."
