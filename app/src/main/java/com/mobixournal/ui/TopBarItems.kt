@@ -19,9 +19,9 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("pentagon", "Pentagon"),
     RailItem("hexagon", "Hexagon"),
     RailItem("spline", "Spline"),
-    RailItem("axis", "Coordinate axis"),
     // Multi-tool dropdown groups & tools
     RailItem("arrow", "Arrows"),
+    RailItem("axis", "Coordinate axis"),
     RailItem("table", "Table"),
     RailItem("circuit", "Passive circuits"),
     RailItem("circuit_active", "Active circuits"),
@@ -33,13 +33,15 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 
 /**
  * Default order of buttons in the Secondary Toolbar: line, rectangle, square, individual shapes,
- * arrows (dropdown), table, passive circuits, active circuits, logic gates, the function graph, and
- * drawing guides. The graph sits second from the end — one tap from the tools' end of the row, but
- * before the guides pop-up, which stays the row's last slot.
+ * arrows (dropdown), the Cartesian axis, table, passive circuits, active circuits, logic gates, the
+ * function graph, and drawing guides. The arrows dropdown sits ahead of the single Cartesian-axis
+ * figure so the multi-member slot stays with the other dropdown groups, and the axis closes the run
+ * of individual figures. The graph sits second from the end — one tap from the tools' end of the row,
+ * but before the guides pop-up, which stays the row's last slot.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
-    "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
+    "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis",
     "table", "circuit", "circuit_active", "logic", "graph", "guides",
 )
 

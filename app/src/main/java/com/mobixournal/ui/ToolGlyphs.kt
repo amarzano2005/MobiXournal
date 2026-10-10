@@ -111,6 +111,56 @@ val PentagonIcon: ImageVector by lazy { buildOutlineIcon("Pentagon", PENTAGON_OU
 /** Hollow hexagon outline glyph. */
 val HexagonIcon: ImageVector by lazy { buildOutlineIcon("Hexagon", HEXAGON_OUTLINE) }
 
+/**
+ * The **Cartesian axis** glyph: a first-quadrant coordinate diagram — two arrowed axes meeting at an
+ * origin, with a plotted curve between them.
+ *
+ * It replaces Material's `ShowChart`, whose bar chart read as a statistics icon rather than the
+ * oriented X/Y plane this tool draws. The axes carry arrowheads (the tool's own axes do too) and the
+ * curve says "something is plotted here", so the button shows the figure it makes.
+ */
+val CoordinateAxisIcon: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "CoordinateAxis",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    ).apply {
+        path(
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            // Y axis, up from the origin, with its head.
+            moveTo(5f, 20f)
+            lineTo(5f, 3f)
+            moveTo(2.4f, 7f)
+            lineTo(5f, 3f)
+            lineTo(7.6f, 7f)
+            // X axis, right from the origin, with its head.
+            moveTo(5f, 20f)
+            lineTo(21f, 20f)
+            moveTo(17f, 17.4f)
+            lineTo(21f, 20f)
+            lineTo(17f, 22.6f)
+        }
+        path(
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
+        ) {
+            // A plotted curve in the first quadrant.
+            moveTo(8f, 17f)
+            quadTo(11.5f, 17f, 17f, 7f)
+        }
+    }.build()
+}
+
 /** Distinct data table glyph with prominent header row and columns, contrasting with paper grid. */
 val TableIcon: ImageVector by lazy {
     ImageVector.Builder(

@@ -1,5 +1,8 @@
 package com.mobixournal.ui
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathNode
+import androidx.compose.ui.graphics.vector.VectorPath
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -115,6 +118,44 @@ class ToolGlyphsTest {
     @Test
     fun `it is not the filled diamond it replaced`() {
         assertNotEquals("Diamond", RhombusIcon.name)
+    }
+
+    /** Every path node of [this] icon, in the order the paths were added. */
+    private fun ImageVector.nodes(): List<PathNode> =
+        root.flatMap { node -> (node as? VectorPath)?.pathData ?: emptyList() }
+
+    /** The absolute points a [nodes] list draws through — relative nodes are not used by these glyphs. */
+    private fun points(nodes: List<PathNode>): List<Pair<Float, Float>> = nodes.flatMap { node ->
+        when (node) {
+            is PathNode.MoveTo -> listOf(node.x to node.y)
+            is PathNode.LineTo -> listOf(node.x to node.y)
+            is PathNode.QuadTo -> listOf(node.x1 to node.y1, node.x2 to node.y2)
+            is PathNode.CurveTo -> listOf(
+                node.x1 to node.y1, node.x2 to node.y2, node.x3 to node.y3,
+            )
+            else -> emptyList()
+        }
+    }
+
+    @Test
+    fun `the coordinate-axis glyph is a plotted diagram the tool actually wears`() {
+        // The button used to wear Material's bar chart (`ShowChart`), which reads as statistics
+        // rather than as the oriented X/Y plane the tool draws; the wiring is the change, so it is
+        // the wiring this pins.
+        assertEquals(CoordinateAxisIcon, EditorTool.COORDINATE_AXIS.icon)
+        assertEquals("CoordinateAxis", CoordinateAxisIcon.name)
+        assertNotEquals("ShowChart", CoordinateAxisIcon.name)
+        val nodes = CoordinateAxisIcon.nodes()
+        assertTrue("the glyph draws something", nodes.isNotEmpty())
+        assertTrue("there is a plotted curve", nodes.any { it is PathNode.QuadTo || it is PathNode.CurveTo })
+        assertTrue(
+            "two axes, each starting from its own origin",
+            nodes.count { it is PathNode.MoveTo } >= 2,
+        )
+        assertTrue(
+            "every point is inside the 24-unit grid — a hand-drawn glyph that spills gets clipped",
+            points(nodes).all { (x, y) -> x in 0f..24f && y in 0f..24f },
+        )
     }
 
     @Test

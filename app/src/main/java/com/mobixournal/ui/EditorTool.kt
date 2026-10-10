@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Polyline
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.TextFields
@@ -84,7 +83,7 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.LINE, "Line", Icons.Filled.HorizontalRule),
     ToolInfo(EditorTool.ARROW, "Arrow", Icons.Filled.ArrowRightAlt),
     ToolInfo(EditorTool.DOUBLE_ARROW, "Double arrow", Icons.Filled.SwapHoriz),
-    ToolInfo(EditorTool.COORDINATE_AXIS, "Coordinate axis", Icons.Filled.ShowChart),
+    ToolInfo(EditorTool.COORDINATE_AXIS, "Coordinate axis", CoordinateAxisIcon),
     ToolInfo(EditorTool.RECTANGLE, "Rectangle", RectangleIcon),
     ToolInfo(EditorTool.ELLIPSE, "Ellipse", Icons.Filled.RadioButtonUnchecked),
     ToolInfo(EditorTool.TRIANGLE, "Triangle", Icons.Filled.ChangeHistory),
