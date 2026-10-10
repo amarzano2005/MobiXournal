@@ -52,7 +52,9 @@ MobiXournal follows a hub-and-spoke documentation model:
 Without Docker (or on a machine with no `/data/android` toolchain) the same build runs on the host's
 Gradle wrapper, which needs a **JDK the wrapper supports** (17–24 for the version in the tree — a
 JDK 25 host fails before compiling anything) and an Android SDK at `local.properties`' `sdk.dir`.
-See [Host fallback](docs/tools.md#host-fallback--no-dataandroid-no-docker) in `docs/tools.md`.
+`scripts/host-build.sh` finds both for you (and reports them with `--list`) instead of leaving it to
+the wrapper's own confusing failure. See
+[Host fallback](docs/tools.md#host-fallback--no-dataandroid-no-docker) in `docs/tools.md`.
 
 ### Build Commands
 ```sh
@@ -66,8 +68,16 @@ scripts/build.sh testDebugUnitTest
 scripts/build.sh clean assembleDebug
 ```
 
-On the host's own toolchain (no container), the two loop commands are `./gradlew testDebugUnitTest`
-and `./gradlew assembleDebug`.
+On a host with no `/data/android` and no Docker, `scripts/host-build.sh` is the same loop with the
+JDK/SDK discovery done for you (`--list` reports what it picked, `--jdk`/`--sdk` override it):
+
+```sh
+# Host fallback: finds a supported JDK + the SDK, then runs the wrapper
+scripts/host-build.sh
+
+# Any Gradle task passes through — including the instrumented suite, on the host's own adb
+scripts/host-build.sh connectedDebugAndroidTest
+```
 For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release is documented there too, and it is a command rather than a chore: `scripts/todo.sh release --version <version> --bump-gradle` stamps everything finished since the last release and drafts `docs/releases/v<version>.md` from it, then you curate that draft and push the `v<version>` tag so CI builds the APK and publishes the Release.
 
 ---
@@ -196,7 +206,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **1-Click ExpressKey Detection**: Map physical tablet buttons directly to tools and colors by pressing them in **Settings → Shortcuts**.
   - **Stylus Calibration**: Independent pressure multiplier (up to 4×) and minimum pressure floor (up to 1.00) — desktop Xournal++'s own ranges — plus precision budgets (Economy to Maximum).
 - **Toolbars & Interface**:
-  - **One colour per job**: the *bars* are one colour and the *toolbars* another, one tonal step up. The top bar, the tab strip and both Android system bars share the first, so the frame around the document is a single field from the status bar down to the navigation bar instead of three tonal steps; the Main Toolbar rail, the Secondary Toolbar's floating dock and **the surround behind the pages** share the second, so the desk a page lies on reads as the same material as the tools floating over it. A hairline traces each sheet — that is what keeps a page readable when the light theme makes chrome and paper nearly the same white. The floating docks (rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, Material 3 tonal elevation) are the only layout, and the theme is set under **Settings → Interface → Appearance**.
+  - **One colour per job**: the *bars* are one colour and the *toolbars* another, one tonal step up. The top bar, the tab strip and both Android system bars share the first, so the frame around the document is a single field from the status bar down to the navigation bar instead of three tonal steps; the Main Toolbar rail, the Secondary Toolbar's floating dock and **the surround behind the pages** share the second, so the desk a page lies on reads as the same material as the tools floating over it. A hairline traces each sheet — that is what keeps a page readable when the light theme makes chrome and paper nearly the same white. **Every pop-up menu is cut from that same material too** — the toolbars' grey and the docks' 20dp corner — and carries a hairline rim of its own along its edge, brightest on top and faintest at the bottom, so a menu reads as a lit panel lying **above** the bar it hangs from rather than dissolving into the grey behind it. The floating docks (rounded corners, squircles, pill tabs, grouped undo/redo container, frosted badges, Material 3 tonal elevation) are the only layout, and the theme is set under **Settings → Interface → Appearance**.
   - **Top Bar**: Clean top bar with document title chip, a compact quick **Export PDF** button followed by the one-tap **Save** button at the far right (next to undo/redo), undo/redo, search, and **Split View** (right of the search button); the overflow menu holds the remaining file and pen actions.
   - **Main Toolbar & Secondary Toolbar (Dual Toolbar)**:
     - **Main Toolbar**: The primary tool rail (pen, highlighter, eraser, select, colour & size, zoom, layers, pages) dockable to the **Left or Right** edge.

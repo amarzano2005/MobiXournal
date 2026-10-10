@@ -69,7 +69,22 @@ fails:
   root, not its `bin`.
 - **The Android SDK**, from `local.properties`' `sdk.dir` (Android Studio installs one).
 
-Then the ordinary loop applies: `./gradlew testDebugUnitTest`, `./gradlew assembleDebug`.
+Rather than doing that discovery by hand every session, **`scripts/host-build.sh` does it**: it validates
+`JAVA_HOME`/`HOST_JDK`, searches the usual install locations for a JDK the wrapper supports (17–24,
+preferring 21 — `~/.jdks`, SDKMAN, Android Studio's `jbr`, `/usr/lib/jvm`, the JDKs in `PATH` as a last
+resort), finds the SDK (`ANDROID_HOME`/`ANDROID_SDK_ROOT`, `local.properties`' existing `sdk.dir`, then
+the platform defaults), records `sdk.dir` **only when `local.properties` doesn't exist yet**, exports
+`JAVA_HOME`/`ANDROID_HOME`/`ANDROID_SDK_ROOT`, and hands over to the wrapper. `--list` reports what it
+would use without building; `--jdk`/`--sdk` override the search; every other argument is a Gradle task.
+
+```sh
+scripts/host-build.sh                       # unit tests + debug APK (the loop's default)
+scripts/host-build.sh --list                # which JDK and SDK it picked, then stop
+scripts/host-build.sh testDebugUnitTest     # any Gradle task passes through
+```
+
+It fails loudly with the JDK window and where it looked when it finds nothing, so the failure names
+the cause instead of surfacing as Gradle's "Unsupported class file major version".
 
 ## Android emulator
 
@@ -130,6 +145,23 @@ $ANDROID_SDK/platform-tools/adb shell am start -n com.mobixournal/.MainActivity
 $ANDROID_SDK/platform-tools/adb exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
 ```
 
+**The instrumented suite runs on this host too.** Gradle's `connectedDebugAndroidTest` is only
+broken *inside the container*, where its adb is a different world from the emulator's; on a host the
+SDK's adb **is** the emulator's adb, so the ordinary task works — and unlike `scripts/connected-test.sh`
+it needs no container at all:
+
+```sh
+# Whole androidTest suite on the attached emulator/device
+scripts/host-build.sh connectedDebugAndroidTest
+
+# One class, with the runner argument AGP expects
+scripts/host-build.sh -Pandroid.testInstrumentationRunnerArguments.class=com.mobixournal.StylusInputTest \
+    connectedDebugAndroidTest
+```
+
+That is how the stylus paths are exercised where `adb shell input` cannot reach (`StylusInputTest`
+injects real `MotionEvent`s carrying tool type, button state and per-sample pressure).
+
 - **Check the accelerator first:** `emulator -accel-check` reports whether WHPX (Windows) / KVM is
   usable; without it an x86_64 image won't boot in reasonable time.
 - **A fresh boot comes up with the screen dozing and the notification shade focused.** Screenshots
@@ -144,6 +176,18 @@ $ANDROID_SDK/platform-tools/adb exec-out screencap -p > shot.png   # and: logcat
   e.g. compare a pop-up's fill with the toolbar's. Two pixels that look alike are one `assert` apart.
 - **Windows/Git Bash mangles `/sdcard/…` paths** into `C:/Program Files/Git/sdcard/…`: prefix the
   command with `MSYS_NO_PATHCONV=1`, or write the remote path as `//sdcard/…`.
+- **`adb devices` showing `unauthorized` usually means the AVD resumed from a snapshot**, not a bad
+  key: the guest's `adb_keys` belongs to the adb of the session that saved the snapshot, so the boot
+  authorization never runs. Cold-boot it (`emulator … -no-snapshot-load`, no `-wipe-data` needed) and
+  the host's key is injected again — measured: 150 s to `device` on a Pixel_Tablet image, where the
+  same AVD from a snapshot stayed `unauthorized` indefinitely.
+- **To check both themes of a visual change**, flip the guest rather than rebuilding:
+  `adb shell cmd uimode night yes|no` — chrome colours and any theme-derived edge change with it.
+- **A change is only verified when the screenshot shows it.** Diff the "before" and "after" captures
+  of the same screen with PIL/`magick` and read the pixels at the edge; that is how a pop-up rim was
+  measured as a 2 px step from `(238,237,244)` to `(173,173,180)` in the light theme and from
+  `(30,31,37)` to `(89,90,96)` in the dark one, and how an elevated menu was shown to paint *inside*
+  its own top edge instead of casting a shadow.
 
 ---
 
