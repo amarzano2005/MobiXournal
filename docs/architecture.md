@@ -680,15 +680,15 @@ app/
       PageCommands.kt        # the page/layer edit commands and the two undoable commit pipelines
       SelectionGestureController.kt # the marquee/lasso pick and the move/resize/rotate drags
       VerticalSpaceDrag.kt   # the vertical-space tool's live grab-line drag
-      GuideDrag.kt           # the setsquare/compass/protractor pose and the finger that moves it
+      GuideDrag.kt           # the setsquare/compass/protractor (and ruling) guide pose and the finger that moves it
       TextEditController.kt  # placing/editing text boxes, images and LaTeX images from a tap
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
       PageStacker.kt         # lays pages out in rows of N columns, fit to column (pure geometry)
       BackgroundGrid.kt      # ruling line/dot offsets + the pt spacings themselves (pure geometry)
       BackgroundRuling.kt   # `<background config=…>`: parse/edit/serialize desktop's ruling params (pure)
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
-      Snapping.kt            # shape endpoints -> the ruling; rotation -> 15-degree steps (pure)
-      DrawingGuide.kt        # setsquare/compass/protractor overlay geometry: project drawn point onto edge or ray (pure)
+      Snapping.kt            # the page's ruling as a snap lattice (spacing + phase); rotation -> 15-degree steps (pure)
+      DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling snap: project a drawn point onto an edge, a ray or the page's ruling (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
       BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
       PageRegionRenderer.kt  # synchronous flattened rectangular page-region copies
@@ -1124,7 +1124,8 @@ colour keys, anything a future desktop adds — are preserved in place exactly l
 `BackgroundGrid`, `m1`, `lw`, `bli`/`blw`), and the three consumers — `BackgroundRenderer` on screen,
 `PageSvgWriter` for the SVG export, `PdfBackgroundPainter` for the PDF flatten — all go through it,
 so a custom grid can't rule one way on screen and another in the export. `Snapping` resolves the same
-numbers, so *Snap to grid* pulls onto the lines the user can actually see. The renderer caches the
+numbers — as a lattice, spacing *and* phase — so *Snap to grid* and the guide's **Ruling** mode both
+land on the lines the user can actually see. The renderer caches the
 parsed ruling against the config string (one entry), because `draw` runs every frame and a fresh parse
 per frame was pure churn. Isometric paper is the same story one level up: `isograph`/`isodotted` are
 desktop styles, `r1` is the triangle's side, and the mesh is the pure `BackgroundGrid.isometric`
@@ -1284,9 +1285,15 @@ the background style, so the pt spacings live once in `BackgroundGrid` and are s
 one live pose pinned to a page, and every drawn vertex — freehand via `point()` and line/shape
 endpoints alike — passes through `guided()`, which projects the point onto the guide's nearest edge
 when it is within `DrawingGuide.GRAB_PT`. The guide is applied *after* grid snapping, so a placed
-guide wins. It is drawn as a canvas overlay outside the ink cache (it is not page content) and is
-manipulated by a finger on its own pointer id, deliberately running alongside the drawing gesture
-rather than instead of it, so a hand can hold the instrument while the pen rules along it. Nothing
+guide wins. Its fourth kind, the **ruling snap**, turns that same input edge around: it has no
+instrument and nothing to drag — the page's own ruling *is* the guide — and it pulls **every** vertex
+onto the lines the background really draws, resolved through `Snapping.lattice` so both the spacing
+and the ruling's phase are the renderer's own (a graph sheet rules from its `m1` margin, not the page
+corner). That reach is the whole difference from the **Snap to grid** setting, which rounds a shape's
+two endpoints. An *instrument* is drawn as a canvas overlay outside the ink cache (it is not page
+content) and is manipulated by a finger on its own pointer id, deliberately running alongside the
+drawing gesture rather than instead of it, so a hand can hold the instrument while the pen rules
+along it; the ruling snap has neither an overlay nor a handle, so a finger on the page keeps drawing. Nothing
 about a guide reaches the document — only the resulting stroke does. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and `PdfVectorPainter` mirrors both for

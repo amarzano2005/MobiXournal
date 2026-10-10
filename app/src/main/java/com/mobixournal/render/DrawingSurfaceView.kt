@@ -1384,13 +1384,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
         return box.toPtX(width / 2f, scrollX) to box.toPtY(height / 2f, scrollY)
     }
 
-    /** [x] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on. */
+    /**
+     * [x] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on, at the ruling's
+     * own phase (a graph sheet rules from its margin, not the page corner).
+     */
     internal fun snapX(box: PageBox, x: Double): Double =
-        if (snapToGrid) Snapping.snap(x, Snapping.spacingX(box.page.background)) else x
+        if (snapToGrid) Snapping.lattice(box.page.background).snapX(x) else x
 
-    /** [y] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on. */
+    /** [y] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on (see [snapX]). */
     internal fun snapY(box: PageBox, y: Double): Double =
-        if (snapToGrid) Snapping.snap(y, Snapping.spacingY(box.page.background)) else y
+        if (snapToGrid) Snapping.lattice(box.page.background).snapY(y) else y
 
     // --- the setsquare / compass guide: place it, drag it, and rule drawn points against it -------
 
@@ -1421,7 +1424,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
             else -> 0.0
         }
         guideDrag.page = index
-        guideDrag.pose = kind.place(cx, cy)
+        // The ruling snap needs the page it is ruling: its lattice is the page's own background.
+        guideDrag.pose = kind.place(cx, cy, Snapping.lattice(box?.page?.background))
         onGuideChanged?.invoke(guide)
         render()
     }

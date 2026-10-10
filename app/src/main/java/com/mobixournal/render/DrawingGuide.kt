@@ -11,8 +11,9 @@ import kotlin.math.sin
  * A guide is *purely an input aid*: it never becomes part of the document. While one is active,
  * every drawn vertex that falls within [GRAB_PT] of the guide's drawing edge is pulled onto it, so
  * a freehand stroke along the setsquare's hypotenuse comes out ruler-straight and a stroke swept
- * around the compass comes out as a clean arc. What lands in the `.xopp` file is an ordinary
- * stroke — which is why a guide has no place in the format and none is written there.
+ * around the compass comes out as a clean arc. ([Ruling] is the exception: it has no edge of its
+ * own and pulls *every* vertex onto the page's background ruling.) What lands in the `.xopp` file is
+ * an ordinary stroke — which is why a guide has no place in the format and none is written there.
  *
  * Kept free of Android types so the projection maths is unit-testable on the JVM;
  * [DrawingSurfaceView] owns the live pose, draws the overlay and applies [project].
@@ -29,7 +30,8 @@ sealed interface DrawingGuide {
     /**
      * ([px], [py]) pulled onto the guide's nearest drawing edge, or returned unchanged when it is
      * further than [GRAB_PT] away. The tolerance is what lets the pen leave the guide and keep
-     * drawing freehand without switching the guide off.
+     * drawing freehand without switching the guide off. A [Ruling] guide has no edge to leave, so it
+     * pulls every point it is handed.
      */
     fun project(px: Double, py: Double): Pair<Double, Double>
 
@@ -214,6 +216,33 @@ sealed interface DrawingGuide {
         }
     }
 
+    /**
+     * The page's **own ruling** used as a guide: every drawn vertex is pulled onto the lines the
+     * background rules ([Snapping.Lattice]), so ink lands on the paper's grid instead of merely near
+     * it.
+     *
+     * It is the one guide with nothing to draw or drag: the ruling is already on the page, the
+     * instrument would be the paper itself, and the feedback is the ink arriving on the lines. That
+     * is also why it has no reach limit — the older snap-to-grid only caught a *shape's two
+     * endpoints*, and only within reach of a line; this pulls **every** vertex of a freehand stroke or
+     * a shape, always, which is what makes a hand-drawn line come out along a rule.
+     *
+     * A sheet that rules nothing (plain, a PDF or image page) has no lattice, so the guide is a
+     * no-op there — and an isometric sheet is a triangular mesh rather than a lattice of parallel
+     * lines, so it snaps nothing either.
+     */
+    data class Ruling(
+        override val x: Double,
+        override val y: Double,
+        /** The page's ruling as snap-to lines; [Snapping.Lattice.NONE] on a sheet that rules none. */
+        val lattice: Snapping.Lattice = Snapping.Lattice.NONE,
+    ) : DrawingGuide {
+
+        override fun moved(dx: Double, dy: Double): Ruling = copy(x = x + dx, y = y + dy)
+
+        override fun project(px: Double, py: Double): Pair<Double, Double> = lattice.snap(px, py)
+    }
+
     companion object {
         /** How near (pt) the pen must be to an edge for the guide to capture it. */
         const val GRAB_PT: Double = 18.0
@@ -248,15 +277,27 @@ enum class GuideKind(val label: String) {
     SETSQUARE("Setsquare"),
     COMPASS("Compass"),
     PROTRACTOR("Protractor"),
+    RULING("Ruling"),
     ;
 
-    /** A freshly placed guide of this kind, centred on ([cx], [cy]) page pt; null for [NONE]. */
-    fun place(cx: Double, cy: Double): DrawingGuide? = when (this) {
+    /**
+     * A freshly placed guide of this kind, centred on ([cx], [cy]) page pt; null for [NONE].
+     *
+     * [lattice] is the page's ruling, which only [RULING] has any use for — the instruments are made
+     * of their own geometry. It defaults to [Snapping.Lattice.NONE], i.e. a sheet that rules nothing,
+     * so a caller with no page to hand still gets a guide rather than a crash.
+     */
+    fun place(
+        cx: Double,
+        cy: Double,
+        lattice: Snapping.Lattice = Snapping.Lattice.NONE,
+    ): DrawingGuide? = when (this) {
         NONE -> null
         SETSQUARE -> DrawingGuide.Setsquare(
             x = cx - DrawingGuide.DEFAULT_SIZE_PT / 2, y = cy + DrawingGuide.DEFAULT_SIZE_PT / 4,
         )
         COMPASS -> DrawingGuide.Compass(cx, cy)
         PROTRACTOR -> DrawingGuide.Protractor(cx, cy)
+        RULING -> DrawingGuide.Ruling(cx, cy, lattice)
     }
 }

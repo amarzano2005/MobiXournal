@@ -62,3 +62,31 @@ created = 2026-10-10
 tags = ["pdf", "io", "export"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "snap-ink-to-the-ruling-on-isometric-paper"
+title = "Snap ink to the ruling on isometric paper"
+description = "The drawing guide's Ruling mode snaps ink onto the page's ruling lattice, but an isometric sheet (isograph/isodotted) rules a triangular mesh at ±30 degrees, not a lattice of parallel lines, so it currently snaps nothing. Its nodes do form a lattice (x = width/2 + (sqrt(3)*side/4)*n, y = -width/(2*sqrt(3)) - side/2 + (side/4)*m, n and m the same parity), so the guide could resolve the nearest node of that mesh the way Snapping.Lattice resolves the rectangular ones."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 150
+created = 2026-10-11
+tags = ["guide", "snapping"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "persist-the-drawing-guide-s-pose-or-drop-the-dead-restore-path"
+title = "Persist the drawing guide's pose, or drop the dead restore path"
+description = "DrawingSurfaceView.restoreGuide and the onGuideChanged hook exist so a posed guide can be remembered, but nothing assigns onGuideChanged and nothing calls restoreGuide, so only the guide kind (AppSettings.guideKind) survives a restart and every instrument comes back freshly placed. Either wire the pose through AppSettings + AppSettingsBackup (it needs a per-kind shape: anchor/angle/size for the setsquare, anchor/radius for the compass, anchor/angle/radius for the protractor) or delete the two dead entry points so the code stops promising a behaviour it does not have."
+status = "active"
+level = "task"
+category = "chore"
+urgency = "normal"
+order = 160
+created = 2026-10-11
+tags = ["guide", "settings"]
+rebuild = true
+emulator_debug = false

@@ -429,6 +429,10 @@ internal fun DrawingSurfaceView.drawGuide(canvas: Canvas) {
         is DrawingGuide.Protractor -> {
             ProtractorRenderer.draw(canvas, g, chrome, s, ::vx, ::vy)
         }
+        // The ruling snap draws nothing: the ruling it pulls ink onto *is* the page's own background,
+        // already on screen, and it has no instrument and no handle to hold. The feedback is the ink
+        // arriving on the lines.
+        is DrawingGuide.Ruling -> return
     }
     val tip = guideDrag.tipOf(g)
     canvas.drawCircle(vx(tip.first), vy(tip.second), HANDLE_DRAW_PX, chrome.guideHandle)

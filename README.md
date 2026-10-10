@@ -141,9 +141,10 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Setsquare (30°/60°/90°)**: Movable drafting triangle with edge snapping for straight lines.
   - **Compass**: Circular guide with adjustable radius for arcs and circles.
   - **Protractor**: 180° scale with 5°/15° tick marks, straight diameter ruler, rim arc snapping, and 15° radial snapping.
+  - **Ruling**: no instrument at all — the page's **own ruling is the guide**, and every drawn vertex (freehand ink and shapes alike) is pulled onto the lines the paper really draws, spacing and margin included. A hand-drawn line comes out along a rule, and a rectangle's corners land on the grid. Nothing to place or hold, and nothing on plain, PDF/image or isometric paper, which rule no lattice to snap onto.
 - **Shape Recognition & Snapping**:
   - **Ported Recognizer**: Desktop Xournal++ algorithm snaps freehand strokes into lines, rectangles, triangles, and circles.
-  - **Snap to Grid**: Snaps endpoints to graph, dotted, or ruled paper rulings.
+  - **Snap to Grid**: Snaps a shape's **endpoints** to graph, dotted, or ruled paper rulings — the same lattice the **Ruling** guide pulls *every* vertex of any stroke onto.
   - **Snap Rotation**: 15° stepping for object rotation and drafting tools.
 
 ### 🛠️ Editing & Canvas Tools

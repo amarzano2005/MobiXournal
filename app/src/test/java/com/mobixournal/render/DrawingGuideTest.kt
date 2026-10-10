@@ -130,6 +130,36 @@ class DrawingGuideTest {
         assertEquals(3.0 to 3.0, degenerate)
     }
 
+    // --- ruling snap ------------------------------------------------------------------------------
+
+    @Test
+    fun `the ruling guide pulls every point onto the page's own lines, however far away it is`() {
+        val lattice = Snapping.Lattice(stepX = 20.0, stepY = 20.0, phaseX = 0.0, phaseY = 0.0)
+        val g = DrawingGuide.Ruling(0.0, 0.0, lattice)
+        // No reach limit: this is the difference between ruling *paper* and a physical instrument, so
+        // even a point most of a cell away is pulled onto the nearest node.
+        assertEquals(20.0 to 20.0, g.project(27.0, 26.0))
+        assertEquals(0.0 to 40.0, g.project(3.0, 38.0))
+    }
+
+    @Test
+    fun `a lined page's ruling guide leaves x free and a plain page's changes nothing`() {
+        val lined = DrawingGuide.Ruling(0.0, 0.0, Snapping.Lattice(0.0, 24.0, 0.0, 0.0))
+        assertEquals(37.4 to 48.0, lined.project(37.4, 52.0))
+        val plain = DrawingGuide.Ruling(0.0, 0.0)
+        assertEquals(37.4 to 52.0, plain.project(37.4, 52.0))
+    }
+
+    @Test
+    fun `placing the ruling guide carries the page's ruling onto it`() {
+        val lattice = Snapping.Lattice(14.17, 14.17, 20.0, 20.0)
+        val g = GuideKind.RULING.place(100.0, 100.0, lattice)
+        assertTrue(g is DrawingGuide.Ruling)
+        assertEquals(lattice, (g as DrawingGuide.Ruling).lattice)
+        assertEquals("the anchor is where it was asked for", 100.0, g.x, eps)
+        assertEquals("moving displaces the anchor and nothing else", 105.0, g.moved(5.0, -5.0).x, eps)
+    }
+
     @Test
     fun `placing a guide yields the right kind, and NONE yields nothing`() {
         assertNull(GuideKind.NONE.place(100.0, 100.0))
