@@ -2,6 +2,8 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -40,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -711,3 +716,80 @@ private fun CompactParameterSlider(
 }
 
 
+/**
+ * The **page bookmark** editor: the label a page's bookmark carries and the colour of its flag.
+ *
+ * [existing] is the bookmark already on the page, if there is one — the dialog then offers to delete
+ * it rather than to add a second one, because two bookmarks on one page would mean nothing. Bookmarks
+ * are app-side navigation state (see [PageBookmarks]); nothing here writes to the document.
+ *
+ * @param page 0-based page the bookmark belongs to.
+ * @param existing The bookmark already on that page, or null when there is none.
+ * @param initialColor The colour a *new* bookmark opens on (the app cycles these, so consecutive
+ *   bookmarks don't all come out the same).
+ * @param onSave Called with the trimmed label and the chosen colour.
+ * @param onDelete Called when the existing bookmark should be removed.
+ * @param onDismiss Called when the dialog is dismissed without a change.
+ */
+@Composable
+fun PageBookmarkDialog(
+    page: Int,
+    existing: PageBookmark?,
+    initialColor: Int = PageBookmarks.COLORS.first(),
+    onSave: (label: String, color: Int) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var label by remember { mutableStateOf(existing?.label.orEmpty()) }
+    var color by remember { mutableStateOf(existing?.color ?: initialColor) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 360.dp),
+        title = { Text("Bookmark page ${page + 1}", style = MaterialTheme.typography.titleMedium) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { label = it },
+                    label = { Text("Label") },
+                    placeholder = { Text(PageBookmarks.defaultLabel(page)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("Colour", style = MaterialTheme.typography.labelSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for (option in PageBookmarks.COLORS) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(Color(option))
+                                .then(
+                                    if (option == color) {
+                                        Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable { color = option },
+                        ) {}
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(label, color) }) {
+                Text(if (existing == null) "Add" else "Save")
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (existing != null) {
+                    TextButton(onClick = onDelete) { Text("Remove") }
+                }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+    )
+}

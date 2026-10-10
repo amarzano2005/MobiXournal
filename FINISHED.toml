@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "custom-page-bookmarks-and-labels"
+title = "Custom page bookmarks and color-coded labels"
+description = "Add page bookmarking support allowing users to mark key pages with custom labels or colors, accessible via a bookmarks list in the pages overview for quick navigation in large notebooks."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-10
+tags = ["pages", "navigation"]
+
+[[task]]
 id = "page-stationery-templates-isometric-and-cornell"
 title = "Page stationery templates: isometric grid, Cornell notes, and millimeter paper"
 description = "Add technical and note-taking page stationery templates to page background styles: 60-degree isometric grid for 3D sketching, Cornell notes layout with cue column and summary footer, and engineering millimeter grid."

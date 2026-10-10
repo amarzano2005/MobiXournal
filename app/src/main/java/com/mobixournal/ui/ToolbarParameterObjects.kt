@@ -46,6 +46,10 @@ data class ToolbarPagesCallbacks(
     val onCopySelectedPages: () -> Unit,
     val onPastePages: () -> Unit,
     val onSaveAsDefault: (Double, Double) -> Unit,
+    /** The document's page bookmarks, in page order (see [PageBookmarks]). */
+    val bookmarks: List<PageBookmark> = emptyList(),
+    /** Open the bookmark editor for a page — adding one, or editing/deleting the one it has. */
+    val onBookmarkPage: (Int) -> Unit = {},
 )
 
 /**

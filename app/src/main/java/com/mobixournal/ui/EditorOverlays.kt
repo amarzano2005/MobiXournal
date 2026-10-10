@@ -143,6 +143,25 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showTrapezoidAnglesDialog = false },
         )
     }
+    ui.bookmarkPage?.let { page ->
+        // Bookmarks are app-side navigation state (see PageBookmarks): the dialog only says what the
+        // list became, and the pane persists it against the document it is showing.
+        val existing = pane.bookmarks.firstOrNull { it.page == page }
+        PageBookmarkDialog(
+            page = page,
+            existing = existing,
+            initialColor = PageBookmarks.nextColor(pane.bookmarks),
+            onSave = { label, color ->
+                ui.bookmarkPage = null
+                pane.onBookmarksChange?.invoke(PageBookmarks.with(pane.bookmarks, page, label, color))
+            },
+            onDelete = {
+                ui.bookmarkPage = null
+                pane.onBookmarksChange?.invoke(PageBookmarks.without(pane.bookmarks, page))
+            },
+            onDismiss = { ui.bookmarkPage = null },
+        )
+    }
     if (ui.showPenParametersDialog) {
         PenParametersDialog(
             minimumPressure = settings.minimumPressure,

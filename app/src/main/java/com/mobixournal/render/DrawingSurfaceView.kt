@@ -174,6 +174,20 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Touch slop in px, resolved lazily from this view's configuration. */
     internal var multiTapSlop = 0f
 
+    /**
+     * The bookmarked pages of the document on screen and their flag colours (page index → ARGB).
+     * View-only chrome data: the editor sets it from its bookmark store, and it never reaches the
+     * `.xopp` file. See `PageBookmarks` for why.
+     */
+    var bookmarkedPages: Map<Int, Int> = emptyMap()
+
+    /** Set the bookmark flags and repaint — a view-only chrome change, so it is not an undo step. */
+    fun applyBookmarkedPages(pages: Map<Int, Int>) {
+        if (bookmarkedPages == pages) return
+        bookmarkedPages = pages
+        requestRender()
+    }
+
     // Hold-to-snap state (see `DrawingSurfaceHoldSnap.kt`): a timer that turns an in-progress
     // freehand stroke into clean geometry when the stylus rests, and the anchor that arms it.
     internal var holdSnapRunnable: Runnable? = null

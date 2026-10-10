@@ -623,7 +623,7 @@ fun EditorToolbar(
         onZoomIn = { surface?.zoomIn() },
         onZoomOut = { surface?.zoomOut() },
         onZoomReset = { surface?.resetZoom() },
-        pageCallbacks = toolbarPagesCallbacks(pane, settings, onSettingsChange, surface),
+        pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface),
         backgroundStyle = pane.backgroundStyle,
         onBackgroundStyle = { surface?.setPageBackgroundStyle(it) },
         backgroundConfig = pane.backgroundConfig,
@@ -1429,6 +1429,7 @@ private fun toolbarLayerCallbacks(surface: DrawingSurfaceView?, pane: PaneState)
 @Composable
 private fun toolbarPagesCallbacks(
     pane: PaneState,
+    ui: EditorUiState,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     surface: DrawingSurfaceView?,
@@ -1436,8 +1437,16 @@ private fun toolbarPagesCallbacks(
     ToolbarPagesCallbacks(
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
-        onAddPage = { surface?.addPage() },
-        onRemovePage = { surface?.removePage() },
+        // A page added or removed moves every bookmark at or after it, so the flags stay on the pages
+        // they were put on (a page added goes *after* the one in view, a removal takes the one in view).
+        onAddPage = {
+            surface?.addPage()
+            pane.onBookmarksChange?.invoke(PageBookmarks.insertedAt(pane.bookmarks, pane.currentPage + 1))
+        },
+        onRemovePage = {
+            surface?.removePage()
+            pane.onBookmarksChange?.invoke(PageBookmarks.removedAt(pane.bookmarks, pane.currentPage))
+        },
         onGoToPage = { surface?.goToPage(it) },
         pageSize = pane.pageSize,
         onPageSize = { w, h -> surface?.setPageSize(w, h) },
@@ -1458,6 +1467,8 @@ private fun toolbarPagesCallbacks(
         onSaveAsDefault = { w, h ->
             onSettingsChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
         },
+        bookmarks = pane.bookmarks,
+        onBookmarkPage = { ui.bookmarkPage = it },
     )
 
 /**

@@ -1076,6 +1076,19 @@ decode, called *without* the cache lock), `index`/`unindex` (its width index beh
 `BitmapLruCache.MAX_RASTER_WIDTH` (4096 px), `PAGE_SHARE` (a quarter of the budget per raster) and
 `bucket` (64 px width buckets) live there once for all three caches.
 
+**Page bookmarks (`ui/PageBookmarks.kt`).** A labelled, colour-coded flag on a page, plus the list of
+them that makes a long document navigable. The `.xopp` format has **no page label, name or bookmark**
+— and neither has desktop Xournal++ — so per the project's scope rule the bookmarks are **app-side
+navigation state**, not document content: they live in `BookmarkStore` (SharedPreferences, one entry
+per document key, the tab's own document identity) and a bookmarked file stays byte-identical to an
+unbookmarked one. `PageBookmarks` is the model's pure half — label/colour rules, the escaped
+`page⇥colour⇥label` codec, and the page shifts that keep a flag on its page when one is inserted or
+deleted — all unit-tested; `BookmarkStore` is the thin Android-backed persistence. The chrome reaches
+it through `PaneState` (the pane *drives* the list, `EditorScreen` owns the store and the document
+key, so nothing else has to know where bookmarks are kept), the Pages menu edits and jumps, and the
+canvas paints each flag on the sheet's top-right corner from `DrawingSurfaceView.bookmarkedPages` —
+view-only chrome, so it is not an undo step and never reaches the file.
+
 **Ruling parameters and stationery (`BackgroundRuling`, `PageTemplates`).** A page's paper is not
 just a style: desktop writes the ruling's parameters — spacing, margin, line width, bold lines — into
 `<background config=…>`, and reading them is what lets a 7 mm ruled sheet or a millimetre grid look

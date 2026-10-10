@@ -9,7 +9,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
@@ -212,6 +214,12 @@ fun EditorScreen(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     audio: AudioUiState = AudioUiState(),
+    /**
+     * Identity of the document the chrome is showing, used to key its **page bookmarks** (see
+     * [BookmarkStore]). Bookmarks are app-side navigation state — the `.xopp` format has no page
+     * label — so they are stored per document key and never written to the file.
+     */
+    bookmarkKey: String = "",
     /** One tab session per pane, in pane order (see [com.mobixournal.panes.EditorPane]). */
     tabs: List<TabsUiState> = listOf(TabsUiState()),
     /** Whether both panes are shown side by side. */
@@ -239,6 +247,22 @@ fun EditorScreen(
 ) {
     val ui = rememberEditorUiState(settings)
     val pane = ui.pane(activePane)
+
+    // Page bookmarks: loaded for the document being shown, persisted against it on every edit, and
+    // handed to the canvas as the page flags it paints. `pane` is the pane the chrome drives, so a
+    // split view keeps each document's bookmarks to itself.
+    val context = LocalContext.current
+    val bookmarkStore = remember(context) { BookmarkStore(context) }
+    LaunchedEffect(pane, bookmarkKey) {
+        pane.bookmarks = bookmarkStore.load(bookmarkKey)
+        pane.onBookmarksChange = { updated ->
+            pane.bookmarks = updated
+            bookmarkStore.save(bookmarkKey, updated)
+        }
+    }
+    LaunchedEffect(pane.surface, pane.bookmarks) {
+        pane.surface?.applyBookmarkedPages(pane.bookmarkedPages)
+    }
 
     // Back peels the editor's transient layers off one at a time before it ever exits.
     EditorBackHandler(ui = ui, pane = pane, busy = busy != null, onExit = onExit)

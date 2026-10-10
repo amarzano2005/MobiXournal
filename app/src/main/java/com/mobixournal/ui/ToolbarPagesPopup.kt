@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,7 +8,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -20,6 +23,8 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -39,12 +44,60 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.PageStacker
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+/**
+ * The bookmark section of the Pages menu: bookmark (or edit the bookmark on) the page in view, then
+ * jump to any bookmark the document has. Each row carries the bookmark's own colour, so the list
+ * reads as the same flags the pages do.
+ *
+ * Bookmarks are app-side navigation state — the `.xopp` format has no page label — so this list lives
+ * in the store beside the document, never in the file (see [PageBookmarks]).
+ */
+@Composable
+private fun BookmarkItems(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
+    val current = callbacks.bookmarks.firstOrNull { it.page == callbacks.currentPage }
+    MenuHeading("Bookmarks")
+    DropdownMenuItem(
+        text = { Text(if (current == null) "Bookmark this page…" else "Edit bookmark…") },
+        leadingIcon = {
+            Icon(
+                if (current == null) Icons.Filled.BookmarkBorder else Icons.Filled.Bookmark,
+                contentDescription = null,
+                tint = current?.let { Color(it.color) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        onClick = {
+            callbacks.onBookmarkPage(callbacks.currentPage)
+            dismiss()
+        },
+    )
+    for (bookmark in callbacks.bookmarks) {
+        DropdownMenuItem(
+            text = { Text(bookmark.displayLabel()) },
+            leadingIcon = {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(Color(bookmark.color)),
+                ) {}
+            },
+            trailingIcon = { Text("Page ${bookmark.page + 1}", style = MaterialTheme.typography.labelSmall) },
+            onClick = {
+                callbacks.onGoToPage(bookmark.page)
+                dismiss()
+            },
+        )
+    }
+}
 
 /**
  * The page navigator: shows the current page, jumps to the previous/next page, and adds or removes
@@ -59,6 +112,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         contentDescription = "Pages",
     ) { dismiss ->
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
+        BookmarkItems(callbacks) { dismiss() }
         DropdownMenuItem(
             text = { Text("Add page") },
             leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },

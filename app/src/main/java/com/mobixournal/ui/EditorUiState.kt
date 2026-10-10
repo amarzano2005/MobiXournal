@@ -68,6 +68,11 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showTrapezoidAnglesDialog by mutableStateOf(false)
     /** Whether the quick Pen Parameters floating dialog is showing. */
     var showPenParametersDialog by mutableStateOf(false)
+    /**
+     * The page whose **bookmark editor** is open (0-based), or null when none is. Opening it for a
+     * page that has no bookmark adds one; opening it for a bookmarked page edits or deletes that one.
+     */
+    var bookmarkPage by mutableStateOf<Int?>(null)
 
     /** Full-page (immersive) view: a Hand-tool centre double-tap hides the top bar and side toolbar. */
     var fullPage by mutableStateOf(false)

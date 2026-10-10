@@ -307,6 +307,9 @@ class MainActivity : ComponentActivity() {
                         applyDefaultPageSize(it)
                     },
                     audio = audioUiState(),
+                    // Page bookmarks are kept per document, keyed by the tab's identity (see
+                    // PageBookmarks) — never in the file, which has no page label to hold them.
+                    bookmarkKey = panes.getOrNull(activePane.value)?.tabs?.active?.docKey.orEmpty(),
                     tabs = panes.map(::tabsUiState),
                     splitView = splitView.value,
                     onToggleSplitView = ::toggleSplitView,

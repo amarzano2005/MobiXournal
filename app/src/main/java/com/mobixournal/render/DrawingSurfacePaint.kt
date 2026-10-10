@@ -9,6 +9,8 @@ package com.mobixournal.render
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.view.Choreographer
 import android.view.SurfaceHolder
 import com.mobixournal.render.CanvasChrome.Companion.HANDLE_DRAW_PX
@@ -92,6 +94,7 @@ internal fun DrawingSurfaceView.paint() {
             )
             drawPageElements(canvas, box)
             drawPageOutline(canvas, box)
+            drawBookmarkFlag(canvas, box)
         }
         inkCache.retain(visible.mapTo(HashSet()) { it.index })
         retainPdfPins(visible)
@@ -216,6 +219,31 @@ internal fun DrawingSurfaceView.drawPageOutline(canvas: Canvas, box: PageBox) {
     rect.set(left + 0.5f, top + 0.5f, left + box.widthPx - 0.5f, top + box.heightPx - 0.5f)
     canvas.drawRect(rect, chrome.pageOutline)
 }
+
+/**
+ * The coloured **flag** of a bookmarked page: a small tab lying against the sheet's top-right corner,
+ * in the bookmark's own colour, so a bookmarked page is recognisable both in the overview grid and
+ * while writing on it.
+ *
+ * It is chrome, not content: the flag is painted from [DrawingSurfaceView.bookmarkedPages], which the
+ * editor fills from its own bookmark store, and bookmarks never reach the document (see
+ * `PageBookmarks`). The tab is sized in dp-like view pixels, clamped so it stays visible on a small
+ * page and doesn't grow into the page on a large one.
+ */
+internal fun DrawingSurfaceView.drawBookmarkFlag(canvas: Canvas, box: PageBox) {
+    val color = bookmarkedPages[box.index] ?: return
+    bookmarkFlag.color = color
+    val widthPx = minOf(box.widthPx * 0.18f, 40f)
+    val heightPx = minOf(box.heightPx * 0.05f, 10f)
+    val right = box.toViewX(0.0, scrollX) + box.widthPx
+    val top = box.toViewY(0.0, scrollY)
+    bookmarkFlagRect.set(right - widthPx - 2f, top + 2f, right - 2f, top + heightPx + 2f)
+    canvas.drawRoundRect(bookmarkFlagRect, heightPx / 2f, heightPx / 2f, bookmarkFlag)
+}
+
+/** Reused across frames: a fresh [Paint]/[RectF] per page per frame was pure churn for the collector. */
+private val bookmarkFlag = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+private val bookmarkFlagRect = RectF()
 
 /**
  * Paint one page's ink. The [InkCache] handles it as a single blit whenever it can; a gesture

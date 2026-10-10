@@ -91,6 +91,16 @@ class PaneState {
 
     /** The visible page's ruling parameters (desktop's `<background config=…>`), or null. */
     var backgroundConfig by mutableStateOf<String?>(null)
+    /** The open document's page bookmarks, in page order (see [PageBookmarks]). */
+    var bookmarks by mutableStateOf<List<PageBookmark>>(emptyList())
+    /**
+     * Adopt an edited bookmark list: assign it and persist it against the document this pane is
+     * showing. Wired by `EditorScreen`, which owns the store and the document key — the toolbar and
+     * the dialogs here only say *what* the list became, never where it is kept.
+     */
+    var onBookmarksChange: ((List<PageBookmark>) -> Unit)? = null
+    /** The bookmarked page indices and their colours, for the canvas's page flags. */
+    val bookmarkedPages: Map<Int, Int> get() = bookmarks.associate { it.page to it.color }
     /** Page size as (widthPt, heightPt) in points, or null when unavailable. */
     var pageSize by mutableStateOf<Pair<Double, Double>?>(null)
     /** Monotonically increasing version counter bumped whenever a new document is loaded into the canvas. */
