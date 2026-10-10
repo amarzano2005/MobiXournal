@@ -49,6 +49,11 @@ MobiXournal follows a hub-and-spoke documentation model:
 - **Docker** (all builds run in a containerized Android toolchain; no local JDK, SDK, or Gradle needed).
 - KVM support (optional, for headless emulator testing).
 
+Without Docker (or on a machine with no `/data/android` toolchain) the same build runs on the host's
+Gradle wrapper, which needs a **JDK the wrapper supports** (17–24 for the version in the tree — a
+JDK 25 host fails before compiling anything) and an Android SDK at `local.properties`' `sdk.dir`.
+See [Host fallback](docs/tools.md#host-fallback--no-dataandroid-no-docker) in `docs/tools.md`.
+
 ### Build Commands
 ```sh
 # Full build: unit tests + debug APK
@@ -60,6 +65,9 @@ scripts/build.sh testDebugUnitTest
 # Clean release-path build of the debug APK
 scripts/build.sh clean assembleDebug
 ```
+
+On the host's own toolchain (no container), the two loop commands are `./gradlew testDebugUnitTest`
+and `./gradlew assembleDebug`.
 For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release is documented there too, and it is a command rather than a chore: `scripts/todo.sh release --version <version> --bump-gradle` stamps everything finished since the last release and drafts `docs/releases/v<version>.md` from it, then you curate that draft and push the `v<version>` tag so CI builds the APK and publishes the Release.
 
 ---

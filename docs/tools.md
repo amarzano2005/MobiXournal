@@ -25,8 +25,8 @@ the shared Android toolchain in `/data/android`** — the single front door for 
 running) Android apps without a JDK/SDK/Gradle on the host. Per `AGENTS.md`, the build runs
 inside a container; that container is the baked `android-builder:local` image maintained in
 `/data/android`, not one owned by this repo. This repo only supplies its Gradle project + the
-Gradle wrapper (pinned to Gradle 8.9); the toolchain supplies JDK 21 + the Android SDK
-(`platforms;android-34/35`, `build-tools;34.0.0/35.0.0`).
+Gradle wrapper (`gradle/wrapper/gradle-wrapper.properties` is the authority for its version); the
+toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-tools;34.0.0/35.0.0`).
 
 - **Where it lives:** `/data/android/` — `build.sh` (the disposable-container build front door)
   and `Dockerfile.builder` (the baked `android-builder:local` image). That directory has its
@@ -51,6 +51,25 @@ Gradle wrapper (pinned to Gradle 8.9); the toolchain supplies JDK 21 + the Andro
     `.gradle-cache/`. No `local.properties` needed — the SDK is baked in.
   - The parent mount is what makes the optional real-file test resolve its repo-root sample; the
     rule is documented in [`architecture.md`](architecture.md#what-the-unit-tests-cover).
+
+### Host fallback — no `/data/android`, no Docker
+
+`/data/android` is a **machine-local path**. On a host that doesn't have it, `scripts/build.sh`
+stops immediately ("Shared Android toolchain not found at /data/android") and the build runs on the
+host's own toolchain — the `./gradlew` loop `AGENTS.md` already lists for host systems. Two things
+the container would otherwise supply have to be there, and they are where a host build usually
+fails:
+
+- **A supported JDK.** `./gradlew` runs on the JDK `JAVA_HOME` points at, and a Gradle version
+  accepts only a range of them — newer than that range, the build dies before compiling anything
+  (a JDK 25 host, for instance, fails evaluating the Kotlin DSL). Any JDK the wrapper supports works
+  (17–24 for the wrapper in the tree today); Android Studio ships one at
+  `<Android Studio>/jbr`, and the toolchain's own JDK 21 is the safe choice. Check `java -version`
+  *and* `JAVA_HOME` — they are not necessarily the same JDK, and `JAVA_HOME` must point at the JDK
+  root, not its `bin`.
+- **The Android SDK**, from `local.properties`' `sdk.dir` (Android Studio installs one).
+
+Then the ordinary loop applies: `./gradlew testDebugUnitTest`, `./gradlew assembleDebug`.
 
 ## Android emulator
 
@@ -97,6 +116,34 @@ change with a runtime surface must be installed and exercised on the emulator, n
   - `scripts/connected-test.sh -e class com.mobixournal.SmokeTest` — extra args pass through to
     `am instrument` (class/method/size filters, etc.).
 - **Gotchas:** the emulator needs host KVM (`/dev/kvm`, VT-x enabled in BIOS).
+
+### Host fallback — Android Studio's own emulator
+
+Where `/data/android` isn't present, the SDK's own emulator is the same loop, driven by the SDK's
+`adb` instead of `emulator.sh`:
+
+```sh
+$ANDROID_SDK/emulator/emulator -avd <name> -no-window &   # or start it from Android Studio
+$ANDROID_SDK/platform-tools/adb wait-for-device           # then poll sys.boot_completed for 1
+$ANDROID_SDK/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
+$ANDROID_SDK/platform-tools/adb shell am start -n com.mobixournal/.MainActivity
+$ANDROID_SDK/platform-tools/adb exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
+```
+
+- **Check the accelerator first:** `emulator -accel-check` reports whether WHPX (Windows) / KVM is
+  usable; without it an x86_64 image won't boot in reasonable time.
+- **A fresh boot comes up with the screen dozing and the notification shade focused.** Screenshots
+  taken then are black: `adb shell input keyevent KEYCODE_WAKEUP` (and `82` to dismiss the lock
+  screen) first, then confirm with `adb shell dumpsys window | grep mCurrentFocus`.
+- **A finger only draws when the app's *Finger draws* setting is on** — otherwise it pans, which
+  looks exactly like "my input did nothing". `adb shell input` cannot send stylus events, so either
+  turn that setting on or exercise pen-only paths another way.
+- **Find a control's coordinates instead of guessing them:** `adb shell uiautomator dump` then
+  `adb pull` gives every button's `content-desc` and bounds (`Tool: Pen`, `Drawing guides`, …).
+- **Verify colours and geometry from the screenshot, not by eye:** crop and sample it (PIL/`magick`),
+  e.g. compare a pop-up's fill with the toolbar's. Two pixels that look alike are one `assert` apart.
+- **Windows/Git Bash mangles `/sdcard/…` paths** into `C:/Program Files/Git/sdcard/…`: prefix the
+  command with `MSYS_NO_PATHCONV=1`, or write the remote path as `//sdcard/…`.
 
 ---
 
