@@ -677,6 +677,14 @@ fun sizeLetterFor(width: Float, widthSlots: List<Float>): String {
  * - Selected colour (swatch circle)
  * - Selected stroke size ("S", "M", or "L")
  *
+ * The three sit on one **neutral grey chip**, not on the tool buttons' `primaryContainer` and no
+ * longer on a bar drawing the stroke's own thickness. The indicator *reports* the live stroke; it is
+ * not a tool that can be picked, so painting it the blue a lit-up tool button wears made it read as a
+ * second active button beside the figures — and a thickness bar beside the size letter said the same
+ * thing (how thick the tip is) twice, in less room than the letter needs. The grey is the scheme's
+ * `surfaceContainerHighest` role — a surface step, never the accent — one tonal step above the dock,
+ * so the chip still reads as a control you can tap rather than dissolving into the bar behind it.
+ *
  * Tapping it opens the full Colour & Size pop-up ([ColorSizePopup]).
  */
 @Composable
@@ -696,6 +704,7 @@ fun ActiveToolIndicator(
             modifier = modifier
                 .height(32.dp)
                 .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(onClick = open)
                 .padding(horizontal = 6.dp, vertical = 2.dp)
                 .semantics {

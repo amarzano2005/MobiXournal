@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "neutral-grey-chip-for-the-active-tool-indicator"
+title = "Neutral grey chip for the active tool indicator"
+description = "The top bar's active tool indicator (ActiveToolIndicator) now sits on one neutral grey chip: its face is the live tool's icon, a swatch of the live colour and the S/M/L size letter, filled with the scheme's surfaceContainerHighest role instead of the primaryContainer a *picked* tool button lights up with. The indicator reports the live stroke and is not a tool you can pick, so wearing the accent blue made it read as a second active button beside the figures; the grey is one tonal step above the dock (rememberToolbarColor) so the chip still reads as a control. The little bar that drew the stroke's own thickness beside the size letter is gone too: the letter already reports the width, and the bar said it again in less room than the letter needs. README.md and docs/architecture.md updated in the same change. Built green (testDebugUnitTest + assembleDebug) and the APK at app/build/outputs/apk/debug/app-debug.apk is fresh; NOT seen on a device - this host has no /data/android emulator, so the chip's contrast in light and dark was reasoned from the theme roles, not eyeballed."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-10-10
+completed = 2026-10-10
+tags = ["ui", "toolbar"]
+
+[[task]]
 id = "settings-ui-polish-and-permanent-secondary-toolbar"
 title = "Settings UI polish and permanent Secondary Toolbar"
 description = "Permanent secondary toolbar (removed dual mode toggle), modernized Material 3 grouped settings interface, rounded search bar, 3-subpage shortcuts menu, and matching transparent color rail slot."
