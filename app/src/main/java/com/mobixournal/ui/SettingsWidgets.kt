@@ -125,7 +125,9 @@ fun <T> DropdownRow(
         Text(label, style = MaterialTheme.typography.bodyMedium)
         Box {
             OutlinedButton(onClick = { open = true }) { Text(optionLabel(selected)) }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            // The app's one menu material (see [ToolbarMenu]): settings drop-downs wear the same
+            // fill and corner as the toolbars', so the app never shows two kinds of pop-up.
+            ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
                 options.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(optionLabel(option)) },

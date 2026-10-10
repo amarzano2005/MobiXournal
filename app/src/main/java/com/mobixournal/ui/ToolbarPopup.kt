@@ -94,17 +94,26 @@ internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurf
 }
 
 /**
- * The toolbar's own [DropdownMenu] — every pop-up the toolbars open is drawn in the **same material
- * as the bars themselves**, the toolbars' [rememberToolbarColor] (`surfaceContainer`), so a menu reads
- * as part of the toolbar it hangs from instead of a lighter panel floating over it.
+ * The toolbar's own [DropdownMenu] — every pop-up the toolbars open is cut from the **same material
+ * as the bars themselves**: the toolbars' [rememberToolbarColor] (`surfaceContainer`) for its fill,
+ * and their own [TOP_BAR_DOCK_CORNER] for its corners, so a menu reads as part of the bar it hangs
+ * from instead of a paler, squarer panel floating over it.
  *
- * The menu's fill is not a parameter this Material3 version exposes: [DropdownMenu] paints itself
- * from `MenuTokens`, whose container colour is the scheme's `surface` — which the app keeps as a
- * plain near-white, deliberately one step **lighter** than the rail and the dock. The one lever
- * public API leaves is the ambient [MaterialTheme]: a nested theme whose `surface` *is* the toolbar
- * colour moves the menu's fill without touching its shape, elevation, items or typography (the
- * nested theme leaves those at their ambient values). Routing every toolbar menu through here is
- * what keeps the whole chrome on one colour; a stray raw [DropdownMenu] brings the lighter fill back.
+ * Neither the fill nor the corner is a parameter this Material3 version exposes — both overloads of
+ * [DropdownMenu] in 1.2.1 stop at the offset, the scroll state and `PopupProperties` — so this takes
+ * the two levers the ambient [MaterialTheme] does leave, and only inside this scope:
+ *
+ * - `surface` is what `MenuTokens.ContainerColor` resolves to, sitting deliberately one step **paler**
+ *   than the rail and the dock. `surfaceTint` is the second half of that: a menu's container carries
+ *   `MenuTokens.ContainerElevation` (3dp), painted as an ~8% wash of `surfaceTint` over the fill, so
+ *   setting the fill alone still left the pop-up a tint step off the toolbar. Pinning the tint to the
+ *   same colour makes the wash a no-op and the fill exact.
+ * - `MenuTokens.ContainerShape` resolves to `Shapes.extraSmall` — M3's 4dp menu corner, far squarer
+ *   than the 20dp dock the menu hangs under. Re-shaping that one role rounds the menu to the chrome's
+ *   own corner; nothing outside this menu sees the override.
+ *
+ * Routing every toolbar menu through here is what keeps the whole chrome on one colour and one
+ * corner: a stray raw [DropdownMenu] brings the paler, squarer panel back.
  */
 @Composable
 internal fun ToolbarMenu(
@@ -115,7 +124,11 @@ internal fun ToolbarMenu(
 ) {
     val toolbar = rememberToolbarColor()
     val scheme = MaterialTheme.colorScheme
-    MaterialTheme(colorScheme = scheme.copy(surface = toolbar)) {
+    val shapes = MaterialTheme.shapes
+    MaterialTheme(
+        colorScheme = scheme.copy(surface = toolbar, surfaceTint = toolbar),
+        shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
+    ) {
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = onDismissRequest,
