@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -99,6 +100,23 @@ internal fun MenuHeading(text: String) {
         text,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/**
+ * A one-line explanation under a pop-up heading, for a section that has nothing to offer on this
+ * page — shorter and quieter than a disabled menu item, which would otherwise claim a full row of the
+ * menu to say only that.
+ */
+@Composable
+internal fun MenuHint(text: String) {
+    Text(
+        text,
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 2.dp)
+            .widthIn(max = 260.dp),
+        style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

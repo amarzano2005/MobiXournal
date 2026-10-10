@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -114,8 +116,14 @@ private val BACKGROUND_STYLES: List<Pair<String, String>> = listOf(
 private val RULE_SPACING_MM = listOf(2.0, 3.0, 5.0, 7.0, 10.0)
 
 /**
- * The page-background chooser: the current page's paper style (plain/lined/ruled/graph/dotted /
- * isometric), the **spacing** its ruling is ruled at, and the stationery presets.
+ * The page-background chooser, in three short sections: the current page's paper style
+ * (plain/lined/ruled/graph/dotted/isometric), the **spacing** its ruling is ruled at, and the
+ * stationery presets.
+ *
+ * Each section is a single row — the styles are chips you scroll along rather than six stacked menu
+ * items — so the whole chooser stays short instead of burying spacing and stationery under a list of
+ * paper names. The sections run from what the sheet *is* (style) to how it is *ruled* (spacing) to a
+ * finished template over the top (stationery), which is the order they are set in.
  *
  * [style] and [config] are the current page's, or null when the page is a PDF/pixmap (no solid sheet
  * to re-rule) — in which case the paper and spacing controls are disabled. Spacing is written as
@@ -136,30 +144,15 @@ internal fun BackgroundPopupButton(
         contentDescription = "Page background",
     ) { dismiss ->
         MenuHeading("Paper")
-        for ((value, label) in BACKGROUND_STYLES) {
-            DropdownMenuItem(
-                text = { Text(label) },
-                enabled = style != null,
-                trailingIcon = {
-                    if (value == style) Icon(Icons.Filled.Check, contentDescription = "selected")
-                },
-                onClick = { onBackgroundStyle(value); dismiss() },
-            )
+        PaperStyleRow(style) { value ->
+            onBackgroundStyle(value)
+            dismiss()
         }
         MenuHeading("Rule spacing")
-        if (style == null) {
-            DropdownMenuItem(
-                text = { Text("Not available on a PDF or image page") },
-                enabled = false,
-                onClick = {},
-            )
-        } else {
-            RuleSpacingRow(style, ruling) { mm ->
-                onBackgroundConfig(
-                    ruling.withPt(BackgroundRuling.KEY_SPACING, mm * PageTemplates.MM_PT).text(),
-                )
-            }
+        RuleSpacingRow(style, ruling) { mm ->
+            onBackgroundConfig(ruling.withPt(BackgroundRuling.KEY_SPACING, mm * PageTemplates.MM_PT).text())
         }
+        HorizontalDivider()
         MenuHeading("Stationery")
         for (kind in Stationery.entries) {
             DropdownMenuItem(
@@ -173,48 +166,83 @@ internal fun BackgroundPopupButton(
 }
 
 /**
- * The spacing choices: a row of millimetre chips — the tapped one written straight to the page — and
- * a small field for any other value. The chips mark the spacing the page currently rules at, so the
- * menu says which one is live instead of leaving the user to remember.
+ * The paper styles as one scrollable row of chips, the live one selected. A row rather than six menu
+ * items because the choice is a single either/or: this way it costs one line, not six, and the
+ * sections below stay in view. Disabled on a page with no solid sheet (a PDF or pixmap).
+ */
+@Composable
+private fun PaperStyleRow(style: String?, onPick: (String) -> Unit) {
+    PopupChipRow {
+        for ((value, label) in BACKGROUND_STYLES) {
+            FilterChip(
+                selected = value == style,
+                enabled = style != null,
+                onClick = { onPick(value) },
+                label = { Text(label) },
+                modifier = Modifier.padding(end = 6.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The spacing choices: a row of millimetre chips — the tapped one written straight to the page — with
+ * a compact field for any other value at the end of the same row. The chips mark the spacing the page
+ * currently rules at, so the menu says which one is live instead of leaving the user to remember.
  */
 @Composable
 private fun RuleSpacingRow(
-    style: String,
+    style: String?,
     ruling: BackgroundRuling,
     onSpacingMm: (Double) -> Unit,
 ) {
+    if (style == null) {
+        MenuHint("No ruling to space on a PDF or image page")
+        return
+    }
     val currentMm = BackgroundRulings.spacingPt(style, ruling) / PageTemplates.MM_PT
+    var text by remember(currentMm) { mutableStateOf(String.format(java.util.Locale.US, "%.1f", currentMm)) }
+    PopupChipRow {
+        for (mm in RULE_SPACING_MM) {
+            FilterChip(
+                selected = kotlin.math.abs(currentMm - mm) < 0.05,
+                onClick = { onSpacingMm(mm) },
+                label = { Text("${mm.toInt()} mm") },
+                modifier = Modifier.padding(end = 6.dp),
+            )
+        }
+        OutlinedTextField(
+            value = text,
+            onValueChange = { typed ->
+                // Millimetres, one decimal: anything else is a typo, and a spacing of zero would
+                // divide the ruling into an infinite number of lines.
+                val clean = typed.filter { it.isDigit() || it == '.' }.take(5)
+                text = clean
+                clean.toDoubleOrNull()?.takeIf { it in 0.5..50.0 }?.let(onSpacingMm)
+            },
+            singleLine = true,
+            // A suffix rather than a floating label keeps the field one line tall, so it reads as part
+            // of the chip row it sits in.
+            suffix = { Text("mm") },
+            modifier = Modifier
+                .width(104.dp)
+                .padding(end = 4.dp),
+        )
+    }
+}
+
+/**
+ * The one-line container a pop-up uses for a run of chips: horizontally scrollable, edge-padded, so a
+ * long row (six paper styles, five spacings plus a field) never wraps the menu taller.
+ */
+@Composable
+private fun PopupChipRow(content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = Modifier
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-    ) {
-        for (mm in RULE_SPACING_MM) {
-            val chosen = kotlin.math.abs(currentMm - mm) < 0.05
-            TextButton(onClick = { onSpacingMm(mm) }) {
-                Text(
-                    text = "${mm.toInt()} mm",
-                    color = if (chosen) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                )
-            }
-        }
-    }
-    var text by remember(currentMm) { mutableStateOf(String.format(java.util.Locale.US, "%.1f", currentMm)) }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { typed ->
-            // Millimetres, one decimal: anything else is a typo, and a spacing of zero would
-            // divide the ruling into an infinite number of lines.
-            val clean = typed.filter { it.isDigit() || it == '.' }.take(5)
-            text = clean
-            clean.toDoubleOrNull()?.takeIf { it in 0.5..50.0 }?.let(onSpacingMm)
-        },
-        label = { Text("Custom (mm)") },
-        singleLine = true,
-        modifier = Modifier
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .width(150.dp),
+        content = content,
     )
 }
 
