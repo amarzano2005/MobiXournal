@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
@@ -89,6 +91,38 @@ internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurf
             .padding(end = 6.dp, bottom = 4.dp)
             .size(12.dp),
     )
+}
+
+/**
+ * The toolbar's own [DropdownMenu] — every pop-up the toolbars open is drawn in the **same material
+ * as the bars themselves**, the toolbars' [rememberToolbarColor] (`surfaceContainer`), so a menu reads
+ * as part of the toolbar it hangs from instead of a lighter panel floating over it.
+ *
+ * The menu's fill is not a parameter this Material3 version exposes: [DropdownMenu] paints itself
+ * from `MenuTokens`, whose container colour is the scheme's `surface` — which the app keeps as a
+ * plain near-white, deliberately one step **lighter** than the rail and the dock. The one lever
+ * public API leaves is the ambient [MaterialTheme]: a nested theme whose `surface` *is* the toolbar
+ * colour moves the menu's fill without touching its shape, elevation, items or typography (the
+ * nested theme leaves those at their ambient values). Routing every toolbar menu through here is
+ * what keeps the whole chrome on one colour; a stray raw [DropdownMenu] brings the lighter fill back.
+ */
+@Composable
+internal fun ToolbarMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val toolbar = rememberToolbarColor()
+    val scheme = MaterialTheme.colorScheme
+    MaterialTheme(colorScheme = scheme.copy(surface = toolbar)) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            content = content,
+        )
+    }
 }
 
 /**
@@ -359,7 +393,7 @@ internal fun ToolbarPopupButton(
                 modifier = Modifier.size(slotSize / 2),
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             if (heading != null) MenuHeading(heading)
             content { open = false }
         }
@@ -383,7 +417,7 @@ internal fun ToolbarPopupButton(
     var open by remember { mutableStateOf(false) }
     Box {
         face { open = !open }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             if (heading != null) MenuHeading(heading)
             content { open = false }
         }

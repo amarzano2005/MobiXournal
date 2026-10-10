@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -266,7 +265,7 @@ private fun ToolGroupButton(
         // Only a group with something to choose wears the chevron; a single-member slot is a plain
         // button and must not look like it opens a menu.
         if (members.size > 1) MenuChevron()
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             ToolGroupPicker(group, members, selected) { picked -> onPick(picked); open = false }
         }
     }

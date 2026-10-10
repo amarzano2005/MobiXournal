@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -254,7 +253,7 @@ fun FontFamilyPicker(family: String, onFamily: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) { Text(family) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             for (f in TEXT_FAMILIES) {
                 DropdownMenuItem(text = { Text(f) }, onClick = { onFamily(f); open = false })
             }

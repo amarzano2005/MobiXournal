@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.LineWeight
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Undo
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -133,7 +132,7 @@ private fun AlignMenu(
     var open by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Align & distribute", Icons.Filled.FormatAlignLeft) { open = true }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             @Composable
             fun row(label: String, action: () -> Unit) {
                 DropdownMenuItem(
@@ -194,7 +193,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     var editing by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Recolour", Icons.Filled.Palette) { open = true }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             ColorPaletteRows(
                 selected = null,
                 palette = palette,
@@ -212,7 +211,7 @@ private fun ReWidthMenu(widthSlots: List<Float>, onReWidth: (Float) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Width", Icons.Filled.LineWeight) { open = true }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             widthSlots.forEachIndexed { i, pt ->
                 DropdownMenuItem(
                     text = { Text("${PEN_WIDTH_LABELS[i]}  (${ptLabel(pt)} pt)") },

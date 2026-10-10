@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -109,7 +108,7 @@ fun ColorSizeRailSlot(
                 ColorSizePopup(style) { open -> SlotChevron(open, slot) }
             }
         }
-        DropdownMenu(expanded = editing in colors.indices, onDismissRequest = { editing = -1 }) {
+        ToolbarMenu(expanded = editing in colors.indices, onDismissRequest = { editing = -1 }) {
             val index = editing
             if (index in colors.indices) {
                 MenuHeading("${colorOwner.label} favourite ${index + 1}")

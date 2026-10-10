@@ -57,7 +57,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VerticalSplit
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -1231,7 +1230,7 @@ private fun CompactShapeKindButton(
                     .padding(end = 1.dp, bottom = 1.dp)
                     .size(10.dp),
             )
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
                 ToolVariantPicker(
                     heading = heading,
                     labels = kinds,
@@ -1296,7 +1295,7 @@ private fun CompactGuidePopupButton(
                 modifier = Modifier.size(18.dp),
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             MenuHeading("Drawing guide")
             for (option in GuideKind.values()) {
                 DropdownMenuItem(
@@ -1353,7 +1352,7 @@ private fun CompactTopBarToolButton(
                     .size(10.dp),
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             ToolGroupPicker(group, members, selected) { picked -> onPick(picked); open = false }
         }
     }
@@ -1776,7 +1775,7 @@ private fun OverflowMenu(
                 modifier = Modifier.size(20.dp),
             )
         }
-        DropdownMenu(
+        ToolbarMenu(
             expanded = open,
             onDismissRequest = { open = false },
             modifier = Modifier.widthIn(min = 280.dp, max = 320.dp),
