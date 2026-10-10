@@ -609,7 +609,27 @@ class SettingsStore(context: Context) {
                     d.railHidden
                 }
             },
-            topBarOrder = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_ORDER, null)).ifEmpty { d.topBarOrder },
+            // A saved row wins over the factory's, which is right for a row the user arranged — and
+            // wrong for one that is merely the *old* factory list written out by an earlier save
+            // (the whole settings object is written together). The one-shot migration below hands
+            // those rows the current factory order, and leaves anything hand-arranged alone.
+            topBarOrder = run {
+                val saved = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_ORDER, null))
+                if (saved.isEmpty()) {
+                    d.topBarOrder
+                } else if (prefs.getBoolean(KEY_TOP_BAR_ORDER_MIGRATED, false)) {
+                    saved
+                } else {
+                    val migrated = migrateTopBarOrder(saved)
+                    // Written straight back: the flag alone would leave the stale list in prefs, and
+                    // the next launch would read it again.
+                    prefs.edit()
+                        .putBoolean(KEY_TOP_BAR_ORDER_MIGRATED, true)
+                        .putString(KEY_TOP_BAR_ORDER, encodeTopBarIds(migrated))
+                        .apply()
+                    migrated
+                }
+            },
             topBarHidden = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_HIDDEN, null)).toSet(),
             audioFolderUri = prefs.getString(KEY_AUDIO_FOLDER, d.audioFolderUri) ?: d.audioFolderUri,
             pageCounterVertical = enumOr(prefs.getString(KEY_PAGE_COUNTER_V, null), d.pageCounterVertical),
@@ -805,6 +825,9 @@ class SettingsStore(context: Context) {
         const val KEY_RAIL_ORDER = "rail_order"
         const val KEY_RAIL_HIDDEN = "rail_hidden"
         const val KEY_RAIL_HIDDEN_MIGRATED = "rail_hidden_migrated_v1"
+
+        /** Set once the stale copy of an old factory Secondary Toolbar order has been refreshed. */
+        const val KEY_TOP_BAR_ORDER_MIGRATED = "top_bar_order_migrated_v2"
         const val KEY_TOP_BAR_ORDER = "top_bar_order"
         const val KEY_TOP_BAR_HIDDEN = "top_bar_hidden"
         const val KEY_AUDIO_FOLDER = "audio_folder_uri"

@@ -2042,7 +2042,20 @@ right edge, so a stylus can still draw over the page's right margin everywhere b
 thumb sits faint when idle, brightens after a scroll, and is brightest while dragged, showing a
 page-number bubble beside it. A rounded grip "peninsula" bulges out of the thumb's centre (purely
 visual — the whole band already catches touches) so there's an obvious finger-sized target to grab. It is a pure navigation affordance — no `.xopp` state, so nothing
-round-trips. Choosing Settings
+round-trips.
+
+**A saved toolbar order is not a stale one.** The Secondary Toolbar's order is a pref
+(`AppSettings.topBarOrder`) whose *default* is `DEFAULT_TOP_BAR_ORDER`, and `orderedTopBarItems()`
+puts any slot the saved order doesn't name at its **factory position** rather than at the end — so a
+position added in a later release reaches an existing install. The other half of that problem is a
+slot that *moved*: the whole settings object is written on any save, so an install whose row was
+never touched still carries a full copy of the factory list **as it was then**, and a saved order
+deliberately wins over the factory's. `migrateTopBarOrder()` is the one-shot repair for exactly
+that: an order that is still an old factory list verbatim (`LEGACY_TOP_BAR_ORDERS`) is refreshed to
+the current one once, behind the `top_bar_order_migrated_v2` flag, while a hand-arranged row — which
+always differs from the old default — is never rewritten.
+
+Choosing Settings
 from the ☰ menu swaps in `SettingsScreen`, which is shaped like a tablet's system settings and has **two
 shapes** for one set of areas. On a screen at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide the four
 `SettingsArea`s — **Input**, **Drawing**, **Interface**, **App & data** — are a **permanent side menu**

@@ -46,6 +46,38 @@ val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
 )
 
 /**
+ * The Secondary Toolbar's **previous** factory orders — the arrow group *after* the Cartesian axis,
+ * without the function graph and with it.
+ *
+ * They exist only so [migrateTopBarOrder] can tell a row the user never touched from one they
+ * arranged. The whole settings object is written on any save, so a device whose row is still the
+ * factory's carries a full copy of *that* factory list on disk: a factory reorder — the axis and the
+ * arrow group trading places — would never reach it, because a saved order deliberately wins.
+ */
+private val LEGACY_TOP_BAR_ORDERS: List<List<String>> = listOf(
+    listOf(
+        "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+        "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
+        "table", "circuit", "circuit_active", "logic", "guides",
+    ),
+    listOf(
+        "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+        "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
+        "table", "circuit", "circuit_active", "logic", "graph", "guides",
+    ),
+)
+
+/**
+ * [order] as the factory order when it is *still* an old factory order verbatim, otherwise untouched.
+ *
+ * A user-arranged row always differs from the old default — that is what arranging it means — so the
+ * comparison is enough to distinguish "never touched" from "deliberately arranged this way", and a
+ * hand-made row is never rewritten.
+ */
+fun migrateTopBarOrder(order: List<String>): List<String> =
+    if (order in LEGACY_TOP_BAR_ORDERS) DEFAULT_TOP_BAR_ORDER else order
+
+/**
  * The Secondary Toolbar positions in the user's [order], with any item the order doesn't name — one
  * added since that order was written — dropped in at its **factory position** rather than tacked onto
  * the end.

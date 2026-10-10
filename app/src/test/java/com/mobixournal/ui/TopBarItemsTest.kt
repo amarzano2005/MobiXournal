@@ -37,6 +37,31 @@ class TopBarItemsTest {
     }
 
     @Test
+    fun `a saved order that is still an old factory order follows the factory reorder`() {
+        // The whole settings object is written on any save, so a row the user never touched sits on
+        // disk as a full copy of the *old* factory list. Without this, the axis and the arrow group
+        // would keep the order that was current when the file was written, for ever.
+        val legacyNoGraph = listOf(
+            "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+            "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
+            "table", "circuit", "circuit_active", "logic", "guides",
+        )
+        assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacyNoGraph))
+        // ...and the same thing for a save written once the graph button already existed.
+        val legacyWithGraph =
+            legacyNoGraph.dropLast(1) + "graph" + legacyNoGraph.last()
+        assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacyWithGraph))
+    }
+
+    @Test
+    fun `a hand-arranged order is never rewritten`() {
+        val mine = listOf("guides", "line", "axis", "arrow", "table")
+        assertEquals(mine, migrateTopBarOrder(mine))
+        // Even a row that only names a few slots is a choice, not a stale default.
+        assertEquals(listOf("line"), migrateTopBarOrder(listOf("line")))
+    }
+
+    @Test
     fun `an item added since a saved order lands at its factory position, not the end`() {
         // A saved order written before the graph existed: the new slot goes in ahead of the guides
         // pop-up (its factory neighbour) rather than being appended past everything.
