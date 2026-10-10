@@ -29,10 +29,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.DrawingSurfaceView
 
@@ -161,6 +169,27 @@ private fun SlotChevron(open: () -> Unit, slot: Dp) {
     }
 }
 
+/**
+ * The shape the dots' own feedback is drawn in: a **true circle centred** in whatever rectangle the tap
+ * cell happens to be, which is not what `CircleShape` gives — that inscribes an *oval*, and the cells here
+ * are wider than they are tall (three of them share one rail slot's height).
+ *
+ * The point is the indication: a tap's ripple and a hovering stylus' state layer are clipped by the node
+ * they are drawn on, so on a bare rectangular cell they light up a grey box around a round dot. With the
+ * cell clipped to this shape the highlight is the dot's own circle — the dot, ringed — while the cell keeps
+ * its rectangle for the *touch target*, which a clip does not shrink.
+ */
+internal val DotCellShape = object : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val radius = minOf(size.width, size.height) / 2f
+        val square = Rect(
+            offset = Offset(size.width / 2f - radius, size.height / 2f - radius),
+            size = Size(radius * 2f, radius * 2f),
+        )
+        return Outline.Rounded(RoundRect(square, radiusX = radius, radiusY = radius))
+    }
+}
+
 /** One favourite: a filled dot, ringed while it is the colour in use. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -176,6 +205,9 @@ private fun FavoriteSwatch(
     Box(
         modifier = Modifier
             .size(width, height)
+            // Before the clickable, so the ripple and the hover layer are drawn inside it: the feedback
+            // belongs to the dot, not to the cell the dot is tapped in.
+            .clip(DotCellShape)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,

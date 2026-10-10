@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "quick-colour-dots-light-up-as-the-dot-not-the-cell"
+title = "Quick-colour dots light up as the dot, not the cell"
+description = "A tap's ripple and a hovering stylus' state layer on the rail slot's three favourite colours were clipped by the bare tap cell, which is wider than it is tall (three cells share one rail slot's height), so selecting a colour lit a grey box around a round dot. The cell is now clipped to DotCellShape (ColorSizeRailSlot.kt, internal): a TRUE circle centred in the rectangle, unlike CircleShape which inscribes an oval in a non-square node, applied before the clickable so the indication is drawn inside it while the cell keeps its rectangle as the touch target (a clip does not shrink hit-testing). Verified on the Pixel_Tablet AVD with a before/after against the same probe points: with the clip removed the cell's left and right flanks go #1E1F25 -> #313238 (the box), with it they stay #1E1F25 while the point inside the circle is tinted (the dot's halo). New DotCellShapeTest pins the shape (wide cell -> circle as wide as the cell is tall and centred, tall cell capped by width, square cell untouched, and not what CircleShape draws). README.md and docs/architecture.md updated in the same change. 1002 unit tests 0 failures + assembleDebug green."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-10
+completed = 2026-10-10
+tags = []
+
+[[task]]
 id = "active-tool-indicator-stands-between-the-two-toolbars-dock-aligned-with-the-tab-strip"
 title = "Active tool indicator stands between the two toolbars, dock aligned with the tab strip"
 description = "The active tool indicator is no longer the Secondary Toolbar dock's end cap: it is a floating pill of its own (StandaloneToolIndicator, private) in the corner the Main Toolbar's column and the figures' dock leave between them, and the dock now holds the figures alone. Its width is fixed (TOP_BAR_INDICATOR_WIDTH = 64dp) so the dock starts on the document tab strip's own line (72dp on a 320dpi tablet) instead of drifting with the tool in play; TOP_BAR_FACE_PADDING/_TIGHT give the shared face its air per style, ToolIndicatorFace is the shared face, and standaloneIndicatorSlot + IndicatorSlot pick the rail's side of the dock (leading slot left, trailing right) pinned by IndicatorSlotTest. The old dock-cap style is kept live behind INDICATOR_AS_DOCK_CAP = false as a one-flip restore path. Verified on the Pixel_Tablet AVD (/data/android absent, AVD started from %LOCALAPPDATA%/Android/Sdk): uiautomator bounds put the pill at 4..68dp, the dock at 72dp and the Untitled chip at 72dp (pixel-level: dock fill at 145-146px, chip ink at 144px), in both light and dark schemes; testDebugUnitTest 998 tests 0 failures + assembleDebug green. README.md and docs/architecture.md updated in the same change."

@@ -1757,7 +1757,11 @@ is live, the pen's otherwise (a non-inking tool such as the eraser offers the pe
 strip) — so the pen and the highlighter keep **separate** favourite colours, exactly as they already keep
 separate colour fields, while the slot never holds two ternas. The slot measures exactly **one slot**
 (`LocalRailSlotSize`), so it cannot cost the rail the tools it shows at a glance: the dots take 52% of
-its width as a column of three cells, each `slot / 3` tall with the dot inset 2dp inside it, and a
+its width as a column of three cells, each `slot / 3` tall with the dot inset 2dp inside it — the cell
+is the *touch target* while the feedback drawn on it is clipped to `DotCellShape`, a **true circle
+centred in the cell** (not `CircleShape`, which would inscribe an oval in a cell wider than it is tall),
+so a tap's ripple and a hovering stylus' state layer light up the dot rather than a grey box around it —
+and a
 centred **square** chevron button of 40% of the slot sits beside them across a 4dp gap — a square
 button rather than a full-height strip, because a strip as tall as the slot and only as wide as a
 glyph reads as empty space with an arrow in it and puts a target where the hand expects none. A tap goes through `pickFavoriteColor`, which writes the colour into
