@@ -576,7 +576,7 @@ fun DrawingSurfaceView.insertMultiPlot(
 ) {
     val index = visiblePageIndex()
     val page = doc.pages.getOrNull(index) ?: return
-    val widthPt = page.width * 0.7
+    val widthPt = (page.width * 0.45).coerceIn(240.0, 320.0)
     val heightPt = widthPt * 0.6
     val (centreX, centreY) = viewportCentrePt(index)
     val leftPt = (centreX - widthPt / 2).coerceIn(0.0, (page.width - widthPt).coerceAtLeast(0.0))
@@ -609,14 +609,19 @@ fun DrawingSurfaceView.insertMultiPlot(
     val summaryElements = if (result.summaryText.isNotEmpty()) {
         listOf(TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, leftPt, topPt + heightPt + 20.0, defaultColor, result.summaryText))
     } else emptyList()
+    val allNewElements = newStrokes + newLabels + summaryElements
 
     val before = doc
     val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
     val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
-    layers[target] = Layer(layers[target].elements + newStrokes + newLabels + summaryElements, layers[target].name)
+    val baseIndex = layers[target].elements.size
+    layers[target] = Layer(layers[target].elements + allNewElements, layers[target].name)
     val pages = doc.pages.toMutableList()
     pages[index] = page.copy(layers = layers)
     doc = doc.copy(pages = pages)
+    val refs = allNewElements.indices.map { ElementRef(target, baseIndex + it) }.toSet()
+    selection = ActiveSelection(index, refs)
+    onSelectionChanged?.invoke(true)
     history.record(before)
     notifyHistory()
     relayout()

@@ -156,6 +156,9 @@ fun BoxScope.EditorOverlays(
                     includeDerivative = includeDerivative,
                     includeSummary = includeSummary,
                 )
+                if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
+                    surface?.activateTool(EditorTool.SELECT, ui, settings, onSettingsChange)
+                }
             },
             onDismiss = { ui.showGraphDialog = false },
         )
