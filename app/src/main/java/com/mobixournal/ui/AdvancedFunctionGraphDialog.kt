@@ -37,6 +37,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -135,7 +136,10 @@ fun AdvancedFunctionGraphDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.widthIn(max = 960.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier
+            .widthIn(min = 600.dp, max = 1100.dp)
+            .padding(horizontal = 24.dp),
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {
             DialogBodyContent(
