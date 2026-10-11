@@ -138,8 +138,9 @@ fun AdvancedFunctionGraphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         modifier = Modifier
-            .widthIn(min = 600.dp, max = 1100.dp)
-            .padding(horizontal = 24.dp),
+            .fillMaxWidth(0.90f)
+            .widthIn(max = 1200.dp)
+            .padding(horizontal = 16.dp),
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {
             DialogBodyContent(
