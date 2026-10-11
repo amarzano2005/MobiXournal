@@ -86,6 +86,19 @@ internal object DrawingSurfaceDefaults {
     const val ROTATE_ARM_PX = 40f      // gap from the right edge out to the rotate knob
 
     /**
+     * Grab radius (view px) for a selection's resize handles: [HANDLE_HIT_PX], never more than a
+     * **third** of the selection's smaller on-screen side.
+     *
+     * The four edge handles sit half a side out from the middle, so capping at *half* would leave the
+     * middle inside a handle's reach: the whole interior of a small selection reads as handle, and a
+     * drag that plainly meant "move this" resizes it instead (below ~60 px of side, where the cap
+     * binds, an element could not be dragged at all). A third keeps the middle a move at every size,
+     * while a selection big enough for the full radius is untouched. Pure, so a unit test pins it.
+     */
+    fun handleHitRadius(boxWpx: Float, boxHpx: Float): Float =
+        minOf(HANDLE_HIT_PX, minOf(boxWpx, boxHpx) / 3f).coerceAtLeast(1f)
+
+    /**
      * Height (dp) of the top/bottom edge band that auto-scrolls the page while a selection is
      * dragged into it — the desktop behaviour of scrolling when an element is pushed to the edge.
      */

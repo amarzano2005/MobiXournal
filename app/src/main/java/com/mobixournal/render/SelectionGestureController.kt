@@ -157,17 +157,14 @@ internal class SelectionGestureController(
                 return true
             }
         }
-        // Four corner resize handles; the anchor is the diagonally-opposite corner.
-        //
-        // The grab radius is capped at half the selection's on-screen size: a fixed 30 px radius
-        // swallows a small selection whole — every touch inside it lands within 30 px of some
-        // corner, so a *move* of a small element silently became a resize. Capping it keeps the
-        // corner hit-zones from overlapping in the middle, so a touch on a small element moves it
-        // (the handles are still grabbable right on the corners).
+        // Four corner resize handles; the anchor is the diagonally-opposite corner. The grab radius
+        // is scaled down with the selection (see [DrawingSurfaceDefaults.handleHitRadius]): a fixed
+        // 30 px radius swallows a small selection whole — every touch inside it lands within reach of
+        // some handle, so a *move* of a small element silently became a resize.
         val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
         val boxWpx = (b.width * box.scale).toFloat()
         val boxHpx = (b.height * box.scale).toFloat()
-        val handleHit = min(DrawingSurfaceDefaults.HANDLE_HIT_PX, min(boxWpx, boxHpx) / 2f)
+        val handleHit = DrawingSurfaceDefaults.handleHitRadius(boxWpx, boxHpx)
         val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
         for (i in 0..3) {
             val padX = if (cornersPt[i].first == b.left) -pad else pad

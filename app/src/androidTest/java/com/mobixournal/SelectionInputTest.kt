@@ -7,12 +7,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.copySelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.pasteClipboard
@@ -66,8 +68,11 @@ class SelectionInputTest {
         view.selectMode = true
         // Select the stroke on page 0.
         gesture(view, listOf(40f to 60f, 90f to 90f, 150f to 160f))
-        // Then grab inside the outline and drag far down, dropping over page 1's band.
-        gesture(view, listOf(80f to 105f, 80f to 800f, 80f to 1650f))
+        // Then grab the outline's **middle** — the one spot that is a drag, not a resize handle — and
+        // drag far down, dropping over page 1's band. Read from the view's own layout so the gesture
+        // follows the sheet wherever the stacker put it.
+        val (cx, cy) = outlineCentre(view, 0, inside)
+        gesture(view, listOf(cx to cy, cx to 800f, cx to 1650f))
 
         assertEquals("page 0 gave up its stroke", 0, strokesOfPage(view, 0).size)
         assertEquals("page 1 received it", 1, strokesOfPage(view, 1).size)
@@ -115,6 +120,18 @@ class SelectionInputTest {
         } finally {
             event.recycle()
         }
+    }
+
+    /**
+     * The view-px middle of [el]'s selection outline on [page]. The stacker puts page 0 at the top of
+     * the content band (offset by the page gap) and a fresh view is unscrolled, so this is the touch
+     * point that grabs the selection to move it.
+     */
+    private fun outlineCentre(view: DrawingSurfaceView, page: Int, el: Element): Pair<Float, Float> {
+        val box = view.layout.boxes[page]
+        val b = ElementBounds.of(el)
+        return ((b.left + b.right) / 2 * box.scale + box.leftPx).toFloat() to
+            ((b.top + b.bottom) / 2 * box.scale + box.topPx).toFloat()
     }
 
     private fun strokesOf(view: DrawingSurfaceView): List<Stroke> =
