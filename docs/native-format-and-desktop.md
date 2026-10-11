@@ -138,7 +138,8 @@ bridge:
 1. **Import `.xopp` → `.mobix`**:
    - Standard strokes, texts, images, and backgrounds are ingested directly into the domain model.
    - If the `.xopp` contains MobiXournal metadata tags (see below), living elements are restored.
-2. **Export `.mobix` → `.xopp`**:
+2. **Export `.mobix` → `.xopp` (Solution A: Zero-friction in-app export)**:
+   - Available directly from MobiXournal's overflow menu / Save As dialog on both Android and Desktop.
    - `PlotElement` is compiled by `MultiFunctionPlotter` into standard `<stroke>` paths and `<text>` labels.
    - `TableElement` is compiled into border strokes and text elements.
    - Strokes with tilt/azimuth are written as regular strokes preserving their computed width.
@@ -149,6 +150,26 @@ bridge:
      ```
      Desktop Xournal++ ignores XML comments, preserving normal viewing and editing on Linux. When reopened
      in MobiXournal, if the strokes were not altered, the living elements are revived.
+
+### Opening `.mobix` directly in desktop Xournal++ (Solution C: Lua Plugin)
+
+While desktop Xournal++ (C++/GTK3) does not natively know the `.mobix` file type, Xournal++ provides a
+**Lua plugin API** (`~/.config/xournalpp/plugins/`).
+
+MobiXournal will provide an official companion plugin (`xournalpp-mobix-plugin`):
+
+```text
+~/.config/xournalpp/plugins/mobix-importer/
+├── plugin.ini                   # Declares plugin name, author, menu entry
+└── main.lua                     # Unpacks .mobix, parses JSON, and injects pages into Xournal++
+```
+
+- **User workflow**: In desktop Xournal++, the user clicks **Plugin → Import MobiXournal document…**
+  and selects the `.mobix` file.
+- **Under the hood**: The Lua script unzips the archive into a temporary cache, translates `manifest.json`
+  and `pages/*.json` into standard Xournal++ document elements using the Lua document API
+  (or compiles to an internal `.xopp` and calls `app.openFile`), opening the document directly inside
+  desktop Xournal++ without requiring manual pre-conversion.
 
 ---
 
