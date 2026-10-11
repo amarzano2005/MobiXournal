@@ -163,10 +163,10 @@ scripts/host-build.sh -Pandroid.testInstrumentationRunnerArguments.class=com.mob
 That is how the stylus paths are exercised where `adb shell input` cannot reach (`StylusInputTest`
 injects real `MotionEvent`s carrying tool type, button state and per-sample pressure).
 
-**On a host this is the canonical path, and it runs everything.** Measured: 29 tests across all seven
-`androidTest` classes — `BitmapCacheDeadlockTest`, `MouseWheelInputTest`, `SelectionInputTest`,
-`SmokeTest` (2), `StylusInputTest` (14), `io.UriStagingTest`, `ui.SettingsStoreTest` — in 55 s on a
-booting `Pixel_Tablet` AVD. So `scripts/connected-test.sh` is **not** needed on a host, not even for
+**On a host this is the canonical path, and it runs everything.** Measured: 34 tests across all seven
+`androidTest` classes — `BitmapCacheDeadlockTest`, `MouseWheelInputTest`, `SelectionInputTest` (3),
+`SmokeTest` (2), `StylusInputTest` (19), `io.UriStagingTest` (3), `ui.SettingsStoreTest` (3) — in
+about half a minute on a warm `Pixel_Tablet` AVD (55 s on a booting one). So `scripts/connected-test.sh` is **not** needed on a host, not even for
 `SmokeTest`: its reason for existing (Gradle's task starting an adb inside the throwaway *build*
 container, a different adb world from the emulator's) does not apply where the host's own SDK adb
 reaches the device. Keep it for the `/data/android` pipeline, where that mismatch is real.

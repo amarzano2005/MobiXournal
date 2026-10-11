@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "cover-selection-and-the-hold-to-snap-paths-with-injected-stylus-events"
+title = "Cover selection and the hold-to-snap paths with injected stylus events"
+description = "StylusInputTest now injects real MotionEvents with tool type, button state and per-sample pressure to cover the eraser tip, the barrel, pressure and the guide hook. The select/band gestures, the stylus hover preview ring, and hold-to-snap are still covered only by JVM unit tests, even though they are pen-only paths adb shell input cannot reach."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-10-11
+completed = 2026-10-11
+tags = ["stylus"]
+
+[[task]]
 id = "run-the-whole-instrumented-suite-on-the-host-emulator"
 title = "Run the whole instrumented suite on the host emulator"
 description = "Since the SDK emulator's own adb works with Gradle's connectedDebugAndroidTest on a host, check whether scripts/connected-test.sh (the container wrapper) is still needed for SmokeTest, and record which path is canonical. The stylus suite (StylusInputTest) is already exercised that way."

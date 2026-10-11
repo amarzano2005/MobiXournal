@@ -19,8 +19,10 @@ import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.InputSettings
+import com.mobixournal.render.PointerKind
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.Snapping
+import com.mobixournal.render.deleteSelection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,11 +31,12 @@ import org.junit.runner.RunWith
 /**
  * On-device verification of the stylus input layer (see `docs/architecture.md` → "Stylus &
  * selection roadmap"): the eraser tip, the finger-draw palm gate, the barrel button, palm rejection
- * while a stylus writes, the pressure stream, and the guide hook. These need real Android
- * `MotionEvent`s carrying a *tool type*, *button state* or per-pointer *pressure* (none of which
- * `adb shell input` can inject, and JVM unit tests can't build), so they live here and run via
- * `connectedDebugAndroidTest`. The pure logic is unit-tested in `InputClassifierTest`,
- * `PressureCurveTest` and `DrawingGuideTest`; these prove the view is wired to it.
+ * while a stylus writes, the pressure stream, the guide hook, the select/band gestures, the hover
+ * preview ring, and hold-to-snap. These need real Android `MotionEvent`s carrying a *tool type*,
+ * *button state*, per-pointer *pressure* or *hover*, none of which `adb shell input` can inject and
+ * JVM unit tests can't build, so they live here and run via `connectedDebugAndroidTest`. The pure
+ * logic is unit-tested in `InputClassifierTest`, `PressureCurveTest` and `DrawingGuideTest`; these
+ * prove the view is wired to it.
  *
  * Run them on a host with an attached emulator/device:
  * `scripts/host-build.sh connectedDebugAndroidTest` (see `docs/tools.md` → "Host fallback").
@@ -375,6 +378,183 @@ class StylusInputTest {
         )
     }
 
+    // --- selection: the pen selects, it does not ink ---------------------------------------------
+
+    /**
+     * In Select mode a **stylus** drag marquees: the band picks up the stroke it encloses, the pen
+     * lays down no ink of its own, and an element outside the band is left alone. The classifier sends
+     * a pen in Select mode to the selection rather than to the drawing path; a JVM test can only see
+     * the classifier's verdict, not the gesture the view runs from it.
+     */
+    @Test
+    fun stylusMarqueeSelectsWithoutInking() = onView { view ->
+        view.tool = Tool.PEN
+        drawStroke(view, listOf(60.0 to 60.0, 85.0 to 85.0, 110.0 to 110.0))   // enclosed by the band
+        drawStroke(view, listOf(60.0 to 400.0, 85.0 to 415.0, 110.0 to 430.0))  // far below it
+        assertEquals("two strokes to tell apart", 2, strokesOf(view).size)
+
+        view.selectMode = true
+        val map = pageMap()
+        // One diagonal drag corner to corner: the band is the rectangle between where the pen landed
+        // and where it last was, so a path that loops back on itself would trace nothing.
+        stylusGesture(
+            view,
+            listOf(40.0 to 40.0, 130.0 to 40.0, 130.0 to 130.0)
+                .map { (px, py) -> map.x(px) to map.y(py) },
+        )
+        view.deleteSelection()
+
+        val left = strokesOf(view)
+        assertEquals("the band selected the enclosed stroke and nothing else", 1, left.size)
+        assertEquals("and the stylus laid down no ink of its own", 1, left.size)
+        assertEquals("the survivor is the stroke below the band", 400.0, left[0].points[0].y, 1.0)
+    }
+
+    /**
+     * The same in **lasso** mode: the pen traces a shape, and only what that shape wholly encloses is
+     * selected. The traced path is a gesture a pointing device can make and `adb shell input` cannot
+     * (it injects straight swipes only), and the pen must not leave the trace as ink.
+     */
+    @Test
+    fun stylusLassoTraceSelectsOnlyWhatItEncloses() = onView { view ->
+        view.tool = Tool.PEN
+        drawStroke(view, listOf(60.0 to 60.0, 85.0 to 85.0, 110.0 to 110.0))
+        drawStroke(view, listOf(60.0 to 400.0, 85.0 to 415.0, 110.0 to 430.0))
+
+        view.selectMode = true
+        view.lassoMode = true
+        val map = pageMap()
+        // A hexagon around the first stroke only; its corners all sit outside the closed path.
+        stylusGesture(
+            view,
+            listOf(
+                30.0 to 30.0, 140.0 to 30.0, 150.0 to 90.0,
+                140.0 to 150.0, 30.0 to 150.0, 20.0 to 90.0, 30.0 to 30.0,
+            ).map { (px, py) -> map.x(px) to map.y(py) },
+        )
+        view.deleteSelection()
+
+        val left = strokesOf(view)
+        assertEquals("only the enclosed stroke went, the trace left no ink", 1, left.size)
+        assertEquals(400.0, left[0].points[0].y, 1.0)
+    }
+
+    // --- the stylus hover preview -----------------------------------------------------------------
+
+    /**
+     * A **hovering** stylus drives the preview ring at the tip, an inverted pen previews the rubber it
+     * would erase with, leaving the glass clears it, and the setting suppresses it. A hover is a
+     * `MotionEvent` with no press at all — nothing `adb shell input` can produce — so this is the only
+     * place the ring's wiring is exercised.
+     */
+    @Test
+    fun hoveringStylusDrivesThePreviewRing() = onView { view ->
+        assertTrue("the preview is on by default", view.showHover)
+
+        hoverAt(view, MotionEvent.ACTION_HOVER_ENTER, 300f, 400f, MotionEvent.TOOL_TYPE_STYLUS)
+        assertTrue("a hovering stylus shows the ring", view.hovering)
+        assertEquals("the ring sits under the tip", 300f, view.hoverX, 0.01f)
+        assertEquals(400f, view.hoverY, 0.01f)
+        assertEquals(PointerKind.STYLUS, view.hoverKind)
+
+        // The flipped-over pen previews the rubber, not the nib.
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 320f, 420f, MotionEvent.TOOL_TYPE_ERASER)
+        assertEquals(PointerKind.ERASER_TIP, view.hoverKind)
+        assertEquals("the ring follows the tip", 320f, view.hoverX, 0.01f)
+
+        hoverAt(view, MotionEvent.ACTION_HOVER_EXIT, 320f, 420f, MotionEvent.TOOL_TYPE_STYLUS)
+        assertTrue("leaving the glass clears the ring", !view.hovering)
+
+        view.showHover = false
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 300f, 400f, MotionEvent.TOOL_TYPE_STYLUS)
+        assertTrue("the setting takes the ring away", !view.hovering)
+    }
+
+    // --- hold-to-snap -----------------------------------------------------------------------------
+
+    /**
+     * **Hold-to-snap**'s timing: the tip landing arms the timer, a sample that moves the tip a slop
+     * re-arms it, a tip that stays put leaves the armed timer alone, and lift-off drops it. Every step
+     * is driven by injected stylus samples — it is the one path in the app whose input is *stillness*,
+     * which no injected swipe can express.
+     */
+    @Test
+    fun aStillTipKeepsTheHoldArmedAndLiftOffDropsIt() = onView { view ->
+        view.tool = Tool.PEN
+        val map = pageMap()
+        val downTime = now()
+
+        send(view, downTime, downTime, MotionEvent.ACTION_DOWN, floatArrayOf(map.x(200.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        val armedOnLanding = view.holdSnapRunnable
+        assertTrue("the tip landing armed the hold timer", armedOnLanding != null)
+
+        // A sample well past the slop: the timer is re-armed for the tip's new resting place.
+        send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        assertTrue("moving re-armed the timer", view.holdSnapRunnable != null && view.holdSnapRunnable !== armedOnLanding)
+        // The anchor is the *stored* sample, which the smoother has pulled part of the way to the raw
+        // tip; what matters is that it followed the tip off its landing place.
+        assertTrue("the anchor followed the tip (${view.holdAnchorX})", view.holdAnchorX > 205.0)
+        // The tip now stops: the position filter keeps closing the remaining gap for a sample or two
+        // (that is the filter's lag, not the pen moving), until each new sample lands within the slop
+        // of the anchor and the armed timer is left alone.
+        send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        val settled = view.holdSnapRunnable
+        send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(230.0)), floatArrayOf(map.y(300.0)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        assertTrue("a resting tip does not re-arm the timer", view.holdSnapRunnable === settled)
+
+        send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(map.x(230.4)), floatArrayOf(map.y(300.1)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        assertTrue("lift-off dropped the hold", view.holdSnapRunnable == null)
+        assertTrue("and nothing was snapped: the tip never rested", !view.holdSnapped)
+    }
+
+    /**
+     * The snap itself: a hand-drawn near-horizontal line, held still, is replaced *in place* by one
+     * clean segment **before lift-off** — the whole point of the hold, since the stroke visible while
+     * the tip is still down is the recognised one, and the user can keep drawing if it guessed wrong.
+     *
+     * The armed callback is run directly rather than waiting out its 500 ms: the timer is a
+     * `postDelayed` on the view, and this harness's view is never attached to a window, so the
+     * framework only queues that post until an attach that never comes. What the hold *does* when it
+     * fires is what these assertions pin; the timing is `aStillTipKeepsTheHoldArmedAndLiftOffDropsIt`'s.
+     */
+    @Test
+    fun aHeldStrokeIsSnappedInPlaceBeforeLiftOff() = onView { view ->
+        view.tool = Tool.PEN
+        val map = pageMap()
+        val downTime = now()
+        // A near-horizontal hand-drawn line: 200pt long with a sub-point wobble, so the samples are
+        // never collinear and a stored two-vertex segment can only be the recogniser's work.
+        val samples = (0..40).map { i -> 200.0 + i * 5.0 to 300.0 + kotlin.math.sin(i * 0.9) * 0.6 }
+        samples.forEachIndexed { i, (px, py) ->
+            val action = if (i == 0) MotionEvent.ACTION_DOWN else MotionEvent.ACTION_MOVE
+            send(view, downTime, if (i == 0) downTime else now(), action, floatArrayOf(map.x(px)), floatArrayOf(map.y(py)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        }
+
+        val freehand = view.current!!
+        assertTrue("the freehand stroke has many samples (${freehand.size})", freehand.size > 20)
+        val armed = view.holdSnapRunnable
+        assertTrue("the resting tip has the hold armed", armed != null)
+
+        armed!!.run()
+
+        assertTrue("the held stroke was snapped while the tip was still down", view.holdSnapped)
+        val snappedShape = view.current!!
+        val snappedSize = snappedShape.size
+        val snappedYs = snappedShape.map { it.y }
+        assertEquals("the wobble became one clean segment", 2, snappedSize)
+        assertEquals("flattened onto the line's own direction", snappedYs[0], snappedYs[1], 1.0)
+        assertTrue("and the segment spans what was drawn", kotlin.math.abs(snappedShape[1].x - snappedShape[0].x) > 150.0)
+
+        // A preview, not a lock: further movement grows the stroke again, and it can be re-snapped.
+        send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(420.0)), floatArrayOf(map.y(300.5)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        assertTrue("drawing on extends the snapped stroke (${view.current!!.size})", view.current!!.size > snappedSize)
+
+        send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(map.x(420.0)), floatArrayOf(map.y(300.5)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        assertEquals("the lift committed one stroke", 1, strokesOf(view).size)
+        assertTrue("and it is not the raw sample list", strokesOf(view)[0].points.size < freehand.size)
+    }
+
     // --- harness -------------------------------------------------------------------------------
 
     /**
@@ -545,6 +725,37 @@ class StylusInputTest {
             send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(x), floatArrayOf(y), intArrayOf(toolType), buttonState)
         }
         send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(x), floatArrayOf(y), intArrayOf(toolType), buttonState)
+    }
+
+    /**
+     * One stylus gesture through the view-px [points]: DOWN at the first, a MOVE for every point after
+     * it, then UP where the pen stopped. The callers rely on the *last* point having been moved to (a
+     * marquee takes its rectangle from the last sample before the lift), so it is not sent as the UP.
+     */
+    private fun stylusGesture(view: DrawingSurfaceView, points: List<Pair<Float, Float>>) {
+        val downTime = SystemClock.uptimeMillis()
+        val (x0, y0) = points.first()
+        send(view, downTime, downTime, MotionEvent.ACTION_DOWN, floatArrayOf(x0), floatArrayOf(y0), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        for ((x, y) in points.drop(1)) {
+            send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(x), floatArrayOf(y), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        }
+        val (xn, yn) = points.last()
+        send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(xn), floatArrayOf(yn), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+    }
+
+    /** Dispatch a stylus hover event at ([x], [y]) with [toolType] — the tip off the glass. */
+    private fun hoverAt(view: DrawingSurfaceView, action: Int, x: Float, y: Float, toolType: Int) {
+        val props = arrayOf(MotionEvent.PointerProperties().apply { id = 0; this.toolType = toolType })
+        val coords = arrayOf(MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 0f; size = 1f })
+        val event = MotionEvent.obtain(
+            now(), now(), action, 1, props, coords,
+            0, 0, 1f, 1f, 0, 0, 0x00004002 /* SOURCE_STYLUS */, 0,
+        )
+        try {
+            view.onHoverEvent(event)
+        } finally {
+            event.recycle()
+        }
     }
 
     /** One press-and-release of the barrel button while the stylus hovers above the glass. */

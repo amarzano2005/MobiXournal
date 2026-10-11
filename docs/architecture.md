@@ -2409,13 +2409,19 @@ Both are covered by `StrokeSmootherTest`. **Hover** (`ACTION_HOVER_MOVE` from a
 stylus, via `onHoverEvent`) draws a preview ring where the tip will land. All of these are settings in
 `AppSettings`, persisted by `SettingsStore` (SharedPreferences) and pushed live onto the surface by
 `EditorScreen.applySettings`; the on-device `StylusInputTest` drives synthetic tool-typed
-`MotionEvent`s — carrying a tool type, a button state and a per-sample **pressure**, none of which
-`adb shell input` can send and a JVM test cannot build — to prove the wiring: the eraser tip, barrel
+`MotionEvent`s — carrying a tool type, a button state, a per-sample **pressure** and a **hover**, none
+of which `adb shell input` can send and a JVM test cannot build — to prove the wiring: the eraser tip, barrel
 erase (motion button *and* the vendor key a Bluetooth pen sends), barrel double-click, the
 finger-draw gate, palm rejection, the pressure stream (a rising press stores rising vertex widths,
-and **Pressure sensitivity** off stores one width), and the **guide hook** (a stylus stroke 8pt off
+and **Pressure sensitivity** off stores one width), the **guide hook** (a stylus stroke 8pt off
 a setsquare's edge is stored *on* the edge and keeps its offset once the guide is cleared; a ruling
-guide pulls every vertex onto the page's own ruling, and clearing it gives the vertex back). It runs
+guide pulls every vertex onto the page's own ruling, and clearing it gives the vertex back), the
+**select/band gestures** (a pen in Select mode marquees and lasso-traces without laying down ink of
+its own, and only what the band encloses is picked), the **hover preview ring** (a hovering tip moves
+and clears it, an inverted pen previews the rubber, the setting suppresses it), and **hold-to-snap**
+(landing arms the hold timer, a sample past the slop re-arms it while a resting tip leaves it alone,
+lift-off drops it, and the armed callback rewrites a held stroke into one clean segment *before* the
+lift — a preview the user can keep drawing on). It runs
 on any attached device with `scripts/host-build.sh connectedDebugAndroidTest
 -Pandroid.testInstrumentationRunnerArguments.class=com.mobixournal.StylusInputTest` (or through
 `scripts/connected-test.sh` in the container), and it is the only place these paths are exercised:
