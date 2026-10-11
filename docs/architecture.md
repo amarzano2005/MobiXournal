@@ -38,6 +38,10 @@ architecture.
 | [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking synchronization, point-level timestamps, inking karaoke, and interactive audio scrubbing | you work on synchronized audio playback or speech-to-stroke features |
 | [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters, and math/OCR plugins | you add extensibility hooks, scripting or third-party integrations |
 | [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, and cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution |
+| [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, and offline math rendering | you work on mathematical typography, LaTeX, or Typst features |
+| [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, full-text inverted index, and ISO PDF/A export | you work on PDF text snapping, search indexing or native annotation export |
+| [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric shape recognition, and parametric vertex handles | you work on shape recognition, gesture dwell detection or geometric control handles |
+| [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, and cross-app drag and drop | you work on multi-window coordination, split view or drag and drop |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, and [`releases/`](releases/) holds the per-version changelogs.
