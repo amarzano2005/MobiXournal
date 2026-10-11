@@ -31,6 +31,7 @@ architecture.
 | [`audio.md`](audio.md) | recording, replay and the `.wav` sidecars a stroke can reference | you touch audio annotation |
 | [`search.md`](search.md) | document search, the handwriting index, the two recognition engines | you change search or recognition |
 | [`testing.md`](testing.md) | what the unit tests cover, and which rules the build enforces mechanically | you want to know what protects a change, or how to make a rule stick |
+| [`native-format-and-desktop.md`](native-format-and-desktop.md) | technical design for the native `.mobix` format, the `.xopp` bridge, and the desktop Compose Multiplatform architecture | you evaluate moving beyond `.xopp` or targeting desktop |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, and [`releases/`](releases/) holds the per-version changelogs.
