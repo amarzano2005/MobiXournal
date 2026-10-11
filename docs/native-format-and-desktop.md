@@ -229,6 +229,47 @@ Migrating to the `.mobix` format directly enables four major performance optimiz
 
 ---
 
+## Graphics tablet optimization and hardware dial support
+
+Desktop note-taking frequently pairs PC workstations with **screenless or display graphics tablets**
+(Wacom Intuos/Cintiq, Huion, XP-Pen, Xencelabs). Unlike mobile touchscreens, graphics tablets rely on
+external hardware controls: physical ExpressKeys, stylus barrel switches, and rotary **Touch Rings / Dial Wheels**.
+
+### 1. Rotary dial / touch ring integration
+Physical hardware dials (Wacom Touch Ring, Huion/XP-Pen dial wheel, Microsoft Surface Dial) map directly
+to high-frequency analog events in the desktop shell:
+
+- **Stepless hardware zoom**: Rotating the dial applies smooth, continuous logarithmic zoom centered at the
+  pen cursor location without requiring multi-touch pinch gestures or keyboard modifiers.
+- **Dynamic stroke width**: Adjusts active pen or highlighter thickness on-the-fly, accompanied by a subtle
+  visual diameter ring preview around the cursor.
+- **Radial Menu / Circular Palette (Pie Menu)**:
+  - Pressing the dial center key or a pen barrel button summons an on-screen **Circular Palette** centered
+    directly under the pen nib.
+  - Rotating the dial spins the radial palette to quickly switch colors, pen tools, or eraser modes without
+    moving the hand to the edge of a 4K desktop monitor.
+- **Canvas rotation / Timeline scrubbing**: Rotates the page angle or scrubs through synchronized audio
+  (see [audio-inking-sync.md](audio-inking-sync.md)).
+
+### 2. Multi-protocol desktop tablet drivers
+To avoid the driver inconsistencies common in desktop Linux and Windows applications, `app-desktop`
+implements a low-latency input abstraction layer across three platform protocols:
+
+- **Windows**: Dual-backend support for **Windows Ink (`WM_POINTER`)** and legacy **Wintab API**, ensuring
+  full pressure, tilt, and dial compatibility across both consumer styluses and professional Wacom drivers.
+- **Linux**: Direct integration with **libinput** and the Wayland tablet protocol (`zwp_tablet_manager_v2`),
+  with fallback to X11 XInput2 tablet devices.
+- **macOS**: Cocoa `NSEvent` tablet sub-types with native pressure and azimuth resolution.
+
+### 3. Absolute mapping and multi-monitor aspect ratio lock
+Screenless drawing tablets map tablet surface coordinates to desktop pixels. `app-desktop` provides:
+- **Aspect ratio lock**: Automatically letterboxes the tablet's active area to match the monitor or window
+  proportions, eliminating oval distortion when drawing circles.
+- **Window-bounded tablet mapping**: Confines tablet strokes to the MobiXournal canvas while allowing the
+  mouse cursor to roam freely across secondary monitors.
+
+---
+
 ## Phased implementation plan
 
 1. **Phase 1: Domain model abstraction**:
