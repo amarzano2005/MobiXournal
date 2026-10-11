@@ -151,13 +151,13 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(
         "chemistry", "Chemistry",
         listOf(
-            EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE,
-            EditorTool.CHEM_BOND_TRIPLE, EditorTool.CHEM_BENZENE,
+            EditorTool.CHEM_BENZENE, EditorTool.CHEM_BOND_SINGLE,
+            EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE,
         ),
-        // Bonds in order, then the ring that joins them.
+        // Aromatic ring first as the signature chemistry emblem, then bonds in order.
         pickerLayout = listOf(
-            listOf(EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE),
-            listOf(EditorTool.CHEM_BOND_TRIPLE, EditorTool.CHEM_BENZENE),
+            listOf(EditorTool.CHEM_BENZENE, EditorTool.CHEM_BOND_SINGLE),
+            listOf(EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE),
         ),
     ),
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),

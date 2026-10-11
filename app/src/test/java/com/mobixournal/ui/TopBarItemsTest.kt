@@ -28,12 +28,10 @@ class TopBarItemsTest {
     }
 
     @Test
-    fun `the function graph sits second from the end of the default order`() {
-        // It is the Secondary Toolbar's penultimate button by design: one tap from the tools' end of
-        // the row, but with the guides pop-up still the last slot.
+    fun `the function graph sits immediately to the right of the coordinate axis`() {
+        val axis = DEFAULT_TOP_BAR_ORDER.indexOf("axis")
         val graph = DEFAULT_TOP_BAR_ORDER.indexOf("graph")
-        assertEquals(DEFAULT_TOP_BAR_ORDER.size - 2, graph)
-        assertEquals("guides", DEFAULT_TOP_BAR_ORDER.last())
+        assertEquals(axis + 1, graph)
     }
 
     @Test
@@ -47,10 +45,16 @@ class TopBarItemsTest {
             "table", "circuit", "circuit_active", "logic", "guides",
         )
         assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacyNoGraph))
-        // ...and the same thing for a save written once the graph button already existed.
+        // ...and the same thing for a save written once the graph button already existed before guides.
         val legacyWithGraph =
             legacyNoGraph.dropLast(1) + "graph" + legacyNoGraph.last()
         assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacyWithGraph))
+        val legacyWithChem = listOf(
+            "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+            "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis",
+            "table", "circuit", "circuit_active", "logic", "chemistry", "graph", "guides",
+        )
+        assertEquals(DEFAULT_TOP_BAR_ORDER, migrateTopBarOrder(legacyWithChem))
     }
 
     @Test
@@ -63,21 +67,20 @@ class TopBarItemsTest {
 
     @Test
     fun `an item added since a saved order lands at its factory position, not the end`() {
-        // A saved order written before the graph existed: the new slot goes in ahead of the guides
-        // pop-up (its factory neighbour) rather than being appended past everything.
+        // A saved order written before the graph existed: the new slot goes in ahead of table
+        // (its factory neighbour after axis) rather than being appended past everything.
         val legacy = DEFAULT_TOP_BAR_ORDER - "graph"
         val ordered = orderedTopBarItems(legacy).map { it.id }
-        assertEquals("graph", ordered[ordered.size - 2])
-        assertEquals("guides", ordered.last())
+        assertEquals(ordered.indexOf("axis") + 1, ordered.indexOf("graph"))
     }
 
     @Test
     fun `a hand-arranged order keeps its own sequence and still places the new item`() {
-        val ordered = orderedTopBarItems(listOf("line", "rectangle", "guides")).map { it.id }
+        val ordered = orderedTopBarItems(listOf("line", "rectangle", "table")).map { it.id }
         assertEquals(listOf("line", "rectangle"), ordered.take(2))
-        // Nothing the order names follows the graph in factory order except the guides it was put
-        // before, so the graph sits directly ahead of guides.
-        assertEquals("graph", ordered[ordered.indexOf("guides") - 1])
+        // Nothing the order names follows the graph in factory order except table,
+        // so the graph sits directly ahead of table.
+        assertEquals("graph", ordered[ordered.indexOf("table") - 1])
     }
 
     @Test

@@ -12,11 +12,10 @@ outermost, i.e. under the thumb), and a
 **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As,
 Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (rail dockable to the left or right
 edge — `ToolbarPosition` offers only those two, so the rail always runs as a vertical column and
-never fights the Secondary Toolbar for the top edge)
 with core drawing tool slots and pop-up panels; a permanent **Secondary Toolbar** (`TopBarToolsRow`) for geometric
-figures and tools embedded in the top bar — geometric figures, the arrow/table/circuit/logic pop-ups,
-the **function graph** button (penultimate slot: one tap from the tools' end, with the drawing-guides
-pop-up still last) and the guides pop-up; and the canvas filling the rest. `orderedTopBarItems` places
+figures and tools embedded in the top bar — geometric figures, the coordinate axis, the **function graph** button
+(immediately following the Cartesian axis), the arrow/table/circuit/logic/chemistry pop-ups,
+and the guides pop-up (last); and the canvas filling the rest. `orderedTopBarItems` places
 a slot the saved order doesn't name (one added since that order was written) at its **factory
 position** — just ahead of the next factory item the order does name — rather than appending it past
 everything the user arranged, which is what would otherwise park a new button at the wrong end of an

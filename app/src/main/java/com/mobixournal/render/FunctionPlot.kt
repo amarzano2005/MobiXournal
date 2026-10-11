@@ -8,9 +8,9 @@
  * desktop Xournal++, and can be selected, moved, restyled or erased. Nothing about the formula itself
  * is stored, because the format has nowhere to put it (the project's scope rule) — the plot *is* ink.
  *
- * The parser takes the arithmetic people actually type: `+ - * / ^`, parentheses, unary minus, the
- * constants `pi` and `e`, and the functions in [FUNCTIONS]. Implicit multiplication is **not**
- * supported (`2x` is a typo; write `2*x`). A formula that doesn't parse compiles to `null` rather than
+ * The parser takes the arithmetic people actually type: `+ - * / ^`, parentheses, unary minus,
+ * implicit multiplication (e.g. `2x`, `2(x+1)`, `(x+1)(x-1)`, `x sin(x)`), the constants `pi` and
+ * `e`, and the functions in [FUNCTIONS]. A formula that doesn't parse compiles to `null` rather than
  * throwing, so a typo in the dialog can never take the editor down.
  */
 package com.mobixournal.render
@@ -53,15 +53,16 @@ object FunctionPlot {
 
     /** The one-variable functions the parser knows, under the names they are written. */
     val FUNCTIONS: Map<String, (Double) -> Double> = mapOf(
-        "sin" to ::sin, "cos" to ::cos, "tan" to ::tan,
-        "asin" to ::asin, "acos" to ::acos, "atan" to ::atan,
+        "sin" to ::sin, "cos" to ::cos, "tan" to ::tan, "tg" to ::tan,
+        "cot" to { x -> 1.0 / kotlin.math.tan(x) }, "ctg" to { x -> 1.0 / kotlin.math.tan(x) },
+        "asin" to ::asin, "acos" to ::acos, "atan" to ::atan, "atg" to ::atan,
         "sinh" to ::sinh, "cosh" to ::cosh, "tanh" to ::tanh,
         "sqrt" to ::sqrt, "abs" to ::abs, "ln" to ::ln, "log" to ::log10, "exp" to ::exp,
         "floor" to ::floor, "ceil" to ::ceil, "round" to ::round,
     )
 
     /** The constants the parser knows. */
-    val CONSTANTS: Map<String, Double> = mapOf("pi" to PI, "e" to E)
+    val CONSTANTS: Map<String, Double> = mapOf("pi" to PI, "\u03C0" to PI, "e" to E)
 
     /** The formula the dialog offers before the user types one. */
     const val DEFAULT_SOURCE: String = "sin(x)"
@@ -87,13 +88,43 @@ object FunctionPlot {
 
     /**
      * Compile [source], or null when it isn't a valid formula. Case-insensitive; whitespace ignored.
+     * Supports implicit multiplication, scientific notation, superscripts, and standard math aliases.
      */
     fun compile(source: String): Formula? = try {
-        val parser = Parser(source)
+        val normalized = normalizeSource(source)
+        val parser = Parser(normalized)
         val f = parser.expression()
         if (parser.rest().isNotEmpty()) null else f
     } catch (_: IllegalArgumentException) {
         null
+    }
+
+    private fun normalizeSource(raw: String): String {
+        val s = StringBuilder()
+        var inSuper = false
+        for (ch in raw) {
+            when (ch) {
+                '×', '·' -> s.append('*')
+                '÷', '∶' -> s.append('/')
+                '−' -> s.append('-')
+                '²', '³', '¹', '⁰', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹' -> {
+                    if (!inSuper) {
+                        s.append('^')
+                        inSuper = true
+                    }
+                    val d = when (ch) {
+                        '¹' -> '1'; '²' -> '2'; '³' -> '3'; '⁴' -> '4'; '⁵' -> '5'
+                        '⁶' -> '6'; '⁷' -> '7'; '⁸' -> '8'; '⁹' -> '9'; else -> '0'
+                    }
+                    s.append(d)
+                }
+                else -> {
+                    inSuper = false
+                    s.append(ch)
+                }
+            }
+        }
+        return s.toString()
     }
 
     /**
@@ -401,12 +432,16 @@ private class Parser(private val source: String) {
     private fun term(): Formula {
         var value = power()
         while (true) {
+            skipSpace()
             val c = peek()
             when (c) {
                 '*' -> { next(); val left = value; value = mul(left, power()) }
                 '/' -> { next(); val left = value; value = div(left, power()) }
-                // Anything else ends the term — including a letter, which is an implicit product we
-                // deliberately don't accept (`2x` must be written `2*x`).
+                '(', in '0'..'9', in 'a'..'z', in 'A'..'Z', '\u03C0' -> {
+                    // Implicit multiplication: 2x, 2(x+1), (x-1)(x+1), x sin(x), 2pi
+                    val left = value
+                    value = mul(left, power())
+                }
                 else -> return value
             }
         }
@@ -445,14 +480,26 @@ private class Parser(private val source: String) {
             return inner
         }
         if (c.isDigit() || c == '.') return number()
-        if (c.isLetter()) return identifier()
+        if (c.isLetter() || c == '\u03C0') return identifier()
         throw IllegalArgumentException("unexpected '$c' at $at")
     }
 
-    /** A number: digits with an optional single decimal point. */
+    /** A number: digits with optional decimal point and optional exponent (e.g. 1e-3, 2.5E4). */
     private fun number(): Formula {
         val start = at
         while (at < source.length && (source[at].isDigit() || source[at] == '.')) at++
+        if (at < source.length && (source[at] == 'e' || source[at] == 'E')) {
+            val afterE = at + 1
+            if (afterE < source.length && (source[afterE] == '+' || source[afterE] == '-')) {
+                if (afterE + 1 < source.length && source[afterE + 1].isDigit()) {
+                    at = afterE + 1
+                    while (at < source.length && source[at].isDigit()) at++
+                }
+            } else if (afterE < source.length && source[afterE].isDigit()) {
+                at = afterE
+                while (at < source.length && source[at].isDigit()) at++
+            }
+        }
         val text = source.substring(start, at)
         val value = text.toDoubleOrNull() ?: throw IllegalArgumentException("bad number \"$text\"")
         return Formula { value }
@@ -464,7 +511,7 @@ private class Parser(private val source: String) {
      */
     private fun identifier(): Formula {
         val start = at
-        while (at < source.length && source[at].isLetter()) at++
+        while (at < source.length && (source[at].isLetter() || source[at] == '\u03C0')) at++
         val name = source.substring(start, at).lowercase()
         val function = FunctionPlot.FUNCTIONS[name]
         if (function != null) {

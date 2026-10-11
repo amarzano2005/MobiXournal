@@ -38,14 +38,29 @@ class FunctionPlotTest {
     }
 
     @Test
+    fun `implicit multiplication and flexible mathematical expressions resolve`() {
+        assertEquals(8.0, value("2x^2", 2.0), 1e-9)
+        assertEquals(18.0, value("2x²", 3.0), 1e-9)
+        assertEquals(8.0, value("2(x+1)", 3.0), 1e-9)
+        assertEquals(15.0, value("(x+1)(x-1)", 4.0), 1e-9)
+        assertEquals(6.0, value("2 3", 0.0), 1e-9)
+        assertEquals(0.002, value("2e-3", 0.0), 1e-9)
+        assertEquals(0.0, value("sin(π)", 0.0), 1e-9)
+        assertEquals(0.0, value("tg(0)", 0.0), 1e-9)
+        assertEquals(6.0, value("2 × 3", 0.0), 1e-9)
+        assertEquals(2.0, value("4 ÷ 2", 0.0), 1e-9)
+        assertEquals(3.0, value("5 − 2", 0.0), 1e-9)
+    }
+
+    @Test
     fun `a formula that isn't one compiles to null instead of throwing`() {
         assertNull(FunctionPlot.compile(""))
         assertNull(FunctionPlot.compile("2*"))
         assertNull(FunctionPlot.compile("(1+2"))
         assertNull(FunctionPlot.compile("foo(x)"))
-        assertNull(FunctionPlot.compile("2x")) // implicit product is a typo, not a formula
         assertNull(FunctionPlot.compile("1+2)"))
         assertNotNull(FunctionPlot.compile("2*x+1"))
+        assertNotNull(FunctionPlot.compile("2x+1"))
     }
 
     @Test

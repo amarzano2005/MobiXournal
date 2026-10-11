@@ -22,38 +22,36 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     // Multi-tool dropdown groups & tools
     RailItem("arrow", "Arrows"),
     RailItem("axis", "Coordinate axis"),
+    RailItem("graph", "Function graph"),
     RailItem("table", "Table"),
     RailItem("circuit", "Passive circuits"),
     RailItem("circuit_active", "Active circuits"),
     RailItem("logic", "Logic gates"),
     RailItem("chemistry", "Chemistry"),
     // STEM + popups
-    RailItem("graph", "Function graph"),
     RailItem("guides", "Drawing guides"),
 )
 
 /**
  * Default order of buttons in the Secondary Toolbar: line, rectangle, square, individual shapes,
- * arrows (dropdown), the Cartesian axis, table, passive circuits, active circuits, logic gates, the
- * function graph, and drawing guides. The arrows dropdown sits ahead of the single Cartesian-axis
- * figure so the multi-member slot stays with the other dropdown groups, and the axis closes the run
- * of individual figures. The graph sits second from the end — one tap from the tools' end of the row,
- * but before the guides pop-up, which stays the row's last slot.
+ * arrows (dropdown), the Cartesian axis, the function graph, table, passive circuits, active circuits,
+ * logic gates, chemistry, and drawing guides. The function graph sits immediately to the right of the
+ * Cartesian coordinate axis, keeping coordinate-based mathematical graphing tools together.
  */
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
-    "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis",
-    "table", "circuit", "circuit_active", "logic", "chemistry", "graph", "guides",
+    "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis", "graph",
+    "table", "circuit", "circuit_active", "logic", "chemistry", "guides",
 )
 
 /**
  * The Secondary Toolbar's **previous** factory orders — the arrow group *after* the Cartesian axis,
- * without the function graph and with it.
+ * without the function graph, with it before guides, and with chemistry.
  *
  * They exist only so [migrateTopBarOrder] can tell a row the user never touched from one they
  * arranged. The whole settings object is written on any save, so a device whose row is still the
- * factory's carries a full copy of *that* factory list on disk: a factory reorder — the axis and the
- * arrow group trading places — would never reach it, because a saved order deliberately wins.
+ * factory's carries a full copy of *that* factory list on disk: a factory reorder would never reach it,
+ * because a saved order deliberately wins.
  */
 private val LEGACY_TOP_BAR_ORDERS: List<List<String>> = listOf(
     listOf(
@@ -65,6 +63,11 @@ private val LEGACY_TOP_BAR_ORDERS: List<List<String>> = listOf(
         "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
         "trapezoid", "pentagon", "hexagon", "spline", "axis", "arrow",
         "table", "circuit", "circuit_active", "logic", "graph", "guides",
+    ),
+    listOf(
+        "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
+        "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis",
+        "table", "circuit", "circuit_active", "logic", "chemistry", "graph", "guides",
     ),
 )
 
@@ -84,8 +87,8 @@ fun migrateTopBarOrder(order: List<String>): List<String> =
  * the end.
  *
  * Simply appending unlisted items would put a brand-new slot after everything the user has, which is
- * not where it was designed to sit: the function-graph button belongs next to the guides pop-up, not
- * past it. Each unknown item therefore goes immediately ahead of the next factory item the saved order
+ * not where it was designed to sit: for instance, the function-graph button belongs next to the Cartesian
+ * axis. Each unknown item therefore goes immediately ahead of the next factory item the saved order
  * *does* name, so an added slot arrives where it belongs in a row the user has already arranged.
  */
 fun orderedTopBarItems(order: List<String>): List<RailItem> {

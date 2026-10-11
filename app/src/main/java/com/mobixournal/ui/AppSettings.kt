@@ -486,12 +486,12 @@ data class AppSettings(
 
         /**
          * Main Toolbar items hidden by default — the geometric figures and drawing tools the
-         * Secondary Toolbar already shows (line, rectangle, shape, arrow, table, circuit, circuit_active, logic, guides).
+         * Secondary Toolbar already shows (line, rectangle, shape, arrow, table, circuit, circuit_active, logic, chemistry, guides).
          * Hides them from the Main Toolbar to avoid redundancy, since the Secondary Toolbar is always shown.
          * The user can re-enable any of them in **Settings → Toolbar → Main Toolbar buttons**.
          */
         val DEFAULT_RAIL_HIDDEN: Set<String> = setOf(
-            "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "guides",
+            "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "chemistry", "guides",
         )
         const val TABLE_DIMENSION_MIN: Int = 1
         const val TABLE_DIMENSION_MAX: Int = 50

@@ -828,7 +828,7 @@ fun FunctionGraphDialog(
                     supportingText = {
                         Text(
                             if (compiled == null) {
-                                "Can't read that formula — try sin(x), 2*x+1, x^2/4, e^-x, sqrt(x)"
+                                "Can't read that formula — try 2x^2, sin(x), x^2/4, 2(x+1), e^-x, sqrt(x)"
                             } else {
                                 "Functions: ${FunctionPlot.FUNCTIONS.keys.sorted().joinToString(", ")}"
                             },
