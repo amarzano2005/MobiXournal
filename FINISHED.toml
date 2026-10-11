@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "run-the-whole-instrumented-suite-on-the-host-emulator"
+title = "Run the whole instrumented suite on the host emulator"
+description = "Since the SDK emulator's own adb works with Gradle's connectedDebugAndroidTest on a host, check whether scripts/connected-test.sh (the container wrapper) is still needed for SmokeTest, and record which path is canonical. The stylus suite (StylusInputTest) is already exercised that way."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-10-11
+completed = 2026-10-11
+tags = ["android", "tooling"]
+
+[[task]]
+id = "persist-the-drawing-guide-s-pose-or-drop-the-dead-restore-path"
+title = "Persist the drawing guide's pose, or drop the dead restore path"
+description = "DrawingSurfaceView.restoreGuide and the onGuideChanged hook exist so a posed guide can be remembered, but nothing assigns onGuideChanged and nothing calls restoreGuide, so only the guide kind (AppSettings.guideKind) survives a restart and every instrument comes back freshly placed. Either wire the pose through AppSettings + AppSettingsBackup (it needs a per-kind shape: anchor/angle/size for the setsquare, anchor/radius for the compass, anchor/angle/radius for the protractor) or delete the two dead entry points so the code stops promising a behaviour it does not have."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-10-11
+completed = 2026-10-11
+tags = ["guide", "settings"]
+
+[[task]]
 id = "snap-ink-to-the-ruling-on-isometric-paper"
 title = "Snap ink to the ruling on isometric paper"
 description = "The drawing guide's Ruling mode snaps ink onto the page's ruling lattice, but an isometric sheet (isograph/isodotted) rules a triangular mesh at ±30 degrees, not a lattice of parallel lines, so it currently snaps nothing. Its nodes do form a lattice (x = width/2 + (sqrt(3)*side/4)*n, y = -width/(2*sqrt(3)) - side/2 + (side/4)*m, n and m the same parity), so the guide could resolve the nearest node of that mesh the way Snapping.Lattice resolves the rectangular ones."

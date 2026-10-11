@@ -120,7 +120,8 @@ change with a runtime surface must be installed and exercised on the emulator, n
   our loop ends. Deployment tooling or manual installation handles moving the built APK to
   physical devices as needed. Don't `adb install` to those devices as a routine step. (Manual `adb -s <ip>:5555 install
   -r …` still works if you ever need a one-off, but it isn't part of the standard flow.)
-- **Running the instrumented (`androidTest`) suite:** use `scripts/connected-test.sh`
+- **Running the instrumented (`androidTest`) suite** (this container path only — on a host the
+  Gradle task documented under *Host fallback* below is canonical): use `scripts/connected-test.sh`
   (wrapper over the toolchain's `connected-test.sh`), **not**
   Gradle's `connectedDebugAndroidTest`. Gradle's task starts an adb server inside the throwaway
   build container — a different adb world than the emulator — so it dies with "No connected
@@ -161,6 +162,14 @@ scripts/host-build.sh -Pandroid.testInstrumentationRunnerArguments.class=com.mob
 
 That is how the stylus paths are exercised where `adb shell input` cannot reach (`StylusInputTest`
 injects real `MotionEvent`s carrying tool type, button state and per-sample pressure).
+
+**On a host this is the canonical path, and it runs everything.** Measured: 29 tests across all seven
+`androidTest` classes — `BitmapCacheDeadlockTest`, `MouseWheelInputTest`, `SelectionInputTest`,
+`SmokeTest` (2), `StylusInputTest` (14), `io.UriStagingTest`, `ui.SettingsStoreTest` — in 55 s on a
+booting `Pixel_Tablet` AVD. So `scripts/connected-test.sh` is **not** needed on a host, not even for
+`SmokeTest`: its reason for existing (Gradle's task starting an adb inside the throwaway *build*
+container, a different adb world from the emulator's) does not apply where the host's own SDK adb
+reaches the device. Keep it for the `/data/android` pipeline, where that mismatch is real.
 
 - **Check the accelerator first:** `emulator -accel-check` reports whether WHPX (Windows) / KVM is
   usable; without it an x86_64 image won't boot in reasonable time.
