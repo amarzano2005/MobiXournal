@@ -179,7 +179,13 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     if (s.guideKind == GuideKind.NONE) {
         if (guide != null) placeGuide(GuideKind.NONE)
     } else if (guide == null) {
-        placeGuide(s.guideKind)
+        // A **remembered instrument pose** comes back exactly where it was left (this is the restore
+        // path behind `AppSettings.guidePose`). Anything else is placed fresh at the viewport centre:
+        // a kind with no pose of its own (the invisible rules), or a pose whose page is gone.
+        val remembered = s.guidePose?.takeIf {
+            it.guide.guideKind == s.guideKind && it.page in doc.pages.indices
+        }
+        if (remembered != null) restoreGuide(remembered.guide, remembered.page) else placeGuide(s.guideKind)
     }
     flingStrength = s.momentum
     momentumCurve = s.momentumCurve

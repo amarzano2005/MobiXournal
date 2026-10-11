@@ -46,6 +46,7 @@ object AppSettingsBackup {
         b.append("  \"snapToGrid\": ").append(settings.snapToGrid).append(",\n")
         b.append("  \"snapRotation\": ").append(settings.snapRotation).append(",\n")
         b.append("  \"guideKind\": \"").append(settings.guideKind.name).append("\",\n")
+        b.append("  \"guidePose\": ").append(GuidePoseCodec.toJson(settings.guidePose)).append(",\n")
         b.append("  \"penWidths\": [")
             .append(settings.penWidths.joinToString(", "))
             .append("],\n")
@@ -248,6 +249,13 @@ object AppSettingsBackup {
             snapToGrid = root.getBool("snapToGrid", fallback.snapToGrid),
             snapRotation = root.getBool("snapRotation", fallback.snapRotation),
             guideKind = readEnum("guideKind", GuideKind.values(), fallback.guideKind),
+            // Presence, not fallback, like `customColor`: an explicit null is "no instrument is
+            // posed", which must clear whatever pose the importing device had rather than keep it.
+            guidePose = if (root.map.containsKey("guidePose")) {
+                GuidePoseCodec.fromNode(root.getObj("guidePose"))
+            } else {
+                fallback.guidePose
+            },
             penWidths = root.getFloatList("penWidths") ?: fallback.penWidths,
             // Presence, not fallback: a backup that carries an explicit null is "the custom slot is
             // empty", which must clear the slot rather than leave the importing device's colour in it.

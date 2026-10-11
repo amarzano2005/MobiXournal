@@ -36,6 +36,7 @@ class AppSettingsBackupTest {
             snapToGrid = true,
             snapRotation = true,
             guideKind = com.mobixournal.render.GuideKind.SETSQUARE,
+            guidePose = GuidePose(0, com.mobixournal.render.DrawingGuide.Setsquare(120.0, 400.0, 180.0, 0.4)),
             penWidths = listOf(1.0f, 2.0f, 4.0f),
             customColor = 0xFF123456.toInt(),
             defaultTool = EditorTool.HIGHLIGHTER,
@@ -101,6 +102,33 @@ class AppSettingsBackupTest {
         assertNull(AppSettingsBackup.fromJson("""{"version": 1, "customColor": null}""").customColor)
         // Absent, by contrast, is an older backup that predates the field: leave the local value be.
         assertNull(AppSettingsBackup.fromJson("""{"version": 1}""").customColor)
+    }
+
+    @Test
+    fun `a remembered instrument pose round-trips and a stale one is dropped`() {
+        val pose = GuidePose(1, com.mobixournal.render.DrawingGuide.Compass(200.0, 300.0, 90.0))
+        val json = AppSettingsBackup.toJson(
+            AppSettings(guideKind = com.mobixournal.render.GuideKind.COMPASS, guidePose = pose),
+        )
+        assertTrue(json.contains("\"guidePose\""))
+        val restored = AppSettingsBackup.fromJson(json)
+        assertEquals(pose, restored.guidePose)
+        assertEquals(com.mobixournal.render.GuideKind.COMPASS, restored.guideKind)
+
+        // A pose for a different instrument than the one selected is not a pose at all: placing the
+        // setsquare geometry as a compass would be worse than centring the compass fresh.
+        val mismatched = AppSettingsBackup.fromJson(
+            """{"version": 1, "guideKind": "COMPASS", "guidePose": {"kind": "SETSQUARE", "x": 1, "y": 2}}""",
+        )
+        assertNull(mismatched.guidePose)
+
+        // An explicit null clears a pose the importing device holds, like `customColor`.
+        val held = AppSettings(guideKind = com.mobixournal.render.GuideKind.COMPASS, guidePose = pose)
+        assertNull(AppSettingsBackup.fromJson("""{"version": 1, "guidePose": null}""", held).guidePose)
+        // Absent is an older backup that predates the field: leave the local pose alone.
+        assertEquals(pose, AppSettingsBackup.fromJson("""{"version": 1}""", held).guidePose)
+        // And no instrument posed means the key is an explicit null, not a missing one.
+        assertTrue(AppSettingsBackup.toJson(AppSettings()).contains("\"guidePose\": null"))
     }
 
     @Test

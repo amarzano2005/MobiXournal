@@ -177,6 +177,13 @@ data class AppSettings(
     val snapRotation: Boolean = false,
     /** Which on-canvas drawing guide (setsquare/compass) is laid on the page, restored on launch. */
     val guideKind: GuideKind = GuideKind.NONE,
+    /**
+     * The **pose** of a placed instrument (its anchor, aim and size), so a setsquare or compass comes
+     * back where the user left it rather than freshly centred. Null for [GuideKind.NONE], for the
+     * invisible rules (whose anchor is re-derived from the page), and until a pose has been set; it is
+     * cleared whenever the guide kind changes, so a pose can never outlive the instrument it belongs to.
+     */
+    val guidePose: GuidePose? = null,
     /** The three user-configurable pen-tip widths (pt) behind the S/M/L size slots, in slot order. */
     val penWidths: List<Float> = DEFAULT_PEN_WIDTHS,
     /** The user-defined colour behind the palette's editable custom slot; null until the user sets one. */
@@ -379,6 +386,9 @@ data class AppSettings(
             penPresets = cleanPresets,
             selectedPenPresetId = cleanSelectedId,
             pageColumns = pageColumns.coerceIn(1, PageStacker.COLUMN_CHOICES.last()),
+            // A pose belongs to the instrument it was taken from: one left over from another guide kind
+            // (a hand-edited preference, an older backup) would place the wrong instrument's geometry.
+            guidePose = guidePose?.takeIf { it.guide.guideKind == guideKind },
         )
     }
 
@@ -555,6 +565,7 @@ class SettingsStore(context: Context) {
             snapToGrid = prefs.getBoolean(KEY_SNAP_GRID, d.snapToGrid),
             snapRotation = prefs.getBoolean(KEY_SNAP_ROTATION, d.snapRotation),
             guideKind = enumOr(prefs.getString(KEY_GUIDE_KIND, null), d.guideKind),
+            guidePose = GuidePoseCodec.fromJson(prefs.getString(KEY_GUIDE_POSE, null)) ?: d.guidePose,
             penWidths = d.penWidths.mapIndexed { i, w -> prefs.getFloat(keyPenWidth(i), w) },
             // Absent means "the slot is still empty"; the stored key is removed rather than zeroed when
             // the user clears it, so an empty slot and a stored black stay distinguishable.
@@ -694,6 +705,7 @@ class SettingsStore(context: Context) {
             .putBoolean(KEY_SNAP_GRID, s.snapToGrid)
             .putBoolean(KEY_SNAP_ROTATION, s.snapRotation)
             .putString(KEY_GUIDE_KIND, s.guideKind.name)
+            .putString(KEY_GUIDE_POSE, GuidePoseCodec.toJson(s.guidePose))
         s.penWidths.forEachIndexed { i, w -> e.putFloat(keyPenWidth(i), w) }
         if (s.customColor == null) e.remove(KEY_CUSTOM_COLOR) else e.putInt(KEY_CUSTOM_COLOR, s.customColor)
         e.putString(KEY_DEFAULT_TOOL, s.defaultTool.name)
@@ -792,6 +804,7 @@ class SettingsStore(context: Context) {
         const val KEY_SNAP_GRID = "snap_to_grid"
         const val KEY_SNAP_ROTATION = "snap_rotation"
         const val KEY_GUIDE_KIND = "guide_kind"
+        const val KEY_GUIDE_POSE = "guide_pose"
         const val KEY_CUSTOM_COLOR = "custom_color"
         const val KEY_DEFAULT_TOOL = "default_tool"
         // Float-typed since the parameterized control replaced the old discrete enum; a fresh key

@@ -616,7 +616,9 @@ fun EditorToolbar(
         guideKind = settings.guideKind,
         onGuideKind = {
             surface?.placeGuide(it)
-            onSettingsChange(settings.copy(guideKind = it))
+            // A pose belongs to the instrument it was taken from, so changing the kind drops it — the
+            // new one is placed fresh rather than inheriting the old instrument's anchor.
+            onSettingsChange(settings.copy(guideKind = it, guidePose = null))
         },
         layerCallbacks = toolbarLayerCallbacks(surface, pane),
         zoom = pane.zoom,
@@ -1588,6 +1590,15 @@ private fun DrawingSurfaceView.bindEditorActions(
             PlaceKind.TEX -> ui.texPlacement = placement
             PlaceKind.IMAGE -> onPickImage(placement)
         }
+    }
+    // Remember where an instrument was posed, so it comes back there after a restart. Only the
+    // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the
+    // page. Writing only on a real change also keeps the place/restore pass from echoing a settings
+    // write back onto itself.
+    onGuideChanged = { pose ->
+        val remembered = pose?.takeIf { it.isRememberable }?.let { GuidePose(guideDrag.page, it) }
+        val settings = getSettings()
+        if (remembered != settings.guidePose) onSettingsChange(settings.copy(guidePose = remembered))
     }
 
     /** Passa alla PENNA con un colore fisso, mantenendo coerenti gli stati penna/evidenziatore. */
