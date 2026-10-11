@@ -243,10 +243,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var paintPosted = false
     internal val paintCallback = Choreographer.FrameCallback { paint() }
 
-    // Drag auto-scroll: while a selection is dragged into the top/bottom edge band the page keeps
-    // scrolling and the element travels with it (desktop behaviour). Direction is -1 up, +1 down, 0
-    // off; the repeat is driven by [autoScrollCallback] so it scrolls even under a held finger.
-    internal var dragAutoScrollDir = 0
+    // Drag auto-scroll: while a selection is dragged into an edge band the page keeps
+    // scrolling and the element travels with it (desktop behaviour). Direction is -1 / +1 / 0;
+    // the repeat is driven by [autoScrollCallback] so it scrolls even under a held finger.
+    internal var dragAutoScrollDirX = 0
+    internal var dragAutoScrollDirY = 0
     internal var dragLastX = 0f
     internal var dragLastY = 0f
     internal var autoScrollPosted = false

@@ -32,6 +32,9 @@ class ViewportStateTest {
         assertTrue(v.scrollBy(0f, 1000f))
         assertEquals(300f, v.scrollY, 0f)
         assertFalse(v.scrollBy(0f, 50f)) // already pinned at the bottom
+        assertTrue(v.scrollBy(1000f, 0f))
+        assertEquals(100f, v.scrollX, 0f)
+        assertFalse(v.scrollBy(50f, 0f)) // already pinned at the right edge
     }
 
     @Test fun `scrollToY clamps to the range`() {

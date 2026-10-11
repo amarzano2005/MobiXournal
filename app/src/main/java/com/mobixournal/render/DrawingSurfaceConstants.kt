@@ -99,8 +99,8 @@ internal object DrawingSurfaceDefaults {
         minOf(HANDLE_HIT_PX, minOf(boxWpx, boxHpx) / 3f).coerceAtLeast(1f)
 
     /**
-     * Height (dp) of the top/bottom edge band that auto-scrolls the page while a selection is
-     * dragged into it — the desktop behaviour of scrolling when an element is pushed to the edge.
+     * Size (dp) of the edge bands (top, bottom, left, right) that auto-scroll the page while a selection
+     * is dragged into them — the desktop behaviour of scrolling when an element is pushed to the edge.
      */
     const val DRAG_AUTOSCROLL_EDGE_DP = 64f
 

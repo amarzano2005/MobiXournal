@@ -50,7 +50,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 gestures.rotating -> gestures.rotateSelect(event)
                 gestures.moving -> {
                     dragLastX = event.x; dragLastY = event.y
-                    updateDragAutoScroll(event.y)
+                    updateDragAutoScroll(event.x, event.y)
                     gestures.moveSelect(event)
                 }
                 vspace.active -> vspace.move(event.y)
@@ -58,7 +58,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                     // Dragging the marquee itself into an edge band scrolls the page too, so a
                     // selection can reach past the viewport without letting go and panning first.
                     dragLastX = event.x; dragLastY = event.y
-                    updateDragAutoScroll(event.y)
+                    updateDragAutoScroll(event.x, event.y)
                     gestures.bandMove(event)
                 }
                 textSelecting -> textSelectMove(event)
@@ -438,25 +438,32 @@ internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
 // --- drag auto-scroll: keep scrolling while a selection is dragged into an edge band -------------
 
 /**
- * Update the drag auto-scroll direction from a pointer's Y (view px): pushing into the top or bottom
- * edge band starts the page scrolling that way, and moving back out stops it. Idempotent, so it is
- * safe to call on every MOVE.
+ * Update the drag auto-scroll direction from a pointer's position (view px): pushing into an edge
+ * band (top, bottom, left, right) starts the page scrolling that way, and moving back out stops it.
+ * Idempotent, so it is safe to call on every MOVE.
  */
-internal fun DrawingSurfaceView.updateDragAutoScroll(viewY: Float) {
+internal fun DrawingSurfaceView.updateDragAutoScroll(viewX: Float, viewY: Float) {
     val edgePx = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_EDGE_DP * resources.displayMetrics.density
-    val dir = when {
+    val dirX = when {
+        viewX > width - edgePx -> 1
+        viewX < edgePx -> -1
+        else -> 0
+    }
+    val dirY = when {
         viewY > height - edgePx -> 1
         viewY < edgePx -> -1
         else -> 0
     }
-    if (dir == dragAutoScrollDir) return
-    dragAutoScrollDir = dir
-    if (dir != 0) postAutoScroll() else stopAutoScroll()
+    if (dirX == dragAutoScrollDirX && dirY == dragAutoScrollDirY) return
+    dragAutoScrollDirX = dirX
+    dragAutoScrollDirY = dirY
+    if (dirX != 0 || dirY != 0) postAutoScroll() else stopAutoScroll()
 }
 
 /** Stop the drag auto-scroll repeat (a released/cancelled gesture, or the drag left the edge band). */
 internal fun DrawingSurfaceView.stopAutoScroll() {
-    dragAutoScrollDir = 0
+    dragAutoScrollDirX = 0
+    dragAutoScrollDirY = 0
     if (autoScrollPosted) {
         choreographer.removeFrameCallback(autoScrollCallback)
         autoScrollPosted = false
@@ -470,17 +477,18 @@ private fun DrawingSurfaceView.postAutoScroll() {
 }
 
 /**
- * One auto-scroll frame: scroll one step toward the edge the finger is in and re-apply the gesture at
- * the finger's last position — the moved selection, or the marquee being dragged out — so it rides the
- * scrolling sheet, then repost.
+ * One auto-scroll frame: scroll one step toward the edge the finger is in (horizontally and/or vertically)
+ * and re-apply the gesture at the finger's last position — the moved selection, or the marquee being dragged
+ * out — so it rides the scrolling sheet, then repost.
  */
 internal fun DrawingSurfaceView.autoScrollFrame() {
     autoScrollPosted = false
-    val dir = dragAutoScrollDir
-    if (dir == 0) return
+    val dirX = dragAutoScrollDirX
+    val dirY = dragAutoScrollDirY
+    if (dirX == 0 && dirY == 0) return
     val step = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP * resources.displayMetrics.density
-    if (!scrollViewportBy(0f, dir * step)) {
-        stopAutoScroll() // pinned at a bound: nothing left to scroll into
+    if (!scrollViewportBy(dirX * step, dirY * step)) {
+        stopAutoScroll() // pinned at a bound in both axes: nothing left to scroll into
         return
     }
     if (gestures.banding) gestures.bandTo(dragLastX, dragLastY)
