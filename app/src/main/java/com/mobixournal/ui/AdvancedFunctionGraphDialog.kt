@@ -135,7 +135,7 @@ fun AdvancedFunctionGraphDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.widthIn(max = 840.dp),
+        modifier = Modifier.widthIn(max = 960.dp),
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {
             DialogBodyContent(
@@ -201,7 +201,7 @@ private fun DialogBodyContent(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 420.dp),
+            .heightIn(max = 370.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Left Column: Formula inputs & range
@@ -491,7 +491,7 @@ private fun FunctionPlotPreviewBox(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp),
+            .height(160.dp),
         shape = RoundedCornerShape(8.dp),
         tonalElevation = 1.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
