@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "extract-the-active-tool-indicator-out-of-editorregions-kt"
+title = "Extract the active-tool indicator out of EditorRegions.kt"
+description = "ui/EditorRegions.kt was 2001 lines, the biggest file in the tree, and the guard ratchet now holds the file list. Its active-tool indicator is a self-contained piece of chrome: the dock-cap geometry and slot rule (topBarCapShape, IndicatorSlot, standaloneIndicatorSlot), the two live indicator styles (ActiveToolIndicator as the restore path, StandaloneToolIndicator as the current one) and the face they share (ToolIndicatorFace). Moved verbatim into ui/TopBarIndicator.kt, leaving EditorRegions.kt at 1720 lines; the two styles became internal because their only call sites are in EditorRegions.kt, and TOP_BAR_INDICATOR_GAP became internal because the top bar leading slot spaces the dock by it. Imports were recomputed per file from what each text mentions. Verified: 1116 unit tests and 34 instrumented tests green, and on the Pixel_Tablet AVD uiautomator reports the indicator where it belongs - content-desc Active tool: Pen, colour Black (#000000), size M at bounds [8,72][136,152], i.e. 128x80 px = 64dp x 40dp, exactly TOP_BAR_INDICATOR_WIDTH x TOP_BAR_DOCK_HEIGHT in the top bar leading slot."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-11
+completed = 2026-10-11
+tags = []
+
+[[task]]
 id = "split-the-architecture-doc-into-one-spoke-per-topic-with-guards"
 title = "Split the architecture doc into one spoke per topic, with guards"
 description = "docs/architecture.md had grown to 2488 lines with only 8 top-level headings, and two of those nested ~750 unrelated lines each (selection, PDF, markdown and chrome all sat under \"Colour palette\" and \"Document search\"), so no topic had a file to open or a heading to jump to. Split it into 17 topic spokes under docs/, each opening with the question it answers, with architecture.md reduced to the index that routes to them. Every line of the original is assigned to exactly one spoke (a one-shot script compared the multiset of substantive lines to prove nothing was dropped or duplicated), file-relative cross-links (data-path to the format tree, selection to the stylus spoke, chrome to selection) were re-pointed, the ~20 source-KDoc pointers now name the owning spoke, and AGENTS.md and README.md route through the index. 2488 lines -> 17 spokes of 19..364 lines, and DocsGuardTest now fails the build when a spoke is unreachable, a link or anchor is broken, or a doc passes its 400-line budget."

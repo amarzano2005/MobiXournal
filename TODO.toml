@@ -90,3 +90,59 @@ created = 2026-10-11
 tags = ["pdf", "io", "export"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "split-ui-editorregions-kt-further-by-region"
+title = "Split ui/EditorRegions.kt further, by region"
+description = "EditorRegions.kt is 1720 lines after the indicator extraction (the source-structure ratchet holds it at a 1750-line ceiling). What is left is still several regions in one file: the editor top bar plus its search controls and indexing dialog (EditorTopBar, SearchControls, SearchCounterBadge, SearchIndexingDialog), the Secondary Toolbar figures row with its compact buttons and its custom colour/width slot helpers (TopBarToolsRow, CompactSingleToolButton, CompactShapeKindButton, CompactGuidePopupButton, CompactTopBarToolButton, redefineCustomColor, addPenColor, redefineWidthSlot), the view-to-state wiring (toolbarLayerCallbacks, toolbarPagesCallbacks, applyInitialStyle, bindTo, bindEditorActions), the pane (EditorPaneView) and the overflow menu (OverflowMenu, MenuQuickAction). Split it along those boundaries - each new file small enough to read on its own - and lower the ceiling in SourceStructureTest as each piece leaves. OverflowMenu (216 lines) and bindEditorActions are also on the long-function list."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 230
+created = 2026-10-11
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "split-render-drawingsurfaceview-kt-by-concern"
+title = "Split render/DrawingSurfaceView.kt by concern"
+description = "DrawingSurfaceView.kt is 1638 lines (ratchet ceiling 1700) and already has its siblings extracted (DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfacePaint, DrawingSurfaceHoldSnap). What remains mixes the surface lifecycle and paint loop, the gesture state machine it dispatches into, the page/scroll state and the pointer plumbing. Split it by concern so a reader of one part does not page through the others, and lower the ceiling in SourceStructureTest. Several of its functions are on the long-function list."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 240
+created = 2026-10-11
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "split-render-circuitshapes-kt-by-shape-family"
+title = "Split render/CircuitShapes.kt by shape family"
+description = "CircuitShapes.kt is 1123 lines (ratchet ceiling 1180): every circuit and logic symbol in one file. Split it by the family the shape belongs to (components, sources, logic gates, connectors, the chemistry and geometry figures added later), keeping the shared geometry helpers where both halves can reach them, and lower the ceiling in SourceStructureTest."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 250
+created = 2026-10-11
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "split-ui-appsettings-kt-and-ui-editordialogs-kt"
+title = "Split ui/AppSettings.kt and ui/EditorDialogs.kt"
+description = "AppSettings.kt (962 lines, ceiling 1010) mixes the settings data class, the SharedPreferences store and the load/save/migrate logic, and EditorDialogs.kt (875 lines, ceiling 920) holds every dialog the editor opens. Split AppSettings into the model, the key catalogue and the store; split EditorDialogs by the tool or flow that owns each dialog. load(), toJson(), parse() and fromNode() are also on the long-function list. Lower both ceilings in SourceStructureTest as the pieces leave."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 260
+created = 2026-10-11
+tags = []
+rebuild = true
+emulator_debug = false
