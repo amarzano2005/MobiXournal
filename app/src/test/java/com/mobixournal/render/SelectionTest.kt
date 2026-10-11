@@ -16,6 +16,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
+import kotlin.math.hypot
 
 class SelectionTest {
 
@@ -341,5 +342,22 @@ class SelectionTest {
 
     @Test fun inPolygonDegenerateSelectsNothing() {
         assertTrue(SelectionTester.inPolygon(p, listOf(Vec2(0.0, 0.0), Vec2(1.0, 1.0))).isEmpty())
+    }
+
+    // --- how far a lasso was traced: the drag distance the tap/drag decision reads ----------------
+
+    @Test fun aLassoTraceIsMeasuredByItsExtentNotItsStartToEndGap() {
+        // A 100x60pt loop closed back onto its first vertex, on a 2 px/pt view.
+        val loop = listOf(
+            Vec2(0.0, 0.0), Vec2(100.0, 0.0), Vec2(100.0, 60.0), Vec2(0.0, 60.0), Vec2(0.0, 0.0),
+        )
+        assertEquals(hypot(200.0, 120.0), lassoExtentPx(loop, 2f).toDouble(), 1e-4)
+        // That loop's start-to-end gap is zero — the measure that used to read it as a tap.
+        assertEquals(0.0, hypot(loop.last().x - loop.first().x, loop.last().y - loop.first().y), 1e-9)
+    }
+
+    @Test fun aTraceThatNeverLeftASpotIsStillATap() {
+        assertEquals(0.0, lassoExtentPx(listOf(Vec2(5.0, 5.0), Vec2(5.2, 5.0)), 2f).toDouble(), 0.5)
+        assertEquals(0.0, lassoExtentPx(emptyList(), 2f).toDouble(), 1e-9)
     }
 }

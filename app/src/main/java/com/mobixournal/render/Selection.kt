@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import kotlin.math.hypot
 
 /**
  * A stable address for one element on a page: its layer index and its index within that layer.
@@ -13,6 +14,30 @@ data class ElementRef(val layerIndex: Int, val elementIndex: Int)
 
 /** A point in page-local pt space — the vertices of a lasso polygon. */
 data class Vec2(val x: Double, val y: Double)
+
+/**
+ * How far a **lasso** was traced, in view px: the diagonal of the path's own bounds, not the distance
+ * from its first point to its last.
+ *
+ * The two differ exactly where it matters. A lasso is normally closed back onto — or right beside —
+ * its own start, which leaves the start-to-end gap at zero; read that as the drag distance and a real
+ * lasso looks like a tap, so it selects the topmost element under the pen (or nothing at all) instead
+ * of what it enclosed. The extent of the traced path is what says "this was a drag".
+ */
+fun lassoExtentPx(poly: List<Vec2>, scale: Float): Float {
+    if (poly.isEmpty()) return 0f
+    var minX = poly[0].x
+    var maxX = minX
+    var minY = poly[0].y
+    var maxY = minY
+    for (p in poly) {
+        if (p.x < minX) minX = p.x
+        if (p.x > maxX) maxX = p.x
+        if (p.y < minY) minY = p.y
+        if (p.y > maxY) maxY = p.y
+    }
+    return hypot(((maxX - minX) * scale).toFloat(), ((maxY - minY) * scale).toFloat())
+}
 
 /**
  * Pure queries that turn a page + a gesture into a set of [ElementRef]s: rectangle-select

@@ -1483,7 +1483,12 @@ closely isn't dropped for landing a hair outside. Both containment tests also sw
 active layer** (`onlyLayer`, resolved from `resolvedActiveLayer` by `SelectionGestureController`),
 matching desktop Xournal++'s current-layer selection so a marquee never grabs ink the user isn't
 editing; with no layer chosen yet the sweep falls back to the whole page. (A single **tap** pick is
-still page-wide — `pickTopmost` is unchanged.) The traced path is stored in **page-local pt**
+still page-wide — `pickTopmost` is unchanged.) **How far a lasso was traced** is measured by the
+**extent of the traced path**, not by the gap from its first point to its last (`lassoExtentPx`): a
+lasso closing back onto — or beside — its own start leaves that gap at zero, and reading it as the
+drag distance made a real lasso look like a tap, so it picked the topmost element under the pen (or
+nothing) instead of what it enclosed. The rectangle marquee, whose corners *are* its ends, keeps the
+start-to-end measure. The traced path is stored in **page-local pt**
 (`SelectionGestureController.lassoPoly`), converted as each sample arrives rather than on release,
 and the overlay converts it back to view px with the *current* scroll each frame — so scrolling or
 zooming mid-trace can't drift the shaded region away from the polygon that is tested, and the

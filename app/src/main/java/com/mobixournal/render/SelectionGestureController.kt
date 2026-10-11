@@ -383,11 +383,17 @@ internal class SelectionGestureController(
         val page = document().pages.getOrNull(bandPage) ?: return
         val layer = activeLayerOf(page)
         // Measure the drag on screen (pt × scale = view px): a marquee that never grew past a tap's
-        // slop is a tap, whether or not the auto-scroll nudged the page under it in the meantime.
-        val dragPx = hypot(
-            (bandEnd.x - bandStart.x).toFloat() * box.scale,
-            (bandEnd.y - bandStart.y).toFloat() * box.scale,
-        )
+        // slop is a tap, whether or not the auto-scroll nudged the page under it in the meantime. A
+        // lasso is measured by the extent of the traced path — it is usually closed back onto its own
+        // start, which leaves the start-to-end gap at zero (see [lassoExtentPx]).
+        val dragPx = if (lassoMode()) {
+            lassoExtentPx(lassoPoly, box.scale)
+        } else {
+            hypot(
+                (bandEnd.x - bandStart.x).toFloat() * box.scale,
+                (bandEnd.y - bandStart.y).toFloat() * box.scale,
+            )
+        }
         val refs: Set<ElementRef> = when {
             dragPx <= DrawingSurfaceDefaults.TAP_SLOP_PX ->
                 SelectionTester.pickTopmost(page, bandStart.x, bandStart.y)?.let { setOf(it) } ?: emptySet()
