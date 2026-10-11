@@ -33,10 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.window.DialogProperties
@@ -58,6 +54,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.CriticalPoint
+import com.mobixournal.ui.theme.rememberToolbarColor
 import com.mobixournal.render.FunctionAnalysis
 import com.mobixournal.render.FunctionPlot
 import com.mobixournal.render.MultiFunctionPlotter
@@ -271,22 +268,7 @@ private fun DialogInputsColumn(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        TabRow(
-            selectedTabIndex = modeTab,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ) {
-            Tab(
-                selected = modeTab == 0,
-                onClick = { onModeTabChange(0) },
-                text = { Text("Cartesian y=f(x)", style = MaterialTheme.typography.labelMedium) },
-            )
-            Tab(
-                selected = modeTab == 1,
-                onClick = { onModeTabChange(1) },
-                text = { Text("Parametric {x, y}", style = MaterialTheme.typography.labelMedium) },
-            )
-        }
+        ModeSelectorPill(modeTab = modeTab, onModeTabChange = onModeTabChange)
 
         if (modeTab == 0) {
             CartesianCurveList(curves = curves)
@@ -307,6 +289,69 @@ private fun DialogInputsColumn(
             onXMaxChange = onXMaxChange,
             rangeOk = rangeOk,
         )
+    }
+}
+
+@Composable
+private fun ModeSelectorPill(modeTab: Int, onModeTabChange: (Int) -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = rememberToolbarColor(),
+        tonalElevation = 2.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            val cartesianSelected = modeTab == 0
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (cartesianSelected) MaterialTheme.colorScheme.primary
+                        else Color.Transparent,
+                    )
+                    .clickable { onModeTabChange(0) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Cartesian y=f(x)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (cartesianSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            val parametricSelected = modeTab == 1
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (parametricSelected) MaterialTheme.colorScheme.primary
+                        else Color.Transparent,
+                    )
+                    .clickable { onModeTabChange(1) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Parametric {x, y}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (parametricSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
     }
 }
 
@@ -475,7 +520,12 @@ private fun ColorCircle(color: Int, onSelect: (Int) -> Unit) {
                     .horizontalScroll(rememberScrollState())
                     .padding(top = 4.dp, bottom = 2.dp)
                     .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
+                        rememberToolbarColor(),
+                        RoundedCornerShape(14.dp),
+                    )
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         RoundedCornerShape(14.dp),
                     )
                     .padding(horizontal = 6.dp, vertical = 4.dp),
@@ -564,7 +614,7 @@ private fun FunctionPlotPreviewBox(
     showCriticalPoints: Boolean,
     includeDerivative: Boolean,
 ) {
-    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val axisColor = 0xFF2A2A2A.toInt()
     val plotResult = remember(curves, xMin, xMax, showCriticalPoints, includeDerivative, axisColor) {
         MultiFunctionPlotter.plot(
             curves = curves,
@@ -588,7 +638,7 @@ private fun FunctionPlotPreviewBox(
             .fillMaxWidth()
             .height(160.dp),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = Color.White,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(modifier = Modifier.padding(8.dp)) {
