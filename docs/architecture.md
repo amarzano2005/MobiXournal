@@ -1465,11 +1465,14 @@ only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring tr
 edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
 widened without being made taller. A per-axis stretch scales stroke widths (and text sizes) by the
 **geometric mean** `sqrt(sx·sy)`: of the two axes neither is the right one for a scalar, and the mean
-keeps the ink in proportion to the box it fills. Their grab radius is capped at half the selection's
-on-screen size (`min(HANDLE_HIT_PX, min(w, h) / 2)`), because a fixed 30 px radius swallows a small
-selection whole — every touch inside it lands within 30 px of a corner, turning an intended *move*
-into a resize. The cap keeps the corner zones from overlapping in the middle so a small element
-moves when dragged, while the handles stay grabbable right on the corners. The outline also carries
+keeps the ink in proportion to the box it fills. Their grab radius is capped at a **third** of the
+selection's on-screen size (`DrawingSurfaceDefaults.handleHitRadius`), because a fixed 30 px radius
+swallows a small selection whole — every touch inside it lands within 30 px of a handle, turning an
+intended *move* into a resize. A third is the largest cap that leaves the middle a move: the four
+edge handles sit half a side out from the middle, so a cap of *half* put the middle itself inside a
+handle's reach (below ~60 px of side, an element could not be dragged at all — the failing cross-page
+move test was reporting exactly that). The handles stay grabbable in their own corners and edges.
+`SelectionHandleRadiusTest` pins the rule. The outline also carries
 — for an all-stroke selection only — a **right-edge rotate knob**
 (`SelectionOps.rotate`, which bakes the angle into stroke vertices). A **lasso** marquee
 (`lassoMode`) selects everything wholly inside a traced polygon (`SelectionTester.inPolygon`),
