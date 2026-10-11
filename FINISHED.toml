@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "snap-ink-to-the-ruling-on-isometric-paper"
+title = "Snap ink to the ruling on isometric paper"
+description = "The drawing guide's Ruling mode snaps ink onto the page's ruling lattice, but an isometric sheet (isograph/isodotted) rules a triangular mesh at ±30 degrees, not a lattice of parallel lines, so it currently snaps nothing. Its nodes do form a lattice (x = width/2 + (sqrt(3)*side/4)*n, y = -width/(2*sqrt(3)) - side/2 + (side/4)*m, n and m the same parity), so the guide could resolve the nearest node of that mesh the way Snapping.Lattice resolves the rectangular ones."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-11
+completed = 2026-10-11
+tags = ["guide", "snapping"]
+
+[[task]]
+id = "editable-round-trip-restore-an-editable-document-from-an-exported-pdf"
+title = "Editable round-trip: restore an editable document from an exported PDF"
+description = "Our own extension (Xournal++'s own PDF export is flattened and does NOT carry the notebook; confirmed 2026-10 review of xournalpp docs/issue #6086). Goal: exporting to PDF also embeds the source .xopp as a PDF attached file (PDFBox EmbeddedFiles / PDEmbeddedFile), and importing a PDF that carries one offers to restore it as the editable document instead of a flat background. Investigate: PDFBox-Android attachment write/read, detection on import, a consent prompt, and how a restore reconciles with an already-present annotation layer. Falls out of the 2026-10-10 vector-PDF lag report."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-10
+completed = 2026-10-11
+tags = ["pdf", "io", "export"]
+
+[[task]]
+id = "stem-chemical-structures-and-bonds-tool"
+title = "Chemical molecular structures and carbon skeleton tool"
+description = "Add a STEM chemistry drawing guide with 60°/120° angular snapping for skeletal formulas, benzene rings, and single/double/triple chemical bonds."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-09
+completed = 2026-10-11
+tags = ["stem", "chemistry", "tools"]
+
+[[task]]
 id = "pdf-table-of-contents-outline-navigation"
 title = "PDF Table of Contents outline navigation for annotated documents"
 description = "Extract and display the PDF outline/TOC bookmarks hierarchy in a navigation drawer or sheet, allowing one-tap jumping to target pages in multi-page annotated PDF documents."

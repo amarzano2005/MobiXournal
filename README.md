@@ -133,6 +133,9 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Active Circuits**: Full set of semiconductor and active components: **Diodes** (solid p-n junction triangle with cathode bar), **LEDs** (same solid body plus two detached light-emitting rays), **Zener Diodes** (solid body, cathode bar bent into Z-wings), **Operational Amplifiers (Op-Amps)** (triangle body, `-`/`+` input signs clear of the pins, and output pin), **BJT NPN** and **BJT PNP Transistors** (Base, Collector, Emitter with directional arrows, base bar inside a circular envelope), **DC Voltage Sources / Batteries** (open-gap parallel plates), and **Current Sources** (circle with internal direction arrow).
 - **IEEE Logic Gates**:
   - Full digital logic symbol library: **AND**, **NAND**, **OR**, **NOR**, **XOR**, **XNOR**, **NOT (Inverter)** and a **Buffer**, with standard input/output terminals and inversion bubbles.
+- **Chemical Formulas**:
+  - **Bonds**: drag out a **Single**, **Double** or **Triple bond** — one, two or three parallel lines along the drag, spaced off the pen's own width. Skeletal carbon chains are drawn as ordinary pen strokes; the bonds are ordinary strokes too, so they round-trip through the `.xopp` like anything else.
+  - **Benzene ring**: drag out an **aromatic ring** — a regular hexagon with a vertex at the top and the inner aromatic circle, sized to the drag.
 - **Dimensioning & Measuring Arrows**:
   - Drag a **dimension line** — a double-ended arrow whose gap is filled in for you: on release the measured length is written into the gap as a text box (**millimetres**, to a tenth), so the drawing carries its own numbers. The value is ordinary text, so it can be moved, restyled or edited like any other text box.
 - **Switching & Magnetics**:
@@ -159,10 +162,12 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Setsquare (30°/60°/90°)**: Movable drafting triangle with edge snapping for straight lines.
   - **Compass**: Circular guide with adjustable radius for arcs and circles.
   - **Protractor**: 180° scale with 5°/15° tick marks, straight diameter ruler, rim arc snapping, and 15° radial snapping.
-  - **Ruling**: no instrument at all — the page's **own ruling is the guide**, and every drawn vertex (freehand ink and shapes alike) is pulled onto the lines the paper really draws, spacing and margin included. A hand-drawn line comes out along a rule, and a rectangle's corners land on the grid. Nothing to place or hold, and nothing on plain, PDF/image or isometric paper, which rule no lattice to snap onto.
+  - **Ruling**: no instrument at all — the page's **own ruling is the guide**, and every drawn vertex (freehand ink and shapes alike) is pulled onto the lines the paper really draws, spacing and margin included. A hand-drawn line comes out along a rule, a rectangle's corners land on the grid, and on an **isometric** sheet every vertex lands on a **node of the ±30° triangular mesh** — the same crossings the paper itself draws, so ink traces the mesh exactly. Nothing to place or hold, and nothing on plain or PDF/image paper, which rule no lattice to snap onto.
+  - **Remembers where you left it**: the placed instrument's **pose** — its anchor, aim and size — is kept with your settings, so a setsquare comes back exactly where it was left after a restart instead of being dropped fresh at the middle of the viewport. The pose is dropped when you change the guide kind, since it belongs to the instrument it was taken from (the invisible rules have no pose to keep).
+  - **Chemistry**: a **60°/120° bond lattice** — rows of nodes one bond length apart, each row offset half a bond, so a node's six nearest neighbours are a regular hexagon. Every drawn vertex (freehand ink and shapes alike) is pulled onto the nearest node, so a sketched **skeletal formula** comes out with exact bond angles and equal bond lengths and a ring drawn around a node is a proper benzene hexagon. The bond length is the guide's own (default 40 pt), independent of the page's background, so it works on any sheet — plain, PDF/image or ruled. Like Ruling it is an invisible rule: nothing to hold, and the guide draws only a faint mesh of the bonds it will snap onto.
 - **Shape Recognition & Snapping**:
   - **Ported Recognizer**: Desktop Xournal++ algorithm snaps freehand strokes into lines, rectangles, triangles, and circles.
-  - **Snap to Grid**: Snaps a shape's **endpoints** to graph, dotted, or ruled paper rulings — the same lattice the **Ruling** guide pulls *every* vertex of any stroke onto.
+  - **Snap to Grid**: Snaps a shape's **endpoints** to graph, dotted, ruled or **isometric** paper rulings — the same lattice the **Ruling** guide pulls *every* vertex of any stroke onto (an isometric endpoint lands on a mesh node, both coordinates resolved together).
   - **Snap Rotation**: 15° stepping for object rotation and drafting tools.
 
 ### 🛠️ Editing & Canvas Tools

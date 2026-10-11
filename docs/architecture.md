@@ -680,15 +680,16 @@ app/
       PageCommands.kt        # the page/layer edit commands and the two undoable commit pipelines
       SelectionGestureController.kt # the marquee/lasso pick and the move/resize/rotate drags
       VerticalSpaceDrag.kt   # the vertical-space tool's live grab-line drag
-      GuideDrag.kt           # the setsquare/compass/protractor (and ruling) guide pose and the finger that moves it
+      GuideDrag.kt           # the setsquare/compass/protractor (and ruling/chemistry) guide pose and the finger that moves it
       TextEditController.kt  # placing/editing text boxes, images and LaTeX images from a tap
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
       PageStacker.kt         # lays pages out in rows of N columns, fit to column (pure geometry)
       BackgroundGrid.kt      # ruling line/dot offsets + the pt spacings themselves (pure geometry)
       BackgroundRuling.kt   # `<background config=…>`: parse/edit/serialize desktop's ruling params (pure)
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
-      Snapping.kt            # the page's ruling as a snap lattice (spacing + phase); rotation -> 15-degree steps (pure)
-      DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling snap: project a drawn point onto an edge, a ray or the page's ruling (pure)
+      Snapping.kt            # the page's ruling as a snap lattice (spacing + phase, or an interleaved node mesh for isometric paper); rotation -> 15-degree steps (pure)
+      DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling and chemistry snaps: project a drawn point onto an edge, a ray, the page's ruling or a 60° lattice node (pure)
+      TriangularLattice.kt   # the 60° node lattice behind the chemistry guide and its rings: nearest node, bond mesh, hexagon (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
       BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
       PageRegionRenderer.kt  # synchronous flattened rectangular page-region copies
@@ -750,6 +751,7 @@ app/
       TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
       FunctionPlot.kt        # f(x): expression parser, sampling, and the plot's page geometry (pure, tested)
       CircuitShapes.kt       # passive & active circuits, gates, switching and dimensioning (resistor, capacitor, inductor, ground, switches, junction, transformer, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR, buffer, dimension arrow) (pure)
+      ChemShapes.kt          # chemical formulas: single/double/triple bonds and the aromatic benzene ring (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
@@ -797,6 +799,7 @@ app/
       ToolbarStylePopup.kt   # shared line-style chips, and the shape-recognition toggle
       ToolGlyphs.kt          # custom rail glyphs (hollow rectangle, rhombus, trapezoid, square); Material has no outline variants
       CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
+      ChemGlyphs.kt          # custom vector glyphs for the chemistry bonds and the benzene ring
       ToolbarViewPopups.kt   # rail slots: zoom, page background, drawing guides, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog
       ToolbarLayersPopup.kt  # rail slot: the layer manager list + rename dialog
@@ -822,6 +825,7 @@ app/
       BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework; an import is refused unless it is a compatible backup
       AboutSection.kt        # the About page and the links it sends people to
       AppSettings.kt         # AppSettings model + SettingsStore (SharedPreferences persistence)
+      GuidePose.kt           # the remembered drawing-guide pose (page + live guide) and its JSON codec (pure)
       AppSettingsBackup.kt   # JSON serializer/parser for AppSettings: versioned, tolerant reader + a compatibility gate (BackupCheck) for imports (pure)
       theme/                 # XoppTheme (Material You), Color
   src/test/java/com/mobixournal/format/                         # JVM unit tests for the format layer
@@ -1125,7 +1129,11 @@ colour keys, anything a future desktop adds — are preserved in place exactly l
 `PageSvgWriter` for the SVG export, `PdfBackgroundPainter` for the PDF flatten — all go through it,
 so a custom grid can't rule one way on screen and another in the export. `Snapping` resolves the same
 numbers — as a lattice, spacing *and* phase — so *Snap to grid* and the guide's **Ruling** mode both
-land on the lines the user can actually see. The renderer caches the
+land on the lines the user can actually see. An **isometric** sheet is resolved as a `Snapping.Mesh`
+instead: it rules no axis at all, so the lattice carries the two interleaved sub-lattices whose
+crossings are the ±30° families' nodes, and a snap resolves the nearest **node** (`Lattice.snap`). Its
+phase is derived from the page width the paper is ruled against, which is why `Snapping.lattice` takes
+that width and why the surface passes its page's own width in. The renderer caches the
 parsed ruling against the config string (one entry), because `draw` runs every frame and a fresh parse
 per frame was pure churn. Isometric paper is the same story one level up: `isograph`/`isodotted` are
 desktop styles, `r1` is the triangle's side, and the mesh is the pure `BackgroundGrid.isometric`
@@ -1290,11 +1298,24 @@ instrument and nothing to drag — the page's own ruling *is* the guide — and 
 onto the lines the background really draws, resolved through `Snapping.lattice` so both the spacing
 and the ruling's phase are the renderer's own (a graph sheet rules from its `m1` margin, not the page
 corner). That reach is the whole difference from the **Snap to grid** setting, which rounds a shape's
-two endpoints. An *instrument* is drawn as a canvas overlay outside the ink cache (it is not page
+two endpoints. Its fifth kind, the **chemistry lattice**, is a ruling snap of the guide's own making
+turned on chemistry: `TriangularLattice` (pure and tested) is the 60° mesh of nodes whose six
+nearest neighbours are a regular hexagon, and the guide pulls every drawn vertex onto the **nearest
+node**, so a sketched skeletal formula gets exact 60°/120° bond angles and equal bond lengths and a
+ring around a node is a benzene hexagon. Its spacing is its own (a bond length) rather than the
+page's, so unlike the ruling snap it works on a plain or PDF sheet; and like the ruling snap it has
+no instrument and no handle — the overlay it does draw is a faint `TriangularLattice.mesh` of the
+bonds it will snap to (chrome, outside the ink cache), and a finger on the page keeps drawing. An *instrument* is drawn as a canvas overlay outside the ink cache (it is not page
 content) and is manipulated by a finger on its own pointer id, deliberately running alongside the
 drawing gesture rather than instead of it, so a hand can hold the instrument while the pen rules
-along it; the ruling snap has neither an overlay nor a handle, so a finger on the page keeps drawing. Nothing
-about a guide reaches the document — only the resulting stroke does. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
+along it; the ruling and chemistry snaps have neither an overlay handle nor a grab region, so a finger on the page keeps drawing. Nothing
+about a guide reaches the document — only the resulting stroke does. Where an **instrument** was posed
+*is* remembered, though, because losing it means re-posing by hand: `AppSettings.guidePose` holds a
+`GuidePose` (the page plus the live guide) and the editor's `onGuideChanged` writes it back, so
+`applySettings` can `restoreGuide` it on the next launch instead of `placeGuide`ing a fresh one. Only
+the three instruments qualify (`DrawingGuide.isRememberable`) — the ruling and chemistry rules
+re-derive their anchor from the page — and the pose is dropped when the kind changes or the page it
+was posed on is gone, so a stored pose can never be applied to the wrong instrument. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and `PdfVectorPainter` mirrors both for
 export (a `setLineDashPattern` stroke and a `fill()` polygon). The **partial eraser** (`StrokeEraser`,

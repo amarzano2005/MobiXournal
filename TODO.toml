@@ -36,48 +36,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "stem-chemical-structures-and-bonds-tool"
-title = "Chemical molecular structures and carbon skeleton tool"
-description = "Add a STEM chemistry drawing guide with 60°/120° angular snapping for skeletal formulas, benzene rings, and single/double/triple chemical bonds."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 120
-created = 2026-10-09
-tags = ["stem", "chemistry", "tools"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "editable-round-trip-restore-an-editable-document-from-an-exported-pdf"
-title = "Editable round-trip: restore an editable document from an exported PDF"
-description = "Our own extension (Xournal++'s own PDF export is flattened and does NOT carry the notebook; confirmed 2026-10 review of xournalpp docs/issue #6086). Goal: exporting to PDF also embeds the source .xopp as a PDF attached file (PDFBox EmbeddedFiles / PDEmbeddedFile), and importing a PDF that carries one offers to restore it as the editable document instead of a flat background. Investigate: PDFBox-Android attachment write/read, detection on import, a consent prompt, and how a restore reconciles with an already-present annotation layer. Falls out of the 2026-10-10 vector-PDF lag report."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 140
-created = 2026-10-10
-tags = ["pdf", "io", "export"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "snap-ink-to-the-ruling-on-isometric-paper"
-title = "Snap ink to the ruling on isometric paper"
-description = "The drawing guide's Ruling mode snaps ink onto the page's ruling lattice, but an isometric sheet (isograph/isodotted) rules a triangular mesh at ±30 degrees, not a lattice of parallel lines, so it currently snaps nothing. Its nodes do form a lattice (x = width/2 + (sqrt(3)*side/4)*n, y = -width/(2*sqrt(3)) - side/2 + (side/4)*m, n and m the same parity), so the guide could resolve the nearest node of that mesh the way Snapping.Lattice resolves the rectangular ones."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 150
-created = 2026-10-11
-tags = ["guide", "snapping"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "persist-the-drawing-guide-s-pose-or-drop-the-dead-restore-path"
 title = "Persist the drawing guide's pose, or drop the dead restore path"
 description = "DrawingSurfaceView.restoreGuide and the onGuideChanged hook exist so a posed guide can be remembered, but nothing assigns onGuideChanged and nothing calls restoreGuide, so only the guide kind (AppSettings.guideKind) survives a restart and every instrument comes back freshly placed. Either wire the pose through AppSettings + AppSettingsBackup (it needs a per-kind shape: anchor/angle/size for the setsquare, anchor/radius for the compass, anchor/angle/radius for the protractor) or delete the two dead entry points so the code stops promising a behaviour it does not have."
@@ -132,3 +90,45 @@ created = 2026-10-11
 tags = ["ui", "chrome", "design"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "attach-the-source-xopp-to-every-exported-pdf"
+title = "Attach the source .xopp to every exported PDF"
+description = "Our own extension: Xournal++'s own PDF export is flat and carries no notebook. Exporting to PDF also embeds the document as a PDF attached file, so an exported PDF carries its own editable source. Files: render/PdfExporter.kt gains an attachXopp ByteArray parameter and, when present, writes it as an embedded file through the PDFBox classes PDComplexFileSpecification plus PDEmbeddedFile (subtype application/x-xopp) registered in the exported document's PDDocumentNameDictionary -> PDEmbeddedFilesNameTreeNode under the fixed name source.xopp (set fileName and fileUnicode on the spec, and the embedded file's size). MainActivityDocuments.exportPdf encodes the active document to .xopp bytes first, reusing the existing encode path in io/DocumentIo.encode with the tab's sticky SaveFormat, and passes them to the exporter. Above a 32 MB size cap the attachment is skipped rather than bloating the PDF, and the export toast says so. Verify with a new JVM unit test under app/src/test/java/com/mobixournal/render/ that exports a small document through PdfExporter, reopens it with PDFBox and asserts the attachment exists, is named source.xopp, is typed application/x-xopp, and that decompressing it reproduces the same model (or the same XML), so the write and read halves are locked together."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 200
+created = 2026-10-11
+tags = ["pdf", "io", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "detect-an-embedded-xopp-when-opening-a-pdf-and-offer-to-restore-it"
+title = "Detect an embedded .xopp when opening a PDF and offer to restore it"
+description = "The read half of the editable-PDF round trip. When FileKind.sniff returns PDF, look for an attached file named source.xopp before falling back to the flat-background import. Add render/PdfAttachments.kt with a read(bytes) helper that opens the PDF with PDFBox, walks PDDocumentNameDictionary -> PDEmbeddedFilesNameTreeNode, and returns the attachment bytes or null, tolerating a document with no names catalogue or no embedded-files tree. Call it from io/DocumentIo.read where kind == FileKind.PDF. When an attachment is found, raise a consent prompt in the import flow (MainActivityDocuments plus the import dialogs in ui/EditorOverlays.kt, next to the ImportPdfMode choice) asking whether to open the embedded notebook or annotate the flat PDF. Accepting parses those bytes with Xopp.open (they are a gzip .xopp) and opens the result as an ordinary document with SaveFormat.ORIGINAL, recorded as an imported document so the file name and Save target still come from the PDF the user picked; declining keeps todays behaviour exactly. Verify with JVM unit tests: a document exported through PdfExporter with an attachment reads back through PdfAttachments.read byte-identical, a PDF with no attachment returns null, and a PDF unrelated to this app returns null rather than throwing."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 210
+created = 2026-10-11
+tags = ["pdf", "io"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "reconcile-a-restored-xopp-with-the-pdf-that-carried-it"
+title = "Reconcile a restored .xopp with the PDF that carried it"
+description = "What a restored notebook does with the PDF it was embedded in, and what its background becomes. Rule to implement: the embedded .xopp is the source of truth, so its pages, layers and strokes replace the flat pages and any ink the PDF carried in its own content stream is discarded along with the flat view (declining the restore is always available, and that path is unchanged). The restored document must not come back with a missing background: keep the background reference it was saved with, and when that reference cannot be resolved, adopt the very PDF it was embedded in as the documents local background copy (io/DocumentIo.adoptPdf) so its pages still draw and the file still round-trips. Cover both paths with unit tests around the import entry point: restore accepted with the embedding PDF available, and restore accepted with the referenced background PDF missing from disk. Record the rule in docs/architecture.md in the PDF section."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 220
+created = 2026-10-11
+tags = ["pdf", "io", "export"]
+rebuild = true
+emulator_debug = false
