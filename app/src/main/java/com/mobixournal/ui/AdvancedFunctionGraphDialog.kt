@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
@@ -122,7 +123,7 @@ fun AdvancedFunctionGraphDialog(
     val xMax = xMaxText.toDoubleOrNull()
     val rangeOk = xMin != null && xMax != null && xMax > xMin
 
-    val activeCurves = remember(modeTab, curves.map { it.source to it.color }, paramX, paramY) {
+    val activeCurves = remember(modeTab, curves.map { Triple(it.source, it.color, it.lineStyle) }, paramX, paramY) {
         if (modeTab == 0) {
             curves.mapIndexed { i, c -> PlotCurve(c.source, c.color, c.lineStyle, "f${i + 1}") }
         } else {
@@ -138,8 +139,8 @@ fun AdvancedFunctionGraphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         modifier = Modifier
-            .fillMaxWidth(0.90f)
-            .widthIn(max = 1200.dp)
+            .fillMaxWidth(0.82f)
+            .widthIn(max = 1000.dp)
             .padding(horizontal = 16.dp),
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {
@@ -507,6 +508,16 @@ private fun FunctionPlotPreviewBox(
                 val scaleY = size.height / 180f
                 for (group in plotResult.pathGroups) {
                     val color = Color(group.color)
+                    val pathEffect = when (group.lineStyle) {
+                        LineStyle.DASHED -> PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
+                        LineStyle.DOTTED -> PathEffect.dashPathEffect(floatArrayOf(2f, 6f), 0f)
+                        LineStyle.DASH_DOT -> PathEffect.dashPathEffect(floatArrayOf(12f, 6f, 2f, 6f), 0f)
+                        LineStyle.PLAIN -> null
+                    }
+                    val strokeStyle = Stroke(
+                        width = 1.5f * scaleX,
+                        pathEffect = pathEffect,
+                    )
                     for (stroke in group.strokes) {
                         if (stroke.size >= 2) {
                             val path = Path()
@@ -514,7 +525,7 @@ private fun FunctionPlotPreviewBox(
                             for (i in 1 until stroke.size) {
                                 path.lineTo(stroke[i].x.toFloat() * scaleX, stroke[i].y.toFloat() * scaleY)
                             }
-                            drawPath(path, color, style = Stroke(width = stroke.first().width.toFloat() * scaleX))
+                            drawPath(path, color, style = strokeStyle)
                         }
                     }
                 }
