@@ -31,12 +31,14 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
     currentPage = box.index
     if (shaping) {
         // Grid snap first, then the guide — a placed guide is the stronger constraint and must
-        // not be undone by pulling the point back onto the ruling.
-        val (sx, sy) = guided(
+        // not be undone by pulling the point back onto the ruling. The grid snap is the *joint* one
+        // so an isometric sheet's node (which rules no axis) can still capture the endpoint.
+        val (gx, gy) = snappedPoint(
             box,
-            snapX(box, box.toPtX(event.getX(pointerIndex), scrollX)),
-            snapY(box, box.toPtY(event.getY(pointerIndex), scrollY)),
+            box.toPtX(event.getX(pointerIndex), scrollX),
+            box.toPtY(event.getY(pointerIndex), scrollY),
         )
+        val (sx, sy) = guided(box, gx, gy)
         shapeStartX = sx
         shapeStartY = sy
         shapeWidthPt = nominalShapeWidthPt()
@@ -59,11 +61,12 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
     if (pointerIndex < 0) return
     val box = layout.boxes.getOrNull(currentPage) ?: return
     if (shaping) {
-        val (ex, ey) = guided(
+        val (gx, gy) = snappedPoint(
             box,
-            snapX(box, box.toPtX(event.getX(pointerIndex), scrollX)),
-            snapY(box, box.toPtY(event.getY(pointerIndex), scrollY)),
+            box.toPtX(event.getX(pointerIndex), scrollX),
+            box.toPtY(event.getY(pointerIndex), scrollY),
         )
+        val (ex, ey) = guided(box, gx, gy)
         val multi = ShapeBuilder.buildMulti(
             shapeKind ?: return, shapeStartX, shapeStartY, ex, ey, shapeWidthPt,
             tableRows, tableCols, tableHeader,

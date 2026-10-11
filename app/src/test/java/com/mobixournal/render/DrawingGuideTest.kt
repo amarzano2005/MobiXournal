@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.Background
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -148,6 +149,55 @@ class DrawingGuideTest {
         assertEquals(37.4 to 48.0, lined.project(37.4, 52.0))
         val plain = DrawingGuide.Ruling(0.0, 0.0)
         assertEquals(37.4 to 52.0, plain.project(37.4, 52.0))
+    }
+
+    @Test
+    fun `on an isometric sheet the ruling guide pulls every vertex onto a mesh node`() {
+        // An isometric sheet rules no axis, so before the mesh existed this guide snapped nothing at
+        // all: the guide now resolves the nearest node of the triangular mesh the paper draws.
+        val lattice = Snapping.lattice(
+            Background.Solid(0xFFFFFFFF.toInt(), "isograph"),
+            pageWidthPt = 595.276,
+        )
+        assertTrue("an isometric sheet rules a node mesh", lattice.active)
+        val g = DrawingGuide.Ruling(0.0, 0.0, lattice)
+
+        val (x, y) = g.project(202.0, 301.0)
+        assertTrue("the point moved onto the mesh", hypot(x - 202.0, y - 301.0) > 1e-9)
+        // Landing on a node means re-projecting is a fixed point.
+        assertEquals(x, g.project(x, y).first, 1e-9)
+        assertEquals(y, g.project(x, y).second, 1e-9)
+        // And it is the nearest one: no node of the mesh is closer.
+        val snapped = hypot(x - 202.0, y - 301.0)
+        assertTrue(
+            "no node nearer than ${snapped}pt",
+            meshNodes(595.276, 841.89, BackgroundGrid.ISO_SPACING_PT).all { (nx, ny) ->
+                hypot(nx - 202.0, ny - 301.0) >= snapped - 1e-6
+            },
+        )
+    }
+
+    /** The crossings of the two ±30° families the isometric paper is ruled with. */
+    private fun meshNodes(width: Double, height: Double, side: Double): List<Pair<Double, Double>> {
+        val segments = BackgroundGrid.isometric(width, height, side)
+        // The two families are the ±30° ones: one descends (its y grows), the other ascends.
+        val up = segments.filter { it[3] > it[1] }
+        val down = segments.filter { it[3] < it[1] }
+        val out = ArrayList<Pair<Double, Double>>()
+        for (a in up) {
+            for (b in down) {
+                val adx = a[2] - a[0]; val ady = a[3] - a[1]
+                val bdx = b[2] - b[0]; val bdy = b[3] - b[1]
+                val denom = adx * bdy - ady * bdx
+                if (kotlin.math.abs(denom) < 1e-12) continue
+                val ex = b[0] - a[0]; val ey = b[1] - a[1]
+                val t = (ex * bdy - ey * bdx) / denom
+                val u = (ex * ady - ey * adx) / denom
+                if (t < -1e-9 || t > 1 + 1e-9 || u < -1e-9 || u > 1 + 1e-9) continue
+                out += (a[0] + t * adx) to (a[1] + t * ady)
+            }
+        }
+        return out
     }
 
     @Test

@@ -1388,12 +1388,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * [x] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on, at the ruling's
      * own phase (a graph sheet rules from its margin, not the page corner).
      */
-    internal fun snapX(box: PageBox, x: Double): Double =
-        if (snapToGrid) Snapping.lattice(box.page.background).snapX(x) else x
-
-    /** [y] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on (see [snapX]). */
-    internal fun snapY(box: PageBox, y: Double): Double =
-        if (snapToGrid) Snapping.lattice(box.page.background).snapY(y) else y
+    /**
+     * ([x], [y]) pt pulled onto [box]'s ruling when the snap-to-grid setting is on.
+     *
+     * The **joint** snap rather than two axis-wise calls: only it can resolve an isometric sheet, whose
+     * mesh rules no axis at all (so snapping x and y independently would each leave its coordinate
+     * untouched and the shape endpoint would land nowhere near a ruled node).
+     */
+    internal fun snappedPoint(box: PageBox, x: Double, y: Double): Pair<Double, Double> =
+        if (snapToGrid) Snapping.lattice(box.page.background, box.page.width).snap(x, y) else x to y
 
     // --- the setsquare / compass guide: place it, drag it, and rule drawn points against it -------
 
@@ -1424,8 +1427,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
             else -> 0.0
         }
         guideDrag.page = index
-        // The ruling snap needs the page it is ruling: its lattice is the page's own background.
-        guideDrag.pose = kind.place(cx, cy, Snapping.lattice(box?.page?.background))
+        // The ruling snap needs the page it is ruling: its lattice is the page's own background, and
+        // an isometric sheet's phase is derived from the page width too.
+        guideDrag.pose = kind.place(cx, cy, Snapping.lattice(box?.page?.background, box?.page?.width ?: 0.0))
         onGuideChanged?.invoke(guide)
         render()
     }
