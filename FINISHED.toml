@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "split-the-architecture-doc-into-one-spoke-per-topic-with-guards"
+title = "Split the architecture doc into one spoke per topic, with guards"
+description = "docs/architecture.md had grown to 2488 lines with only 8 top-level headings, and two of those nested ~750 unrelated lines each (selection, PDF, markdown and chrome all sat under \"Colour palette\" and \"Document search\"), so no topic had a file to open or a heading to jump to. Split it into 17 topic spokes under docs/, each opening with the question it answers, with architecture.md reduced to the index that routes to them. Every line of the original is assigned to exactly one spoke (a one-shot script compared the multiset of substantive lines to prove nothing was dropped or duplicated), file-relative cross-links (data-path to the format tree, selection to the stylus spoke, chrome to selection) were re-pointed, the ~20 source-KDoc pointers now name the owning spoke, and AGENTS.md and README.md route through the index. 2488 lines -> 17 spokes of 19..364 lines, and DocsGuardTest now fails the build when a spoke is unreachable, a link or anchor is broken, or a doc passes its 400-line budget."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-10-11
+completed = 2026-10-11
+tags = []
+
+[[task]]
 id = "cover-selection-and-the-hold-to-snap-paths-with-injected-stylus-events"
 title = "Cover selection and the hold-to-snap paths with injected stylus events"
 description = "StylusInputTest now injects real MotionEvents with tool type, button state and per-sample pressure to cover the eraser tip, the barrel, pressure and the guide hook. The select/band gestures, the stylus hover preview ring, and hold-to-snap are still covered only by JVM unit tests, even though they are pen-only paths adb shell input cannot reach."

@@ -81,7 +81,7 @@ object BackgroundRenderer {
             "graph" -> grid(canvas, box, left, top, rulingFor(solid.config))
             "dotted" -> dots(canvas, box, left, top, rulingFor(solid.config))
             // Desktop's isometric paper; `isodotted` is its dotted variant, drawn here as the same
-            // mesh (see the note in `docs/architecture.md`) rather than skipped.
+            // mesh (see the note in `docs/pages-and-paper.md`) rather than skipped.
             "isograph", "isodotted" -> isometric(canvas, box, left, top, style, rulingFor(solid.config))
             else -> Unit // "plain", unknown, or non-solid: bare sheet
         }

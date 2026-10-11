@@ -16,7 +16,7 @@ you pull in a spoke only when the task touches it, instead of reading everything
 | **What to do next** (active tasks only)          | `TODO.toml` (via the `todo` skill) |
 | **What's already done** (completed-work archive) | `FINISHED.toml` (via the `todo` skill) |
 | **How to work here** (conventions, decisions)    | `AGENTS.md` (this file)   |
-| **How the system works internally** (data flow, layout) | `docs/architecture.md` |
+| **How the system works internally** (data flow, layout) | `docs/architecture.md` — the **index** of the architecture spokes |
 | **How a user runs/uses it** (setup, build & run) | `README.md`               |
 | **External tools & build pipelines** (Android, deploy, device harnesses) | `docs/tools.md` |
 | **What a release shipped** (per-version changelogs) | `docs/releases/[version].md` (procedure in `docs/tools.md`) |
@@ -41,7 +41,7 @@ daily on Linux. It is a continuation of **NeXopp** ([github.com/bamonroe/NeXopp]
 Brian Monroe's Android `.xopp` editor, renamed and rebranded.
 It is **not affiliated with, endorsed by, or maintained by the Xournal++ authors**,
 and it installs under the label **MobiXournal**. See _Branding and identity_ in
-`docs/architecture.md` for what that inheritance carries.
+`docs/codebase.md` for what that inheritance carries.
 The goal is a stylus-first Android
 companion: open a `.xopp` file on an Android tablet/phone, draw, handwrite, annotate, and
 sketch with a pen/stylus, then save back to the **same `.xopp` format** so the file round-trips
@@ -55,9 +55,9 @@ pressure, text boxes, images, and page backgrounds (plain/ruled/graph, PDF annot
 
 A `.xopp` file is a **gzip-compressed XML document**; reading and writing that format
 losslessly is the core of the app. (The concrete schema/element mapping is a code-derived fact
-— its authoritative home is `docs/architecture.md`, not this file.)
+— its authoritative home is `docs/xopp-format.md`, not this file.)
 
-**Stack (pinned — details in `docs/architecture.md`):** native Android in **Kotlin**, with
+**Stack (pinned — details in `docs/stack.md`):** native Android in **Kotlin**, with
 **Jetpack Compose Material 3** chrome and a low-latency custom `SurfaceView` for stylus
 (`MotionEvent` pressure) drawing; `.xopp` I/O uses the JDK's built-in gzip + a dependency-free
 XML layer. Builds run in a container per the Android pipeline in `docs/tools.md`.
@@ -72,17 +72,19 @@ build it (and don't defer it speculatively either). Example: stylus **tilt / ori
 home in the format, so tilt-driven width is out, not "someday." When in doubt, check whether the
 result survives a save→reopen in desktop Xournal++; if it can't, it doesn't belong.
 
-## Architecture — see `docs/architecture.md`
+## Architecture — the index is `docs/architecture.md`
 
-The internals live in **`docs/architecture.md`**: [data-flow, key components, the repository
-layout, and the load-bearing design decisions]. Read it when you're changing the data path
-or the core components. When you make a design decision, **record it in the owning doc** so
-it isn't re-litigated later.
+`docs/architecture.md` is the **index**, not the content: it lists one spoke per topic, and each
+spoke opens with the question it answers, so a change loads one topic instead of the whole
+architecture. Start there, open the one spoke your task touches, and when you make a design
+decision **record it in the owning spoke** so it isn't re-litigated later. Keep a fact in exactly
+one spoke and link to it rather than restating it; `DocsGuardTest` fails the build when a doc is
+unreachable from the index, a link between docs is broken, or a doc outgrows its line budget.
 
 ## Build, run & repository layout — see `docs/architecture.md` and `README.md`
 
 The **repository layout** (every package/module and what it does) lives in
-`docs/architecture.md`; **how to build and run** it lives in `README.md`. Don't restate
+`docs/codebase.md`; **how to build and run** it lives in `README.md`. Don't restate
 either here.
 
 ```sh

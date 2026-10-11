@@ -199,7 +199,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
  * The single editor screen: a Material 3 top bar (undo/redo plus an overflow menu for open/save/
  * settings), a vertical control [SideToolbar] down the docked edge (left or right), and the stylus canvas filling the
  * rest. The canvas is a classic [DrawingSurfaceView] hosted via [AndroidView] for low-latency stylus
- * rendering (see `docs/architecture.md`).
+ * rendering (see `docs/chrome.md`).
  *
  * The screen owns no loose state of its own: everything it remembers lives in [EditorUiState] (the
  * chrome) and [PaneState] (each canvas's mirror), and each region below — top bar, toolbar, pane,

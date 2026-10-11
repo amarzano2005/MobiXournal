@@ -10,7 +10,7 @@ import com.mobixournal.format.model.Page
  * desktop Xournal++ produces when you "annotate a PDF": one `.xopp` page per PDF page, each with a
  * `<background type="pdf">` and an empty layer to draw on. Only the first page carries `filename`
  * and `domain`; the rest reference the same PDF by `pageno` alone, matching the on-disk convention
- * (see `docs/architecture.md`). The actual rasterisation is done by [PdfPageCache].
+ * (see `docs/pdf.md`). The actual rasterisation is done by [PdfPageCache].
  *
  * [reference] is the string stored as the background's `filename` — on Android that's the source
  * PDF's `content://` URI (domain="absolute"), which the open path resolves back to reload the PDF.

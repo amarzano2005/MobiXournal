@@ -13,7 +13,7 @@ import java.util.zip.ZipOutputStream
  * archive entries, versus the legacy gzip `.xopp` which links attachments as sibling files. Desktop
  * Xournal++'s `LoadHandler` opens such an archive by looking up entries by name — `mimetype`,
  * `META-INF/version`, `content.xml` (plain XML, *not* gzipped), and each attachment named by its
- * background `filename`. Only the JDK's `java.util.zip` is used (see `docs/architecture.md`).
+ * background `filename`. Only the JDK's `java.util.zip` is used (see `docs/xopp-format.md`).
  *
  * ## Intentional mimetype deviation — targeting release Xournal++ on Arch Linux
  * The spec-correct mimetype is the literal `application/xournal++`, but the currently *released*

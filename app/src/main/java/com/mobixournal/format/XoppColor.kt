@@ -3,7 +3,7 @@ package com.mobixournal.format
 /**
  * Converts between `.xopp` colour strings and ARGB ints (`0xAARRGGBB`, Android's `Color`
  * layout). On disk the form is `#RRGGBBAA` (alpha **last**); we also read 6-digit `#RRGGBB`
- * (implicit opaque) and the desktop named-colour keywords. See `docs/architecture.md`.
+ * (implicit opaque) and the desktop named-colour keywords. See `docs/xopp-format.md`.
  */
 object XoppColor {
 

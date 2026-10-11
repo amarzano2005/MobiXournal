@@ -24,7 +24,7 @@ import kotlin.math.sin
  * exists only where it round-trips: scale bakes into coordinates/box/font-size, rotate bakes into a
  * stroke's vertex coordinates (the only element with a free-form point list). Text and images have
  * no rotation attribute and axis-aligned boxes, so [rotate] leaves them untouched — the view offers
- * the rotate handle only for all-stroke selections (see `docs/architecture.md`).
+ * the rotate handle only for all-stroke selections (see `docs/selection.md`).
  */
 object SelectionOps {
 

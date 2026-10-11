@@ -18,7 +18,7 @@ import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
  * companions for markdown emphasis) and **DejaVu Sans Mono** (monospace), from
  * `app/src/main/assets/fonts/`. They are permissively licensed — Bitstream Vera + Arev, with the
  * DejaVu changes in the public domain — and the full licence ships alongside them as
- * `assets/fonts/LICENSE.txt`. See `docs/architecture.md` for why this pair.
+ * `assets/fonts/LICENSE.txt`. See `docs/pdf.md` for why this pair.
  *
  * Fonts must be embedded per-document, so instances are cached by the [PDDocument] they were loaded
  * into; hold one [PdfFonts] for the app and call [load] as often as you like.

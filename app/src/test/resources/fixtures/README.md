@@ -7,7 +7,7 @@ so they are faithful to the on-disk format the app must round-trip — not
 synthetic XML the parser happens to accept.
 
 Inspect any fixture with `zcat <file>.xopp`. Together they cover the schema
-surface documented in `docs/architecture.md`:
+surface documented in `docs/xopp-format.md`:
 
 | Fixture              | Covers                                                        |
 |----------------------|---------------------------------------------------------------|

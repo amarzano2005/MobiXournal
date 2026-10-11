@@ -6,7 +6,7 @@ import com.mobixournal.format.model.Page
 
 /**
  * Pure page-list edits for the editor: insert and delete pages. Kept Android-free so the
- * document-structure logic is unit-testable off-device (see `docs/architecture.md`). A new page is
+ * document-structure logic is unit-testable off-device (see `docs/pages-and-paper.md`). A new page is
  * born at the **default page size** the caller passes in (Settings ▸ Editor), keeping the **paper
  * ruling** of the page it sits beside, with a single empty layer — but never its content: a
  * `pdf`/`pixmap` background is dropped to a plain white sheet so the fresh page can't re-show the

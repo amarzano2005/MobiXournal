@@ -9,7 +9,7 @@ import java.util.zip.GZIPOutputStream
 /**
  * Top-level `.xopp` I/O: gzip on the outside, XML within. This is the whole round-trip surface
  * the app builds on. Uses only the JDK's `java.util.zip` — no third-party format libraries (see
- * `docs/architecture.md`).
+ * `docs/xopp-format.md`).
  */
 object Xopp {
 

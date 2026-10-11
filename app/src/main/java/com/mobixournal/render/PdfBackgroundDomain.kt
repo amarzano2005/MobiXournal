@@ -12,7 +12,7 @@ const val ABSOLUTE_DOMAIN = "absolute"
 /**
  * The `filename` desktop Xournal++ records for an attached PDF background. The actual bundled file
  * sits next to the document as `<xoppname>.bg.pdf`; on load desktop resolves it as
- * `<xoppPath> + "." + filename` (see `docs/architecture.md`), so a `document.xopp` and its
+ * `<xoppPath> + "." + filename` (see `docs/pdf.md`), so a `document.xopp` and its
  * `document.xopp.bg.pdf` sibling pair up.
  */
 const val ATTACH_PDF_FILENAME = "bg.pdf"

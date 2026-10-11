@@ -50,7 +50,7 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   - The image is already baked; only Gradle + dependencies download on first use into
     `.gradle-cache/`. No `local.properties` needed — the SDK is baked in.
   - The parent mount is what makes the optional real-file test resolve its repo-root sample; the
-    rule is documented in [`architecture.md`](architecture.md#what-the-unit-tests-cover).
+    rule is documented in [`testing.md`](testing.md#what-the-unit-tests-cover).
 
 ### Host fallback — no `/data/android`, no Docker
 

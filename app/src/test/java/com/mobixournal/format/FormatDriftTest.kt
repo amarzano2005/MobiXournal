@@ -20,7 +20,7 @@ import org.junit.Test
  *     (`open → toXml → parseXml` is a no-op on the model), so a parser/writer change that would
  *     silently corrupt a real file fails the build.
  *  2. **Schema coverage** — the fixture set collectively exercises the schema surface documented
- *     in `docs/architecture.md` (all background styles, multi-page, multiple layers, every
+ *     in `docs/xopp-format.md` (all background styles, multi-page, multiple layers, every
  *     element type, pressure vs. uniform stroke width, highlighter alpha). If a documented
  *     feature loses coverage, the aggregate assertions here catch it.
  */

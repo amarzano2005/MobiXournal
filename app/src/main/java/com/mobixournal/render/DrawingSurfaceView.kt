@@ -49,7 +49,7 @@ data class Placement(val pageIndex: Int, val xPt: Double, val yPt: Double, val e
  * [PageStacker] / [BackgroundRenderer]). One finger draws; two fingers scroll the page stack.
  * Strokes are drawn here; text boxes, images, and LaTeX images are drawn by [ElementRenderer].
  * Pressure is captured at the fidelity `.xopp` stores — this is where round-trip safety starts
- * (see `docs/architecture.md`).
+ * (see `docs/xopp-format.md`).
  *
  * This file is deliberately the *state* of the surface — the property block, the document/zoom/page/
  * layer facades and the thin `View` overrides. The behaviour is split across sibling extension

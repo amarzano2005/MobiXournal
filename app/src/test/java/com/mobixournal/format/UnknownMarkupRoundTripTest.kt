@@ -14,7 +14,7 @@ import org.junit.Test
  * The core-rule fidelity guard: markup this build doesn't model — an unknown attribute on any
  * element, a whole unknown element inside a layer, a custom `<title>` — must survive a load/save
  * round trip untouched, so a file authored by a newer or vendor desktop build isn't quietly
- * stripped when it is edited here. See `docs/architecture.md` for the schema mapping.
+ * stripped when it is edited here. See `docs/xopp-format.md` for the schema mapping.
  */
 class UnknownMarkupRoundTripTest {
 

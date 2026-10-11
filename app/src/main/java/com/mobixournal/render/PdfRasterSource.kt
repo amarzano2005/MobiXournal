@@ -10,7 +10,7 @@ import java.io.File
 
 /**
  * The PDF renderer lifecycle for [PdfPageCache]. Wraps the framework [PdfRenderer]
- * (dependency-free, API 21+ — see the dependency-free goal in `docs/architecture.md`).
+ * (dependency-free, API 21+ — see the dependency-free goal in `docs/pdf.md`).
  * `PdfRenderer` is not thread-safe and only one page may be open at a time, so every access is
  * serialised on [renderLock].
  *

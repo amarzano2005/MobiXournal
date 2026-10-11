@@ -23,7 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * On-device verification of the selection tool's gesture wiring (see `docs/architecture.md` →
+ * On-device verification of the selection tool's gesture wiring (see `docs/selection.md` →
  * "Selecting objects"): lasso (free-form) select, copy/paste, and cross-page move. These need a
  * continuous multi-point finger gesture, which `adb input` can't inject as one stroke, so they run
  * here via synthetic `MotionEvent`s. The pure geometry (`SelectionTester.inPolygon`, `SelectionOps`)

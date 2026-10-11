@@ -35,7 +35,8 @@ MobiXournal follows a hub-and-spoke documentation model:
 | Topic | Document |
 |---|---|
 | **Development & Conventions** | [`AGENTS.md`](AGENTS.md) |
-| **System Architecture & .xopp Schema** | [`docs/architecture.md`](docs/architecture.md) |
+| **System Architecture** (the index of the spokes) | [`docs/architecture.md`](docs/architecture.md) |
+| **The `.xopp` on-disk schema** | [`docs/xopp-format.md`](docs/xopp-format.md) |
 | **Build Tools, Container & Emulator** | [`docs/tools.md`](docs/tools.md) |
 | **Active Tasks & Roadmap** | [`TODO.toml`](TODO.toml) (via `scripts/todo.sh list`) |
 | **Completed Work Archive** | [`FINISHED.toml`](FINISHED.toml) |
@@ -253,7 +254,7 @@ The Kotlin source code is organized under `app/src/main/java/com/mobixournal/`:
 - `audio/`: Synchronized microphone recording and playback engine.
 - `tabs/` & `panes/`: Multi-tab session cache and split-view management.
 
-Full architectural details, data flow diagrams, and test suites are documented in [`docs/architecture.md`](docs/architecture.md).
+Full architectural details, data flow diagrams, and test suites are documented in the architecture spokes, indexed from [`docs/architecture.md`](docs/architecture.md).
 
 ---
 

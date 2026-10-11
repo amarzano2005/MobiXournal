@@ -11,7 +11,7 @@ package com.mobixournal.format.model
 const val DEFAULT_CREATOR: String = "MobiXournal"
 
 /**
- * The in-memory analogue of a `.xopp` file. See `docs/architecture.md` for the on-disk schema
+ * The in-memory analogue of a `.xopp` file. See `docs/xopp-format.md` for the on-disk schema
  * this mirrors. All geometry is in points (pt, 1/72 inch); origin top-left. Colors are ARGB
  * ints (`0xAARRGGBB`) — the same layout Android's `Color` uses.
  */

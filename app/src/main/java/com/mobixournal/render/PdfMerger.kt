@@ -6,7 +6,7 @@ import java.io.File
 
 /**
  * Joins PDFs end-to-end so a document that already has a PDF background can still take another
- * import. A `.xopp` can reference exactly **one** background PDF (see `docs/architecture.md`), so
+ * import. A `.xopp` can reference exactly **one** background PDF (see `docs/pdf.md`), so
  * "append a second PDF" is only representable on disk if the two PDFs become one: [join] writes a
  * concatenation of the two and the caller re-points the document's single background reference at
  * it, renumbering the appended pages' `pageno` against the joined document.

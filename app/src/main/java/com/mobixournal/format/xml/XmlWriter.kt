@@ -2,7 +2,7 @@ package com.mobixournal.format.xml
 
 /**
  * A tiny streaming XML writer for the `.xopp` subset — no namespaces, no third-party library
- * (per the pinned stack in `docs/architecture.md`). Attributes are written in call order, so
+ * (per the pinned stack in `docs/stack.md`). Attributes are written in call order, so
  * the caller controls on-disk attribute order for round-trip fidelity.
  */
 class XmlWriter(private val out: Appendable) {

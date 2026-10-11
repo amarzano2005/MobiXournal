@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 /**
  * A stroke's link into an audio recording: the sidecar file it was drawn over and how far into that
  * file the stroke began. This is exactly the `fn` / `ts` pair desktop Xournal++ writes on `<stroke>`
- * (see `docs/architecture.md` → stroke attributes), so anything we stamp here replays on the desktop
+ * (see `docs/xopp-format.md` → stroke attributes), so anything we stamp here replays on the desktop
  * and anything the desktop wrote replays here.
  */
 data class AudioRef(

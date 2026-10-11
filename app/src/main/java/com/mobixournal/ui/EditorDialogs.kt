@@ -64,7 +64,7 @@ private val TEXT_FAMILIES = listOf("Sans", "Serif", "Monospace")
 /**
  * "Save As" chooser: name the file and pick the on-disk format. [SaveFormat.ORIGINAL] writes the
  * standard gzip `.xopp` (a PDF background stays linked by location); [SaveFormat.ZIPPED] writes a
- * single self-contained file with the PDF embedded inside (see `docs/architecture.md`). The choice
+ * single self-contained file with the PDF embedded inside (see `docs/xopp-format.md`). The choice
  * becomes sticky — later plain Saves reuse it — so the picker pre-selects the current format.
  *
  * [initialName] is the open document's own name (already carrying the `.xopp` suffix), not a generic

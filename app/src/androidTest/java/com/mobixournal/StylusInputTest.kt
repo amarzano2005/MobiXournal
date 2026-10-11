@@ -29,7 +29,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * On-device verification of the stylus input layer (see `docs/architecture.md` → "Stylus &
+ * On-device verification of the stylus input layer (see `docs/stylus.md` → "Stylus &
  * selection roadmap"): the eraser tip, the finger-draw palm gate, the barrel button, palm rejection
  * while a stylus writes, the pressure stream, the guide hook, the select/band gestures, the hover
  * preview ring, and hold-to-snap. These need real Android `MotionEvent`s carrying a *tool type*,

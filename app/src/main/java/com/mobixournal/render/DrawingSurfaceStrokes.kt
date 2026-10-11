@@ -386,7 +386,7 @@ internal fun DrawingSurfaceView.widthForPressure(pressure: Float): Double = if (
  * drawn on the desktop the same thickness, and an already-authored file looking the same in both. A
  * shape is therefore as thick as the pen at full pressure and a little thicker than a light pen
  * stroke, which is exactly how the desktop behaves. Switch **Pressure sensitivity** off and the pen
- * draws at the setting too, so the two match. See "one width source" in docs/architecture.md.
+ * draws at the setting too, so the two match. See "one width source" in docs/stack.md.
  */
 internal fun DrawingSurfaceView.nominalShapeWidthPt(): Double = baseWidthPt.toDouble()
 

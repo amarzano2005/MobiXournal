@@ -9,7 +9,7 @@ private const val PREFETCH_HEADROOM = PdfTileGeometry.PREFETCH_HEADROOM
 
 /**
  * Rasterises the pages of a single PDF to bitmaps for use as page backgrounds. Wraps the framework
- * [PdfRenderer] (dependency-free, API 21+ — see the dependency-free goal in `docs/architecture.md`).
+ * [PdfRenderer] (dependency-free, API 21+ — see the dependency-free goal in `docs/pdf.md`).
  *
  * Rendering is the expensive part of scrolling a long PDF-backed document, so the cache is built to
  * keep it off the drawing frame:
