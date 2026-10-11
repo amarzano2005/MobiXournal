@@ -1,0 +1,88 @@
+# Math engine: evaluation, plotting and numerical analysis
+
+> Read when implementing mathematical expression parsing, numerical calculus (roots, extrema, derivatives, integrals), parametric curves, polar plots, or interactive formula sliders.
+
+_One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
+
+## Core math architecture
+
+MobiXournal includes a dedicated mathematical engine that powers both static rendering and interactive
+manipulation of mathematical functions. The engine operates entirely in pure Kotlin with no native
+C/Fortran dependencies, ensuring seamless portability across Android and Desktop (KMP).
+
+```text
+Formula String ("sin(x)*exp(-x)")
+       │
+       ▼ Lexer & Parser (Dijkstra Shunting-Yard / AST)
+Abstract Syntax Tree (Expression Node)
+       │
+       ├──► Vectorized Evaluator (double[] x -> double[] y)
+       │          └──► MultiFunctionPlotter (Path generation)
+       │
+       └──► Numerical Calculus Engine
+                  ├── Root Finder (Brent's method / Newton-Raphson)
+                  ├── Extrema & Inflections (f'(x) = 0, f''(x) = 0)
+                  └── Definite Integral (Adaptive Gauss-Kronrod / Simpson)
+```
+
+---
+
+## Supported mathematical primitives
+
+The parser evaluates real-valued functions $f: \mathbb{R} \to \mathbb{R}$:
+
+| Category | Operators / Functions |
+|---|---|
+| **Arithmetic** | `+`, `-`, `*`, `/`, `^`, `%` |
+| **Constants** | `pi` ($\pi \approx 3.14159$), `e` ($e \approx 2.71828$), `phi` ($\phi \approx 1.61803$) |
+| **Trigonometry** | `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2` |
+| **Hyperbolic** | `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` |
+| **Exponential & Log** | `exp`, `ln` ($\log_e$), `log10`, `log2`, `sqrt`, `cbrt` |
+| **Special** | `abs`, `sign`, `floor`, `ceil`, `round`, `sinc` |
+
+---
+
+## Numerical calculus algorithms
+
+### 1. Adaptive derivative computation
+Derivatives are computed using a 5-point central difference stencil with automatic step size $h$:
+$$f'(x) \approx \frac{-f(x + 2h) + 8f(x + h) - 8f(x - h) + f(x - 2h)}{12h}, \quad h = \sqrt[3]{\epsilon_{\text{mach}}} \cdot \max(|x|, 1.0)$$
+
+Second derivatives $f''(x)$ are evaluated using:
+$$f''(x) \approx \frac{-f(x + 2h) + 16f(x + h) - 30f(x) + 16f(x - h) - f(x - 2h)}{12h^2}$$
+
+### 2. Critical point detection (Extrema & roots)
+- **Roots ($f(x) = 0$)**: Sign-change brackets $[x_k, x_{k+1}]$ are identified across sampled points and
+  refined via **Brent's method** to tolerance $10^{-7}$.
+- **Local Extrema ($f'(x) = 0$)**: Local minima and maxima are located by detecting sign changes in $f'(x)$
+  and categorized via the sign of $f''(x)$ (positive $\implies$ minimum, negative $\implies$ maximum).
+- **Inflection Points ($f''(x) = 0$)**: Sign changes of $f''(x)$ indicate concavity transitions.
+
+### 3. Definite integration & area shading
+Definite integrals $\int_a^b f(x)\,dx$ are calculated using **Adaptive Simpson's rule**. In the UI, users
+can enable "Shade Integral Area", which generates a semi-transparent polygonal fill bounded between the curve
+and the x-axis.
+
+---
+
+## Advanced curve types
+
+In addition to standard explicit Cartesian functions $y = f(x)$, the engine supports:
+
+### 1. Parametric curves $(x(t), y(t))$
+Defined over a parameter range $t \in [t_{\min}, t_{\max}]$.
+- **Applications**: Lissajous figures ($x = \sin(at), y = \cos(bt)$), cycloids, Bezier trajectories.
+
+### 2. Polar plots $r(\theta)$
+Evaluated over an angular sweep $\theta \in [\theta_{\min}, \theta_{\max}]$:
+$$x(\theta) = r(\theta) \cos(\theta), \quad y(\theta) = r(\theta) \sin(\theta)$$
+- **Applications**: Rose curves ($r = \cos(k\theta)$), Archimedean spirals ($r = a\theta$), cardioids.
+
+---
+
+## Interactive parameter sliders (Dynamic reactive math)
+
+Expressions can define named parameters (e.g., $f(x) = a \cdot \sin(b \cdot x + c)$). When placed on the
+Infinite Canvas (see [infinite-canvas.md](infinite-canvas.md)) or saved in `.mobix`
+(see [mobix-schema-spec.md](mobix-schema-spec.md)), the plot can display floating slider widgets.
+Dragging a slider dynamically recalculates the vector path at 60–120 FPS without re-generating text annotations.

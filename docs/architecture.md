@@ -32,6 +32,12 @@ architecture.
 | [`search.md`](search.md) | document search, the handwriting index, the two recognition engines | you change search or recognition |
 | [`testing.md`](testing.md) | what the unit tests cover, and which rules the build enforces mechanically | you want to know what protects a change, or how to make a rule stick |
 | [`native-format-and-desktop.md`](native-format-and-desktop.md) | technical design for the native `.mobix` format, the `.xopp` bridge, and the desktop Compose Multiplatform architecture | you evaluate moving beyond `.xopp` or targeting desktop |
+| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, and auto-pagination slicing | you work on canvas scrolling, pagination boundaries or pageless modes |
+| [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container specification and dynamic entities (tables, plots, parametric shapes, circuits) | you change the native file format schema or dynamic element data models |
+| [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus (roots, extrema, derivatives, integrals), parametric/polar curves | you work on mathematical plotting, formula parsing or calculus features |
+| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking synchronization, point-level timestamps, inking karaoke, and interactive audio scrubbing | you work on synchronized audio playback or speech-to-stroke features |
+| [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters, and math/OCR plugins | you add extensibility hooks, scripting or third-party integrations |
+| [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, and cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, and [`releases/`](releases/) holds the per-version changelogs.
