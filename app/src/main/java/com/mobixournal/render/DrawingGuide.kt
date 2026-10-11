@@ -217,6 +217,30 @@ sealed interface DrawingGuide {
     }
 
     /**
+     * The **chemistry lattice**: a triangular mesh of nodes at 60° with a fixed bond length, used as
+     * a guide. Every drawn vertex is pulled onto the nearest node ([TriangularLattice.nearestNode]),
+     * so a sketched skeletal formula comes out with exact 60°/120° bond angles and equal bond
+     * lengths, and a ring drawn around a node's six neighbours is a regular hexagon (a benzene ring).
+     *
+     * Like [Ruling] it is an *invisible rule* rather than an instrument: there is nothing to hold, so
+     * the guide draws only a faint mesh of the bonds it will snap onto and no finger can grab it. Its
+     * spacing is its own (a bond length), independent of the page's background, so it works on any
+     * sheet — including a plain or PDF page, where the ruling guide has no lattice at all.
+     */
+    data class Chemistry(
+        override val x: Double,
+        override val y: Double,
+        /** Bond length of the lattice in pt; the anchor ([x], [y]) is itself a node. */
+        val spacingPt: Double = DEFAULT_BOND_PT,
+    ) : DrawingGuide {
+
+        override fun moved(dx: Double, dy: Double): Chemistry = copy(x = x + dx, y = y + dy)
+
+        override fun project(px: Double, py: Double): Pair<Double, Double> =
+            TriangularLattice.nearestNode(px, py, spacingPt, x, y)
+    }
+
+    /**
      * The page's **own ruling** used as a guide: every drawn vertex is pulled onto the lines the
      * background rules ([Snapping.Lattice]), so ink lands on the paper's grid instead of merely near
      * it.
@@ -253,6 +277,9 @@ sealed interface DrawingGuide {
         /** Radius of a freshly placed compass, in pt (~1.4 in). */
         const val DEFAULT_RADIUS_PT: Double = 100.0
 
+        /** Bond length of a freshly placed chemistry lattice, in pt (~0.55 in). */
+        const val DEFAULT_BOND_PT: Double = 40.0
+
         /** Smallest a guide can be dragged down to, so it never collapses to an unhittable point. */
         const val MIN_SIZE_PT: Double = 20.0
 
@@ -278,6 +305,7 @@ enum class GuideKind(val label: String) {
     COMPASS("Compass"),
     PROTRACTOR("Protractor"),
     RULING("Ruling"),
+    CHEMISTRY("Chemistry"),
     ;
 
     /**
@@ -299,5 +327,6 @@ enum class GuideKind(val label: String) {
         COMPASS -> DrawingGuide.Compass(cx, cy)
         PROTRACTOR -> DrawingGuide.Protractor(cx, cy)
         RULING -> DrawingGuide.Ruling(cx, cy, lattice)
+        CHEMISTRY -> DrawingGuide.Chemistry(cx, cy)
     }
 }

@@ -22,6 +22,8 @@ enum class ShapeKind {
     SWITCH_OPEN, SWITCH_CLOSED, TRANSFORMER, JUNCTION,
     // Technical dimensioning: a double-ended arrow with a gap for the measured value.
     DIMENSION,
+    // Chemistry: the bonds of a skeletal formula and an aromatic ring.
+    CHEM_BOND_SINGLE, CHEM_BOND_DOUBLE, CHEM_BOND_TRIPLE, CHEM_BENZENE,
 }
 
 /**
@@ -107,6 +109,10 @@ object ShapeBuilder {
         ShapeKind.TRANSFORMER -> CircuitShapes.transformer(startX, startY, endX, endY, widthPt).flatten()
         ShapeKind.JUNCTION -> CircuitShapes.junction(startX, startY, endX, endY, widthPt)
         ShapeKind.DIMENSION -> dimension(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.CHEM_BOND_SINGLE -> ChemShapes.bondSingle(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.CHEM_BOND_DOUBLE -> ChemShapes.bondDouble(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.CHEM_BOND_TRIPLE -> ChemShapes.bondTriple(startX, startY, endX, endY, widthPt).flatten()
+        ShapeKind.CHEM_BENZENE -> ChemShapes.benzeneRing(startX, startY, endX, endY, widthPt).flatten()
         // A spline is laid down over many taps, so its real geometry comes from [SplineBuilder]; the
         // two-point case this signature can express is just a straight line between the ends.
         ShapeKind.SPLINE -> line(startX, startY, endX, endY, widthPt)
@@ -134,6 +140,10 @@ object ShapeBuilder {
         ShapeKind.SWITCH_CLOSED -> CircuitShapes.switchClosed(startX, startY, endX, endY, widthPt)
         ShapeKind.TRANSFORMER -> CircuitShapes.transformer(startX, startY, endX, endY, widthPt)
         ShapeKind.DIMENSION -> dimension(startX, startY, endX, endY, widthPt)
+        ShapeKind.CHEM_BOND_SINGLE -> ChemShapes.bondSingle(startX, startY, endX, endY, widthPt)
+        ShapeKind.CHEM_BOND_DOUBLE -> ChemShapes.bondDouble(startX, startY, endX, endY, widthPt)
+        ShapeKind.CHEM_BOND_TRIPLE -> ChemShapes.bondTriple(startX, startY, endX, endY, widthPt)
+        ShapeKind.CHEM_BENZENE -> ChemShapes.benzeneRing(startX, startY, endX, endY, widthPt)
         else -> null
     }
 

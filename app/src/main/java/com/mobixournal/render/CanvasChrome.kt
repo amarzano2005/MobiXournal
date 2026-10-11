@@ -100,6 +100,15 @@ internal class CanvasChrome {
         style = Paint.Style.FILL
         color = GUIDE_COLOR
     }
+    /**
+     * The chemistry guide's bond mesh: a 1 px stroke at [GUIDE_MESH_ALPHA], faint enough to read as a
+     * guide laid over the ink rather than as a drawing of its own.
+     */
+    val guideMesh = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1f
+        color = GUIDE_COLOR.withAlpha(GUIDE_MESH_ALPHA)
+    }
     /** Protractor angle text labels. */
     val guideText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -225,6 +234,7 @@ internal class CanvasChrome {
         guideStroke.color = guide
         guideHandle.color = guide
         guideFill.color = guide.withAlpha(GUIDE_FILL_ALPHA)
+        guideMesh.color = guide.withAlpha(GUIDE_MESH_ALPHA)
         guideText.color = guide
         paletteHighlight.color = selection
     }
@@ -246,6 +256,9 @@ internal class CanvasChrome {
 
         /** Alpha of the wash filling the setsquare's body — enough to see, faint enough to draw over. */
         const val GUIDE_FILL_ALPHA = 0x22
+
+        /** Alpha of the chemistry guide's bond mesh — fainter still, so a dense mesh never shouts. */
+        const val GUIDE_MESH_ALPHA = 0x30
         const val PAGE_SELECT_FILL_ALPHA = 0x33
         /** Alpha of the wash inside a selection outline. */
         const val SELECTION_FILL_ALPHA = 0x14

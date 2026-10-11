@@ -81,7 +81,8 @@ class RailItemsTest {
             listOf(
                 "pen", "highlighter", "favorites", "eraser", "pan", "select",
                 "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
-                "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "guides",
+                "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic",
+                "chemistry", "guides",
             ),
             ids,
         )

@@ -220,4 +220,42 @@ class DrawingGuideTest {
         assertEquals(80.0, aimed.radius, eps)
         assertEquals(Math.PI / 2.0, aimed.angle, eps)
     }
+
+    // --- chemistry lattice ------------------------------------------------------------------------
+
+    @Test
+    fun `the chemistry guide pulls a point onto the nearest bond node`() {
+        val g = DrawingGuide.Chemistry(x = 0.0, y = 0.0, spacingPt = 40.0)
+        // Just off the origin node.
+        assertEquals(0.0 to 0.0, g.project(6.0, 4.0))
+        // Near (20, 34.64): half a bond right, one row up — the 60° neighbour.
+        val (nx, ny) = g.project(23.0, 33.0)
+        assertEquals(20.0, nx, 1e-6)
+        assertEquals(40.0 * kotlin.math.sqrt(3.0) / 2.0, ny, 1e-6)
+    }
+
+    @Test
+    fun `the chemistry guide has no reach limit, like the ruling snap`() {
+        val g = DrawingGuide.Chemistry(x = 0.0, y = 0.0, spacingPt = 100.0)
+        // A point most of a cell away still lands on the nearest node.
+        assertEquals(0.0 to 0.0, g.project(20.0, 20.0))
+    }
+
+    @Test
+    fun `moving the chemistry guide displaces its anchor and nothing else`() {
+        val g = DrawingGuide.Chemistry(x = 1.0, y = 2.0, spacingPt = 25.0)
+        val moved = g.moved(10.0, -5.0) as DrawingGuide.Chemistry
+        assertEquals(11.0, moved.x, eps)
+        assertEquals(-3.0, moved.y, eps)
+        assertEquals(25.0, moved.spacingPt, eps)
+    }
+
+    @Test
+    fun `placing the chemistry guide yields a lattice at the viewport point`() {
+        val g = GuideKind.CHEMISTRY.place(120.0, 340.0)
+        assertTrue(g is DrawingGuide.Chemistry)
+        assertEquals(120.0, g!!.x, eps)
+        assertEquals(340.0, g.y, eps)
+        assertEquals(DrawingGuide.DEFAULT_BOND_PT, (g as DrawingGuide.Chemistry).spacingPt, eps)
+    }
 }

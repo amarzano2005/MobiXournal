@@ -433,6 +433,20 @@ internal fun DrawingSurfaceView.drawGuide(canvas: Canvas) {
         // already on screen, and it has no instrument and no handle to hold. The feedback is the ink
         // arriving on the lines.
         is DrawingGuide.Ruling -> return
+        is DrawingGuide.Chemistry -> {
+            // The chemistry lattice has no paper to draw itself, so the guide shows the bonds it will
+            // snap ink onto as a faint mesh over the sheet. It is an invisible rule like the ruling
+            // snap — nothing to grab — so it draws and returns without a tip handle.
+            for (seg in TriangularLattice.mesh(
+                box.page.width, box.page.height, g.spacingPt, g.x, g.y,
+            )) {
+                canvas.drawLine(
+                    vx(seg[0]), vy(seg[1]), vx(seg[2]), vy(seg[3]),
+                    chrome.guideMesh,
+                )
+            }
+            return
+        }
     }
     val tip = guideDrag.tipOf(g)
     canvas.drawCircle(vx(tip.first), vy(tip.second), HANDLE_DRAW_PX, chrome.guideHandle)

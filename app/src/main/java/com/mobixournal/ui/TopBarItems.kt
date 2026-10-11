@@ -26,6 +26,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
     RailItem("circuit", "Passive circuits"),
     RailItem("circuit_active", "Active circuits"),
     RailItem("logic", "Logic gates"),
+    RailItem("chemistry", "Chemistry"),
     // STEM + popups
     RailItem("graph", "Function graph"),
     RailItem("guides", "Drawing guides"),
@@ -42,7 +43,7 @@ val TOP_BAR_ITEMS: List<RailItem> = listOf(
 val DEFAULT_TOP_BAR_ORDER: List<String> = listOf(
     "line", "rectangle", "square", "ellipse", "triangle", "rhombus",
     "trapezoid", "pentagon", "hexagon", "spline", "arrow", "axis",
-    "table", "circuit", "circuit_active", "logic", "graph", "guides",
+    "table", "circuit", "circuit_active", "logic", "chemistry", "graph", "guides",
 )
 
 /**

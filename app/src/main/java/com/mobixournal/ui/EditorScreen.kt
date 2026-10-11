@@ -89,6 +89,10 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.TRANSFORMER -> ShapeKind.TRANSFORMER
         EditorTool.JUNCTION -> ShapeKind.JUNCTION
         EditorTool.DIMENSION -> ShapeKind.DIMENSION
+        EditorTool.CHEM_BOND_SINGLE -> ShapeKind.CHEM_BOND_SINGLE
+        EditorTool.CHEM_BOND_DOUBLE -> ShapeKind.CHEM_BOND_DOUBLE
+        EditorTool.CHEM_BOND_TRIPLE -> ShapeKind.CHEM_BOND_TRIPLE
+        EditorTool.CHEM_BENZENE -> ShapeKind.CHEM_BENZENE
         else -> null
     }
     if (tool == EditorTool.ERASER || tool == EditorTool.ERASER_WHOLE) {
@@ -116,6 +120,8 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.BUFFER_GATE,
         EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED, EditorTool.TRANSFORMER,
         EditorTool.JUNCTION, EditorTool.DIMENSION,
+        EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE,
+        EditorTool.CHEM_BOND_TRIPLE, EditorTool.CHEM_BENZENE,
         -> this.tool = Tool.PEN
         else -> Unit // Hand / authoring tools keep the last drawing tool for when they're turned off
     }

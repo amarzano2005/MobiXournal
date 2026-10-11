@@ -148,6 +148,18 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             listOf(EditorTool.NOT_GATE, EditorTool.BUFFER_GATE),
         ),
     ),
+    ToolGroup(
+        "chemistry", "Chemistry",
+        listOf(
+            EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE,
+            EditorTool.CHEM_BOND_TRIPLE, EditorTool.CHEM_BENZENE,
+        ),
+        // Bonds in order, then the ring that joins them.
+        pickerLayout = listOf(
+            listOf(EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE),
+            listOf(EditorTool.CHEM_BOND_TRIPLE, EditorTool.CHEM_BENZENE),
+        ),
+    ),
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
     ToolGroup(
         "select", "Select",

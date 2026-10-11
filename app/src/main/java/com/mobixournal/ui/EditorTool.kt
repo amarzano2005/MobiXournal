@@ -46,6 +46,8 @@ enum class EditorTool {
     SWITCH_OPEN, SWITCH_CLOSED, TRANSFORMER, JUNCTION,
     // Technical dimensioning.
     DIMENSION,
+    // Chemistry: the bonds of a skeletal formula and an aromatic ring (see [ChemShapes]).
+    CHEM_BOND_SINGLE, CHEM_BOND_DOUBLE, CHEM_BOND_TRIPLE, CHEM_BENZENE,
 }
 
 /**
@@ -71,6 +73,8 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.BUFFER_GATE,
     EditorTool.SWITCH_OPEN, EditorTool.SWITCH_CLOSED, EditorTool.TRANSFORMER, EditorTool.JUNCTION,
     EditorTool.DIMENSION,
+    EditorTool.CHEM_BOND_SINGLE, EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE,
+    EditorTool.CHEM_BENZENE,
 )
 
 private data class ToolInfo(val tool: EditorTool, val label: String, val icon: ImageVector)
@@ -118,6 +122,10 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.TRANSFORMER, "Transformer", TransformerIcon),
     ToolInfo(EditorTool.JUNCTION, "Junction dot", JunctionDotIcon),
     ToolInfo(EditorTool.DIMENSION, "Dimension arrow", DimensionIcon),
+    ToolInfo(EditorTool.CHEM_BOND_SINGLE, "Single bond", BondSingleIcon),
+    ToolInfo(EditorTool.CHEM_BOND_DOUBLE, "Double bond", BondDoubleIcon),
+    ToolInfo(EditorTool.CHEM_BOND_TRIPLE, "Triple bond", BondTripleIcon),
+    ToolInfo(EditorTool.CHEM_BENZENE, "Benzene ring", BenzeneIcon),
     ToolInfo(EditorTool.SPLINE, "Spline", Icons.Filled.Gesture),
     ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Filled.PanTool),
     ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Filled.HighlightAlt),

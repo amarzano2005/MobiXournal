@@ -70,9 +70,10 @@ internal class GuideDrag(
      */
     fun begin(event: MotionEvent, pointerIndex: Int): Boolean {
         val g = pose ?: return false
-        // A ruling snap is a mode, not an instrument: there is nothing to hold, so a finger on the
-        // page keeps panning/drawing instead of grabbing an invisible anchor.
-        if (g is DrawingGuide.Ruling) return false
+        // A ruling snap — the page's own ruling, or the chemistry lattice — is a mode, not an
+        // instrument: there is nothing to hold, so a finger on the page keeps panning/drawing
+        // instead of grabbing an invisible anchor.
+        if (g is DrawingGuide.Ruling || g is DrawingGuide.Chemistry) return false
         val box = layout().boxes.getOrNull(page) ?: return false
         val px = box.toPtX(event.getX(pointerIndex), viewport.scrollX)
         val py = box.toPtY(event.getY(pointerIndex), viewport.scrollY)
@@ -133,8 +134,9 @@ internal class GuideDrag(
         is DrawingGuide.Setsquare -> g.corners()[1]
         is DrawingGuide.Compass -> (g.x + g.radius) to g.y
         is DrawingGuide.Protractor -> g.tip()
-        // No handle to hold: the ruling guide's anchor is only where it was asked for.
+        // No handle to hold: an invisible-rule guide's anchor is only where it was asked for.
         is DrawingGuide.Ruling -> g.x to g.y
+        is DrawingGuide.Chemistry -> g.x to g.y
     }
 
     /**
@@ -147,8 +149,9 @@ internal class GuideDrag(
             is DrawingGuide.Setsquare -> g.contains(px, py)
             is DrawingGuide.Compass -> hypot(px - g.x, py - g.y) <= hubReach
             is DrawingGuide.Protractor -> g.contains(px, py)
-            // Nothing to slide: [begin] never gets this far with a ruling guide.
+            // Nothing to slide: [begin] never gets this far with an invisible-rule guide.
             is DrawingGuide.Ruling -> false
+            is DrawingGuide.Chemistry -> false
         }
 
 }
