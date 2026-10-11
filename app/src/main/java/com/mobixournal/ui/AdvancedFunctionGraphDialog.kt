@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -134,7 +135,7 @@ fun AdvancedFunctionGraphDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.widthIn(max = 500.dp),
+        modifier = Modifier.widthIn(max = 840.dp),
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {
             DialogBodyContent(
@@ -197,53 +198,77 @@ private fun DialogBodyContent(
     xMin: Double?,
     xMax: Double?,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .heightIn(max = 420.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TabRow(selectedTabIndex = modeTab) {
-            Tab(selected = modeTab == 0, onClick = { onModeTabChange(0) }, text = { Text("Cartesian y=f(x)") })
-            Tab(selected = modeTab == 1, onClick = { onModeTabChange(1) }, text = { Text("Parametric {x, y}") })
-        }
+        // Left Column: Formula inputs & range
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            TabRow(selectedTabIndex = modeTab) {
+                Tab(selected = modeTab == 0, onClick = { onModeTabChange(0) }, text = { Text("Cartesian y=f(x)") })
+                Tab(selected = modeTab == 1, onClick = { onModeTabChange(1) }, text = { Text("Parametric {x, y}") })
+            }
 
-        if (modeTab == 0) {
-            CartesianCurveList(curves = curves)
-        } else {
-            ParametricInputs(
-                paramX = paramX,
-                paramY = paramY,
-                onXChange = onParamXChange,
-                onYChange = onParamYChange,
+            if (modeTab == 0) {
+                CartesianCurveList(curves = curves)
+            } else {
+                ParametricInputs(
+                    paramX = paramX,
+                    paramY = paramY,
+                    onXChange = onParamXChange,
+                    onYChange = onParamYChange,
+                )
+            }
+
+            RangeInputs(
+                isCartesian = modeTab == 0,
+                xMinText = xMinText,
+                onXMinChange = onXMinChange,
+                xMaxText = xMaxText,
+                onXMaxChange = onXMaxChange,
+                rangeOk = rangeOk,
             )
         }
 
-        RangeInputs(
-            isCartesian = modeTab == 0,
-            xMinText = xMinText,
-            onXMinChange = onXMinChange,
-            xMaxText = xMaxText,
-            onXMaxChange = onXMaxChange,
-            rangeOk = rangeOk,
+        // Vertical divider separating inputs from preview & options
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.outlineVariant),
         )
 
-        OptionsRow(
-            showCriticalPoints = showCriticalPoints,
-            onShowCriticalPointsChange = onShowCriticalPointsChange,
-            includeDerivative = includeDerivative,
-            onIncludeDerivativeChange = onIncludeDerivativeChange,
-            includeSummary = includeSummary,
-            onIncludeSummaryChange = onIncludeSummaryChange,
-        )
+        // Right Column: Plot preview & options
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (rangeOk && xMin != null && xMax != null) {
+                FunctionPlotPreviewBox(
+                    curves = activeCurves,
+                    xMin = xMin,
+                    xMax = xMax,
+                    showCriticalPoints = showCriticalPoints,
+                    includeDerivative = includeDerivative,
+                )
+            }
 
-        if (rangeOk && xMin != null && xMax != null) {
-            FunctionPlotPreviewBox(
-                curves = activeCurves,
-                xMin = xMin,
-                xMax = xMax,
+            OptionsRow(
                 showCriticalPoints = showCriticalPoints,
+                onShowCriticalPointsChange = onShowCriticalPointsChange,
                 includeDerivative = includeDerivative,
+                onIncludeDerivativeChange = onIncludeDerivativeChange,
+                includeSummary = includeSummary,
+                onIncludeSummaryChange = onIncludeSummaryChange,
             )
         }
     }
