@@ -551,21 +551,40 @@ fun DrawingSurfaceView.insertPlot(
     xMax: Double,
     samples: Int = FunctionPlot.DEFAULT_SAMPLES,
 ) {
+    val color = strokeColor()
+    val curve = PlotCurve(source = source, color = color, lineStyle = currentLineStyle)
+    insertMultiPlot(
+        curves = listOf(curve),
+        xMin = xMin,
+        xMax = xMax,
+        samples = samples,
+    )
+}
+
+/**
+ * Inserts one or more plotted functions onto the active page, along with optional critical points
+ * and analysis summary text table.
+ */
+fun DrawingSurfaceView.insertMultiPlot(
+    curves: List<PlotCurve>,
+    xMin: Double,
+    xMax: Double,
+    samples: Int = FunctionPlot.DEFAULT_SAMPLES,
+    showCriticalPoints: Boolean = false,
+    includeDerivative: Boolean = false,
+    includeSummary: Boolean = false,
+) {
     val index = visiblePageIndex()
     val page = doc.pages.getOrNull(index) ?: return
-    // A graph that fills most of the page width, with the classic 3:2 plotting box, centred on the
-    // point the user is actually looking at — the middle of the viewport, not the middle of the sheet —
-    // so turning the plotter on while zoomed into a corner lands the graph where the eye already is.
     val widthPt = page.width * 0.7
     val heightPt = widthPt * 0.6
     val (centreX, centreY) = viewportCentrePt(index)
-    // Then pulled back inside the sheet, so a plot asked for near an edge comes out whole rather than
-    // half off the page.
     val leftPt = (centreX - widthPt / 2).coerceIn(0.0, (page.width - widthPt).coerceAtLeast(0.0))
     val topPt = (centreY - heightPt / 2).coerceIn(0.0, (page.height - heightPt).coerceAtLeast(0.0))
-    val color = strokeColor()
-    val plot = FunctionPlot.plot(
-        source = source,
+    val defaultColor = strokeColor()
+
+    val result = MultiFunctionPlotter.plot(
+        curves = curves,
         xMin = xMin,
         xMax = xMax,
         leftPt = leftPt,
@@ -574,18 +593,27 @@ fun DrawingSurfaceView.insertPlot(
         heightPt = heightPt,
         strokeWidthPt = baseWidthPt.toDouble().coerceAtLeast(0.5),
         samples = samples,
+        showCriticalPoints = showCriticalPoints,
+        includeDerivative = includeDerivative,
+        includeSummary = includeSummary,
+        axisColor = defaultColor,
     )
-    if (plot.strokes.isEmpty()) return
+    if (result.pathGroups.isEmpty()) return
 
-    val curve = plot.strokes.map { points -> Stroke(tool, color, "round", points, true, lineStyle = currentLineStyle) }
-    val labels = plot.labels.map { (text, x, y) ->
-        TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, x, y, color, text)
+    val newStrokes = result.pathGroups.flatMap { group ->
+        group.strokes.map { pts -> Stroke(tool, group.color, "round", pts, true, lineStyle = group.lineStyle) }
     }
+    val newLabels = result.labels.map { (text, x, y) ->
+        TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, x, y, defaultColor, text)
+    }
+    val summaryElements = if (result.summaryText.isNotEmpty()) {
+        listOf(TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, leftPt, topPt + heightPt + 20.0, defaultColor, result.summaryText))
+    } else emptyList()
 
     val before = doc
     val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
     val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
-    layers[target] = Layer(layers[target].elements + curve + labels, layers[target].name)
+    layers[target] = Layer(layers[target].elements + newStrokes + newLabels + summaryElements, layers[target].name)
     val pages = doc.pages.toMutableList()
     pages[index] = page.copy(layers = layers)
     doc = doc.copy(pages = pages)

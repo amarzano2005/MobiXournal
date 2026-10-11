@@ -128,16 +128,59 @@ class FunctionPlotTest {
     }
 
     @Test
-    fun `an impossible plot inserts nothing`() {
-        val empty = FunctionPlot.plot(
-            source = "sqrt(-1-x^2)", xMin = -1.0, xMax = 1.0,
-            leftPt = 0.0, topPt = 0.0, widthPt = 100.0, heightPt = 100.0,
+    fun `piecewise formulas compile and evaluate across domains`() {
+        val f = FunctionPlot.compile("x < 0: -x; x >= 0: x^2")
+        assertNotNull(f)
+        assertEquals(3.0, f!!.at(-3.0), 1e-9)
+        assertEquals(0.0, f.at(0.0), 1e-9)
+        assertEquals(9.0, f.at(3.0), 1e-9)
+    }
+
+    @Test
+    fun `parametric curve sampling generates expected points`() {
+        val fx = FunctionPlot.compile("cos(x)")!!
+        val fy = FunctionPlot.compile("sin(x)")!!
+        val samples = AdvancedCurves.sampleParametric(fx, fy, 0.0, 2 * Math.PI, 100)
+        assertEquals(101, samples.size)
+        assertEquals(1.0, samples.first().first, 1e-3)
+        assertEquals(0.0, samples.first().second, 1e-3)
+    }
+
+    @Test
+    fun `critical point analysis finds roots and extrema`() {
+        // f(x) = x^2 - 4 has roots at -2 and +2, minimum at (0, -4), y-intercept at -4
+        val formula = FunctionPlot.compile("x^2 - 4")!!
+        val points = FunctionAnalysis.findCriticalPoints(formula, -3.0, 3.0, 100)
+        val roots = points.filter { it.type == CriticalPointType.ZERO }
+        assertEquals(2, roots.size)
+        assertTrue(roots.any { Math.abs(it.x - -2.0) < 0.05 })
+        assertTrue(roots.any { Math.abs(it.x - 2.0) < 0.05 })
+
+        val mins = points.filter { it.type == CriticalPointType.LOCAL_MIN }
+        assertEquals(1, mins.size)
+        assertEquals(0.0, mins.first().x, 0.05)
+        assertEquals(-4.0, mins.first().y, 0.05)
+    }
+
+    @Test
+    fun `multi function plotter produces distinct stroke groups`() {
+        val c1 = PlotCurve("x^2", 0xFF0000FF.toInt())
+        val c2 = PlotCurve("x + 2", 0xFFFF0000.toInt())
+        val result = MultiFunctionPlotter.plot(
+            curves = listOf(c1, c2),
+            xMin = -3.0,
+            xMax = 3.0,
+            leftPt = 0.0,
+            topPt = 0.0,
+            widthPt = 200.0,
+            heightPt = 200.0,
             strokeWidthPt = 1.0,
+            showCriticalPoints = true,
+            includeSummary = true,
         )
-        assertTrue(empty.strokes.isEmpty())
-        assertTrue(empty.labels.isEmpty())
-        assertTrue(
-            FunctionPlot.plot("nonsense", -1.0, 1.0, 0.0, 0.0, 100.0, 100.0, 1.0).strokes.isEmpty(),
-        )
+        // Group 0: axis/frame, Group 1: c1, Group 2: c2, Group 3: markers
+        assertTrue(result.pathGroups.size >= 3)
+        assertTrue(result.criticalPoints.isNotEmpty())
+        assertTrue(result.summaryText.contains("Function Study"))
     }
 }

@@ -90,13 +90,16 @@ object FunctionPlot {
      * Compile [source], or null when it isn't a valid formula. Case-insensitive; whitespace ignored.
      * Supports implicit multiplication, scientific notation, superscripts, and standard math aliases.
      */
-    fun compile(source: String): Formula? = try {
-        val normalized = normalizeSource(source)
-        val parser = Parser(normalized)
-        val f = parser.expression()
-        if (parser.rest().isNotEmpty()) null else f
-    } catch (_: IllegalArgumentException) {
-        null
+    fun compile(source: String): Formula? {
+        AdvancedCurves.compilePiecewise(source)?.let { return it }
+        return try {
+            val normalized = normalizeSource(source)
+            val parser = Parser(normalized)
+            val f = parser.expression()
+            if (parser.rest().isNotEmpty()) null else f
+        } catch (_: IllegalArgumentException) {
+            null
+        }
     }
 
     private fun normalizeSource(raw: String): String {

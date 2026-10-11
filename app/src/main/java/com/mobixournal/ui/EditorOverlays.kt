@@ -32,6 +32,7 @@ import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.finishSpline
 import com.mobixournal.render.insertPlot
+import com.mobixournal.render.insertMultiPlot
 import com.mobixournal.render.insertTable
 import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.undoLastSplineNode
@@ -144,10 +145,17 @@ fun BoxScope.EditorOverlays(
         )
     }
     if (ui.showGraphDialog) {
-        FunctionGraphDialog(
-            onConfirm = { source, xMin, xMax ->
+        AdvancedFunctionGraphDialog(
+            onConfirm = { curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary ->
                 ui.showGraphDialog = false
-                surface?.insertPlot(source, xMin, xMax)
+                surface?.insertMultiPlot(
+                    curves = curves,
+                    xMin = xMin,
+                    xMax = xMax,
+                    showCriticalPoints = showCriticalPoints,
+                    includeDerivative = includeDerivative,
+                    includeSummary = includeSummary,
+                )
             },
             onDismiss = { ui.showGraphDialog = false },
         )
