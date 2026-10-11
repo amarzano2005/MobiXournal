@@ -35,6 +35,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.window.DialogProperties
@@ -52,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.CriticalPoint
@@ -61,19 +64,18 @@ import com.mobixournal.render.MultiFunctionPlotter
 import com.mobixournal.render.PlotCurve
 
 private val PRESET_COLORS = listOf(
-    0xFF1976D2.toInt(), // Blue
-    0xFFD32F2F.toInt(), // Red
-    0xFF388E3C.toInt(), // Green
-    0xFF7B1FA2.toInt(), // Purple
-    0xFFF57C00.toInt(), // Orange
-    0xFF00796B.toInt(), // Teal
-    0xFF000000.toInt(), // Black
+    XOPP_BLUE,
+    XOPP_RED,
+    XOPP_GREEN,
+    XOPP_ORANGE,
+    XOPP_MAGENTA,
+    XOPP_BLACK,
 )
 
 /** State for a curve being edited in the dialog. */
 class CurveEditorState(
     source: String = "sin(x)",
-    color: Int = 0xFF1976D2.toInt(),
+    color: Int = PRESET_COLORS[0],
     lineStyle: LineStyle = LineStyle.PLAIN,
 ) {
     var source by mutableStateOf(source)
@@ -210,40 +212,22 @@ private fun DialogBodyContent(
             .heightIn(max = 370.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Left Column: Formula inputs & range
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            TabRow(selectedTabIndex = modeTab) {
-                Tab(selected = modeTab == 0, onClick = { onModeTabChange(0) }, text = { Text("Cartesian y=f(x)") })
-                Tab(selected = modeTab == 1, onClick = { onModeTabChange(1) }, text = { Text("Parametric {x, y}") })
-            }
+        DialogInputsColumn(
+            modifier = Modifier.weight(1f),
+            modeTab = modeTab,
+            onModeTabChange = onModeTabChange,
+            curves = curves,
+            paramX = paramX,
+            paramY = paramY,
+            onParamXChange = onParamXChange,
+            onParamYChange = onParamYChange,
+            xMinText = xMinText,
+            onXMinChange = onXMinChange,
+            xMaxText = xMaxText,
+            onXMaxChange = onXMaxChange,
+            rangeOk = rangeOk,
+        )
 
-            if (modeTab == 0) {
-                CartesianCurveList(curves = curves)
-            } else {
-                ParametricInputs(
-                    paramX = paramX,
-                    paramY = paramY,
-                    onXChange = onParamXChange,
-                    onYChange = onParamYChange,
-                )
-            }
-
-            RangeInputs(
-                isCartesian = modeTab == 0,
-                xMinText = xMinText,
-                onXMinChange = onXMinChange,
-                xMaxText = xMaxText,
-                onXMaxChange = onXMaxChange,
-                rangeOk = rangeOk,
-            )
-        }
-
-        // Vertical divider separating inputs from preview & options
         Box(
             modifier = Modifier
                 .width(1.dp)
@@ -251,32 +235,117 @@ private fun DialogBodyContent(
                 .background(MaterialTheme.colorScheme.outlineVariant),
         )
 
-        // Right Column: Plot preview & options
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            if (rangeOk && xMin != null && xMax != null) {
-                FunctionPlotPreviewBox(
-                    curves = activeCurves,
-                    xMin = xMin,
-                    xMax = xMax,
-                    showCriticalPoints = showCriticalPoints,
-                    includeDerivative = includeDerivative,
-                )
-            }
+        DialogPreviewColumn(
+            modifier = Modifier.weight(1f),
+            rangeOk = rangeOk,
+            xMin = xMin,
+            xMax = xMax,
+            activeCurves = activeCurves,
+            showCriticalPoints = showCriticalPoints,
+            onShowCriticalPointsChange = onShowCriticalPointsChange,
+            includeDerivative = includeDerivative,
+            onIncludeDerivativeChange = onIncludeDerivativeChange,
+            includeSummary = includeSummary,
+            onIncludeSummaryChange = onIncludeSummaryChange,
+        )
+    }
+}
 
-            OptionsRow(
-                showCriticalPoints = showCriticalPoints,
-                onShowCriticalPointsChange = onShowCriticalPointsChange,
-                includeDerivative = includeDerivative,
-                onIncludeDerivativeChange = onIncludeDerivativeChange,
-                includeSummary = includeSummary,
-                onIncludeSummaryChange = onIncludeSummaryChange,
+@Composable
+private fun DialogInputsColumn(
+    modifier: Modifier = Modifier,
+    modeTab: Int,
+    onModeTabChange: (Int) -> Unit,
+    curves: MutableList<CurveEditorState>,
+    paramX: String,
+    paramY: String,
+    onParamXChange: (String) -> Unit,
+    onParamYChange: (String) -> Unit,
+    xMinText: String,
+    onXMinChange: (String) -> Unit,
+    xMaxText: String,
+    onXMaxChange: (String) -> Unit,
+    rangeOk: Boolean,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        TabRow(
+            selectedTabIndex = modeTab,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ) {
+            Tab(
+                selected = modeTab == 0,
+                onClick = { onModeTabChange(0) },
+                text = { Text("Cartesian y=f(x)", style = MaterialTheme.typography.labelMedium) },
+            )
+            Tab(
+                selected = modeTab == 1,
+                onClick = { onModeTabChange(1) },
+                text = { Text("Parametric {x, y}", style = MaterialTheme.typography.labelMedium) },
             )
         }
+
+        if (modeTab == 0) {
+            CartesianCurveList(curves = curves)
+        } else {
+            ParametricInputs(
+                paramX = paramX,
+                paramY = paramY,
+                onXChange = onParamXChange,
+                onYChange = onParamYChange,
+            )
+        }
+
+        RangeInputs(
+            isCartesian = modeTab == 0,
+            xMinText = xMinText,
+            onXMinChange = onXMinChange,
+            xMaxText = xMaxText,
+            onXMaxChange = onXMaxChange,
+            rangeOk = rangeOk,
+        )
+    }
+}
+
+@Composable
+private fun DialogPreviewColumn(
+    modifier: Modifier = Modifier,
+    rangeOk: Boolean,
+    xMin: Double?,
+    xMax: Double?,
+    activeCurves: List<PlotCurve>,
+    showCriticalPoints: Boolean,
+    onShowCriticalPointsChange: (Boolean) -> Unit,
+    includeDerivative: Boolean,
+    onIncludeDerivativeChange: (Boolean) -> Unit,
+    includeSummary: Boolean,
+    onIncludeSummaryChange: (Boolean) -> Unit,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (rangeOk && xMin != null && xMax != null) {
+            FunctionPlotPreviewBox(
+                curves = activeCurves,
+                xMin = xMin,
+                xMax = xMax,
+                showCriticalPoints = showCriticalPoints,
+                includeDerivative = includeDerivative,
+            )
+        }
+
+        OptionsRow(
+            showCriticalPoints = showCriticalPoints,
+            onShowCriticalPointsChange = onShowCriticalPointsChange,
+            includeDerivative = includeDerivative,
+            onIncludeDerivativeChange = onIncludeDerivativeChange,
+            includeSummary = includeSummary,
+            onIncludeSummaryChange = onIncludeSummaryChange,
+        )
     }
 }
 
@@ -391,29 +460,47 @@ private fun CurveRow(
 @Composable
 private fun ColorCircle(color: Int, onSelect: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(Color(color))
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .clickable { expanded = !expanded },
-    )
-    if (expanded) {
-        Row(
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
             modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            PRESET_COLORS.forEach { c ->
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(c))
-                        .clickable { onSelect(c); expanded = false },
-                )
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(Color(color))
+                .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                .clickable { expanded = !expanded },
+        )
+        if (expanded) {
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 4.dp, bottom = 2.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        RoundedCornerShape(14.dp),
+                    )
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                PRESET_COLORS.forEach { c ->
+                    val isSelected = c == color
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(Color(c))
+                            .then(
+                                if (isSelected) {
+                                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                } else {
+                                    Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                                },
+                            )
+                            .clickable {
+                                onSelect(c)
+                                expanded = false
+                            },
+                    )
+                }
             }
         }
     }
@@ -477,7 +564,8 @@ private fun FunctionPlotPreviewBox(
     showCriticalPoints: Boolean,
     includeDerivative: Boolean,
 ) {
-    val plotResult = remember(curves, xMin, xMax, showCriticalPoints, includeDerivative) {
+    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val plotResult = remember(curves, xMin, xMax, showCriticalPoints, includeDerivative, axisColor) {
         MultiFunctionPlotter.plot(
             curves = curves,
             xMin = xMin,
@@ -491,6 +579,7 @@ private fun FunctionPlotPreviewBox(
             showCriticalPoints = showCriticalPoints,
             includeDerivative = includeDerivative,
             includeSummary = false,
+            axisColor = axisColor,
         )
     }
 
@@ -498,11 +587,11 @@ private fun FunctionPlotPreviewBox(
         modifier = Modifier
             .fillMaxWidth()
             .height(160.dp),
-        shape = RoundedCornerShape(8.dp),
-        tonalElevation = 1.dp,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Box(modifier = Modifier.padding(6.dp)) {
+        Box(modifier = Modifier.padding(8.dp)) {
             Canvas(modifier = Modifier.matchParentSize()) {
                 val scaleX = size.width / 380f
                 val scaleY = size.height / 180f
