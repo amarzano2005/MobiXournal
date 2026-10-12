@@ -162,48 +162,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "extract-the-shared-json-layer"
-title = "Extract the shared, dependency-free JSON layer out of the UI"
-description = "A .mobix document is JSON, and the repo already owns a hand-rolled JSON model and parser - but it is private to the settings screen: JsonNode (Obj/Arr/Str/Num/Bool/Null) and JsonParser live inside ui/AppSettingsBackup.kt and are used by its fromNode. Move both into their own file under format/json/ (for example format/json/Json.kt), keep them internal so the whole module can use them, and have ui/AppSettingsBackup.kt import them; no behaviour change, AppSettingsBackupTest must stay green. Update app/src/test/java/com/mobixournal/guards/SourceStructureTest.kt: the longFunctions entry ui/AppSettingsBackup.kt#parse becomes format/json/Json.kt#parse (the parser is still over 100 lines). Record where the JSON layer lives in docs/stack.md and docs/codebase.md."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 290
-created = 2026-10-12
-tags = ["mobix", "json"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-manifest-and-canvas-codec"
-title = "The manifest.json and canvas.json codecs"
-description = "The first half of the .mobix schema layer, on top of the shared JSON layer and the container envelope. Add format/mobix/MobixManifest.kt (formatVersion, minAppVersion, documentId, title, created, modified, canvasMode, pages[] or chunks[] with id/entry/modified/sha256, defaultPaper) and format/mobix/MobixCanvasFile.kt (mode, widthPt, heightPt, chunkSizePt, origin) as Kotlin types with encode/decode. Field names must match docs/mobix-schema-spec.md and docs/infinite-canvas.md exactly - those docs are the spec, and a drift test between them and the codecs belongs with this task. Unknown fields are preserved and re-emitted (the extraAttrs rule), a missing optional field takes the documented default, and a missing required field fails with a clear exception rather than defaulting. Verify with JVM tests: round trip, unknown-field preservation, defaults, refusal, and that pages[]/chunks[] exclusivity follows canvasMode."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 300
-created = 2026-10-12
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "mobix-page-layer-element-codec"
-title = "The page, layer and geometry element codec (stroke, text, image, texImage)"
-description = "The second half of the schema layer: format/mobix/MobixPage.kt holds a page (size, background, layer order) and format/mobix/MobixElement.kt the element envelope (type, id, bounds, preserved unknown fields) plus the four geometry-following elements of docs/mobix-schema-spec.md - stroke (tool, colour, lineStyle, lineWidth, points with x/y/width/pressure/tilt/azimuth/dtMs), text (Pango font description, size, colour, content), image and texImage (asset reference by content hash, never inline base64). Every element gets an id minted once and never re-minted by an edit, and a derived bounds recomputed from the geometry. Wire it to the existing model where the mapping is one-to-one (format/model/Stroke, Text, Image, TexImage plus the format/FontDescription codec) instead of duplicating the types. Verify with JVM round-trip tests that also assert a stroke keeps its per-point width and telemetry and a mixed page survives element for element."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 310
-created = 2026-10-12
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-living-entity-codec"
 title = "The living-entity codec (table, plot, parametric shape, circuit) and RawJsonElement"
 description = "The entities .xopp cannot express, per docs/mobix-schema-spec.md: TableElement (colWidths/rowHeights/cells with align/bold/fillColor, headerRow), PlotElement (curves with kind CARTESIAN/PARAMETRIC/POLAR and their own ranges, samples, parameters, showCriticalPoints, includeDerivative, shadeIntegral, summaryText as a cache only), ParametricShapeElement (vertices, style, showAngles/showSideLengths) and CircuitElement (symbol, value, position, rotation, pins with connectedTo). Plus RawJsonElement: an element type this build does not model, kept as verbatim JSON and re-emitted unchanged, the rule that makes a future formatVersion non-destructive. Add format/mobix/MobixLiving.kt (or one small file per family) with unit tests covering each family round trip, the RawJsonElement preservation, and that a plot keeps every field the math engine needs to re-evaluate it (docs/math-engine.md)."
