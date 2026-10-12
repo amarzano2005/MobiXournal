@@ -264,6 +264,10 @@ data class CircuitPin(
  * @param positionX The component's anchor X in page points.
  * @param positionY The component's anchor Y in page points.
  * @param rotation The component's rotation in degrees, clockwise.
+ * @param strokeColor The ink the component is drawn in, as an ARGB int — the user's own pen colour at
+ *   the time, which is why it is here rather than assumed: an export that guessed would turn a red
+ *   resistor black, and the drawing is what leaves this app for the desktop.
+ * @param strokeWidth The component's line width in points.
  * @param value The component's value as the user wrote it (`10 kΩ`, `V1`) — a string, because it is a
  *   label and not a quantity this build computes with.
  * @param pins The magnetic anchors, relative to the position and before the rotation.
@@ -275,8 +279,16 @@ data class CircuitElement(
     val positionX: Double,
     val positionY: Double,
     val rotation: Double = 0.0,
+    val strokeColor: Int = DEFAULT_INK,
+    val strokeWidth: Double = 1.0,
     val value: String? = null,
     val pins: List<CircuitPin> = emptyList(),
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
-) : Element
+) : Element {
+
+    companion object {
+        /** The ink a component is drawn in when nothing chose one: opaque black, like every other pen. */
+        const val DEFAULT_INK: Int = 0xFF000000.toInt()
+    }
+}

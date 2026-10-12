@@ -10,9 +10,12 @@ import com.mobixournal.format.model.ElementId
  * as a set of strokes.
  *
  * A component is written as **placement plus connectivity**, not as drawn geometry: the symbol's key,
- * where it sits, how far it is turned, the label the user typed, and its magnetic pins. The symbol's own
- * outline is the symbol library's business, so a component has **no `bounds`** — the file would only be
- * storing a copy of a drawing this build does not own, and a stale copy of it would be worse than none.
+ * where it sits, how far it is turned, the ink it is drawn in, the label the user typed, and its
+ * magnetic pins. The symbol's own outline is the symbol library's business, so a component has **no
+ * `bounds`** — the file would only be storing a copy of a drawing this build does not own, and a stale
+ * copy of it would be worse than none. Its **colour and width are here**, because they are the user's
+ * choice rather than the library's: the export to `.xopp` draws the symbol in them, and guessing would
+ * turn a red resistor black on the way to the desktop.
  *
  * Pin coordinates are relative to the position and **before** the rotation, which is what lets a
  * component turn without its wires coming adrift: the file states the anchor once, in the component's
@@ -42,6 +45,8 @@ internal object MobixCircuitCodec {
             position["y"] = JsonNode.of(circuit.positionY)
         }
         out["rotation"] = JsonNode.of(circuit.rotation)
+        out["strokeColor"] = MobixJson.colour(circuit.strokeColor)
+        out["strokeWidth"] = JsonNode.of(circuit.strokeWidth)
         // A component with no pins is a plain symbol, so an empty list is written as nothing at all:
         // "this symbol has no anchors" and "this symbol's anchors are an empty set" are one fact.
         if (circuit.pins.isNotEmpty()) out[PINS] = JsonNode.arr(circuit.pins.map(::encodePin))
@@ -64,6 +69,8 @@ internal object MobixCircuitCodec {
             positionX = position.getDoubleOrNull("x") ?: return null,
             positionY = position.getDoubleOrNull("y") ?: return null,
             rotation = node.getDouble("rotation", 0.0),
+            strokeColor = MobixJson.colourOrNull(node, "strokeColor") ?: CircuitElement.DEFAULT_INK,
+            strokeWidth = node.getDouble("strokeWidth", 1.0),
             value = node.getStrOrNull("value"),
             pins = pins,
             extraAttrs = MobixJson.readAttrs(node),

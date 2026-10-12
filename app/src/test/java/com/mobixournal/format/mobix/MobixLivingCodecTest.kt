@@ -134,6 +134,8 @@ class MobixLivingCodecTest {
         positionX = 300.0,
         positionY = 150.0,
         rotation = 90.0,
+        strokeColor = 0xFFD84315.toInt(),
+        strokeWidth = 1.6,
         value = "10 kΩ",
         pins = listOf(
             CircuitPin("p1", relX = -24.0, relY = 0.0, connectedTo = "net_node_A"),
@@ -313,6 +315,12 @@ class MobixLivingCodecTest {
         val position = written.getObj("position")!!
         assertEquals(300.0, position.getDouble("x", 0.0), 1e-9)
         assertEquals(90.0, written.getDouble("rotation", 0.0), 1e-9)
+        assertEquals(
+            "the ink the user drew it in travels with it",
+            "#d84315ff",
+            written.getStrOrNull("strokeColor"),
+        )
+        assertEquals(1.6, written.getDouble("strokeWidth", 0.0), 1e-9)
 
         val pins = written.getArr("pins")!!.list.map { it as JsonNode.Obj }
         assertEquals(-24.0, pins[0].getDouble("relX", 0.0), 1e-9)
@@ -331,6 +339,7 @@ class MobixLivingCodecTest {
         val plain = CircuitElement("CAPACITOR", 10.0, 20.0, id = "ckt_1")
 
         assertFalse(encode(plain).has("pins"))
+        assertEquals("and a component that chose no ink is drawn in the default", 0xFF000000.toInt(), plain.strokeColor)
         assertEquals(plain, roundTrip(plain))
     }
 

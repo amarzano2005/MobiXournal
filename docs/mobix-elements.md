@@ -238,8 +238,9 @@ picked where its handles are not.
 
 ```json
 {
-  "type": "circuit", "id": "ckt_res_01", "symbol": "RESISTOR_IEEE",
+  "type": "circuit", "id": "ckt_res_01", "symbol": "RESISTOR",
   "value": "10 kΩ", "position": { "x": 300.0, "y": 150.0 }, "rotation": 90.0,
+  "strokeColor": "#d84315ff", "strokeWidth": 1.6,
   "pins": [
     { "id": "p1", "relX": -24.0, "relY": 0.0, "connectedTo": "net_node_A" },
     { "id": "p2", "relX": 24.0, "relY": 0.0, "connectedTo": "net_node_B" }
@@ -252,3 +253,9 @@ net a pin is snapped to and is omitted for a floating pin. A circuit with no `pi
 the shape library's own drawings need no connectivity to be edited as a shape. A component has **no
 `bounds` at all**: its outline is the symbol library's, and a copy of a drawing this format does not
 own would be a copy that can go stale.
+
+`strokeColor`/`strokeWidth` **are** here, because they are the user's choice and not the library's: the
+drawing is what leaves this app for a desktop, so an export that assumed an ink would turn a red
+resistor black. `symbol` names a key in that library (and, like a shape's `shape`, the key set is open):
+a build that does not know a symbol cannot draw it, and says so rather than inventing ink for it
+(`docs/mobix-format.md`, the lossy-field rule).
