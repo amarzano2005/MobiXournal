@@ -25,13 +25,18 @@ Point Sequence: P0(3200ms) ──► P1(3210ms) ──► P2(3225ms) ... ──�
 
 ---
 
-## Bundled compressed audio (`assets/audio/`)
+## Bundled compressed audio (`assets/`)
 
 Rather than relying on vulnerable loose sidecars in user folders:
-- Recordings are encoded using **Opus** (or AAC/M4A) at $32\text{--}64\text{ kbps}$ mono speech profiles.
+- Recordings are encoded using **Opus** at $32\text{--}64\text{ kbps}$ mono speech profiles. Opus is
+  the *only* bundled codec, and the entry name carries it
+  (`assets/aud_<sha256>.opus`, [mobix-schema-spec.md](mobix-schema-spec.md)): one codec means one
+  decoder on Android and on desktop, so a document recorded on the tablet plays on the laptop without
+  a codec negotiation nobody can debug. (`AAC`/`M4A` were considered and dropped for that reason.)
 - An hour of audio takes $\approx 15\text{ MB}$ (compared to $> 300\text{ MB}$ uncompressed WAV).
-- Stored directly inside `document.mobix/assets/aud_<sha256>.opus`. The audio is inextricably bound
-  to the document and cannot be detached when sharing or syncing.
+- Stored directly inside `document.mobix/assets/`, named by content hash so the same recording
+  referenced twice is stored once. The audio is inextricably bound to the document and cannot be
+  detached when sharing or syncing.
 
 ---
 

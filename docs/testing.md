@@ -11,7 +11,12 @@ than restating it. The `format/` tests exercise the `.xopp` round-trip: the colo
 element type, XML escaping, model reserialization, a gzip round-trip, the PDF-background on-disk
 shape, the fixture-driven `FormatDriftTest` asserting schema coverage, and
 `XmlEqualityRoundTripTest`, which checks that the XML we emit still matches the desktop-written
-source byte-for-byte once normalized. The `render/` tests cover the pure geometry — page layout,
+source byte-for-byte once normalized. `format/mobix/` covers the native container the format roadmap
+is built on ([mobix-format.md](mobix-format.md)): `MobixContainerTest` pins the stored typed mimetype,
+byte-exact round trips, the survival of an entry this build does not model across an open-and-save
+rewrite, a real ZIP-package `.xopp` being rejected as the wrong type, and the writer's refusals —
+the container rules of [mobix-schema-spec.md](mobix-schema-spec.md), asserted before there is a
+schema layer on top of them. The `render/` tests cover the pure geometry — page layout,
 gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/redo history — and
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.

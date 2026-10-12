@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-container-envelope"
+title = "The .mobix container envelope (ZIP + stored typed mimetype)"
+description = "Implemented. format/mobix/MobixFormat.kt is the one home for the fixed entry names and the page-%04d / chunk_<cx>_<cy> / asset naming scheme; format/mobix/MobixContainer.kt is the ZIP envelope. It enforces the four container rules of docs/mobix-schema-spec.md: the mimetype entry is written first and STORED uncompressed, the declared mimetype (never the file name) distinguishes a .mobix from a ZIP-package .xopp, manifest.json is required in both directions, and an entry this build does not model survives an open-and-save rewrite byte for byte. Verified by app/src/test/java/com/mobixournal/format/mobix/MobixContainerTest.kt (12 tests). Documented in docs/mobix-schema-spec.md and docs/codebase.md. The schema layer sits on top of it next."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix"]
+
+[[task]]
 id = "reliable-drawing-guide-activation-and-categorized-submenu-with-glyphs"
 title = "Reliable drawing guide activation and categorized submenu with glyphs"
 description = "Fix drawing guide selection state synchronization race and applySettings bypass, reorganize popup into Off, Instruments, and Lattices with dedicated outline vector glyphs."

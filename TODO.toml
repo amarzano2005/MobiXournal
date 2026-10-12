@@ -146,3 +146,199 @@ created = 2026-10-11
 tags = []
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "step-1-native-mobix-format"
+title = "Step 1 - the native .mobix format (data foundation)"
+description = "The roadmap first pillar (docs/future-roadmap.md, docs/mobix-format.md, docs/mobix-schema-spec.md): a native ZIP-of-parts document with living entities (PlotElement, TableElement, ParametricShapeElement, CircuitElement), full stylus telemetry (tilt/azimuth/dtMs), paged and streamed I/O, hashed binary assets, and a lossless bidirectional .xopp bridge. EPIC: never implement it in one pass. Picking it up means investigating and adding scope/task children (the ones already recorded are the first batch), and it stays active until the last child ships."
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "high"
+order = 270
+created = 2026-10-12
+tags = ["mobix", "v2", "roadmap"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "extract-the-shared-json-layer"
+title = "Extract the shared, dependency-free JSON layer out of the UI"
+description = "A .mobix document is JSON, and the repo already owns a hand-rolled JSON model and parser - but it is private to the settings screen: JsonNode (Obj/Arr/Str/Num/Bool/Null) and JsonParser live inside ui/AppSettingsBackup.kt and are used by its fromNode. Move both into their own file under format/json/ (for example format/json/Json.kt), keep them internal so the whole module can use them, and have ui/AppSettingsBackup.kt import them; no behaviour change, AppSettingsBackupTest must stay green. Update app/src/test/java/com/mobixournal/guards/SourceStructureTest.kt: the longFunctions entry ui/AppSettingsBackup.kt#parse becomes format/json/Json.kt#parse (the parser is still over 100 lines). Record where the JSON layer lives in docs/stack.md and docs/codebase.md."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 290
+created = 2026-10-12
+tags = ["mobix", "json"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-manifest-and-canvas-codec"
+title = "The manifest.json and canvas.json codecs"
+description = "The first half of the .mobix schema layer, on top of the shared JSON layer and the container envelope. Add format/mobix/MobixManifest.kt (formatVersion, minAppVersion, documentId, title, created, modified, canvasMode, pages[] or chunks[] with id/entry/modified/sha256, defaultPaper) and format/mobix/MobixCanvasFile.kt (mode, widthPt, heightPt, chunkSizePt, origin) as Kotlin types with encode/decode. Field names must match docs/mobix-schema-spec.md and docs/infinite-canvas.md exactly - those docs are the spec, and a drift test between them and the codecs belongs with this task. Unknown fields are preserved and re-emitted (the extraAttrs rule), a missing optional field takes the documented default, and a missing required field fails with a clear exception rather than defaulting. Verify with JVM tests: round trip, unknown-field preservation, defaults, refusal, and that pages[]/chunks[] exclusivity follows canvasMode."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 300
+created = 2026-10-12
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-page-layer-element-codec"
+title = "The page, layer and geometry element codec (stroke, text, image, texImage)"
+description = "The second half of the schema layer: format/mobix/MobixPage.kt holds a page (size, background, layer order) and format/mobix/MobixElement.kt the element envelope (type, id, bounds, preserved unknown fields) plus the four geometry-following elements of docs/mobix-schema-spec.md - stroke (tool, colour, lineStyle, lineWidth, points with x/y/width/pressure/tilt/azimuth/dtMs), text (Pango font description, size, colour, content), image and texImage (asset reference by content hash, never inline base64). Every element gets an id minted once and never re-minted by an edit, and a derived bounds recomputed from the geometry. Wire it to the existing model where the mapping is one-to-one (format/model/Stroke, Text, Image, TexImage plus the format/FontDescription codec) instead of duplicating the types. Verify with JVM round-trip tests that also assert a stroke keeps its per-point width and telemetry and a mixed page survives element for element."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 310
+created = 2026-10-12
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-living-entity-codec"
+title = "The living-entity codec (table, plot, parametric shape, circuit) and RawJsonElement"
+description = "The entities .xopp cannot express, per docs/mobix-schema-spec.md: TableElement (colWidths/rowHeights/cells with align/bold/fillColor, headerRow), PlotElement (curves with kind CARTESIAN/PARAMETRIC/POLAR and their own ranges, samples, parameters, showCriticalPoints, includeDerivative, shadeIntegral, summaryText as a cache only), ParametricShapeElement (vertices, style, showAngles/showSideLengths) and CircuitElement (symbol, value, position, rotation, pins with connectedTo). Plus RawJsonElement: an element type this build does not model, kept as verbatim JSON and re-emitted unchanged, the rule that makes a future formatVersion non-destructive. Add format/mobix/MobixLiving.kt (or one small file per family) with unit tests covering each family round trip, the RawJsonElement preservation, and that a plot keeps every field the math engine needs to re-evaluate it (docs/math-engine.md)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 320
+created = 2026-10-12
+tags = ["mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "xopp-to-mobix-ingestion"
+title = "Lossless .xopp to .mobix ingestion"
+description = "The read half of the bridge in docs/mobix-format.md: turn a parsed .xopp Document (format/model via format/Xopp.kt) into a .mobix document written through MobixContainer - pages, layers with their names and visibility, backgrounds (solid/ruled/graph/dotted/isometric and their rule parameters), strokes with their width and fn/ts audio links, texts, images and texImages as assets named by content hash, and a manifest with a fresh documentId plus per-page sha256/modified. Everything unmodelled must survive in the preserved-fields channel, the rule the .xopp path already enforces (see UnknownMarkupRoundTripTest). Verify with JVM tests over the existing fixtures: page/layer/element counts survive, a .xopp -> .mobix -> .xopp round trip holds the same elements, and an unknown element still rides along. Document the mapping in docs/mobix-format.md and the coverage in docs/testing.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 330
+created = 2026-10-12
+tags = ["mobix", "bridge"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-to-xopp-synthesis-export"
+title = "Synthesis export from .mobix back to .xopp"
+description = "The write half of the bridge: flatten a .mobix document into a valid .xopp that desktop Xournal++ opens and prints like any other file. PlotElement compiles into stroke paths plus text labels, TableElement into border strokes plus text, ParametricShapeElement and CircuitElement into their strokes and labels, and a Stroke is written with its nominal lineWidth while tilt/azimuth/dtMs are dropped (they have no .xopp home). Reuse format/XoppWriter.kt and format/Xopp.kt rather than writing a parallel emitter, and keep the .xopp model intact so the other direction is unchanged. Verify with JVM tests: a document of each living family exports, re-parses with Xopp.parseXml, and holds the expected strokes/texts with the expected geometry, plus an XmlEqualityRoundTripTest-style normalisation check. Document the lossy fields in docs/mobix-format.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 340
+created = 2026-10-12
+tags = ["mobix", "bridge"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-bridge-metadata-block"
+title = "The .xopp bridge metadata block and its verification rule"
+description = "Carry living-element semantics through a .xopp export so it can be re-imported, per docs/mobix-format.md. Write a mobix:meta block holding the living elements plus, for each, the SHA-256 of the strokes it was synthesized into. Two hazards the implementation must handle: an XML comment cannot contain a double hyphen, so a formula, a label or a JSON string containing one is escaped on write and unescaped on read; and a round trip through desktop Xournal++ may drop the comment entirely. The block is therefore a claim to be verified and never truth: on import it is honoured only for elements whose referenced strokes are still present, byte-identical and unmodified, and everything else is discarded so the flattened geometry is read as ordinary ink. Verify with JVM tests: a double hyphen round-trips, edited strokes reject the metadata, intact strokes revive it, and a .xopp with no block imports unchanged."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 350
+created = 2026-10-12
+tags = ["mobix", "bridge"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-open-save-path"
+title = "Open, sniff and save .mobix documents (and register the type)"
+description = "Let the app open and write .mobix files. FileKind sniffing only reaches the ZIP conclusion, so the discriminating step is the mimetype entry (MobixContainer.mimetypeOf): add the dispatch in io/DocumentIo.read - a ZIP whose mimetype is application/vnd.mobixournal+zip opens as .mobix, anything else stays the ZIP-package .xopp path - and the symmetric branch in encode/save, reusing io/UriStaging.kt and io/ScratchDir.kt exactly as the .xopp path does. Register the type in app/src/main/AndroidManifest.xml (extension and MIME intent filters beside the .xopp ones) and add the suffix and type constants to io/SaveTarget.kt. Add MOBIX to format/SaveFormat.kt and keep it sticky per document, so an opened .xopp is still saved as .xopp and a .mobix as .mobix. Verify with JVM tests for the dispatch and on the emulator for the runtime path (docs/tools.md has the harness; the debug package is com.mobixournal.v2)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 360
+created = 2026-10-12
+tags = ["mobix", "io"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "new-document-format-choice"
+title = "The new-document format setting and the first-launch choice"
+description = "The policy decided for v2 (docs/mobix-format.md, section Which format a document is written in): a document keeps its own format, and the format a NEW document is born in is the user choice - asked once on first launch, changeable in Settings, with .mobix as the recommended default. Implement it as an AppSettings field under Settings - App & data, respecting the storage and migration rules of ui/AppSettings.kt, plus a step in the onboarding flow (ui/OnboardingDialog.kt and friends) that shows both formats, marks .mobix recommended, and says what each means for desktop interchange. Saving a new untitled document uses that setting; Save As still switches an existing document between formats. Verify on the emulator: the step appears once and never again, the setting survives a restart, and a new document saves in the chosen format. Update ui/SettingsSearch.kt keywords and the README Settings section."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 370
+created = 2026-10-12
+tags = ["mobix", "settings"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "mobix-page-virtualization-reader"
+title = "Page virtualization: read .mobix pages on demand instead of whole"
+description = "The performance reason the format exists (docs/mobix-format.md, engine optimizations): reading a 200-page notebook must not parse pages 1-199. MobixContainer.open reads every entry into memory today, which is right for the manifest and for tests and wrong for a real document. Add a reader that walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or chunk) on demand into an LRU window of the current page plus or minus two, evicting the rest. Keep MobixContainer as the envelope primitive and put the paging policy in its own file (for example format/mobix/MobixPagedReader.kt) with an injectable cache budget so it is testable without a device. Verify with JVM tests over a synthetic 200-page archive: opening touches only the manifest and the first pages, navigating to page 200 does not inflate the earlier ones, and an evicted page is re-read rather than corrupted."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 380
+created = 2026-10-12
+tags = ["mobix", "perf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "mobix-incremental-save"
+title = "Incremental saves: repack only the pages that changed"
+description = "A .mobix save must not recompress the whole document: only entries whose bytes changed are rewritten, while unmodified pages, background PDFs and assets are copied through. Implement it as a repack of the archive (ZIP has no in-place edit) that streams every untouched entry from the source into the destination with the same compression method and writes only the dirty entries from memory, plus the mimetype first and STORED as always. The manifest sha256/modified fields decide dirtiness, so use them. Verify with JVM tests: after editing one page of a multi-page document the untouched entries come out byte-identical, the mimetype is still first and stored, and unknown-entry preservation still holds. Measure and report the bytes written for an N-page document with one dirty page, so the claim is a measurement rather than an assumption."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 390
+created = 2026-10-12
+tags = ["mobix", "perf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "decide-sync-conflict-merge"
+title = "Decide how the .mobix conflict-free merge is actually invoked"
+description = "docs/sync-and-storage.md promises conflict-free syncing via page-level and element-level merges and deliberately states what is still undecided: which sync clients conflict naming to recognise (Syncthing .sync-conflict-*, Nextcloud conflicted copy, both together), where the merge runs when on Android a document arrives as a SAF content:// URI and there is no filesystem watcher to hear a sibling appear (on open, before a save, or both), whether the losing side is archived as a sibling file, and what the user is shown when a merge adopts another device page. Investigate the SAF and staging path (io/DocumentIo.kt, io/UriStaging.kt) and the per-page bookkeeping the manifest already carries, then add the concrete task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 400
+created = 2026-10-12
+tags = ["mobix", "sync"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "xournalpp-lua-mobix-plugin"
+title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
+description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 410
+created = 2026-10-12
+tags = ["mobix", "desktop"]
+rebuild = false
+emulator_debug = false

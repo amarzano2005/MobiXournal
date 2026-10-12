@@ -69,6 +69,45 @@ CHUNK_SIZE_PT = 1024.0 pt (~14.2 inches at 72 DPI)
                         │   [Viewport]
 ```
 
+### Chunk files on disk
+
+Each occupied chunk is one JSON entry in the `.mobix` container (the envelope is
+[mobix-schema-spec.md](mobix-schema-spec.md)'s; this is its chunk half). The name carries the signed
+coordinates, because a 2D board goes negative and `-1` must not collide with `1`:
+
+```text
+chunks/chunk_<cx>_<cy>.json      # cx, cy signed decimal integers, no padding, no '+' sign
+                                 # e.g. chunk_0_0.json, chunk_-3_2.json, chunk_2_-1.json
+```
+
+The same positive/negative split decides the file *and* the index: `manifest.json`'s `chunks[]`
+lists the entries in the document's own order with the ids/hashes a merge uses
+([sync-and-storage.md](sync-and-storage.md)), so nothing is derived by scanning the archive.
+
+### `canvas.json`
+
+One small envelope per document, written alongside `manifest.json`, fixing the mode every chunk is
+interpreted in:
+
+```json
+{
+  "mode": "INFINITE_VERTICAL",
+  "widthPt": 595.28,
+  "heightPt": 841.89,
+  "chunkSizePt": 1024.0,
+  "origin": { "pageNo": 1, "offsetPt": 0.0 }
+}
+```
+
+- `mode` is one of `PAGINATED`, `INFINITE_VERTICAL`, `INFINITE_HORIZONTAL`, `INFINITE_2D`. Only
+  `PAGINATED` uses `pages/`; the other three use `chunks/`, and a file that carries both is invalid.
+- `widthPt`/`heightPt` are the **locked** dimension in the two strip modes (ignored in `INFINITE_2D`)
+  and the page size in `PAGINATED`.
+- `chunkSizePt` is written explicitly rather than assumed, so a future change to the default cannot
+  silently re-interpret an existing document's chunk grid.
+- `origin` records where document coordinates `(0, 0)` sit on the *printed* sheet — the anchor the
+  auto-slicer below uses to decide where page 1 of an export begins.
+
 ### Spatial query and culling
 1. **Viewport intersection**: At each frame, the active viewport bounds $[x_{\min}, y_{\min}, x_{\max}, y_{\max}]$
    are converted to the integer range of visible chunk coordinates:

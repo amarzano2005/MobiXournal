@@ -56,6 +56,11 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 | **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Planned Spec** |
 | **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Planned Spec** |
 
+The statuses above are per **spoke**, not per feature: they say whether a doc describes shipped
+behaviour or a specification. Step 1 is the one with code behind it so far — the `.mobix` container
+envelope (`format/mobix/`, see [mobix-schema-spec.md](mobix-schema-spec.md)) landed while the rest of
+the format is still spec. Work items live in `TODO.toml`.
+
 ### Advanced domain engine specifications
 
 | Spoke | What it owns | Read when | Status |

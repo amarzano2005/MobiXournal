@@ -84,6 +84,9 @@ app/
       XoppZip.kt             # ZIP-package open/save (PDF embedded); see the mimetype caveat
       SaveFormat.kt          # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
       FileKind.kt            # content sniffing for open: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
+      mobix/                 # the native .mobix format (roadmap Step 1) — the container envelope so far
+        MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
+        MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
     io/                      # storage access that isn't format work
       UriStaging.kt          # stage document bytes to/from a content:// URI (slow remote shares)
       ScratchDir.kt          # unique-per-call file names (staging and both stores), so overlapping writes can't collide
@@ -92,7 +95,6 @@ app/
       SaveTarget.kt          # the .xopp suffix and the application/x-xopp type we write, and the names to suggest for Save and PDF export
       PdfStore.kt            # one background-PDF file per open document; never rewritten, content-cache index, byte-budget eviction
       ImageStore.kt          # one never-rewritten copy per pixmap background reference; same liveness sweep and byte budget
-      ImageStore.kt          # never-rewritten copy of every pixmap background picture; same sweep and byte budget
       TextImport.kt          # text file -> generated background PDF, cached by content hash
       PdfReference.kt        # how a .xopp names its background PDF: relative <-> absolute paths and SAF document ids
       DocumentIo.kt          # document I/O policy: staging + PDF stores + read/encode/merge
@@ -361,4 +363,7 @@ launcher mask crops it. No upstream logo is used, so the icon belongs to this ap
 to Xournal++ stays in the About page and README.
 
 The Kotlin package, the namespace and **`applicationId` are all `com.mobixournal`** — the install
-identity of this unofficial app, kept distinct from upstream and from any other build.
+identity of this unofficial app, kept distinct from upstream and from any other build. (The one
+exception is the v2 development channel: the `debug` build type adds `.v2` so a test build installs
+beside the owner's daily app instead of replacing it — see
+[the v2 development channel](tools.md#the-v2-development-channel--the-test-build-never-replaces-the-daily-app).)

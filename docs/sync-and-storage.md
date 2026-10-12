@@ -58,6 +58,22 @@ When a sync conflict file is detected (e.g. `notes.sync-conflict.mobix` alongsid
 4. **Clean repack**: The resolved document is repacked into `notes.mobix`, and the conflict marker file
    is safely archived or removed.
 
+### Where the merge runs (and what it is still missing)
+
+The app owns no filesystem watcher, and on Android it cannot: documents arrive as SAF `content://`
+URIs, so "a conflict file appeared next to yours" is not an event anyone can subscribe to. The merge
+is therefore **invoked, not triggered** — it runs when the user opens a document whose siblings the
+grant actually exposes, and again before a save repacks the archive, and the result is a normal save
+of the document the user opened (never a silent second file). The fields the comparison needs are
+`pages[]` in `manifest.json` ([mobix-schema-spec.md](mobix-schema-spec.md)): per-page `sha256` and
+`modified`, plus the element `id`s the same-page CRDT pass keys on.
+
+**Open, and deliberately not guessed at here:** which sync clients' conflict naming is recognised
+(Syncthing's `.sync-conflict-*`, Nextcloud's `(conflicted copy …)`, and both combined), whether the
+loser side is archived as a sibling file or only left in place, and what the user is shown when a
+merge adopts another device's page. Recorded as a scope item in `TODO.toml` rather than decided in
+prose; nothing in this file presumes a choice that has not been made.
+
 ---
 
 ## File system atomic staging

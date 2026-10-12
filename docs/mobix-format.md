@@ -4,6 +4,10 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
+**Where this file's content lives:** the container layout, `manifest.json` and the element schema are
+owned by [mobix-schema-spec.md](mobix-schema-spec.md) — this file owns *why* the format exists, the
+`.xopp` bridge, and the app-level policy around it. Don't re-draw the container tree here.
+
 ## Motivation: why evolve beyond `.xopp`
 
 MobiXournal began as a strict companion to Xournal++ on Linux, storing everything in `.xopp`
@@ -34,92 +38,58 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 | **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \text{barrel roll}, \Delta t_{\text{ms}})$ |
 | **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps |
 | **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache |
-| **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with UUID content deduplication |
+| **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication |
 | **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps |
 | **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries |
 
----
-
-## The `.mobix` format specification
-
-### Container layout
-
-`.mobix` is an unencrypted, deflate-compressed ZIP container (`application/vnd.mobixournal+zip`):
-
-```text
-document.mobix (ZIP container)
-├── mimetype                     # Stored uncompressed: "application/vnd.mobixournal+zip"
-├── manifest.json                # Version, UUID, timestamps, page count, document settings
-├── canvas.json                  # Spatial geometry mode & dimensions (see infinite-canvas.md)
-├── pages/
-│   ├── page-0001.json           # Per-page layers, elements, and paper rulings
-│   ├── page-0002.json
-│   └── ...
-├── assets/                      # Binary assets referenced by hash / UUID
-│   ├── img-a1b2c3d4.webp        # Embedded images (PNG, JPEG, WebP)
-│   └── aud-e5f6g7h8.opus        # Audio sidecar recordings (Opus/WAV)
-├── background/                  # Document-level or shared background PDF
-│   └── background.pdf
-└── xopp-bridge/                 # Optional synchronization metadata
-    └── metadata.json
-```
-
-### Advantages of the container design
+Its three structural advantages, all of which follow from the container being a ZIP of small parts
+rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec.md)):
 
 - **Streaming & fast startup**: The app reads `manifest.json` and loads only visible pages
   (`page-0001.json`). Navigating to page 200 does not parse pages 1–199.
 - **Deduplication of binary assets**: If an image is pasted across multiple pages, it is stored once
-  in `assets/` and referenced by UUID.
+  in `assets/` and referenced by hash.
 - **Atomic saves**: Changes to page 3 only require repacking `page-0003.json` inside the archive,
   saving battery and flash write cycles.
 
 ---
 
-## Rich domain model (living entities)
+## Where `.mobix` sits in the app
 
-In `.mobix` (formal schema documented in [mobix-schema-spec.md](mobix-schema-spec.md)), the `Element`
-hierarchy treats high-level constructs as first-class citizens:
+### Which format a document is written in
 
-```text
-Element
-├── Stroke (with optional Tilt, Azimuth, DeltaTime per point)
-├── TextElement
-├── ImageElement
-├── TexImageElement
-├── PlotElement (parametric formula, bounds, samples, critical points, styles)
-├── TableElement (rows, cols, cell contents, alignments, borders)
-└── ParametricShapeElement (circle, rect, spline, circuit symbol, with editable control handles)
-```
+`.mobix` is a *save format*, not a replacement for `.xopp`; the two are interchangeable and the user
+decides, once, what new work is made of. The policy is sticky per document, which is what keeps the
+desktop round trip safe:
 
-### High-fidelity stylus stroke
-```json
-{
-  "type": "stroke",
-  "tool": "pen",
-  "color": "#FF1A237E",
-  "lineStyle": "solid",
-  "points": [
-    { "x": 104.2, "y": 210.5, "width": 1.4, "pressure": 0.62, "tilt": 12.5, "azimuth": 45.0, "dtMs": 0 },
-    { "x": 105.8, "y": 212.1, "width": 1.5, "pressure": 0.68, "tilt": 12.8, "azimuth": 46.2, "dtMs": 8 }
-  ]
-}
-```
+1. **A document remembers its own format.** An opened `.xopp` is saved back as `.xopp` — same gzip
+   XML, same desktop interoperability — unless the user asks otherwise. This is the current
+   `SaveFormat` behaviour ([data-path.md](data-path.md)) extended with a third value, and it is why
+   the bridge below has to be lossless in *both* directions: a `.xopp` that went through a phone is
+   still a `.xopp`.
+2. **New documents are born in the default format**, which the user picks **on first launch** (the
+   onboarding flow, [chrome.md](chrome.md)) and can change at any time under Settings → App & data.
+   The default offered first — and the recommended one — is **`.mobix`**, because living elements,
+   telemetry and page streaming only exist there.
+3. **"Save As" switches the format in either direction**, and that switch is the documented way to
+   convert: a `.xopp` opened from a colleague's desktop can become the user's own `.mobix`, and a
+   `.mobix` can be flattened out to `.xopp` to hand back to Xournal++.
 
-### Living mathematical plot (`PlotElement`)
-```json
-{
-  "type": "plot",
-  "curves": [
-    { "formula": "sin(x) * cos(x/2)", "color": "#FFD32F2F", "lineStyle": "solid" }
-  ],
-  "bounds": { "xMin": -6.28, "xMax": 6.28, "leftPt": 100.0, "topPt": 150.0, "widthPt": 300.0, "heightPt": 180.0 },
-  "showCriticalPoints": true,
-  "includeDerivative": false,
-  "summaryText": "Roots: x = {-3.14, 0.0, 3.14}..."
-}
-```
-When selected in the editor, a `PlotElement` presents a **"Edit Formula"** button in its action bar,
-reopening the math dialog with all parameters intact.
+A **first-launch choice, not a silent default**, is the point: the format is the boundary of what the
+app can do ([AGENTS.md](../AGENTS.md)), so which side of the boundary a document lives on is the
+user's call, made once with the trade-off visible rather than discovered when a file reaches a laptop.
+
+### Opening `.mobix`
+
+`.mobix` is the app's own type: it is registered as a document handler (extension and MIME, in the
+manifest alongside the `.xopp`/PDF/image filters) so a tap in a file manager opens it here rather than
+nowhere. Because a `.mobix` and a ZIP-package `.xopp` are both ZIP archives, the classification is the
+`mimetype` entry's content, not the leading bytes — see container rule 2 in
+[mobix-schema-spec.md](mobix-schema-spec.md).
+
+Conversion is **never automatic on open**: opening a `.xopp` does not write a `.mobix` next to it, and
+opening a `.mobix` does not touch the `.xopp` it may have come from. A file the user did not ask to
+create does not appear on their disk (and in their sync client's history).
 
 ---
 
@@ -136,27 +106,63 @@ bridge:
 ```
 
 1. **Import `.xopp` → `.mobix`**:
-   - Standard strokes, texts, images, and backgrounds are ingested directly into the domain model.
-   - If the `.xopp` contains MobiXournal metadata tags (see below), living elements are restored.
+   - Every `.xopp` construct maps to its element in [mobix-schema-spec.md](mobix-schema-spec.md):
+     strokes (with their `ts`/`fn` audio links), texts, images, `texImage`s and backgrounds are
+     ingested one-to-one; pages, layers and their names/visibility survive as pages and layers.
+   - Anything the model does not understand — an unknown element, an unknown attribute, an unknown
+     markup block — is **preserved verbatim** (the `RawElement`/`extraAttrs` rule the `.xopp` path
+     already enforces, [xopp-format.md](xopp-format.md)), so an import is lossless even for markup
+     from a newer Xournal++.
+   - If the `.xopp` carries MobiXournal bridge metadata (below), the living elements it describes are
+     revived instead of being re-derived from the flattened strokes.
 2. **Export `.mobix` → `.xopp` (Solution A: Zero-friction in-app export)**:
    - Available directly from MobiXournal's overflow menu / Save As dialog on both Android and Desktop.
    - `PlotElement` is compiled by `MultiFunctionPlotter` into standard `<stroke>` paths and `<text>` labels.
    - `TableElement` is compiled into border strokes and text elements.
-   - Strokes with tilt/azimuth are written as regular strokes preserving their computed width.
-   - **Lossless metadata tag**: The `.xopp` writer injects an application metadata comment or custom XML
-     block:
-     ```xml
-     <!-- mobix:meta { "version": 1, "elements": [ ... ] } -->
-     ```
-     Desktop Xournal++ ignores XML comments, preserving normal viewing and editing on Linux. When reopened
-     in MobiXournal, if the strokes were not altered, the living elements are revived.
+   - `ParametricShapeElement` and `CircuitElement` are compiled into strokes (and their text, for a
+     labelled component); a `Stroke`'s tilt/azimuth survive as its **computed** per-point width, and
+     `dtMs`/`tilt`/`azimuth` themselves are not representable — see the lossy-field rule below.
+   - **Lossless metadata tag**: The `.xopp` writer injects an application metadata block carrying the
+     living elements so the export can be *re-imported* without the semantics being lost.
+   - **The synthesized `.xopp` is a real document, not a rendering**: it opens, prints and edits in
+     desktop Xournal++ like any other file, because every element is emitted as ordinary strokes and
+     text — the metadata is additive.
 
-### Opening `.mobix` directly in desktop Xournal++ (Solution C: Lua Plugin)
+### The bridge metadata block, and its two hazards
+
+The living elements are carried in a metadata block, not in the drawn geometry:
+
+```xml
+<!-- mobix:meta {"version": 1, "doc": "f47ac10b-…", "elements": [ … ]} -->
+```
+
+Two things about that line are traps, and the implementation has to handle both:
+
+- **XML comments cannot contain `--`.** A comment is `<!-- … -->` with no `--` inside, so a metadata
+  block holding a formula, a Unicode label or a JSON string with a double hyphen would produce a
+  document Xournal++ refuses to parse. The encoding therefore escapes `--` (and a trailing `-`)
+  before it goes into the comment, and the reader unescapes on the way back — the block is a *payload*,
+  not something to be read as-is.
+- **A round trip through the desktop may drop it.** Xournal++ ignores XML comments and does not
+  promise to write them back: save the file there and the metadata is gone, or stale. So the block is
+  treated as a **claim to be verified, never as truth**: each living element records the SHA-256 of
+  the strokes it was synthesized into. On re-import, the metadata is honoured only for the elements
+  whose referenced strokes are still present, byte-identical and unmodified; anything else is
+  discarded and the flattened geometry is read as ordinary ink — the drawing the user actually sees
+  is never reinterpreted behind their back.
+
+That is what "lossless" means for this bridge, and it is deliberately narrower than "bit-identical":
+geometry is always preserved exactly (it is compiled into real elements), and semantics are preserved
+as long as nothing downstream edited them. A file that has been edited in Xournal++ opens correctly —
+as a drawing, which is what it now is.
+
+### Opening `.mobix` directly in desktop Xournal++ (Solution C: Lua plugin)
 
 While desktop Xournal++ (C++/GTK3) does not natively know the `.mobix` file type, Xournal++ provides a
 **Lua plugin API** (`~/.config/xournalpp/plugins/`).
 
-MobiXournal will provide an official companion plugin (`xournalpp-mobix-plugin`):
+MobiXournal ships an official companion plugin (`xournalpp-mobix-plugin`), **as a published artifact,
+not as this app's code**:
 
 ```text
 ~/.config/xournalpp/plugins/mobix-importer/
@@ -166,10 +172,15 @@ MobiXournal will provide an official companion plugin (`xournalpp-mobix-plugin`)
 
 - **User workflow**: In desktop Xournal++, the user clicks **Plugin → Import MobiXournal document…**
   and selects the `.mobix` file.
-- **Under the hood**: The Lua script unzips the archive into a temporary cache, translates `manifest.json`
-  and `pages/*.json` into standard Xournal++ document elements using the Lua document API
-  (or compiles to an internal `.xopp` and calls `app.openFile`), opening the document directly inside
-  desktop Xournal++ without requiring manual pre-conversion.
+- **Under the hood**: The Lua script unzips the archive into a temporary cache, translates
+  `manifest.json` and `pages/*.json` into standard Xournal++ document elements using the Lua document
+  API — or, where that API cannot express a construct, **synthesizes an equivalent `.xopp` and calls
+  `app.openFile`**, which is the fallback that makes the plugin work regardless of how complete the
+  in-app Lua bindings are.
+- **Not part of this repo's build, and not a dependency of the app.** It is a separate deliverable
+  that lives with the plugin ecosystem; the app never requires it, and the `.xopp` export above is
+  the mechanism guaranteed to work today. Its limits are the desktop API's, not the format's, so it
+  is deliberately allowed to lag the app.
 
 ---
 
@@ -182,9 +193,13 @@ Migrating to the `.mobix` format directly enables four major performance optimiz
      active sliding window (e.g. current page $\pm 2$ adjacent pages).
    - Pages outside the viewport are evicted from RAM and re-read from the ZIP container in $< 5\text{ ms}$
      when scrolled into view.
+   - This is a property of the container's part-per-page layout; the same reader serves the
+     infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)**:
    - During auto-save or explicit save, the app only re-compresses modified page entries (`page-N.json`)
-     into the ZIP archive. Unmodified pages, heavy background PDFs, and image assets are left untouched.
+     into the ZIP archive. Unmodified pages, heavy background PDFs, and image assets are left untouched —
+     which is also why an unmodelled entry has to survive a rewrite (container rule 4,
+     [mobix-schema-spec.md](mobix-schema-spec.md)).
    - Saves complete in milliseconds without UI freezes or battery drain.
 3. **Zero-Allocation Inking Loop (No GC stutter)**:
    - High-rate stylus events (120 Hz–240 Hz on modern tablets and stylus digitizers) can trigger frequent

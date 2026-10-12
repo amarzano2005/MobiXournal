@@ -72,6 +72,18 @@ build it (and don't defer it speculatively either). Example: stylus **tilt / ori
 home in the format, so tilt-driven width is out, not "someday." When in doubt, check whether the
 result survives a save→reopen in desktop Xournal++; if it can't, it doesn't belong.
 
+**The one recorded exception: the v2 `.mobix` line.** `.xopp` cannot represent living elements
+(re-editable plots, tables, parametric shapes), stylus telemetry or a paged, streamable document, so
+the roadmap adds a second on-disk format of the app's own (`docs/mobix-format.md`). That is a
+deliberate deviation from the rule above, recorded here as the rule requires — and it does not
+dissolve the rule: **`xopp` stays the interchange format and a `.xopp` opened is still saved as
+`.xopp`**, the boundary is now "the two formats we can round-trip", and a feature that can round-trip
+through *neither* is still out. Tilt is the test case: `.mobix` now stores tilt/azimuth as telemetry
+(replay, diagnostics, a future pen engine), but the drawn width still follows desktop Xournal++'s
+pressure filter, so **tilt-driven width stays out** until a written decision moves it. A document's
+format is chosen by the user, once — see *Which
+format a document is written in* in `docs/mobix-format.md`.
+
 ## Architecture — the index is `docs/architecture.md`
 
 `docs/architecture.md` is the **index**, not the content: it lists one spoke per topic, and each

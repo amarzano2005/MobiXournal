@@ -86,3 +86,14 @@ Expressions can define named parameters (e.g., $f(x) = a \cdot \sin(b \cdot x + 
 Infinite Canvas (see [infinite-canvas.md](infinite-canvas.md)) or saved in `.mobix`
 (see [mobix-schema-spec.md](mobix-schema-spec.md)), the plot can display floating slider widgets.
 Dragging a slider dynamically recalculates the vector path at 60–120 FPS without re-generating text annotations.
+
+### What a plot keeps on disk
+
+Everything the engine needs to reproduce a plot is persisted with it, so a formula is never
+re-entered after a save: the curve `kind` (Cartesian / parametric / polar) with its own range, the
+`samples` count, the named `parameters` the sliders move, the display flags
+(`showCriticalPoints`, `includeDerivative`) and the integral bounds when the area is shaded. The
+engine's *results* (roots, extrema, inflections) are written as `summaryText` — a rendering cache,
+not the model: recomputed whenever a curve, a range or a parameter changes, and ignored by a reader
+that would rather compute. The field-by-field schema is the `PlotElement` in
+[mobix-schema-spec.md](mobix-schema-spec.md); what the engine promises about it is this file.
