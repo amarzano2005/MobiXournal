@@ -46,6 +46,7 @@ class AppSettingsBackupTest {
             momentumCurve = MomentumCurve.LINEAR,
             panSensitivity = 1.5f,
             toolbarPosition = ToolbarPosition.RIGHT,
+            newDocumentFormat = NewDocumentFormat.XOPP,
             penColors = listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0xFFFF0000.toInt()),
             penFavorites = listOf(0xFF000000.toInt(), 0xFF00FF00.toInt(), 0xFF0000FF.toInt()),
             highlighterFavorites = listOf(0xFFFFFF00.toInt(), 0xFFFF00FF.toInt(), 0xFF00FFFF.toInt()),

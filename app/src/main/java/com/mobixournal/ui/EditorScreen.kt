@@ -375,10 +375,13 @@ fun EditorScreen(
                 onDismiss = {
                     onSettingsChange(settings.copy(hasSeenOnboarding = true))
                 },
-                // The handedness step writes the rail's edge straight through, so the last page of
-                // the tour can be answered by watching the toolbar move behind the dialog.
+                // The handedness step writes the rail's edge straight through, so that page of the
+                // tour can be answered by watching the toolbar move behind the dialog — and the last
+                // step writes the new-document format, which nothing on screen can show either way.
                 toolbarPosition = settings.toolbarPosition,
                 onToolbarPosition = { onSettingsChange(settings.copy(toolbarPosition = it)) },
+                documentFormat = settings.newDocumentFormat,
+                onDocumentFormat = { onSettingsChange(settings.copy(newDocumentFormat = it)) },
             )
         }
     }

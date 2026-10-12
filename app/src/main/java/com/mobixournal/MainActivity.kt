@@ -285,7 +285,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Settings live above the theme so the Appearance choice re-colours the whole app.
             var settings by remember {
-                mutableStateOf(initialSettings.also { applyStorageLimits(it); applyDefaultPageSize(it) })
+                mutableStateOf(initialSettings.also(::applySettingsToLayers))
             }
             XoppTheme(darkTheme = settings.themeMode.isDark(), dynamicColor = settings.dynamicColor) {
                 EditorScreen(
@@ -332,8 +332,7 @@ class MainActivity : ComponentActivity() {
                         }
                         settings = it
                         store.save(it)
-                        applyStorageLimits(it)
-                        applyDefaultPageSize(it)
+                        applySettingsToLayers(it)
                     },
                     audio = audioUiState(),
                     // Page bookmarks are kept per document, keyed by the tab's identity (see

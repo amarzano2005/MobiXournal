@@ -99,6 +99,46 @@ internal fun MainActivity.applyDefaultPageSize(settings: AppSettings) {
     setDefaultPageSize(settings.defaultPageWidthPt, settings.defaultPageHeightPt)
 }
 
+/**
+ * The format a **brand-new** document is born in — Settings → App & data' choice, `.mobix` until the
+ * user says otherwise.
+ *
+ * It is process state rather than a field on the activity because the one place it is read
+ * ([blankTab]) is a plain function with no settings in hand, exactly like the default page size
+ * ([setDefaultPageSize]): a blank document is created from a tab-strip tap, from closing the last tab,
+ * and from a restored session, and none of them knows about a Compose-held settings value.
+ *
+ * Only a *new* document consults it. A document that was opened carries its own format in its tab
+ * ([OpenTab.format]), which is what keeps a `.xopp` a `.xopp` — so this is never a mode, and Save As
+ * still converts either way.
+ */
+internal var newDocumentFormat: SaveFormat = SaveFormat.MOBIX
+
+/**
+ * Push the **new-document format** down into [blankTab]. Called on load and on every settings change,
+ * like [applyDefaultPageSize] — the choice is made in the onboarding tour and in Settings, and both
+ * have to reach the next blank document without a restart.
+ */
+internal fun MainActivity.applyNewDocumentFormat(settings: AppSettings) {
+    newDocumentFormat = settings.newDocumentFormat.format
+}
+
+/**
+ * Push every settings value the **non-Compose layers** hold: the storage budgets, the default page
+ * size, and the format new documents are born in.
+ *
+ * They travel together because they are pushed at the same two moments — the settings that come off
+ * disk at startup, and every later change made in Settings or in the onboarding tour — and because
+ * missing one is invisible until the feature it drives misbehaves: a forgotten page size shows up as
+ * an A4 sheet, a forgotten format as a document saved in the wrong one. One call site means adding a
+ * fourth is one line, in one place.
+ */
+internal fun MainActivity.applySettingsToLayers(settings: AppSettings) {
+    applyStorageLimits(settings)
+    applyDefaultPageSize(settings)
+    applyNewDocumentFormat(settings)
+}
+
 /** Put a staged local copy of the document onto the canvas ([DocumentIo] decided what it is). */
 internal fun MainActivity.loadDocument(staged: File, source: Uri) {
     when (val loaded = io.read(staged, displayName(source), source)) {

@@ -71,11 +71,16 @@ enum class SettingsArea(
         "Toolbar layout, theme and page counter, momentum and panning.",
         listOf(SettingsSection.TOOLBAR, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
     ),
-    /** The app itself: how much it may store, how its settings move, what it is. */
+    /** The app itself: what it writes, how much it may store, how its settings move, what it is. */
     APP(
         "App & data",
-        "Storage limits, settings backup, and version information.",
-        listOf(SettingsSection.STORAGE, SettingsSection.BACKUP, SettingsSection.ABOUT),
+        "The format of new documents, storage limits, settings backup, and version information.",
+        listOf(
+            SettingsSection.DOCUMENTS,
+            SettingsSection.STORAGE,
+            SettingsSection.BACKUP,
+            SettingsSection.ABOUT,
+        ),
     ),
 }
 
@@ -145,6 +150,16 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Theme, wallpaper colours, and page counter position.",
         "appearance interface theme dark light system dynamic color colour " +
             "material you wallpaper page counter badge position",
+    ),
+    /**
+     * Documents: the format a new document is written in — the standing answer to the question the
+     * onboarding tour asks once.
+     */
+    DOCUMENTS(
+        "Documents",
+        "The format a new document is written in.",
+        "document format default format default new document mobix xopp xournal++ desktop " +
+            "interchange file type extension save as living graph table flattened portable",
     ),
     /** Storage: text import limit and PDF cache budget. */
     STORAGE(
@@ -380,6 +395,7 @@ private fun SectionBody(
         SettingsSection.SHORTCUTS -> ShortcutsSection(settings, onChange)
         SettingsSection.NAVIGATION -> NavigationSection(settings, onChange)
         SettingsSection.APPEARANCE -> AppearanceSection(settings, onChange)
+        SettingsSection.DOCUMENTS -> DocumentsSection(settings, onChange)
         SettingsSection.STORAGE -> StorageSection(settings, onChange)
         SettingsSection.BACKUP -> BackupSection(settings, onChange)
         SettingsSection.ABOUT -> AboutSection()

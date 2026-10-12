@@ -228,8 +228,17 @@ internal fun MainActivity.newTab(p: EditorPane = pane) {
     p.persist()
 }
 
+/**
+ * A fresh blank document in the format **new documents are born in** — the choice made on first
+ * launch and in Settings → App & data ([newDocumentFormat], pushed down by
+ * [applyNewDocumentFormat]).
+ *
+ * It is set on the tab rather than left to the pane's default because the tab's format *is* the sticky
+ * one ([OpenTab.format], restored with the tab): a new document started as `.mobix` stays one, and one
+ * started as `.xopp` is what plain Save offers to write.
+ */
 internal fun blankTab() =
-    OpenTab(TabStore.newId(), MainActivity.UNTITLED, blankDocument())
+    OpenTab(TabStore.newId(), MainActivity.UNTITLED, blankDocument(), format = newDocumentFormat)
 
 /**
  * Bring back the tabs [p] was last closed with, or start it on a single blank one. Called once

@@ -64,6 +64,7 @@ object AppSettingsBackup {
         b.append("  \"momentumCurve\": \"").append(settings.momentumCurve.name).append("\",\n")
         b.append("  \"panSensitivity\": ").append(settings.panSensitivity).append(",\n")
         b.append("  \"toolbarPosition\": \"").append(settings.toolbarPosition.name).append("\",\n")
+        b.append("  \"newDocumentFormat\": \"").append(settings.newDocumentFormat.name).append("\",\n")
         b.append("  \"penColors\": [")
             .append(settings.penColors.joinToString(", "))
             .append("],\n")
@@ -277,6 +278,7 @@ object AppSettingsBackup {
             momentumCurve = readEnum("momentumCurve", MomentumCurve.values(), fallback.momentumCurve),
             panSensitivity = root.getFloat("panSensitivity", fallback.panSensitivity),
             toolbarPosition = readEnum("toolbarPosition", ToolbarPosition.values(), fallback.toolbarPosition),
+            newDocumentFormat = readEnum("newDocumentFormat", NewDocumentFormat.values(), fallback.newDocumentFormat),
             penColors = root.getIntList("penColors") ?: fallback.penColors,
             penFavorites = root.getIntList("penFavorites") ?: fallback.penFavorites,
             highlighterFavorites = root.getIntList("highlighterFavorites") ?: fallback.highlighterFavorites,

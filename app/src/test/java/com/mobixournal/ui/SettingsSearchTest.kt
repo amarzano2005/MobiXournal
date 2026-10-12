@@ -38,6 +38,9 @@ class SettingsSearchTest {
         assertTrue(SettingsSection.SHORTCUTS in settingsSearchResults("expresskey"))
         assertTrue(SettingsSection.TOOLBAR in settingsSearchResults("left-handed"))
         assertTrue(SettingsSection.FIGURES in settingsSearchResults("trapezoid"))
+        // The format of a new document is asked about by its own name (the app's) and the desktop's.
+        assertTrue(SettingsSection.DOCUMENTS in settingsSearchResults("mobix"))
+        assertTrue(SettingsSection.DOCUMENTS in settingsSearchResults("default format"))
     }
 
     @Test

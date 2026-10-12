@@ -138,6 +138,12 @@ data class AppSettings(
     /** Default page height in points for new documents. */
     val defaultPageHeightPt: Double = DEFAULT_PAGE_HEIGHT_PT,
     /**
+     * The format a **new** document is written in ([NewDocumentFormat]). Asked once at first launch
+     * and changeable under Settings → App & data; `.mobix` is the recommended default, because the
+     * living entities the app authors have no home in the `.xopp` half.
+     */
+    val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
+    /**
      * When false, fingers only pan/zoom — never draw (palm-safe for stylus users). Off by default
      * on a first launch, so a hand resting on the glass never inks a page written on with a stylus.
      */
@@ -550,6 +556,7 @@ class SettingsStore(context: Context) {
         return AppSettings(
             defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
             defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
+            newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
@@ -690,6 +697,7 @@ class SettingsStore(context: Context) {
         val e = prefs.edit()
             .putFloat(KEY_DEFAULT_PAGE_WIDTH, s.defaultPageWidthPt.toFloat())
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
+            .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
             .putString(KEY_PEN_ERASER_TOGGLE, s.penEraserToggleKey)
             .putString(KEY_HAND_TOGGLE, s.handToggleKey)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)
@@ -813,6 +821,7 @@ class SettingsStore(context: Context) {
         const val KEY_MOMENTUM_CURVE = "momentum_curve"
         const val KEY_PAN_SENSITIVITY = "pan_sensitivity"
         const val KEY_TOOLBAR_POSITION = "toolbar_position"
+        const val KEY_NEW_DOCUMENT_FORMAT = "new_document_format"
         const val KEY_PEN_COLORS = "pen_colors"
         const val KEY_PEN_FAVORITES = "pen_favorites"
         const val KEY_HIGHLIGHTER_FAVORITES = "highlighter_favorites"
