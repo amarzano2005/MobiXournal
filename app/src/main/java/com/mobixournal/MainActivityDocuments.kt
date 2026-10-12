@@ -323,7 +323,12 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     // document froze the app silently and then showed the note only for the final write. Both steps
     // now run on the worker: tapping Save raises "Saving …" immediately and it stays up until the
     // bytes have actually landed.
-    val document = view.toDocument()
+    // A `.mobix` names its pages and elements, so the ids have to be the *model's* own before the bytes
+    // are written (see [DocumentIo.encode]): minting them inside the writer leaves the open document
+    // unidentified, and the next save hands out a fresh set — which a merge or a sync client reads as
+    // the whole page replaced. Adopting here, on the UI thread and before the snapshot, is what keeps
+    // model and file in step; every save after the first finds nothing to adopt and costs nothing.
+    val document = if (saveFormat == SaveFormat.MOBIX) view.adoptIdentity() else view.toDocument()
     val pdf = view.pdfSourceFile()
     val images = view.imageSources()
     inBackground(

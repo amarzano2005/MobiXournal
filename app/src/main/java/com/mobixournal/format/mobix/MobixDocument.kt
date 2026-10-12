@@ -8,8 +8,8 @@ import com.mobixournal.format.model.DEFAULT_CREATOR
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.withIdentity
 import java.io.OutputStream
-import java.util.UUID
 
 /**
  * A `.mobix` **document**: the envelope (manifest, canvas), the pages, the payloads they reference, and
@@ -241,27 +241,25 @@ internal class MobixDocument(
          * @param appVersion the version written as `minAppVersion` — the build that must be present to
          *   write this file safely (`docs/mobix-schema-spec.md`). The caller passes its own version, so
          *   the format layer needs no build configuration.
-         * @param documentId the document's identity, which is **the document's own** unless the caller
-         *   has a reason to overrule it: a document that came from a `.mobix` carries the id it read
-         *   ([Document.documentId]) and a re-save keeps it, while one that came from a `.xopp` has none
-         *   and gets a fresh one here. Ingesting a file creates a document; saving an open one does not
-         *   create a second.
          * @param source what the `.xopp` was called, when the caller knows it.
          */
         fun of(
             document: Document,
             appVersion: String,
             nowMillis: Long,
-            documentId: String = document.documentId ?: UUID.randomUUID().toString(),
             source: String? = null,
         ): MobixDocument {
-            // Identity is assigned here and nowhere else: every element of every page gets an id once,
-            // and every page gets one too, so the file that is written carries them from the start.
-            // A revived entity already has the id the block recorded, so it keeps it.
-            val pages = MobixMetaRevival.apply(document).pages.map { page ->
-                val identified = ElementId.withIds(page)
-                if (identified.id == null) identified.copy(id = ElementId.mint(ElementId.PAGE)) else identified
+            // Identity is the *document's* own ([withIdentity]): it mints what is missing and keeps what
+            // is there, so a document that came from a `.mobix` is written with the ids it read, one
+            // that came from a `.xopp` gets a set of ids that the open document adopts from then on,
+            // and a re-save of either mints nothing. A revived entity already carries the id the block
+            // recorded, so it keeps it too. A caller that wants a specific id (a test, a future import)
+            // sets it on the document it passes rather than overruling it here.
+            val identified = MobixMetaRevival.apply(document).withIdentity()
+            val documentId = requireNotNull(identified.documentId) {
+                "withIdentity() mints the document id when a document has none"
             }
+            val pages = identified.pages
             val first = pages.firstOrNull()
             return MobixDocument(
                 manifest = MobixManifest.forNewDocument(

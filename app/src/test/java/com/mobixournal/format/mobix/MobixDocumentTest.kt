@@ -5,6 +5,7 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
@@ -17,6 +18,7 @@ import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
+import com.mobixournal.format.model.withIdentity
 import java.io.ByteArrayInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -371,6 +373,65 @@ class MobixDocumentTest {
             "and a document that never was one gets a fresh id per ingest",
             MobixDocument.of(fromXopp, appVersion = "1.3.0", nowMillis = now).manifest.documentId,
             MobixDocument.of(fromXopp, appVersion = "1.3.0", nowMillis = now).manifest.documentId,
+        )
+    }
+
+    /**
+     * The regression test for `identity-assigned-once-for-a-mobix`: the app adopts the document's
+     * identity before it encodes, so the ids in the first file are the ids in the second.
+     *
+     * The contrast in the same test is what makes it worth having: handing the writer the *un*adopted
+     * model, which is what the app used to do, mints a different set on every save — and a merge reads
+     * that as the whole page replaced rather than one page edited.
+     *
+     * Both are read back out of the **bytes**, not out of the in-memory manifest: the page parts (and so
+     * their digests) are filled in by the write, which is the thing being tested.
+     */
+    @Test
+    fun aSaveOfAnAdoptedDocumentWritesTheIdsThePreviousSaveDid() {
+        // A `.xopp` has no ids anywhere, which is the case that used to re-mint on every save.
+        val adopted = load("plain").withIdentity()
+        val first = openBytes(MobixDocument.of(adopted, appVersion = "1.3.0", nowMillis = now).toBytes(now))
+        val second = openBytes(
+            MobixDocument.of(adopted.withIdentity(), appVersion = "1.3.0", nowMillis = now + 60_000)
+                .toBytes(now + 60_000),
+        )
+
+        assertEquals("still the same document", first.manifest.documentId, second.manifest.documentId)
+        assertTrue("and it has pages to compare", first.manifest.pages.isNotEmpty())
+        assertEquals(
+            "and pages that hash the same, because the ids were the model's already",
+            first.manifest.pages.map { it.id to it.sha256 },
+            second.manifest.pages.map { it.id to it.sha256 },
+        )
+
+        val unadopted = load("plain")
+        assertNotEquals(
+            "while the same model handed over unidentified re-mints every element",
+            openBytes(MobixDocument.of(unadopted, appVersion = "1.3.0", nowMillis = now).toBytes(now))
+                .manifest.pages.map { it.sha256 },
+            openBytes(MobixDocument.of(unadopted, appVersion = "1.3.0", nowMillis = now).toBytes(now))
+                .manifest.pages.map { it.sha256 },
+        )
+    }
+
+    /**
+     * The writer still identifies what it is handed, whatever the caller did: the format requires an id
+     * on every page and element, so a writer that relied on its caller having adopted them would write a
+     * file no merge could use. Adoption in the app is what keeps model and file in step, not what makes
+     * the file valid.
+     */
+    @Test
+    fun aWriterStillIdentifiesADocumentTheModelNeverAdopted() {
+        val written = openBytes(MobixDocument.of(load("plain"), appVersion = "1.3.0", nowMillis = now).toBytes(now))
+
+        assertTrue("every page is identified", written.manifest.pages.all { it.id.isNotEmpty() })
+        assertTrue("and read back with that id", written.pages.all { it.id != null })
+        assertTrue(
+            "and so is every element the file carries",
+            written.pages.all { page ->
+                page.layers.all { layer -> layer.elements.all { ElementId.idOf(it) != null } }
+            },
         )
     }
 

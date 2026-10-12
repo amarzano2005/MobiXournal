@@ -131,7 +131,10 @@ could not be drawn). Until that lands, only this app's own tests call the export
      every element gets one (`ElementId.withIds`) *and it is written into the file from that first
      save on* (`format/model/ElementIds.kt`). That matters more than it looks: a reader that finds an
      element without an id mints one, so an import that left them out would hand out fresh ids on
-     every open and a merge would see the whole page as new.
+     every open and a merge would see the whole page as new. The ids are minted into the **model**
+     before the write (`Document.withIdentity`, `format/model/DocumentIdentity.kt`) rather than into a
+     copy inside the encoder, so they are the open document's own: it adopts them at the first
+     `.mobix` save and every save after that — and every edit after that — carries them along.
    - **The first page's background becomes the document's `defaultPaper`** — the desktop's own rule
      for what a new page starts on — and a ruling's parameters travel verbatim in its `config` string
      rather than being parsed and re-spelled.

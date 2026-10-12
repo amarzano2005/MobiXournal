@@ -35,7 +35,13 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
 
 - **Its identity comes with it.** The manifest's `documentId` travels into the model
   (`Document.documentId`) and is written back on the next save, so saving an open document is an edit
-  of that document rather than a new one — the difference a sync client or a later merge sees.
+  of that document rather than a new one — the difference a sync client or a later merge sees. The ids
+  of the pages and elements come with it the same way, and a document that arrives *without* them (a
+  `.xopp` has none) **adopts** them before the first `.mobix` write (`Document.withIdentity`,
+  `format/model/DocumentIdentity.kt`): minted into the model rather than into the file, so the file's
+  ids are the model's own and every later save writes the same ones. A writer that minted them on a
+  copy would leave the open document unidentified, and the next save would hand out a fresh set — which
+  a merge reads as the whole page replaced rather than edited.
 - **Its bundled backgrounds are adopted into the stores on the way in** (a `.mobix` is self-contained,
   so the bytes in the archive *are* the background), keyed by the reference the document keeps, which
   is what the renderer looks a picture up by; a background the document only references is resolved as

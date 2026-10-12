@@ -80,7 +80,9 @@ app/
                              #   malformed entities decode to raw text; truncated input throws
                              #   XmlPullReader.TruncatedXmlException instead of hanging/crashing
       FontDescription.kt     # Pango-style font description <-> family + bold/italic (pure)
-                             # model/ElementIds.kt mints the stable element ids the .mobix format keys on
+                             # model/ElementIds.kt mints the stable element ids the .mobix format keys on,
+                             #   and model/DocumentIdentity.kt has a document adopt them (pages, elements,
+                             #   document id) before it is written as a .mobix
       XoppColor.kt           # #RRGGBBAA <-> ARGB int, named colours
       XoppReader.kt          # XML -> Document
       XoppWriter.kt          # Document -> XML

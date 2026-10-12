@@ -66,20 +66,42 @@ object ElementId {
         prefix + "_" + UUID.randomUUID().toString().replace("-", "").take(12)
 
     /**
-     * [element] with an id, minted once: unchanged when it already carries one, and a [RawElement] is
-     * returned as it is — an element this build does not model has no id field of its own, and its
-     * identity (if the build that wrote it had one) is inside the JSON we promised not to touch.
+     * [element] with an id, minted once: an element that already carries one is returned **itself**, not
+     * a copy of itself — same value either way, but the reference is how a caller tells an identified
+     * element from one that needed minting ([withIds], [Document.withIdentity]) without comparing
+     * elements by value, which for an [ImageElement] means comparing whole byte arrays.
+     *
+     * A [RawElement] is returned as it is: an element this build does not model has no id field of its
+     * own, and its identity (if the build that wrote it had one) is inside the JSON we promised not to
+     * touch.
      */
     fun withId(element: Element): Element = when (element) {
-        is Stroke -> element.copy(id = element.id ?: mint(STROKE))
-        is TextElement -> element.copy(id = element.id ?: mint(TEXT))
-        is ImageElement -> element.copy(id = element.id ?: mint(IMAGE))
-        is TexImageElement -> element.copy(id = element.id ?: mint(LATEX))
-        is TableElement -> element.copy(id = element.id ?: mint(TABLE))
-        is PlotElement -> element.copy(id = element.id ?: mint(PLOT))
-        is ParametricShapeElement -> element.copy(id = element.id ?: mint(SHAPE))
-        is CircuitElement -> element.copy(id = element.id ?: mint(CIRCUIT))
+        is Stroke -> element.id?.let { element } ?: element.copy(id = mint(STROKE))
+        is TextElement -> element.id?.let { element } ?: element.copy(id = mint(TEXT))
+        is ImageElement -> element.id?.let { element } ?: element.copy(id = mint(IMAGE))
+        is TexImageElement -> element.id?.let { element } ?: element.copy(id = mint(LATEX))
+        is TableElement -> element.id?.let { element } ?: element.copy(id = mint(TABLE))
+        is PlotElement -> element.id?.let { element } ?: element.copy(id = mint(PLOT))
+        is ParametricShapeElement -> element.id?.let { element } ?: element.copy(id = mint(SHAPE))
+        is CircuitElement -> element.id?.let { element } ?: element.copy(id = mint(CIRCUIT))
         is RawElement -> element
+    }
+
+    /**
+     * The id [element] carries, or null when it has none — including for a [RawElement], which has no id
+     * field of ours at all. What a caller asks when it needs to *check* identity rather than assign it
+     * ([withId]), since [Element] itself declares none.
+     */
+    fun idOf(element: Element): String? = when (element) {
+        is Stroke -> element.id
+        is TextElement -> element.id
+        is ImageElement -> element.id
+        is TexImageElement -> element.id
+        is TableElement -> element.id
+        is PlotElement -> element.id
+        is ParametricShapeElement -> element.id
+        is CircuitElement -> element.id
+        is RawElement -> null
     }
 
     /**
@@ -88,11 +110,23 @@ object ElementId {
      * without one mints one, so an import that did not write them would hand out different ids on
      * every open, and a merge would see the whole page as new.
      *
-     * A `.xopp` *document* in memory keeps its elements unidentified on purpose: ids are a `.mobix`
-     * fact, minted when a document is converted (`MobixDocument.of`), and a file read back out of
-     * `.xopp` is still equal to what was written to it.
+     * A page that needed nothing is returned as it is, so the caller can skip a rebuild rather than
+     * hand a mirror an identical document to re-render.
      */
-    fun withIds(page: Page): Page = page.copy(
-        layers = page.layers.map { layer -> layer.copy(elements = layer.elements.map(::withId)) },
-    )
+    fun withIds(page: Page): Page {
+        var changed = false
+        val layers = page.layers.map { layer ->
+            var layerChanged = false
+            val elements = layer.elements.map { element ->
+                withId(element).also { if (it !== element) layerChanged = true }
+            }
+            if (layerChanged) {
+                changed = true
+                layer.copy(elements = elements)
+            } else {
+                layer
+            }
+        }
+        return if (changed) page.copy(layers = layers) else page
+    }
 }

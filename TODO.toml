@@ -246,20 +246,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "identity-assigned-once-for-a-mobix"
-title = "A document keeps the identity it was first given"
-description = "The document half of this is already shipped with the open/save path: Document.documentId carries the manifest identity into the model and MobixDocument.of writes that id back instead of minting a new one, so a reopened .mobix keeps being the same document (seen on the emulator: opening the saved .mobix from the picker and pressing Save left documentId 6195705e-0540-4b49-99bc-a4a65f839e4a and the page sha256 unchanged). What is still owed is the element ids. MobixDocument.of calls ElementId.withIds at encode time on a copy of the document, so the live model never learns the ids the file holds: a document that arrived as .xopp (no ids anywhere) is written with a fresh set of element ids on every single save, and a merge or a sync client sees every element replaced rather than one edited. Fix it by feeding the identity back: DocumentIo.encode should return the document it actually wrote (a small Encoded(file, document) result, or an explicit out-parameter) and MainActivityDocuments.saveDocument should adopt it after a successful save, the way format/model/Document.kt already carries documentId for a document read from a .mobix. Adopting must not disturb the canvas undo history or selection, so set the ids through a narrow adopt-identity entry point on the surface rather than DrawingSurfaceView.load, which replaces the document and clears history -- a save must not throw away the undo stack. Verify with JVM tests: an Encoded result carries the same ids the bytes hold, re-encoding the adopted document produces byte-identical pages, and a round trip that saves twice asserts the manifest documentId and every element id are unchanged."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 430
-created = 2026-10-12
-tags = ["mobix", "sync"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "read-only-open-for-a-newer-mobix"
 title = "Offer a read-only open for a .mobix that needs a newer app"
 description = "A .mobix written by a newer build of this app carries a minAppVersion above ours. The schema rule (docs/mobix-schema-spec.md, rule 4) is that such a document is not opened normally: the reader offers a read-only open instead of either refusing outright or opening it and letting a save rewrite fields it does not understand. The format layer already answers the question -- MobixManifest.requiresAppNewerThan, which today has no caller anywhere in app/src/main (only its own definition and doc references) -- so what is owed is the caller's policy. In io/DocumentIo.read, after MobixDocument.open, ask archive.manifest.requiresAppNewerThan(appVersion) and record the answer on the LoadedFile.Doc result as a new needsNewerApp flag (false on every .xopp path); MainActivityDocuments then shows the consent surface the app already uses for an import decision (ui/EditorOverlays.kt) explaining that the document was written by a newer version and offering Open read-only. Accepting opens the tab in the smallest honest read-only state, with drawing refused for a stated reason and the save and export entries disabled rather than silently failing; declining closes the tab and leaves nothing open. Verify with JVM tests over a synthetic .mobix whose manifest names a higher minAppVersion: the flag comes back true, a same-or-newer version leaves it false, it is false for a gzip .xopp, a ZIP-package .xopp and a .mobix with no minAppVersion field; then install and exercise the prompt on the emulator (docs/tools.md, debug package com.mobixournal.v2)."

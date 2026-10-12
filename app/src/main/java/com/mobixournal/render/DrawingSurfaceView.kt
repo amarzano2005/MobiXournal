@@ -23,6 +23,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.withIdentity
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TextElement
@@ -756,6 +757,25 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** The current working document — every page, layer, and preserved element, ready to save. */
     fun toDocument(): Document = doc
+
+    /**
+     * Adopt the identity a `.mobix` write needs — an id on every page and element, and a document id —
+     * **without** touching the view: no undo entry (identity is not an edit the user made), no cleared
+     * selection, no scrolled-to-top, no `onDocumentLoaded`. A save must not throw away the undo stack,
+     * which is exactly what [load] does, so a save does not go through it.
+     *
+     * Assigning through [doc] is deliberate: that setter is the one place a mirrored pane hears that
+     * the document moved on, so both views of a document stay the same document. When there is nothing
+     * to adopt — every save after the first — [withIdentity] hands back the very same document and the
+     * assignment is a no-op, so no pane is woken for a document that did not change.
+     *
+     * Returns the model the save must encode.
+     */
+    fun adoptIdentity(): Document {
+        val identified = doc.withIdentity()
+        doc = identified
+        return identified
+    }
 
     /**
      * Supply the PDF whose pages back this document's `pdf` backgrounds (set on import), or null to
