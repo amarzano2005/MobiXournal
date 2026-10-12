@@ -604,10 +604,10 @@ fun DrawingSurfaceView.insertMultiPlot(
         group.strokes.map { pts -> Stroke(tool, group.color, "round", pts, true, lineStyle = group.lineStyle) }
     }
     val newLabels = result.labels.map { (text, x, y) ->
-        TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, x, y, defaultColor, text)
+        TextElement(FIGURE_LABEL_FONT, FIGURE_LABEL_SIZE_PT, x, y, defaultColor, text)
     }
     val summaryElements = if (result.summaryText.isNotEmpty()) {
-        listOf(TextElement(PLOT_LABEL_FONT, PLOT_LABEL_SIZE_PT, leftPt, topPt + heightPt + 20.0, defaultColor, result.summaryText))
+        listOf(TextElement(FIGURE_LABEL_FONT, FIGURE_LABEL_SIZE_PT, leftPt, topPt + heightPt + 20.0, defaultColor, result.summaryText))
     } else emptyList()
     val allNewElements = newStrokes + newLabels + summaryElements
 
@@ -628,9 +628,16 @@ fun DrawingSurfaceView.insertMultiPlot(
     render()
 }
 
-/** Font of a plot's tick numbers, and its size in pt — the text tool's own default, at 8 pt. */
-private const val PLOT_LABEL_FONT = "Sans"
-private const val PLOT_LABEL_SIZE_PT = 8.0
+/**
+ * The font a **figure's own labels** are drawn in (a plot's tick numbers, a dimension's measurement),
+ * and its size in pt — the text tool's own default, at 8 pt.
+ *
+ * Shared beyond this file on purpose: the synthesis export labels a figure it compiles into ink
+ * (`XoppSynthesis`), and a table's cells and a plot's ticks must come out in the same hand the app
+ * would have drawn them in on screen.
+ */
+internal const val FIGURE_LABEL_FONT = "Sans"
+internal const val FIGURE_LABEL_SIZE_PT = 8.0
 
 /** The layer new ink lands on for [page]: [activeLayerIndex] when in range, else the top layer. */
 internal fun DrawingSurfaceView.resolvedActiveLayer(page: Page): Int =
