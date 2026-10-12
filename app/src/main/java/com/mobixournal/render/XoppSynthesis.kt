@@ -127,29 +127,23 @@ object XoppSynthesis {
         if (claims.isEmpty()) document.bridge else MobixMetaBlock(doc = documentId, claims = claims).encode()
 
     /**
-     * The ink [element] becomes: itself when it is already ink (or markup the `.xopp` writer can
-     * carry), the compiled figure when it is a living entity, and nothing — with a [gaps] entry —
-     * when this build cannot draw it.
+     * The ink [element] becomes: itself when it is already ink (or markup the `.xopp` writer can carry),
+     * the compiled figure when it is a living entity ([LivingInk], the *same* dispatch the canvas and the
+     * other exports draw through, so what is written is what was on screen), and nothing — with a [gaps]
+     * entry — when this build cannot draw it.
      */
     private fun inkOf(element: Element, gaps: MutableList<Uncompilable>): List<Element> = when (element) {
         is Stroke, is TextElement, is ImageElement, is TexImageElement -> listOf(element)
-        is TableElement -> SynthesisTable.ink(element)
-        is ParametricShapeElement -> SynthesisShape.ink(element) ?: gap(
-            gaps, "parametricShape", "the vertices of a ${element.shape} figure this build cannot draw",
-        )
-        is PlotElement -> {
-            val plot = SynthesisPlot.ink(element)
-            plot.unparsed.forEach {
-                gaps += Uncompilable("plotCurve", "\"$it\" is not a formula this build can evaluate")
+        is PlotElement, is TableElement, is ParametricShapeElement, is CircuitElement -> {
+            val ink = LivingInk.of(element)
+            gaps += ink.uncompiled
+            // A plot with no curve at all is a different loss from a curve that would not parse: there is
+            // nothing to draw and nothing named, which is worth saying rather than writing an empty plot.
+            if (ink.elements.isEmpty() && ink.uncompiled.isEmpty()) {
+                gaps += Uncompilable(element.plotKind(), "this ${element.plotKind()} has no curve to draw")
             }
-            if (plot.elements.isEmpty() && plot.unparsed.isEmpty()) {
-                gaps += Uncompilable("plot", "this plot has no curve to draw")
-            }
-            plot.elements
+            ink.elements
         }
-        is CircuitElement -> SynthesisCircuit.ink(element) ?: gap(
-            gaps, "circuit", "\"${element.symbol}\" is not a symbol this build has a drawing for",
-        )
         // Markup that came from a `.xopp` exports as itself; a body in this format's own JSON has no
         // `.xopp` spelling, so leaving it out is the only honest answer — and it is said out loud.
         is RawElement -> if (element.syntax == RawElement.Syntax.XML) {
@@ -162,5 +156,17 @@ object XoppSynthesis {
     private fun gap(gaps: MutableList<Uncompilable>, type: String, reason: String): List<Element> {
         gaps += Uncompilable(type, reason)
         return emptyList()
+    }
+
+    /**
+     * What to call [element]'s family in a report — "plot" for the empty-plot case, which is the only
+     * place the export needs a name for a whole element rather than for one of its parts.
+     */
+    private fun Element.plotKind(): String = when (this) {
+        is PlotElement -> "plot"
+        is TableElement -> "table"
+        is ParametricShapeElement -> "parametricShape"
+        is CircuitElement -> "circuit"
+        else -> "element"
     }
 }

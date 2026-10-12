@@ -49,11 +49,19 @@ class PdfVectorPainter {
                         // Nothing to draw for an element we don't model — it exists only to
                         // survive the .xopp round trip.
                         is RawElement -> Unit
-                        // Nothing to draw for a living entity either: it is modelled and preserved,
-                        // but its drawing arrives with its editor. Exporting a table or a plot as
-                        // blank space is visible; exporting it as invented geometry would not be.
+                        // A living entity draws as the ink its own compiler produces ([LivingInk]) — the
+                        // same ink the canvas paints and the `.xopp` export writes, so a table that is
+                        // visible on screen cannot come out blank here.
                         is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
-                            Unit
+                            LivingInk.of(element).elements.forEach { piece ->
+                                when (piece) {
+                                    is Stroke -> stroke(cs, piece, t)
+                                    is TextElement -> text(cs, piece, t)
+                                    is ImageElement -> image(doc, cs, piece, t)
+                                    is TexImageElement -> tex(cs, piece, t)
+                                    else -> Unit
+                                }
+                            }
                     }
                 }
             }

@@ -1,10 +1,14 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
@@ -140,6 +144,11 @@ object PageSvgWriter {
             is TexImageElement -> element.data?.let {
                 emitImage(sb, element.left, element.top, element.right - element.left, element.bottom - element.top, it)
             }
+            // A living entity is a recipe: it is drawn as its compiled ink (LivingInk), the same ink the
+            // canvas paints and the .xopp and PDF exports write, so an SVG of a page with a table in it
+            // has the table in it.
+            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
+                LivingInk.of(element).elements.forEach { emit(sb, it) }
             else -> Unit
         }
     }

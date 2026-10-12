@@ -156,12 +156,25 @@ Two field names are deliberately **open key sets rather than enums**, for the sa
 has to understand — the vertices, the placement, the pins — so an unrecognised kind is left to the
 library that knows it, and refused by nobody.
 
-**Nothing draws them yet.** The format layer reads, writes and preserves all four; every consumer —
-canvas, PDF and SVG export, the selection ops — skips them rather than guessing, so a living entity has
-no box on screen and no op will move one. Each family flips its own answer when its editor lands
-(`docs/future-roadmap.md`, Step 2). The one consumer that *does* interpret them is the `.xopp`
-synthesis export, which compiles each into the ink it stands for before a file leaves the app
-([mobix-format.md](mobix-format.md)) — the same drawing, on someone else's screen.
+**One definition draws them, everywhere** (decided 2026-10-12). The compilers below are the drawing — a
+table's grid and cell text, a plot's frame and curves, a shape's outline, a component's symbol — and
+`render/LivingInk.kt` is the single dispatch around them, used by the canvas (`PageRenderer`), the vector
+PDF painter and the SVG writer. An export and the screen therefore cannot disagree about what an entity
+looks like: they compile the same element with the same code. Compiled ink is memoised by element
+identity, so a table is compiled once, not once per frame.
+
+**The plot is the first family to become editable** (same decision). It is the one entity the app can
+already author — the graph dialog's own output *is* a list of plot curves and a range — so the work is a
+shortening rather than a new surface: `inserting-a-graph-creates-a-living-plotelement-not-ink` inserts
+the element where the ink used to be baked, `select-and-move-a-drawn-living-entity` gives it the box the
+other three still refuse, and `reopen-the-graph-dialog-on-an-existing-plot-and-edit-it` lets a graph be
+corrected instead of redrawn (`TODO.toml`). The other three families follow one at a time, each when its
+own editor lands ([future-roadmap.md](future-roadmap.md), Step 2).
+
+Until that box lands, a living entity is **visible but not selectable**. `ElementBounds` answers an empty
+box for all four families — a real box would let a marquee pick up something no op can move — so a
+marquee or a delete leaves them alone. The `.xopp` synthesis export compiles the same four into the same
+ink before a file leaves the app ([mobix-format.md](mobix-format.md)).
 
 ### Table (`table`)
 

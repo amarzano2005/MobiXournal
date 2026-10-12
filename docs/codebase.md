@@ -167,6 +167,7 @@ app/
       StrokePainter.kt       # paints a stroke's pressure polyline (shared by screen + PDF export)
       PageRenderer.kt        # draws a page's layers/elements at a scale/offset (shared)
       ElementRenderer.kt     # draws text boxes, images, and LaTeX images (real math)
+      LivingInk.kt           # HOW a living entity is drawn: the one dispatch over the synthesis compilers the canvas and every export share
       LatexParser.kt         # LaTeX source -> node tree (pure, no Android deps)
       LatexRenderer.kt       # draws a parsed LaTeX tree to a Canvas (fractions, scripts, roots)
        PdfTileGeometry.kt     # tile grid math for high-zoom PDF rasterisation (pure geometry)

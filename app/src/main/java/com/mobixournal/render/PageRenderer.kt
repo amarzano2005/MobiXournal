@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.isLivingEntity
 
 /**
  * Draws every layer's elements of a [Page] in z-order at a given scale and canvas offset — strokes
@@ -41,17 +42,54 @@ object PageRenderer {
         page.layers.forEachIndexed { li, layer ->
             if (li in hiddenLayers) return@forEachIndexed
             for (element in layer.elements) {
+                // A living entity is a recipe, and what goes on the canvas is its compiled ink
+                // ([LivingInk]) — the very ink the `.xopp`, PDF and SVG exports write, so the screen and
+                // the file cannot disagree about what a table or a plot looks like. It draws as several
+                // pieces, each culled on its own, so a table half off the viewport is not skipped.
+                if (element.isLivingEntity) {
+                    drawPieces(canvas, LivingInk.of(element).elements, scale, offsetX, offsetY, strokes, elements, visible)
+                    continue
+                }
                 // Only the drawing thread passes a viewport, so the identity cache stays single-threaded.
                 if (visible != null && !boundsOf(element).intersects(visible)) continue
-                if (element is Stroke) {
-                    strokes.draw(
-                        canvas, element.points, element.tool, element.color, scale, offsetX, offsetY,
-                        element.lineStyle, element.fill,
-                    )
-                } else {
-                    elements.draw(canvas, element, scale, offsetX, offsetY)
-                }
+                draw(canvas, element, scale, offsetX, offsetY, strokes, elements)
             }
+        }
+    }
+
+    private fun drawPieces(
+        canvas: Canvas,
+        pieces: List<Element>,
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        strokes: StrokePainter,
+        elements: ElementRenderer,
+        visible: Bounds?,
+    ) {
+        for (piece in pieces) {
+            if (visible != null && !boundsOf(piece).intersects(visible)) continue
+            draw(canvas, piece, scale, offsetX, offsetY, strokes, elements)
+        }
+    }
+
+    /** One element, stroke or not: the split the canvas has always drawn by. */
+    private fun draw(
+        canvas: Canvas,
+        element: Element,
+        scale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        strokes: StrokePainter,
+        elements: ElementRenderer,
+    ) {
+        if (element is Stroke) {
+            strokes.draw(
+                canvas, element.points, element.tool, element.color, scale, offsetX, offsetY,
+                element.lineStyle, element.fill,
+            )
+        } else {
+            elements.draw(canvas, element, scale, offsetX, offsetY)
         }
     }
 }

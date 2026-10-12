@@ -63,3 +63,8 @@ walks the page's elements and emits one `<path>` per stroke (`d=`, the element's
 the ruling, text boxes and images alongside, and the whole document wrapped in a viewBox of the page's
 pt size. It is deliberately **not** a screenshot: no Android type is involved, so the writer stays
 pure and unit-testable, and the output scales without the raster's pixel ceiling.
+
+**A living entity is drawn as compiled ink.** `.mobix`'s table, plot, shape and circuit have no drawing
+of their own: each is compiled by its family's compiler and the result painted in its place, through the
+single dispatch in `LivingInk` — the same one the PDF painter and the SVG writer above use, so an entity
+cannot look one way on the canvas and another way in an export. See [mobix-elements.md](mobix-elements.md).

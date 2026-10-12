@@ -79,8 +79,9 @@ object ElementBounds {
      */
     fun isHitTestable(element: Element): Boolean = when (element) {
         is RawElement -> false
-        // A living entity is modelled by the `.mobix` codec and not drawn by this build yet, so it has
-        // no box to pick: nothing would be selected where nothing is visible (`docs/mobix-elements.md`).
+        // A living entity is *drawn* now (`LivingInk`) but not yet selectable: no op can move one, so a
+        // real box would let a marquee pick something up and then appear to move nothing
+        // (`docs/mobix-elements.md`; `TODO.toml`, `select-and-move-a-drawn-living-entity`).
         is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> false
         is Stroke -> element.points.isNotEmpty()
         else -> true
@@ -98,9 +99,9 @@ object ElementBounds {
         // An element we don't model has no geometry we can trust; the empty box keeps it out of
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
-        // The living entities carry their own geometry (a table's grid, a shape's vertices) but nothing
-        // draws them yet, so their box is deliberately empty: a real box here would make an invisible
-        // table selectable and a marquee drag would appear to move nothing.
+        // The living entities carry their own geometry (a table's grid, a shape's vertices) and are drawn
+        // through it, but their box stays deliberately empty: nothing can move one yet, so a real box here
+        // would make a marquee drag appear to move something it cannot (`docs/mobix-elements.md`).
         is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
             Bounds(0.0, 0.0, 0.0, 0.0)
     }
