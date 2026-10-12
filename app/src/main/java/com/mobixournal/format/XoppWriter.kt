@@ -30,6 +30,10 @@ class XoppWriter(out: Appendable) {
         w.start("title").text(doc.title ?: DEFAULT_TITLE).end().newline()
         doc.preview?.let { w.start("preview").rawText(it).end().newline() }
         for (page in doc.pages) writePage(page)
+        // The `.mobix` bridge block, last and as a comment: it cannot disturb the element order the
+        // desktop expects inside a page or a layer, and a reader that drops comments (Xournal++ on its
+        // own save) simply loses the block, which is the case the import rule is written for.
+        doc.bridge?.let { w.comment(Xopp.BRIDGE_COMMENT, it).newline() }
         w.end() // xournal
         w.newline()
     }

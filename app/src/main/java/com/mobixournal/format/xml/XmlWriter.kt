@@ -44,6 +44,21 @@ class XmlWriter(private val out: Appendable) {
         return this
     }
 
+    /**
+     * Write a **tagged** comment carrying [payload]: `<!-- [tag] [payload] -->`. The payload is escaped
+     * by [XmlComment] so it cannot hold the `--` a comment may not contain (see that class for the rule
+     * and why it is one).
+     *
+     * The tag is required rather than optional because a payload-bearing comment has to say what it is:
+     * the reader finds it by tag ([XmlComment.extract]) rather than by guessing at the first comment in
+     * the file, which any program may have written for its own reasons.
+     */
+    fun comment(tag: String, payload: String): XmlWriter {
+        closeTag()
+        out.append("<!-- ").append(tag).append(' ').append(XmlComment.escape(payload)).append(" -->")
+        return this
+    }
+
     fun end(): XmlWriter {
         val name = open.removeLast()
         if (tagOpen) {

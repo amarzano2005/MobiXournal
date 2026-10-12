@@ -26,6 +26,20 @@ data class Document(
     val preview: String? = null,
     /** The `<title>` text the file carried; null means the writer's default banner. */
     val title: String? = null,
+
+    /**
+     * The `.mobix` **bridge block** this file carried, as its JSON payload, or null when it carried
+     * none.
+     *
+     * It rides in an application comment (`Xopp.BRIDGE_COMMENT`, written by `XoppWriter` and read back
+     * by `Xopp.parseXml`) because a `.xopp` has no element that could hold living elements: the export
+     * writes them flattened into ink, and this block is what lets the document come back as the
+     * entities it was. It is **opaque here**: the `.xopp` layer carries it and nothing more, the way it
+     * carries a `RawElement` it does not interpret — the `.mobix` layer owns its schema and its
+     * verification rule (`docs/mobix-format.md`), and a document that has no block is not affected by
+     * its existence in any way.
+     */
+    val bridge: String? = null,
 )
 
 /**

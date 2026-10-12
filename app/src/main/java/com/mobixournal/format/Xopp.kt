@@ -1,6 +1,7 @@
 package com.mobixournal.format
 
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.xml.XmlComment
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.GZIPInputStream
@@ -13,14 +14,27 @@ import java.util.zip.GZIPOutputStream
  */
 object Xopp {
 
+    /**
+     * The tag of the comment a `.mobix` **bridge block** rides in (`Document.bridge`):
+     * `<!-- mobix:meta {…} -->`. Desktop Xournal++ ignores it and may drop it on its own save, which is
+     * why the block is a claim to be verified rather than trusted (`docs/mobix-format.md`).
+     */
+    const val BRIDGE_COMMENT: String = "mobix:meta"
+
     /** Read a `.xopp` stream (gzip + XML) into a [Document]. Does not close [input]. */
     fun open(input: InputStream): Document {
         val xml = GZIPInputStream(input).reader(Charsets.UTF_8).use { it.readText() }
-        return XoppReader(xml).read()
+        return parseXml(xml)
     }
 
-    /** Parse decompressed XML directly (used by tests and drift checks). */
-    fun parseXml(xml: String): Document = XoppReader(xml).read()
+    /**
+     * Parse decompressed XML directly (used by tests and drift checks).
+     *
+     * The XML reader skips comments, so the bridge block — if the file carries one — is taken from the
+     * text here: it is a payload beside the document, not part of it (`Document.bridge`).
+     */
+    fun parseXml(xml: String): Document =
+        XoppReader(xml).read().copy(bridge = XmlComment.extract(xml, BRIDGE_COMMENT))
 
     /** Serialise a [Document] to `.xopp` bytes (XML + gzip) on [output]. Does not close it. */
     fun save(doc: Document, output: OutputStream) {
