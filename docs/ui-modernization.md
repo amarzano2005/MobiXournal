@@ -166,15 +166,38 @@ Option B: Widescreen Left Tool Palette (Photoshop/Illustrator style)
 - **Visual Hover Tooltips with Hotkeys**: Hovering the pen or cursor over any button reveals a subtle
   pill tooltip displaying the tool name and single-letter keyboard shortcut (e.g. `Funzione f(x) [M]`).
 
-### 3. Bimanual workstation flow (Pen Tablet + Left-Hand Keyboard / Dial)
-- **Left Hand on Keyboard**:
-  - `Space + Pen Drag` = Pan canvas (Hand tool).
-  - `Ctrl + Z / Ctrl + Y` = Undo / Redo.
-  - Single-key tool triggers: `B` (Brush/Pen), `H` (Highlighter), `E` (Eraser), `V` (Select), `M` (Math plot), `T` (Table).
-- **Pen-Tip Radial HUD Menu (Pie Menu)**:
-  - Clicking the pen barrel button summons an instant circular HUD directly under the pen nib.
-  - Flicking the pen or turning the tablet dial selects colors, widths, or tools in $< 0.1\text{ s}$ without
-    moving the hand to screen edges.
+### 3. Universal shortcuts across all tools (Mobile & Desktop)
+Every single tool and editing action in MobiXournal carries an assigned shortcut accelerator, providing
+seamless parity whether driven by an external tablet keyboard on Android or a workstation on PC:
+
+| Tool / Action Category | Tool Name | Default Keyboard Shortcut | Mobile / Stylus Gesture Equivalent |
+|---|---|---|---|
+| **Core Inking** | Pen / Brush | `B` | Single tap on pen / Primary tool slot |
+| | Highlighter | `H` | Secondary tool slot |
+| | Eraser | `E` | Stylus rear eraser tip or barrel button 1 |
+| | Lasso Select | `V` | Barrel button hold + drag |
+| | Marquee Rect Select | `S` | Selection mode toggle |
+| | Text Box | `X` | Screen double-tap with finger |
+| | Pan / Hand Tool | `Space` (held) or `H` | Two-finger scroll / drag |
+| **Geometry & Figures** | Straight Line / Ruler | `L` | Hold-to-straighten dwell (300 ms) |
+| | Arrow | `A` | Arrow shape toggle |
+| | Rectangle | `R` | Shape dwell |
+| | Circle / Ellipse | `C` | Shape dwell |
+| | Free Spline | `P` | Spline tool slot |
+| **STEM & Advanced** | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
+| | Function Plot $f(x)$ | `M` | 1-tap STEM dock button |
+| | Dynamic Table | `T` | 1-tap STEM dock button |
+| | Circuit Components | `K` | 1-tap STEM dock button |
+| | Audio Tap / Replay | `Y` | Audio tool slot |
+| **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Free-hand thumb dot tap |
+| | Stroke Width Up / Down | `]`, `[` | Rotary Touch Ring / Dial Wheel |
+| | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture / Dial Wheel |
+| | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap / Three-finger tap |
+
+- **User-Customizable Shortcut Remapping**: All keybindings are fully remappable via **Settings → Input & Shortcuts**,
+  allowing users to match their muscle memory from Photoshop, Krita, or Blender.
+- **Pen-Tip Radial HUD Menu (Pie Menu)**: Clicking the pen barrel button summons an instant circular HUD
+  directly under the pen nib, selecting colors, widths, or tools in $< 0.1\text{ s}$ without moving the hand.
 
 ---
 

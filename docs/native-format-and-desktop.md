@@ -176,7 +176,8 @@ MobiXournal will provide an official companion plugin (`xournalpp-mobix-plugin`)
 ## Desktop architecture (Compose Multiplatform)
 
 MobiXournal's current architecture (Kotlin + Jetpack Compose + `SurfaceView`) translates cleanly into
-**Compose Multiplatform for Desktop** (running on JVM + Skia/Skiko).
+**Compose Multiplatform for Desktop** (running on JVM + Skia/Skiko). The desktop UI layout, docking tool
+strips, bimanual keyboard shortcuts, and radial menus are documented in [ui-modernization.md](ui-modernization.md).
 
 ### Target modularization
 
