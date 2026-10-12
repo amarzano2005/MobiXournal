@@ -162,20 +162,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-living-entity-codec"
-title = "The living-entity codec (table, plot, parametric shape, circuit) and RawJsonElement"
-description = "The entities .xopp cannot express, per docs/mobix-schema-spec.md: TableElement (colWidths/rowHeights/cells with align/bold/fillColor, headerRow), PlotElement (curves with kind CARTESIAN/PARAMETRIC/POLAR and their own ranges, samples, parameters, showCriticalPoints, includeDerivative, shadeIntegral, summaryText as a cache only), ParametricShapeElement (vertices, style, showAngles/showSideLengths) and CircuitElement (symbol, value, position, rotation, pins with connectedTo). Plus RawJsonElement: an element type this build does not model, kept as verbatim JSON and re-emitted unchanged, the rule that makes a future formatVersion non-destructive. Add format/mobix/MobixLiving.kt (or one small file per family) with unit tests covering each family round trip, the RawJsonElement preservation, and that a plot keeps every field the math engine needs to re-evaluate it (docs/math-engine.md)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 320
-created = 2026-10-12
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "xopp-to-mobix-ingestion"
 title = "Lossless .xopp to .mobix ingestion"
 description = "The read half of the bridge in docs/mobix-format.md: turn a parsed .xopp Document (format/model via format/Xopp.kt) into a .mobix document written through MobixContainer - pages, layers with their names and visibility, backgrounds (solid/ruled/graph/dotted/isometric and their rule parameters), strokes with their width and fn/ts audio links, texts, images and texImages as assets named by content hash, and a manifest with a fresh documentId plus per-page sha256/modified. Everything unmodelled must survive in the preserved-fields channel, the rule the .xopp path already enforces (see UnknownMarkupRoundTripTest). Verify with JVM tests over the existing fixtures: page/layer/element counts survive, a .xopp -> .mobix -> .xopp round trip holds the same elements, and an unknown element still rides along. Document the mapping in docs/mobix-format.md and the coverage in docs/testing.md."

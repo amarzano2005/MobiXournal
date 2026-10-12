@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-living-entity-codec"
+title = "The living-entity codec (table, plot, parametric shape, circuit) and RawJsonElement"
+description = "The entities .xopp cannot express, per docs/mobix-schema-spec.md: TableElement (colWidths/rowHeights/cells with align/bold/fillColor, headerRow), PlotElement (curves with kind CARTESIAN/PARAMETRIC/POLAR and their own ranges, samples, parameters, showCriticalPoints, includeDerivative, shadeIntegral, summaryText as a cache only), ParametricShapeElement (vertices, style, showAngles/showSideLengths) and CircuitElement (symbol, value, position, rotation, pins with connectedTo). Plus RawJsonElement: an element type this build does not model, kept as verbatim JSON and re-emitted unchanged, the rule that makes a future formatVersion non-destructive. Add format/mobix/MobixLiving.kt (or one small file per family) with unit tests covering each family round trip, the RawJsonElement preservation, and that a plot keeps every field the math engine needs to re-evaluate it (docs/math-engine.md)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix"]
+
+[[task]]
 id = "mobix-page-layer-element-codec"
 title = "The page, layer and geometry element codec (stroke, text, image, texImage)"
 description = "The second half of the schema layer: format/mobix/MobixPage.kt holds a page (size, background, layer order) and format/mobix/MobixElement.kt the element envelope (type, id, bounds, preserved unknown fields) plus the four geometry-following elements of docs/mobix-schema-spec.md - stroke (tool, colour, lineStyle, lineWidth, points with x/y/width/pressure/tilt/azimuth/dtMs), text (Pango font description, size, colour, content), image and texImage (asset reference by content hash, never inline base64). Every element gets an id minted once and never re-minted by an edit, and a derived bounds recomputed from the geometry. Wire it to the existing model where the mapping is one-to-one (format/model/Stroke, Text, Image, TexImage plus the format/FontDescription codec) instead of duplicating the types. Verify with JVM round-trip tests that also assert a stroke keeps its per-point width and telemetry and a mixed page survives element for element."
