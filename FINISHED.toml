@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "core-three-way-merge-engine-for-mobix-documents"
+title = "Core three-way merge engine for .mobix documents"
+description = "Implement page-level and element-level CRDT three-way merge algorithm in format/mobix: compare base, local, and remote manifest.json pages by sha256 and modified stamp. Union non-colliding pages and perform element-level Last-Write-Wins merge for pages modified concurrently on both sides. Pure Kotlin and JVM unit tested."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "sync"]
+
+[[task]]
 id = "recognise-sync-conflict-patterns-for-syncthing-and-nextcloud"
 title = "Recognise sync conflict patterns for Syncthing and Nextcloud"
 description = "Detect conflict companion filenames alongside a opened or saving .mobix document: Syncthing (.sync-conflict-YYYYMMDD-HHMMSS-*) and Nextcloud (*(conflicted copy YYYY-MM-DD *)). Implement a pure pattern matcher and SAF sibling finder via DocumentReferenceResolver/UriStaging to locate candidate conflict archives."
