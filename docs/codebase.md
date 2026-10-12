@@ -73,6 +73,9 @@ app/
     MainActivityAudio.kt     # its audio half: canvas wiring, record/playback state, sidecar pull/push
     format/                  # THE CORE — lossless .xopp read/write (pure Kotlin, no device deps)
       model/                 # Document, Page, Layer, Background, Element/Stroke/Text/Image/TexImage
+                             #   Living.kt adds the four living entities (.xopp can only bake them
+                             #   into ink): Table, Plot, ParametricShape, Circuit and their cell /
+                             #   curve / vertex / pin value types
       xml/                   # XmlPullReader, XmlWriter — the dependency-free XML layer
                              #   malformed entities decode to raw text; truncated input throws
                              #   XmlPullReader.TruncatedXmlException instead of hanging/crashing
@@ -91,7 +94,12 @@ app/
         MobixManifest.kt     # manifest.json: version stamps, ids, page/chunk order, canvas mode, defaults
         MobixCanvasFile.kt   # canvas.json: the geometry mode, locked dimensions, chunk grid, print origin
         MobixPageCodec.kt    # a page/chunk: size, background (or bundled bytes), layers of elements
-        MobixElementCodec.kt # an element: stroke/text/image/texImage, or any type kept verbatim (JSON)
+        MobixElementCodec.kt # an element: stroke/text/image/texImage, a living entity, or any type kept verbatim (JSON)
+        MobixTableCodec.kt   # a living table: the grid (colWidths/rowHeights), its cells and its rules
+        MobixPlotCodec.kt    # a living plot: curves with their kinds and ranges, parameters, the engine's cache
+        MobixShapeCodec.kt   # a parametric shape: authored vertices, derived box, an open kind name
+        MobixCircuitCodec.kt # a circuit component: placement, rotation, magnetic pins and their nets
+        MobixJson.kt         # the JSON building blocks every codec shares: ordered objects, boxes, attrs (pure)
         MobixAssets.kt       # the assets/ half: payloads named by the hash of their own bytes (pure)
       json/                  # the shared, dependency-free JSON model, parser and writer (pure)
     io/                      # storage access that isn't format work

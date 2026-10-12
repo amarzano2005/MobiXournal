@@ -21,7 +21,14 @@ the manifest, unknown fields surviving, the three required fields, the `minAppVe
 `MobixElementCodecTest` pins the element and page codecs (a pressure stroke's per-point widths and
 telemetry, an element type with no model surviving verbatim, an image stored once and addressed by
 content, `bounds` written but never trusted), and `format/json/JsonWriterTest` pins the shared JSON
-writer (escaping, integer spelling, parse round trips). The `render/` tests cover the pure geometry — page layout,
+writer (escaping, integer spelling, parse round trips). `MobixLivingCodecTest` pins the four living
+entities field for field (a plot keeps every expression, range and parameter the math engine needs to
+redraw itself; a table's grid and not its cached box is the authority; a circuit's pins stay relative
+to the component and before its rotation) and, hardest of all, the rule that a *known* family this
+build cannot read whole comes back verbatim rather than half-modelled — an unreadable cell alignment
+or a curve kind from a newer build must never be written back as a different document. It also holds
+the `.xopp` writer's side of that boundary: a living entity, and the JSON body of any element
+preserved from a `.mobix`, are never written into `.xopp` markup. The `render/` tests cover the pure geometry — page layout,
 gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/redo history — and
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.

@@ -2,7 +2,6 @@ package com.mobixournal.format.mobix
 
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.json.JsonNode
-import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
@@ -41,12 +40,12 @@ internal object MobixPageCodec {
         page: Page,
         assets: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray? = { null },
-    ): JsonNode.Obj = obj { out ->
+    ): JsonNode.Obj = MobixJson.obj { out ->
         out["widthPt"] = JsonNode.of(page.width)
         out["heightPt"] = JsonNode.of(page.height)
         out["background"] = encodeBackground(page.background, assets, backgroundBytes)
         out["layers"] = JsonNode.arr(page.layers.map { encodeLayer(it, assets) })
-        if (page.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(page.extraAttrs)
+        if (page.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(page.extraAttrs)
     }
 
     /** The page [node] describes. */
@@ -57,15 +56,15 @@ internal object MobixPageCodec {
             ?: Background.Solid(0xFFFFFFFF.toInt(), "plain"),
         layers = node.getArr("layers")?.list.orEmpty()
             .mapNotNull { (it as? JsonNode.Obj)?.let { l -> decodeLayer(l, assets) } },
-        extraAttrs = readAttrs(node),
+        extraAttrs = MobixJson.readAttrs(node),
     )
 
     // ---- layers ---------------------------------------------------------------------------------
 
-    private fun encodeLayer(layer: Layer, assets: MobixAssetSink): JsonNode.Obj = obj { out ->
+    private fun encodeLayer(layer: Layer, assets: MobixAssetSink): JsonNode.Obj = MobixJson.obj { out ->
         layer.name?.let { out["name"] = JsonNode.of(it) }
         out["elements"] = JsonNode.arr(layer.elements.map { MobixElementCodec.encode(it, assets) })
-        if (layer.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(layer.extraAttrs)
+        if (layer.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(layer.extraAttrs)
     }
 
     private fun decodeLayer(node: JsonNode.Obj, assets: MobixAssetSource): Layer = Layer(
@@ -73,7 +72,7 @@ internal object MobixPageCodec {
             .mapNotNull { (it as? JsonNode.Obj)?.let { e -> MobixElementCodec.decode(e, assets) } }
             .filterIsInstance<Element>(),
         name = node.getStrOrNull("name"),
-        extraAttrs = readAttrs(node),
+        extraAttrs = MobixJson.readAttrs(node),
     )
 
     // ---- backgrounds ----------------------------------------------------------------------------
@@ -83,7 +82,7 @@ internal object MobixPageCodec {
         background: Background,
         assets: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray? = { null },
-    ): JsonNode.Obj = obj { out ->
+    ): JsonNode.Obj = MobixJson.obj { out ->
         when (background) {
             is Background.Solid -> {
                 out["type"] = JsonNode.of("solid")
@@ -110,7 +109,7 @@ internal object MobixPageCodec {
                     ?: background.bundledAsset)?.let { out["asset"] = JsonNode.of(it) }
             }
         }
-        if (background.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(background.extraAttrs)
+        if (background.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(background.extraAttrs)
     }
 
     /**
@@ -123,7 +122,7 @@ internal object MobixPageCodec {
      * the document layer's job (`docs/data-path.md`).
      */
     fun decodeBackground(node: JsonNode.Obj, assets: MobixAssetSource): Background {
-        val extra = readAttrs(node)
+        val extra = MobixJson.readAttrs(node)
         val bundled = node.getStrOrNull("asset")
         return when (node.getStrOrNull("type")) {
             "pixmap" -> Background.Pixmap(
@@ -150,18 +149,4 @@ internal object MobixPageCodec {
 
     /** Whether [node] names a bundled background an importer should adopt into its own store. */
     fun bundledBackgroundName(node: JsonNode.Obj): String? = node.getStrOrNull("asset")
-
-    // ---- shared helpers -------------------------------------------------------------------------
-
-    private fun obj(fill: (LinkedHashMap<String, JsonNode>) -> Unit): JsonNode.Obj =
-        JsonNode.Obj(LinkedHashMap<String, JsonNode>().also(fill))
-
-    private fun attrsNode(attrs: Map<String, String>): JsonNode = JsonNode.Obj(
-        LinkedHashMap<String, JsonNode>().also { out -> attrs.forEach { (k, v) -> out[k] = JsonNode.of(v) } },
-    )
-
-    private fun readAttrs(node: JsonNode.Obj): Map<String, String> =
-        node.getObj(ATTRS)?.map
-            ?.mapValues { (_, value) -> (value as? JsonNode.Str)?.value ?: JsonWriter.write(value) }
-            ?: emptyMap()
 }

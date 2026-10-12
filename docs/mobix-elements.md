@@ -6,7 +6,10 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 This file owns **what an element is** on disk. The container, the manifest and the page envelope are
 [mobix-schema-spec.md](mobix-schema-spec.md); why the format exists at all is
-[mobix-format.md](mobix-format.md). The code is `format/mobix/MobixElementCodec.kt`.
+[mobix-format.md](mobix-format.md). The code is `format/mobix/MobixElementCodec.kt` — the element
+envelope and the four `.xopp`-shaped elements — plus one codec per living family
+(`MobixTableCodec`, `MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec`), over the JSON builders
+they share in `MobixJson.kt`.
 
 ## The four rules every element obeys
 
@@ -40,13 +43,15 @@ preserve unknown fields; the element layer does not.
 
 Values are written as the **names the app uses**, not as desktop XML spellings, and each is checked on
 read: a value this build does not know is **refused** rather than silently defaulted, because a stroke
-whose tool we misread is a rendering bug we want to hear about.
+whose tool we misread is a rendering bug we want to hear about. "Refused" means the *element* is not
+modelled — it goes back to the preserved channel whole, and the document itself still opens (see the
+rule for the living families below).
 
 | Field | Values |
 |---|---|
 | `tool` | `PEN`, `HIGHLIGHTER`, `ERASER` |
 | `lineStyle` | `PLAIN`, `DASHED`, `DASH_DOT`, `DOTTED` |
-| colours | `#RRGGBBAA` — the same order `.xopp` uses (`XoppColor`), **not** the `0xAARRGGBB` the int is held in |
+| colours | `#RRGGBBAA` — lowercase hex, the same order `.xopp` uses (`XoppColor`), **not** the `0xAARRGGBB` the int is held in |
 | `align` | `LEFT`, `CENTER`, `RIGHT` |
 
 ---
@@ -63,7 +68,7 @@ translation.
   "type": "stroke",
   "id": "stk_01",
   "tool": "PEN",
-  "color": "#1A237EFF",
+  "color": "#1a237eff",
   "lineStyle": "PLAIN",
   "capStyle": "round",
   "bounds": { "left": 101.7, "top": 204.4, "right": 104.5, "bottom": 207.5 },
@@ -87,7 +92,7 @@ translation.
 ```json
 { "type": "text", "id": "txt_01",
   "font": "Sans Bold", "size": 12.0, "x": 72.0, "y": 90.0,
-  "color": "#000000FF", "content": "E = mc^2" }
+  "color": "#000000ff", "content": "E = mc^2" }
 ```
 
 `font` is the Pango-style description the `.xopp` stores (`format/FontDescription.kt`) kept verbatim,
@@ -104,7 +109,7 @@ none.
 
 { "type": "texImage", "id": "tex_01",
   "bounds": { "left": 100.0, "top": 300.0, "right": 280.0, "bottom": 330.0 },
-  "latex": "\\int_0^1 x^2 dx", "color": "#000000FF",
+  "latex": "\\int_0^1 x^2 dx", "color": "#000000ff",
   "asset": "assets/img_e5f6g7h8.png" }
 ```
 
@@ -135,18 +140,35 @@ channel exists to prevent.
 
 ## Living entities
 
-The constructs `.xopp` can only bake into dead ink. A build that models one edits it; a build that does
-not still preserves it whole (rule 1), which is why these are specified even before their editors are
-written.
+The constructs `.xopp` can only bake into dead ink. Each family has its own codec — `MobixTableCodec`,
+`MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec` — reached from `MobixElementCodec` by its
+`type`, and all four obey one rule that is stricter than rule 1:
+
+**A codec models an element or preserves it whole, and never half-reads one.** An unknown *element
+type* survives as raw JSON (rule 1); so does a **known family this build cannot read** — a cell whose
+`align` has no name here, a curve `kind` from a newer build, a `parameters` entry that is not a number.
+The model has no channel for a field it did not interpret, so modelling three of a plot's fields and
+writing them back would turn the user's document into a different one. The refusal is per *element*,
+never per file: the document still opens, and the unreadable element is still in it, byte for byte.
+
+Two field names are deliberately **open key sets rather than enums**, for the same reason: a shape's
+`shape` and a circuit's `symbol` name a kind in a library that keeps growing. Geometry is what a reader
+has to understand — the vertices, the placement, the pins — so an unrecognised kind is left to the
+library that knows it, and refused by nobody.
+
+**Nothing draws them yet.** The format layer reads, writes and preserves all four; every consumer —
+canvas, PDF and SVG export, the selection ops — skips them rather than guessing, so a living entity has
+no box on screen and no op will move one. Each family flips its own answer when its editor lands
+(`docs/future-roadmap.md`, Step 2).
 
 ### Table (`table`)
 
 ```json
 {
   "type": "table", "id": "tbl_01",
-  "bounds": { "left": 72.0, "top": 120.0, "right": 472.0, "bottom": 172.0 },
+  "bounds": { "left": 72.0, "top": 120.0, "right": 472.0, "bottom": 196.0 },
   "colWidths": [120.0, 180.0, 100.0], "rowHeights": [28.0, 24.0, 24.0],
-  "headerRow": true, "borderColor": "#212121FF", "borderWidth": 1.0,
+  "headerRow": true, "borderColor": "#212121ff", "borderWidth": 1.0,
   "cells": [
     [ { "text": "Parametro", "align": "CENTER", "bold": true, "fillColor": "#00000015" },
       { "text": "Formula",   "align": "CENTER", "bold": true, "fillColor": "#00000015" },
@@ -162,6 +184,11 @@ written.
 origin — so inserting a row or dragging a column is a change to those lists. `cells` is
 `rowHeights.size` by `colWidths.size`; a short row reads as empty cells rather than a corrupt table.
 
+`bounds.left`/`bounds.top` are that **origin**, and are a fact (nothing else states where the grid
+sits); the width and height are the sums above. So a file whose cached `right`/`bottom` disagree with
+the grid is read at the grid's size and rewritten with the box the grid implies — rule 3, applied to
+the one box that has a stored half and a derived half.
+
 ### Function plot (`plot`)
 
 ```json
@@ -173,10 +200,10 @@ origin — so inserting a row or dragging a column is a change to those lists. `
   "shadeIntegral": { "from": 0.0, "to": 3.14 },
   "curves": [
     { "kind": "CARTESIAN", "source": "sin(x) * exp(-0.1 * x)",
-      "color": "#D32F2FFF", "strokeWidth": 1.5, "lineStyle": "PLAIN" }
+      "color": "#d32f2fff", "strokeWidth": 1.5, "lineStyle": "PLAIN" }
   ],
   "parameters": { "a": 1.0, "b": 2.0 },
-  "axisColor": "#37474FFF",
+  "axisColor": "#37474fff",
   "summaryText": "Roots: x = {0.0, 3.14, -3.14}..."
 }
 ```
@@ -196,14 +223,16 @@ origin — so inserting a row or dragging a column is a change to those lists. `
   "type": "parametricShape", "id": "shp_01", "shape": "TRIANGLE_SCALENE",
   "bounds": { "left": 100.0, "top": 100.0, "right": 250.0, "bottom": 240.0 },
   "vertices": [ { "x": 100.0, "y": 100.0 }, { "x": 250.0, "y": 120.0 }, { "x": 160.0, "y": 240.0 } ],
-  "strokeColor": "#0D47A1FF", "strokeWidth": 2.0, "fillColor": "#2196F31A",
+  "strokeColor": "#0d47a1ff", "strokeWidth": 2.0, "fillColor": "#2196f31a",
   "showAngles": true, "showSideLengths": true
 }
 ```
 
 `vertices` are the *authored* geometry and the handles the editor drags; a kind defined by an angle set
 (a scalene triangle or trapezoid, [drawing-tools.md](drawing-tools.md)) keeps its exact angles by
-re-fitting the vertices on every drag, so the two never disagree on screen.
+re-fitting the vertices on every drag, so the two never disagree on screen. `bounds` is written for a
+reader that only wants to cull, and is **recomputed from the vertices** on read: a shape can never be
+picked where its handles are not.
 
 ### Circuit component (`circuit`)
 
@@ -219,5 +248,7 @@ re-fitting the vertices on every drag, so the two never disagree on screen.
 ```
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
-net a pin is snapped to and is `null` for a floating pin. A circuit with no `pins` is a plain symbol —
-the shape library's own drawings need no connectivity to be edited as a shape.
+net a pin is snapped to and is omitted for a floating pin. A circuit with no `pins` is a plain symbol —
+the shape library's own drawings need no connectivity to be edited as a shape. A component has **no
+`bounds` at all**: its outline is the symbol library's, and a copy of a drawing this format does not
+own would be a copy that can go stale.

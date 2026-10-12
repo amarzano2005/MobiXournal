@@ -1,8 +1,15 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotCurve
+import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
@@ -119,6 +126,33 @@ class ElementBoundsTest {
         assertFalse(ElementBounds.isHitTestable(stroke()))
         assertTrue(ElementBounds.isHitTestable(stroke(Triple(0.0, 0.0, 1.0))))
         assertTrue(ElementBounds.isHitTestable(ImageElement(0.0, 0.0, 1.0, 1.0, ByteArray(0))))
+    }
+
+    @Test fun aLivingEntityIsNotPickableWhileNothingDrawsIt() {
+        // A table, a plot, a parametric shape and a circuit component are modelled and preserved by the
+        // `.mobix` codecs, but no renderer draws them yet. A real box here would make an invisible
+        // element selectable, and then a marquee drag would look like it moved nothing — so until the
+        // family's editor lands, a living entity has no box and no op touches it (`docs/mobix-elements.md`).
+        val black = 0xFF000000.toInt()
+        val living = listOf(
+            TableElement(10.0, 20.0, listOf(50.0), listOf(20.0), id = "tbl_1"),
+            PlotElement(10.0, 20.0, 210.0, 220.0, listOf(PlotCurve(PlotKind.CARTESIAN, "x", black)), id = "plt_1"),
+            ParametricShapeElement(
+                "TRIANGLE_SCALENE",
+                listOf(ShapeVertex(1.0, 2.0), ShapeVertex(3.0, 4.0), ShapeVertex(5.0, 6.0)),
+                black,
+                id = "shp_1",
+            ),
+            CircuitElement("RESISTOR_IEEE", 100.0, 100.0, id = "ckt_1"),
+        )
+
+        for (element in living) {
+            assertFalse("${element::class.simpleName} must not be pickable", ElementBounds.isHitTestable(element))
+            assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(element))
+            assertEquals(element, SelectionOps.translate(element, 5.0, 7.0))
+            assertEquals(element, SelectionOps.affineXY(element, 2.0, 2.0, 1.0, 1.0))
+            assertEquals(element, SelectionOps.restyle(element, black, 4.0))
+        }
     }
 
     @Test fun translateAndUnion() {

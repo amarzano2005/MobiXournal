@@ -1,12 +1,16 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import kotlin.math.cos
@@ -48,6 +52,10 @@ object SelectionOps {
         )
         // Elements we don't model carry geometry we can't interpret, so every op leaves them be.
         is RawElement -> element
+        // The living entities are the same answer for a different reason: their geometry *is* known
+        // (a table's grid, a shape's vertices) but nothing draws them yet, so moving one would be an
+        // edit to something invisible — the users' next question would be why the page never changed.
+        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> element
     }
 
     /**
@@ -116,6 +124,8 @@ object SelectionOps {
                 right = element.right * sx + dx, bottom = element.bottom * sy + dy,
             )
             is RawElement -> element
+            // Not drawn yet, therefore not scaled yet — see `translate`.
+            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> element
         }
     }
 
@@ -224,6 +234,9 @@ object SelectionOps {
         is TexImageElement -> if (color != null) element.copy(color = color) else element
         is ImageElement -> element
         is RawElement -> element
+        // A living entity's colour is part of its own record (a plot's curves, a table's rules), not a
+        // single style this op could set, so it is left alone rather than half-restyled.
+        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> element
     }
 
     /**

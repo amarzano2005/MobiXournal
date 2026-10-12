@@ -1,9 +1,13 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 
@@ -75,6 +79,9 @@ object ElementBounds {
      */
     fun isHitTestable(element: Element): Boolean = when (element) {
         is RawElement -> false
+        // A living entity is modelled by the `.mobix` codec and not drawn by this build yet, so it has
+        // no box to pick: nothing would be selected where nothing is visible (`docs/mobix-elements.md`).
+        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> false
         is Stroke -> element.points.isNotEmpty()
         else -> true
     }
@@ -91,6 +98,11 @@ object ElementBounds {
         // An element we don't model has no geometry we can trust; the empty box keeps it out of
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
+        // The living entities carry their own geometry (a table's grid, a shape's vertices) but nothing
+        // draws them yet, so their box is deliberately empty: a real box here would make an invisible
+        // table selectable and a marquee drag would appear to move nothing.
+        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
+            Bounds(0.0, 0.0, 0.0, 0.0)
     }
 
     private fun strokeBounds(s: Stroke): Bounds {

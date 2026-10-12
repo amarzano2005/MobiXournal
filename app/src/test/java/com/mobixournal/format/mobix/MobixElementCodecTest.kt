@@ -117,13 +117,13 @@ class MobixElementCodecTest {
 
     @Test
     fun anElementThisBuildHasNoModelForIsPreservedVerbatim() {
-        // A living entity from a newer build: the reason the format has a `type` discriminator.
-        val future = """{"type":"table","id":"tbl_01","colWidths":[120,180],"cells":[[{"text":"a"}]]}"""
+        // An element type from a newer build: the reason the format has a `type` discriminator.
+        val future = """{"type":"3dPlotElement","id":"p3d_01","surface":"z = x^2 - y^2","samples":40}"""
         val node = com.mobixournal.format.json.JsonParser.parse(future) as JsonNode.Obj
 
         val preserved = MobixElementCodec.decode(node, MobixAssetSource { null }) as RawElement
 
-        assertEquals("table", preserved.name)
+        assertEquals("3dPlotElement", preserved.name)
         assertEquals(RawElement.Syntax.JSON, preserved.syntax)
         assertEquals(future, preserved.body)
         assertEquals(

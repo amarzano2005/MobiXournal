@@ -1,13 +1,17 @@
 package com.mobixournal.format
 
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.xml.XmlWriter
@@ -74,7 +78,15 @@ class XoppWriter(out: Appendable) {
             is TextElement -> writeText(el)
             is ImageElement -> writeImage(el)
             is TexImageElement -> writeTexImage(el)
-            is RawElement -> writeRaw(el)
+            // Only markup that *came from* `.xopp` goes back into XML. An element preserved from a
+            // `.mobix` carries JSON in its body, and writing that as an XML element would put JSON
+            // inside a `.xopp` — a file desktop Xournal++ cannot read at all.
+            is RawElement -> if (el.syntax == RawElement.Syntax.XML) writeRaw(el)
+            // A living entity (table, plot, parametric shape, circuit) has no `.xopp` spelling: it is
+            // compiled into real strokes and text by the synthesis export (`docs/mobix-format.md`).
+            // Until that exists it is skipped rather than written as a tag that means nothing here —
+            // losing it from the export is visible, silently exporting nonsense is not.
+            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> Unit
         }
         w.end() // layer
         w.newline()

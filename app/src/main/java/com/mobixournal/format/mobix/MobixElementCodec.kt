@@ -3,15 +3,18 @@ package com.mobixournal.format.mobix
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.json.JsonParser
-import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.json.toJson
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
@@ -24,8 +27,12 @@ import com.mobixournal.format.model.Tool
  *
  *  1. **An element type this build does not know is preserved, not dropped.** It comes back as a
  *     [RawElement] in JSON syntax (`format/model/Element.kt`) holding its own text, so a `.mobix`
- *     written by a newer app — a table, a plot — survives an open-and-save here untouched. That is the
- *     whole reason the format has a `type` discriminator instead of a fixed element list.
+ *     written by a newer app — a `3dPlotElement` nobody has written yet, a vendor extension — survives
+ *     an open-and-save here untouched. That is the whole reason the format has a `type` discriminator
+ *     instead of a fixed element list. The living entities this build *does* model (table, plot,
+ *     parametric shape, circuit, `docs/mobix-elements.md`) reach their own codecs and keep this same
+ *     answer for the case that matters more: a known family this build cannot read **whole** is
+ *     preserved verbatim rather than half-read into a model that would save back a different element.
  *  2. **Enums are written as the names the app uses** (`PEN`, `HIGHLIGHTER`, `PLAIN`, `DASHED`, …) so
  *     the file reads as the model does, and a value that is not a known name is refused rather than
  *     silently mapped to a default — a stroke tool we do not recognise is a *reading* bug we want to
@@ -71,10 +78,16 @@ internal object MobixElementCodec {
         is TextElement -> encodeText(element)
         is ImageElement -> encodeImage(element, assets)
         is TexImageElement -> encodeTexImage(element, assets)
+        // The living entities: what `.xopp` can only bake into dead ink, spelled field by field by
+        // their own codecs (`docs/mobix-elements.md`).
+        is TableElement -> MobixTableCodec.encode(element)
+        is PlotElement -> MobixPlotCodec.encode(element)
+        is ParametricShapeElement -> MobixShapeCodec.encode(element)
+        is CircuitElement -> MobixCircuitCodec.encode(element)
         is RawElement -> encodeRaw(element)
     }
 
-    private fun encodeStroke(s: Stroke): JsonNode.Obj = element { out ->
+    private fun encodeStroke(s: Stroke): JsonNode.Obj = MobixJson.obj { out ->
         out[TYPE] = JsonNode.of(STROKE)
         s.id?.let { out[ID] = JsonNode.of(it) }
         out["tool"] = JsonNode.of(s.tool.name)
@@ -87,10 +100,10 @@ internal object MobixElementCodec {
         s.fill?.let { out["fill"] = JsonNode.of(it) }
         boundsOf(s.points)?.let { out[BOUNDS] = it }
         out["points"] = JsonNode.arr(s.points.map(::encodePoint))
-        if (s.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(s.extraAttrs)
+        if (s.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(s.extraAttrs)
     }
 
-    private fun encodePoint(p: StrokePoint): JsonNode = element { out ->
+    private fun encodePoint(p: StrokePoint): JsonNode = MobixJson.obj { out ->
         out["x"] = JsonNode.of(p.x)
         out["y"] = JsonNode.of(p.y)
         out["width"] = JsonNode.of(p.width)
@@ -100,7 +113,7 @@ internal object MobixElementCodec {
         p.dtMs?.let { out["dtMs"] = JsonNode.of(it) }
     }
 
-    private fun encodeText(t: TextElement): JsonNode.Obj = element { out ->
+    private fun encodeText(t: TextElement): JsonNode.Obj = MobixJson.obj { out ->
         out[TYPE] = JsonNode.of(TEXT)
         t.id?.let { out[ID] = JsonNode.of(it) }
         out["font"] = JsonNode.of(t.font)
@@ -109,23 +122,23 @@ internal object MobixElementCodec {
         out["y"] = JsonNode.of(t.y)
         out["color"] = JsonNode.of(XoppColor.format(t.color))
         out["content"] = JsonNode.of(t.content)
-        if (t.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(t.extraAttrs)
+        if (t.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(t.extraAttrs)
     }
 
     private fun encodeImage(image: ImageElement, assets: MobixAssetSink): JsonNode.Obj =
-        element { out ->
+        MobixJson.obj { out ->
             out[TYPE] = JsonNode.of(IMAGE)
             image.id?.let { out[ID] = JsonNode.of(it) }
-            out[BOUNDS] = box(image.left, image.top, image.right, image.bottom)
+            out[BOUNDS] = MobixJson.box(image.left, image.top, image.right, image.bottom)
             out["asset"] = JsonNode.of(assets.add(image.data, MobixFormat.AssetKind.IMAGE))
-            if (image.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(image.extraAttrs)
+            if (image.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(image.extraAttrs)
         }
 
     private fun encodeTexImage(tex: TexImageElement, assets: MobixAssetSink): JsonNode.Obj =
-        element { out ->
+        MobixJson.obj { out ->
             out[TYPE] = JsonNode.of(TEX_IMAGE)
             tex.id?.let { out[ID] = JsonNode.of(it) }
-            out[BOUNDS] = box(tex.left, tex.top, tex.right, tex.bottom)
+            out[BOUNDS] = MobixJson.box(tex.left, tex.top, tex.right, tex.bottom)
             out["latex"] = JsonNode.of(tex.latex)
             out["color"] = JsonNode.of(XoppColor.format(tex.color))
             // The rendered PNG is optional (a source may carry only the LaTeX), and so is where the
@@ -133,7 +146,7 @@ internal object MobixElementCodec {
             // was authored rather than silently converting it.
             tex.data?.let { out["asset"] = JsonNode.of(assets.add(it, MobixFormat.AssetKind.IMAGE, "png")) }
             if (!tex.latexInAttribute) out["latexInAttribute"] = JsonNode.of(false)
-            if (tex.extraAttrs.isNotEmpty()) out[ATTRS] = attrsNode(tex.extraAttrs)
+            if (tex.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(tex.extraAttrs)
         }
 
     /** Re-emit an element we don't model exactly as it was read (see [RawElement]). */
@@ -142,17 +155,17 @@ internal object MobixElementCodec {
             // The body is the whole object, verbatim: parse it so a rewrite normalises formatting while
             // keeping every key, its order and its value.
             JsonParser.parse(raw.body) as? JsonNode.Obj
-                ?: element { it[TYPE] = JsonNode.of(raw.name) }
+                ?: MobixJson.obj { it[TYPE] = JsonNode.of(raw.name) }
         } else {
             // An XML element with no `.mobix` spelling. It is written with an explicit `syntax` marker,
             // because otherwise it would come back indistinguishable from a native element whose type
             // happens to be the same word — and a `.xopp`-only element that got re-read as a native one
             // would then be *skipped* by the next `.xopp` export, which is exactly the round-trip loss
             // this preservation channel exists to prevent.
-            element { out ->
+            MobixJson.obj { out ->
                 out[TYPE] = JsonNode.of(raw.name)
                 out[SYNTAX] = JsonNode.of(SYNTAX_XML)
-                if (raw.attrs.isNotEmpty()) out[ATTRS] = attrsNode(raw.attrs)
+                if (raw.attrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(raw.attrs)
                 if (raw.body.isNotEmpty()) out["body"] = JsonNode.of(raw.body)
             }
         }
@@ -182,7 +195,13 @@ internal object MobixElementCodec {
             TEXT -> decodeText(node, mint)
             IMAGE -> decodeImage(node, assets, mint)
             TEX_IMAGE -> decodeTexImage(node, assets, mint)
-            else -> RawElement(name = type, body = node.toJson(), syntax = RawElement.Syntax.JSON)
+            // A known living family is modelled; one this build cannot read *whole* falls through to the
+            // same verbatim preservation an unknown type gets, so nothing is ever half-read.
+            MobixTableCodec.TYPE -> MobixTableCodec.decode(node, mint) ?: preserve(type, node)
+            MobixPlotCodec.TYPE -> MobixPlotCodec.decode(node, mint) ?: preserve(type, node)
+            MobixShapeCodec.TYPE -> MobixShapeCodec.decode(node, mint) ?: preserve(type, node)
+            MobixCircuitCodec.TYPE -> MobixCircuitCodec.decode(node, mint) ?: preserve(type, node)
+            else -> preserve(type, node)
         }
     }
 
@@ -192,7 +211,7 @@ internal object MobixElementCodec {
      */
     private fun decodeXmlCarried(node: JsonNode.Obj, type: String): RawElement = RawElement(
         name = type,
-        attrs = readAttrs(node),
+        attrs = MobixJson.readAttrs(node),
         body = node.getStr("body", ""),
         syntax = RawElement.Syntax.XML,
     )
@@ -212,7 +231,7 @@ internal object MobixElementCodec {
             uniformWidth = node.has("lineWidth"),
             lineStyle = style,
             fill = node.getIntOrNull("fill"),
-            extraAttrs = readAttrs(node),
+            extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull(ID) ?: mint(ElementId.STROKE),
         )
     }
@@ -241,7 +260,7 @@ internal object MobixElementCodec {
         y = node.getDouble("y", 0.0),
         color = XoppColor.parse(node.getStrOrNull("color")),
         content = node.getStr("content", ""),
-        extraAttrs = readAttrs(node),
+        extraAttrs = MobixJson.readAttrs(node),
         id = node.getStrOrNull(ID) ?: mint(ElementId.TEXT),
     )
 
@@ -255,7 +274,7 @@ internal object MobixElementCodec {
             bottom = box.getDouble("bottom", 0.0),
             data = name?.let(assets::bytes)
                 ?: throw MobixContainer.MalformedMobixException("an image element's asset is missing from the archive"),
-            extraAttrs = readAttrs(node),
+            extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull(ID) ?: mint(ElementId.IMAGE),
         )
     }
@@ -275,27 +294,27 @@ internal object MobixElementCodec {
             color = XoppColor.parse(node.getStrOrNull("color")),
             data = node.getStrOrNull("asset")?.let(assets::bytes),
             latexInAttribute = node.getBool("latexInAttribute", true),
-            extraAttrs = readAttrs(node),
+            extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull(ID) ?: mint(ElementId.LATEX),
         )
     }
 
     // ---- shared helpers -------------------------------------------------------------------------
 
-    /** A JSON object built field by field, in the order the writer will emit it. */
-    private fun element(fill: (LinkedHashMap<String, JsonNode>) -> Unit): JsonNode.Obj =
-        JsonNode.Obj(LinkedHashMap<String, JsonNode>().also(fill))
-
-    /** The `bounds` object for a rectangle, in the order the schema writes it. */
-    private fun box(left: Double, top: Double, right: Double, bottom: Double): JsonNode =
-        JsonNode.obj("left" to JsonNode.of(left), "top" to JsonNode.of(top),
-            "right" to JsonNode.of(right), "bottom" to JsonNode.of(bottom))
+    /**
+     * An element this build could not model, kept whole: its own JSON, verbatim, re-emitted untouched.
+     * A *known* type that failed to decode lands here too, which is the honest answer — the model has
+     * no channel for a field it did not interpret, so a half-read table would be a table silently
+     * rewritten into a different one.
+     */
+    private fun preserve(type: String, node: JsonNode.Obj): RawElement =
+        RawElement(name = type, body = node.toJson(), syntax = RawElement.Syntax.JSON)
 
     /** A stroke's own extents: the polyline, widened by half the ink at each end. */
     private fun boundsOf(points: List<StrokePoint>): JsonNode? {
         if (points.isEmpty()) return null
         val half = (points.maxOfOrNull { it.width } ?: 0.0) / 2.0
-        return box(
+        return MobixJson.box(
             left = points.minOf { it.x } - half,
             top = points.minOf { it.y } - half,
             right = points.maxOf { it.x } + half,
@@ -303,14 +322,4 @@ internal object MobixElementCodec {
         )
     }
 
-    /** The `attrs` object holding the `.xopp` attributes the bridge must not lose. */
-    private fun attrsNode(attrs: Map<String, String>): JsonNode = JsonNode.Obj(
-        LinkedHashMap<String, JsonNode>().also { out -> attrs.forEach { (k, v) -> out[k] = JsonNode.of(v) } },
-    )
-
-    /** The preserved `attrs` of [node], as strings: a non-string value is kept as its JSON text. */
-    private fun readAttrs(node: JsonNode.Obj): Map<String, String> =
-        node.getObj(ATTRS)?.map
-            ?.mapValues { (_, value) -> (value as? JsonNode.Str)?.value ?: JsonWriter.write(value) }
-            ?: emptyMap()
 }

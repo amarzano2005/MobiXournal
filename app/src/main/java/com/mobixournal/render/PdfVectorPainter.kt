@@ -13,10 +13,14 @@ import com.mobixournal.format.XoppColor.alpha
 import com.mobixournal.format.XoppColor.red
 import com.mobixournal.format.XoppColor.green
 import com.mobixournal.format.XoppColor.blue
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
@@ -45,6 +49,11 @@ class PdfVectorPainter {
                         // Nothing to draw for an element we don't model — it exists only to
                         // survive the .xopp round trip.
                         is RawElement -> Unit
+                        // Nothing to draw for a living entity either: it is modelled and preserved,
+                        // but its drawing arrives with its editor. Exporting a table or a plot as
+                        // blank space is visible; exporting it as invented geometry would not be.
+                        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
+                            Unit
                     }
                 }
             }

@@ -37,6 +37,18 @@ object ElementId {
     /** A rendered LaTeX formula's id prefix. */
     const val LATEX = "tex"
 
+    /** A living table's id prefix. */
+    const val TABLE = "tbl"
+
+    /** A function plot's id prefix. */
+    const val PLOT = "plt"
+
+    /** A parametric shape's id prefix. */
+    const val SHAPE = "shp"
+
+    /** A circuit component's id prefix. */
+    const val CIRCUIT = "ckt"
+
     /**
      * A fresh id for a new element of kind [prefix]: 48 bits of randomness, hex, prefixed so the kind
      * is readable from the id alone. 48 bits is deliberate — an id only has to be unique *within a
