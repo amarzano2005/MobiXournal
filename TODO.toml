@@ -118,3 +118,73 @@ created = 2026-10-12
 tags = ["ui"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "modern-typography-inter-geist-and-monoline-icon-set"
+title = "Modern typography (Inter/Geist) and monoline icon set"
+description = "Replace stock Roboto with Inter or Geist (tabular figures for zoom and coordinates) and swap bulky filled icons for a consistent 1.5dp monoline set, per docs/ui-modernization.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 490
+created = 2026-10-12
+tags = ["ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "true-black-dark-mode-with-neutral-charcoal-layers"
+title = "True-black dark mode with neutral charcoal layers"
+description = "Dark theme uses OLED #000000 canvas backing with neutral #121212/#1E1E1E layers and luminescent accents instead of Material 3 tinted surfaces."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 500
+created = 2026-10-12
+tags = ["ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "dockable-toolbar-at-top-and-bottom-center"
+title = "Dockable toolbar at top and bottom center"
+description = "Extend ToolbarPosition beyond LEFT/RIGHT with TOP and BOTTOM center docking (horizontal capsule), including settings, onboarding handedness step and layout in EditorBody."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 510
+created = 2026-10-12
+tags = ["ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "anchored-flyout-popovers-for-colour-and-tip-size"
+title = "Anchored flyout popovers for colour and tip size"
+description = "Colour palette and tip-size pickers open as compact popover bubbles anchored next to the tool instead of centred modal dialogs."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 520
+created = 2026-10-12
+tags = ["ui"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "keyboard-shortcuts-for-1-tap-stem-tools"
+title = "Keyboard shortcuts for 1-tap STEM tools"
+description = "Wire M (f(x)), T (table), K (circuit components) and Shift+X (coordinate axes) to the STEM dock buttons and list them in the Shortcuts settings section; verify none already exist."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 530
+created = 2026-10-12
+tags = ["stem"]
+rebuild = true
+emulator_debug = false
