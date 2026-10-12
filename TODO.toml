@@ -90,3 +90,31 @@ created = 2026-10-12
 tags = ["ui", "shapes"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "split-floating-islands-layout-with-pinned-stem-satellite"
+title = "Split floating islands layout with pinned STEM satellite"
+description = "Layout Option 2 from docs/ui-modernization.md: an Inking island plus a draggable STEM satellite capsule, selectable in settings next to the unified dock."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 470
+created = 2026-10-12
+tags = ["ui", "stem"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "auto-dim-toolbars-while-the-stylus-is-inking"
+title = "Auto-dim toolbars while the stylus is inking"
+description = "Zen inking mode from docs/ui-modernization.md: fade the floating toolbars to ~30% opacity while the pen is down and restore them on lift."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 480
+created = 2026-10-12
+tags = ["ui"]
+rebuild = true
+emulator_debug = false
