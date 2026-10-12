@@ -106,7 +106,7 @@ bridge:
 ```
 
 **Status: the format is openable and savable, the compiler is written in both directions, and the block
-that carries the semantics is written with it; the export's own entry point is not wired.** The import half is `format/mobix/MobixDocument.kt` with
+that carries the semantics is written with it, and the export is wired.** The import half is `format/mobix/MobixDocument.kt` with
 `MobixBridgeFile.kt` — a `.xopp` becomes a `.mobix` document, its living elements revived where the
 block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt`, which
 flattens a document holding living entities into ink through one compiler per family (`TableInk`,

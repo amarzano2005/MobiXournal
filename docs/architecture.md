@@ -68,12 +68,18 @@ compiler: `render/XoppSynthesis.kt` flattens a document holding living entities 
 `.xopp` writer emits, one compiler per family. The app-level open/save path has since landed — the type
 is registered, a `.mobix` is dispatched by its own `mimetype` and saved back in its own format
 ([data-path.md](data-path.md)) — and the export already carries the verified `mobix:meta` block, which is
-what lets an exported `.xopp` come back as living entities ([mobix-format.md](mobix-format.md)). Still to
-come, recorded in `TODO.toml`: the read-only open for a document whose `minAppVersion` is above ours (the
-reader exposes `requiresAppNewerThan`, the app does not ask it yet), the wiring that reaches the export
-from a menu, and the *drawing and editing* of the living entities themselves — modelled and preserved by
-their codecs ([mobix-elements.md](mobix-elements.md)) and compiled on export, but not rendered on screen
-or in a PDF yet, so a `.mobix` holding a table exports as blank space.
+what lets an exported `.xopp` come back as living entities ([mobix-format.md](mobix-format.md)). That whole
+list has since closed: a `.mobix` whose `minAppVersion` is above ours offers a **read-only open**
+(`MobixManifest.requiresAppNewerThan` is asked by `DocumentIo`, and `MainActivityDocuments` opens the tab
+read-only rather than risk newer data), and the export needs no entry point of its own because every
+`.xopp` write already goes through the synthesis. The living entities **are drawn**: `render/LivingInk.kt`
+is the single dispatch the canvas rasteriser (`PageRenderer`), the PDF painter (`PdfVectorPainter`) and the
+SVG writer (`PageSvgWriter`) all compile an entity through, so a `.mobix` holding a table shows the table
+on screen and in an export, and the plot is editable in place ([mobix-elements.md](mobix-elements.md) owns
+that one-family-at-a-time sequence). What Step 1 still owes is the *Step 1 remainder* epic in `TODO.toml`:
+the infinite canvas ([infinite-canvas.md](infinite-canvas.md)), continuous audio-inking sync
+([audio-inking-sync.md](audio-inking-sync.md)), the math engine's parameter sliders
+([math-engine.md](math-engine.md)) and the desktop Lua companion plugin ([mobix-format.md](mobix-format.md)).
 
 ### Advanced domain engine specifications
 
