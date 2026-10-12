@@ -111,24 +111,3 @@ created = 2026-10-12
 tags = ["mobix", "plot", "ui"]
 rebuild = true
 emulator_debug = true
-
-[[task]]
-id = "select-and-move-a-drawn-living-entity"
-title = "Select, move and resize a drawn living entity (the plot first)"
-description = """
-A living entity is drawn now (`render/LivingInk.kt`, used by the canvas, the PDF painter and the SVG writer) but it is deliberately **not selectable**: `render/ElementBounds.kt` answers `Bounds(0,0,0,0)` and `isHitTestable = false` for all four families, because a real box would let a marquee pick something up that no op could then move. This task flips that answer for **the plot only** — the family that now has an editor (the other three keep their empty box until their own editor lands; that is the recorded decision in `docs/mobix-elements.md`).
-
-(1) `ElementBounds`: give a `PlotElement` its element's own box (`left`/`top`/`right`/`bottom`, padded by its frame's stroke width the way a stroke's box is padded) and return `isHitTestable = true` for it; leave `TableElement`, `ParametricShapeElement` and `CircuitElement` exactly as they are, with the comment saying why (their drawing is not editable yet, so a box would be a lie).
-
-(2) Audit every consumer of those two answers for an assumption that the element is a `Stroke` or carries an `id` — `render/Selection.kt`, `render/SelectionOps.kt`, `render/SelectionGestureController.kt`, `render/ElementEdits.kt`, the marquee/lasso paths, align & distribute, layer moves and the selection action bars. A plot must be: picked by a marquee/lasso that covers it, picked by a tap inside its box, **moved** by a drag (which translates `left`/`top`/`right`/`bottom` by the same delta and leaves `xMin`/`xMax` — the data range — alone, because the range is what the graph shows, not where it sits), **resized** by the handles (which scales the box and again leaves the range alone), deleted, cut/copied/pasted, and moved between layers. An op that genuinely cannot apply to a plot (a stroke restyle has no meaning for a formula) must **skip it with a stated reason** rather than silently do nothing or mangle it.
-
-Verify with JVM tests: `ElementBoundsTest` gains the plot's box and the three still-empty families; a new `render/LivingEntitySelectionTest.kt` asserts a marquee over a plot picks it up and a marquee over a table does not, that a move by (dx, dy) shifts the box exactly and leaves `xMin`/`xMax`/`curves` untouched (a `copy()`-equality assertion on everything else), that a resize changes only the box, that delete removes it from the layer, and that the three other families still answer `isHitTestable = false`. Emulator pass (`docs/tools.md`, debug package `com.mobixournal.v2`): insert a graph, marquee it, drag it and resize it, and check by screenshot that the curve is redrawn inside the box's new position; then confirm a delete leaves the page clean."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 480
-created = 2026-10-12
-tags = ["mobix", "selection", "render"]
-rebuild = true
-emulator_debug = true

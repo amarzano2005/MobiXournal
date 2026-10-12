@@ -52,10 +52,14 @@ object SelectionOps {
         )
         // Elements we don't model carry geometry we can't interpret, so every op leaves them be.
         is RawElement -> element
-        // The living entities are the same answer for a different reason: their geometry *is* known
-        // (a table's grid, a shape's vertices) but nothing draws them yet, so moving one would be an
-        // edit to something invisible — the users' next question would be why the page never changed.
-        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> element
+        // PlotElement is the first living entity with selection and move support (`docs/mobix-elements.md`).
+        // Moving translates its page-local frame while preserving mathematical data ranges (xMin..xMax).
+        is PlotElement -> element.copy(
+            left = element.left + dx, top = element.top + dy,
+            right = element.right + dx, bottom = element.bottom + dy,
+        )
+        // The remaining living entities keep their geometry untouched until their editors land.
+        is TableElement, is ParametricShapeElement, is CircuitElement -> element
     }
 
     /**
@@ -124,8 +128,13 @@ object SelectionOps {
                 right = element.right * sx + dx, bottom = element.bottom * sy + dy,
             )
             is RawElement -> element
-            // Not drawn yet, therefore not scaled yet — see `translate`.
-            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> element
+            // PlotElement scales its bounding frame and preserves its mathematical data ranges (xMin..xMax).
+            is PlotElement -> element.copy(
+                left = element.left * sx + dx, top = element.top * sy + dy,
+                right = element.right * sx + dx, bottom = element.bottom * sy + dy,
+            )
+            // The remaining living entities keep their geometry untouched until their editors land.
+            is TableElement, is ParametricShapeElement, is CircuitElement -> element
         }
     }
 

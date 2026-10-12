@@ -79,10 +79,10 @@ object ElementBounds {
      */
     fun isHitTestable(element: Element): Boolean = when (element) {
         is RawElement -> false
-        // A living entity is *drawn* now (`LivingInk`) but not yet selectable: no op can move one, so a
-        // real box would let a marquee pick something up and then appear to move nothing
-        // (`docs/mobix-elements.md`; `TODO.toml`, `select-and-move-a-drawn-living-entity`).
-        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> false
+        // The plot is the first living entity to become selectable and movable (`docs/mobix-elements.md`).
+        // The other three keep an empty box and are not hit-testable until their respective editors land.
+        is PlotElement -> true
+        is TableElement, is ParametricShapeElement, is CircuitElement -> false
         is Stroke -> element.points.isNotEmpty()
         else -> true
     }
@@ -96,14 +96,19 @@ object ElementBounds {
         is TextElement -> textBounds(element)
         is ImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TexImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
+        is PlotElement -> plotBounds(element)
         // An element we don't model has no geometry we can trust; the empty box keeps it out of
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
-        // The living entities carry their own geometry (a table's grid, a shape's vertices) and are drawn
-        // through it, but their box stays deliberately empty: nothing can move one yet, so a real box here
-        // would make a marquee drag appear to move something it cannot (`docs/mobix-elements.md`).
-        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
-            Bounds(0.0, 0.0, 0.0, 0.0)
+        // The other living entities carry their own geometry (a table's grid, a shape's vertices) and are
+        // drawn through it, but their box stays deliberately empty until their editors land (`docs/mobix-elements.md`).
+        is TableElement, is ParametricShapeElement, is CircuitElement -> Bounds(0.0, 0.0, 0.0, 0.0)
+    }
+
+    private fun plotBounds(p: PlotElement): Bounds {
+        val strokeW = p.curves.firstOrNull()?.strokeWidth ?: 1.0
+        val half = strokeW / 2.0
+        return Bounds(p.left - half, p.top - half, p.right + half, p.bottom + half)
     }
 
     private fun strokeBounds(s: Stroke): Bounds {

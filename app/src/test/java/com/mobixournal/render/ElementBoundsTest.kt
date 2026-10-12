@@ -128,15 +128,43 @@ class ElementBoundsTest {
         assertTrue(ElementBounds.isHitTestable(ImageElement(0.0, 0.0, 1.0, 1.0, ByteArray(0))))
     }
 
-    @Test fun aLivingEntityIsNotPickableWhileNothingDrawsIt() {
-        // A table, a plot, a parametric shape and a circuit component are modelled and preserved by the
-        // `.mobix` codecs, but no renderer draws them yet. A real box here would make an invisible
-        // element selectable, and then a marquee drag would look like it moved nothing — so until the
-        // family's editor lands, a living entity has no box and no op touches it (`docs/mobix-elements.md`).
+    @Test fun aPlotLivingEntityIsPickableAndHasPaddedBounds() {
         val black = 0xFF000000.toInt()
-        val living = listOf(
+        val plot = PlotElement(
+            left = 10.0, top = 20.0, right = 210.0, bottom = 220.0,
+            curves = listOf(PlotCurve(PlotKind.CARTESIAN, "x", black, strokeWidth = 2.0)),
+            id = "plt_1",
+        )
+        assertTrue("PlotElement must be hit-testable", ElementBounds.isHitTestable(plot))
+        // Padded by frame half-width (strokeWidth 2.0 -> half 1.0)
+        assertEquals(Bounds(9.0, 19.0, 211.0, 221.0), ElementBounds.of(plot))
+
+        val moved = SelectionOps.translate(plot, 5.0, 7.0) as PlotElement
+        assertEquals(15.0, moved.left, 1e-9)
+        assertEquals(27.0, moved.top, 1e-9)
+        assertEquals(215.0, moved.right, 1e-9)
+        assertEquals(227.0, moved.bottom, 1e-9)
+        assertEquals(plot.xMin, moved.xMin, 1e-9)
+        assertEquals(plot.xMax, moved.xMax, 1e-9)
+        assertEquals(plot.curves, moved.curves)
+
+        val scaled = SelectionOps.affineXY(plot, 2.0, 3.0, 5.0, 10.0) as PlotElement
+        assertEquals(25.0, scaled.left, 1e-9)
+        assertEquals(70.0, scaled.top, 1e-9)
+        assertEquals(425.0, scaled.right, 1e-9)
+        assertEquals(670.0, scaled.bottom, 1e-9)
+        assertEquals(plot.xMin, scaled.xMin, 1e-9)
+        assertEquals(plot.xMax, scaled.xMax, 1e-9)
+        assertEquals(plot.curves, scaled.curves)
+
+        // Restyle skips plot (formulas and internal curves have their own dialog/editor)
+        assertEquals(plot, SelectionOps.restyle(plot, 0xFF123456.toInt(), 5.0))
+    }
+
+    @Test fun otherLivingEntitiesAreNotPickableUntilEditorsLand() {
+        val black = 0xFF000000.toInt()
+        val others = listOf(
             TableElement(10.0, 20.0, listOf(50.0), listOf(20.0), id = "tbl_1"),
-            PlotElement(10.0, 20.0, 210.0, 220.0, listOf(PlotCurve(PlotKind.CARTESIAN, "x", black)), id = "plt_1"),
             ParametricShapeElement(
                 "TRIANGLE_SCALENE",
                 listOf(ShapeVertex(1.0, 2.0), ShapeVertex(3.0, 4.0), ShapeVertex(5.0, 6.0)),
@@ -146,7 +174,7 @@ class ElementBoundsTest {
             CircuitElement("RESISTOR_IEEE", 100.0, 100.0, id = "ckt_1"),
         )
 
-        for (element in living) {
+        for (element in others) {
             assertFalse("${element::class.simpleName} must not be pickable", ElementBounds.isHitTestable(element))
             assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(element))
             assertEquals(element, SelectionOps.translate(element, 5.0, 7.0))
