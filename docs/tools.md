@@ -52,6 +52,30 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   - The parent mount is what makes the optional real-file test resolve its repo-root sample; the
     rule is documented in [`testing.md`](testing.md#what-the-unit-tests-cover).
 
+### The v2 development channel — the test build never replaces the daily app
+
+While the v2 line (the native `.mobix` work, [mobix-format.md](mobix-format.md)) is built, the owner
+keeps using a released `com.mobixournal` daily. The debug build is therefore its **own app**:
+`app/build.gradle.kts` gives the `debug` build type `applicationIdSuffix = ".v2"`, so
+`scripts/build.sh`, the emulator install and the APK the release workflow attaches all land on
+**`com.mobixournal.v2`**, and the `debug` source set gives that build its own launcher label
+(`app/src/debug/res/values/strings.xml` → "MobiXournal v2 (dev)") so the two icons are
+indistinguishable only if you want them to be.
+
+The Android package name *is* the app's identity: a build of the same package signed with a different
+key replaces the installed app — with its session cache and settings — rather than living beside it.
+The suffix is what makes "install the test build" a non-destructive step.
+
+- **Installing it:** nothing changes in the loop. `emulator.sh install
+  app/build/outputs/apk/debug/app-debug.apk`, `emulator.sh launch com.mobixournal.v2` on the emulator;
+  `adb install -r app/build/outputs/apk/debug/app-debug.apk` on a device. The package to launch and to
+  `logcat`-filter by is `com.mobixournal.v2`.
+- **Its storage is its own too** (`filesDir`/`cacheDir` are per-package), so a v2 build cannot disturb
+the daily app's tabs, settings or saved documents.
+- **Ending the transition** is deleting the `debug` block and the `debug` source set, after which the
+  build is `com.mobixournal` again and upgrades the existing install in place. Do that when the v2 line
+  is meant to *become* the daily app, not before.
+
 ### Host fallback — no `/data/android`, no Docker
 
 `/data/android` is a **machine-local path**. On a host that doesn't have it, `scripts/build.sh`
@@ -99,14 +123,14 @@ change with a runtime surface must be installed and exercised on the emulator, n
   container adb → emulator). Full details in that directory's `README.md`; don't duplicate them here.
 - **How to run it:** `emulator.sh` dispatches `status | up | boot-wait | down | install <apk> |
   launch <pkg> | screenshot [png] | ui | logcat | shell | adb` — so `emulator.sh up` to boot, then
-  `emulator.sh install <apk>`, `emulator.sh launch com.mobixournal`, `emulator.sh screenshot <png>`,
+  `emulator.sh install <apk>`, `emulator.sh launch com.mobixournal.v2`, `emulator.sh screenshot <png>`,
   `emulator.sh ui`, and `emulator.sh logcat` for logs. Run `adb-targets.sh` to see which devices and
   the emulator are reachable. Physical devices install via the host adb:
   `adb -s <ip>:5555 install -r app/build/outputs/apk/debug/app-debug.apk`.
 - **Testing a change on the emulator (the expected loop):** after a green
   `scripts/build.sh`, install the fresh APK and actually drive it:
   1. `emulator.sh install app/build/outputs/apk/debug/app-debug.apk` then
-     `emulator.sh launch com.mobixournal`.
+     `emulator.sh launch com.mobixournal.v2`.
   2. **Take screenshots** (`emulator.sh screenshot <png>`) and look at them to confirm the UI
      rendered as intended — this is how you *see* the change, not infer it.
   3. **Read the error logs** — `adb logcat` (filter to the app) — to catch crashes, stack
@@ -142,7 +166,7 @@ Where `/data/android` isn't present, the SDK's own emulator is the same loop, dr
 $ANDROID_SDK/emulator/emulator -avd <name> -no-window &   # or start it from Android Studio
 $ANDROID_SDK/platform-tools/adb wait-for-device           # then poll sys.boot_completed for 1
 $ANDROID_SDK/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
-$ANDROID_SDK/platform-tools/adb shell am start -n com.mobixournal/.MainActivity
+$ANDROID_SDK/platform-tools/adb shell am start -n com.mobixournal.v2/com.mobixournal.MainActivity
 $ANDROID_SDK/platform-tools/adb exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
 ```
 

@@ -20,7 +20,28 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    /**
+     * The debug build is the **v2 development channel**, and it deliberately installs as its own app:
+     * `applicationIdSuffix` gives it the package `com.mobixournal.v2` (and the `debug` source set its
+     * own `app_name`, "MobiXournal v2 (dev)"), so `scripts/build.sh` — and therefore the APK the
+     * release workflow attaches — never replaces an installed `com.mobixournal`.
+     *
+     * That matters because the Android package *is* the app's identity: installing a build of the same
+     * package with a different signing key (the release APK carried the debug key; a rebuild can carry
+     * another) replaces the user's install, taking the session cache and settings with it. The owner
+     * runs 1.3.0 daily while v2 is built, so the two have to coexist: same launcher, two icons.
+     *
+     * **Ending the transition** is this one line: when the v2 line is ready to *take over* the daily
+     * app, delete the `debug` block (and `src/debug/res/`) so the build is `com.mobixournal` again and
+     * upgrades the existing install in place. Kept as a deliberate line in the diff, like the
+     * mimetype deviation in `format/XoppZip.kt`, because the alternative is a silent rename nobody sees.
+     * See "The v2 development channel" in `docs/tools.md`.
+     */
     buildTypes {
+        debug {
+            applicationIdSuffix = ".v2"
+            versionNameSuffix = "-v2"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
