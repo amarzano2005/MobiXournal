@@ -68,11 +68,18 @@ of the document the user opened (never a silent second file). The fields the com
 `pages[]` in `manifest.json` ([mobix-schema-spec.md](mobix-schema-spec.md)): per-page `sha256` and
 `modified`, plus the element `id`s the same-page CRDT pass keys on.
 
-**Open, and deliberately not guessed at here:** which sync clients' conflict naming is recognised
-(Syncthing's `.sync-conflict-*`, Nextcloud's `(conflicted copy …)`, and both combined), whether the
-loser side is archived as a sibling file or only left in place, and what the user is shown when a
-merge adopts another device's page. Recorded as a scope item in `TODO.toml` rather than decided in
-prose; nothing in this file presumes a choice that has not been made.
+**Resolved scoping and roadmap tasks:**
+- Both Syncthing (`.sync-conflict-YYYYMMDD-HHMMSS-*`) and Nextcloud (`*(conflicted copy YYYY-MM-DD *)*`)
+  conflict filename patterns are supported via pattern matching.
+- Detection is executed at document open time and prior to re-saving via `DocumentReferenceResolver`
+  and SAF sibling probing.
+- The losing / incoming conflict file is safely archived (e.g. `.mobix.conflict-merged.bak`) rather than
+  silently deleted.
+- The user is notified via UI feedback (e.g. snackbar / banner) detailing which pages or elements were merged.
+- Tasks broken down in `TODO.toml`:
+  1. `recognise-sync-conflict-patterns-for-syncthing-and-nextcloud`
+  2. `core-three-way-merge-engine-for-mobix-documents`
+  3. `documentio-integration-and-conflict-resolution-ux-notification`
 
 ---
 

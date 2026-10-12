@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "decide-sync-conflict-merge"
-title = "Decide how the .mobix conflict-free merge is actually invoked"
-description = "docs/sync-and-storage.md promises conflict-free syncing via page-level and element-level merges and deliberately states what is still undecided: which sync clients conflict naming to recognise (Syncthing .sync-conflict-*, Nextcloud conflicted copy, both together), where the merge runs when on Android a document arrives as a SAF content:// URI and there is no filesystem watcher to hear a sibling appear (on open, before a save, or both), whether the losing side is archived as a sibling file, and what the user is shown when a merge adopts another device page. Investigate the SAF and staging path (io/DocumentIo.kt, io/UriStaging.kt) and the per-page bookkeeping the manifest already carries, then add the concrete task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 400
-created = 2026-10-12
-tags = ["mobix", "sync"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "xournalpp-lua-mobix-plugin"
 title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
 description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."
@@ -60,5 +46,47 @@ urgency = "low"
 order = 410
 created = 2026-10-12
 tags = ["mobix", "desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "recognise-sync-conflict-patterns-for-syncthing-and-nextcloud"
+title = "Recognise sync conflict patterns for Syncthing and Nextcloud"
+description = "Detect conflict companion filenames alongside a opened or saving .mobix document: Syncthing (.sync-conflict-YYYYMMDD-HHMMSS-*) and Nextcloud (*(conflicted copy YYYY-MM-DD *)). Implement a pure pattern matcher and SAF sibling finder via DocumentReferenceResolver/UriStaging to locate candidate conflict archives."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 420
+created = 2026-10-12
+tags = ["mobix", "sync"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "core-three-way-merge-engine-for-mobix-documents"
+title = "Core three-way merge engine for .mobix documents"
+description = "Implement page-level and element-level CRDT three-way merge algorithm in format/mobix: compare base, local, and remote manifest.json pages by sha256 and modified stamp. Union non-colliding pages and perform element-level Last-Write-Wins merge for pages modified concurrently on both sides. Pure Kotlin and JVM unit tested."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 430
+created = 2026-10-12
+tags = ["mobix", "sync"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "documentio-integration-and-conflict-resolution-ux-notification"
+title = "DocumentIo integration and conflict resolution UX notification"
+description = "Wire conflict detection and three-way merge into DocumentIo on document open and pre-save. When siblings exist under SAF/local files, prompt or notify user (e.g. toast/snackbar indicating remote pages adopted) and safely archive the losing conflict file rather than silently clobbering it."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 440
+created = 2026-10-12
+tags = ["mobix", "sync"]
 rebuild = false
 emulator_debug = false

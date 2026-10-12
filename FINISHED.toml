@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "decide-sync-conflict-merge"
+title = "Decide how the .mobix conflict-free merge is actually invoked"
+description = "docs/sync-and-storage.md promises conflict-free syncing via page-level and element-level merges and deliberately states what is still undecided: which sync clients conflict naming to recognise (Syncthing .sync-conflict-*, Nextcloud conflicted copy, both together), where the merge runs when on Android a document arrives as a SAF content:// URI and there is no filesystem watcher to hear a sibling appear (on open, before a save, or both), whether the losing side is archived as a sibling file, and what the user is shown when a merge adopts another device page. Investigate the SAF and staging path (io/DocumentIo.kt, io/UriStaging.kt) and the per-page bookkeeping the manifest already carries, then add the concrete task-level children. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "sync"]
+
+[[task]]
 id = "mobix-incremental-save"
 title = "Incremental saves: repack only the pages that changed"
 description = "A .mobix save must not recompress the whole document: only entries whose bytes changed are rewritten, while unmodified pages, background PDFs and assets are copied through. Implement it as a repack of the archive (ZIP has no in-place edit) that streams every untouched entry from the source into the destination with the same compression method and writes only the dirty entries from memory, plus the mimetype first and STORED as always. The manifest sha256/modified fields decide dirtiness, so use them. Verify with JVM tests: after editing one page of a multi-page document the untouched entries come out byte-identical, the mimetype is still first and stored, and unknown-entry preservation still holds. Measure and report the bytes written for an N-page document with one dirty page, so the claim is a measurement rather than an assumption."
