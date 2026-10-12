@@ -43,6 +43,7 @@ architecture.
 | [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric shape recognition, and parametric vertex handles | you work on shape recognition, gesture dwell detection or geometric control handles |
 | [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, and cross-app drag and drop | you work on multi-window coordination, split view or drag and drop |
 | [`ui-modernization.md`](ui-modernization.md) | modern lightweight UI design system, floating glass capsules, monoline iconography, and desktop alignment | you modernize the interface, redesign chrome, or implement floating toolbars |
+| [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap: native .mobix format, modern mobile UI, and desktop workstation | you plan or review the next-generation architecture hierarchy |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, and [`releases/`](releases/) holds the per-version changelogs.

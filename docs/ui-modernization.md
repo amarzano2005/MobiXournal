@@ -194,8 +194,10 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture / Dial Wheel |
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap / Three-finger tap |
 
-- **User-Customizable Shortcut Remapping**: All keybindings are fully remappable via **Settings → Input & Shortcuts**,
-  allowing users to match their muscle memory from Photoshop, Krita, or Blender.
+- **Universal Shortcut & Individual Color Remapping**: All keybindings, tools, and **individual color palette slots**
+  are fully remappable via **Settings → Input & Shortcuts**. Users can bind any keyboard shortcut, stylus gesture,
+  or dial action to directly select a specific user-defined custom HEX color (e.g. `Alt+1` for Pure Black `#000000`,
+  `Alt+2` for Crimson Red `#D32F2F`, `Alt+3` for Royal Blue `#1565C0`), not just the 3 factory favorites.
 - **Pen-Tip Radial HUD Menu (Pie Menu)**: Clicking the pen barrel button summons an instant circular HUD
   directly under the pen nib, selecting colors, widths, or tools in $< 0.1\text{ s}$ without moving the hand.
 
