@@ -162,20 +162,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "xopp-to-mobix-ingestion"
-title = "Lossless .xopp to .mobix ingestion"
-description = "The read half of the bridge in docs/mobix-format.md: turn a parsed .xopp Document (format/model via format/Xopp.kt) into a .mobix document written through MobixContainer - pages, layers with their names and visibility, backgrounds (solid/ruled/graph/dotted/isometric and their rule parameters), strokes with their width and fn/ts audio links, texts, images and texImages as assets named by content hash, and a manifest with a fresh documentId plus per-page sha256/modified. Everything unmodelled must survive in the preserved-fields channel, the rule the .xopp path already enforces (see UnknownMarkupRoundTripTest). Verify with JVM tests over the existing fixtures: page/layer/element counts survive, a .xopp -> .mobix -> .xopp round trip holds the same elements, and an unknown element still rides along. Document the mapping in docs/mobix-format.md and the coverage in docs/testing.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 330
-created = 2026-10-12
-tags = ["mobix", "bridge"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "mobix-to-xopp-synthesis-export"
 title = "Synthesis export from .mobix back to .xopp"
 description = "The write half of the bridge: flatten a .mobix document into a valid .xopp that desktop Xournal++ opens and prints like any other file. PlotElement compiles into stroke paths plus text labels, TableElement into border strokes plus text, ParametricShapeElement and CircuitElement into their strokes and labels, and a Stroke is written with its nominal lineWidth while tilt/azimuth/dtMs are dropped (they have no .xopp home). Reuse format/XoppWriter.kt and format/Xopp.kt rather than writing a parallel emitter, and keep the .xopp model intact so the other direction is unchanged. Verify with JVM tests: a document of each living family exports, re-parses with Xopp.parseXml, and holds the expected strokes/texts with the expected geometry, plus an XmlEqualityRoundTripTest-style normalisation check. Document the lossy fields in docs/mobix-format.md."
