@@ -50,20 +50,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "floating-glassmorphic-tool-dock-with-1-tap-stem-section"
-title = "Floating glassmorphic tool dock with 1-tap STEM section"
-description = "Implement the modern floating glass capsule toolbar (1px hairline border, backdrop blur, content-first canvas hero) per docs/ui-modernization.md. Integrate the primary writing tools alongside a permanent 1-tap STEM group (f(x), Geometry, Table, Circuit) dockable at bottom, top, or side."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 430
-created = 2026-10-12
-tags = ["ui", "stem"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "bimanual-free-hand-thumb-strip-for-tablets"
 title = "Bimanual free-hand thumb strip for tablets"
 description = "Add the ergonomic thumb strip docked along the non-dominant edge (left for right-handed, right for left-handed) providing instant thumb access to Undo, Redo, Eraser toggle, and favorite color dots without moving the pen hand or causing palm rejection."

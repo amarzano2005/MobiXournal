@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "floating-glassmorphic-tool-dock-with-1-tap-stem-section"
+title = "Floating glassmorphic tool dock with 1-tap STEM section"
+description = "Implement the modern floating glass capsule toolbar (1px hairline border, backdrop blur, content-first canvas hero) per docs/ui-modernization.md. Integrate the primary writing tools alongside a permanent 1-tap STEM group (f(x), Geometry, Table, Circuit) dockable at bottom, top, or side."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["ui", "stem"]
+
+[[task]]
 id = "step-1-native-mobix-format"
 title = "Step 1 - the native .mobix format (data foundation)"
 description = "The roadmap first pillar (docs/future-roadmap.md, docs/mobix-format.md, docs/mobix-schema-spec.md): a native ZIP-of-parts document with living entities (PlotElement, TableElement, ParametricShapeElement, CircuitElement), full stylus telemetry (tilt/azimuth/dtMs), paged and streamed I/O, hashed binary assets, and a lossless bidirectional .xopp bridge. EPIC: never implement it in one pass. Picking it up means investigating and adding scope/task children (the ones already recorded are the first batch), and it stays active until the last child ships."

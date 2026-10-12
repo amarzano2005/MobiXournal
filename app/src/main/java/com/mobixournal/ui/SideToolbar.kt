@@ -76,10 +76,13 @@ fun SideToolbar(
     /** The Shapes submenu's members in display order and the ones hidden (Figures settings). */
     shapeOrder: List<String> = emptyList(),
     shapeHidden: Set<String> = emptySet(),
+    /** Opens the function-plot dialog (the STEM section's f(x) button). */
+    onShowGraph: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val items = visibleRailItems(railOrder, railHidden)
-    ToolbarShell(slotCount = items.size, modifier = modifier) {
+    ToolbarShell(slotCount = items.size + STEM_ENTRY_COUNT, modifier = modifier) {
+        StemRailSection(tool, onTool, onShowGraph)
         for (item in items) {
             val group = toolGroupForRailItem(item.id)
             if (group != null) {
@@ -187,10 +190,10 @@ private fun ToolbarShell(
                 shape = RoundedCornerShape(20.dp),
                 // The rail is the app's implement colour; the canvas surround reads the same value, so
                 // the desk and the tools are visibly one material. See `rememberToolbarColor`.
-                color = rememberToolbarColor(),
+                color = rememberToolbarColor().copy(alpha = 0.88f),
                 tonalElevation = 3.dp,
                 shadowElevation = 4.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
             ) {
                 RailColumn(scale) { buttons() }
             }
