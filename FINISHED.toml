@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-bridge-metadata-block"
+title = "The .xopp bridge metadata block and its verification rule"
+description = "Carry living-element semantics through a .xopp export so it can be re-imported, per docs/mobix-format.md. Write a mobix:meta block holding the living elements plus, for each, the SHA-256 of the strokes it was synthesized into. Two hazards the implementation must handle: an XML comment cannot contain a double hyphen, so a formula, a label or a JSON string containing one is escaped on write and unescaped on read; and a round trip through desktop Xournal++ may drop the comment entirely. The block is therefore a claim to be verified and never truth: on import it is honoured only for elements whose referenced strokes are still present, byte-identical and unmodified, and everything else is discarded so the flattened geometry is read as ordinary ink. Verify with JVM tests: a double hyphen round-trips, edited strokes reject the metadata, intact strokes revive it, and a .xopp with no block imports unchanged."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "bridge"]
+
+[[task]]
 id = "mobix-to-xopp-synthesis-export"
 title = "Synthesis export from .mobix back to .xopp"
 description = "The write half of the bridge: flatten a .mobix document into a valid .xopp that desktop Xournal++ opens and prints like any other file. PlotElement compiles into stroke paths plus text labels, TableElement into border strokes plus text, ParametricShapeElement and CircuitElement into their strokes and labels, and a Stroke is written with its nominal lineWidth while tilt/azimuth/dtMs are dropped (they have no .xopp home). Reuse format/XoppWriter.kt and format/Xopp.kt rather than writing a parallel emitter, and keep the .xopp model intact so the other direction is unchanged. Verify with JVM tests: a document of each living family exports, re-parses with Xopp.parseXml, and holds the expected strokes/texts with the expected geometry, plus an XmlEqualityRoundTripTest-style normalisation check. Document the lossy fields in docs/mobix-format.md."
