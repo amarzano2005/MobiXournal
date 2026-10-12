@@ -95,6 +95,12 @@ native for stylus latency and platform fit).
   through Android's built-in streaming `XmlPullParser` (read) and `XmlSerializer` (write).
   Streaming keeps large documents off the heap and gives us exact control over attribute
   preservation (a fidelity requirement — see [`xopp-format.md`](xopp-format.md#fidelity-notes--round-trip-hazards)).
+- **JSON — the same rule, and no dependency either.** The `.mobix` container is JSON, and its model
+  (`JsonNode`: object/array/string/number/bool/null), parser and writer are hand-rolled in
+  `format/json/` — pure Kotlin over no runtime library, so the format layer keeps the property the
+  `.xopp` layer has: what a document means is ours to read, not a library's. Only the codecs
+  (`format/mobix/`) touch it; the settings backup's JSON goes through the same layer rather than its
+  own private copy.
 - **PDF export — PDFBox (`com.tom-roush:pdfbox-android`).** *Decision (2026-07-31):* the one
   non-framework runtime dependency, taken deliberately. The framework `android.graphics.pdf`
   writer (`PdfDocument`) can only paint onto a canvas, so exporting an imported PDF forced every

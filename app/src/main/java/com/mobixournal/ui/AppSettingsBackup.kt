@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import com.mobixournal.format.json.JsonNode
+import com.mobixournal.format.json.JsonParser
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.BarrelDoubleAction
@@ -21,6 +23,10 @@ import com.mobixournal.render.TriangleKind
  * [validate] is the gate in front of it, which **refuses** anything that isn't a settings backup this
  * build can read (see [BackupCheck]), so an import can never quietly load the wrong file or silently
  * drop the settings a newer version wrote.
+ *
+ * The JSON value model and parser are **not** here: they live in `format/json/` ([JsonNode]), shared
+ * with the native `.mobix` container, which is JSON throughout. The writer below is this file's own
+ * because a settings backup is written field by field, deliberately pretty and in a fixed order.
  */
 object AppSettingsBackup {
 
@@ -351,162 +357,4 @@ sealed interface BackupCheck {
                 "Backup from a newer MobiXournal (v$version); " +
                     "this build reads up to v${AppSettingsBackup.CURRENT_VERSION}"
         }
-}
-
-/** Lightweight JSON representation. */
-internal sealed interface JsonNode {
-    data class Obj(val map: Map<String, JsonNode>) : JsonNode {
-        fun getStr(key: String, fallback: String): String = (map[key] as? Str)?.value ?: fallback
-        fun getStrOrNull(key: String): String? = (map[key] as? Str)?.value
-        fun getBool(key: String, fallback: Boolean): Boolean = (map[key] as? Bool)?.value ?: fallback
-        fun getInt(key: String, fallback: Int): Int = (map[key] as? Num)?.value?.toLong()?.toInt() ?: fallback
-        fun getIntOrNull(key: String): Int? = (map[key] as? Num)?.value?.toLong()?.toInt()
-        fun getFloat(key: String, fallback: Float): Float = (map[key] as? Num)?.value?.toFloat() ?: fallback
-        fun getFloatOrNull(key: String): Float? = (map[key] as? Num)?.value?.toFloat()
-        fun getDouble(key: String, fallback: Double): Double = (map[key] as? Num)?.value ?: fallback
-        fun getObj(key: String): Obj? = map[key] as? Obj
-        fun getArr(key: String): Arr? = map[key] as? Arr
-        fun getStrList(key: String): List<String>? =
-            getArr(key)?.list?.mapNotNull { (it as? Str)?.value }
-        fun getFloatList(key: String): List<Float>? =
-            getArr(key)?.list?.mapNotNull { (it as? Num)?.value?.toFloat() }
-        fun getIntList(key: String): List<Int>? =
-            getArr(key)?.list?.mapNotNull { (it as? Num)?.value?.toLong()?.toInt() }
-    }
-    data class Arr(val list: List<JsonNode>) : JsonNode
-    data class Str(val value: String) : JsonNode
-    data class Num(val value: Double) : JsonNode
-    data class Bool(val value: Boolean) : JsonNode
-    data object Null : JsonNode
-}
-
-/** Dependency-free JSON tokenizer and parser. */
-internal object JsonParser {
-    fun parse(input: String): JsonNode {
-        var pos = 0
-        val len = input.length
-
-        fun skipWhitespace() {
-            while (pos < len && input[pos].isWhitespace()) pos++
-        }
-
-        fun parseString(): String {
-            pos++ // skip leading quote
-            val sb = StringBuilder()
-            while (pos < len) {
-                val c = input[pos++]
-                if (c == '"') return sb.toString()
-                if (c == '\\' && pos < len) {
-                    when (val esc = input[pos++]) {
-                        '"' -> sb.append('"')
-                        '\\' -> sb.append('\\')
-                        '/' -> sb.append('/')
-                        'b' -> sb.append('\b')
-                        'f' -> sb.append('\u000c')
-                        'n' -> sb.append('\n')
-                        'r' -> sb.append('\r')
-                        't' -> sb.append('\t')
-                        'u' -> {
-                            if (pos + 4 <= len) {
-                                val hex = input.substring(pos, pos + 4)
-                                pos += 4
-                                hex.toIntOrNull(16)?.let { sb.append(it.toChar()) }
-                            }
-                        }
-                        else -> sb.append(esc)
-                    }
-                } else {
-                    sb.append(c)
-                }
-            }
-            return sb.toString()
-        }
-
-        fun parseValue(): JsonNode {
-            skipWhitespace()
-            if (pos >= len) return JsonNode.Null
-            return when (val c = input[pos]) {
-                '{' -> {
-                    pos++
-                    val map = LinkedHashMap<String, JsonNode>()
-                    skipWhitespace()
-                    if (pos < len && input[pos] == '}') {
-                        pos++
-                        JsonNode.Obj(map)
-                    } else {
-                        while (pos < len) {
-                            skipWhitespace()
-                            if (pos >= len || input[pos] != '"') break
-                            val key = parseString()
-                            skipWhitespace()
-                            if (pos < len && input[pos] == ':') pos++
-                            val value = parseValue()
-                            map[key] = value
-                            skipWhitespace()
-                            if (pos < len && input[pos] == ',') {
-                                pos++
-                            } else if (pos < len && input[pos] == '}') {
-                                pos++
-                                break
-                            } else {
-                                pos++
-                            }
-                        }
-                        JsonNode.Obj(map)
-                    }
-                }
-                '[' -> {
-                    pos++
-                    val list = mutableListOf<JsonNode>()
-                    skipWhitespace()
-                    if (pos < len && input[pos] == ']') {
-                        pos++
-                        JsonNode.Arr(list)
-                    } else {
-                        while (pos < len) {
-                            list += parseValue()
-                            skipWhitespace()
-                            if (pos < len && input[pos] == ',') {
-                                pos++
-                            } else if (pos < len && input[pos] == ']') {
-                                pos++
-                                break
-                            } else {
-                                pos++
-                            }
-                        }
-                        JsonNode.Arr(list)
-                    }
-                }
-                '"' -> JsonNode.Str(parseString())
-                't', 'f' -> {
-                    if (input.startsWith("true", pos)) { pos += 4; JsonNode.Bool(true) }
-                    else if (input.startsWith("false", pos)) { pos += 5; JsonNode.Bool(false) }
-                    else { pos++; JsonNode.Null }
-                }
-                'n' -> {
-                    if (input.startsWith("null", pos)) pos += 4
-                    else pos++
-                    JsonNode.Null
-                }
-                else -> {
-                    val start = pos
-                    if (c == '-' || c == '+' || c.isDigit()) {
-                        pos++
-                        while (pos < len && (input[pos].isDigit() || input[pos] == '.' || input[pos] == 'e' || input[pos] == 'E' || input[pos] == '-' || input[pos] == '+')) {
-                            pos++
-                        }
-                        val numStr = input.substring(start, pos)
-                        val num = numStr.toDoubleOrNull() ?: 0.0
-                        JsonNode.Num(num)
-                    } else {
-                        pos++
-                        JsonNode.Null
-                    }
-                }
-            }
-        }
-
-        return parseValue()
-    }
 }

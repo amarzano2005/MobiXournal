@@ -59,8 +59,8 @@ class SourceStructureTest {
         "ui/EditorDialogs.kt#ScaleneAnglesDialog",
         "ui/EditorDialogs.kt#PenParametersDialog",
         "ui/AppSettingsBackup.kt#fromNode",
-        "ui/AppSettingsBackup.kt#parse",
         "ui/AppSettingsBackup.kt#toJson",
+        "format/json/JsonParser.kt#parse",
         "ui/AppSettings.kt#load",
         "ui/BackupSection.kt#BackupSection",
     )
