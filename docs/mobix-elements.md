@@ -165,8 +165,10 @@ identity, so a table is compiled once, not once per frame.
 
 **The plot is the first family to become editable** (same decision). It is the one entity the app can
 already author — the graph dialog's own output *is* a list of plot curves and a range — so the work is a
-shortening rather than a new surface: `inserting-a-graph-creates-a-living-plotelement-not-ink` inserts
-the element where the ink used to be baked, `select-and-move-a-drawn-living-entity` gives it the box the
+shortening rather than a new surface, and it is under way: the graph dialog now inserts a **living
+`PlotElement`** where the ink used to be baked (`render/PlotElementFactory.kt` turns the dialog's answer
+into the recipe, on the placement `insertMultiPlot` had always computed, so the graph on screen is the
+same graph and only the file changed). `select-and-move-a-drawn-living-entity` gives it the box the
 other three still refuse, and `reopen-the-graph-dialog-on-an-existing-plot-and-edit-it` lets a graph be
 corrected instead of redrawn (`TODO.toml`). The other three families follow one at a time, each when its
 own editor lands ([future-roadmap.md](future-roadmap.md), Step 2).

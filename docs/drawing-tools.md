@@ -77,7 +77,7 @@ decode, called *without* the cache lock), `index`/`unindex` (its width index beh
 
 ## The 2D function plotter (`FunctionPlot`, `MultiFunctionPlotter`, `FunctionAnalysis`)
 
-**The 2D function plotter and function study (`FunctionPlot`).** *Insert graph* turns `f(x)` into **ink**: `FunctionPlot`
+**The 2D function plotter and function study (`FunctionPlot`).** *Insert graph* turns `f(x)` into a **living plot** that draws as ink: `FunctionPlot`
 holds a recursive-descent parser (`+ - * / ^`, unary minus, parentheses, implicit multiplication
 such as `2x^2` or `2(x+1)`, scientific notation `2e-3`, superscripts `x²`, standard math aliases like `tg`/`ctg`/`π`, `x`, `pi`/`e`,
 piecewise expressions like `x < 0: -x; x >= 0: x^2`, and the function table), sampling, and mapping onto page points — all pure and unit-tested.
@@ -86,13 +86,17 @@ parametric curves $\{x(t), y(t)\}$ (`AdvancedCurves`), and **function study / an
 automatic detection of critical points (roots/zeros, y-intercept, local minima, local maxima, mutual curve intersections, and vertical asymptotes/poles),
 numerical derivative $f'(x)$ curve plotting, an optional summary report table inserted on the sheet, and a real-time live preview inside `AdvancedFunctionGraphDialog`.
 A pole or leap breaks the curve, so `1/x` comes out as two branches instead of one line through the origin.
-The plot consists of frame, axes, ticks, curve strokes, and optional marker dots and summary text; `DrawingSurfaceView.insertMultiPlot` inserts all of it as **one undoable edit** on the active layer. That is what keeps the feature inside the
-project's scope rule: the format has nowhere to keep a formula, but it does have strokes, so the plot
-*is* the strokes and nothing else is invented. An unparsable formula inserts nothing at all rather than
+The plot consists of frame, axes, ticks, curve strokes, and optional marker dots and summary text — and the dialog's answer now becomes a **living `PlotElement`** (`DrawingSurfacePlots.insertPlotElement`,
+boxed by `PlotElementFactory.boxFor`), inserted as **one undoable edit** on the active layer. It draws
+through the same compiler it always did (`LivingInk` → `PlotInk` → the plotter), so the graph on screen is
+unchanged; what changed is that the recipe reaches the file, which a `.xopp` cannot hold and a `.mobix`
+can ([mobix-elements.md](mobix-elements.md)). The scope rule still holds at that boundary: a `.xopp` save
+flattens the element into the same strokes (`XoppSynthesis`). `insertMultiPlot` stays as the plain ink
+path for a caller that wants strokes and nothing else. An unparsable formula inserts nothing at all rather than
 an empty frame, and the dialog validates with the very same `compile` call, so it can't accept a graph
 the plotter would refuse to draw. It is opened from the Secondary Toolbar (`RailItem` id `graph`, placed
 immediately to the right of the Cartesian coordinate axis button — a dialog opener rather than a tool, so it gets a plain action button, not a
-pop-up), and the plot is placed **where the user is looking**: `insertMultiPlot` centres it on
+pop-up), and the plot is placed **where the user is looking**: its box is centred on
 `viewportCentrePt(pageIndex)` — the page-local point under the middle of the viewport — and then pulls
 it back inside the sheet, so turning the plotter on while zoomed into a corner lands the graph where
 the eye already is rather than at the sheet's own middle. Same idea as `placeGuide`, and the same

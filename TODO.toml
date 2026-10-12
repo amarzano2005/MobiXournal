@@ -120,27 +120,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "inserting-a-graph-creates-a-living-plotelement-not-ink"
-title = "Inserting a graph creates a living PlotElement, not ink"
-description = """
-Today the graph dialog's result is compiled to ink and the recipe is thrown away: `ui/EditorOverlays.kt` (the `ui.showGraphDialog` branch) calls `surface?.insertMultiPlot(...)`, which in `render/DrawingSurfaceStrokes.kt` runs `MultiFunctionPlotter.plot` and appends `Stroke`s to the page. A graph can therefore be created but never corrected — and in a `.mobix` document the recipe is exactly what the format exists to keep. Make the insertion produce a living `PlotElement` instead of the ink.
-
-(1) Extract the element's construction into a pure, Android-free factory in a new file `render/PlotElementFactory.kt`: `fun plotElementFor(curves: List<PlotCurve>, xMin: Double, xMax: Double, centreX: Double, centreY: Double, page: Page, showCriticalPoints: Boolean, includeDerivative: Boolean): PlotElement`, using the *same* centred box and the same clamping `insertMultiPlot` computes today (width `(page.width * 0.45).coerceIn(240.0, 320.0)`, height `width * 0.6`, centre kept inside the page), mapping `showCriticalPoints`/`includeDerivative` onto the element's own fields, `samples = PlotElement.DEFAULT_SAMPLES`, `summaryText = null` (the analysis summary the dialog can add is not a field of the element yet — say so in the KDoc rather than inventing one), `id = null` (the codec assigns one at save).
-
-(2) Add `DrawingSurfaceView.insertPlotElement(...)` beside `insertMultiPlot` that calls the factory and appends the element to the active layer of the visible page through the same mutation path the other insertions use (an undo entry plus `requestRender()`), and point the overlay's `onConfirm` at it. The screen must not change: the element draws through `LivingInk` (`render/LivingInk.kt`), i.e. the very ink the insertion used to bake. `insertMultiPlot`, `insertTable`, the shape tools and the other three families stay exactly as they are.
-
-Verify with JVM tests in `app/src/test/java/com/mobixournal/render/PlotElementFactoryTest.kt`: the box is centred and clamped exactly as before (assert the same `left`/`top`/`right`/`bottom` the old path computed for the same page and centre); the element survives a full `MobixElementCodec` encode/decode; and `LivingInk.of(element).elements` is non-empty and agrees with what `MultiFunctionPlotter.plot` produced for the same inputs — that last one is the guard that what the user sees did not change. Then install and exercise it on the emulator (`docs/tools.md`, debug package `com.mobixournal.v2`): open the graph dialog, insert a graph, and check with a screenshot that the page shows the graph it showed before."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 460
-created = 2026-10-12
-tags = ["mobix", "plot", "render"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "reopen-the-graph-dialog-on-an-existing-plot-and-edit-it"
 title = "Reopen the graph dialog on an existing plot and edit it"
 description = """

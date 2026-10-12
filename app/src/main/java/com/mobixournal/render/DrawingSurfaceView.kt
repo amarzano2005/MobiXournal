@@ -1363,8 +1363,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Discard a pending text-edit target (the editor's dialog was dismissed without saving). */
     fun cancelTextEdit() = textEdits.cancel()
 
-    /** Adopt [next] as one undoable edit — how [textEdits] commits an element it placed or changed. */
-    private fun commitElementEdit(next: Document) {
+    /**
+     * Adopt [next] as one undoable edit — how an element placement (a text box, an image, a plot
+     * element) commits itself: one history entry, a relayout and a repaint. Internal rather than
+     * private because the insertion helpers live beside this class (`DrawingSurfaceStrokes`).
+     */
+    internal fun commitElementEdit(next: Document) {
         val before = doc
         doc = next
         history.record(before)
