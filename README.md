@@ -95,10 +95,11 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 - **Session Restore**: Open tabs and unsaved drafts are cached locally and restored automatically on next launch.
 - **Universal File Import**:
   - **`.xopp` / `.xopp.gz`**: Standard Xournal++ documents (both gzip and zipped single-file archives).
+  - **`.mobix`**: MobiXournal's own documents. A `.mobix` and a zipped `.xopp` are both ZIP archives, so the file is recognised by the type it declares inside, never by its name — and it reopens in the format it was saved in.
   - **PDF Documents**: Open or import any PDF for annotation. Choose **Replace** or **Append** (appends merge seamlessly into a single document). Pages are drawn on screen through the raster cache and its tiles — smooth to pan, pinch and draw on, and still sharp at any zoom because the visible tiles are rasterised at the true on-screen resolution.
   - **Plain Text & Markdown (`.txt`, `.md`)**: Automatically typeset into annotatable pages with rich headings, monospace code blocks, and lists. Text remains selectable and copyable.
   - **Images (`PNG`, `JPEG`, `WebP`)**: Opened as annotatable pages with the image as the background.
-  - **System Integration**: MobiXournal registers as a document handler for `.xopp`, PDF, and images in the Android "Open with" / "Share" menu. Remote shares (WebDAV, Nextcloud, SSHFS) are supported via Storage Access Framework.
+  - **System Integration**: MobiXournal registers as a document handler for `.xopp`, `.mobix`, PDF, and images in the Android "Open with" / "Share" menu. Remote shares (WebDAV, Nextcloud, SSHFS) are supported via Storage Access Framework.
 
 ### 🖊️ Stylus & Drawing Experience
 
@@ -240,6 +241,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Save As**:
   - **Original (`.xopp`)**: Standard gzip-compressed XML file with external PDF/image linking. Best for desktop interchange.
   - **Zipped (`.xopp`)**: Self-contained archive with PDFs and images bundled internally. Ideal for standalone sharing.
+  - **MobiXournal (`.mobix`)**: This app's own format, and the one that keeps what a `.xopp` can only bake into ink — a table stays a table, a plot keeps its formula, a component keeps its pins, and a stroke keeps the stylus telemetry behind its width. Its pictures and background PDFs are bundled inside the same file, so a `.mobix` is self-contained by construction. To hand one to desktop Xournal++, export it as `.xopp`: the exported file carries the living entities with it, so opening it here again gives the editable table back instead of a drawing of one.
 - **Export PDF**: Flattens annotations over vector backgrounds. Original vector PDFs are written back as real page content — crisp vectors, no ballooning rasterization — and the bundled DejaVu fonts ensure accurate rendering across all PDF readers. An imported PDF therefore stays vector through the whole document, from import to export.
 
 ---

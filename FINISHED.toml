@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-open-save-path"
+title = "Open, sniff and save .mobix documents (and register the type)"
+description = "Let the app open and write .mobix files. FileKind sniffing only reaches the ZIP conclusion, so the discriminating step is the mimetype entry (MobixContainer.mimetypeOf): add the dispatch in io/DocumentIo.read - a ZIP whose mimetype is application/vnd.mobixournal+zip opens as .mobix, anything else stays the ZIP-package .xopp path - and the symmetric branch in encode/save, reusing io/UriStaging.kt and io/ScratchDir.kt exactly as the .xopp path does. Register the type in app/src/main/AndroidManifest.xml (extension and MIME intent filters beside the .xopp ones) and add the suffix and type constants to io/SaveTarget.kt. Add MOBIX to format/SaveFormat.kt and keep it sticky per document, so an opened .xopp is still saved as .xopp and a .mobix as .mobix. Verify with JVM tests for the dispatch and on the emulator for the runtime path (docs/tools.md has the harness; the debug package is com.mobixournal.v2)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "io"]
+
+[[task]]
 id = "mobix-bridge-metadata-block"
 title = "The .xopp bridge metadata block and its verification rule"
 description = "Carry living-element semantics through a .xopp export so it can be re-imported, per docs/mobix-format.md. Write a mobix:meta block holding the living elements plus, for each, the SHA-256 of the strokes it was synthesized into. Two hazards the implementation must handle: an XML comment cannot contain a double hyphen, so a formula, a label or a JSON string containing one is escaped on write and unescaped on read; and a round trip through desktop Xournal++ may drop the comment entirely. The block is therefore a claim to be verified and never truth: on import it is honoured only for elements whose referenced strokes are still present, byte-identical and unmodified, and everything else is discarded so the flattened geometry is read as ordinary ink. Verify with JVM tests: a double hyphen round-trips, edited strokes reject the metadata, intact strokes revive it, and a .xopp with no block imports unchanged."

@@ -38,6 +38,22 @@
                 <data android:scheme="file" android:mimeType="application/x-xopp" />
             </intent-filter>
 
+            <!-- The same for this app's own format. A .mobix cannot be recognised by its bytes
+                 (it is a ZIP, like a ZIP-package .xopp — the archive's own mimetype entry decides,
+                 in io/DocumentIo.kt), so the declared type is what makes a tap hand it over at
+                 all; a sender that knows nothing about it still reaches the extension fallback
+                 below. The type string is MobixFormat.MIMETYPE, spelled out here because the
+                 manifest cannot read Kotlin — ManifestIntentFilterTest is what keeps the two in
+                 step, for both formats and both extensions. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="application/vnd.mobixournal+zip" />
+                <data android:scheme="file" android:mimeType="application/vnd.mobixournal+zip" />
+            </intent-filter>
+
             <!-- Fallback for senders that hand over a file:// URI with no (or a generic) MIME
                  type. Documents from elsewhere — desktop Xournal++, a download, a copy on a
                  mounted share — are not typed as .xopp by the system, which only learns an
@@ -53,6 +69,9 @@
                 <data android:pathPattern=".*\\.xopp" />
                 <data android:pathPattern=".*\\..*\\.xopp" />
                 <data android:pathPattern=".*\\..*\\..*\\.xopp" />
+                <data android:pathPattern=".*\\.mobix" />
+                <data android:pathPattern=".*\\..*\\.mobix" />
+                <data android:pathPattern=".*\\..*\\..*\\.mobix" />
             </intent-filter>
 
             <!-- Offer the app as a PDF handler: open/annotate a PDF handed over by a file

@@ -7,6 +7,8 @@ import com.mobixournal.format.FileKind
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
+import com.mobixournal.format.mobix.MobixContainer
+import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.ATTACH_DOMAIN
@@ -83,6 +85,12 @@ class DocumentIo(
     private val resolver: ContentResolver,
     cacheDir: File,
     filesDir: File,
+    /**
+     * This build's version, written into a `.mobix` as `minAppVersion` — the version that must be
+     * present to write the document safely (`docs/mobix-schema-spec.md`). Passed in rather than read
+     * from `BuildConfig`, so this layer stays testable and the caller owns the one source of truth.
+     */
+    private val appVersion: String,
     /**
      * Typesets a plain-text file into a background PDF ([TextImport]). Injected because it needs the
      * bundled fonts (and so an `AssetManager`); when absent, text files are simply unreadable.
@@ -174,19 +182,26 @@ class DocumentIo(
         return staged.inputStream().use { raw ->
             val input = raw.buffered()
             when (kind) {
-                // A ZIP package carries its PDF inside, so the background needs no sibling file.
-                // A ZIP package's pictures ride inside it too, keyed by the entry name an attached
-                // `pixmap` background points at, so they resolve without touching the filesystem.
-                FileKind.ZIP -> XoppZip.open(input, pdfStore::newFile, imageStore::newFile)
-                    .let { (doc, pdf, images) ->
-                        LoadedFile.Doc(
-                            doc,
-                            pdf,
-                            SaveFormat.ZIPPED,
-                            images = images,
-                            missingImage = refs.pixmapReferences(doc).any { it !in images },
-                        )
-                    }
+                // Both of these are ZIPs and both start `PK\x03\x04`, so the bytes settle nothing:
+                // the `mimetype` entry decides, and it is read from its own view of the file so the
+                // stream this branch is holding is untouched either way.
+                FileKind.ZIP -> if (isMobix(staged)) {
+                    mobix(staged, name, source)
+                } else {
+                    // A ZIP package carries its PDF inside, so the background needs no sibling file.
+                    // A ZIP package's pictures ride inside it too, keyed by the entry name an attached
+                    // `pixmap` background points at, so they resolve without touching the filesystem.
+                    XoppZip.open(input, pdfStore::newFile, imageStore::newFile)
+                        .let { (doc, pdf, images) ->
+                            LoadedFile.Doc(
+                                doc,
+                                pdf,
+                                SaveFormat.ZIPPED,
+                                images = images,
+                                missingImage = refs.pixmapReferences(doc).any { it !in images },
+                            )
+                        }
+                }
                 FileKind.GZIP -> linked(Xopp.open(input), name, source)
                 // Desktop Xournal++ can write plain XML; accept it and save it back compressed.
                 FileKind.XML -> linked(Xopp.parseXml(input.reader(Charsets.UTF_8).readText()), name, source)
@@ -194,6 +209,98 @@ class DocumentIo(
             }
         }
     }
+
+    /**
+     * Whether the ZIP at [staged] is a native `.mobix` rather than a ZIP-package `.xopp`. Read from its
+     * own view of the file: the caller is mid-way through another stream over the same bytes.
+     */
+    private fun isMobix(staged: File): Boolean =
+        staged.inputStream().use { MobixContainer.isMobix(it.buffered()) }
+
+    /**
+     * Open a native `.mobix` document ([MobixContainer.open] decides whether it *is* one).
+     *
+     * Its bundled backgrounds are adopted into the two stores on the way, because a `.mobix` is
+     * self-contained by design: the bytes in the archive are the background, and a pixmap is keyed by
+     * the reference the document carries (which is what the renderer looks one up by). A background the
+     * document only *references* — a native document may still point at a file beside it — is resolved
+     * exactly as a gzip `.xopp`'s is, so neither kind comes up blank when it need not.
+     */
+    private fun mobix(staged: File, name: String, source: Uri?): LoadedFile.Doc {
+        val archive = staged.inputStream().use { MobixContainer.open(it.buffered()) }
+        val document = MobixDocument.open(archive).toDocument()
+        val adopted = adoptBundledBackgrounds(document, archive)
+        val pdf = adopted.pdf ?: refs.resolvePdfBackground(document, name, source)
+        val images = adopted.images + refs.resolvePixmapBackgrounds(document, name, source)
+        val references = refs.pixmapReferences(document)
+        return LoadedFile.Doc(
+            document,
+            pdf,
+            SaveFormat.MOBIX,
+            missingPdf = pdf == null && document.pages.any { it.background is Background.Pdf },
+            images = images,
+            missingImage = references.any { it !in images },
+        )
+    }
+
+    /** What a `.mobix`'s bundled backgrounds became: the local copies, and whether one was unreadable. */
+    private class BundledBackgrounds(
+        val pdf: File?,
+        val images: Map<String, File>,
+        val missing: Boolean,
+    )
+
+    /**
+     * Copy every background a `.mobix` **bundles** out of the archive into the stores, once per asset:
+     * a document with the same PDF behind forty pages carries one entry and gets one local copy.
+     *
+     * An asset the archive does not actually hold is reported rather than skipped in silence — the
+     * pages behind it would render blank, and "file not found" and "file empty" are different things
+     * to try to explain to a user.
+     */
+    private fun adoptBundledBackgrounds(
+        document: Document,
+        archive: MobixContainer.Archive,
+    ): BundledBackgrounds {
+        // One local copy per asset, so the same PDF behind forty pages is read and written once.
+        val byAsset = HashMap<String, File?>()
+        val images = LinkedHashMap<String, File>()
+        var pdf: File? = null
+        var missing = false
+        for (page in document.pages) {
+            val background = page.background
+            val asset = when (background) {
+                is Background.Pdf -> background.bundledAsset
+                is Background.Pixmap -> background.bundledAsset
+                is Background.Solid -> null
+            } ?: continue
+            val file = byAsset.getOrPut(asset) { archive.bytes(asset)?.let { store(background, it) } }
+            if (file == null) {
+                missing = true
+                continue
+            }
+            when (background) {
+                is Background.Pdf -> pdf = file
+                // Keyed by the reference the document keeps: that is what the renderer looks a
+                // background picture up by (`openBackgroundImage`), not the asset name it arrived under.
+                is Background.Pixmap -> images[background.filename] = file
+                is Background.Solid -> Unit
+            }
+        }
+        return BundledBackgrounds(pdf, images, missing)
+    }
+
+    /**
+     * Put bundled [bytes] where a background of this kind lives: the PDF store for a PDF (one file for
+     * the whole document) or the image store for a picture — keyed, at the call site, by the reference
+     * the document keeps.
+     */
+    private fun store(background: Background, bytes: ByteArray): File =
+        if (background is Background.Pdf) {
+            pdfStore.newFile().also { file -> file.outputStream().use { it.write(bytes) } }
+        } else {
+            imageStore.copyIn(bytes.inputStream())
+        }
 
     /**
      * Resolve the PDF background a gzip/XML document links to, so a saved project reopens with its
@@ -265,6 +372,9 @@ class DocumentIo(
      * - [SaveFormat.ORIGINAL] — gzip XML, PDF background linked by path/URI, made **relative** to
      *   [target] whenever the PDF sits in the same folder ([portableReference]).
      * - [SaveFormat.ZIPPED] — a ZIP package with [pdf] embedded (`domain="attach"`, `bg.pdf`).
+     * - [SaveFormat.MOBIX] — this app's own archive, where [pdf] and [images] are **bundled** into it:
+     *   the format is self-contained by design, so a background the stores hold a copy of travels with
+     *   the file instead of being linked (see [backgroundBytesOf]).
      */
     fun encode(
         document: Document,
@@ -277,6 +387,19 @@ class DocumentIo(
         out.outputStream().use { output ->
             when (format) {
                 SaveFormat.ORIGINAL -> Xopp.save(refs.portableReference(document, target), output)
+                SaveFormat.MOBIX -> {
+                    val now = System.currentTimeMillis()
+                    // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
+                    // again is the same document ([Document.documentId]).
+                    output.write(
+                        MobixDocument.of(
+                            document = document,
+                            appVersion = appVersion,
+                            nowMillis = now,
+                            source = target?.let { displayName(it, "document") },
+                        ).toBytes(nowMillis = now, backgroundBytes = backgroundBytesOf(pdf, images)),
+                    )
+                }
                 SaveFormat.ZIPPED -> {
                     // Pictures ride inside the package as numbered entries, so a ZIP save is
                     // self-contained for pixmap backgrounds exactly as it already is for the PDF.
@@ -292,6 +415,28 @@ class DocumentIo(
             }
         }
         return out
+    }
+
+    /**
+     * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's
+     * for a picture.
+     *
+     * Memoised per file, because the answer is asked once per *page*: a forty-page document over one
+     * PDF would otherwise read that PDF forty times on the way to storing it once
+     * ([MobixAssetSink] names a payload by the hash of its bytes, so the archive holds one entry either
+     * way — the reads are the waste).
+     */
+    private fun backgroundBytesOf(pdf: File?, images: Map<String, File>): (Background) -> ByteArray? {
+        val read = HashMap<String, ByteArray?>()
+        fun bytesOf(file: File?): ByteArray? = file?.takeIf { it.isFile }
+            ?.let { read.getOrPut(it.path) { it.readBytes() } }
+        return { background ->
+            when (background) {
+                is Background.Pdf -> bytesOf(pdf)
+                is Background.Pixmap -> bytesOf(images[background.filename])
+                is Background.Solid -> null
+            }
+        }
     }
 
     private companion object {

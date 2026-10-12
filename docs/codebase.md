@@ -112,12 +112,12 @@ app/
       ScratchDir.kt          # unique-per-call file names (staging and both stores), so overlapping writes can't collide
       StoreFiles.kt          # the sweep both stores share: drop unreferenced files, then trim oldest-first to a byte budget
       IncomingDocument.kt    # picks the document URI out of an incoming view/edit intent (pure, testable)
-      SaveTarget.kt          # the .xopp suffix and the application/x-xopp type we write, and the names to suggest for Save and PDF export
+      SaveTarget.kt          # the suffixes and MIME types we write (.xopp and .mobix), and the names to suggest for a save or a PDF export
       PdfStore.kt            # one background-PDF file per open document; never rewritten, content-cache index, byte-budget eviction
       ImageStore.kt          # one never-rewritten copy per pixmap background reference; same liveness sweep and byte budget
       TextImport.kt          # text file -> generated background PDF, cached by content hash
       PdfReference.kt        # how a .xopp names its background PDF: relative <-> absolute paths and SAF document ids
-      DocumentIo.kt          # document I/O policy: staging + PDF stores + read/encode/merge
+      DocumentIo.kt          # document I/O policy: staging + PDF stores + read (which container?) / encode / merge
     panes/                   # split view: one or two editing panes, each with its own tabs
       EditorPane.kt          # one pane: canvas + tab session + save format + its own TabStore
       MirrorSync.kt          # keeps the several views of one document in step (mirrored tabs share the document)

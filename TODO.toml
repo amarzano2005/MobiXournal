@@ -162,20 +162,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "mobix-open-save-path"
-title = "Open, sniff and save .mobix documents (and register the type)"
-description = "Let the app open and write .mobix files. FileKind sniffing only reaches the ZIP conclusion, so the discriminating step is the mimetype entry (MobixContainer.mimetypeOf): add the dispatch in io/DocumentIo.read - a ZIP whose mimetype is application/vnd.mobixournal+zip opens as .mobix, anything else stays the ZIP-package .xopp path - and the symmetric branch in encode/save, reusing io/UriStaging.kt and io/ScratchDir.kt exactly as the .xopp path does. Register the type in app/src/main/AndroidManifest.xml (extension and MIME intent filters beside the .xopp ones) and add the suffix and type constants to io/SaveTarget.kt. Add MOBIX to format/SaveFormat.kt and keep it sticky per document, so an opened .xopp is still saved as .xopp and a .mobix as .mobix. Verify with JVM tests for the dispatch and on the emulator for the runtime path (docs/tools.md has the harness; the debug package is com.mobixournal.v2)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 360
-created = 2026-10-12
-tags = ["mobix", "io"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "new-document-format-choice"
 title = "The new-document format setting and the first-launch choice"
 description = "The policy decided for v2 (docs/mobix-format.md, section Which format a document is written in): a document keeps its own format, and the format a NEW document is born in is the user choice - asked once on first launch, changeable in Settings, with .mobix as the recommended default. Implement it as an AppSettings field under Settings - App & data, respecting the storage and migration rules of ui/AppSettings.kt, plus a step in the onboarding flow (ui/OnboardingDialog.kt and friends) that shows both formats, marks .mobix recommended, and says what each means for desktop interchange. Saving a new untitled document uses that setting; Save As still switches an existing document between formats. Verify on the emulator: the step appears once and never again, the setting survives a restart, and a new document saves in the chosen format. Update ui/SettingsSearch.kt keywords and the README Settings section."
@@ -257,4 +243,18 @@ order = 420
 created = 2026-10-12
 tags = ["mobix", "io"]
 rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "identity-assigned-once-for-a-mobix"
+title = "A document keeps the identity it was first given"
+description = "The document half of this is already shipped with the open/save path: Document.documentId carries the manifest identity into the model and MobixDocument.of writes that id back instead of minting a new one, so a reopened .mobix keeps being the same document (seen on the emulator: opening the saved .mobix from the picker and pressing Save left documentId 6195705e-0540-4b49-99bc-a4a65f839e4a and the page sha256 unchanged). What is still owed is the element ids. MobixDocument.of calls ElementId.withIds at encode time on a copy of the document, so the live model never learns the ids the file holds: a document that arrived as .xopp (no ids anywhere) is written with a fresh set of element ids on every single save, and a merge or a sync client sees every element replaced rather than one edited. Fix it by feeding the identity back: DocumentIo.encode should return the document it actually wrote (a small Encoded(file, document) result, or an explicit out-parameter) and MainActivityDocuments.saveDocument should adopt it after a successful save, the way format/model/Document.kt already carries documentId for a document read from a .mobix. Adopting must not disturb the canvas undo history or selection, so set the ids through a narrow adopt-identity entry point on the surface rather than DrawingSurfaceView.load, which replaces the document and clears history -- a save must not throw away the undo stack. Verify with JVM tests: an Encoded result carries the same ids the bytes hold, re-encoding the adopted document produces byte-identical pages, and a round trip that saves twice asserts the manifest documentId and every element id are unchanged."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 430
+created = 2026-10-12
+tags = ["mobix", "sync"]
+rebuild = true
 emulator_debug = false

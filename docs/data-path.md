@@ -10,12 +10,41 @@ The core loop:
 
 ```
 open (SAF Uri) → UriStaging.stageIn (worker thread) → local staging file
-   → FileKind.sniff (gzip / ZIP / PDF / XML / text) → GZIP|ZIP|plain InputStream → XmlPullParser → Document model
+   → FileKind.sniff (gzip / ZIP / PDF / XML / text) → GZIP|ZIP|plain InputStream
+       → a ZIP is dispatched on its `mimetype` entry: `.mobix` opens as one, anything else is a
+         ZIP-package `.xopp` (see "Which container" below) → XmlPullParser → Document model
      (a raw PDF instead becomes a fresh document via PdfImport.adoptPdf/documentFor)
    → render on SurfaceView (Material 3 chrome around it)
-   → stylus edits mutate the model → XmlSerializer → GZIP|ZIP OutputStream (sticky SaveFormat)
-   → local staging file → UriStaging.stageOut (worker thread) → save (SAF Uri)
+   → stylus edits mutate the model → XmlSerializer (or the .mobix encoder) → GZIP|ZIP OutputStream
+     (sticky SaveFormat) → local staging file → UriStaging.stageOut (worker thread) → save (SAF Uri)
 ```
+
+### Which container: `.mobix` or `.xopp`
+
+The byte sniff reaches "this is a ZIP" and stops there, because a `.mobix` and a ZIP-package `.xopp`
+are both ZIPs — so `DocumentIo.read` asks the archive what it *is*
+(`MobixContainer.isMobix`, i.e. the `mimetype` entry's content, container rule 2) and opens it the way
+that answer says. The verdict also fixes the **sticky SaveFormat**: a document opened as a `.mobix`
+saves as one, and one opened as a `.xopp` (gzip or ZIP package) saves as the `.xopp` it was, so
+travelling through this app never changes a file's format behind the user's back. Save As is the one
+place the format changes, and then the name it proposes carries the new suffix (the picker's declared
+type changes with it, since a `.mobix` offered to the system as `application/x-xopp` would invite
+desktop Xournal++ to open something it cannot).
+
+A `.mobix` is read as its own document, not through the `.xopp` model:
+
+- **Its identity comes with it.** The manifest's `documentId` travels into the model
+  (`Document.documentId`) and is written back on the next save, so saving an open document is an edit
+  of that document rather than a new one — the difference a sync client or a later merge sees.
+- **Its bundled backgrounds are adopted into the stores on the way in** (a `.mobix` is self-contained,
+  so the bytes in the archive *are* the background), keyed by the reference the document keeps, which
+  is what the renderer looks a picture up by; a background the document only references is resolved as
+  a gzip `.xopp`'s is. A bundle the archive does not actually hold is reported — those pages would be
+  blank, and "missing" is a different thing to explain than "empty".
+- **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
+  `canvas.json` disagrees with the manifest, or that stores its content in `chunks/` (an infinite
+  canvas this build cannot lay out) fails the open with the reason, rather than being opened as
+  something it is not.
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 

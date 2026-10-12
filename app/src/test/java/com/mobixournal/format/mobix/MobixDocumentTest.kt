@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,9 +64,12 @@ class MobixDocumentTest {
     /**
      * The document without the identity the conversion added — the shape a comparison against a file
      * read from `.xopp` needs, because a `.xopp` has no ids and a conversion mints them once
-     * (`ElementId.withIds`). Everything else about the model must be identical.
+     * (`ElementId.withIds`, and the document's own id in `manifest.json`). Everything else about the
+     * model must be identical, and the file the `.xopp` writer emits is unchanged either way: identity
+     * is what the native format *adds* to a document, never something it takes away from one.
      */
     private fun Document.withoutIds(): Document = copy(
+        documentId = null,
         pages = pages.map { page ->
             page.copy(
                 id = null,
@@ -340,6 +344,33 @@ class MobixDocumentTest {
             "and a save keeps it",
             first.manifest.documentId,
             openBytes(reopened.toBytes(now + 1)).manifest.documentId,
+        )
+    }
+
+    /**
+     * The identity travels with the *model*, not only inside the archive: opening a `.mobix` into the
+     * app's document and saving that document again is an edit of the same file.
+     *
+     * This is the half the app actually exercises — [DocumentIo.encode] hands the open document to
+     * [MobixDocument.of] without naming an id, so if the model did not carry one, every save would
+     * mint a new document and a sync client would see a whole file replaced rather than a page edited.
+     */
+    @Test
+    fun theModelCarriesTheIdentitySoAResaveIsTheSameDocument() {
+        val opened = openBytes(MobixDocument.of(load("plain"), appVersion = "1.3.0", nowMillis = now).toBytes(now))
+
+        val model = opened.toDocument()
+        assertEquals("the model knows which document it is", opened.manifest.documentId, model.documentId)
+
+        val saved = MobixDocument.of(model, appVersion = "1.3.0", nowMillis = now + 1)
+        assertEquals("so saving it again is the same document", model.documentId, saved.manifest.documentId)
+
+        val fromXopp = load("plain")
+        assertNull("a .xopp has no document identity to carry", fromXopp.documentId)
+        assertNotEquals(
+            "and a document that never was one gets a fresh id per ingest",
+            MobixDocument.of(fromXopp, appVersion = "1.3.0", nowMillis = now).manifest.documentId,
+            MobixDocument.of(fromXopp, appVersion = "1.3.0", nowMillis = now).manifest.documentId,
         )
     }
 

@@ -7,7 +7,9 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.LoadedFile
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
+import com.mobixournal.io.mobixNameFor
 import com.mobixournal.io.pdfNameFor
+import com.mobixournal.io.saveNameFor
 import com.mobixournal.io.xoppNameFor
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.ImageImport
@@ -369,19 +371,33 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri) {
  */
 internal fun MainActivity.saveActiveTab() {
     val target = tabs.active?.uri?.let(Uri::parse)?.takeIf(io::isWritable)
-    if (target != null) saveDocument(target) else saveLauncher.launch(suggestedXoppName())
+    if (target != null) saveDocument(target) else launchSavePicker()
 }
 
 /**
- * The name a Save should propose for the open document: whatever it is called, forced to end in
- * `.xopp`.
+ * Ask the system where to write the open document, with the picker that matches the sticky format:
+ * the suggested name and the declared type both come from it, so a document that lives as a `.mobix`
+ * is proposed as `notes.mobix` and typed as one, instead of being offered to desktop Xournal++ as a
+ * file it cannot open.
+ *
+ * Both pickers write through [saveDocument], which is what makes the format the *document's* sticky
+ * choice rather than the picker's: the launcher only decides the name and the type the system sees.
+ */
+internal fun MainActivity.launchSavePicker() {
+    val name = suggestedSaveName()
+    if (saveFormat == SaveFormat.MOBIX) saveMobixLauncher.launch(name) else saveLauncher.launch(name)
+}
+
+/**
+ * The name a Save should propose for the open document: whatever it is called, forced to end in the
+ * suffix of the format it is saved in.
  *
  * The name is not always a well-formed one — a document can be opened under a name with no extension
  * at all, or with someone else's (a plain-text file typeset into a document arrives as `notes.txt`)
- * — and asking the picker for that name verbatim writes a Xournal++ file the system and desktop
- * Xournal++ won't recognise as one.
+ * — and asking the picker for that name verbatim writes a file neither the system nor desktop
+ * Xournal++ recognises as one.
  */
-internal fun MainActivity.suggestedXoppName(): String = xoppNameFor(pendingSaveName)
+internal fun MainActivity.suggestedSaveName(): String = saveNameFor(pendingSaveName, saveFormat)
 
 /**
  * The name a PDF export should propose: the open document's own name with `.pdf` in its place, so an
@@ -400,7 +416,7 @@ internal fun MainActivity.documentHasAudio(view: DrawingSurfaceView): Boolean =
 internal fun MainActivity.beginSaveAs(filename: String, format: SaveFormat) {
     saveFormat = format
     // The name field is free text, so whatever was typed goes through the same rule as a suggested
-    // one: what lands on disk is a `.xopp`, whatever the user called it.
-    pendingSaveName = xoppNameFor(filename)
-    saveLauncher.launch(pendingSaveName)
+    // one: what lands on disk carries the suffix of the format the user just chose.
+    pendingSaveName = saveNameFor(filename, format)
+    launchSavePicker()
 }

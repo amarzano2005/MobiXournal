@@ -105,17 +105,17 @@ bridge:
 └─────────────────┘       Synthesis Export         └─────────────────┘
 ```
 
-**Status: the compiler is written in both directions and the block that carries the semantics is
-written with it; the UI wiring is not.** The import half is `format/mobix/MobixDocument.kt` with
+**Status: the format is openable and savable, the compiler is written in both directions, and the block
+that carries the semantics is written with it; the export's own entry point is not wired.** The import half is `format/mobix/MobixDocument.kt` with
 `MobixBridgeFile.kt` — a `.xopp` becomes a `.mobix` document, its living elements revived where the
 block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt`, which
 flattens a document holding living entities into ink through one compiler per family (`SynthesisTable`,
 `SynthesisPlot`, `SynthesisShape`, `SynthesisCircuit`) and hands the result to the **ordinary** `.xopp`
-writer, so there is one emitter and not a second one to keep in step. Still owed: the app-level
-open/save path that lets a `.mobix` be opened and exported at all (`TODO.toml`, `mobix-open-save-path`)
-and the wiring that reaches the export from it (`wire-the-synthesis-into-the-xopp-export`, which also
-owes the user a word about what could not be drawn). Until those land, only this app's own tests call
-the export.
+writer, so there is one emitter and not a second one to keep in step. A `.mobix` opens and saves as itself (the type is registered, the sticky format is per document, its
+bundled backgrounds are adopted on the way in — [data-path.md](data-path.md)). Still owed: the entry
+point that *reaches* the export from the save path of a `.mobix`
+(`TODO.toml`, `wire-the-synthesis-into-the-xopp-export`, which also owes the user a word about what
+could not be drawn). Until that lands, only this app's own tests call the export.
 
 1. **Import `.xopp` → `.mobix`**:
    - Every `.xopp` construct maps to its element in [mobix-elements.md](mobix-elements.md):

@@ -66,8 +66,11 @@ private val TEXT_FAMILIES = listOf("Sans", "Serif", "Monospace")
 /**
  * "Save As" chooser: name the file and pick the on-disk format. [SaveFormat.ORIGINAL] writes the
  * standard gzip `.xopp` (a PDF background stays linked by location); [SaveFormat.ZIPPED] writes a
- * single self-contained file with the PDF embedded inside (see `docs/xopp-format.md`). The choice
- * becomes sticky — later plain Saves reuse it — so the picker pre-selects the current format.
+ * single self-contained file with the PDF embedded inside (see `docs/xopp-format.md`);
+ * [SaveFormat.MOBIX] writes this app's own format, which keeps what a `.xopp` can only bake into ink
+ * and is reached from the desktop through the export bridge (`docs/mobix-format.md`). The choice
+ * becomes sticky — later plain Saves reuse it — so the picker pre-selects the current format, and the
+ * name it proposes carries the chosen format's suffix.
  *
  * [initialName] is the open document's own name (already carrying the `.xopp` suffix), not a generic
  * placeholder: saving a copy of `notes.xopp` should start at `notes.xopp`, not at `document.xopp`.
@@ -106,6 +109,13 @@ fun SaveAsDialog(
                     title = "Zipped (single file)",
                     subtitle = "One portable file with the PDF embedded inside.",
                     onClick = { format = SaveFormat.ZIPPED },
+                )
+                FormatOption(
+                    selected = format == SaveFormat.MOBIX,
+                    title = "MobiXournal (.mobix)",
+                    subtitle = "This app's own format: tables, plots and components stay editable. " +
+                        "For desktop Xournal++, export it to .xopp.",
+                    onClick = { format = SaveFormat.MOBIX },
                 )
             }
         },

@@ -120,7 +120,8 @@ internal class MobixDocument(
     /**
      * The app's document model: the pages and the title, plus the source `.xopp`'s creator, file version
      * and preview when there was one — so a file that travelled through this app is still the file its
-     * owner had ([MobixBridgeFile]).
+     * owner had ([MobixBridgeFile]) — and **this document's own identity**, which is what lets a save of
+     * it be an edit rather than a duplicate ([Document.documentId]).
      */
     fun toDocument(): Document = Document(
         creator = bridge?.creator ?: DEFAULT_CREATOR,
@@ -128,6 +129,7 @@ internal class MobixDocument(
         pages = pages,
         preview = bridge?.preview,
         title = manifest.title,
+        documentId = manifest.documentId,
     )
 
     // ---- pages -----------------------------------------------------------------------------------
@@ -239,15 +241,18 @@ internal class MobixDocument(
          * @param appVersion the version written as `minAppVersion` — the build that must be present to
          *   write this file safely (`docs/mobix-schema-spec.md`). The caller passes its own version, so
          *   the format layer needs no build configuration.
-         * @param documentId the document's identity; a fresh one by default, because ingesting a file
-         *   creates a document (a *re*-save of an open one keeps the id it read).
+         * @param documentId the document's identity, which is **the document's own** unless the caller
+         *   has a reason to overrule it: a document that came from a `.mobix` carries the id it read
+         *   ([Document.documentId]) and a re-save keeps it, while one that came from a `.xopp` has none
+         *   and gets a fresh one here. Ingesting a file creates a document; saving an open one does not
+         *   create a second.
          * @param source what the `.xopp` was called, when the caller knows it.
          */
         fun of(
             document: Document,
             appVersion: String,
             nowMillis: Long,
-            documentId: String = UUID.randomUUID().toString(),
+            documentId: String = document.documentId ?: UUID.randomUUID().toString(),
             source: String? = null,
         ): MobixDocument {
             // Identity is assigned here and nowhere else: every element of every page gets an id once,

@@ -19,6 +19,7 @@ import com.mobixournal.audio.AudioSession
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.DocumentIo
 import com.mobixournal.io.IncomingDocument
+import com.mobixournal.io.MOBIX_MIME
 import com.mobixournal.io.UriStaging
 import com.mobixournal.io.XOPP_MIME
 import com.mobixournal.panes.EditorPane
@@ -130,7 +131,14 @@ class MainActivity : ComponentActivity() {
         // Plain text defaults to monospace — the sensible face for the logs and source it usually
         // holds; markdown picks its own faces per run style (see MarkdownPdfWriter).
         val fonts = PdfFonts(assets)
-        DocumentIo(contentResolver, cacheDir, filesDir, TextPdfGenerator(fonts::load))
+        DocumentIo(
+            resolver = contentResolver,
+            cacheDir = cacheDir,
+            filesDir = filesDir,
+            // The build's own version is what a `.mobix` records as `minAppVersion`.
+            appVersion = BuildConfig.VERSION_NAME,
+            textPdf = TextPdfGenerator(fonts::load),
+        )
     }
 
     /** Shared staging helper for URI byte transfers (export, image insert). */
@@ -164,6 +172,17 @@ class MainActivity : ComponentActivity() {
 
     internal val saveLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(XOPP_MIME)) { uri ->
+            uri?.let { saveDocument(it) }
+        }
+
+    /**
+     * The picker for a save in this app's **own** format. A separate launcher because the type a
+     * picker declares is fixed when it is registered, and it is the type that decides both the
+     * suggested name the system keeps and how the saved file is typed for other apps — a `.mobix`
+     * written as `application/x-xopp` would be offered to desktop Xournal++, which cannot open it.
+     */
+    internal val saveMobixLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(MOBIX_MIME)) { uri ->
             uri?.let { saveDocument(it) }
         }
 
@@ -269,7 +288,7 @@ class MainActivity : ComponentActivity() {
                     onExit = { finish() },
                     onSaveAs = { name, format -> beginSaveAs(name, format) },
                     currentSaveFormat = { saveFormat },
-                    currentSaveName = { suggestedXoppName() },
+                    currentSaveName = { suggestedSaveName() },
                     onImportPdf = { mode ->
                         pendingImportMode = mode
                         importPdfLauncher.launch(arrayOf(PDF_MIME))
