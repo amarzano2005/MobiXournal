@@ -50,20 +50,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "recognise-sync-conflict-patterns-for-syncthing-and-nextcloud"
-title = "Recognise sync conflict patterns for Syncthing and Nextcloud"
-description = "Detect conflict companion filenames alongside a opened or saving .mobix document: Syncthing (.sync-conflict-YYYYMMDD-HHMMSS-*) and Nextcloud (*(conflicted copy YYYY-MM-DD *)). Implement a pure pattern matcher and SAF sibling finder via DocumentReferenceResolver/UriStaging to locate candidate conflict archives."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "low"
-order = 420
-created = 2026-10-12
-tags = ["mobix", "sync"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "core-three-way-merge-engine-for-mobix-documents"
 title = "Core three-way merge engine for .mobix documents"
 description = "Implement page-level and element-level CRDT three-way merge algorithm in format/mobix: compare base, local, and remote manifest.json pages by sha256 and modified stamp. Union non-colliding pages and perform element-level Last-Write-Wins merge for pages modified concurrently on both sides. Pure Kotlin and JVM unit tested."
