@@ -200,6 +200,18 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
   `Alt+2` for Crimson Red `#D32F2F`, `Alt+3` for Royal Blue `#1565C0`), not just the 3 factory favorites.
 - **Pen-Tip Radial HUD Menu (Pie Menu)**: Clicking the pen barrel button summons an instant circular HUD
   directly under the pen nib, selecting colors, widths, or tools in $< 0.1\text{ s}$ without moving the hand.
+  **Decision (2026-10-13, recorded in this, its owning spoke): the HUD is new work, not NeXopp's palette
+  returning.** The palette [codebase.md](codebase.md) records as deleted — 33 files: its renderer, tap
+  layer, haptics, action and catalog code, and a `Palette` settings section of its own — stays deleted.
+  What comes back is transient and smaller. Nothing is on screen until the barrel button is pressed; the
+  ring is anchored at the nib and dismissed on release (a second press or a cancelled gesture closes it
+  without committing); and it has no settings section, because the keybindings and the palette slots
+  already live under **Settings → Input & Shortcuts**. The ring holds the user's own swatches **first** —
+  the one-flick home a custom HEX slot never had — then the pen widths, then the few tools with no other
+  1-tap place; the rail and the STEM dock keep the rest, which is the weight that made the old palette
+  heavy on screen. It draws through `ModernTheme` and the canvas chrome (`render/CanvasChrome.kt`), not a
+  Compose dialog, so the menu sits under the pen without stealing focus. Tracked in `TODO.toml` as the
+  three *pen-tip radial HUD* tasks (summon, draw, flick-and-commit).
 
 ---
 

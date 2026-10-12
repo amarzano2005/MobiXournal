@@ -22,9 +22,93 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .xopp format can represent on disk. If a capability cannot round-trip through the file, it is out of scope."
 
 [[task]]
+id = "step-1-mobix-format-remainder"
+title = "Step 1 - the native .mobix format (what is still owed)"
+description = "The Step 1 epic was archived while the pillar still owed work, so this one carries the rest and keeps the order docs/future-roadmap.md insists on: Step 1 before Step 2. The container, the codecs, the .xopp bridge, the rendering of the living entities and the sync merge all shipped (the unstamped tasks in FINISHED.toml), but four things are open: the infinite canvas (docs/infinite-canvas.md - the manifest already names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D while MobixDocument refuses every mode except PAGINATED, so an infinite document cannot be opened at all), continuous audio-inking sync (docs/audio-inking-sync.md - only the .wav sidecars of docs/audio.md exist), the math engine parameter sliders (docs/math-engine.md promises sliders over PlotElement.parameters and nothing in the UI moves one) and the companion Lua plugin scope already tracked here. Plus the docs that keep calling shipped work pending. EPIC: break it into scopes and tasks; it closes before Step 2 starts."
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "critical"
+order = 400
+created = 2026-10-13
+tags = ["mobix", "roadmap"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "docs-that-still-claim-shipped-step-1-work-is-pending"
+title = "Fix the docs that still call shipped Step 1 work pending"
+description = "Two docs describe shipped work as pending, and one of the two is the paragraph that made this epic necessary. docs/architecture.md still says the read-only open for a newer minAppVersion, the wiring of the export and the drawing of the living entities are to come: all three shipped (read-only-open-for-a-newer-mobix, wire-the-synthesis-into-the-xopp-export and the plot editing work, all unstamped in FINISHED.toml) and the exports draw living entities on screen, in PDF and in SVG through render/LivingInk.kt today. docs/mobix-format.md still opens its status with the export entry point not being wired while the paragraph it introduces says the opposite. Fix both so they describe the build, leave the genuinely open items pointing at their own spokes, and check the rest of the Step 1 status prose while there. Verify by re-reading each corrected passage against the code it names; DocsGuardTest checks reachability and line budgets, not truth."
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 310
+created = 2026-10-13
+tags = ["docs", "mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "infinite-canvas-engine"
+title = "Infinite canvas engine (vertical, horizontal and 2D modes)"
+description = "docs/infinite-canvas.md specifies four spatial modes and their container half: content in chunks/chunk_<cx>_<cy>.json with signed coordinates, a canvas.json envelope carrying mode, widthPt, heightPt, chunkSizePt and origin, 1024 pt chunks, viewport culling with offscreen eviction, and an auto-slicer that looks for a whitespace seam within 40 pt of each target cut and never splits a stroke, a table or a plot, so PDF and .xopp export come out as discrete pages. The vocabulary is already in the code - format/mobix/MobixManifest.kt names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D and carries canvasMode through the manifest and canvas.json - but MobixDocument.kt throws for every mode except PAGINATED and the writer only ever emits that one, so an infinite document cannot be opened, created or saved. Investigate what the viewport and page model would have to gain (docs/rendering.md, docs/pages-and-paper.md), how chunks map to elements and to the merge engine (docs/sync-and-storage.md), and what the slicer means for the existing export path, then add the task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 320
+created = 2026-10-13
+tags = ["canvas", "mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "continuous-audio-inking-sync"
+title = "Continuous audio-inking sync (Opus assets, point-level deltas, karaoke replay)"
+description = "docs/audio-inking-sync.md: Opus recordings bundled at assets/aud_<sha256>.opus (one codec, named by content hash, so the same recording referenced twice is stored once), every stroke point carrying its own time delta so a long sentence maps to sound point by point, and karaoke replay plus sub-stroke scrubbing from the ink back to the audio. What exists is the other half of the pair: docs/audio.md documents .wav sidecars timestamped only at the start of a stroke, and StrokePoint.dtMs is already in the element model and written by MobixElementCodec, so the telemetry channel is open and unused. Investigate the encoder on Android and the decoder the desktop side needs, how the input layer would populate the deltas (docs/stylus.md), how replay drives against the canvas paint loop, and what the .xopp bridge does with a document whose audio it cannot carry. Then add the task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 330
+created = 2026-10-13
+tags = ["audio", "mobix"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "plot-parameter-sliders"
+title = "Plot parameter sliders (drag a named parameter, re-evaluate the curve)"
+description = "The half of docs/math-engine.md that is not built: an expression may define named parameters (f(x) = a*sin(b*x+c)), the PlotElement keeps them in format/model/Living.kt parameters and MobixPlotCodec persists them, and a parameter is meant to be moved rather than the formula rewritten - but nothing in the UI offers a slider. Give a selected PlotElement one slider per named parameter, anchored to the plot and drawn in the canvas chrome so a drag on a slider is never a stroke, re-evaluating the curve and the analysis on each drag through the render/FunctionAnalysis.kt path, refreshing the cached summaryText the way render/PlotElementFactory.kt does, and committing the moved parameter as one undoable edit on release. Verify with JVM unit tests that moving a parameter changes the sampled curve and the analysis, plus an emulator pass dragging a slider with a stylus while the plot updates."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 340
+created = 2026-10-13
+tags = ["plot", "math"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "xournalpp-lua-mobix-plugin"
+title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
+description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 350
+created = 2026-10-12
+tags = ["mobix", "desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "step-2-modern-mobile-ui"
 title = "Step 2 - modern mobile interface (design system, living editors, typesetting, PDF, multi-window)"
-description = "The roadmap second pillar (docs/future-roadmap.md). It owns five spokes, not one: the modern design system and bimanual ergonomics (docs/ui-modernization.md), auto-shape perfection (docs/shape-perfection-engine.md), on-device scientific typesetting (docs/latex-typst-rendering.md), the advanced PDF annotation engine (docs/pdf-annotation-engine.md) and the multi-window workspace (docs/multi-window-workspace.md); it also owns the in-place editors that make the Step 1 living entities editable, one family at a time (docs/mobix-elements.md). Not in this epic: Phase 4 of ui-modernization.md (the desktop shell, Mica / Vibrancy) and everything in docs/desktop-workstation.md, which are Step 3. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
+description = "The roadmap second pillar (docs/future-roadmap.md). It owns five spokes, not one: the modern design system and bimanual ergonomics (docs/ui-modernization.md), auto-shape perfection (docs/shape-perfection-engine.md), on-device scientific typesetting (docs/latex-typst-rendering.md), the advanced PDF annotation engine (docs/pdf-annotation-engine.md) and the multi-window workspace (docs/multi-window-workspace.md); it also owns the in-place editors that make the Step 1 living entities editable, one family at a time (docs/mobix-elements.md). Not in this epic: Phase 4 of ui-modernization.md (the desktop shell, Mica / Vibrancy) and everything in docs/desktop-workstation.md, which are Step 3. Sequencing: the Step 1 remainder epic in this file closes first, because docs/future-roadmap.md orders the three pillars strictly. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
 status = "active"
 level = "epic"
 category = "feature"
@@ -36,88 +120,18 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "floating-glassmorphic-tool-dock-with-1-tap-stem-section"
-title = "Floating glass capsule tool dock over the 1-tap STEM rail"
-description = "Phase 2 of docs/ui-modernization.md, over what already ships: ui/StemRailSection.kt already provides the permanent 1-tap STEM group (f(x), Geometry, Table, Circuit), so this task is the glass capsule itself, not the STEM entries. Render the rail as a translucent frosted capsule - 1 px hairline border at 10-15 percent alpha, backdrop blur at 85-90 percent opacity, 16 dp corner radius, 40 dp buttons, every number from ModernTheme - so the ruling or the PDF underneath stays readable and the rail stops reading as a filled Material container. Touches ui/SideToolbar.kt, ui/EditorRegions.kt and the canvas chrome in render/CanvasChrome.kt; the slots, their order and their pop-ups do not change. Verify on the emulator with screenshots of the rail over a ruled page and over a PDF page, at the left and at the right rail position."
+id = "modern-design-token-provider-modern-theme"
+title = "Modern design token provider (ModernTheme)"
+description = "Phase 1 of docs/ui-modernization.md: extract the documented design tokens into one provider instead of scattering literals, so every later task in this epic reads its numbers from there. Add ui/theme/ModernTheme.kt holding the design-token JSON of the doc as typed constants plus the Compose shapes and springs built from it: glassDark rgba(22,22,24,0.85), glassLight rgba(255,255,255,0.88), hairlineBorder rgba(255,255,255,0.12), blurRadiusDp 24, capsuleCornerRadiusDp 16, compactButtonSizeDp 40, hairlineStrokeWidthDp 1.0, springStiffness 380, springDamping 28, fadeTransitionMs 150. Material 3 keeps everything the tokens do not cover. Verify with a JVM unit test that pins each token to the documented value, so a silent drift between the doc and the code fails the build."
 status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 460
-created = 2026-10-12
-tags = ["ui", "stem"]
+order = 430
+created = 2026-10-13
+tags = ["ui", "tokens"]
 rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "bimanual-free-hand-thumb-strip-for-tablets"
-title = "Bimanual free-hand thumb strip for tablets"
-description = "The free-hand thumb strip from docs/ui-modernization.md: a slim strip pinned along the non-dominant edge (left for a right-handed writer, right for a left-handed one, using the handedness already in AppSettings and ui/OnboardingHandedness.kt) giving thumb access to Undo, Redo, the eraser toggle and the favourite colour dots while the pen hand keeps writing. It is a touch-only surface: a press on it inks nothing, does not fight palm rejection (docs/stylus.md), and a stylus passes through to the canvas untouched. Verify on the emulator: screenshots with the strip on each edge, and a clean logcat while a stroke is drawn with the strip visible."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 490
-created = 2026-10-12
-tags = ["ui", "tablet"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "interactive-living-table-selection-and-in-place-cell-editing"
-title = "Living table editor: select it, edit cells in place, resize rows and columns"
-description = "docs/mobix-elements.md: the plot is the family that became editable first - created by render/PlotElementFactory.kt, given a box and hit-testability by render/ElementBounds.kt, moved and resized by render/SelectionOps.kt, re-edited from the selection action bar through applyPlotEdit - and the other three families follow one at a time, each when its own editor lands (future-roadmap.md, Step 2). The table model is already written and tested (format/mobix/MobixTableCodec.kt over format/model/Living.kt, with colWidths/rowHeights as the authority for the grid) but the Table tool still draws a static grid stroke, ElementBounds answers an empty box and isHitTestable = false for the family, and no editing surface exists. Investigate what the plot precedent hands over (creation from the existing tool, a truthful box, a selection entry, undo, preserving uninterpreted fields) and what is genuinely new (per-cell text editing, row and column resize), then add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 550
-created = 2026-10-12
-tags = ["ui", "mobix", "table"]
-rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "shape-perfection-engine-with-300ms-pen-dwell-recognition"
-title = "Shape perfection engine: dwell recognition, morph animation, living handles"
-description = "docs/shape-perfection-engine.md specifies a whole engine: a dwell trigger (tip travelling under 3.0 pt for 300 ms before touch-up, with an exponential moving average cancelling micro-jitter), a multi-class classifier reading curvature profile, aspect ratio, closure and vertex angles against the documented invariants (line with regression R2 above 0.96, circle closing within 10 percent with radial variance under 0.08, rectangle corners within 10 degrees of a right angle, triangle angles summing to 180), a 120 ms damped-spring morph with a haptic confirm, and a living ParametricShapeElement with draggable vertex handles. What ships is smaller and different: render/DrawingSurfaceHoldSnap.kt rewrites the stroke in progress as recognised geometry after a 500 ms hold with a 6 px slop, using the desktop-derived recogniser (render/Inertia.kt, render/RecoSegment.kt, render/CircleRecognizer.kt, render/ShapeRecognizer.kt), and commits a uniform-width stroke rather than an element. Investigate the gap - the two dwell constants, which classes the recogniser can already name, how a recognised shape becomes a living element instead of ink, and what the selection and handle machinery must learn - then add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 630
-created = 2026-10-12
-tags = ["ui", "shapes"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "split-floating-islands-layout-with-pinned-stem-satellite"
-title = "Split floating islands layout with pinned STEM satellite"
-description = "Layout Option 2 of docs/ui-modernization.md: two visually paired capsules instead of the unified dock - Island A (inking: pen, highlighter, eraser, select, colour) anchored near the free hand, and Island B, the STEM satellite, pinned open and draggable to a secondary area of the screen. The chosen layout lives in AppSettings beside ToolbarPosition, the satellite keeps its position across restarts, and both islands take their geometry from ModernTheme so they stay consistent with the unified dock. Verify on the emulator: screenshots of both layouts and of a dragged satellite, plus a settings round-trip unit test."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 480
-created = 2026-10-12
-tags = ["ui", "stem"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "auto-dim-toolbars-while-the-stylus-is-inking"
-title = "Auto-dim toolbars while the stylus is inking"
-description = "Zen inking mode from docs/ui-modernization.md: while the stylus is actively drawing, the floating toolbars fade to 30 percent opacity and come back on lift, animated with the documented 150 ms fade (tokens from ModernTheme). Drive it from the input layer lifecycle (render/DrawingSurface*.kt already distinguishes stylus down, lift and takeover) rather than polling tool state from the UI, and make sure a finger pan or a two-finger zoom never triggers the dim. Verify on the emulator: a screenshot mid-stroke with the chrome dimmed and one after lift with it restored."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 500
-created = 2026-10-12
-tags = ["ui"]
-rebuild = true
-emulator_debug = true
 
 [[task]]
 id = "modern-typography-inter-geist-and-monoline-icon-set"
@@ -148,6 +162,20 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
+id = "floating-glassmorphic-tool-dock-with-1-tap-stem-section"
+title = "Floating glass capsule tool dock over the 1-tap STEM rail"
+description = "Phase 2 of docs/ui-modernization.md, over what already ships: ui/StemRailSection.kt already provides the permanent 1-tap STEM group (f(x), Geometry, Table, Circuit), so this task is the glass capsule itself, not the STEM entries. Render the rail as a translucent frosted capsule - 1 px hairline border at 10-15 percent alpha, backdrop blur at 85-90 percent opacity, 16 dp corner radius, 40 dp buttons, every number from ModernTheme - so the ruling or the PDF underneath stays readable and the rail stops reading as a filled Material container. Touches ui/SideToolbar.kt, ui/EditorRegions.kt and the canvas chrome in render/CanvasChrome.kt; the slots, their order and their pop-ups do not change. Verify on the emulator with screenshots of the rail over a ruled page and over a PDF page, at the left and at the right rail position."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 460
+created = 2026-10-12
+tags = ["ui", "stem"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "dockable-toolbar-at-top-and-bottom-center"
 title = "Dockable toolbar at top and bottom center"
 description = "Extend ToolbarPosition (ui/AppSettings.kt, today only LEFT and RIGHT) with TOP and BOTTOM centre docking as a horizontal capsule, per the mobile ergonomics section of docs/ui-modernization.md; the capsule keeps its STEM section and its pop-ups must land inside the window at every position. Layout lands in ui/EditorRegions.kt, the setting and the onboarding handedness step in ui/OnboardingHandedness.kt, and ui/AppSettingsBackup.kt round-trips the enum through the generic readEnum path. Verify with a unit test for the settings round-trip and the backup codec, then on the emulator with one screenshot per position."
@@ -156,6 +184,48 @@ level = "task"
 category = "feature"
 urgency = "normal"
 order = 470
+created = 2026-10-12
+tags = ["ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "split-floating-islands-layout-with-pinned-stem-satellite"
+title = "Split floating islands layout with pinned STEM satellite"
+description = "Layout Option 2 of docs/ui-modernization.md: two visually paired capsules instead of the unified dock - Island A (inking: pen, highlighter, eraser, select, colour) anchored near the free hand, and Island B, the STEM satellite, pinned open and draggable to a secondary area of the screen. The chosen layout lives in AppSettings beside ToolbarPosition, the satellite keeps its position across restarts, and both islands take their geometry from ModernTheme so they stay consistent with the unified dock. Verify on the emulator: screenshots of both layouts and of a dragged satellite, plus a settings round-trip unit test."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 480
+created = 2026-10-12
+tags = ["ui", "stem"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "bimanual-free-hand-thumb-strip-for-tablets"
+title = "Bimanual free-hand thumb strip for tablets"
+description = "The free-hand thumb strip from docs/ui-modernization.md: a slim strip pinned along the non-dominant edge (left for a right-handed writer, right for a left-handed one, using the handedness already in AppSettings and ui/OnboardingHandedness.kt) giving thumb access to Undo, Redo, the eraser toggle and the favourite colour dots while the pen hand keeps writing. It is a touch-only surface: a press on it inks nothing, does not fight palm rejection (docs/stylus.md), and a stylus passes through to the canvas untouched. Verify on the emulator: screenshots with the strip on each edge, and a clean logcat while a stroke is drawn with the strip visible."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 490
+created = 2026-10-12
+tags = ["ui", "tablet"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "auto-dim-toolbars-while-the-stylus-is-inking"
+title = "Auto-dim toolbars while the stylus is inking"
+description = "Zen inking mode from docs/ui-modernization.md: while the stylus is actively drawing, the floating toolbars fade to 30 percent opacity and come back on lift, animated with the documented 150 ms fade (tokens from ModernTheme). Drive it from the input layer lifecycle (render/DrawingSurface*.kt already distinguishes stylus down, lift and takeover) rather than polling tool state from the UI, and make sure a finger pan or a two-finger zoom never triggers the dim. Verify on the emulator: a screenshot mid-stroke with the chrome dimmed and one after lift with it restored."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 500
 created = 2026-10-12
 tags = ["ui"]
 rebuild = true
@@ -174,34 +244,6 @@ created = 2026-10-12
 tags = ["ui"]
 rebuild = true
 emulator_debug = true
-
-[[task]]
-id = "xournalpp-lua-mobix-plugin"
-title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
-description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 700
-created = 2026-10-12
-tags = ["mobix", "desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "modern-design-token-provider-modern-theme"
-title = "Modern design token provider (ModernTheme)"
-description = "Phase 1 of docs/ui-modernization.md: extract the documented design tokens into one provider instead of scattering literals, so every later task in this epic reads its numbers from there. Add ui/theme/ModernTheme.kt holding the design-token JSON of the doc as typed constants plus the Compose shapes and springs built from it: glassDark rgba(22,22,24,0.85), glassLight rgba(255,255,255,0.88), hairlineBorder rgba(255,255,255,0.12), blurRadiusDp 24, capsuleCornerRadiusDp 16, compactButtonSizeDp 40, hairlineStrokeWidthDp 1.0, springStiffness 380, springDamping 28, fadeTransitionMs 150. Material 3 keeps everything the tokens do not cover. Verify with a JVM unit test that pins each token to the documented value, so a silent drift between the doc and the code fails the build."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 430
-created = 2026-10-13
-tags = ["ui", "tokens"]
-rebuild = true
-emulator_debug = false
 
 [[task]]
 id = "anchored-flyout-inspector-for-the-function-plot-editor"
@@ -232,16 +274,58 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "reconcile-pen-tip-radial-hud-with-the-deleted-radial-palette"
-title = "Reconcile the documented pen-tip radial HUD with the deleted radial palette"
-description = "docs/ui-modernization.md commits to a Pen-Tip Radial HUD Menu (a pie menu under the nib, summoned by the barrel button) and docs/desktop-workstation.md wants the same menu driven by a dial, but docs/codebase.md records that the NeXopp radial palette was deleted outright - 33 files, its renderer, tap layer, haptics, action and catalog code, and its settings section, which became Shortcuts. What is left in the tree is dead: the palette paints and the PALETTE_* constants in render/CanvasChrome.kt are never drawn, and render/DrawingSurfaceView.kt still carries a radial-palette haptics flag. Establish what the roadmap actually asks for now (a fresh nib-anchored HUD on the Android barrel button, or the deletion stands and both docs need amending), what a minimal HUD would be built from, and whether it belongs to Step 2 at all. Then either add the task-level children or record the decision in docs/ui-modernization.md and delete this item. Produce tasks or a decision, not code."
+id = "summon-and-anchor-the-pen-tip-radial-hud"
+title = "Summon and anchor the pen-tip radial HUD"
+description = "The pen-tip radial HUD of docs/ui-modernization.md, and deliberately not the NeXopp palette docs/codebase.md records as deleted: nothing is on screen until the stylus barrel button is pressed, the ring is anchored at the nib (hoverX/hoverY on render/DrawingSurfaceView), and it disappears on release instead of sitting over the canvas. Build the summon on the barrel path the input layer already has (render/DrawingSurfaceInput.kt: BarrelButtonState, barrelClicks, the vendor-key route a Bluetooth pen needs, InputClassifier.classify), dismiss on a second press or a cancelled gesture, and add no settings section of its own - the bindings stay in Settings to Shortcuts (docs/chrome.md). Verify with the connected harness that already drives these paths (com.mobixournal.StylusInputTest, see docs/stylus.md) plus an emulator pass with screenshots: the button opens the HUD at the tip, a release outside cancels without committing, and logcat shows no stroke was written."
 status = "active"
-level = "scope"
+level = "task"
 category = "feature"
 urgency = "normal"
 order = 540
 created = 2026-10-13
+tags = ["ui", "stylus"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "draw-the-radial-hud-as-glass-chrome"
+title = "Draw the radial HUD as glass chrome at the nib"
+description = "The HUD drawing, done in the canvas chrome instead of a Compose dialog so it sits under the pen without stealing focus: a hairline ring, 40 dp slots and a glass fill, every number from the ModernTheme tokens, monoline icons (docs/ui-modernization.md). The ring holds the user palette swatches first - this is where a custom HEX slot finally gets a one-flick home - then the pen widths, then the few tools with no other 1-tap home; the rail and the STEM dock keep the rest, because duplicating every tool is exactly the weight that made the old palette heavy. Remove the dead radial-palette paints left behind in render/CanvasChrome.kt (paletteScrim, paletteRing, paletteSlot, paletteSlotEmpty, paletteHighlight, paletteIcon and the PALETTE_* constants are never drawn by anything) and let the new HUD replace them. Verify with a screenshot of the open HUD over ink, and a unit test that every slot of the documented count lands inside the ring."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 550
+created = 2026-10-13
 tags = ["ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "track-the-flick-and-commit-a-colour-width-or-tool"
+title = "Track the flick and commit a colour, width or tool"
+description = "The interaction half of the HUD: while the barrel button is held, the flick direction selects a slot, a haptic tick marks each crossing of a boundary, and the release commits. The commit goes through the one entry point that already exists for it - applyToolPreset in ui/ToolPreset.kt is documented as the call the rail and a radial-palette slot both make, so a HUD choice can never mean something the user could not have set by hand. Keep the angle-to-slot geometry pure and unit-tested, including the seam wrap where the ring closes and the centre dead zone, which commits nothing when the release lands there; haptics respect the existing pen haptics setting. Verify with JVM unit tests over the slot maths (each slot centre, a boundary, the dead zone) plus an emulator pass committing a colour and a width and seeing the rail follow."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 560
+created = 2026-10-13
+tags = ["ui", "stylus"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "interactive-living-table-selection-and-in-place-cell-editing"
+title = "Living table editor: select it, edit cells in place, resize rows and columns"
+description = "docs/mobix-elements.md: the plot is the family that became editable first - created by render/PlotElementFactory.kt, given a box and hit-testability by render/ElementBounds.kt, moved and resized by render/SelectionOps.kt, re-edited from the selection action bar through applyPlotEdit - and the other three families follow one at a time, each when its own editor lands (future-roadmap.md, Step 2). The table model is already written and tested (format/mobix/MobixTableCodec.kt over format/model/Living.kt, with colWidths/rowHeights as the authority for the grid) but the Table tool still draws a static grid stroke, ElementBounds answers an empty box and isHitTestable = false for the family, and no editing surface exists. Investigate what the plot precedent hands over (creation from the existing tool, a truthful box, a selection entry, undo, preserving uninterpreted fields) and what is genuinely new (per-cell text editing, row and column resize), then add the task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 570
+created = 2026-10-12
+tags = ["ui", "mobix", "table"]
 rebuild = false
 emulator_debug = false
 
@@ -253,7 +337,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 560
+order = 580
 created = 2026-10-13
 tags = ["table", "mobix"]
 rebuild = true
@@ -267,7 +351,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 570
+order = 590
 created = 2026-10-13
 tags = ["table"]
 rebuild = true
@@ -281,7 +365,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 580
+order = 600
 created = 2026-10-13
 tags = ["table", "mobix"]
 rebuild = true
@@ -295,7 +379,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 590
+order = 610
 created = 2026-10-13
 tags = ["circuit", "mobix"]
 rebuild = false
@@ -309,7 +393,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 600
+order = 620
 created = 2026-10-13
 tags = ["circuit", "mobix"]
 rebuild = true
@@ -323,7 +407,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 610
+order = 630
 created = 2026-10-13
 tags = ["circuit"]
 rebuild = true
@@ -337,11 +421,25 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 620
+order = 640
 created = 2026-10-13
 tags = ["circuit", "mobix"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "shape-perfection-engine-with-300ms-pen-dwell-recognition"
+title = "Shape perfection engine: dwell recognition, morph animation, living handles"
+description = "docs/shape-perfection-engine.md specifies a whole engine: a dwell trigger (tip travelling under 3.0 pt for 300 ms before touch-up, with an exponential moving average cancelling micro-jitter), a multi-class classifier reading curvature profile, aspect ratio, closure and vertex angles against the documented invariants (line with regression R2 above 0.96, circle closing within 10 percent with radial variance under 0.08, rectangle corners within 10 degrees of a right angle, triangle angles summing to 180), a 120 ms damped-spring morph with a haptic confirm, and a living ParametricShapeElement with draggable vertex handles. What ships is smaller and different: render/DrawingSurfaceHoldSnap.kt rewrites the stroke in progress as recognised geometry after a 500 ms hold with a 6 px slop, using the desktop-derived recogniser (render/Inertia.kt, render/RecoSegment.kt, render/CircleRecognizer.kt, render/ShapeRecognizer.kt), and commits a uniform-width stroke rather than an element. Investigate the gap - the two dwell constants, which classes the recogniser can already name, how a recognised shape becomes a living element instead of ink, and what the selection and handle machinery must learn - then add the task-level children. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 650
+created = 2026-10-12
+tags = ["ui", "shapes"]
+rebuild = false
+emulator_debug = false
 
 [[task]]
 id = "freehand-shape-recognition-on-a-300ms-end-of-stroke-dwell"
@@ -351,7 +449,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 640
+order = 660
 created = 2026-10-13
 tags = ["shapes"]
 rebuild = true
@@ -365,7 +463,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 650
+order = 670
 created = 2026-10-13
 tags = ["shapes", "ui"]
 rebuild = true
@@ -379,7 +477,7 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 660
+order = 680
 created = 2026-10-13
 tags = ["shapes", "mobix"]
 rebuild = true
@@ -393,7 +491,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 670
+order = 690
 created = 2026-10-13
 tags = ["latex", "typesetting"]
 rebuild = false
@@ -407,7 +505,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 680
+order = 700
 created = 2026-10-13
 tags = ["pdf"]
 rebuild = false
@@ -421,7 +519,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 690
+order = 710
 created = 2026-10-13
 tags = ["multi-window"]
 rebuild = false
