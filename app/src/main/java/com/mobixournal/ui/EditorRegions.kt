@@ -217,20 +217,20 @@ fun EditorTopBar(
                 modifier = Modifier.padding(horizontal = 4.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { pane.surface?.undo() }, enabled = pane.canUndo, modifier = Modifier.size(36.dp)) {
+                    IconButton(onClick = { pane.surface?.undo() }, enabled = !pane.isReadOnly && pane.canUndo, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
                     }
-                    IconButton(onClick = { pane.surface?.redo() }, enabled = pane.canRedo, modifier = Modifier.size(36.dp)) {
+                    IconButton(onClick = { pane.surface?.redo() }, enabled = !pane.isReadOnly && pane.canRedo, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
                     }
                 }
             }
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = if (pane.isReadOnly) 0.38f else 0.7f),
                 modifier = Modifier.padding(horizontal = 2.dp),
             ) {
-                IconButton(onClick = onExportPdf, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Filled.PictureAsPdf,
                         contentDescription = "Export PDF",
@@ -241,14 +241,15 @@ fun EditorTopBar(
             }
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (pane.isReadOnly) 0.38f else 0.7f),
                 modifier = Modifier.padding(horizontal = 2.dp),
             ) {
-                IconButton(onClick = onSave, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 }
             }
             OverflowMenu(
+                isReadOnly = pane.isReadOnly,
                 settings = settings,
                 onSelectPenPreset = { preset ->
                     if (settings != null && onSettingsChange != null) {
@@ -1200,7 +1201,8 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     state.layers = visibleLayers()
     state.backgroundStyle = visiblePageBackgroundStyle()
     state.backgroundConfig = visiblePageBackgroundConfig()
-    state.pageSize = visiblePageSize()
+    onReadOnlyChanged = { ro -> state.isReadOnly = ro }
+    state.isReadOnly = isReadOnly
     onHistoryChanged = { u, r -> state.canUndo = u; state.canRedo = r }
     onZoomChanged = { z -> state.zoom = z }
     onPageCountChanged = { n -> state.pageCount = n }
@@ -1439,6 +1441,7 @@ fun EditorPaneView(
 /** The top-bar overflow ("hamburger") menu: compact quick file actions, PDF row, pen subsection, and settings. */
 @Composable
 private fun OverflowMenu(
+    isReadOnly: Boolean = false,
     settings: AppSettings?,
     onSelectPenPreset: (PenPreset) -> Unit,
     onOpen: () -> Unit,
@@ -1493,12 +1496,14 @@ private fun OverflowMenu(
             MenuQuickAction(
                 icon = Icons.Filled.Save,
                 label = "Save",
+                enabled = !isReadOnly,
                 onClick = { open = false; onSave() },
                 modifier = Modifier.weight(1f),
             )
             MenuQuickAction(
                 icon = Icons.Filled.SaveAs,
                 label = "Save As",
+                enabled = !isReadOnly,
                 onClick = { open = false; onSaveAs() },
                 modifier = Modifier.weight(1f),
             )
@@ -1513,6 +1518,7 @@ private fun OverflowMenu(
         ) {
             OutlinedButton(
                 onClick = { open = false; onImportPdf() },
+                enabled = !isReadOnly,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
@@ -1522,6 +1528,7 @@ private fun OverflowMenu(
             }
             OutlinedButton(
                 onClick = { open = false; onExportPdf() },
+                enabled = !isReadOnly,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
@@ -1540,6 +1547,7 @@ private fun OverflowMenu(
         ) {
             OutlinedButton(
                 onClick = { open = false; onExportPagePng() },
+                enabled = !isReadOnly,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
@@ -1549,6 +1557,7 @@ private fun OverflowMenu(
             }
             OutlinedButton(
                 onClick = { open = false; onExportPageSvg() },
+                enabled = !isReadOnly,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
@@ -1661,20 +1670,28 @@ private fun MenuQuickAction(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
+    val alpha = if (enabled) 1f else 0.38f
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 6.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp))
+        Icon(
+            icon,
+            contentDescription = label,
+            modifier = Modifier.size(22.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+        )
         Spacer(Modifier.height(4.dp))
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
         )
     }
 }

@@ -13,10 +13,10 @@ import com.mobixournal.format.SaveFormat
  * Layout — the first line is the selection, then one tab per line, tab-separated:
  * ```
  * active<TAB>1
- * <id><TAB><title><TAB><uri><TAB><format><TAB><pdfPath><TAB><page><TAB><docKey>
+ * <id><TAB><title><TAB><uri><TAB><format><TAB><pdfPath><TAB><page><TAB><docKey><TAB><isReadOnly>
  * ```
- * The trailing `docKey` was added after the format shipped, so a record without it is still read —
- * such a tab simply gets its own id as its key, which is exactly "a view of its own document".
+ * Trailing fields (`docKey`, `isReadOnly`) were added after the format shipped, so records without
+ * them are still read with defaults.
  * Empty fields mean null. Field values are escaped ([escape]) so a title containing a tab or a
  * newline can never break the record structure.
  */
@@ -37,7 +37,8 @@ object TabIndex {
             append(tab.format.name).append(SEP)
             append(escape(tab.pdfPath.orEmpty())).append(SEP)
             append(tab.page).append(SEP)
-            append(escape(tab.docKey)).append('\n')
+            append(escape(tab.docKey)).append(SEP)
+            append(tab.isReadOnly).append('\n')
         }
     }
 
@@ -69,6 +70,7 @@ object TabIndex {
                 pdfPath = unescape(f[4]).ifEmpty { null },
                 page = f[5].toIntOrNull() ?: 0,
                 docKey = f.getOrNull(6)?.let(::unescape)?.ifEmpty { null } ?: id,
+                isReadOnly = f.getOrNull(7)?.toBooleanStrictOrNull() ?: false,
                 hydrated = false,
             )
         }

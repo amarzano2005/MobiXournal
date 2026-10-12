@@ -160,11 +160,14 @@ stores is the document layer's job ([data-path.md](data-path.md)).
    bump, not a field nobody understands.
 4. **`minAppVersion` is a write-time floor, and a reader enforces it**: it is the app version that
    must be present to write this file *safely*. A reader whose own version is lower than
-   `minAppVersion` refuses to open the document normally and offers read-only opening, instead of
-   silently dropping the entities it cannot keep. `formatVersion` answers "can I parse the shape of
-   this?", `minAppVersion` answers "can I keep it intact?" — a higher `minAppVersion` with the same
-   `formatVersion` is the case rule 3 alone would lose data on. Comparison is numeric per dotted
-   component, and a build stamp is ignored (`1.3.0-v2` equals `1.3.0`).
+   `minAppVersion` refuses to open the document normally and offers a read-only open via a consent dialog
+   (`ui/NewerAppConsentDialog.kt`), instead of silently dropping the entities it cannot keep. In read-only
+   mode, in-canvas drawing and mutating gestures are blocked, and Save, Save As, and Export entries are
+   disabled to protect document integrity; declining the prompt closes the tab and leaves nothing open.
+   `formatVersion` answers "can I parse the shape of this?", `minAppVersion` answers "can I keep it
+   intact?" — a higher `minAppVersion` with the same `formatVersion` is the case rule 3 alone would lose
+   data on. Comparison is numeric per dotted component, and a build stamp is ignored (`1.3.0-v2` equals
+   `1.3.0`).
 5. **Which version writes what is recorded here**, one line per release, so a support question
    ("why won't my tablet open this file?") has an answer in the repo:
 

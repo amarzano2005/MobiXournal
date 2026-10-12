@@ -57,11 +57,14 @@ internal fun MainActivity.openDocument(uri: Uri) {
     inBackground("Opening ${displayName(uri)}…", { io.stageIn(uri, "open") }) { result ->
         // Staging names are unique per open, so the copy has to be swept once it has been read
         // or the cache would grow a file per document opened.
-        result.mapCatching { staged -> try { loadDocument(staged, uri) } finally { staged.delete() } }
+        result.mapCatching { staged -> try { loadDocument(staged, uri, placeholder, created) } finally { staged.delete() } }
             .onSuccess {
-                // The fetch landed, so the tab holds a real document and may be snapshotted again.
-                tabs.updateActive { if (it.id == placeholder.id) it.copy(opening = false) else it }
-                snapshotActiveTab()
+                // If the open was intercepted by a newer-app consent prompt, opening stays true until
+                // the user accepts or declines. Otherwise the fetch landed normally.
+                if (pendingNewerAppConsent.value == null) {
+                    tabs.updateActive { if (it.id == placeholder.id) it.copy(opening = false) else it }
+                    snapshotActiveTab()
+                }
             }
             .onFailure {
                 toast("Open failed: ${it.message}")
@@ -139,21 +142,44 @@ internal fun MainActivity.applySettingsToLayers(settings: AppSettings) {
     applyNewDocumentFormat(settings)
 }
 
+/**
+ * Apply a loaded document onto the canvas and sync state with [isReadOnly].
+ */
+private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isReadOnly: Boolean) {
+    saveFormat = loaded.format
+    surface?.isReadOnly = isReadOnly
+    surface?.setPdfSource(loaded.pdf?.let(PdfPageCache::shared))
+    surface?.clearPdfAnalysis() // cleared until extraction below finishes
+    // The pictures behind pixmap backgrounds were copied out to local files on load;
+    // hand them over before the document, so the first frame already has them.
+    surface?.setImageSources(loaded.images)
+    surface?.load(loaded.document)
+    if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
+    else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
+    else if (loaded.missingImage) toast("Background image not found; those pages will be blank")
+}
+
 /** Put a staged local copy of the document onto the canvas ([DocumentIo] decided what it is). */
-internal fun MainActivity.loadDocument(staged: File, source: Uri) {
+internal fun MainActivity.loadDocument(
+    staged: File,
+    source: Uri,
+    placeholder: OpenTab? = null,
+    created: Int = -1,
+) {
     when (val loaded = io.read(staged, displayName(source), source)) {
         // A raw PDF isn't a document to parse — it becomes a fresh annotatable one over its pages.
         is LoadedFile.Pdf -> {
             // A PDF we typeset from a text file lives only in the prunable cache, so there is no
             // stable path to link: save it as a ZIP package with the bytes embedded instead.
             saveFormat = if (loaded.generated) SaveFormat.ZIPPED else SaveFormat.ORIGINAL
+            surface?.isReadOnly = false
             adoptPdf(loaded.file, ImportPdfMode.REPLACE, source.toString(), inStore = loaded.generated)
             // The tab came from a PDF, so it has no `.xopp` on disk yet: drop the source URI so
             // plain Save asks for a destination instead of writing document bytes over the PDF,
             // and suggest the PDF's own name with the extension swapped. The PDF itself stays on
             // as the page background, so the saved file still opens over it in desktop Xournal++.
             pendingSaveName = xoppNameFor(displayName(source))
-            tabs.updateActive { it.copy(title = pendingSaveName, uri = null) }
+            tabs.updateActive { it.copy(title = pendingSaveName, uri = null, isReadOnly = false) }
             tabsTick.value++
             return
         }
@@ -161,6 +187,7 @@ internal fun MainActivity.loadDocument(staged: File, source: Uri) {
         // picture as that page's pixmap background.
         is LoadedFile.Image -> {
             saveFormat = SaveFormat.ORIGINAL
+            surface?.isReadOnly = false
             if (!adoptImage(loaded.file, source.toString())) {
                 toast("Couldn't read that image")
                 return
@@ -168,21 +195,42 @@ internal fun MainActivity.loadDocument(staged: File, source: Uri) {
             // Like a PDF import, the tab has no `.xopp` behind it yet: drop the source URI so a
             // plain Save asks where to put one instead of writing document bytes over the image.
             pendingSaveName = xoppNameFor(loaded.name)
-            tabs.updateActive { it.copy(title = pendingSaveName, uri = null) }
+            tabs.updateActive { it.copy(title = pendingSaveName, uri = null, isReadOnly = false) }
             tabsTick.value++
             return
         }
         is LoadedFile.Doc -> {
-            saveFormat = loaded.format
-            surface?.setPdfSource(loaded.pdf?.let(PdfPageCache::shared))
-            surface?.clearPdfAnalysis() // cleared until extraction below finishes
-            // The pictures behind pixmap backgrounds were copied out to local files on load;
-            // hand them over before the document, so the first frame already has them.
-            surface?.setImageSources(loaded.images)
-            surface?.load(loaded.document)
-            if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
-            else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
-            else if (loaded.missingImage) toast("Background image not found; those pages will be blank")
+            if (loaded.needsNewerApp) {
+                // docs/mobix-schema-spec.md rule 4: a document requiring a newer app version than
+                // ours offers a read-only open instead of corrupting or losing newer data structures.
+                pendingNewerAppConsent.value = PendingConsent(
+                    name = displayName(source),
+                    onConfirm = {
+                        applyLoadedDoc(loaded, source, isReadOnly = true)
+                        placeholder?.let { p ->
+                            tabs.updateActive { if (it.id == p.id) it.copy(opening = false, isReadOnly = true) else it }
+                        }
+                        snapshotActiveTab()
+                        tabsTick.value++
+                        persistTabs()
+                    },
+                    onDismiss = {
+                        val targetId = placeholder?.id
+                        val idx = if (targetId != null) tabs.tabs.indexOfFirst { it.id == targetId } else -1
+                        if (idx >= 0) {
+                            closeTab(idx)
+                        } else if (created >= 0) {
+                            tabs.close(created)
+                            if (tabs.isEmpty) tabs.open(blankTab())
+                            tabs.active?.let(::showTab)
+                        }
+                        tabsTick.value++
+                        persistTabs()
+                    },
+                )
+                return
+            }
+            applyLoadedDoc(loaded, source, isReadOnly = false)
         }
     }
     // The document may reference recordings made elsewhere; fetch them so its strokes replay.
@@ -320,11 +368,19 @@ internal fun MainActivity.analyzePdfInBackground(file: File, into: DrawingSurfac
 
 /** Flatten the current document to a PDF at the chosen location (backgrounds + annotations). */
 internal fun MainActivity.exportPdf(uri: Uri) = runCatching {
+    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
+        toast("Document is read-only")
+        return@runCatching
+    }
     staging.writeTo(uri) { output: java.io.OutputStream -> surface?.exportPdf(output) }
 }.onFailure { toast("PDF export failed: ${it.message}") }
 
 /** Export the active page alone as a high-resolution PNG at the chosen location. */
 internal fun MainActivity.exportPagePng(uri: Uri) = runCatching {
+    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
+        toast("Document is read-only")
+        return@runCatching
+    }
     val view = surface
     val index = view?.currentPageIndex() ?: 0
     staging.writeTo(uri) { output: java.io.OutputStream -> view?.exportPagePng(index, output) }
@@ -332,6 +388,10 @@ internal fun MainActivity.exportPagePng(uri: Uri) = runCatching {
 
 /** Export the active page alone as an SVG vector file at the chosen location. */
 internal fun MainActivity.exportPageSvg(uri: Uri) = runCatching {
+    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
+        toast("Document is read-only")
+        return@runCatching
+    }
     val view = surface
     val index = view?.currentPageIndex() ?: 0
     staging.writeTo(uri) { output: java.io.OutputStream -> view?.exportPageSvg(index, output) }
@@ -356,6 +416,10 @@ internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
  * - [SaveFormat.ZIPPED] — a ZIP package with the PDF embedded (`domain="attach"`, `bg.pdf`).
  */
 internal fun MainActivity.saveDocument(uri: Uri) {
+    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
+        toast("Document is read-only")
+        return
+    }
     val view = surface ?: return
     // Snapshot the document here, on the UI thread (the canvas isn't thread-safe) — [toDocument] is
     // just a reference to the immutable model, so it is instant. The *encoding*, by contrast, is
@@ -420,6 +484,10 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri) {
  * share), and only fall back to asking for a location when we don't.
  */
 internal fun MainActivity.saveActiveTab() {
+    if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
+        toast("Document is read-only")
+        return
+    }
     val target = tabs.active?.uri?.let(Uri::parse)?.takeIf(io::isWritable)
     if (target != null) saveDocument(target) else launchSavePicker()
 }

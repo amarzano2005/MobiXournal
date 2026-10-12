@@ -11,4 +11,5 @@
     <!-- Shown when a tab's cached snapshot exists but couldn't be parsed; the file is left on disk
          untouched so it can still be recovered, rather than silently blanking the tab. -->
     <string name="restore_failed">Couldn\'t restore %1$s — its cached copy is unreadable. The file was left untouched.</string>
+    <string name="document_read_only">Document is read-only</string>
 </resources>

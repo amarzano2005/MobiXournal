@@ -325,6 +325,24 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onLayersChanged = { onLayersChanged?.invoke() },
     )
 
+    /** Whether this document is in read-only mode. Drawing and edits are blocked. */
+    var isReadOnly: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            onReadOnlyChanged?.invoke(value)
+        }
+    var onReadOnlyChanged: ((Boolean) -> Unit)? = null
+    var onReadOnlyBlocked: (() -> Unit)? = null
+
+    fun notifyReadOnlyBlocked() {
+        onReadOnlyBlocked?.invoke() ?: run {
+            post {
+                android.widget.Toast.makeText(context, "Document is read-only", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     /** Notified with (canUndo, canRedo) whenever the history changes, so the chrome can enable buttons. */
     var onHistoryChanged: ((Boolean, Boolean) -> Unit)? = null
     /** Fired when a keyboard key is pressed; return true to consume the event. */
@@ -1040,12 +1058,14 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Revert the most recent edit (stroke or erase gesture). No-op when there's nothing to undo. */
     fun undo() {
+        if (isReadOnly) return
         doc = history.undo(doc) ?: return
         afterHistoryMove()
     }
 
     /** Re-apply the most recently undone edit. No-op when there's nothing to redo. */
     fun redo() {
+        if (isReadOnly) return
         doc = history.redo(doc) ?: return
         afterHistoryMove()
     }

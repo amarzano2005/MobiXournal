@@ -227,6 +227,10 @@ fun EditorScreen(
      */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
+    /** The document name waiting on consent to open read-only (written by a newer app version). */
+    pendingNewerAppConsentName: String? = null,
+    onConfirmNewerAppConsent: () -> Unit = {},
+    onDismissNewerAppConsent: () -> Unit = {},
     /** An image-placement tap: open the file/gallery picker and insert what it returns. */
     onPickImage: (Placement) -> Unit,
     /** A pane's canvas has just been built: its index, then the view. */
@@ -368,6 +372,9 @@ fun EditorScreen(
             onImportPdf = onImportPdf,
             exportGaps = exportGaps,
             onDismissExportGaps = onDismissExportGaps,
+            pendingNewerAppConsentName = pendingNewerAppConsentName,
+            onConfirmNewerAppConsent = onConfirmNewerAppConsent,
+            onDismissNewerAppConsent = onDismissNewerAppConsent,
         )
 
         if (!settings.hasSeenOnboarding) {

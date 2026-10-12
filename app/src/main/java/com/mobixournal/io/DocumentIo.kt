@@ -59,6 +59,8 @@ sealed interface LoadedFile {
         val images: Map<String, File> = emptyMap(),
         /** True when some pixmap background named a picture we could not reach. */
         val missingImage: Boolean = false,
+        /** True when a .mobix manifest requires a newer app version than this build (minAppVersion). */
+        val needsNewerApp: Boolean = false,
     ) : LoadedFile
 }
 
@@ -231,11 +233,13 @@ class DocumentIo(
      */
     private fun mobix(staged: File, name: String, source: Uri?): LoadedFile.Doc {
         val archive = staged.inputStream().use { MobixContainer.open(it.buffered()) }
-        val document = MobixDocument.open(archive).toDocument()
+        val mobixDoc = MobixDocument.open(archive)
+        val document = mobixDoc.toDocument()
         val adopted = adoptBundledBackgrounds(document, archive)
         val pdf = adopted.pdf ?: refs.resolvePdfBackground(document, name, source)
         val images = adopted.images + refs.resolvePixmapBackgrounds(document, name, source)
         val references = refs.pixmapReferences(document)
+        val needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion)
         return LoadedFile.Doc(
             document,
             pdf,
@@ -243,6 +247,7 @@ class DocumentIo(
             missingPdf = pdf == null && document.pages.any { it.background is Background.Pdf },
             images = images,
             missingImage = references.any { it !in images },
+            needsNewerApp = needsNewerApp,
         )
     }
 

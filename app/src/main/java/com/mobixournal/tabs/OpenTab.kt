@@ -48,6 +48,12 @@ data class OpenTab(
      * document over its snapshot and bring it back that way on the next launch.
      */
     val opening: Boolean = false,
+    /**
+     * True when the document was opened in read-only mode (for example because it requires a newer
+     * app version than this build, per docs/mobix-schema-spec.md rule 4). Drawing, saving, and
+     * exporting are disabled for this tab.
+     */
+    val isReadOnly: Boolean = false,
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

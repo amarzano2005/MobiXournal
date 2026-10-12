@@ -123,6 +123,9 @@ class MainActivity : ComponentActivity() {
      */
     internal val exportGaps = mutableStateOf<List<Uncompilable>>(emptyList())
 
+    /** Pending consent to open a .mobix document that requires a newer app version than this build. */
+    internal val pendingNewerAppConsent = mutableStateOf<PendingConsent?>(null)
+
     /**
      * The single worker every tab-overview preview is queued on, so a grid of tabs parses and
      * rasterises one document at a time instead of all of them at once (see [previewTabPage]).
@@ -252,25 +255,27 @@ class MainActivity : ComponentActivity() {
         return false
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        val store = settingsStore
-        val initialSettings = store.load()
+    private fun setupThemeAndWindow(initialSettings: AppSettings) {
         when (initialSettings.themeMode) {
             ThemeMode.LIGHT -> setTheme(R.style.Theme_MobiXournal_Light)
             ThemeMode.DARK -> setTheme(R.style.Theme_MobiXournal_Dark)
             ThemeMode.SYSTEM -> setTheme(R.style.Theme_MobiXournal)
         }
         MobiXournalApp.applyThemeMode(this, initialSettings.themeMode)
-
-        super.onCreate(savedInstanceState)
-
-        // Set immediate window background for smooth startup transition matching theme mode
         val isDark = when (initialSettings.themeMode) {
             ThemeMode.SYSTEM -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
             ThemeMode.LIGHT -> false
             ThemeMode.DARK -> true
         }
         window.setBackgroundDrawableResource(if (isDark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val store = settingsStore
+        val initialSettings = store.load()
+        setupThemeAndWindow(initialSettings)
+
+        super.onCreate(savedInstanceState)
 
         // PDFBox needs its font/resource loader primed once before any PDF export can run.
         PDFBoxResourceLoader.init(applicationContext)
@@ -304,6 +309,17 @@ class MainActivity : ComponentActivity() {
                     onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
                     exportGaps = exportGaps.value,
                     onDismissExportGaps = { exportGaps.value = emptyList() },
+                    pendingNewerAppConsentName = pendingNewerAppConsent.value?.name,
+                    onConfirmNewerAppConsent = {
+                        val pending = pendingNewerAppConsent.value
+                        pendingNewerAppConsent.value = null
+                        pending?.onConfirm?.invoke()
+                    },
+                    onDismissNewerAppConsent = {
+                        val pending = pendingNewerAppConsent.value
+                        pendingNewerAppConsent.value = null
+                        pending?.onDismiss?.invoke()
+                    },
                     onExportPagePng = { exportPagePngLauncher.launch(suggestedPageImageName("png")) },
                     onExportPageSvg = { exportPageSvgLauncher.launch(suggestedPageImageName("svg")) },
                     onPickImage = { placement ->
@@ -313,6 +329,7 @@ class MainActivity : ComponentActivity() {
                     onSurfaceCreated = { index, view ->
                         val p = panes[index]
                         p.surface = view
+                        view.onReadOnlyBlocked = { toast(getString(R.string.document_read_only)) }
                         view.onDocumentEdited = { doc -> mirrors.propagate(p, doc) }
                         attachAudio(view)
                         // Restore is asynchronous now, so a file handed to us by another app is opened
@@ -443,3 +460,10 @@ class MainActivity : ComponentActivity() {
         internal const val UNTITLED = "Untitled"
     }
 }
+
+/** A pending user consent dialog before proceeding with a document action. */
+internal data class PendingConsent(
+    val name: String,
+    val onConfirm: () -> Unit,
+    val onDismiss: () -> Unit,
+)

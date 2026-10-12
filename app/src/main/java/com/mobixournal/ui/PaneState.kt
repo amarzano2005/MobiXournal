@@ -48,6 +48,8 @@ class PaneState {
     /** Height of the visible viewport in pixels. */
     var viewportHeight by mutableStateOf(0f)
 
+    /** Whether this pane's document is open in read-only mode. */
+    var isReadOnly by mutableStateOf(false)
     /** Whether undo is available. */
     var canUndo by mutableStateOf(false)
     /** Whether redo is available. */

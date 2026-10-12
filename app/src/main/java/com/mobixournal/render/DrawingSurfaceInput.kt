@@ -137,6 +137,15 @@ internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
 /** Begin a gesture for the pointer at [pointerIndex], its intent decided by [InputClassifier]. */
 internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: Int) {
     val kind = pointerKindOf(event, pointerIndex)
+    if (isReadOnly) {
+        val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
+        if (intent == GestureIntent.PAN) {
+            beginScroll(event)
+        } else if (intent != GestureIntent.IGNORE) {
+            notifyReadOnlyBlocked()
+        }
+        return
+    }
     // A finger laid on the guide manipulates it, whatever the active tool — the pen keeps
     // drawing against it meanwhile, exactly as you'd hold a real setsquare down and rule along it.
     if (kind == PointerKind.FINGER && guideDrag.begin(event, pointerIndex)) return

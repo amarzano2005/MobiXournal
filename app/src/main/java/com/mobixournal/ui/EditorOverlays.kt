@@ -58,6 +58,10 @@ fun BoxScope.EditorOverlays(
     /** What the last `.xopp` export could not draw; empty is the normal case (see [ExportGapsDialog]). */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
+    /** The document name waiting on consent to open read-only (written by a newer app version). */
+    pendingNewerAppConsentName: String? = null,
+    onConfirmNewerAppConsent: () -> Unit = {},
+    onDismissNewerAppConsent: () -> Unit = {},
 ) {
     val surface = pane.surface
     val palette = rememberColorPaletteState(settings, onSettingsChange)
@@ -114,6 +118,13 @@ fun BoxScope.EditorOverlays(
     }
     if (exportGaps.isNotEmpty()) {
         ExportGapsDialog(gaps = exportGaps, onDismiss = onDismissExportGaps)
+    }
+    if (pendingNewerAppConsentName != null) {
+        NewerAppConsentDialog(
+            name = pendingNewerAppConsentName,
+            onConfirm = onConfirmNewerAppConsent,
+            onDismiss = onDismissNewerAppConsent,
+        )
     }
     if (ui.showScaleneAnglesDialog) {
         ScaleneAnglesDialog(

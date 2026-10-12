@@ -147,7 +147,7 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     p.saveFormat = tab.format
     p.pendingSaveName = tab.title
     val pdf = tab.pdfPath?.let(::File)?.takeIf(File::exists)
-    // Shared, so a document mirrored into both panes rasterises from one renderer, not two.
+    view.isReadOnly = tab.isReadOnly
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
     view.load(tab.document)
