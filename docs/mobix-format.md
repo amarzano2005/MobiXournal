@@ -319,9 +319,9 @@ Migrating to the `.mobix` format directly enables four major performance optimiz
 
 1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)**:
    - Rather than loading a 200-page XML document into an in-memory DOM, the app initialises an
-     active sliding window (e.g. current page $\pm 2$ adjacent pages).
-   - Pages outside the viewport are evicted from RAM and re-read from the ZIP container in $< 5\text{ ms}$
-     when scrolled into view.
+     active sliding window (e.g. current page $\pm 2$ adjacent pages via `format/mobix/MobixPagedReader.kt`).
+   - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand
+     in $< 5\text{ ms}$ when scrolled into view, verified across synthetic 200-page archives in `MobixPagedReaderTest`.
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)**:

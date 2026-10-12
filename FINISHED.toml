@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-page-virtualization-reader"
+title = "Page virtualization: read .mobix pages on demand instead of whole"
+description = "The performance reason the format exists (docs/mobix-format.md, engine optimizations): reading a 200-page notebook must not parse pages 1-199. MobixContainer.open reads every entry into memory today, which is right for the manifest and for tests and wrong for a real document. Add a reader that walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or chunk) on demand into an LRU window of the current page plus or minus two, evicting the rest. Keep MobixContainer as the envelope primitive and put the paging policy in its own file (for example format/mobix/MobixPagedReader.kt) with an injectable cache budget so it is testable without a device. Verify with JVM tests over a synthetic 200-page archive: opening touches only the manifest and the first pages, navigating to page 200 does not inflate the earlier ones, and an evicted page is re-read rather than corrupted."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "perf"]
+
+[[task]]
 id = "reopen-the-graph-dialog-on-an-existing-plot-and-edit-it"
 title = "Reopen the graph dialog on an existing plot and edit it"
 description = """
