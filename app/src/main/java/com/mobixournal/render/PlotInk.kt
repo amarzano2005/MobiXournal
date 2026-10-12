@@ -9,7 +9,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * A function plot compiled into ink (`docs/mobix-format.md`, the synthesis export).
+ * A function plot compiled into ink (`docs/mobix-format.md`, the synthesis export) — and, through `LivingInk`, the drawing on screen.
  *
  * A plot's recipe is a formula, and ink cannot hold a formula, so the export evaluates it — with the
  * app's own engine, so the exported graph is the graph that was on screen. There are two routes,
@@ -30,9 +30,9 @@ import kotlin.math.sin
  * that has to be visible.
  *
  * A curve whose formula does not parse is not drawn, and it is **named** in
- * [PlotInk.unparsed] — the caller reports it — rather than substituted or silently dropped.
+ * [CompiledPlot.unparsed] — the caller reports it — rather than substituted or silently dropped.
  */
-internal object SynthesisPlot {
+internal object PlotInk {
 
     /** The width a curve is drawn at when the element's own curves do not name one. */
     private const val NOMINAL_WIDTH_PT = 1.0
@@ -56,16 +56,16 @@ internal object SynthesisPlot {
      */
     private val PARAMETER_VARIABLE = Regex("(?<![\\p{L}\\p{N}_])(?:theta|θ|t)(?![\\p{L}\\p{N}_])", RegexOption.IGNORE_CASE)
 
-    fun ink(plot: PlotElement): PlotInk =
+    fun ink(plot: PlotElement): CompiledPlot =
         if (plot.curves.all { it.kind == PlotKind.CARTESIAN }) cartesianInk(plot) else sampledInk(plot)
 
     // ---- the common case: the app's own plotter ------------------------------------------------
 
-    private fun cartesianInk(plot: PlotElement): PlotInk {
+    private fun cartesianInk(plot: PlotElement): CompiledPlot {
         val compiled = plot.curves.map { it to compileFormula(it.source) }
         val drawable = compiled.mapNotNull { (curve, formula) -> formula?.let { curve } }
         val unparsed = unparsed(compiled)
-        if (drawable.isEmpty()) return PlotInk(emptyList(), unparsed)
+        if (drawable.isEmpty()) return CompiledPlot(emptyList(), unparsed)
 
         val result = MultiFunctionPlotter.plot(
             curves = drawable.map { PlotCurve(it.source, it.color, it.lineStyle) },
@@ -82,7 +82,7 @@ internal object SynthesisPlot {
             includeSummary = plot.summaryText != null,
             axisColor = plot.axisColor,
         )
-        if (result.pathGroups.isEmpty()) return PlotInk(emptyList(), unparsed)
+        if (result.pathGroups.isEmpty()) return CompiledPlot(emptyList(), unparsed)
 
         val out = mutableListOf<Element>()
         for (group in result.pathGroups) {
@@ -91,31 +91,31 @@ internal object SynthesisPlot {
             val width = drawable.firstOrNull { it.color == group.color }?.strokeWidth ?: nominalWidth(plot)
             for (path in group.strokes) {
                 if (path.size < 2) continue
-                out += SynthesisInk.stroke(path, group.color, width, group.lineStyle)
+                out += InkPrimitives.stroke(path, group.color, width, group.lineStyle)
             }
         }
-        result.labels.forEach { out += SynthesisInk.text(it.text, it.x, it.y, plot.axisColor) }
+        result.labels.forEach { out += InkPrimitives.text(it.text, it.x, it.y, plot.axisColor) }
         if (result.summaryText.isNotEmpty()) {
-            out += SynthesisInk.text(
+            out += InkPrimitives.text(
                 content = result.summaryText,
                 x = plot.left,
                 y = plot.bottom + SUMMARY_GAP_PT,
                 color = plot.axisColor,
             )
         }
-        return PlotInk(out, unparsed)
+        return CompiledPlot(out, unparsed)
     }
 
     // ---- parametric and polar curves, which the plotter cannot place -----------------------------
 
-    private fun sampledInk(plot: PlotElement): PlotInk {
+    private fun sampledInk(plot: PlotElement): CompiledPlot {
         val compiled = plot.curves.map { it to sample(it, plot) }
         val sampled = compiled.mapNotNull { (curve, points) -> points?.let { curve to it } }
         val unparsed = unparsed(compiled)
-        if (sampled.isEmpty()) return PlotInk(emptyList(), unparsed)
+        if (sampled.isEmpty()) return CompiledPlot(emptyList(), unparsed)
         val xs = sampled.flatMap { (_, points) -> points.mapNotNull { (x, _) -> x.takeIf(Double::isFinite) } }
         val ys = sampled.flatMap { (_, points) -> points.mapNotNull { (_, y) -> y.takeIf(Double::isFinite) } }
-        if (xs.isEmpty() || ys.isEmpty()) return PlotInk(emptyList(), unparsed)
+        if (xs.isEmpty() || ys.isEmpty()) return CompiledPlot(emptyList(), unparsed)
 
         val xMin = xs.min(); val xMax = xs.max()
         val yMin = ys.min(); val yMax = ys.max()
@@ -133,22 +133,22 @@ internal object SynthesisPlot {
         for ((curve, points) in sampled) {
             for (run in finiteRuns(points)) {
                 if (run.size < 2) continue
-                val path = run.map { (x, y) -> SynthesisInk.pt(toX(x), toY(y), curve.strokeWidth) }
-                out += SynthesisInk.stroke(path, curve.color, curve.strokeWidth, curve.lineStyle)
+                val path = run.map { (x, y) -> InkPrimitives.pt(toX(x), toY(y), curve.strokeWidth) }
+                out += InkPrimitives.stroke(path, curve.color, curve.strokeWidth, curve.lineStyle)
             }
         }
-        return PlotInk(out, unparsed)
+        return CompiledPlot(out, unparsed)
     }
 
     private fun frame(plot: PlotElement): Element {
         val width = nominalWidth(plot)
-        return SynthesisInk.stroke(
+        return InkPrimitives.stroke(
             points = listOf(
-                SynthesisInk.pt(plot.left, plot.top, width),
-                SynthesisInk.pt(plot.right, plot.top, width),
-                SynthesisInk.pt(plot.right, plot.bottom, width),
-                SynthesisInk.pt(plot.left, plot.bottom, width),
-                SynthesisInk.pt(plot.left, plot.top, width),
+                InkPrimitives.pt(plot.left, plot.top, width),
+                InkPrimitives.pt(plot.right, plot.top, width),
+                InkPrimitives.pt(plot.right, plot.bottom, width),
+                InkPrimitives.pt(plot.left, plot.bottom, width),
+                InkPrimitives.pt(plot.left, plot.top, width),
             ),
             color = plot.axisColor,
             widthPt = width,
@@ -223,4 +223,4 @@ internal object SynthesisPlot {
  * three-curve plot is not the same thing as a plot that drew nothing — and both go to the caller's
  * [Uncompilable] list rather than being smoothed over.
  */
-internal data class PlotInk(val elements: List<Element>, val unparsed: List<String>)
+internal data class CompiledPlot(val elements: List<Element>, val unparsed: List<String>)

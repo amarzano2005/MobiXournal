@@ -109,8 +109,9 @@ bridge:
 that carries the semantics is written with it; the export's own entry point is not wired.** The import half is `format/mobix/MobixDocument.kt` with
 `MobixBridgeFile.kt` — a `.xopp` becomes a `.mobix` document, its living elements revived where the
 block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt`, which
-flattens a document holding living entities into ink through one compiler per family (`SynthesisTable`,
-`SynthesisPlot`, `SynthesisShape`, `SynthesisCircuit`) and hands the result to the **ordinary** `.xopp`
+flattens a document holding living entities into ink through one compiler per family (`TableInk`,
+`PlotInk`, `ShapeInk`, `CircuitInk` — the same compilers the canvas draws through, `render/LivingInk.kt`,
+so an export is the screen and not a second opinion about it) and hands the result to the **ordinary** `.xopp`
 writer, so there is one emitter and not a second one to keep in step. A `.mobix` opens and saves as itself (the type is registered, the sticky format is per document, its
 bundled backgrounds are adopted on the way in — [data-path.md](data-path.md)), and the export is wired:
 every `.xopp` write goes through the synthesis (`io/DocumentIo.encode`), so Save As to Original or

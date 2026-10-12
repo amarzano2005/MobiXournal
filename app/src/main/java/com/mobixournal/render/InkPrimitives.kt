@@ -8,7 +8,7 @@ import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 
 /**
- * The ink primitives the synthesis compilers build a figure out of — one place where a synthesized
+ * The ink primitives the four families' compilers build a figure out of — one place where a synthesized
  * stroke and a synthesized label get their shared shape, so four compilers cannot each decide for
  * themselves what a pen stroke looks like.
  *
@@ -18,7 +18,7 @@ import com.mobixournal.format.model.Tool
  * convention, and `DrawingSurfaceStrokes`' when it commits a shape), and a label is a text box in
  * [FIGURE_LABEL_FONT] — the same font and size the app draws a plot's ticks in.
  */
-internal object SynthesisInk {
+internal object InkPrimitives {
 
     /** The cap style every synthesized figure uses: what the shape tools draw with. */
     const val CAP: String = "round"

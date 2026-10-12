@@ -93,10 +93,10 @@ class LivingEntityDrawingTest {
 
         // Against the compilers themselves: the drawing cannot drift from what an export writes, because
         // there is only one definition to drift from.
-        assertEquals(SynthesisTable.ink(table), LivingInk.of(table).elements)
-        assertEquals(SynthesisPlot.ink(plot).elements, LivingInk.of(plot).elements)
-        assertEquals(SynthesisShape.ink(shape), LivingInk.of(shape).elements)
-        assertEquals(SynthesisCircuit.ink(circuit), LivingInk.of(circuit).elements)
+        assertEquals(TableInk.ink(table), LivingInk.of(table).elements)
+        assertEquals(PlotInk.ink(plot).elements, LivingInk.of(plot).elements)
+        assertEquals(ShapeInk.ink(shape), LivingInk.of(shape).elements)
+        assertEquals(CircuitInk.ink(circuit), LivingInk.of(circuit).elements)
     }
 
     @Test

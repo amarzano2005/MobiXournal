@@ -15,7 +15,7 @@ import java.util.IdentityHashMap
  *
  * A living entity is a *recipe* (a table's grid, a plot's formula, a shape's vertices, a component's
  * symbol) and the only drawing of it this app has is the ink its family's compiler produces
- * ([SynthesisTable], [SynthesisPlot], [SynthesisShape], [SynthesisCircuit]). Those compilers are the
+ * ([TableInk], [PlotInk], [ShapeInk], [CircuitInk]). Those compilers are the
  * definition; this object is the *dispatch* around them, so that the editor, the PDF painter and the
  * SVG/PNG writers cannot each invent their own answer — screen and export showing different geometry
  * for one file is the failure this exists to prevent.
@@ -48,17 +48,17 @@ object LivingInk {
 
     private fun compile(element: Element): Ink = when (element) {
         is PlotElement -> {
-            val plot = SynthesisPlot.ink(element)
+            val plot = PlotInk.ink(element)
             val losses = plot.unparsed.map { Uncompilable("plotCurve", "\"$it\" is not a formula this build can evaluate") }
             Ink(plot.elements, losses)
         }
-        is ParametricShapeElement -> SynthesisShape.ink(element)
+        is ParametricShapeElement -> ShapeInk.ink(element)
             ?.let { Ink(it, emptyList()) }
             ?: Ink(emptyList(), listOf(Uncompilable("parametricShape", "the vertices of a ${element.shape} figure this build cannot draw")))
-        is CircuitElement -> SynthesisCircuit.ink(element)
+        is CircuitElement -> CircuitInk.ink(element)
             ?.let { Ink(it, emptyList()) }
             ?: Ink(emptyList(), listOf(Uncompilable("circuit", "\"${element.symbol}\" is not a symbol this build has a drawing for")))
-        is TableElement -> Ink(SynthesisTable.ink(element), emptyList())
+        is TableElement -> Ink(TableInk.ink(element), emptyList())
         // Not a living entity (or one this build does not model): its own drawing, nothing to report.
         else -> Ink(listOf(element), emptyList())
     }

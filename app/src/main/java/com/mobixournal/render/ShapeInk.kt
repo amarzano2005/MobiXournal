@@ -8,7 +8,7 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
- * A parametric shape compiled into ink (`docs/mobix-format.md`, the synthesis export).
+ * A parametric shape compiled into ink (`docs/mobix-format.md`, the synthesis export) — and, through `LivingInk`, the drawing on screen.
  *
  * The figure's geometry **is** its vertices — that is what the element stores, and what its editor's
  * handles drag — so the outline is a closed polyline through them and nobody has to re-derive the
@@ -25,7 +25,7 @@ import kotlin.math.roundToInt
  *    fraction of a millimetre away from where the screen put it. Its *text* is the same
  *    ([DimensionLabel.measurementText]).
  */
-internal object SynthesisShape {
+internal object ShapeInk {
 
     /** How far a label sits from the edge it names, at the figure's own scale. */
     private const val LABEL_OFFSET_PT = 6.0
@@ -40,9 +40,9 @@ internal object SynthesisShape {
         val out = mutableListOf<Element>()
         val fill = shape.fillColor
         if (fill != null && !sameInk(fill, shape.strokeColor)) {
-            out += SynthesisInk.stroke(outline, fill, shape.strokeWidth, fill = fill.alphaChannel())
+            out += InkPrimitives.stroke(outline, fill, shape.strokeWidth, fill = fill.alphaChannel())
         }
-        out += SynthesisInk.stroke(
+        out += InkPrimitives.stroke(
             points = outline,
             color = shape.strokeColor,
             widthPt = shape.strokeWidth,
@@ -55,9 +55,9 @@ internal object SynthesisShape {
     /** The figure closed on itself: the vertices, and the first one again. */
     private fun outlineOf(shape: ParametricShapeElement): List<StrokePoint> {
         val out = ArrayList<StrokePoint>(shape.vertices.size + 1)
-        shape.vertices.forEach { out += SynthesisInk.pt(it.x, it.y, shape.strokeWidth) }
+        shape.vertices.forEach { out += InkPrimitives.pt(it.x, it.y, shape.strokeWidth) }
         val first = shape.vertices.first()
-        out += SynthesisInk.pt(first.x, first.y, shape.strokeWidth)
+        out += InkPrimitives.pt(first.x, first.y, shape.strokeWidth)
         return out
     }
 
@@ -69,7 +69,7 @@ internal object SynthesisShape {
                 val from = shape.vertices[index]
                 val to = shape.vertices[(index + 1) % count]
                 val text = measurementText(hypot(to.x - from.x, to.y - from.y)) ?: continue
-                out += SynthesisInk.text(
+                out += InkPrimitives.text(
                     content = text,
                     x = (from.x + to.x) / 2.0 + LABEL_OFFSET_PT,
                     y = (from.y + to.y) / 2.0 - LABEL_OFFSET_PT,
@@ -82,7 +82,7 @@ internal object SynthesisShape {
                 val previous = shape.vertices[(index - 1 + count) % count]
                 val vertex = shape.vertices[index]
                 val next = shape.vertices[(index + 1) % count]
-                out += SynthesisInk.text(
+                out += InkPrimitives.text(
                     content = "${interiorAngleDeg(previous, vertex, next).roundToInt()}°",
                     x = vertex.x + LABEL_OFFSET_PT,
                     y = vertex.y + LABEL_OFFSET_PT,

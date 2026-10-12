@@ -9,7 +9,7 @@ import com.mobixournal.format.model.TextElement
 
 /**
  * A table compiled into the ink `.xopp` can hold: the grid as border strokes, and one text box per
- * non-empty cell (`docs/mobix-format.md`, the synthesis export).
+ * non-empty cell (`docs/mobix-format.md`, the synthesis export) — and, through `LivingInk`, the drawing on screen.
  *
  * The grid is drawn from the element's **own** `colWidths`/`rowHeights` rather than through
  * [ShapeBuilder.table], because that helper divides a drag evenly and a table element's columns are
@@ -18,7 +18,7 @@ import com.mobixournal.format.model.TextElement
  * the shading the desktop draws — and a coloured fill that differs from the table's own ink is a
  * second stroke underneath, since `.xopp` gives a stroke one colour and one interior alpha.
  */
-internal object SynthesisTable {
+internal object TableInk {
 
     /** Space between a cell's edge and its text, so a label never sits on the rule beside it. */
     private const val CELL_PAD_PT = 2.0
@@ -56,10 +56,10 @@ internal object SynthesisTable {
     }
 
     private fun line(table: TableElement, x1: Double, y1: Double, x2: Double, y2: Double): Element =
-        SynthesisInk.stroke(
+        InkPrimitives.stroke(
             points = listOf(
-                SynthesisInk.pt(x1, y1, table.borderWidth),
-                SynthesisInk.pt(x2, y2, table.borderWidth),
+                InkPrimitives.pt(x1, y1, table.borderWidth),
+                InkPrimitives.pt(x2, y2, table.borderWidth),
             ),
             color = table.borderColor,
             widthPt = table.borderWidth,
@@ -70,7 +70,7 @@ internal object SynthesisTable {
         val out = mutableListOf<Element>()
         forEachCell(table) { cell, left, top, width, height ->
             val fill = cell.fillColor ?: return@forEachCell
-            out += SynthesisInk.stroke(
+            out += InkPrimitives.stroke(
                 points = closedRect(left, top, left + width, top + height, table.borderWidth),
                 color = fill,
                 widthPt = table.borderWidth,
@@ -104,7 +104,7 @@ internal object SynthesisTable {
         width: Double,
         height: Double,
     ): TextElement {
-        val probe = SynthesisInk.text(
+        val probe = InkPrimitives.text(
             content = cell.text,
             x = 0.0,
             y = 0.0,
@@ -141,11 +141,11 @@ internal object SynthesisTable {
 
     private fun closedRect(left: Double, top: Double, right: Double, bottom: Double, widthPt: Double): List<StrokePoint> =
         listOf(
-            SynthesisInk.pt(left, top, widthPt),
-            SynthesisInk.pt(right, top, widthPt),
-            SynthesisInk.pt(right, bottom, widthPt),
-            SynthesisInk.pt(left, bottom, widthPt),
-            SynthesisInk.pt(left, top, widthPt),
+            InkPrimitives.pt(left, top, widthPt),
+            InkPrimitives.pt(right, top, widthPt),
+            InkPrimitives.pt(right, bottom, widthPt),
+            InkPrimitives.pt(left, bottom, widthPt),
+            InkPrimitives.pt(left, top, widthPt),
         )
 
     private fun Int.alphaChannel(): Int = (this ushr 24) and 0xFF

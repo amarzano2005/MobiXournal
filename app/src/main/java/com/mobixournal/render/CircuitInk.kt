@@ -8,7 +8,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * A circuit component compiled into ink (`docs/mobix-format.md`, the synthesis export).
+ * A circuit component compiled into ink (`docs/mobix-format.md`, the synthesis export) — and, through `LivingInk`, the drawing on screen.
  *
  * The element stores **placement plus anchors**, not a drawing, so the drawing has to be recovered
  * before it can be written: the symbol's key names its geometry in the shape library
@@ -29,7 +29,7 @@ import kotlin.math.sin
  * A symbol whose key this build does not have returns null, and the export reports it rather than
  * drawing a substitute.
  */
-internal object SynthesisCircuit {
+internal object CircuitInk {
 
     /** The length a component with no pins to derive an axis from is drawn at. */
     const val DEFAULT_LENGTH_PT: Double = 48.0
@@ -50,11 +50,11 @@ internal object SynthesisCircuit {
         val out = mutableListOf<Element>()
         for (path in paths) {
             if (path.size < 2) continue
-            out += SynthesisInk.stroke(path.map { rotated(it, circuit) }, circuit.strokeColor, width)
+            out += InkPrimitives.stroke(path.map { rotated(it, circuit) }, circuit.strokeColor, width)
         }
         circuit.value?.takeIf { it.isNotBlank() }?.let { value ->
             val (x, y) = labelPoint(circuit, axis)
-            out += SynthesisInk.text(value, x, y, circuit.strokeColor)
+            out += InkPrimitives.text(value, x, y, circuit.strokeColor)
         }
         return out.ifEmpty { null }
     }
