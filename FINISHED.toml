@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "read-only-open-for-a-newer-mobix"
+title = "Offer a read-only open for a .mobix that needs a newer app"
+description = "A .mobix written by a newer build of this app carries a minAppVersion above ours. The schema rule (docs/mobix-schema-spec.md, rule 4) is that such a document is not opened normally: the reader offers a read-only open instead of either refusing outright or opening it and letting a save rewrite fields it does not understand. The format layer already answers the question -- MobixManifest.requiresAppNewerThan, which today has no caller anywhere in app/src/main (only its own definition and doc references) -- so what is owed is the caller's policy. In io/DocumentIo.read, after MobixDocument.open, ask archive.manifest.requiresAppNewerThan(appVersion) and record the answer on the LoadedFile.Doc result as a new needsNewerApp flag (false on every .xopp path); MainActivityDocuments then shows the consent surface the app already uses for an import decision (ui/EditorOverlays.kt) explaining that the document was written by a newer version and offering Open read-only. Accepting opens the tab in the smallest honest read-only state, with drawing refused for a stated reason and the save and export entries disabled rather than silently failing; declining closes the tab and leaves nothing open. Verify with JVM tests over a synthetic .mobix whose manifest names a higher minAppVersion: the flag comes back true, a same-or-newer version leaves it false, it is false for a gzip .xopp, a ZIP-package .xopp and a .mobix with no minAppVersion field; then install and exercise the prompt on the emulator (docs/tools.md, debug package com.mobixournal.v2)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "io"]
+
+[[task]]
 id = "new-document-format-choice"
 title = "The new-document format setting and the first-launch choice"
 description = "The policy decided for v2 (docs/mobix-format.md, section Which format a document is written in): a document keeps its own format, and the format a NEW document is born in is the user choice - asked once on first launch, changeable in Settings, with .mobix as the recommended default. Implement it as an AppSettings field under Settings - App & data, respecting the storage and migration rules of ui/AppSettings.kt, plus a step in the onboarding flow (ui/OnboardingDialog.kt and friends) that shows both formats, marks .mobix recommended, and says what each means for desktop interchange. Saving a new untitled document uses that setting; Save As still switches an existing document between formats. Verify on the emulator: the step appears once and never again, the setting survives a restart, and a new document saves in the chosen format. Update ui/SettingsSearch.kt keywords and the README Settings section."
