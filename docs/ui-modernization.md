@@ -134,7 +134,39 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
   its parameters (formula string, intervals, cell borders, stroke styles) appear in the right panel without
   popping up modal dialogs over the canvas.
 
-### 2. Bimanual workstation flow (Pen Tablet + Left-Hand Keyboard / Dial)
+### 2. Visual tool placement and docking on Desktop
+Unlike the header bar (which handles documents) and the sidebar (which handles navigation), the **drawing and STEM tools**
+remain visually accessible on screen for direct mouse or pen clicking:
+
+```text
+Desktop Tool Placements:
+Option A: Floating Top/Bottom Ribbon (Figma/Freeform style)
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  [✏️ Pen (B)] [🖍️ Highl (H)] [🧹 Eraser (E)] [✂️ Sel (V)] │ [📈 f(x) (M)] [📐 Geo] [📊 Tab (T)] [⚡ Ckt]  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+Option B: Widescreen Left Tool Palette (Photoshop/Illustrator style)
+┌───────────┐
+│ [✏️ (B)]   │
+│ [🖍️ (H)]   │  - Compact 42px vertical strip docked to the left canvas edge.
+│ [🧹 (E)]   │  - Optimized for 16:9 and 21:9 monitors: leaves full vertical height for A4 sheets.
+│ [✂️ (V)]   │
+│ ───────── │
+│ [📈 (M)]   │  - STEM tools permanently visible at 1-click.
+│ [📐 Geo]  │
+│ [📊 (T)]   │
+│ [⚡ Ckt]   │
+│ ───────── │
+│ [🔴 Color]│
+└───────────┘
+```
+
+- **Permanent 1-Click STEM Access**: The STEM group ($f(x)$, shapes, tables, circuits) is always visible
+  in the tool strip, maintaining immediate 1-click execution without buried submenus.
+- **Visual Hover Tooltips with Hotkeys**: Hovering the pen or cursor over any button reveals a subtle
+  pill tooltip displaying the tool name and single-letter keyboard shortcut (e.g. `Funzione f(x) [M]`).
+
+### 3. Bimanual workstation flow (Pen Tablet + Left-Hand Keyboard / Dial)
 - **Left Hand on Keyboard**:
   - `Space + Pen Drag` = Pan canvas (Hand tool).
   - `Ctrl + Z / Ctrl + Y` = Undo / Redo.
