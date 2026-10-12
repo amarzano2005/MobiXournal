@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "decide-how-a-living-entity-is-drawn"
+title = "Decide how a living entity is drawn before it can be edited"
+description = "What a living entity looks like on screen. The four families are modelled, codec-ed, preserved through a .xopp round trip and compiled to ink by the export compilers (render/SynthesisTable.kt, SynthesisPlot.kt, SynthesisShape.kt, SynthesisCircuit.kt), but nothing draws them: ElementRenderer handles text, images and texImage only, and PdfVectorPainter deliberately draws nothing for a TableElement, PlotElement, ParametricShapeElement or CircuitElement (its comment says the drawing arrives with the element editor). So a .mobix holding a table opens, saves back and exports as a blank page, which docs/architecture.md already lists as still to come (the drawing and editing of the living entities themselves). Investigate and then add the task-level children: whether an entity is drawn at all before it has an editor, and if so that the one drawing definition is the synthesis compilers, shared by the canvas, the PDF painter and the SVG/PNG page writers so screen and export can never disagree; which of the four families gets an editor first and what each editor edits; and how a drawn entity is selected, moved and resized, given ElementBounds already answers for all four. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "render"]
+
+[[task]]
 id = "wire-the-synthesis-into-the-xopp-export"
 title = "Export a .mobix as .xopp through the synthesis"
 description = "The compiler exists (render/XoppSynthesis.kt) but nothing calls it. When a .mobix document is saved as .xopp - Save As switching the format, or the export entry in the overflow menu - run XoppSynthesis.synthesize(document) first and hand the result's document to the existing .xopp encoder (io/DocumentIo.encode with SaveFormat.XOPP), reusing the staging files as the .xopp path already does. The SaveFormat stays sticky: the open document is still a .mobix, so the export is a copy on disk and the tab keeps its own format. Surface SynthesisResult.uncompiled to the user after a successful export - the shared preview/print dialogs in ui/ open the exported file, so pass the list alongside the result and show one dialog naming what could not be drawn (an unknown symbol, a formula that would not parse) rather than exporting silently. Document the flow in README.md (how a .mobix is exported for the desktop) and in docs/mobix-format.md, replacing the 'still owed: the editor wiring' sentence in its Status paragraph. Verify with JVM tests: a .mobix holding a table and a plot encodes to bytes through the export that Xopp.open reads back with the same element count, an all-ink .mobix is written byte-identically to the ordinary .xopp path, and an unknown symbol produces one uncompiled entry and a document that still opens."

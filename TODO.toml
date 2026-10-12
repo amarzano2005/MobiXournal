@@ -246,15 +246,64 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "decide-how-a-living-entity-is-drawn"
-title = "Decide how a living entity is drawn before it can be edited"
-description = "What a living entity looks like on screen. The four families are modelled, codec-ed, preserved through a .xopp round trip and compiled to ink by the export compilers (render/SynthesisTable.kt, SynthesisPlot.kt, SynthesisShape.kt, SynthesisCircuit.kt), but nothing draws them: ElementRenderer handles text, images and texImage only, and PdfVectorPainter deliberately draws nothing for a TableElement, PlotElement, ParametricShapeElement or CircuitElement (its comment says the drawing arrives with the element editor). So a .mobix holding a table opens, saves back and exports as a blank page, which docs/architecture.md already lists as still to come (the drawing and editing of the living entities themselves). Investigate and then add the task-level children: whether an entity is drawn at all before it has an editor, and if so that the one drawing definition is the synthesis compilers, shared by the canvas, the PDF painter and the SVG/PNG page writers so screen and export can never disagree; which of the four families gets an editor first and what each editor edits; and how a drawn entity is selected, moved and resized, given ElementBounds already answers for all four. Produce tasks, not code."
+id = "inserting-a-graph-creates-a-living-plotelement-not-ink"
+title = "Inserting a graph creates a living PlotElement, not ink"
+description = """
+Today the graph dialog's result is compiled to ink and the recipe is thrown away: `ui/EditorOverlays.kt` (the `ui.showGraphDialog` branch) calls `surface?.insertMultiPlot(...)`, which in `render/DrawingSurfaceStrokes.kt` runs `MultiFunctionPlotter.plot` and appends `Stroke`s to the page. A graph can therefore be created but never corrected — and in a `.mobix` document the recipe is exactly what the format exists to keep. Make the insertion produce a living `PlotElement` instead of the ink.
+
+(1) Extract the element's construction into a pure, Android-free factory in a new file `render/PlotElementFactory.kt`: `fun plotElementFor(curves: List<PlotCurve>, xMin: Double, xMax: Double, centreX: Double, centreY: Double, page: Page, showCriticalPoints: Boolean, includeDerivative: Boolean): PlotElement`, using the *same* centred box and the same clamping `insertMultiPlot` computes today (width `(page.width * 0.45).coerceIn(240.0, 320.0)`, height `width * 0.6`, centre kept inside the page), mapping `showCriticalPoints`/`includeDerivative` onto the element's own fields, `samples = PlotElement.DEFAULT_SAMPLES`, `summaryText = null` (the analysis summary the dialog can add is not a field of the element yet — say so in the KDoc rather than inventing one), `id = null` (the codec assigns one at save).
+
+(2) Add `DrawingSurfaceView.insertPlotElement(...)` beside `insertMultiPlot` that calls the factory and appends the element to the active layer of the visible page through the same mutation path the other insertions use (an undo entry plus `requestRender()`), and point the overlay's `onConfirm` at it. The screen must not change: the element draws through `LivingInk` (`render/LivingInk.kt`), i.e. the very ink the insertion used to bake. `insertMultiPlot`, `insertTable`, the shape tools and the other three families stay exactly as they are.
+
+Verify with JVM tests in `app/src/test/java/com/mobixournal/render/PlotElementFactoryTest.kt`: the box is centred and clamped exactly as before (assert the same `left`/`top`/`right`/`bottom` the old path computed for the same page and centre); the element survives a full `MobixElementCodec` encode/decode; and `LivingInk.of(element).elements` is non-empty and agrees with what `MultiFunctionPlotter.plot` produced for the same inputs — that last one is the guard that what the user sees did not change. Then install and exercise it on the emulator (`docs/tools.md`, debug package `com.mobixournal.v2`): open the graph dialog, insert a graph, and check with a screenshot that the page shows the graph it showed before."""
 status = "active"
-level = "scope"
+level = "task"
 category = "feature"
 urgency = "normal"
-order = 450
+order = 460
 created = 2026-10-12
-tags = ["mobix", "render"]
+tags = ["mobix", "plot", "render"]
 rebuild = true
-emulator_debug = false
+emulator_debug = true
+
+[[task]]
+id = "reopen-the-graph-dialog-on-an-existing-plot-and-edit-it"
+title = "Reopen the graph dialog on an existing plot and edit it"
+description = """
+The new part of the plot family: re-opening a graph that is already on the page and correcting it. Today `ui/AdvancedFunctionGraphDialog.kt` can only *create* — it builds its own state from fixed defaults (`CurveEditorState("sin(x)", PRESET_COLORS[0])`, `xMinText = "-10"`, `xMaxText = "10"`, `showCriticalPoints = true`, `includeDerivative = false`) and its `onConfirm` hands `curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary` to the overlay, which compiles them into ink. Make the same dialog serve as the editor of an existing `PlotElement`.
+
+(1) Give `AdvancedFunctionGraphDialog` an optional initial state — the curves, `xMin`/`xMax`, the two flags and which mode tab (Cartesian vs parametric) the element's curves call for — defaulting to today's values, so `onConfirm` keeps its signature. Cap the pre-fill honestly: the element's fields the dialog has no input for (`samples`, `parameters`, `shadeIntegral`, `summaryText`, `axisColor`) must **survive the edit** rather than be reset to a default, so the write-back is a `copy()` over the edited fields only; say that in the KDoc.
+
+(2) Entry point and write-back: a single selected plot (the family's box lands with `select-and-move-a-drawn-living-entity`, which this task depends on) shows an **Edit** action in the selection's floating action bar (`ui/SelectionActionAnchor.kt`), which opens the dialog pre-filled and, on confirm, replaces the element in place through the same mutation path the other element edits use — one undo entry, the same layer and z-position, the same `id` — then re-renders. Dismissing changes nothing.
+
+Verify with JVM tests over the pure pieces: a dialog-state round trip (an element's curves/xMin/xMax/flags pre-fill the state and come back unchanged through the write-back), the `copy()` leaves `samples`, `parameters`, `shadeIntegral`, `summaryText` and `axisColor` untouched, and an edited formula that no longer parses is still written (and reported by `LivingInk` the same way the export reports it) rather than silently dropped. Then the emulator pass (`docs/tools.md`, debug package `com.mobixournal.v2`): insert a graph, edit one curve and one axis range, confirm the page redraws with the new curve, and confirm a document saved and reopened still holds the edited element (a `.mobix`), plus one save/reopen of the same page synthesized to `.xopp`."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 470
+created = 2026-10-12
+tags = ["mobix", "plot", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "select-and-move-a-drawn-living-entity"
+title = "Select, move and resize a drawn living entity (the plot first)"
+description = """
+A living entity is drawn now (`render/LivingInk.kt`, used by the canvas, the PDF painter and the SVG writer) but it is deliberately **not selectable**: `render/ElementBounds.kt` answers `Bounds(0,0,0,0)` and `isHitTestable = false` for all four families, because a real box would let a marquee pick something up that no op could then move. This task flips that answer for **the plot only** — the family that now has an editor (the other three keep their empty box until their own editor lands; that is the recorded decision in `docs/mobix-elements.md`).
+
+(1) `ElementBounds`: give a `PlotElement` its element's own box (`left`/`top`/`right`/`bottom`, padded by its frame's stroke width the way a stroke's box is padded) and return `isHitTestable = true` for it; leave `TableElement`, `ParametricShapeElement` and `CircuitElement` exactly as they are, with the comment saying why (their drawing is not editable yet, so a box would be a lie).
+
+(2) Audit every consumer of those two answers for an assumption that the element is a `Stroke` or carries an `id` — `render/Selection.kt`, `render/SelectionOps.kt`, `render/SelectionGestureController.kt`, `render/ElementEdits.kt`, the marquee/lasso paths, align & distribute, layer moves and the selection action bars. A plot must be: picked by a marquee/lasso that covers it, picked by a tap inside its box, **moved** by a drag (which translates `left`/`top`/`right`/`bottom` by the same delta and leaves `xMin`/`xMax` — the data range — alone, because the range is what the graph shows, not where it sits), **resized** by the handles (which scales the box and again leaves the range alone), deleted, cut/copied/pasted, and moved between layers. An op that genuinely cannot apply to a plot (a stroke restyle has no meaning for a formula) must **skip it with a stated reason** rather than silently do nothing or mangle it.
+
+Verify with JVM tests: `ElementBoundsTest` gains the plot's box and the three still-empty families; a new `render/LivingEntitySelectionTest.kt` asserts a marquee over a plot picks it up and a marquee over a table does not, that a move by (dx, dy) shifts the box exactly and leaves `xMin`/`xMax`/`curves` untouched (a `copy()`-equality assertion on everything else), that a resize changes only the box, that delete removes it from the layer, and that the three other families still answer `isHitTestable = false`. Emulator pass (`docs/tools.md`, debug package `com.mobixournal.v2`): insert a graph, marquee it, drag it and resize it, and check by screenshot that the curve is redrawn inside the box's new position; then confirm a delete leaves the page clean."""
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 480
+created = 2026-10-12
+tags = ["mobix", "selection", "render"]
+rebuild = true
+emulator_debug = true
