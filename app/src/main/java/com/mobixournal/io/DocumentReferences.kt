@@ -39,6 +39,26 @@ internal class DocumentReferenceResolver(
     }
 
     /**
+     * Open an input stream to a sibling file named [siblingName] relative to [source], or null if unreachable.
+     */
+    fun openSiblingStream(source: Uri?, siblingName: String): java.io.InputStream? =
+        openSibling(source, siblingName)
+
+    /**
+     * Resolve the URI of a sibling file named [siblingName] relative to [source], or null if unreachable.
+     */
+    fun resolveSiblingUri(source: Uri?, siblingName: String): Uri? {
+        val uri = source ?: return null
+        return when (uri.scheme) {
+            "file" -> uri.path
+                ?.let { PdfReference.resolveRelative(it, siblingName) }
+                ?.let { Uri.fromFile(File("/$it")) }
+            "content" -> siblingUri(uri, siblingName)
+            else -> null
+        }
+    }
+
+    /**
      * Copy the picture behind every `pixmap` background into [imageStore], keyed by the reference
      * the document names it under, so the renderer decodes from a stable local file for as long as
      * the document is open. References that resolve to the same string are copied once.

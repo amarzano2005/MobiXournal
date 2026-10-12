@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "documentio-integration-and-conflict-resolution-ux-notification"
+title = "DocumentIo integration and conflict resolution UX notification"
+description = "Wire conflict detection and three-way merge into DocumentIo on document open and pre-save. When siblings exist under SAF/local files, prompt or notify user (e.g. toast/snackbar indicating remote pages adopted) and safely archive the losing conflict file rather than silently clobbering it."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-12
+tags = ["mobix", "sync"]
+
+[[task]]
 id = "core-three-way-merge-engine-for-mobix-documents"
 title = "Core three-way merge engine for .mobix documents"
 description = "Implement page-level and element-level CRDT three-way merge algorithm in format/mobix: compare base, local, and remote manifest.json pages by sha256 and modified stamp. Union non-colliding pages and perform element-level Last-Write-Wins merge for pages modified concurrently on both sides. Pure Kotlin and JVM unit tested."

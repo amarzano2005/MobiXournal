@@ -7,8 +7,10 @@ import com.mobixournal.format.FileKind
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
+import com.mobixournal.format.mobix.MobixConflictDetector
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
+import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.ATTACH_DOMAIN
@@ -61,6 +63,8 @@ sealed interface LoadedFile {
         val missingImage: Boolean = false,
         /** True when a .mobix manifest requires a newer app version than this build (minAppVersion). */
         val needsNewerApp: Boolean = false,
+        /** Non-null message when a sync conflict sibling was detected and merged into this document. */
+        val conflictNotification: String? = null,
     ) : LoadedFile
 }
 
@@ -233,7 +237,11 @@ class DocumentIo(
      */
     private fun mobix(staged: File, name: String, source: Uri?): LoadedFile.Doc {
         val archive = staged.inputStream().use { MobixContainer.open(it.buffered()) }
-        val mobixDoc = MobixDocument.open(archive)
+        var mobixDoc = MobixDocument.open(archive)
+        val conflictNote = checkForConflictSiblingAndMerge(mobixDoc, staged, name, source)?.also {
+            mobixDoc = it.first
+        }?.second
+
         val document = mobixDoc.toDocument()
         val adopted = adoptBundledBackgrounds(document, archive)
         val pdf = adopted.pdf ?: refs.resolvePdfBackground(document, name, source)
@@ -248,7 +256,71 @@ class DocumentIo(
             images = images,
             missingImage = references.any { it !in images },
             needsNewerApp = needsNewerApp,
+            conflictNotification = conflictNote,
         )
+    }
+
+    /**
+     * Checks if a conflict companion file exists beside [staged] or [source].
+     * If found, performs a three-way merge into [baseDoc], archives the conflict file,
+     * and returns a pair of (mergedDoc, notificationString).
+     */
+    private fun checkForConflictSiblingAndMerge(
+        baseDoc: MobixDocument,
+        staged: File,
+        name: String,
+        source: Uri?,
+    ): Pair<MobixDocument, String>? {
+        // Probe sibling files on disk if staged file parent directory is accessible
+        val parentDir = staged.parentFile
+        val localSiblings = parentDir?.list()?.toList().orEmpty()
+        val conflictSiblingName = MobixConflictDetector.findConflictSiblings(name, localSiblings).firstOrNull()
+
+        var remoteDoc: MobixDocument? = null
+        var conflictFileToArchive: File? = null
+
+        if (conflictSiblingName != null && parentDir != null) {
+            val conflictFile = File(parentDir, conflictSiblingName)
+            if (conflictFile.exists()) {
+                runCatching {
+                    val conflictArchive = conflictFile.inputStream().use { MobixContainer.open(it.buffered()) }
+                    remoteDoc = MobixDocument.open(conflictArchive)
+                    conflictFileToArchive = conflictFile
+                }
+            }
+        }
+
+        // Also check via SAF / reference resolver if not found on local directory
+        if (remoteDoc == null && source != null) {
+            // Find conflict via openSiblingStream if potential sibling name matches
+            val probedName = MobixConflictDetector.findConflictSiblings(name, listOf(name)).firstOrNull()
+            if (probedName != null) {
+                refs.openSiblingStream(source, probedName)?.use { input ->
+                    runCatching {
+                        val conflictArchive = MobixContainer.open(input.buffered())
+                        remoteDoc = MobixDocument.open(conflictArchive)
+                    }
+                }
+            }
+        }
+
+        val remote = remoteDoc ?: return null
+        val mergeResult = MobixMergeEngine.merge(local = baseDoc, remote = remote)
+        if (!mergeResult.hasRemoteChanges) return null
+
+        // Safely archive the conflict file by renaming it to .bak
+        conflictFileToArchive?.let { file ->
+            val backup = File(file.parentFile, "${file.name}.conflict-merged.bak")
+            file.renameTo(backup)
+        }
+
+        val note = buildString {
+            append("Sync conflict resolved: ")
+            if (mergeResult.adoptedRemotePages > 0) append("${mergeResult.adoptedRemotePages} remote page(s) adopted. ")
+            if (mergeResult.elementMergedPages > 0) append("${mergeResult.elementMergedPages} page(s) merged at element level.")
+        }.trim()
+
+        return mergeResult.mergedDocument to note
     }
 
     /** What a `.mobix`'s bundled backgrounds became: the local copies, and whether one was unreadable. */

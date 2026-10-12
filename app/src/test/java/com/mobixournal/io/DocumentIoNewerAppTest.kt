@@ -13,6 +13,7 @@ import com.mobixournal.tabs.TabSession
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -190,5 +191,74 @@ class DocumentIoNewerAppTest {
 
         assertEquals(1, decoded.tabs.size)
         assertFalse("isReadOnly must default to false for legacy entries", decoded.tabs.first().isReadOnly)
+    }
+
+    @Test
+    fun mobixDetectsConflictSiblingAndMergesRemoteEdits() {
+        val io = createIo()
+        val dir = temp.newFolder("notes_sync")
+        val mainFile = File(dir, "notes.mobix")
+
+        // Main file has 1 page with stroke stk_1
+        val stroke1 = com.mobixournal.format.model.Stroke(
+            points = listOf(com.mobixournal.format.model.StrokePoint(0.0, 0.0, 1.0)),
+            color = 0,
+            tool = com.mobixournal.format.model.Tool.PEN,
+            capStyle = "round",
+            uniformWidth = false,
+            id = "stk_1",
+        )
+        val doc1 = Document(
+            title = "Notes",
+            pages = listOf(
+                Page(
+                    width = 595.0,
+                    height = 842.0,
+                    background = com.mobixournal.format.model.Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+                    layers = listOf(com.mobixournal.format.model.Layer(listOf(stroke1))),
+                    id = "pg_1",
+                ),
+            ),
+        )
+        val mobix1 = MobixDocument.of(doc1, appVersion = testAppVersion, nowMillis = nowMillis)
+        mainFile.writeBytes(mobix1.toBytes(nowMillis))
+
+        // Syncthing conflict file with page 2 added on laptop
+        val conflictFile = File(dir, "notes.sync-conflict-20261012-120000-LAPTOP.mobix")
+        val stroke2 = com.mobixournal.format.model.Stroke(
+            points = listOf(com.mobixournal.format.model.StrokePoint(10.0, 10.0, 1.0)),
+            color = 0,
+            tool = com.mobixournal.format.model.Tool.PEN,
+            capStyle = "round",
+            uniformWidth = false,
+            id = "stk_remote",
+        )
+        val page2Remote = Page(
+            width = 595.0,
+            height = 842.0,
+            background = com.mobixournal.format.model.Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+            layers = listOf(com.mobixournal.format.model.Layer(listOf(stroke2))),
+            id = "pg_2",
+        )
+        val doc2 = Document(
+            title = "Notes",
+            pages = listOf(doc1.pages[0], page2Remote),
+        )
+        val mobix2 = MobixDocument.of(doc2, appVersion = testAppVersion, nowMillis = nowMillis + 1000)
+        conflictFile.writeBytes(mobix2.toBytes(nowMillis + 1000))
+
+        // Opening mainFile should discover conflict sibling, merge it, and archive conflict file
+        val loaded = io.read(mainFile)
+        assertTrue("expected Doc result", loaded is LoadedFile.Doc)
+        val doc = loaded as LoadedFile.Doc
+        assertEquals(2, doc.document.pages.size)
+        assertEquals("pg_2", doc.document.pages[1].id)
+        assertNotNull("Conflict notification must be non-null", doc.conflictNotification)
+        assertTrue("Notification indicates remote page adopted", doc.conflictNotification!!.contains("remote page"))
+
+        // Conflict file is safely archived to .bak
+        assertFalse("Original conflict file should be moved/renamed", conflictFile.exists())
+        val archivedFile = File(dir, "notes.sync-conflict-20261012-120000-LAPTOP.mobix.conflict-merged.bak")
+        assertTrue("Archived conflict file must exist", archivedFile.exists())
     }
 }

@@ -48,17 +48,3 @@ created = 2026-10-12
 tags = ["mobix", "desktop"]
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "documentio-integration-and-conflict-resolution-ux-notification"
-title = "DocumentIo integration and conflict resolution UX notification"
-description = "Wire conflict detection and three-way merge into DocumentIo on document open and pre-save. When siblings exist under SAF/local files, prompt or notify user (e.g. toast/snackbar indicating remote pages adopted) and safely archive the losing conflict file rather than silently clobbering it."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "low"
-order = 440
-created = 2026-10-12
-tags = ["mobix", "sync"]
-rebuild = false
-emulator_debug = false
