@@ -231,6 +231,11 @@ internal class MobixDocument(
          * PDFs by a `pdf` domain, so a converted document keeps those references as they were, and the
          * caller that *can* supply the bytes passes them to [encode].
          *
+         * When the `.xopp` carries a **bridge block** — the living entities a previous export flattened
+         * into it — every claim that still verifies is revived here, before identity is assigned, so a
+         * document that travels `.mobix` → `.xopp` → `.mobix` comes back edited rather than merely
+         * redrawn ([MobixMetaRevival]).
+         *
          * @param appVersion the version written as `minAppVersion` — the build that must be present to
          *   write this file safely (`docs/mobix-schema-spec.md`). The caller passes its own version, so
          *   the format layer needs no build configuration.
@@ -247,7 +252,8 @@ internal class MobixDocument(
         ): MobixDocument {
             // Identity is assigned here and nowhere else: every element of every page gets an id once,
             // and every page gets one too, so the file that is written carries them from the start.
-            val pages = document.pages.map { page ->
+            // A revived entity already has the id the block recorded, so it keeps it.
+            val pages = MobixMetaRevival.apply(document).pages.map { page ->
                 val identified = ElementId.withIds(page)
                 if (identified.id == null) identified.copy(id = ElementId.mint(ElementId.PAGE)) else identified
             }

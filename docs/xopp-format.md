@@ -223,6 +223,14 @@ round-trip. Older files without a `text` attribute put the LaTeX source in the b
 `TexImageElement.latexInAttribute` records which of the two shapes the file used so we re-emit the
 one it was authored in rather than converting it.
 
+**A comment inside `<xournal>`** — after the last `<page>`, before the closing tag — is not part of the
+document: the reader skips comments (`XmlPullReader`) and desktop Xournal++ ignores them. MobiXournal
+writes exactly one, the `.mobix` **bridge block** (`Xopp.BRIDGE_COMMENT`, tag `mobix:meta`), whose
+payload is escaped so the comment can hold no `--`, and reads it back into `Document.bridge`; what it
+means and how far it may be trusted is [mobix-format.md](mobix-format.md)'s to say. A comment this app
+did not write is **not preserved** on save — it is not document content and no round-trip contract
+covers it — and the bridge block is the one that is.
+
 ### Fidelity notes / round-trip hazards
 
 - **Preserve unknown attributes — on every element, not just strokes.** Desktop emits attributes

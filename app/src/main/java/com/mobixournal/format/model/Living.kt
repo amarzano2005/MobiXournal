@@ -25,6 +25,18 @@ package com.mobixournal.format.model
  * `.mobix` codec able to read and write them *now*, so the editors have a model to open later.
  */
 
+/**
+ * Whether [this] element is one of the **living entities** — a construct `.xopp` can only hold as the
+ * ink it was flattened into, and which this app keeps as the recipe it is.
+ *
+ * Stated once, here, because three layers have to agree about the family and none of them should each
+ * carry its own list of four types: the export compiles these and nothing else (`XoppSynthesis`), the
+ * bridge block's claims may describe these and nothing else, and the consumers that skip them
+ * (rendering, hit tests) are answering the same question in the negative.
+ */
+val Element.isLivingEntity: Boolean
+    get() = this is TableElement || this is PlotElement || this is ParametricShapeElement || this is CircuitElement
+
 /** A cell's horizontal alignment inside its column — the desktop's three values. */
 enum class TableAlign { LEFT, CENTER, RIGHT }
 

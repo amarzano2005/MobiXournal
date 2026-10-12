@@ -1,5 +1,8 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.mobix.MobixMetaBlock
+import com.mobixournal.format.mobix.MobixMetaClaim
+import com.mobixournal.format.mobix.MobixMetaDigest
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
@@ -11,6 +14,7 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
+import com.mobixournal.format.model.isLivingEntity
 
 /**
  * A loss the export had to accept: an element it could not draw, or a part of one. [type] names what
@@ -47,21 +51,80 @@ data class SynthesisResult(val document: Document, val uncompiled: List<Uncompil
  * What is lost silently, because the format has nowhere to put it, is the stylus telemetry of a
  * stroke (`tilt`, `azimuth`, `dtMs`) and the *editable* nature of every entity above: the exported
  * `.xopp` holds a drawing of a table, which is exactly what desktop Xournal++ can read.
+ *
+ * **The recipe is not thrown away, though.** Alongside the ink the export writes a *bridge block*
+ * (`Document.bridge`, read back by the `.mobix` layer): one claim per entity — where its ink landed,
+ * and the digest of that ink — so an `.xopp` this app produced can be re-imported as the document it
+ * was, and an `.xopp` that was edited meanwhile is read as the edit and the claim dropped
+ * ([MobixMetaBlock], `docs/mobix-format.md`).
  */
 object XoppSynthesis {
 
-    /** The document [document] as `.xopp` ink, plus whatever could not be compiled. */
-    fun synthesize(document: Document): SynthesisResult {
+    /**
+     * The document [document] as `.xopp` ink, plus whatever could not be compiled.
+     *
+     * @param documentId the `.mobix` document's identity, when the caller knows it — recorded in the
+     *   block for the sake of a later "which export was this?", and nothing the import decides on.
+     */
+    fun synthesize(document: Document, documentId: String? = null): SynthesisResult {
         val gaps = mutableListOf<Uncompilable>()
-        val pages = document.pages.map { page ->
+        val claims = mutableListOf<MobixMetaClaim>()
+        val pages = document.pages.mapIndexed { pageIndex, page ->
             page.copy(
-                layers = page.layers.map { layer ->
-                    layer.copy(elements = layer.elements.flatMap { inkOf(it, gaps) })
+                layers = page.layers.mapIndexed { layerIndex, layer ->
+                    layer.copy(elements = compileLayer(layer.elements, pageIndex, layerIndex, claims, gaps))
                 },
             )
         }
-        return SynthesisResult(document.copy(pages = pages), gaps)
+        return SynthesisResult(
+            document = document.copy(pages = pages, bridge = block(document, claims, documentId)),
+            uncompiled = gaps,
+        )
     }
+
+    /**
+     * One layer's elements flattened, remembering where each living entity's ink ended up: the block's
+     * claim is the *pair* of the index range and the digest of what is in it, which is what makes the
+     * claim checkable on the way back in.
+     */
+    private fun compileLayer(
+        elements: List<Element>,
+        pageIndex: Int,
+        layerIndex: Int,
+        claims: MutableList<MobixMetaClaim>,
+        gaps: MutableList<Uncompilable>,
+    ): List<Element> {
+        val out = mutableListOf<Element>()
+        for (element in elements) {
+            val at = out.size
+            val ink = inkOf(element, gaps)
+            out += ink
+            if (element.isLivingEntity && ink.isNotEmpty()) {
+                claims += MobixMetaClaim(
+                    page = pageIndex,
+                    layer = layerIndex,
+                    at = at,
+                    count = ink.size,
+                    sha256 = MobixMetaDigest.of(ink),
+                    element = element,
+                )
+            }
+        }
+        return out
+    }
+
+    /**
+     * The block that goes into the file.
+     *
+     * A document that produced no claims — no living entities in it — had already been flattened, so the
+     * synthesis is the identity on it: whatever block it carried is left exactly as it was rather than
+     * replaced by an empty one, because the entities it names are still there, still as that ink, and
+     * their claims still verify (they are checked on the way back in, [MobixMetaBlock]). A document that
+     * *did* produce claims gets a block describing this synthesis: the ink it was built from is the ink
+     * being written, so any earlier claims are about a drawing that no longer exists.
+     */
+    private fun block(document: Document, claims: List<MobixMetaClaim>, documentId: String?): String? =
+        if (claims.isEmpty()) document.bridge else MobixMetaBlock(doc = documentId, claims = claims).encode()
 
     /**
      * The ink [element] becomes: itself when it is already ink (or markup the `.xopp` writer can

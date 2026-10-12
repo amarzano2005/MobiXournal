@@ -76,7 +76,7 @@ app/
                              #   Living.kt adds the four living entities (.xopp can only bake them
                              #   into ink): Table, Plot, ParametricShape, Circuit and their cell /
                              #   curve / vertex / pin value types
-      xml/                   # XmlPullReader, XmlWriter — the dependency-free XML layer
+      xml/                   # XmlPullReader, XmlWriter, XmlComment — the dependency-free XML layer
                              #   malformed entities decode to raw text; truncated input throws
                              #   XmlPullReader.TruncatedXmlException instead of hanging/crashing
       FontDescription.kt     # Pango-style font description <-> family + bold/italic (pure)
@@ -101,6 +101,9 @@ app/
         MobixCircuitCodec.kt # a circuit component: placement, rotation, magnetic pins and their nets
         MobixJson.kt         # the JSON building blocks every codec shares: ordered objects, boxes, attrs (pure)
         MobixDocument.kt     # THE DOCUMENT: ingest a .xopp, open and encode the archive, page parts, refusals
+        MobixMeta.kt         # the bridge block: what an exported .xopp claims about the entities it was flattened from
+        MobixMetaDigest.kt   # the digest a claim records: the ink in the .xopp writer's own spelling, both sides (pure)
+        MobixMetaRevival.kt  # the import rule: revive a claimed entity only where the ink still proves it
         MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
         MobixAssets.kt       # the assets/ half: payloads named by the hash of their own bytes (pure)
       json/                  # the shared, dependency-free JSON model, parser and writer (pure)
@@ -218,6 +221,12 @@ app/
       FunctionPlot.kt        # f(x): expression parser, sampling, and the plot's page geometry (pure, tested)
       CircuitShapes.kt       # passive & active circuits, gates, switching and dimensioning (resistor, capacitor, inductor, ground, switches, junction, transformer, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR, buffer, dimension arrow) (pure)
       ChemShapes.kt          # chemical formulas: single/double/triple bonds and the aromatic benzene ring (pure)
+      XoppSynthesis.kt       # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
+      SynthesisTable.kt      # a table -> its grid rules, its shaded cells and its cell text (pure)
+      SynthesisPlot.kt       # a plot -> axes, ticks, curves and summary; a sampled frame for polar/parametric (pure)
+      SynthesisShape.kt      # a figure -> its closed outline, its fill and its angle/side labels (pure)
+      SynthesisCircuit.kt    # a component -> its symbol, placed by its own pins, in its own ink (pure)
+      SynthesisInk.kt        # the stroke and label primitives the four compilers share (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)

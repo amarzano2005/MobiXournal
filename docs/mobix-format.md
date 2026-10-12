@@ -105,15 +105,17 @@ bridge:
 └─────────────────┘       Synthesis Export         └─────────────────┘
 ```
 
-**Status: both halves of the compiler are written; the bridge metadata and the UI wiring are not.**
-The import half is `format/mobix/MobixDocument.kt` with `MobixBridgeFile.kt` — a `.xopp` becomes a
-`.mobix` document and can be read back into the model. The export half is `render/XoppSynthesis.kt`,
-which flattens a document holding living entities into ink through one compiler per family
-(`SynthesisTable`, `SynthesisPlot`, `SynthesisShape`, `SynthesisCircuit`) and hands the result to the
-**ordinary** `.xopp` writer, so there is one emitter and not a second one to keep in step. Still owed:
-the `mobix:meta` block that makes the export re-importable (the bullet below, `TODO.toml`
-`mobix-bridge-metadata-block`) and the editor wiring that reaches the export from the save path
-(`mobix-open-save-path`). Until those land, only this app's own tests call the export.
+**Status: the compiler is written in both directions and the block that carries the semantics is
+written with it; the UI wiring is not.** The import half is `format/mobix/MobixDocument.kt` with
+`MobixBridgeFile.kt` — a `.xopp` becomes a `.mobix` document, its living elements revived where the
+block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt`, which
+flattens a document holding living entities into ink through one compiler per family (`SynthesisTable`,
+`SynthesisPlot`, `SynthesisShape`, `SynthesisCircuit`) and hands the result to the **ordinary** `.xopp`
+writer, so there is one emitter and not a second one to keep in step. Still owed: the app-level
+open/save path that lets a `.mobix` be opened and exported at all (`TODO.toml`, `mobix-open-save-path`)
+and the wiring that reaches the export from it (`wire-the-synthesis-into-the-xopp-export`, which also
+owes the user a word about what could not be drawn). Until those land, only this app's own tests call
+the export.
 
 1. **Import `.xopp` → `.mobix`**:
    - Every `.xopp` construct maps to its element in [mobix-elements.md](mobix-elements.md):
@@ -180,7 +182,9 @@ app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).
      capacitor's gap. A component's `value` is written beside it, and the ink is the element's own
      `strokeColor`, so the drawing that leaves this app is the drawing that was on screen.
    - **Lossless metadata tag**: The `.xopp` writer injects an application metadata block carrying the
-     living elements so the export can be *re-imported* without the semantics being lost.
+     living elements, each with a digest of the ink it became, so the export can be *re-imported* with
+     its semantics instead of only as the drawing — the block, the escaping a comment forces and the
+     verification rule are all specified [below](#the-bridge-metadata-block-and-its-two-hazards).
    - **The synthesized `.xopp` is a real document, not a rendering**: it opens, prints and edits in
      desktop Xournal++ like any other file, because every element is emitted as ordinary strokes and
      text — the metadata is additive.
@@ -213,31 +217,67 @@ given an empty frame.
 
 ### The bridge metadata block, and its two hazards
 
-The living elements are carried in a metadata block, not in the drawn geometry:
+The living elements cannot be recovered from the ink they were flattened into, so the export carries
+them in the file *beside* the drawing — one tagged comment at the end of the root element
+(`Xopp.BRIDGE_COMMENT`, written by `XoppWriter` and read back by `Xopp.parseXml` into
+`Document.bridge`):
 
 ```xml
-<!-- mobix:meta {"version": 1, "doc": "f47ac10b-…", "elements": [ … ]} -->
+<!-- mobix:meta {"version":1,"doc":"f47ac10b-…","elements":[ … ]} -->
 ```
 
-Two things about that line are traps, and the implementation has to handle both:
+Each entry of `elements` claims that one entity was written into the ink at an **index range** of a
+page's layer, and records the digest of exactly that ink (`format/mobix/MobixMeta.kt`,
+`MobixMetaDigest`). An index range because a `.xopp` has no element ids at all, and the range is the
+only handle the flattening leaves behind; a digest because an assertion with no way to check it is
+exactly what a stale block makes wrong.
 
-- **XML comments cannot contain `--`.** A comment is `<!-- … -->` with no `--` inside, so a metadata
-  block holding a formula, a Unicode label or a JSON string with a double hyphen would produce a
-  document Xournal++ refuses to parse. The encoding therefore escapes `--` (and a trailing `-`)
-  before it goes into the comment, and the reader unescapes on the way back — the block is a *payload*,
-  not something to be read as-is.
-- **A round trip through the desktop may drop it.** Xournal++ ignores XML comments and does not
-  promise to write them back: save the file there and the metadata is gone, or stale. So the block is
-  treated as a **claim to be verified, never as truth**: each living element records the SHA-256 of
-  the strokes it was synthesized into. On re-import, the metadata is honoured only for the elements
-  whose referenced strokes are still present, byte-identical and unmodified; anything else is
-  discarded and the flattened geometry is read as ordinary ink — the drawing the user actually sees
-  is never reinterpreted behind their back.
+```json
+{"page":0,"layer":0,"at":0,"count":16,"sha256":"d919330e…","element":{"type":"table","id":"tbl_1", … }}
+```
+
+`version` is the block's schema version (this build writes 1, and refuses a newer one whole), `doc` is
+the exporting document's identity — recorded, not decided on, since an import cannot always know which
+`.mobix` the file came from — and `element` is the entity exactly as the `.mobix` element schema spells
+it ([mobix-elements.md](mobix-elements.md)), **id included**: identity is what a merge keys on, so a
+revived entity comes back as the same element rather than as a new one. The ink around it is a
+`.xopp`'s, and gets fresh ids on import like any other stroke.
+
+**What the digest is.** The ink in `.xopp`'s own spelling, taken through the writer's fixed point: the
+exporter has freshly compiled strokes while the importer has ones parsed back out of the file, so the
+two agree only if both are put through the same writer, and the extra round trip is what makes the
+value independent of *when* it was computed. It is therefore a statement about the writer as much as
+about the ink — change how a stroke is spelled and older blocks stop verifying, which the rule below
+turns into a discarded claim rather than a wrong drawing.
+
+Two traps about that line the implementation does not get to choose about, and the answers it gives:
+
+- **An XML comment cannot contain `--`.** A block holding a formula (`x--1`), a label or any JSON
+  string with two hyphens side by side would produce a document a conforming parser — desktop
+  Xournal++ — refuses to open. So the payload is escaped on the way in and unescaped on the way out by
+  one rule (`format/xml/XmlComment.kt`): **every `-` becomes `\-`**, which cannot leave a `--` behind
+  and is its own inverse. The block is a *payload*, never text to be read as-is.
+- **A round trip through the desktop may drop it.** Xournal++ ignores XML comments and does not promise
+  to write them back: save the file there and the block is gone, or stale. It is therefore treated as a
+  **claim to be verified, never as truth**.
+
+**The verification rule.** On import (`MobixMetaRevival`), an entry is honoured only where the document
+in front of us still proves it: the page and layer exist, the index range fits, the ink in it hashes to
+the recorded digest, and no earlier entry has already claimed that ink. Everything else is dropped, and
+the ink is read as the ordinary strokes it is:
+
+| The file | What the import does |
+|---|---|
+| block intact, ink untouched | the entities come back, with the ids the block recorded |
+| one entity's ink edited, deleted or moved | that claim is dropped; every other claim still applies |
+| two entries claiming one stretch of ink | the first wins — two entities cannot both have been written there |
+| a `version` from a newer build, unreadable JSON, or no block at all | nothing is revived; the file imports as the drawing it is |
+| an entry naming something that is not a living entity | dropped on its own; the rest of the block still applies |
 
 That is what "lossless" means for this bridge, and it is deliberately narrower than "bit-identical":
-geometry is always preserved exactly (it is compiled into real elements), and semantics are preserved
-as long as nothing downstream edited them. A file that has been edited in Xournal++ opens correctly —
-as a drawing, which is what it now is.
+geometry is always preserved exactly (it is compiled into real elements), and semantics are recovered
+only while nothing downstream touched them. A file edited in Xournal++ opens correctly — as the edit,
+which is what it now is — and never as a table that swallowed it.
 
 ### Opening `.mobix` directly in desktop Xournal++ (Solution C: Lua plugin)
 
