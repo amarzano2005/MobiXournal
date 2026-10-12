@@ -60,12 +60,14 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 The statuses above are per **spoke**, not per feature: they say whether a doc describes shipped
 behaviour or a specification. Step 1 is the one with code behind it so far: in `format/mobix/`, the
 container (`MobixContainer`), the shared JSON layer (`format/json/`), the manifest and `canvas.json`
-codecs, and the element codecs for every element the format can hold — the four `.xopp`-shaped ones in
+codecs, the element codecs for every element the format can hold — the four `.xopp`-shaped ones in
 `MobixElementCodec`, the four living families (tables, plots, parametric shapes, circuits) in their own
-codecs, and the page codec on top — exist and are tested, while the document-level open/save, the
-`.xopp` bridge, and the *drawing and editing* of the living entities (modelled and preserved by their
-codecs, [mobix-elements.md](mobix-elements.md), but not rendered by anything yet) are still to come.
-Work items live in `TODO.toml`.
+codecs — and the document layer on top (`MobixDocument`: a `.xopp` ingested as a `.mobix` document and
+read back, [mobix-format.md](mobix-format.md)) exist and are tested. Still to come: the app-level
+open/save path (the type registered, the read-only offer for a higher `minAppVersion`), the synthesis
+export back to `.xopp` with its verified metadata block, and the *drawing and editing* of the living
+entities (modelled and preserved by their codecs, [mobix-elements.md](mobix-elements.md), but not
+rendered by anything yet). Work items live in `TODO.toml`.
 
 ### Advanced domain engine specifications
 

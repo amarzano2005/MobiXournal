@@ -28,7 +28,14 @@ to the component and before its rotation) and, hardest of all, the rule that a *
 build cannot read whole comes back verbatim rather than half-modelled — an unreadable cell alignment
 or a curve kind from a newer build must never be written back as a different document. It also holds
 the `.xopp` writer's side of that boundary: a living entity, and the JSON body of any element
-preserved from a `.mobix`, are never written into `.xopp` markup. The `render/` tests cover the pure geometry — page layout,
+preserved from a `.mobix`, are never written into `.xopp` markup. `MobixDocumentTest` is the bridge's
+own end-to-end claim, over the same desktop-validated fixtures: **the `.xopp` written back out of the
+converted document is the same XML that went in** — creator, title, preview, pages, layers, elements,
+audio links, backgrounds and rule parameters — so a conversion cannot quietly rewrite a file. It also
+pins the document layer's bookkeeping (a page keeps the identity it was given across saves, a page
+whose bytes did not change keeps its `modified` stamp, the same picture on two pages is one asset) and
+its refusals (a page the manifest names but the archive lacks, a newer `formatVersion`, a
+`canvas.json` disagreeing with the manifest, an infinite-canvas document). The `render/` tests cover the pure geometry — page layout,
 gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/redo history — and
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.

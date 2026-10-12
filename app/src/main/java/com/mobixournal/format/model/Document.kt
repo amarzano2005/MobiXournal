@@ -36,6 +36,10 @@ data class Document(
  * @param background The page's background (ruled sheet, pixmap image, or PDF).
  * @param layers The drawable layers in z-order (first = bottom, last = top).
  * @param extraAttrs Attributes on `<page>` we don't interpret, kept in source order so they round-trip.
+ * @param id The page's stable identity; see [ElementId]. `.xopp` has no page ids and never sets one,
+ *   so this is null for anything read from a `.xopp`; the `.mobix` manifest's `pages[]` entry carries
+ *   it (never the page's own JSON), and it is what lets a page be *reordered* without becoming a
+ *   different page to a merge.
  */
 data class Page(
     val width: Double,
@@ -44,6 +48,8 @@ data class Page(
     val layers: List<Layer>,
     /** Attributes on `<page>` we don't interpret, kept in source order so they round-trip. */
     val extraAttrs: Map<String, String> = emptyMap(),
+    /** The page's stable identity in the native `.mobix` format; see [ElementId.PAGE]. */
+    val id: String? = null,
 )
 
 /**

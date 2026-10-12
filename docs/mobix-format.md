@@ -105,16 +105,57 @@ bridge:
 └─────────────────┘       Synthesis Export         └─────────────────┘
 ```
 
+**Status: the import half is implemented** (`format/mobix/MobixDocument.kt`, `MobixBridgeFile.kt`,
+`MobixDocumentTest`), in both directions — a `.xopp` becomes a `.mobix` document and can be read back
+into the model. The synthesis export below is not written yet.
+
 1. **Import `.xopp` → `.mobix`**:
    - Every `.xopp` construct maps to its element in [mobix-elements.md](mobix-elements.md):
      strokes (with their `ts`/`fn` audio links), texts, images, `texImage`s and backgrounds are
-     ingested one-to-one; pages, layers and their names/visibility survive as pages and layers.
+     ingested one-to-one; pages and layers survive as pages and layers, names included. A layer's
+     *visibility* survives nowhere: it is a view-only editor state and neither format stores it.
    - Anything the model does not understand — an unknown element, an unknown attribute, an unknown
      markup block — is **preserved verbatim** (the `RawElement`/`extraAttrs` rule the `.xopp` path
      already enforces, [xopp-format.md](xopp-format.md)), so an import is lossless even for markup
-     from a newer Xournal++.
+     from a newer Xournal++. The test for it is the whole round trip: the `.xopp` written back out of
+     the converted document is the same XML that went in, element for element, `ts`/`fn` included.
+   - **Identity is assigned exactly once, at conversion.** A `.xopp` has no ids, so every page and
+     every element gets one (`ElementId.withIds`) *and it is written into the file from that first
+     save on* (`format/model/ElementIds.kt`). That matters more than it looks: a reader that finds an
+     element without an id mints one, so an import that left them out would hand out fresh ids on
+     every open and a merge would see the whole page as new.
+   - **The first page's background becomes the document's `defaultPaper`** — the desktop's own rule
+     for what a new page starts on — and a ruling's parameters travel verbatim in its `config` string
+     rather than being parsed and re-spelled.
+   - **Nothing is bundled by the conversion.** A `.xopp` references its pictures by path and its PDFs
+     by a `pdf` domain, and the converted document keeps those references as they were; the app's own
+     stores supply the bytes at save time when they can, which is what makes the file
+     self-contained (the document layer's `backgroundBytes`).
+   - **What the source was is recorded, not modelled**: the `.xopp` root's `creator` and
+     `fileVersion`, its `<preview>` thumbnail and the source's name go into
+     `xopp-bridge/metadata.json`, so a file that travelled through this app still identifies itself
+     the way its owner's Xournal++ did instead of claiming to be ours. A `.mobix` created natively
+     writes no such record.
    - If the `.xopp` carries MobiXournal bridge metadata (below), the living elements it describes are
      revived instead of being re-derived from the flattened strokes.
+
+**What a `.mobix` save writes.** The manifest is not copied from what was read: `pages[]` is derived
+from the pages being written, each page's `sha256` is the digest of the stored bytes, and a page whose
+bytes did not change **keeps its `modified` stamp** — a save that edited one page must not look like an
+edit of all of them to a sync client ([sync-and-storage.md](sync-and-storage.md)). Page ids are stable
+(they are the manifest's, not the position's, so a reordered page is still the same page), entries this
+build does not model are written back untouched, and a payload read from a file and never inspected is
+re-written rather than orphaned.
+
+**What a reader refuses, rather than opening something it cannot keep:** a page the manifest names but
+the archive does not carry (a corrupt file, never an empty page), a `formatVersion` from a newer
+schema, a `canvas.json` that disagrees with the manifest about the mode, and an infinite-canvas
+document — its content lives in `chunks/`, the page model cannot hold it, and opening it as an empty
+page list would let a save rewrite a chunked document as a paginated one. The canvas engine lifting
+that last refusal is a later step ([infinite-canvas.md](infinite-canvas.md)). `minAppVersion` is a
+**caller's** question, not this layer's: the document layer exposes
+`manifest.requiresAppNewerThan(appVersion)`, and whether that means "open read-only" or "refuse" is the
+app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).
 2. **Export `.mobix` → `.xopp` (Solution A: Zero-friction in-app export)**:
    - Available directly from MobiXournal's overflow menu / Save As dialog on both Android and Desktop.
    - `PlotElement` is compiled by `MultiFunctionPlotter` into standard `<stroke>` paths and `<text>` labels.

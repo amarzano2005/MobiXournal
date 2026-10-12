@@ -100,6 +100,8 @@ app/
         MobixShapeCodec.kt   # a parametric shape: authored vertices, derived box, an open kind name
         MobixCircuitCodec.kt # a circuit component: placement, rotation, magnetic pins and their nets
         MobixJson.kt         # the JSON building blocks every codec shares: ordered objects, boxes, attrs (pure)
+        MobixDocument.kt     # THE DOCUMENT: ingest a .xopp, open and encode the archive, page parts, refusals
+        MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
         MobixAssets.kt       # the assets/ half: payloads named by the hash of their own bytes (pure)
       json/                  # the shared, dependency-free JSON model, parser and writer (pure)
     io/                      # storage access that isn't format work

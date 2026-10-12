@@ -50,10 +50,49 @@ object ElementId {
     const val CIRCUIT = "ckt"
 
     /**
+     * A **page**'s id prefix. A page is a document part rather than an element, but its id needs the
+     * same two properties for the same reasons: stable across saves (a merge matches two copies of a
+     * page by it, `docs/sync-and-storage.md`) and never derived from content. It is written in the
+     * `.mobix` manifest's `pages[]` entry, not in the page's own JSON.
+     */
+    const val PAGE = "pg"
+
+    /**
      * A fresh id for a new element of kind [prefix]: 48 bits of randomness, hex, prefixed so the kind
      * is readable from the id alone. 48 bits is deliberate — an id only has to be unique *within a
      * document*, and a short one keeps the JSON of a page with thousands of strokes small.
      */
     fun mint(prefix: String): String =
         prefix + "_" + UUID.randomUUID().toString().replace("-", "").take(12)
+
+    /**
+     * [element] with an id, minted once: unchanged when it already carries one, and a [RawElement] is
+     * returned as it is — an element this build does not model has no id field of its own, and its
+     * identity (if the build that wrote it had one) is inside the JSON we promised not to touch.
+     */
+    fun withId(element: Element): Element = when (element) {
+        is Stroke -> element.copy(id = element.id ?: mint(STROKE))
+        is TextElement -> element.copy(id = element.id ?: mint(TEXT))
+        is ImageElement -> element.copy(id = element.id ?: mint(IMAGE))
+        is TexImageElement -> element.copy(id = element.id ?: mint(LATEX))
+        is TableElement -> element.copy(id = element.id ?: mint(TABLE))
+        is PlotElement -> element.copy(id = element.id ?: mint(PLOT))
+        is ParametricShapeElement -> element.copy(id = element.id ?: mint(SHAPE))
+        is CircuitElement -> element.copy(id = element.id ?: mint(CIRCUIT))
+        is RawElement -> element
+    }
+
+    /**
+     * [page] with an id on every element that has none — what a `.xopp` import does, and the reason an
+     * element's identity is **in the file** from the first write on: a reader that finds an element
+     * without one mints one, so an import that did not write them would hand out different ids on
+     * every open, and a merge would see the whole page as new.
+     *
+     * A `.xopp` *document* in memory keeps its elements unidentified on purpose: ids are a `.mobix`
+     * fact, minted when a document is converted (`MobixDocument.of`), and a file read back out of
+     * `.xopp` is still equal to what was written to it.
+     */
+    fun withIds(page: Page): Page = page.copy(
+        layers = page.layers.map { layer -> layer.copy(elements = layer.elements.map(::withId)) },
+    )
 }
