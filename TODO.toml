@@ -160,3 +160,17 @@ created = 2026-10-12
 tags = ["mobix", "selection", "render"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "a-graph-inserted-in-parametric-mode-is-stored-as-two-cartesian-curves"
+title = "A graph inserted in parametric mode is stored as two Cartesian curves"
+description = "Found while making the insertion produce a living PlotElement: ui/AdvancedFunctionGraphDialog.kt's parametric tab hands on two render PlotCurves (PlotCurve(paramX, PRESET_COLORS[0], ..., \"x(t)\") and PlotCurve(paramY, ...)), and the render PlotCurve has no kind field — so the insertion plots both as y = f(x) and the user gets two overlaid waves (cos(x) and sin(x)) instead of the loop the dialog's own live preview draws. The element insertion now *stores* that answer as well: render/PlotElementFactory.kt writes every curve it is given as PlotKind.CARTESIAN, so a parametric graph saved in a .mobix is a recipe that says something different from what the preview promised. Fix it by letting the dialog's answer carry its kind: extend the render-side curve type (or add a small 'insertion curve' type) with the kind and, for a parametric pair, the y expression, have PlotElementFactory map that to PlotKind.PARAMETRIC with source/sourceY/tMin/tMax (and PlotKind.POLAR with r(theta) for the polar input when it lands), and let DrawingSurfacePlots.insertMultiPlot route a parametric curve through AdvancedCurves.sampleParametric — the same sampling render/PlotInk.kt already uses for a parametric element — so the ink insertion and the element draw the same curve. Verify with JVM tests in app/src/test/java/com/mobixournal/render/PlotElementFactoryTest.kt: the dialog's parametric answer comes out as one PlotCurve with kind PARAMETRIC, source cos(x) and sourceY sin(x), it survives the MobixPlotCodec round trip with its kind intact, and LivingInk.of(element) draws one closed curve (its stroke point count and extents match AdvancedCurves.sampleParametric for the same range) rather than two Cartesian waves. Then the emulator pass (docs/tools.md, debug package com.mobixournal.v2): insert a graph in parametric mode and check by screenshot that a single loop appears, then save and reopen the .mobix and check it is still that loop."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 490
+created = 2026-10-12
+tags = ["mobix", "plot", "ui"]
+rebuild = true
+emulator_debug = true
