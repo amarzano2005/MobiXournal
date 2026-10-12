@@ -1,50 +1,76 @@
 # Architecture — the index
 
-Authoritative home for **how the system works internally**: the `.xopp` format mapping, the
-read/write data path, the core components, the repository layout, and the load-bearing design
-decisions. This file is the **index**, not the content: each topic below is one spoke, and each
-spoke opens with the question it answers — so a change loads one topic instead of the whole
-architecture.
+Authoritative home for **how the system works internally**: the active Android application
+pipeline, repository layout, data paths, and the technical specifications for future evolution.
+This file is the **index**, not the content: each topic below is one spoke, and each spoke opens
+with the question it answers — so a change loads one topic instead of the whole architecture.
 
-> Status: the lossless `.xopp` format core and the Compose/`SurfaceView` editor are implemented,
-> including PDF import and export. Record design decisions in the spoke that owns the topic, so
-> they aren't re-litigated.
+> **Status & Implementation State:**
+> - **Active Production System**: The Android app is a fully functional companion reading and writing
+>   lossless `.xopp` files, with Jetpack Compose Material 3 chrome, low-latency `SurfaceView` stylus
+>   inking, and PDF import/export.
+> - **Roadmap & Evolution Specifications**: Technical design specifications for the upcoming native
+>   `.mobix` format, modernized bimanual mobile UI, and desktop workstation app are documented in dedicated
+>   spokes to guide development without blurring the current codebase reality.
 
-## The spokes
+---
 
-| Spoke | What it owns | Read when |
-|---|---|---|
-| [`xopp-format.md`](xopp-format.md) | the on-disk schema: containers, MIME type, what the open path accepts, units, colour encoding, the element tree, round-trip hazards | you read or write the file format, or anything that has to survive desktop Xournal++ |
-| [`stack.md`](stack.md) | the pinned stack and the reason behind each choice: language, Compose/Material 3, the chrome's two colour roles, the SurfaceView, one width source, no third-party I/O library, PDFBox, SAF, the container build | you wonder why a dependency, framework or chrome colour is the way it is |
-| [`codebase.md`](codebase.md) | prior art and the reference clone, the repository layout (every package and file), branding and identity | you need to know what this project is, or where a piece of code lives |
-| [`data-path.md`](data-path.md) | open/save, remote staging, the tab/session cache, split view as panes, the in-memory model | you change how a document is opened, saved, staged or shared between panes |
-| [`rendering.md`](rendering.md) | the paint pipeline (vsync pacing), page rasterisation, exporting one page as PNG/SVG | a change affects repainting, drawing a page, or exporting a page image |
-| [`drawing-tools.md`](drawing-tools.md) | the tools and what they do to the page: shapes and styles, the eraser, layers, hold-to-snap, function plots, vertical space, tap-to-delete | you work on a drawing or editing tool |
-| [`pages-and-paper.md`](pages-and-paper.md) | ruling parameters, page templates, the background chooser, bookmarks, the page list | you change a page's paper, its bookmark, or the page list |
-| [`selection.md`](selection.md) | the Select/Lasso tools: marquee and lasso, the outline and its handles, move/resize/rotate, align & distribute, the region (background-copy) variant | you change how elements are picked or transformed |
-| [`stylus.md`](stylus.md) | the input layer: tool detection and precedence, pen diagnostics, tablets, palm rejection, pressure → width, smoothing, hover, momentum, gestures, what is out of scope | you change anything a pointer does |
-| [`colours.md`](colours.md) | the shared colour picker and palette state, and desktop colour parity | you change a colour or the picker |
-| [`chrome.md`](chrome.md) | the editor screen's layout, the rail, the top bar, the one menu material, the settings screen and its search | you change chrome layout, a toolbar, a pop-up or a setting |
-| [`images.md`](images.md) | image import, painting a pixmap background, resolving and storing its reference | you change image import or a pixmap background |
-| [`pdf.md`](pdf.md) | PDF backgrounds and their caches, fonts in generated PDFs, text selection, the Contents outline, relative references, the retired on-screen vector path | you change anything PDF |
-| [`text-and-markdown.md`](text-and-markdown.md) | the text/markdown import path, the paginator, the markdown parser and layout, the PDFs those imports are annotated against | you change a text or markdown import |
-| [`audio.md`](audio.md) | recording, replay and the `.wav` sidecars a stroke can reference | you touch audio annotation |
-| [`search.md`](search.md) | document search, the handwriting index, the two recognition engines | you change search or recognition |
-| [`testing.md`](testing.md) | what the unit tests cover, and which rules the build enforces mechanically | you want to know what protects a change, or how to make a rule stick |
-| [`mobix-format.md`](mobix-format.md) | technical design for the native `.mobix` container, living domain entities, and the `.xopp` bridge | you work on the file format, serialization, or Xournal++ compatibility |
-| [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion tablets, or dials |
-| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, and auto-pagination slicing | you work on canvas scrolling, pagination boundaries or pageless modes |
-| [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container specification and dynamic entities (tables, plots, parametric shapes, circuits) | you change the native file format schema or dynamic element data models |
-| [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus (roots, extrema, derivatives, integrals), parametric/polar curves | you work on mathematical plotting, formula parsing or calculus features |
-| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking synchronization, point-level timestamps, inking karaoke, and interactive audio scrubbing | you work on synchronized audio playback or speech-to-stroke features |
-| [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters, and math/OCR plugins | you add extensibility hooks, scripting or third-party integrations |
-| [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, and cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution |
-| [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, and offline math rendering | you work on mathematical typography, LaTeX, or Typst features |
-| [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, full-text inverted index, and ISO PDF/A export | you work on PDF text snapping, search indexing or native annotation export |
-| [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric shape recognition, and parametric vertex handles | you work on shape recognition, gesture dwell detection or geometric control handles |
-| [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, and cross-app drag and drop | you work on multi-window coordination, split view or drag and drop |
-| [`ui-modernization.md`](ui-modernization.md) | modern lightweight UI design system, floating glass capsules, monoline iconography, and desktop alignment | you modernize the interface, redesign chrome, or implement floating toolbars |
-| [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap: native .mobix format, modern mobile UI, and desktop workstation | you plan or review the next-generation architecture hierarchy |
+## Active core architecture (Currently implemented)
+
+The following spokes describe the **active Android codebase** (`com.mobixournal.*`) as implemented today:
+
+| Spoke | What it owns | Read when | Status |
+|---|---|---|---|
+| [`codebase.md`](codebase.md) | repository layout (every package and file), branding and identity | you need to know where code lives | **Implemented** |
+| [`stack.md`](stack.md) | pinned tech stack: Kotlin, Compose M3, SurfaceView, PDFBox, SAF | you wonder why a dependency or framework is chosen | **Implemented** |
+| [`xopp-format.md`](xopp-format.md) | on-disk `.xopp` schema: containers, gzip XML, elements, round-trip fidelity | you read or write `.xopp` or debug Xournal++ compatibility | **Implemented** |
+| [`data-path.md`](data-path.md) | open/save, remote staging, session cache, in-memory model | you change how documents are opened, saved, or staged | **Implemented** |
+| [`rendering.md`](rendering.md) | paint pipeline (vsync pacing), page rasterisation, PNG/SVG export | a change affects repainting, drawing or export | **Implemented** |
+| [`drawing-tools.md`](drawing-tools.md) | drawing and editing tools: shapes, styles, eraser, layers, hold-to-snap | you work on an active drawing or editing tool | **Implemented** |
+| [`pages-and-paper.md`](pages-and-paper.md) | ruling parameters, page templates, background chooser, bookmarks, page list | you change paper, background, or page management | **Implemented** |
+| [`selection.md`](selection.md) | Select/Lasso tools: marquee/lasso, handles, transforms, align & distribute | you change how elements are picked or transformed | **Implemented** |
+| [`stylus.md`](stylus.md) | input layer: tool detection, palm rejection, pressure → width, smoothing | you change stylus pointer handling or touch gestures | **Implemented** |
+| [`colours.md`](colours.md) | shared colour picker, palette state, desktop colour parity | you change colour selection or palettes | **Implemented** |
+| [`chrome.md`](chrome.md) | editor screen layout, rail, top bar, menus, settings screen | you change chrome UI or app settings | **Implemented** |
+| [`images.md`](images.md) | image import, pixmap background, path resolution | you change image handling or background pixmaps | **Implemented** |
+| [`pdf.md`](pdf.md) | PDF backgrounds, font caches, text selection, bookmarks outline | you change PDF rendering, text selection or export | **Implemented** |
+| [`text-and-markdown.md`](text-and-markdown.md) | text/markdown import, paginator, layout engine | you change text or markdown import | **Implemented** |
+| [`audio.md`](audio.md) | audio recording, replay, `.wav` sidecars linked to strokes | you touch audio annotation features | **Implemented** |
+| [`search.md`](search.md) | document search, handwriting index, recognition engines | you change search or recognition | **Implemented** |
+| [`testing.md`](testing.md) | unit test coverage, architectural guards, mechanical rules | you want to know what protects a change | **Implemented** |
+
+---
+
+## Future evolution & Next-Gen specifications (Roadmap)
+
+The following spokes define the **technical architecture for future milestones**.
+The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.md) along three primary steps:
+
+### The 3 strategic pillars
+
+| Step | Spoke | What it owns | Read when | Status |
+|---|---|---|---|---|
+| **Master** | [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap coordinating data, mobile, and desktop | you plan or review the next-generation architecture hierarchy | **Roadmap** |
+| **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Planned Spec** |
+| **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | `.mobix` container specification and dynamic entities (tables, plots, shapes, circuits) | you specify the native format schema or dynamic element data models | **Planned Spec** |
+| **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Planned Spec** |
+| **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Planned Spec** |
+
+### Advanced domain engine specifications
+
+| Spoke | What it owns | Read when | Status |
+|---|---|---|---|
+| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, auto-pagination | you work on canvas scrolling, pagination boundaries or pageless modes | **Planned Spec** |
+| [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus (roots, extrema, derivatives), parametric curves | you work on mathematical plotting, formula parsing or calculus features | **Planned Spec** |
+| [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric recognition, parametric handles | you work on shape recognition, gesture dwell detection or handles | **Planned Spec** |
+| [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, offline math rendering | you work on mathematical typography, LaTeX, or Typst features | **Planned Spec** |
+| [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, full-text inverted index, ISO PDF/A | you work on PDF text snapping, search indexing or native annotation export | **Planned Spec** |
+| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Planned Spec** |
+| [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters | you add extensibility hooks, scripting or third-party integrations | **Planned Spec** |
+| [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution | **Planned Spec** |
+| [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, drag and drop | you work on multi-window coordination, split view or drag and drop | **Planned Spec** |
+
+---
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, and [`releases/`](releases/) holds the per-version changelogs.
