@@ -105,9 +105,15 @@ bridge:
 └─────────────────┘       Synthesis Export         └─────────────────┘
 ```
 
-**Status: the import half is implemented** (`format/mobix/MobixDocument.kt`, `MobixBridgeFile.kt`,
-`MobixDocumentTest`), in both directions — a `.xopp` becomes a `.mobix` document and can be read back
-into the model. The synthesis export below is not written yet.
+**Status: both halves of the compiler are written; the bridge metadata and the UI wiring are not.**
+The import half is `format/mobix/MobixDocument.kt` with `MobixBridgeFile.kt` — a `.xopp` becomes a
+`.mobix` document and can be read back into the model. The export half is `render/XoppSynthesis.kt`,
+which flattens a document holding living entities into ink through one compiler per family
+(`SynthesisTable`, `SynthesisPlot`, `SynthesisShape`, `SynthesisCircuit`) and hands the result to the
+**ordinary** `.xopp` writer, so there is one emitter and not a second one to keep in step. Still owed:
+the `mobix:meta` block that makes the export re-importable (the bullet below, `TODO.toml`
+`mobix-bridge-metadata-block`) and the editor wiring that reaches the export from the save path
+(`mobix-open-save-path`). Until those land, only this app's own tests call the export.
 
 1. **Import `.xopp` → `.mobix`**:
    - Every `.xopp` construct maps to its element in [mobix-elements.md](mobix-elements.md):
@@ -158,16 +164,52 @@ that last refusal is a later step ([infinite-canvas.md](infinite-canvas.md)). `m
 app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).
 2. **Export `.mobix` → `.xopp` (Solution A: Zero-friction in-app export)**:
    - Available directly from MobiXournal's overflow menu / Save As dialog on both Android and Desktop.
-   - `PlotElement` is compiled by `MultiFunctionPlotter` into standard `<stroke>` paths and `<text>` labels.
-   - `TableElement` is compiled into border strokes and text elements.
-   - `ParametricShapeElement` and `CircuitElement` are compiled into strokes (and their text, for a
-     labelled component); a `Stroke`'s tilt/azimuth survive as its **computed** per-point width, and
-     `dtMs`/`tilt`/`azimuth` themselves are not representable — see the lossy-field rule below.
+   - Every living entity is **replaced in place** by the ink it stands for, in its own layer and at its
+     own z-position; nothing else about the document changes, so the `.xopp` half of the model — and
+     the `.xopp` → `.mobix` direction above — is untouched by the export.
+   - `PlotElement` is compiled by `MultiFunctionPlotter` (frame, axes, ticks, curves, the analysis
+     summary) when its curves are all Cartesian; a parametric or polar curve is placed by the plotter's
+     geometry nowhere, so it is sampled directly and the shared frame is fitted around what came out.
+     `TableElement` is compiled into grid rules plus one text box per non-empty cell; a filled cell
+     is a closed rectangle stroke carrying the desktop `fill` alpha, and a second stroke underneath
+     when its colour differs from the rule's (a `.xopp` stroke has one colour and one interior alpha).
+   - `ParametricShapeElement` becomes its vertices closed on themselves — the geometry the file stores,
+     not the kind's angles re-derived — with its angle and side-length labels; `CircuitElement` is
+     recovered from the **symbol library** and placed by the element's own **pins**, drawn before the
+     rotation and turned afterwards, one stroke per disconnected part so nothing is drawn across a
+     capacitor's gap. A component's `value` is written beside it, and the ink is the element's own
+     `strokeColor`, so the drawing that leaves this app is the drawing that was on screen.
    - **Lossless metadata tag**: The `.xopp` writer injects an application metadata block carrying the
      living elements so the export can be *re-imported* without the semantics being lost.
    - **The synthesized `.xopp` is a real document, not a rendering**: it opens, prints and edits in
      desktop Xournal++ like any other file, because every element is emitted as ordinary strokes and
      text — the metadata is additive.
+
+#### What the export loses, and what it refuses
+
+Flattening is a translation, not a copy, so the export states its losses in two places rather than
+hiding them.
+
+**Reported, never substituted.** `render/XoppSynthesis.kt` returns its `.xopp` document *and* a list of
+what it could not draw (`SynthesisResult.uncompiled`, each entry naming the type, the element's own
+wording and why):
+
+- a `symbol`/`shape` key this build has no drawing for — there is no ink to invent, and a plausible
+  substitute would be a lie in the user's own file;
+- a curve whose formula does not parse, reported **per curve** — a plot that lost one of three curves
+  is a different loss from a plot that drew nothing, and only the curves that parse are drawn;
+- an element preserved verbatim from a **newer** `.mobix` whose body is JSON: it has `.xopp` spelling
+  nowhere, which is exactly why the writer skips such an element. Its `.xopp`-syntax sibling (a
+  `RawElement` from a `.xopp`) is carried through untouched.
+
+**Lost because the format has nowhere to put it.** A `Stroke`'s `tilt`, `azimuth` and `dtMs` do not
+survive (`.xopp` stores a vertex's `x`, `y` and width only, [xopp-format.md](xopp-format.md)); the
+widths do, and they are the filtered widths the app draws with, so the exported drawing is the one on
+screen and only the telemetry behind it is gone ([stylus.md](stylus.md)). Every entity above also stops
+being *editable*: a `.xopp` holds a drawing of a table, and the recipe that would let it be edited again
+lives only in the `.mobix` — which is what the metadata block below exists to recover. A document that
+is already all ink exports **unchanged**, and one with nothing to draw is left alone rather than being
+given an empty frame.
 
 ### The bridge metadata block, and its two hazards
 

@@ -159,7 +159,9 @@ library that knows it, and refused by nobody.
 **Nothing draws them yet.** The format layer reads, writes and preserves all four; every consumer —
 canvas, PDF and SVG export, the selection ops — skips them rather than guessing, so a living entity has
 no box on screen and no op will move one. Each family flips its own answer when its editor lands
-(`docs/future-roadmap.md`, Step 2).
+(`docs/future-roadmap.md`, Step 2). The one consumer that *does* interpret them is the `.xopp`
+synthesis export, which compiles each into the ink it stands for before a file leaves the app
+([mobix-format.md](mobix-format.md)) — the same drawing, on someone else's screen.
 
 ### Table (`table`)
 
@@ -209,7 +211,12 @@ the one box that has a stored half and a derived half.
 ```
 
 - `curves[].kind` is `CARTESIAN` (`y = f(x)` over `xMin..xMax`), `PARAMETRIC` (the curve then also
-  carries `tMin`/`tMax` and `sourceY`) or `POLAR` (`r(θ)` over `thetaMin`/`thetaMax`).
+  carries `tMin`/`tMax` and `sourceY`) or `POLAR` (`r(θ)` over `thetaMin`/`thetaMax`). The
+  parameterised kinds are named by their mathematics, not by a second parser: this app writes the
+  variable as the expression parser's own `x` (the graph dialog's parametric tab enters `cos(x)`,
+  `sin(x)`), and a file that writes the parameter as `theta` or `t` instead is understood by renaming
+  that variable before the formula is evaluated — the notation in the sentence above is the file's,
+  and losing a curve over the spelling of its variable would be the reader's fault.
 - `parameters` holds the named constants an expression may reference; moving a slider re-evaluates the
   plot instead of editing the formula ([math-engine.md](math-engine.md)).
 - `summaryText` is a **cache of what was computed**, written so a reader that will not run the math

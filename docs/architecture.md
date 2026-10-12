@@ -63,11 +63,14 @@ container (`MobixContainer`), the shared JSON layer (`format/json/`), the manife
 codecs, the element codecs for every element the format can hold — the four `.xopp`-shaped ones in
 `MobixElementCodec`, the four living families (tables, plots, parametric shapes, circuits) in their own
 codecs — and the document layer on top (`MobixDocument`: a `.xopp` ingested as a `.mobix` document and
-read back, [mobix-format.md](mobix-format.md)) exist and are tested. Still to come: the app-level
-open/save path (the type registered, the read-only offer for a higher `minAppVersion`), the synthesis
-export back to `.xopp` with its verified metadata block, and the *drawing and editing* of the living
-entities (modelled and preserved by their codecs, [mobix-elements.md](mobix-elements.md), but not
-rendered by anything yet). Work items live in `TODO.toml`.
+read back, [mobix-format.md](mobix-format.md)) exist and are tested, and so does the other half of the
+compiler: `render/XoppSynthesis.kt` flattens a document holding living entities into ink the ordinary
+`.xopp` writer emits, one compiler per family. Still to come: the app-level open/save path (the type
+registered, the read-only offer for a higher `minAppVersion`), the export's verified `mobix:meta` block
+— without it an export cannot be re-imported as living entities — the wiring that reaches the export
+from a menu, and the *drawing and editing* of the living entities themselves (modelled and preserved by
+their codecs, [mobix-elements.md](mobix-elements.md), and compiled on export, but not rendered on
+screen yet). Work items live in `TODO.toml`.
 
 ### Advanced domain engine specifications
 
