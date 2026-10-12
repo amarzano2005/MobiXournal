@@ -2,8 +2,10 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.mobix.MobixAssetSink
@@ -180,6 +182,76 @@ class PlotElementFactoryTest {
 
         assertNotNull("a saved plot has an identity", decoded.id)
         assertEquals("every field but the minted id comes back as it went in", plot.copy(id = decoded.id), decoded)
+    }
+
+    @Test
+    fun aParametricPairIsStoredAsOneParametricCurveAndDrawnAsALoop() {
+        // What the dialog's parametric tab asks for: x(t) and y(t) are the two halves of one curve.
+        val curves = listOf(
+            PlotCurve("cos(x)", red, LineStyle.PLAIN, "x(t)", PlotKind.PARAMETRIC, "sin(x)"),
+        )
+
+        val plot = PlotElementFactory.plotElementFor(
+            curves = curves,
+            xMin = 0.0,
+            xMax = 6.2831853,
+            centreX = 400.0,
+            centreY = 500.0,
+            page = page(),
+            strokeWidthPt = 1.5,
+            axisColor = pen,
+        )
+
+        val curve = plot.curves.single()
+        assertEquals("one curve, not two halves", PlotKind.PARAMETRIC, curve.kind)
+        assertEquals("cos(x)", curve.source)
+        assertEquals("sin(x)", curve.sourceY)
+        assertEquals("the dialog's range is the curve's parameter range", 0.0, curve.tMin!!, 0.0)
+        assertEquals(6.2831853, curve.tMax!!, 0.0)
+
+        val ink = LivingInk.of(plot)
+        val strokes = ink.elements.filterIsInstance<Stroke>()
+        val expected = AdvancedCurves.sampleParametric(
+            xFormula = FunctionPlot.compile("cos(x)")!!,
+            yFormula = FunctionPlot.compile("sin(x)")!!,
+            tMin = 0.0,
+            tMax = 6.2831853,
+            samples = plot.samples,
+        )
+
+        assertTrue("nothing was lost", ink.uncompiled.isEmpty())
+        assertEquals("the frame and one curve", 2, strokes.size)
+        assertEquals("the pair is sampled, not compiled as a wave", expected.size, strokes[1].points.size)
+        // A `y = f(x)` curve advances in x and stays inside its own band; a circle reaches the edges on
+        // both axes. That difference is the visible one: the two overlaid waves this used to store.
+        val xs = strokes[1].points.map { it.x }
+        val ys = strokes[1].points.map { it.y }
+        assertTrue("it reaches the box's edges across x", xs.max() - xs.min() > 0.9 * (plot.right - plot.left))
+        assertTrue("and across y, which no Cartesian curve can do", ys.max() - ys.min() > 0.9 * (plot.bottom - plot.top))
+    }
+
+    @Test
+    fun aParametricPairSurvivesTheCodecWithItsKindAndItsSecondExpression() {
+        val plot = PlotElementFactory.plotElementFor(
+            curves = listOf(PlotCurve("cos(x)", red, LineStyle.PLAIN, "x(t)", PlotKind.PARAMETRIC, "sin(x)")),
+            xMin = 0.0,
+            xMax = 6.2831853,
+            centreX = 400.0,
+            centreY = 500.0,
+            page = page(),
+            strokeWidthPt = 1.5,
+            axisColor = pen,
+        )
+
+        val decoded = MobixElementCodec.decode(
+            MobixElementCodec.encode(plot, MobixAssetSink()),
+            MobixAssetSource { null },
+        ) as PlotElement
+
+        assertEquals(PlotKind.PARAMETRIC, decoded.curves.single().kind)
+        assertEquals("the y expression is what makes it a pair", "sin(x)", decoded.curves.single().sourceY)
+        assertEquals(0.0, decoded.curves.single().tMin!!, 0.0)
+        assertEquals(6.2831853, decoded.curves.single().tMax!!, 0.0)
     }
 
     @Test

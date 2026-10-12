@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.StrokePoint
 import kotlin.math.abs
 
@@ -69,6 +70,10 @@ object MultiFunctionPlotter {
     private fun compileCurves(curves: List<PlotCurve>, includeDerivative: Boolean): List<Pair<PlotCurve, Formula>> {
         val out = mutableListOf<Pair<PlotCurve, Formula>>()
         for (c in curves) {
+            // This plotter places `y = f(x)` and nothing else: a parametric or polar curve needs the
+            // sampling and the fitted frame `PlotInk` gives it, so it is skipped rather than compiled
+            // as the wave its formula would look like (which is a different drawing, not a worse one).
+            if (c.kind != PlotKind.CARTESIAN) continue
             val f = FunctionPlot.compile(c.source) ?: continue
             out.add(c to f)
             if (includeDerivative) {

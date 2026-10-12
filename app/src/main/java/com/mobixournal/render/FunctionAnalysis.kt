@@ -1,17 +1,33 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.StrokePoint
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** A curve to be plotted: its math formula, display color, line style, and optional label. */
+/**
+ * A curve a caller asks to be plotted: its formula, display color, line style, an optional label — and
+ * **how the formula is parameterised** ([kind], with [sourceY] when the curve needs a second
+ * expression).
+ *
+ * [kind] is here because two plots can share one formula and mean different things: `cos(x)` is a wave
+ * as a Cartesian curve and the x of a circle as the x of a parametric pair. A caller that cannot say
+ * which of the two it means gets the wave, which is why the dialog's parametric tab states it
+ * ([PlotKind.PARAMETRIC] with `source = x(t)`, `sourceY = y(t)`).
+ *
+ * Only [MultiFunctionPlotter] places Cartesian curves; a parametric or polar one needs
+ * [AdvancedCurves.sampleParametric]'s sampling and the shared frame `PlotInk` builds, so a plotter that
+ * cannot draw a kind refuses it rather than drawing the wave its formula would look like.
+ */
 data class PlotCurve(
     val source: String,
     val color: Int = 0xFF000000.toInt(),
     val lineStyle: LineStyle = LineStyle.PLAIN,
     val label: String = "",
+    val kind: PlotKind = PlotKind.CARTESIAN,
+    val sourceY: String? = null,
 )
 
 /** The kind of critical/feature point detected in mathematical function analysis. */

@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.PlotKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -160,6 +161,35 @@ class FunctionPlotTest {
         assertEquals(1, mins.size)
         assertEquals(0.0, mins.first().x, 0.05)
         assertEquals(-4.0, mins.first().y, 0.05)
+    }
+
+    @Test
+    fun `a curve the plotter cannot place is refused instead of drawn as a wave`() {
+        // `cos(x)` is a wave as a Cartesian curve and the x of a circle as a parametric pair. This
+        // plotter places `y = f(x)` only, so the pair is *not* its picture to draw: the sampled loop
+        // comes from `AdvancedCurves` through the plot compiler, and a wave here would be a different
+        // drawing presented as the requested one.
+        val circular = PlotCurve(
+            source = "cos(x)",
+            color = 0xFF0000FF.toInt(),
+            kind = PlotKind.PARAMETRIC,
+            sourceY = "sin(x)",
+        )
+        val ordinary = PlotCurve("x^2", 0xFFFF0000.toInt())
+
+        val onlyParametric = MultiFunctionPlotter.plot(
+            curves = listOf(circular), xMin = -3.0, xMax = 3.0,
+            leftPt = 0.0, topPt = 0.0, widthPt = 200.0, heightPt = 200.0, strokeWidthPt = 1.0,
+        )
+        val mixed = MultiFunctionPlotter.plot(
+            curves = listOf(circular, ordinary), xMin = -3.0, xMax = 3.0,
+            leftPt = 0.0, topPt = 0.0, widthPt = 200.0, heightPt = 200.0, strokeWidthPt = 1.0,
+        )
+
+        assertTrue("nothing is invented for a kind it cannot place", onlyParametric.pathGroups.isEmpty())
+        // The frame is a group of its own, so the mixed plot is: axes, then the one curve it can place.
+        assertEquals("the frame and the Cartesian curve beside it", 2, mixed.pathGroups.size)
+        assertEquals("and the curve group is that curve's own", ordinary.color, mixed.pathGroups[1].color)
     }
 
     @Test

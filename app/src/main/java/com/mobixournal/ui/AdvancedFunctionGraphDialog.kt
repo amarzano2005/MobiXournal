@@ -1,6 +1,5 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,18 +45,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.render.CriticalPoint
 import com.mobixournal.ui.theme.rememberToolbarColor
 import com.mobixournal.render.FunctionAnalysis
 import com.mobixournal.render.FunctionPlot
-import com.mobixournal.render.MultiFunctionPlotter
 import com.mobixournal.render.PlotCurve
+
+/**
+ * Whether this curve is one the app could draw at all — the gate the Insert button uses.
+ *
+ * A parametric curve needs *both* of its expressions: `x(t)` alone is half a curve, and the plot the
+ * element compiler would produce from it is nothing (it reports the pair as unparsed).
+ */
+private fun PlotCurve.isDrawable(): Boolean =
+    FunctionPlot.compile(source) != null &&
+        (kind != PlotKind.PARAMETRIC || sourceY?.let { FunctionPlot.compile(it) != null } == true)
 
 private val PRESET_COLORS = listOf(
     XOPP_BLUE,
@@ -126,10 +131,18 @@ fun AdvancedFunctionGraphDialog(
         if (modeTab == 0) {
             curves.mapIndexed { i, c -> PlotCurve(c.source, c.color, c.lineStyle, "f${i + 1}") }
         } else {
-            // Parametric mode: represent as two curves or single preview
+            // One parametric curve, not two Cartesian ones: `x(t)` and `y(t)` are the two halves of a
+            // single curve, and saying so is what lets it be *drawn* as the loop this tab promises —
+            // two separate `y = f(x)` waves are a different picture, not a preview of this one.
             listOf(
-                PlotCurve(paramX, PRESET_COLORS[0], LineStyle.PLAIN, "x(t)"),
-                PlotCurve(paramY, PRESET_COLORS[1], LineStyle.PLAIN, "y(t)"),
+                PlotCurve(
+                    source = paramX,
+                    color = PRESET_COLORS[0],
+                    lineStyle = LineStyle.PLAIN,
+                    label = "x(t)",
+                    kind = PlotKind.PARAMETRIC,
+                    sourceY = paramY,
+                ),
             )
         }
     }
@@ -171,7 +184,7 @@ fun AdvancedFunctionGraphDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = rangeOk && activeCurves.any { FunctionPlot.compile(it.source) != null },
+                enabled = rangeOk && activeCurves.any { it.isDrawable() },
                 onClick = {
                     onConfirm(activeCurves, xMin!!, xMax!!, showCriticalPoints, includeDerivative, includeSummary)
                 },
@@ -354,45 +367,6 @@ private fun ModeSelectorPill(modeTab: Int, onModeTabChange: (Int) -> Unit) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun DialogPreviewColumn(
-    modifier: Modifier = Modifier,
-    rangeOk: Boolean,
-    xMin: Double?,
-    xMax: Double?,
-    activeCurves: List<PlotCurve>,
-    showCriticalPoints: Boolean,
-    onShowCriticalPointsChange: (Boolean) -> Unit,
-    includeDerivative: Boolean,
-    onIncludeDerivativeChange: (Boolean) -> Unit,
-    includeSummary: Boolean,
-    onIncludeSummaryChange: (Boolean) -> Unit,
-) {
-    Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        if (rangeOk && xMin != null && xMax != null) {
-            FunctionPlotPreviewBox(
-                curves = activeCurves,
-                xMin = xMin,
-                xMax = xMax,
-                showCriticalPoints = showCriticalPoints,
-                includeDerivative = includeDerivative,
-            )
-        }
-
-        OptionsRow(
-            showCriticalPoints = showCriticalPoints,
-            onShowCriticalPointsChange = onShowCriticalPointsChange,
-            includeDerivative = includeDerivative,
-            onIncludeDerivativeChange = onIncludeDerivativeChange,
-            includeSummary = includeSummary,
-            onIncludeSummaryChange = onIncludeSummaryChange,
-        )
     }
 }
 
@@ -583,94 +557,3 @@ private fun ParametricInputs(
     }
 }
 
-@Composable
-private fun OptionsRow(
-    showCriticalPoints: Boolean,
-    onShowCriticalPointsChange: (Boolean) -> Unit,
-    includeDerivative: Boolean,
-    onIncludeDerivativeChange: (Boolean) -> Unit,
-    includeSummary: Boolean,
-    onIncludeSummaryChange: (Boolean) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = showCriticalPoints, onCheckedChange = onShowCriticalPointsChange)
-            Text("Detect critical points (roots, extrema, poles)", style = MaterialTheme.typography.bodySmall)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = includeDerivative, onCheckedChange = onIncludeDerivativeChange)
-            Text("Show derivative curve f'(x)", style = MaterialTheme.typography.bodySmall)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = includeSummary, onCheckedChange = onIncludeSummaryChange)
-            Text("Insert analysis report table next to plot", style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun FunctionPlotPreviewBox(
-    curves: List<PlotCurve>,
-    xMin: Double,
-    xMax: Double,
-    showCriticalPoints: Boolean,
-    includeDerivative: Boolean,
-) {
-    val axisColor = 0xFF2A2A2A.toInt()
-    val plotResult = remember(curves, xMin, xMax, showCriticalPoints, includeDerivative, axisColor) {
-        MultiFunctionPlotter.plot(
-            curves = curves,
-            xMin = xMin,
-            xMax = xMax,
-            leftPt = 10.0,
-            topPt = 10.0,
-            widthPt = 360.0,
-            heightPt = 160.0,
-            strokeWidthPt = 1.0,
-            samples = 250,
-            showCriticalPoints = showCriticalPoints,
-            includeDerivative = includeDerivative,
-            includeSummary = false,
-            axisColor = axisColor,
-        )
-    }
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(160.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = Color.White,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Box(modifier = Modifier.padding(8.dp)) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val scaleX = size.width / 380f
-                val scaleY = size.height / 180f
-                for (group in plotResult.pathGroups) {
-                    val color = Color(group.color)
-                    val pathEffect = when (group.lineStyle) {
-                        LineStyle.DASHED -> PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
-                        LineStyle.DOTTED -> PathEffect.dashPathEffect(floatArrayOf(2f, 6f), 0f)
-                        LineStyle.DASH_DOT -> PathEffect.dashPathEffect(floatArrayOf(12f, 6f, 2f, 6f), 0f)
-                        LineStyle.PLAIN -> null
-                    }
-                    val strokeStyle = Stroke(
-                        width = 1.5f * scaleX,
-                        pathEffect = pathEffect,
-                    )
-                    for (stroke in group.strokes) {
-                        if (stroke.size >= 2) {
-                            val path = Path()
-                            path.moveTo(stroke.first().x.toFloat() * scaleX, stroke.first().y.toFloat() * scaleY)
-                            for (i in 1 until stroke.size) {
-                                path.lineTo(stroke[i].x.toFloat() * scaleX, stroke[i].y.toFloat() * scaleY)
-                            }
-                            drawPath(path, color, style = strokeStyle)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}

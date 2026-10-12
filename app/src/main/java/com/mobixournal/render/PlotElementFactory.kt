@@ -34,17 +34,24 @@ internal data class PlotBox(val left: Double, val top: Double, val width: Double
  * ([DrawingSurfaceView.viewportCentrePt]) and the pen's own width and colour, which are the only
  * inputs that need a running editor.
  *
+ * It places an element in a box, and nothing here decides where that box is
+ * ([boxFor](PlotElementFactory.boxFor) answers that from a page and a point), so the same conversion
+ * serves the editor's preview: the dialog previews the very element it is about to insert, drawn by
+ * the very compiler the page uses, and cannot promise a drawing the insertion will not make.
+ *
  * Three things it deliberately does **not** invent:
  *
  *  - **A summary it was not asked for.** `summaryText` is the engine's already-formatted analysis, and
  *    the model documents it as exactly that: a cache for a reader that will not run the math. When the
  *    dialog's *include summary* is on, the analysis is computed once here and stored, so the element
  *    carries it and `PlotInk` draws it (it reads the field's presence as the flag); leaving it null
- *    would quietly turn that checkbox into a no-op.
+ *    would quietly turn that checkbox into a no-op. It is only computed for Cartesian curves, which are
+ *    the ones the analysis engine can read.
  *  - **An identity.** `id` is null; the codec mints one at the first save (`ElementId`).
- *  - **A kind the dialog did not state.** The dialog's curve type carries no [PlotKind], and every
- *    curve it produces is drawn by the plotter as `y = f(x)`, so each is written as
- *    [PlotKind.CARTESIAN] — the drawing the insertion always made.
+ *  - **A parameterisation the caller did not state.** Each curve keeps the [PlotKind] it was asked for
+ *    ([PlotCurve.kind]) and, for a parametric pair, its `y(t)`; the dialog's range becomes the
+ *    *parameter* range of such a curve (t or θ) rather than a Cartesian domain it does not have. Every
+ *    curve that states nothing is Cartesian, which is what the plot tool has always drawn.
  *
  * The stroke width and axis colour are parameters, not constants, because the ink this replaces was
  * drawn in the user's pen: passing the same width and colour is what makes the element draw as the
@@ -103,15 +110,48 @@ internal object PlotElementFactory {
         strokeWidthPt: Double = 1.0,
         axisColor: Int = PlotElement.DEFAULT_AXIS,
         includeSummary: Boolean = false,
+    ): PlotElement = plotElementIn(
+        box = boxFor(page, centreX, centreY),
+        curves = curves,
+        xMin = xMin,
+        xMax = xMax,
+        showCriticalPoints = showCriticalPoints,
+        includeDerivative = includeDerivative,
+        strokeWidthPt = strokeWidthPt,
+        axisColor = axisColor,
+        includeSummary = includeSummary,
+    )
+
+    /**
+     * The living plot for [curves] placed in an already-decided [box] — the half of
+     * [plotElementFor] that has no opinion about where the plot goes, so a preview can ask for the
+     * same element in its own box.
+     */
+    fun plotElementIn(
+        box: PlotBox,
+        curves: List<PlotCurve>,
+        xMin: Double,
+        xMax: Double,
+        showCriticalPoints: Boolean = false,
+        includeDerivative: Boolean = false,
+        strokeWidthPt: Double = 1.0,
+        axisColor: Int = PlotElement.DEFAULT_AXIS,
+        includeSummary: Boolean = false,
     ): PlotElement {
-        val box = boxFor(page, centreX, centreY)
         val elementCurves = curves.map { curve ->
             ElementPlotCurve(
-                kind = PlotKind.CARTESIAN,
+                kind = curve.kind,
                 source = curve.source,
+                sourceY = if (curve.kind == PlotKind.PARAMETRIC) curve.sourceY else null,
                 color = curve.color,
                 strokeWidth = strokeWidthPt,
                 lineStyle = curve.lineStyle,
+                // A parametric or polar curve sweeps its own parameter; the dialog's range is that
+                // range for such a curve, not a Cartesian domain it does not have.
+                tMin = xMin.takeIf { curve.kind == PlotKind.PARAMETRIC },
+                tMax = xMax.takeIf { curve.kind == PlotKind.PARAMETRIC },
+                thetaMin = xMin.takeIf { curve.kind == PlotKind.POLAR },
+                thetaMax = xMax.takeIf { curve.kind == PlotKind.POLAR },
             )
         }
         return PlotElement(
