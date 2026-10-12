@@ -112,10 +112,12 @@ block still proves them (`MobixMetaRevival`). The export half is `render/XoppSyn
 flattens a document holding living entities into ink through one compiler per family (`SynthesisTable`,
 `SynthesisPlot`, `SynthesisShape`, `SynthesisCircuit`) and hands the result to the **ordinary** `.xopp`
 writer, so there is one emitter and not a second one to keep in step. A `.mobix` opens and saves as itself (the type is registered, the sticky format is per document, its
-bundled backgrounds are adopted on the way in — [data-path.md](data-path.md)). Still owed: the entry
-point that *reaches* the export from the save path of a `.mobix`
-(`TODO.toml`, `wire-the-synthesis-into-the-xopp-export`, which also owes the user a word about what
-could not be drawn). Until that lands, only this app's own tests call the export.
+bundled backgrounds are adopted on the way in — [data-path.md](data-path.md)), and the export is wired:
+every `.xopp` write goes through the synthesis (`io/DocumentIo.encode`), so Save As to Original or
+Zipped is how a `.mobix` is handed to the desktop — the tab keeps its own format and the export is a
+copy on disk. An ink-only document passes through byte for byte (the synthesis is the identity on it),
+and what this build could not draw is reported after a successful export rather than dropped in silence
+(`ui/ExportGapsDialog.kt`).
 
 1. **Import `.xopp` → `.mobix`**:
    - Every `.xopp` construct maps to its element in [mobix-elements.md](mobix-elements.md):

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.captureBackgroundRegion
 import com.mobixournal.render.clearBackgroundRegion
@@ -54,6 +55,9 @@ fun BoxScope.EditorOverlays(
     currentSaveName: () -> String,
     onSaveAs: (filename: String, format: SaveFormat) -> Unit,
     onImportPdf: (ImportPdfMode) -> Unit,
+    /** What the last `.xopp` export could not draw; empty is the normal case (see [ExportGapsDialog]). */
+    exportGaps: List<Uncompilable> = emptyList(),
+    onDismissExportGaps: () -> Unit = {},
 ) {
     val surface = pane.surface
     val palette = rememberColorPaletteState(settings, onSettingsChange)
@@ -107,6 +111,9 @@ fun BoxScope.EditorOverlays(
             onConfirm = { filename, format -> ui.showSaveAs = false; onSaveAs(filename, format) },
             onDismiss = { ui.showSaveAs = false },
         )
+    }
+    if (exportGaps.isNotEmpty()) {
+        ExportGapsDialog(gaps = exportGaps, onDismiss = onDismissExportGaps)
     }
     if (ui.showScaleneAnglesDialog) {
         ScaleneAnglesDialog(

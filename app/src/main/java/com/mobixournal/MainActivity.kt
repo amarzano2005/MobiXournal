@@ -26,6 +26,7 @@ import com.mobixournal.panes.EditorPane
 import com.mobixournal.panes.MirrorSync
 import com.mobixournal.render.BitmapBudget
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PdfFonts
 import com.mobixournal.render.Placement
@@ -114,6 +115,13 @@ class MainActivity : ComponentActivity() {
 
     /** Bumped whenever a tab list or selection changes, so the tab strips re-read them. */
     internal var tabsTick = mutableStateOf(0)
+
+    /**
+     * What the last `.xopp` write could not draw ([XoppSynthesis]): an element kind this build has no
+     * drawing for, a formula that would not evaluate, markup from a newer build with no `.xopp` spelling.
+     * The editor shows it once and clears it, and empty is the normal case — a save that lost nothing.
+     */
+    internal val exportGaps = mutableStateOf<List<Uncompilable>>(emptyList())
 
     /**
      * The single worker every tab-overview preview is queued on, so a grid of tabs parses and
@@ -294,6 +302,8 @@ class MainActivity : ComponentActivity() {
                         importPdfLauncher.launch(arrayOf(PDF_MIME))
                     },
                     onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
+                    exportGaps = exportGaps.value,
+                    onDismissExportGaps = { exportGaps.value = emptyList() },
                     onExportPagePng = { exportPagePngLauncher.launch(suggestedPageImageName("png")) },
                     onExportPageSvg = { exportPageSvgLauncher.launch(suggestedPageImageName("svg")) },
                     onPickImage = { placement ->

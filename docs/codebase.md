@@ -268,6 +268,7 @@ app/
       PaneState.kt           # per-pane canvas state the chrome mirrors (zoom, page, layer, undo) + the pane count
       SplitLayout.kt         # two panes side by side with a draggable bar down the middle
       EditorOverlays.kt      # what layers over the canvas: selection bars + author/save/import dialogs
+      ExportGapsDialog.kt    # what a .xopp export could not draw, in the user's terms (living entities it has to cook into ink)
       PenDiagnosticsPanel.kt # the on-canvas pen-diagnostics log: the raw stylus stream, with Copy/Clear
       SideToolbar.kt         # Main Toolbar (rail): the shell + tool-group slots; each pop-up is a Toolbar*.kt below
       EditorTool.kt          # the editor's tool modes + their labels/icons (pure)

@@ -232,20 +232,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "wire-the-synthesis-into-the-xopp-export"
-title = "Export a .mobix as .xopp through the synthesis"
-description = "The compiler exists (render/XoppSynthesis.kt) but nothing calls it. When a .mobix document is saved as .xopp - Save As switching the format, or the export entry in the overflow menu - run XoppSynthesis.synthesize(document) first and hand the result's document to the existing .xopp encoder (io/DocumentIo.encode with SaveFormat.XOPP), reusing the staging files as the .xopp path already does. The SaveFormat stays sticky: the open document is still a .mobix, so the export is a copy on disk and the tab keeps its own format. Surface SynthesisResult.uncompiled to the user after a successful export - the shared preview/print dialogs in ui/ open the exported file, so pass the list alongside the result and show one dialog naming what could not be drawn (an unknown symbol, a formula that would not parse) rather than exporting silently. Document the flow in README.md (how a .mobix is exported for the desktop) and in docs/mobix-format.md, replacing the 'still owed: the editor wiring' sentence in its Status paragraph. Verify with JVM tests: a .mobix holding a table and a plot encodes to bytes through the export that Xopp.open reads back with the same element count, an all-ink .mobix is written byte-identically to the ordinary .xopp path, and an unknown symbol produces one uncompiled entry and a document that still opens."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 420
-created = 2026-10-12
-tags = ["mobix", "io"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "read-only-open-for-a-newer-mobix"
 title = "Offer a read-only open for a .mobix that needs a newer app"
 description = "A .mobix written by a newer build of this app carries a minAppVersion above ours. The schema rule (docs/mobix-schema-spec.md, rule 4) is that such a document is not opened normally: the reader offers a read-only open instead of either refusing outright or opening it and letting a save rewrite fields it does not understand. The format layer already answers the question -- MobixManifest.requiresAppNewerThan, which today has no caller anywhere in app/src/main (only its own definition and doc references) -- so what is owed is the caller's policy. In io/DocumentIo.read, after MobixDocument.open, ask archive.manifest.requiresAppNewerThan(appVersion) and record the answer on the LoadedFile.Doc result as a new needsNewerApp flag (false on every .xopp path); MainActivityDocuments then shows the consent surface the app already uses for an import decision (ui/EditorOverlays.kt) explaining that the document was written by a newer version and offering Open read-only. Accepting opens the tab in the smallest honest read-only state, with drawing refused for a stated reason and the save and export entries disabled rather than silently failing; declining closes the tab and leaves nothing open. Verify with JVM tests over a synthetic .mobix whose manifest names a higher minAppVersion: the flag comes back true, a same-or-newer version leaves it false, it is false for a gzip .xopp, a ZIP-package .xopp and a .mobix with no minAppVersion field; then install and exercise the prompt on the emulator (docs/tools.md, debug package com.mobixournal.v2)."

@@ -336,16 +336,21 @@ internal fun MainActivity.saveDocument(uri: Uri) {
         work = {
             // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
             // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
-            val staged = io.encode(document, pdf, saveFormat, uri, images)
+            val encoded = io.encode(document, pdf, saveFormat, uri, images)
             try {
-                io.stageOut(staged, uri)
+                io.stageOut(encoded.file, uri)
             } finally {
-                staged.delete()
+                encoded.file.delete()
             }
+            // Out of the worker with the result, so the report below is shown for exactly this write.
+            encoded.uncompiled
         },
     ) { result ->
         result.onFailure { toast("Save failed: ${it.message}") }
-            .onSuccess { afterSaved(view, uri) }
+            .onSuccess { uncompiled ->
+                afterSaved(view, uri)
+                if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
+            }
     }
 }
 

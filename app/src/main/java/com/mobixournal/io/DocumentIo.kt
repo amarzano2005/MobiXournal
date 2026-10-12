@@ -13,7 +13,10 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.ATTACH_DOMAIN
 import com.mobixournal.render.PdfMerger
+import com.mobixournal.render.SynthesisResult
 import com.mobixournal.render.TextPdfGenerator
+import com.mobixournal.render.Uncompilable
+import com.mobixournal.render.XoppSynthesis
 import com.mobixournal.render.documentWithPdfDomain
 import com.mobixournal.render.documentWithPixmapAttachments
 import java.io.File
@@ -382,11 +385,16 @@ class DocumentIo(
         format: SaveFormat,
         target: Uri? = null,
         images: Map<String, File> = emptyMap(),
-    ): File {
+    ): Encoded {
         val out = staging.newFile("save")
+        var uncompiled: List<Uncompilable> = emptyList()
         out.outputStream().use { output ->
             when (format) {
-                SaveFormat.ORIGINAL -> Xopp.save(refs.portableReference(document, target), output)
+                SaveFormat.ORIGINAL -> {
+                    val ink = ink(document)
+                    uncompiled = ink.uncompiled
+                    Xopp.save(refs.portableReference(ink.document, target), output)
+                }
                 SaveFormat.MOBIX -> {
                     val now = System.currentTimeMillis()
                     // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
@@ -401,9 +409,11 @@ class DocumentIo(
                     )
                 }
                 SaveFormat.ZIPPED -> {
+                    val ink = ink(document)
+                    uncompiled = ink.uncompiled
                     // Pictures ride inside the package as numbered entries, so a ZIP save is
                     // self-contained for pixmap backgrounds exactly as it already is for the PDF.
-                    val bundled = documentWithPixmapAttachments(document) { images[it] }
+                    val bundled = documentWithPixmapAttachments(ink.document) { images[it] }
                     XoppZip.save(
                         if (pdf != null) documentWithPdfDomain(bundled.document, ATTACH_DOMAIN)
                         else bundled.document,
@@ -414,8 +424,27 @@ class DocumentIo(
                 }
             }
         }
-        return out
+        return Encoded(out, uncompiled)
     }
+
+    /**
+     * The document a `.xopp` write may encode: living entities are **cooked into ink** first
+     * ([XoppSynthesis]), because `.xopp` has nowhere to keep a recipe — a table is a grid of rules and
+     * cells, a plot is its curves drawn, a component is its symbol's strokes — and whatever this build
+     * cannot draw comes back in [SynthesisResult.uncompiled] for the caller to tell the user about.
+     *
+     * It runs on every `.xopp` write rather than only on the ones whose document is a `.mobix`: an
+     * ink-only document is the identity under synthesis (nothing to cook, and it keeps whatever bridge
+     * block it already carried), so there is one door to the writer and no way to reach it un-flattened.
+     */
+    private fun ink(document: Document): SynthesisResult =
+        XoppSynthesis.synthesize(document, documentId = document.documentId)
+
+    /**
+     * What a write produced: the staged file to push across, and — for a `.xopp` — what the synthesis
+     * could not draw into it. A `.mobix` keeps everything, so its list is always empty.
+     */
+    class Encoded(val file: File, val uncompiled: List<Uncompilable> = emptyList())
 
     /**
      * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's

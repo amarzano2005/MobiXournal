@@ -23,6 +23,7 @@ import com.mobixournal.render.InputSettings
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.ShapeKind
+import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.tracePenParameters
 import com.mobixournal.ui.theme.rememberChromeColor
 
@@ -219,6 +220,13 @@ fun EditorScreen(
     /** Export the active page alone, as a PNG image or an SVG vector file. */
     onExportPagePng: () -> Unit = {},
     onExportPageSvg: () -> Unit = {},
+    /**
+     * What the last `.xopp` export could not draw, from whoever did the writing (the activity): living
+     * entities an export has to cook into ink can be un-drawable, and a loss the user is not told about
+     * is a document that quietly lies about its contents. Empty is the normal case.
+     */
+    exportGaps: List<Uncompilable> = emptyList(),
+    onDismissExportGaps: () -> Unit = {},
     /** An image-placement tap: open the file/gallery picker and insert what it returns. */
     onPickImage: (Placement) -> Unit,
     /** A pane's canvas has just been built: its index, then the view. */
@@ -358,6 +366,8 @@ fun EditorScreen(
             currentSaveName = currentSaveName,
             onSaveAs = onSaveAs,
             onImportPdf = onImportPdf,
+            exportGaps = exportGaps,
+            onDismissExportGaps = onDismissExportGaps,
         )
 
         if (!settings.hasSeenOnboarding) {
