@@ -84,4 +84,4 @@ Triangle Handle UI:
   side lengths and angle readout badges in real time.
 - **Axis Snapping**: Vertices snap to $0^\circ, 30^\circ, 45^\circ, 90^\circ$ angles relative to page rulings.
 - **Conversion on Save**: Stored natively in `.mobix`; synthesized to regular lines when exported to `.xopp`
-  via the bridge in [native-format-and-desktop.md](native-format-and-desktop.md).
+  via the bridge in [mobix-format.md](mobix-format.md).

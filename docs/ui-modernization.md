@@ -109,7 +109,7 @@ The system formally supports and preserves two complementary layouts in settings
 
 ## Desktop workstation UI architecture (PC / Mac / Linux)
 
-On desktop workstations paired with keyboards and graphics tablets (see [native-format-and-desktop.md](native-format-and-desktop.md)),
+On desktop workstations paired with keyboards and graphics tablets (see [desktop-workstation.md](desktop-workstation.md)),
 scaling up a mobile touch interface creates clumsy, oversized controls. Desktop MobiXournal adopts a
 **professional bimanual workstation layout** (inspired by modern suites like Figma, VS Code, and Blender):
 

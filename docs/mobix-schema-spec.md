@@ -24,7 +24,7 @@ document.mobix
 ├── assets/                      # Binary deduplicated assets
 │   ├── img_<sha256>.webp
 │   └── aud_<sha256>.opus
-└── xopp-bridge/                 # Interoperability sidecar (see native-format-and-desktop.md)
+└── xopp-bridge/                 # Interoperability sidecar (see mobix-format.md)
     └── sync.json
 ```
 

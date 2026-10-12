@@ -43,7 +43,7 @@ No user-facing interface can exceed the capabilities of the data model beneath i
    - Parametric Shapes (`ParametricShapeElement` with vertex handles).
    - Circuit & Electronics Components (`CircuitElement` with magnetic connection pins).
    - High-fidelity Inking (`Stroke` with tilt, azimuth, barrel roll, and $\Delta t$ millisecond timestamps).
-2. **Lossless Round-Trip Bridge**: [native-format-and-desktop.md](native-format-and-desktop.md) provides
+2. **Lossless Round-Trip Bridge**: [mobix-format.md](mobix-format.md) provides
    bidirectional `.xopp` ingestion and synthesis export, plus official Lua companion plugins for desktop Xournal++.
 3. **Reactive Math Engine**: [math-engine.md](math-engine.md) powers real-time expression evaluation, numerical
    derivatives, definite integrals, roots, extrema, parametric curves, and polar plots.
@@ -85,7 +85,7 @@ The third step scales MobiXournal onto desktop workstations, bringing extreme pe
 synergy for mouse, keyboard, and drawing tablet users.
 
 ### Owning architecture spokes:
-1. **Multiplatform Core & GPU Engine**: [native-format-and-desktop.md](native-format-and-desktop.md) extracts
+1. **Multiplatform Core & GPU Engine**: [desktop-workstation.md](desktop-workstation.md) extracts
    the shared Kotlin Multiplatform (KMP) core and drives rendering via **Skia/Skiko** on GPU backends
    (DirectX 12 on Windows, Vulkan on Linux, Metal on macOS), achieving $< 4\text{ ms}$ frame times at 120–240 Hz.
 2. **Desktop Workstation UI Layout**: [ui-modernization.md](ui-modernization.md) adapts the interface into:
@@ -94,7 +94,7 @@ synergy for mouse, keyboard, and drawing tablet users.
    - Right Property Inspector panel for non-modal editing of plots, tables, and shapes.
    - Direct on-screen tool strips with permanent 1-click STEM access (dockable as a top/bottom ribbon or a widescreen lateral palette).
    - Bimanual desktop flow combining left-hand keyboard shortcuts with pen tablet inking.
-3. **Graphics Tablet & Dial Integration**: [native-format-and-desktop.md](native-format-and-desktop.md) implements
+3. **Graphics Tablet & Dial Integration**: [desktop-workstation.md](desktop-workstation.md) implements
    multi-protocol driver support (Wintab / Windows Ink / Wayland `zwp_tablet_manager_v2`), stepless rotary dial zoom,
    aspect ratio locks for screenless tablets, and pen-tip radial HUD pie menus.
 4. **Extensible Plugin Ecosystem**: [plugin-system.md](plugin-system.md) enables sandboxed Lua and WASM

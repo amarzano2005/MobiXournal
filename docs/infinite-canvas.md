@@ -29,7 +29,7 @@ persisted natively in `.mobix` (documented in [mobix-schema-spec.md](mobix-schem
 
 ### 1. Fixed Paginated (Legacy & `.xopp` compatible)
 - Standard page sequence. Page widths and heights are static.
-- Fully round-trippable to desktop Xournal++ via the bridge in [native-format-and-desktop.md](native-format-and-desktop.md).
+- Fully round-trippable to desktop Xournal++ via the bridge in [mobix-format.md](mobix-format.md).
 
 ### 2. Infinite Vertical (Width-locked, Continuous downwards)
 - Ideal for linear lecture notes and vertical handwriting.
