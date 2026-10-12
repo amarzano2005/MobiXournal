@@ -68,17 +68,81 @@ Tablet Portrait / Landscape:
 
 ---
 
-## Desktop alignment (PC / Mac / Linux workstations)
+---
 
-On desktop workstations (see [native-format-and-desktop.md](native-format-and-desktop.md)), the interface
-adapts to match professional creative suites:
+## Mobile and Tablet ergonomics: free-hand interaction & layout options
 
-| Aspect | Mobile / Tablet Shell | Desktop Workstation Shell |
-|---|---|---|
-| **Form factor** | Touch / Stylus floating capsule | Sleek slim header or floating tool palette |
-| **Tool Inspector** | Touch-friendly floating sheet | Compact collapsible side inspector panel |
-| **System Materials** | Android hardware blur | Native Windows 11 Mica / Acrylic, macOS Vibrancy, Linux Wayland blur |
-| **Keyboard & Dial** | On-screen touches | Hardware hotkeys (B, E, V, L), rotary dial radial menus |
+During stylus note-taking, the user's dominant hand is occupied holding the pen against the screen.
+To maximize drafting speed, the modern UI embraces **bimanual tablet ergonomics**: primary controls
+(undo, redo, tool switching, favorites) are positioned where the **non-dominant "free hand"** can tap
+them with a thumb or index finger without lifting or moving the pen.
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ [Non-Dominant Free Hand]                       [Dominant Pen Hand]     │
+│   Thumb taps floating controls                   Draws continuous ink  │
+│   (Undo, Eraser toggle, f(x))                    on the canvas         │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+The system formally supports and preserves two complementary layouts in settings:
+
+### Layout Option 1: Unified Long Dock with Integrated STEM Section
+- A single continuous floating glass capsule.
+- Writing tools (`[Pen]`, `[Highlighter]`, `[Eraser]`, `[Select]`) sit alongside an accent-bordered
+  **STEM Dock** (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
+- Every STEM feature is accessible in a **single tap** without opening submenus.
+- Can be docked along the bottom or top center, or aligned vertically along the free-hand margin.
+
+### Layout Option 2: Split Floating Islands (Main Capsule + Pinned STEM Satellite)
+- Two distinct but visually paired capsules.
+- **Island A (Inking)**: Primary drawing tools and color palette, anchored near the free hand for instant switching.
+- **Island B (STEM Satellite)**: A dedicated scientific capsule that remains **pinned open** on the screen.
+  Users can drag it to any secondary screen area (e.g. top right) while keeping the free-hand toolbar on the left.
+
+### The "Free-Hand Thumb Strip" (Ergonomic edge docking)
+- The toolbar or a detached **Quick-Action Thumb Pad** can pin to the left edge (for right-handed writers)
+  or the right edge (for left-handed writers).
+- Allows toggling pen/eraser or hitting undo with the resting thumb while writing without palm-rejection conflicts.
+
+---
+
+## Desktop workstation UI architecture (PC / Mac / Linux)
+
+On desktop workstations paired with keyboards and graphics tablets (see [native-format-and-desktop.md](native-format-and-desktop.md)),
+scaling up a mobile touch interface creates clumsy, oversized controls. Desktop MobiXournal adopts a
+**professional bimanual workstation layout** (inspired by modern suites like Figma, VS Code, and Blender):
+
+```text
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]          [Search 🔍]      [Share] [Settings ⚙] │  (Header Bar)
+├─────────┬─────────────────────────────────────────────────────────────────┬───────────┤
+│ Sidebar │                           CANVAS                                │ Inspector │
+│ Pages   │                                                                 │ Properties│
+│ Layers  │                 [Radial HUD Palette (At Pen Tip)]               │ Formula / │
+│ Outline │                                                                 │ Table /   │
+│ [Ctrl+B]│                                                                 │ Stroke    │
+└─────────┴─────────────────────────────────────────────────────────────────┴───────────┘
+```
+
+### 1. Window layout & workspace panes
+- **Slim Native Header**: Displays tabbed open notebooks, document path breadcrumbs, and native OS window
+  decorations with seamless Windows 11 Mica / macOS Vibrancy materials.
+- **Collapsible Navigation Sidebar (`Ctrl+B`)**: Slide-out panel for page grid thumbnails, layer manager,
+  PDF bookmarks outline, and indexed search results. Can be collapsed with one hotkey for distraction-free canvas.
+- **Right Property Inspector (Non-Modal Editing)**: When a `PlotElement`, `TableElement`, or shape is selected,
+  its parameters (formula string, intervals, cell borders, stroke styles) appear in the right panel without
+  popping up modal dialogs over the canvas.
+
+### 2. Bimanual workstation flow (Pen Tablet + Left-Hand Keyboard / Dial)
+- **Left Hand on Keyboard**:
+  - `Space + Pen Drag` = Pan canvas (Hand tool).
+  - `Ctrl + Z / Ctrl + Y` = Undo / Redo.
+  - Single-key tool triggers: `B` (Brush/Pen), `H` (Highlighter), `E` (Eraser), `V` (Select), `M` (Math plot), `T` (Table).
+- **Pen-Tip Radial HUD Menu (Pie Menu)**:
+  - Clicking the pen barrel button summons an instant circular HUD directly under the pen nib.
+  - Flicking the pen or turning the tablet dial selects colors, widths, or tools in $< 0.1\text{ s}$ without
+    moving the hand to screen edges.
 
 ---
 
