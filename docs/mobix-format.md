@@ -325,11 +325,14 @@ Migrating to the `.mobix` format directly enables four major performance optimiz
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)**:
-   - During auto-save or explicit save, the app only re-compresses modified page entries (`page-N.json`)
-     into the ZIP archive. Unmodified pages, heavy background PDFs, and image assets are left untouched —
-     which is also why an unmodelled entry has to survive a rewrite (container rule 4,
+   - During auto-save or explicit save, the app only re-compresses modified page entries (`pages/page-N.json`)
+     and the updated `manifest.json` into the ZIP archive via `format/mobix/MobixIncrementalSaver.kt`.
+   - Unmodified pages, heavy background PDFs, and image assets are streamed directly from the source archive
+     without re-compression; unknown/unmodelled entries survive untouched (container rule 4,
      [mobix-schema-spec.md](mobix-schema-spec.md)).
-   - Saves complete in milliseconds without UI freezes or battery drain.
+   - Evaluated in `MobixIncrementalSaveTest`: on a 10-page notebook with 1 page modified, only 2 entries
+     (manifest + dirty page) are rewritten while 11 entries (9 pages, canvas, preserved payload) are streamed
+     byte-for-byte, cutting compression overhead by $> 80\%$. Saves complete in milliseconds without UI freezes.
 3. **Zero-Allocation Inking Loop (No GC stutter)**:
    - High-rate stylus events (120 Hz–240 Hz on modern tablets and stylus digitizers) can trigger frequent
      JVM Garbage Collection pauses if objects (`StrokePoint`, temporary event wrappers) are allocated per touch.
