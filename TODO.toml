@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "new-document-format-choice"
-title = "The new-document format setting and the first-launch choice"
-description = "The policy decided for v2 (docs/mobix-format.md, section Which format a document is written in): a document keeps its own format, and the format a NEW document is born in is the user choice - asked once on first launch, changeable in Settings, with .mobix as the recommended default. Implement it as an AppSettings field under Settings - App & data, respecting the storage and migration rules of ui/AppSettings.kt, plus a step in the onboarding flow (ui/OnboardingDialog.kt and friends) that shows both formats, marks .mobix recommended, and says what each means for desktop interchange. Saving a new untitled document uses that setting; Save As still switches an existing document between formats. Verify on the emulator: the step appears once and never again, the setting survives a restart, and a new document saves in the chosen format. Update ui/SettingsSearch.kt keywords and the README Settings section."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 370
-created = 2026-10-12
-tags = ["mobix", "settings"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "mobix-page-virtualization-reader"
 title = "Page virtualization: read .mobix pages on demand instead of whole"
 description = "The performance reason the format exists (docs/mobix-format.md, engine optimizations): reading a 200-page notebook must not parse pages 1-199. MobixContainer.open reads every entry into memory today, which is right for the manifest and for tests and wrong for a real document. Add a reader that walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or chunk) on demand into an LRU window of the current page plus or minus two, evicting the rest. Keep MobixContainer as the envelope primitive and put the paging policy in its own file (for example format/mobix/MobixPagedReader.kt) with an injectable cache budget so it is testable without a device. Verify with JVM tests over a synthetic 200-page archive: opening touches only the manifest and the first pages, navigating to page 200 does not inflate the earlier ones, and an evicted page is re-read rather than corrupted."
