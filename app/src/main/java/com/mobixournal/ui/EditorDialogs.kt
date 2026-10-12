@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -46,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.sin
@@ -161,12 +163,22 @@ fun FormatOption(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
+    // The **whole row** is the target, not only the radio: a title and an explanation are what a user
+    // reads, and a choice that only answers to a 48dp circle beside them is a choice that gets missed
+    // ("Save As" never offers .mobix because the tap landed on the words). `selectable` also gives the
+    // row the radio's role in the semantics tree, so a screen reader announces it as the option it is.
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+            // After the clickable, so the padding the row adds is part of what can be tapped.
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        RadioButton(selected = selected, onClick = onClick, enabled = enabled)
+        // Inert on purpose: the row above owns the click (and reports the selection), so the button
+        // must not be a second, smaller target competing with it.
+        RadioButton(selected = selected, onClick = null, enabled = enabled)
         // A disabled option stays visible (so the choice is explained) but reads as unavailable.
         val alpha = if (enabled) 1f else 0.38f
         Column(modifier = Modifier.alpha(alpha)) {
