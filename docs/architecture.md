@@ -52,14 +52,19 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 |---|---|---|---|---|
 | **Master** | [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap coordinating data, mobile, and desktop | you plan or review the next-generation architecture hierarchy | **Roadmap** |
 | **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Planned Spec** |
-| **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | `.mobix` container specification and dynamic entities (tables, plots, shapes, circuits) | you specify the native format schema or dynamic element data models | **Planned Spec** |
+| **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container and document envelope (mimetype, manifest, canvas, pages) | you read or write the container, the envelope, or the page/background shape | **Partly implemented** |
+| **Step 1** | [`mobix-elements.md`](mobix-elements.md) | the element schema: strokes, text, images, living entities, preservation rules | you add or change an element type inside a `.mobix` document | **Partly implemented** |
 | **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Planned Spec** |
 | **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Planned Spec** |
 
 The statuses above are per **spoke**, not per feature: they say whether a doc describes shipped
-behaviour or a specification. Step 1 is the one with code behind it so far — the `.mobix` container
-envelope (`format/mobix/`, see [mobix-schema-spec.md](mobix-schema-spec.md)) landed while the rest of
-the format is still spec. Work items live in `TODO.toml`.
+behaviour or a specification. Step 1 is the one with code behind it so far: in `format/mobix/`, the
+container (`MobixContainer`), the shared JSON layer (`format/json/`), the manifest and `canvas.json`
+codecs, and the page and element codecs for every element the editor can already hold
+(`MobixElementCodec`, `MobixPageCodec`) exist and are tested, while the document-level open/save, the
+`.xopp` bridge, and the editors for the living entities (tables, plots, shapes, circuits — specified
+in [mobix-elements.md](mobix-elements.md), preserved verbatim but not yet modelled) are still to come.
+Work items live in `TODO.toml`.
 
 ### Advanced domain engine specifications
 

@@ -19,8 +19,26 @@ enum class Tool(val xml: String) {
     }
 }
 
-/** One vertex of a stroke: position (pt) and the pen width there (pt). */
-data class StrokePoint(val x: Double, val y: Double, val width: Double)
+/**
+ * One vertex of a stroke: position (pt) and the pen width there (pt).
+ *
+ * The four nullable fields are the **stylus telemetry** `.xopp` has nowhere to put and the native
+ * `.mobix` format exists to keep (`docs/mobix-schema-spec.md`, `docs/stylus.md`): the raw reported
+ * pressure, the pen's tilt and azimuth in degrees, and the milliseconds since the previous point.
+ * They are null for a `.xopp` load and for a stroke drawn before the telemetry capture landed —
+ * "not reported" and "reported as zero" are different facts, which is why they are nullable rather
+ * than defaulted. [width] stays what the app *draws* with (the pressure filter's output), so a
+ * document renders identically whether or not the raw pressure was recorded.
+ */
+data class StrokePoint(
+    val x: Double,
+    val y: Double,
+    val width: Double,
+    val pressure: Float? = null,
+    val tilt: Float? = null,
+    val azimuth: Float? = null,
+    val dtMs: Int? = null,
+)
 
 /** A `<stroke>`'s line pattern (`style` attribute); [PLAIN] is a solid line and omits the attr. */
 enum class LineStyle(val xml: String) {
@@ -57,6 +75,8 @@ data class Stroke(
     val lineStyle: LineStyle = LineStyle.PLAIN,
     val fill: Int? = null,
     val extraAttrs: Map<String, String> = emptyMap(),
+    /** The element's stable identity; see [ElementId]. Null until one is minted (a `.xopp` has none). */
+    val id: String? = null,
 ) : Element
 
 /**
@@ -72,18 +92,33 @@ data class TextElement(
     val color: Int,
     val content: String,
     val extraAttrs: Map<String, String> = emptyMap(),
+    /** The element's stable identity; see [ElementId]. */
+    val id: String? = null,
 ) : Element
 
 /**
- * A layer child whose tag we don't model — a vendor or future element in a desktop-written file.
- * Captured verbatim ([attrs] in source order, [body] as the raw inner text) and re-emitted
- * untouched in document order, so an unknown element survives a load/save round trip.
+ * A layer child we don't model — a vendor or future element in a desktop-written file, or a living
+ * entity the native `.mobix` format can hold and this build has no editor for yet. Captured verbatim
+ * ([attrs] in source order, [body] as the raw markup) and re-emitted untouched in document order, so
+ * an unknown element survives a load/save round trip.
+ *
+ * [syntax] records which language [body] is in, because the two formats it can come from are not the
+ * same language: XML from a `.xopp`, JSON from a `.mobix`. It decides where the element can be
+ * written back — the `.xopp` writer has no `<table>` to emit for a JSON body, so a `.mobix`-only
+ * element is skipped when exporting to `.xopp` (synthesizing it into ink is the export bridge's job,
+ * `docs/mobix-format.md`) while a `.mobix` writer re-emits it and its `.xopp` siblings are simply not
+ * written there.
  */
 data class RawElement(
     val name: String,
     val attrs: Map<String, String> = emptyMap(),
     val body: String = "",
-) : Element
+    val syntax: Syntax = Syntax.XML,
+) : Element {
+
+    /** The language the preserved [body] is written in. */
+    enum class Syntax { XML, JSON }
+}
 
 /** An `<image>`: raw encoded bytes (PNG/JPEG) placed in a pt bounding box. */
 data class ImageElement(
@@ -94,6 +129,8 @@ data class ImageElement(
     val data: ByteArray,
     /** Attributes on `<image>` we don't interpret, kept in source order so they round-trip. */
     val extraAttrs: Map<String, String> = emptyMap(),
+    /** The element's stable identity; see [ElementId]. */
+    val id: String? = null,
 ) : Element {
     override fun equals(other: Any?): Boolean =
         other is ImageElement &&
@@ -126,6 +163,8 @@ data class TexImageElement(
     val latexInAttribute: Boolean = true,
     /** Attributes on `<teximage>` we don't interpret, kept in source order so they round-trip. */
     val extraAttrs: Map<String, String> = emptyMap(),
+    /** The element's stable identity; see [ElementId]. */
+    val id: String? = null,
 ) : Element {
     override fun equals(other: Any?): Boolean =
         other is TexImageElement &&

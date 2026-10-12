@@ -106,7 +106,7 @@ bridge:
 ```
 
 1. **Import `.xopp` → `.mobix`**:
-   - Every `.xopp` construct maps to its element in [mobix-schema-spec.md](mobix-schema-spec.md):
+   - Every `.xopp` construct maps to its element in [mobix-elements.md](mobix-elements.md):
      strokes (with their `ts`/`fn` audio links), texts, images, `texImage`s and backgrounds are
      ingested one-to-one; pages, layers and their names/visibility survive as pages and layers.
    - Anything the model does not understand — an unknown element, an unknown attribute, an unknown

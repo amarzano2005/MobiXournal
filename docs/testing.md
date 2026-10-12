@@ -16,7 +16,12 @@ is built on ([mobix-format.md](mobix-format.md)): `MobixContainerTest` pins the 
 byte-exact round trips, the survival of an entry this build does not model across an open-and-save
 rewrite, a real ZIP-package `.xopp` being rejected as the wrong type, and the writer's refusals —
 the container rules of [mobix-schema-spec.md](mobix-schema-spec.md), asserted before there is a
-schema layer on top of them. The `render/` tests cover the pure geometry — page layout,
+schema layer on top of them. `MobixManifestTest` pins the envelope codecs (the page order coming from
+the manifest, unknown fields surviving, the three required fields, the `minAppVersion` floor),
+`MobixElementCodecTest` pins the element and page codecs (a pressure stroke's per-point widths and
+telemetry, an element type with no model surviving verbatim, an image stored once and addressed by
+content, `bounds` written but never trusted), and `format/json/JsonWriterTest` pins the shared JSON
+writer (escaping, integer spelling, parse round trips). The `render/` tests cover the pure geometry — page layout,
 gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/redo history — and
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.

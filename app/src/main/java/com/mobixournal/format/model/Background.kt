@@ -40,6 +40,12 @@ sealed interface Background {
         val domain: String,
         val filename: String,
         override val extraAttrs: Map<String, String> = emptyMap(),
+        /**
+         * The `.mobix` entry the picture's bytes are bundled under, or null when the background is
+         * an external reference like a gzip `.xopp`'s. See [Pdf.bundledAsset] for why the reference
+         * and the bundle are both kept.
+         */
+        val bundledAsset: String? = null,
     ) : Background
 
     /**
@@ -55,5 +61,15 @@ sealed interface Background {
         val pageNo: Int,
         val domain: String?,
         override val extraAttrs: Map<String, String> = emptyMap(),
+        /**
+         * The `.mobix` entry this PDF's bytes are bundled under (`background/background.pdf`), or
+         * null when it is an external reference.
+         *
+         * A native document that bundles its background keeps **both** facts on purpose: the bundle
+         * is what makes the file self-contained when it is shared or synced, and [domain]/[filename]
+         * are what the `.xopp` bridge needs to re-emit the reference desktop Xournal++ expects. A
+         * `.xopp` export therefore keeps working whether or not the bytes could be carried along.
+         */
+        val bundledAsset: String? = null,
     ) : Background
 }

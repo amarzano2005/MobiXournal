@@ -138,8 +138,17 @@ class XoppWriter(out: Appendable) {
         w.end().newline()
     }
 
-    /** Re-emit an element we don't model exactly as it was read (see [RawElement]). */
+    /**
+     * Re-emit an element we don't model exactly as it was read (see [RawElement]).
+     *
+     * An element whose body is **JSON** came from a `.mobix` document and has no `.xopp` spelling: it
+     * is a living entity (a table, a plot) that exists only in the native format. Writing it here
+     * would emit `<table>{…}</table>`, which is not a Xournal++ element at all, so it is skipped — the
+     * export bridge is what turns one into ink (`docs/mobix-format.md`), and until it can, a `.xopp`
+     * export of a document holding living entities is explicitly incomplete rather than corrupt.
+     */
     private fun writeRaw(el: RawElement) {
+        if (el.syntax == RawElement.Syntax.JSON) return
         w.start(el.name)
         writeExtras(el.attrs)
         if (el.body.isNotEmpty()) w.rawText(el.body)

@@ -77,6 +77,7 @@ app/
                              #   malformed entities decode to raw text; truncated input throws
                              #   XmlPullReader.TruncatedXmlException instead of hanging/crashing
       FontDescription.kt     # Pango-style font description <-> family + bold/italic (pure)
+                             # model/ElementIds.kt mints the stable element ids the .mobix format keys on
       XoppColor.kt           # #RRGGBBAA <-> ARGB int, named colours
       XoppReader.kt          # XML -> Document
       XoppWriter.kt          # Document -> XML
@@ -84,9 +85,15 @@ app/
       XoppZip.kt             # ZIP-package open/save (PDF embedded); see the mimetype caveat
       SaveFormat.kt          # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
       FileKind.kt            # content sniffing for open: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
-      mobix/                 # the native .mobix format (roadmap Step 1) — the container envelope so far
+      mobix/                 # the native .mobix format (roadmap Step 1)
         MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
         MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
+        MobixManifest.kt     # manifest.json: version stamps, ids, page/chunk order, canvas mode, defaults
+        MobixCanvasFile.kt   # canvas.json: the geometry mode, locked dimensions, chunk grid, print origin
+        MobixPageCodec.kt    # a page/chunk: size, background (or bundled bytes), layers of elements
+        MobixElementCodec.kt # an element: stroke/text/image/texImage, or any type kept verbatim (JSON)
+        MobixAssets.kt       # the assets/ half: payloads named by the hash of their own bytes (pure)
+      json/                  # the shared, dependency-free JSON model, parser and writer (pure)
     io/                      # storage access that isn't format work
       UriStaging.kt          # stage document bytes to/from a content:// URI (slow remote shares)
       ScratchDir.kt          # unique-per-call file names (staging and both stores), so overlapping writes can't collide

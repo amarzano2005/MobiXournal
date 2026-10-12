@@ -41,9 +41,6 @@ object MobixFormat {
     const val ASSETS_DIR = "assets/"
 
 
-    /** Document-level background PDFs, if the document has any. */
-    const val BACKGROUND_DIR = "background/"
-
     /** The `.xopp` bridge's sidecar directory (`docs/mobix-format.md`). */
     const val BRIDGE_DIR = "xopp-bridge/"
 
