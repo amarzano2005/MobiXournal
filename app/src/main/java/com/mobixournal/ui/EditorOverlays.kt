@@ -34,6 +34,9 @@ import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.finishSpline
 import com.mobixournal.render.insertPlot
 import com.mobixournal.render.insertPlotElement
+import com.mobixournal.render.PlotCurve
+import com.mobixournal.render.PlotElementFactory
+import com.mobixournal.render.replacePlotElement
 import com.mobixournal.render.insertTable
 import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.undoLastSplineNode
@@ -163,22 +166,58 @@ fun BoxScope.EditorOverlays(
         )
     }
     if (ui.showGraphDialog) {
+        val targetPlot = ui.editingPlot
         AdvancedFunctionGraphDialog(
-            onConfirm = { curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary ->
-                ui.showGraphDialog = false
-                surface?.insertPlotElement(
-                    curves = curves,
-                    xMin = xMin,
-                    xMax = xMax,
-                    showCriticalPoints = showCriticalPoints,
-                    includeDerivative = includeDerivative,
-                    includeSummary = includeSummary,
-                )
-                if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
-                    surface?.activateTool(EditorTool.SELECT, ui, settings, onSettingsChange)
+            initialCurves = targetPlot?.let { p ->
+                p.curves.map { c ->
+                    PlotCurve(
+                        source = c.source,
+                        color = c.color,
+                        lineStyle = c.lineStyle,
+                        label = "f",
+                        kind = c.kind,
+                        sourceY = c.sourceY,
+                    )
                 }
             },
-            onDismiss = { ui.showGraphDialog = false },
+            initialXMin = targetPlot?.xMin,
+            initialXMax = targetPlot?.xMax,
+            initialShowCriticalPoints = targetPlot?.showCriticalPoints,
+            initialIncludeDerivative = targetPlot?.includeDerivative,
+            initialIncludeSummary = targetPlot?.summaryText != null,
+            onConfirm = { curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary ->
+                ui.showGraphDialog = false
+                val editing = ui.editingPlot
+                ui.editingPlot = null
+                if (editing != null) {
+                    val updated = PlotElementFactory.applyPlotEdit(
+                        original = editing,
+                        editedCurves = curves,
+                        xMin = xMin,
+                        xMax = xMax,
+                        showCriticalPoints = showCriticalPoints,
+                        includeDerivative = includeDerivative,
+                        includeSummary = includeSummary,
+                    )
+                    surface?.replacePlotElement(editing, updated)
+                } else {
+                    surface?.insertPlotElement(
+                        curves = curves,
+                        xMin = xMin,
+                        xMax = xMax,
+                        showCriticalPoints = showCriticalPoints,
+                        includeDerivative = includeDerivative,
+                        includeSummary = includeSummary,
+                    )
+                    if (ui.tool != EditorTool.SELECT && ui.tool != EditorTool.LASSO_SELECT) {
+                        surface?.activateTool(EditorTool.SELECT, ui, settings, onSettingsChange)
+                    }
+                }
+            },
+            onDismiss = {
+                ui.showGraphDialog = false
+                ui.editingPlot = null
+            },
         )
     }
     ui.bookmarkPage?.let { page ->

@@ -216,4 +216,66 @@ internal object PlotElementFactory {
         )
         return plotted.summaryText.ifEmpty { null }
     }
+
+    /**
+     * Applies edited curves, domain range, and analysis flags back to an existing [PlotElement].
+     *
+     * **Preserved fields**: Any fields the graph dialog has no UI input for —
+     * [PlotElement.samples], [PlotElement.parameters], [PlotElement.shadeIntegral],
+     * [PlotElement.axisColor], [PlotElement.extraAttrs], and [PlotElement.id] — **survive the edit**
+     * via [PlotElement.copy] rather than being reset to factory defaults. [PlotElement.summaryText] is
+     * recomputed if [includeSummary] is true, or preserved from [original] otherwise.
+     *
+     * An edited formula that fails to parse is still written to the curve record rather than
+     * silently dropped, and will be rendered/reported by [LivingInk] the same way as an export.
+     */
+    fun applyPlotEdit(
+        original: PlotElement,
+        editedCurves: List<PlotCurve>,
+        xMin: Double,
+        xMax: Double,
+        showCriticalPoints: Boolean,
+        includeDerivative: Boolean,
+        includeSummary: Boolean = false,
+    ): PlotElement {
+        val elementCurves = editedCurves.mapIndexed { index, curve ->
+            val origCurve = original.curves.getOrNull(index)
+            ElementPlotCurve(
+                kind = curve.kind,
+                source = curve.source,
+                sourceY = if (curve.kind == PlotKind.PARAMETRIC) curve.sourceY else null,
+                color = curve.color,
+                strokeWidth = origCurve?.strokeWidth ?: 1.0,
+                lineStyle = curve.lineStyle,
+                tMin = xMin.takeIf { curve.kind == PlotKind.PARAMETRIC },
+                tMax = xMax.takeIf { curve.kind == PlotKind.PARAMETRIC },
+                thetaMin = xMin.takeIf { curve.kind == PlotKind.POLAR },
+                thetaMax = xMax.takeIf { curve.kind == PlotKind.POLAR },
+            )
+        }
+        val box = PlotBox(original.left, original.top, original.right, original.bottom)
+        val summary = if (includeSummary) {
+            summaryFor(
+                curves = editedCurves,
+                xMin = xMin,
+                xMax = xMax,
+                box = box,
+                strokeWidthPt = elementCurves.firstOrNull()?.strokeWidth ?: 1.0,
+                showCriticalPoints = showCriticalPoints,
+                includeDerivative = includeDerivative,
+                includeSummary = true,
+                axisColor = original.axisColor,
+            )
+        } else {
+            original.summaryText
+        }
+        return original.copy(
+            curves = elementCurves,
+            xMin = xMin,
+            xMax = xMax,
+            showCriticalPoints = showCriticalPoints,
+            includeDerivative = includeDerivative,
+            summaryText = summary,
+        )
+    }
 }

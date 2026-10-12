@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatAlignLeft
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.LineWeight
@@ -80,6 +81,8 @@ fun SelectionActionBar(
     widthSlots: List<Float>,
     onAlign: (SelectionOps.SelectionAlign) -> Unit,
     onDistribute: (Boolean) -> Unit,
+    canEditPlot: Boolean = false,
+    onEditPlot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // 50% corners: a pill that follows whatever height the compact buttons give the bar, instead of a
@@ -100,6 +103,9 @@ fun SelectionActionBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (hasSelection) {
+                if (canEditPlot) {
+                    BarIconButton("Edit plot", Icons.Filled.Edit, onEditPlot)
+                }
                 BarIconButton("Cut", Icons.Filled.ContentCut, onCut)
                 BarIconButton("Copy", Icons.Filled.ContentCopy, onCopy)
             }

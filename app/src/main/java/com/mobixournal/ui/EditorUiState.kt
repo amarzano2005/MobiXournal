@@ -70,6 +70,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showPenParametersDialog by mutableStateOf(false)
     /** Whether the **function graph plotter** dialog is showing (see `FunctionPlot`). */
     var showGraphDialog by mutableStateOf(false)
+    /** The existing [PlotElement] being edited in the graph dialog, or null when creating a new one. */
+    var editingPlot by mutableStateOf<com.mobixournal.format.model.PlotElement?>(null)
     /**
      * The page whose **bookmark editor** is open (0-based), or null when none is. Opening it for a
      * page that has no bookmark adds one; opening it for a bookmarked page edits or deletes that one.

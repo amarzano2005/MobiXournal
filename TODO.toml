@@ -90,24 +90,3 @@ created = 2026-10-12
 tags = ["mobix", "desktop"]
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "reopen-the-graph-dialog-on-an-existing-plot-and-edit-it"
-title = "Reopen the graph dialog on an existing plot and edit it"
-description = """
-The new part of the plot family: re-opening a graph that is already on the page and correcting it. Today `ui/AdvancedFunctionGraphDialog.kt` can only *create* — it builds its own state from fixed defaults (`CurveEditorState("sin(x)", PRESET_COLORS[0])`, `xMinText = "-10"`, `xMaxText = "10"`, `showCriticalPoints = true`, `includeDerivative = false`) and its `onConfirm` hands `curves, xMin, xMax, showCriticalPoints, includeDerivative, includeSummary` to the overlay, which compiles them into ink. Make the same dialog serve as the editor of an existing `PlotElement`.
-
-(1) Give `AdvancedFunctionGraphDialog` an optional initial state — the curves, `xMin`/`xMax`, the two flags and which mode tab (Cartesian vs parametric) the element's curves call for — defaulting to today's values, so `onConfirm` keeps its signature. Cap the pre-fill honestly: the element's fields the dialog has no input for (`samples`, `parameters`, `shadeIntegral`, `summaryText`, `axisColor`) must **survive the edit** rather than be reset to a default, so the write-back is a `copy()` over the edited fields only; say that in the KDoc.
-
-(2) Entry point and write-back: a single selected plot (the family's box lands with `select-and-move-a-drawn-living-entity`, which this task depends on) shows an **Edit** action in the selection's floating action bar (`ui/SelectionActionAnchor.kt`), which opens the dialog pre-filled and, on confirm, replaces the element in place through the same mutation path the other element edits use — one undo entry, the same layer and z-position, the same `id` — then re-renders. Dismissing changes nothing.
-
-Verify with JVM tests over the pure pieces: a dialog-state round trip (an element's curves/xMin/xMax/flags pre-fill the state and come back unchanged through the write-back), the `copy()` leaves `samples`, `parameters`, `shadeIntegral`, `summaryText` and `axisColor` untouched, and an edited formula that no longer parses is still written (and reported by `LivingInk` the same way the export reports it) rather than silently dropped. Then the emulator pass (`docs/tools.md`, debug package `com.mobixournal.v2`): insert a graph, edit one curve and one axis range, confirm the page redraws with the new curve, and confirm a document saved and reopened still holds the edited element (a `.mobix`), plus one save/reopen of the same page synthesized to `.xopp`."""
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 470
-created = 2026-10-12
-tags = ["mobix", "plot", "ui"]
-rebuild = true
-emulator_debug = true

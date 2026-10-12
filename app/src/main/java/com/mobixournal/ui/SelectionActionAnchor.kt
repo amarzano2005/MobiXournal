@@ -24,6 +24,7 @@ import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
+import com.mobixournal.render.singleSelectedPlot
 import kotlin.math.roundToInt
 
 /** Gap between the floating action bar and the selection it belongs to. */
@@ -108,6 +109,13 @@ fun SelectionActionAnchor(
         widthSlots = settings.penWidths,
         onAlign = { a -> surface?.alignSelection(a) },
         onDistribute = { h -> surface?.distributeSelection(h) },
+        canEditPlot = surface?.singleSelectedPlot() != null,
+        onEditPlot = {
+            surface?.singleSelectedPlot()?.let { plot ->
+                ui.editingPlot = plot
+                ui.showGraphDialog = true
+            }
+        },
         modifier = modifier
             .offset { IntOffset(offset.x, offset.y) }
             .alpha(appear)

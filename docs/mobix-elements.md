@@ -171,8 +171,11 @@ into the recipe, on the placement `insertMultiPlot` had always computed, so the 
 same graph and only the file changed). `ElementBounds` provides `PlotElement` with its frame's padded
 bounding box and marks it hit-testable: marquee, lasso and tap gestures pick it up, drag gestures move it
 (translating its page-local frame while preserving mathematical ranges), handles resize it, and delete
-removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). The next step
-(`reopen-the-graph-dialog-on-an-existing-plot-and-edit-it`) lets an existing plot be edited in place (`TODO.toml`).
+removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). When a single plot is selected,
+the selection action bar offers **Edit plot**, which reopens `AdvancedFunctionGraphDialog` pre-filled with the
+element's curves, range and flags; confirming applies the edits in place (`PlotElementFactory.applyPlotEdit`)
+preserving the fields the dialog has no input for (`samples`, `parameters`, `shadeIntegral`, `axisColor`, `id`),
+with full undo support and instant re-rendering.
 The other three families follow one at a time, each when its own editor lands ([future-roadmap.md](future-roadmap.md), Step 2).
 
 Until their respective editors land, the remaining three living entities (table, shape, circuit) are

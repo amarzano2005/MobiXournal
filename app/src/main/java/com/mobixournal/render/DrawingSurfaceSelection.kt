@@ -12,6 +12,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.view.MotionEvent
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.PlotElement
 
 // --- selection: rubber-band / tap to select, drag to move, delete ------------------------------
 
@@ -201,4 +202,27 @@ fun DrawingSurfaceView.clearTextSelection() {
         onTextSelectionChanged?.invoke(false)
         render()
     }
+}
+
+/** If the current selection contains exactly one [PlotElement], returns that element; otherwise null. */
+fun DrawingSurfaceView.singleSelectedPlot(): PlotElement? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = doc.pages.getOrNull(sel.pageIndex) ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement
+}
+
+/**
+ * Replace [old] plot element with [new] in place: records history for undo,
+ * keeps the same layer, z-order, and id, and repaints.
+ */
+fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
+    val before = doc
+    val updated = ElementEdits.replaceElement(doc, old, new) ?: return
+    doc = updated
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
 }

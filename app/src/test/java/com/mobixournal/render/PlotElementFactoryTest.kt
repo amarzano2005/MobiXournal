@@ -12,6 +12,7 @@ import com.mobixournal.format.mobix.MobixAssetSink
 import com.mobixournal.format.mobix.MobixAssetSource
 import com.mobixournal.format.mobix.MobixElementCodec
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -262,5 +263,111 @@ class PlotElementFactoryTest {
         // what keeps the canvas from recursing into a plot of a plot.
         assertTrue(LivingInk.of(plot).elements.none { it is PlotElement })
         assertTrue("and there is more than a frame in it", LivingInk.of(plot).elements.size > 1)
+    }
+
+    @Test
+    fun applyPlotEditPreservesNonDialogFieldsAndUpdatesEditedOnes() {
+        val initialPlot = PlotElement(
+            left = 50.0,
+            top = 60.0,
+            right = 350.0,
+            bottom = 260.0,
+            curves = listOf(
+                com.mobixournal.format.model.PlotCurve(
+                    kind = PlotKind.CARTESIAN,
+                    source = "sin(x)",
+                    color = red,
+                    strokeWidth = 2.0,
+                ),
+            ),
+            xMin = -10.0,
+            xMax = 10.0,
+            samples = 250,
+            showCriticalPoints = true,
+            includeDerivative = false,
+            shadeIntegral = com.mobixournal.format.model.PlotShading(0.0, 3.1415),
+            parameters = mapOf("k" to 1.5),
+            axisColor = 0xFF555555.toInt(),
+            summaryText = "Roots at x=0",
+            extraAttrs = mapOf("custom" to "val"),
+            id = "plt_custom_123",
+        )
+
+        // Edit via dialog: new formula, range, and flags
+        val editedDialogCurves = listOf(
+            PlotCurve(
+                source = "cos(2*x)",
+                color = 0xFF388E3C.toInt(),
+                lineStyle = LineStyle.DASHED,
+                label = "f1",
+            ),
+        )
+
+        val updated = PlotElementFactory.applyPlotEdit(
+            original = initialPlot,
+            editedCurves = editedDialogCurves,
+            xMin = -5.0,
+            xMax = 5.0,
+            showCriticalPoints = false,
+            includeDerivative = true,
+            includeSummary = false,
+        )
+
+        // Edited fields updated
+        assertEquals(-5.0, updated.xMin, 1e-9)
+        assertEquals(5.0, updated.xMax, 1e-9)
+        assertFalse(updated.showCriticalPoints)
+        assertTrue(updated.includeDerivative)
+        assertEquals(1, updated.curves.size)
+        assertEquals("cos(2*x)", updated.curves[0].source)
+        assertEquals(0xFF388E3C.toInt(), updated.curves[0].color)
+        assertEquals(LineStyle.DASHED, updated.curves[0].lineStyle)
+        // Original strokeWidth preserved
+        assertEquals(2.0, updated.curves[0].strokeWidth, 1e-9)
+
+        // Non-dialog fields survive untouched
+        assertEquals(50.0, updated.left, 1e-9)
+        assertEquals(60.0, updated.top, 1e-9)
+        assertEquals(350.0, updated.right, 1e-9)
+        assertEquals(260.0, updated.bottom, 1e-9)
+        assertEquals(250, updated.samples)
+        assertEquals(initialPlot.shadeIntegral, updated.shadeIntegral)
+        assertEquals(initialPlot.parameters, updated.parameters)
+        assertEquals(initialPlot.axisColor, updated.axisColor)
+        assertEquals(initialPlot.summaryText, updated.summaryText)
+        assertEquals(initialPlot.extraAttrs, updated.extraAttrs)
+        assertEquals("plt_custom_123", updated.id)
+    }
+
+    @Test
+    fun editedFormulaThatFailsToParseIsStillWrittenAndReportedByLivingInk() {
+        val original = element()
+        val invalidCurves = listOf(
+            PlotCurve(
+                source = "sin(x +++",
+                color = red,
+            ),
+        )
+
+        val updated = PlotElementFactory.applyPlotEdit(
+            original = original,
+            editedCurves = invalidCurves,
+            xMin = -3.0,
+            xMax = 3.0,
+            showCriticalPoints = false,
+            includeDerivative = false,
+        )
+
+        // Syntax error is written, not dropped
+        assertEquals("sin(x +++", updated.curves.single().source)
+
+        // LivingInk reports it in uncompiled losses and PlotInk reports it in unparsed
+        val plotInk = PlotInk.ink(updated)
+        assertTrue("PlotInk must report unparsed formula", plotInk.unparsed.contains("sin(x +++"))
+        val compiled = LivingInk.of(updated)
+        assertTrue(
+            "LivingInk must report uncompiled loss for invalid formula",
+            compiled.uncompiled.any { it.reason.contains("sin(x +++") },
+        )
     }
 }

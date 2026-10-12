@@ -86,6 +86,12 @@ class CurveEditorState(
 }
 
 /**
+ * Format a number for range text fields, avoiding redundant trailing '.0'.
+ */
+internal fun formatRangeNumber(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
+
+/**
  * Advanced multi-function plotting & mathematical study dialog:
  * - Multi-function input with customizable color & line style per curve
  * - Cartesian and Parametric modes
@@ -93,9 +99,19 @@ class CurveEditorState(
  * - Optional numerical derivative f'(x)
  * - Optional summary table text insertion
  * - Live real-time Canvas preview
+ *
+ * Can be invoked to create a new plot or to edit an existing one via the optional [initialCurves],
+ * [initialXMin], [initialXMax], [initialShowCriticalPoints], [initialIncludeDerivative], and
+ * [initialIncludeSummary] parameters.
  */
 @Composable
 fun AdvancedFunctionGraphDialog(
+    initialCurves: List<PlotCurve>? = null,
+    initialXMin: Double? = null,
+    initialXMax: Double? = null,
+    initialShowCriticalPoints: Boolean? = null,
+    initialIncludeDerivative: Boolean? = null,
+    initialIncludeSummary: Boolean? = null,
     onConfirm: (
         curves: List<PlotCurve>,
         xMin: Double,
@@ -106,45 +122,31 @@ fun AdvancedFunctionGraphDialog(
     ) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var modeTab by remember { mutableStateOf(0) } // 0: Cartesian f(x), 1: Parametric {x(t), y(t)}
+    val isParametricInitial = initialCurves?.any { it.kind == PlotKind.PARAMETRIC } == true
+    var modeTab by remember { mutableStateOf(if (isParametricInitial) 1 else 0) } // 0: Cartesian f(x), 1: Parametric {x(t), y(t)}
     val curves = remember {
-        mutableStateListOf(
-            CurveEditorState("sin(x)", PRESET_COLORS[0]),
-        )
+        mutableStateListOf<CurveEditorState>().apply {
+            addAll(createInitialCurveList(isParametricInitial, initialCurves))
+        }
     }
 
     // Parametric inputs
-    var paramX by remember { mutableStateOf("cos(x)") }
-    var paramY by remember { mutableStateOf("sin(x)") }
+    val initialParam = initialCurves?.firstOrNull { it.kind == PlotKind.PARAMETRIC }
+    var paramX by remember { mutableStateOf(initialParam?.source ?: "cos(x)") }
+    var paramY by remember { mutableStateOf(initialParam?.sourceY ?: "sin(x)") }
 
-    var xMinText by remember { mutableStateOf("-10") }
-    var xMaxText by remember { mutableStateOf("10") }
-    var showCriticalPoints by remember { mutableStateOf(true) }
-    var includeDerivative by remember { mutableStateOf(false) }
-    var includeSummary by remember { mutableStateOf(false) }
+    var xMinText by remember { mutableStateOf(initialXMin?.let { formatRangeNumber(it) } ?: "-10") }
+    var xMaxText by remember { mutableStateOf(initialXMax?.let { formatRangeNumber(it) } ?: "10") }
+    var showCriticalPoints by remember { mutableStateOf(initialShowCriticalPoints ?: true) }
+    var includeDerivative by remember { mutableStateOf(initialIncludeDerivative ?: false) }
+    var includeSummary by remember { mutableStateOf(initialIncludeSummary ?: false) }
 
     val xMin = xMinText.toDoubleOrNull()
     val xMax = xMaxText.toDoubleOrNull()
     val rangeOk = xMin != null && xMax != null && xMax > xMin
 
     val activeCurves = remember(modeTab, curves.map { Triple(it.source, it.color, it.lineStyle) }, paramX, paramY) {
-        if (modeTab == 0) {
-            curves.mapIndexed { i, c -> PlotCurve(c.source, c.color, c.lineStyle, "f${i + 1}") }
-        } else {
-            // One parametric curve, not two Cartesian ones: `x(t)` and `y(t)` are the two halves of a
-            // single curve, and saying so is what lets it be *drawn* as the loop this tab promises —
-            // two separate `y = f(x)` waves are a different picture, not a preview of this one.
-            listOf(
-                PlotCurve(
-                    source = paramX,
-                    color = PRESET_COLORS[0],
-                    lineStyle = LineStyle.PLAIN,
-                    label = "x(t)",
-                    kind = PlotKind.PARAMETRIC,
-                    sourceY = paramY,
-                ),
-            )
-        }
+        resolveActiveCurves(modeTab, curves, paramX, paramY)
     }
 
     AlertDialog(
@@ -188,11 +190,42 @@ fun AdvancedFunctionGraphDialog(
                 onClick = {
                     onConfirm(activeCurves, xMin!!, xMax!!, showCriticalPoints, includeDerivative, includeSummary)
                 },
-            ) { Text("Insert") }
+            ) { Text(if (initialCurves != null) "Apply" else "Insert") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
+
+private fun createInitialCurveList(
+    isParametricInitial: Boolean,
+    initialCurves: List<PlotCurve>?,
+): List<CurveEditorState> =
+    if (!isParametricInitial && !initialCurves.isNullOrEmpty()) {
+        initialCurves.map { CurveEditorState(it.source, it.color, it.lineStyle) }
+    } else {
+        listOf(CurveEditorState("sin(x)", PRESET_COLORS[0]))
+    }
+
+private fun resolveActiveCurves(
+    modeTab: Int,
+    curves: List<CurveEditorState>,
+    paramX: String,
+    paramY: String,
+): List<PlotCurve> =
+    if (modeTab == 0) {
+        curves.mapIndexed { i, c -> PlotCurve(c.source, c.color, c.lineStyle, "f${i + 1}") }
+    } else {
+        listOf(
+            PlotCurve(
+                source = paramX,
+                color = PRESET_COLORS[0],
+                lineStyle = LineStyle.PLAIN,
+                label = "x(t)",
+                kind = PlotKind.PARAMETRIC,
+                sourceY = paramY,
+            ),
+        )
+    }
 
 @Composable
 private fun DialogBodyContent(
