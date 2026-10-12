@@ -178,7 +178,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     // would yank a guide the user has carefully positioned back to the middle of the screen.
     if (s.guideKind == GuideKind.NONE) {
         if (guide != null) placeGuide(GuideKind.NONE)
-    } else if (guide == null) {
+    } else if (guide == null || guide?.guideKind != s.guideKind) {
         // A **remembered instrument pose** comes back exactly where it was left (this is the restore
         // path behind `AppSettings.guidePose`). Anything else is placed fresh at the viewport centre:
         // a kind with no pose of its own (the invisible rules), or a pose whose page is gone.

@@ -210,7 +210,11 @@ about a guide reaches the document — only the resulting stroke does. Where an 
 `applySettings` can `restoreGuide` it on the next launch instead of `placeGuide`ing a fresh one. Only
 the three instruments qualify (`DrawingGuide.isRememberable`) — the ruling and chemistry rules
 re-derive their anchor from the page — and the pose is dropped when the kind changes or the page it
-was posed on is gone, so a stored pose can never be applied to the wrong instrument. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
+was posed on is gone, so a stored pose can never be applied to the wrong instrument. The guide chooser
+(`DrawingGuidePopup`, rail and secondary top bar) groups options into Off, Instruments (Setsquare, Compass,
+Protractor with 15° radial snapping) and Lattices (page ruling, 60°/120° chemistry) with dedicated vector
+glyphs; tapping an active guide toggles it off, and placement operates cleanly without triggering asynchronous
+settings feedback loops. A **line style** (`plain`/`dash`/`dashdot`/`dot`) and a **fill** alpha ride
 on the stroke the tool draws next; `StrokePainter` paints a dashed/dotted style as a single
 constant-width dashed path and floods a fill under the outline, and `PdfVectorPainter` mirrors both for
 export (a `setLineDashPattern` stroke and a `fill()` polygon). The **partial eraser** (`StrokeEraser`,

@@ -246,8 +246,8 @@ app/
       ToolbarStylePopup.kt   # shared line-style chips, and the shape-recognition toggle
       ToolGlyphs.kt          # custom rail glyphs (hollow rectangle, rhombus, trapezoid, square); Material has no outline variants
       CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
-      ChemGlyphs.kt          # custom vector glyphs for the chemistry bonds and the benzene ring
-      ToolbarViewPopups.kt   # rail slots: zoom, page background, drawing guides, audio
+      DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs
+      ToolbarViewPopups.kt   # rail slots: zoom, page background, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog
       ToolbarLayersPopup.kt  # rail slot: the layer manager list + rename dialog
       TopBarItems.kt         # Secondary Toolbar buttons definition (figures & tools), default order, and codecs

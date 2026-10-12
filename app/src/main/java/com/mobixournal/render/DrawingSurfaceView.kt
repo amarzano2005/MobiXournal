@@ -1431,7 +1431,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         // The ruling snap needs the page it is ruling: its lattice is the page's own background, and
         // an isometric sheet's phase is derived from the page width too.
         guideDrag.pose = kind.place(cx, cy, Snapping.lattice(box?.page?.background, box?.page?.width ?: 0.0))
-        onGuideChanged?.invoke(guide)
         render()
     }
 

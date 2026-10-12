@@ -247,36 +247,6 @@ private fun PopupChipRow(content: @Composable RowScope.() -> Unit) {
 }
 
 /**
- * The drawing-guide pop-up: lay a setsquare, a compass or a protractor on the page (or turn on the
- * page's own ruling / the chemistry bond lattice), or take it off again. The guide is an input aid —
- * a finger drags an instrument around and re-poses it by its tip handle, and anything drawn near its
- * edge is ruled onto that edge; the ruling and chemistry snaps are invisible rules with nothing to
- * hold. Nothing about a guide is written to the `.xopp` file.
- *
- * The face is a **ruler** (`Straighten`), the one pictogram everybody already reads as "rule a
- * straight line". The slot used to show the same triangle as the Shape recognition slot beside it,
- * which is exactly why neither was recognisable: two different jobs, one glyph.
- */
-@Composable
-internal fun GuidePopupButton(kind: GuideKind, onKind: (GuideKind) -> Unit) {
-    ToolbarPopupButton(
-        icon = Icons.Filled.Straighten,
-        contentDescription = "Drawing guides",
-        tint = if (kind == GuideKind.NONE) LocalContentColor.current
-        else MaterialTheme.colorScheme.primary,
-    ) { dismiss ->
-        MenuHeading("Drawing guide")
-        for (option in GuideKind.entries) {
-            DropdownMenuItem(
-                text = { Text(option.label) },
-                trailingIcon = { if (option == kind) Icon(Icons.Filled.Check, contentDescription = "selected") },
-                onClick = { onKind(option); dismiss() },
-            )
-        }
-    }
-}
-
-/**
  * The audio slot: start/stop the recording that new strokes are stamped against, stop playback, and
  * nominate the folder sidecar `.wav` files are kept in. The button turns primary-coloured while the
  * microphone is live, because a forgotten recording is the one mistake here that costs the user

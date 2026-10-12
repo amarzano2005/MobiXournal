@@ -605,10 +605,8 @@ fun EditorToolbar(
         },
         guideKind = settings.guideKind,
         onGuideKind = {
-            surface?.placeGuide(it)
-            // A pose belongs to the instrument it was taken from, so changing the kind drops it — the
-            // new one is placed fresh rather than inheriting the old instrument's anchor.
             onSettingsChange(settings.copy(guideKind = it, guidePose = null))
+            surface?.placeGuide(it)
         },
         layerCallbacks = toolbarLayerCallbacks(surface, pane),
         zoom = pane.zoom,
@@ -808,7 +806,7 @@ fun TopBarToolsRow(
                         CompactGuidePopupButton(
                             kind = settings.guideKind,
                             onKind = {
-                                onSettingsChange(settings.copy(guideKind = it))
+                                onSettingsChange(settings.copy(guideKind = it, guidePose = null))
                                 pane.surface?.placeGuide(it)
                             },
                         )
@@ -991,43 +989,6 @@ private fun CompactShapeKindButton(
     }
 }
 
-@Composable
-private fun CompactGuidePopupButton(
-    kind: GuideKind,
-    onKind: (GuideKind) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    val active = kind != GuideKind.NONE
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = RoundedCornerShape(8.dp)
-    Box {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(shape)
-                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
-                .clickable { open = !open },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Filled.Straighten,
-                contentDescription = "Drawing guides",
-                tint = tint,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
-            MenuHeading("Drawing guide")
-            for (option in GuideKind.values()) {
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    trailingIcon = { if (option == kind) Icon(Icons.Filled.Check, contentDescription = "selected") },
-                    onClick = { onKind(option); open = false },
-                )
-            }
-        }
-    }
-}
 
 
 @OptIn(ExperimentalFoundationApi::class)
