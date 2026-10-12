@@ -65,12 +65,15 @@ codecs, the element codecs for every element the format can hold — the four `.
 codecs — and the document layer on top (`MobixDocument`: a `.xopp` ingested as a `.mobix` document and
 read back, [mobix-format.md](mobix-format.md)) exist and are tested, and so does the other half of the
 compiler: `render/XoppSynthesis.kt` flattens a document holding living entities into ink the ordinary
-`.xopp` writer emits, one compiler per family. Still to come: the app-level open/save path (the type
-registered, the read-only offer for a higher `minAppVersion`), the export's verified `mobix:meta` block
-— without it an export cannot be re-imported as living entities — the wiring that reaches the export
-from a menu, and the *drawing and editing* of the living entities themselves (modelled and preserved by
-their codecs, [mobix-elements.md](mobix-elements.md), and compiled on export, but not rendered on
-screen yet). Work items live in `TODO.toml`.
+`.xopp` writer emits, one compiler per family. The app-level open/save path has since landed — the type
+is registered, a `.mobix` is dispatched by its own `mimetype` and saved back in its own format
+([data-path.md](data-path.md)) — and the export already carries the verified `mobix:meta` block, which is
+what lets an exported `.xopp` come back as living entities ([mobix-format.md](mobix-format.md)). Still to
+come, recorded in `TODO.toml`: the read-only open for a document whose `minAppVersion` is above ours (the
+reader exposes `requiresAppNewerThan`, the app does not ask it yet), the wiring that reaches the export
+from a menu, and the *drawing and editing* of the living entities themselves — modelled and preserved by
+their codecs ([mobix-elements.md](mobix-elements.md)) and compiled on export, but not rendered on screen
+or in a PDF yet, so a `.mobix` holding a table exports as blank space.
 
 ### Advanced domain engine specifications
 
