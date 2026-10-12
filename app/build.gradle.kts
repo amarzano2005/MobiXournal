@@ -114,3 +114,16 @@ androidComponents.onVariants { variant ->
     tasks.matching { it.name == "process${variant.name.replaceFirstChar(Char::uppercase)}UnitTestJavaRes" }
         .configureEach { dependsOn(extractPdfboxAssets) }
 }
+
+// The documentation guards (`DocsGuardTest`, `SourceStructureTest`) read `docs/` and the source tree
+// off disk at run time, and Gradle cannot see that: without declaring them, editing a doc leaves the
+// test task UP-TO-DATE, so the guard that exists to catch a stale doc never runs against the doc that
+// just changed. Measured: `touch docs/codebase.md && scripts/host-build.sh testDebugUnitTest` reported
+// UP-TO-DATE in 4 s. Declaring the docs as inputs makes a doc edit re-run the guards here instead of in
+// whatever clean build happens to come next. (`src/main/java` needs no entry: a source change alters
+// the compiled classes, which the test task already tracks.)
+tasks.withType<Test>().configureEach {
+    inputs.dir(rootProject.file("docs"))
+        .withPropertyName("documentation")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
