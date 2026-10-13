@@ -66,7 +66,7 @@ emulator_debug = true
 [[task]]
 id = "anchored-flyout-popovers-for-colour-and-tip-size"
 title = "Anchored flyout popovers for colour and tip size"
-description = "Phase 3 of docs/ui-modernization.md: the colour palette and the tip-size picker open as compact popover bubbles anchored to the control that opened them, instead of centred modal dialogs. The palette model is already shared (ui/ColorPalette.kt renders one ColorPaletteRows used by the rail button, the text dialog and the selection recolour), so this changes presentation and anchoring only: every existing caller keeps working, and an outside tap closes the popover. Verify on the emulator: screenshots of both popovers anchored at the rail, and again with the dock docked at the top and the bottom to prove they do not leave the window."
+description = "Phase 3 of docs/ui-modernization.md: the colour palette and the tip-size picker open as compact popover bubbles anchored to the control that opened them, instead of centred modal dialogs. The palette model is already shared (ui/ColorPalette.kt renders one ColorPaletteRows used by the rail button, the text dialog and the selection recolour), so this changes presentation and anchoring only: every existing caller keeps working, and an outside tap closes the popover. Verify on the emulator: screenshots of both popovers anchored at the rail, and again with the rail on the left edge, on the right edge and in Compact to prove they do not leave the window."
 status = "active"
 level = "task"
 category = "feature"
@@ -136,7 +136,7 @@ emulator_debug = true
 [[task]]
 id = "track-the-flick-and-commit-a-colour-width-or-tool"
 title = "Track the flick and commit a colour, width or tool"
-description = "The interaction half of the HUD: while the barrel button is held, the flick direction selects a slot, a haptic tick marks each crossing of a boundary, and the release commits. The commit goes through the one entry point that already exists for it - applyToolPreset in ui/ToolPreset.kt is documented as the call the rail and a radial-palette slot both make, so a HUD choice can never mean something the user could not have set by hand. Keep the angle-to-slot geometry pure and unit-tested, including the seam wrap where the ring closes and the centre dead zone, which commits nothing when the release lands there; haptics respect the existing pen haptics setting. Verify with JVM unit tests over the slot maths (each slot centre, a boundary, the dead zone) plus an emulator pass committing a colour and a width and seeing the rail follow."
+description = "The interaction half of the HUD: while the barrel button is held, the flick direction selects a slot, a haptic tick marks each crossing of a boundary, and the release commits. The commit must go through one entry point, and there is a stub of it: applyToolPreset (ui/ToolPreset.kt) is documented as the call the rail and a radial-palette slot both make, but nothing calls it today - the rail switches through EditorUiState.switchToolTo plus surface.applyTool in EditorScreen and EditorRegions. So this task starts by routing the rail's own tool, colour and width switches through applyToolPreset, pinned by a unit test, which is what turns the guarantee (a HUD choice can never mean something the user could not have set by hand) from a comment into a property. Keep the angle-to-slot geometry pure and unit-tested, including the seam wrap where the ring closes and the centre dead zone, which commits nothing when the release lands there; haptics respect the existing pen haptics setting. Verify with JVM unit tests over the slot maths (each slot centre, a boundary, the dead zone) plus an emulator pass committing a colour and a width and seeing the rail follow."
 status = "active"
 level = "task"
 category = "feature"
@@ -346,7 +346,7 @@ emulator_debug = false
 [[task]]
 id = "multi-window-workspace-for-dex-and-drag-and-drop"
 title = "Multi-window workspace: freeform windows, DeX and cross-window drag and drop"
-description = "docs/multi-window-workspace.md asks for OS-level multi-window on Android (freeform windows, Samsung DeX, desktop multi-monitor), two windows on the same document observing one shared DocumentState with dirty-rect invalidation into the other window and undo scoped per document, drag and drop of living elements across windows and apps through the documented payload flavours (application/vnd.mobixournal.element, image/svg+xml, image/png, text/plain), and ingestion of dropped images, PDFs, LaTeX or Typst snippets and CSV or TSV files into a live element. In-app split view already exists and is documented in docs/data-path.md - panes, an EditorPane each with its own tabs, disposed rather than destroyed when the split is turned off - so the gap is the OS window level, the payload side and the ingestion. Establish what the pane model already guarantees, what a second window would have to share, and what each drag flavour costs, then add the task-level children. Produce tasks, not code."
+description = "docs/multi-window-workspace.md asks for OS-level multi-window on Android (freeform windows, Samsung DeX, desktop multi-monitor), two windows on the same document observing one shared DocumentState (the model this spoke designs - nothing by that name exists in the code yet) with dirty-rect invalidation into the other window and undo scoped per document, drag and drop of living elements across windows and apps through the documented payload flavours (application/vnd.mobixournal.element, image/svg+xml, image/png, text/plain), and ingestion of dropped images, PDFs, LaTeX or Typst snippets and CSV or TSV files into a live element. In-app split view already exists and is documented in docs/data-path.md - panes, an EditorPane each with its own tabs, disposed rather than destroyed when the split is turned off - so the gap is the OS window level, the payload side and the ingestion. Establish what the pane model already guarantees, what a second window would have to share, and what each drag flavour costs, then add the task-level children. Produce tasks, not code."
 status = "active"
 level = "scope"
 category = "feature"
@@ -444,7 +444,7 @@ emulator_debug = false
 [[task]]
 id = "split-view-and-dex-multi-window-document-state-sync"
 title = "Split-view and DeX multi-window document state sync"
-description = "Support Android freeform windows and split-screen with shared DocumentState, unified undo/redo, and cross-window dirty-rect invalidation."
+description = "Support Android freeform windows and split-screen with the documented shared DocumentState, one undo history per document shared by every window showing it (per the parent scope: undo is scoped per document, never merged across documents), and cross-window dirty-rect invalidation."
 status = "active"
 level = "task"
 category = "feature"
@@ -486,15 +486,15 @@ emulator_debug = true
 [[task]]
 id = "guard-the-system-bars-as-one-transparent-contract"
 title = "Guard the system bars as one transparent contract"
-description = "The bug that hid the bottom 64px of every page was two files disagreeing about the system bars: MainActivity set navigationBarColor transparent via enableEdgeToEdge while XoppTheme's SideEffect repainted it with colorScheme.background, and the later write won. Add a guard that fails the build when any source assigns a non-transparent statusBarColor or navigationBarColor, so the one fact (the app owns no colour of its own in the system bars, only icons) cannot be split across two files again."
+description = "The bug that hid the bottom 64px of every page was two files disagreeing about the system bars: MainActivity set navigationBarColor transparent via enableEdgeToEdge while XoppTheme's SideEffect repainted it with colorScheme.background, and the later write won. Add a guard that fails the build when any source assigns a non-transparent statusBarColor or navigationBarColor, so the one fact (the app owns no colour of its own in the system bars, only icons) cannot be split across two files again. The fix has shipped: MainActivity and XoppTheme both write transparent today (see the note in docs/chrome.md), and what this task adds is only the guard."
 status = "active"
 level = "task"
-category = "feature"
+category = "test"
 urgency = "normal"
 order = 562
 created = 2026-10-13
 tags = ["ui", "testing"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
