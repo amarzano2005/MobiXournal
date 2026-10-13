@@ -263,9 +263,10 @@ app/
       AudioStore.kt          # app-private recordings dir + SAF tree import/export of sidecars
       AudioSession.kt        # the editor's single audio facade (record / stamp / play / sync)
     ui/                      # Compose Material 3
-      EditorScreen.kt        # the editor's assembly: scaffold + body layout (rail edge, split panes)
+      EditorScreen.kt        # the editor's assembly: the chrome's bands (header, rail lane, dock) + the canvas that takes the rest, split panes
       EditorUiState.kt       # the screen's remembered chrome state (pen, open dialogs, panes) in one holder + switchToolTo, the one tool-switch rule
-      EditorRegions.kt       # the screen's regions: top bar (floating in modern UI, optional Secondary Toolbar tools row), ☰ menu, Main Toolbar wiring, one pane's canvas
+      EditorRegions.kt       # the screen's regions: top bar (optional Secondary Toolbar tools row), document tab band, Main Toolbar wiring, one pane's canvas
+      EditorOverflowMenu.kt  # the top bar's ☰ menu: its button + panel (quick file actions, PDF row, pen, Settings)
       EditorBackHandler.kt   # back peels off one transient editor state at a time before leaving the app
       PaneState.kt           # per-pane canvas state the chrome mirrors (zoom, page, layer, undo) + the pane count
       SplitLayout.kt         # two panes side by side with a draggable bar down the middle
@@ -275,8 +276,7 @@ app/
       SideToolbar.kt         # Main Toolbar (rail): the shell + tool-group slots; each pop-up is a Toolbar*.kt below
       EditorTool.kt          # the editor's tool modes + their labels/icons (pure)
       ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
-      ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog
-      ToolbarStylePopup.kt   # shared line-style chips, and the shape-recognition toggle
+      ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog; ToolbarStylePopup.kt: shared line-style chips + the shape-recognition toggle
       ToolGlyphs.kt          # custom rail glyphs (hollow rectangle, rhombus, trapezoid, square); Material has no outline variants
       CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
       DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs

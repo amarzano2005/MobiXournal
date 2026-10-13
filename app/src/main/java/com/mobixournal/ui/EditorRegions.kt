@@ -1394,7 +1394,7 @@ fun EditorPaneView(
     val state = ui.panes[index]
     val chrome = rememberCanvasChromeColors()
     val latestSettings = rememberUpdatedState(settings)
-    Box(
+    Column(
         modifier = modifier.pointerInput(index) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -1404,9 +1404,16 @@ fun EditorPaneView(
             }
         },
     ) {
+        // The document tabs ride in a band of their own, directly above the canvas they belong to, so
+        // they take their height out of the canvas instead of covering the page — see [EditorBody] for
+        // why no chrome sits on the canvas. In Compact the tabs live inside the top bar instead
+        // ([EditorTopBar]'s title slot), and in full-page mode they are hidden entirely.
+        if (!ui.fullPage && settings.toolbarLayout != ToolbarLayout.COMPACT) {
+            TabBand(tabs[index.coerceIn(tabs.indices)])
+        }
         // the surface's own view px, so the box the surface reports needs no conversion here.
         var canvasSizePx by remember { mutableStateOf(IntSize.Zero) }
-        Box(modifier = Modifier.fillMaxSize().onSizeChanged { canvasSizePx = it }) {
+        Box(modifier = Modifier.weight(1f).fillMaxWidth().onSizeChanged { canvasSizePx = it }) {
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
@@ -1478,42 +1485,32 @@ fun EditorPaneView(
                 )
             }
         }
-        if (!ui.fullPage && settings.toolbarLayout != ToolbarLayout.COMPACT) {
-            val railInset = SideToolbarModernTotalWidth
-            val startPadding = if (settings.toolbarPosition == ToolbarPosition.LEFT) railInset else 8.dp
-            val endPadding = if (settings.toolbarPosition == ToolbarPosition.RIGHT) railInset else 8.dp
-            val isDark = isSystemInDarkTheme()
-            val glassColor = ModernTheme.glassSurface(isDark)
-            val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
-            // The slab hangs from the top bar's own underside — [TOP_BAR_ROW_HEIGHT] below the status-bar
-            // inset the bar pads itself by — so the two slabs stack flush instead of the bar cutting the
-            // tabs in half. It spans the **full width**, which is what makes the two rows read as the one
-            // header they are: an inset slab leaves a step in the header's bottom edge, a sliver of page
-            // between its own rim and the rail's. The rail's column is held out of the *chips* instead
-            // ([startPadding] / [endPadding]) and the rail's capsule is drawn over this slab, so the two
-            // never collide and no bare page shows between them.
-            //
-            // This slab, and not the bar above it, carries the header's closing edge: one hairline along
-            // its bottom ([bottomHairline]) and one shadow. The bar stands rim- and shadow-less for
-            // exactly that reason — see the note on its own `Surface` — so the one border the two rows
-            // share is drawn once, at the header's bottom, instead of between them.
-            Surface(
-                color = glassColor,
-                shadowElevation = 4.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(top = TOP_BAR_ROW_HEIGHT)
-                    .bottomHairline(hairlineColor),
-            ) {
-                TabStrip(
-                    tabs[index.coerceIn(tabs.indices)],
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = startPadding, end = endPadding),
-                )
-            }
-        }
+    }
+}
+
+/**
+ * The document tabs as a **band of their own** — the row that carries the header's bottom edge: one
+ * hairline along its bottom and one shadow, while the top bar above it stands rim- and shadow-less for
+ * exactly that reason (see the note on [EditorTopBar]'s own `Surface`), so the edge the two rows share
+ * is drawn once. The band takes its height out of the canvas, never out of the page.
+ */
+@Composable
+private fun TabBand(tabs: TabsUiState, modifier: Modifier = Modifier) {
+    val isDark = isSystemInDarkTheme()
+    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    Surface(
+        color = ModernTheme.glassSurface(isDark),
+        shadowElevation = 4.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .bottomHairline(hairlineColor),
+    ) {
+        TabStrip(
+            tabs,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+        )
     }
 }
 

@@ -25,9 +25,20 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "chrome-in-its-own-bands-canvas-in-the-rest"
+title = "Chrome in its own bands, the canvas takes the rest"
+description = "The chrome no longer lies on the page. EditorScreen is a Column (the top bar's band, then EditorBody in the weight that remains) and EditorBody lays the rail's lane (exactly SideToolbarModernTotalWidth) on the edge AppSettings.toolbarPosition names beside the canvas in Standard, or the canvas above the horizontal dock's band in Compact, while the document tabs take a band inside each pane directly above its own canvas, so a split view keeps each document's tabs over its own canvas. Whatever the chrome occupies the canvas does not, which is what makes the whole visible page writable: a translucent bar on the page hid the ink under it and swallowed the stylus there, and the strip it covered was the top of the sheet. EditorScreen's Scaffold takes rememberChromeColor() (the scheme's background, the canvas's own backdrop) instead of transparency, so the bands read as one desk with the page on it; both system bars stay transparent and in Standard the sheet still reaches the screen's bottom edge. The bar stands rim- and shadow-less whenever the tab band is directly under it and the band carries the header's closing edge (one bottomHairline plus one shadow) - the two stacked rims are what made one header read as two bars. Verified on the Pixel_Tablet AVD in all four combinations (Standard and Compact, light and dark) from the uiautomator bounds (Standard: bar y0..152, tab band x128..2560 y152..228, rail lane x0..128, canvas x128..2560 y228..1600; Compact: canvas x0..2560 y152..1408 above the dock's band) and by pixel profiles at the band edges, plus a stroke drawn at the page's top edge (ink from y259) and at the bottom edge."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = ["ui", "chrome"]
+
+[[task]]
 id = "floating-glass-chrome-over-a-full-bleed-canvas"
 title = "Floating glass chrome over a full-bleed canvas"
-description = "The editor draws its own chrome as floating glass docks over a canvas that runs edge to edge under both system bars: both bars are transparent in MainActivity and XoppTheme (the theme only picks the icon contrast), so the page reaches the screen's top and bottom edges with just the clock and the gesture handle over it. The floating top bar's own row height (TOP_BAR_ROW_HEIGHT) is the single number the rail's top inset and the Standard-mode document tab strip both read, so neither is swallowed or cut by the bar. Verified on the Pixel_Tablet AVD in both layouts and both themes."
+description = "The editor draws its own chrome as glass docks, and both system bars are transparent in MainActivity and XoppTheme (the theme only picks the icon contrast), so the canvas owns the screen's edges and only the clock and the gesture handle are drawn over the sheet. The top bar's own row height (TOP_BAR_ROW_HEIGHT) is the single number its tools stand in, shared so no literal can drift. The bar and the Standard-mode document tab strip first hung one directly under the other at that height, with the rail reading it as its own top inset; that arrangement was superseded by the bands layout recorded under chrome-in-its-own-bands-canvas-in-the-rest, where no chrome lies on the page at all. Verified on the Pixel_Tablet AVD in both layouts and both themes."
 status = "finished"
 level = "task"
 category = "feature"

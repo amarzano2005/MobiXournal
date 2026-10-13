@@ -16,6 +16,10 @@ The app chrome provides two configurable layout modes (`ToolbarLayout` in `AppSe
 - **Standard (`DEFAULT`)**: The Main Toolbar is docked along the vertical edge (Left or Right, per `ToolbarPosition`) as a vertical floating capsule for classic writing tools, paired with the Secondary Toolbar in the top bar containing all STEM tools.
 - **Compact (`COMPACT`)**: A unified floating horizontal toolbar docked at the bottom center containing primary writing tools plus 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`); the secondary toolbar in the top bar is hidden, displaying only the document title.
 
+The chrome never sits **on** the page: the top bar, the rail's lane and the document tabs each take a
+band of their own and the canvas takes what is left, which is what makes the whole visible page
+writable — the layout is described under _The frame around the page_, below.
+
 `orderedTopBarItems` places a slot the saved order doesn't name (one added since that order was written) at its **factory
 position** — just ahead of the next factory item the order does name — rather than appending it past
 everything the user arranged, which is what would otherwise park a new button at the wrong end of an
@@ -171,12 +175,34 @@ page-number bubble beside it. A rounded grip "peninsula" bulges out of the thumb
 visual — the whole band already catches touches) so there's an obvious finger-sized target to grab. It is a pure navigation affordance — no `.xopp` state, so nothing
 round-trips.
 
-## The frame around the page: floating bars over a full-bleed canvas
+## The frame around the page: the chrome's bands, and the canvas's rest
+
+**The chrome is laid out beside the page, never on it.** The header band, the rail's lane and (in
+Compact) the bottom band are rows of the layout, and the canvas — an `AndroidView`-hosted
+`DrawingSurfaceView` — is handed what is left:
+
+- `EditorScreen` is a `Column`: the top bar first, `EditorBody` in the weight that remains.
+- `EditorBody` is a `Row` in Standard — the rail's lane (exactly `SideToolbarModernTotalWidth`, the edge
+  `AppSettings.toolbarPosition` names) and the canvas taking the weight — or a `Column` in Compact: the
+  canvas, then the horizontal dock's band above the navigation-bar inset.
+- the **document tabs** are a band inside each pane, directly above the canvas they belong to, so a split
+  view keeps each document's own tabs over its own canvas.
+
+Whatever the chrome occupies the canvas does not, and that is the point. A translucent bar floating *on*
+the page hides the ink under it and swallows the stylus there, and the strip it covers is the top of the
+sheet — where a note taker's hand reaches first. Every pixel of the page the user can see is a pixel
+they can write on.
+
+The **desk** is what the bands sit on: `EditorScreen`'s `Scaffold` takes `rememberChromeColor()` (the
+scheme's `background`, the same colour the canvas paints around a page) instead of transparency, so the
+header, the rail's lane and the bottom band read as one surface with the page lying on it rather than as
+holes onto the window behind.
 
 **The canvas is the screen.** The document runs edge to edge under both system bars: `MainActivity`
 takes the window out of the system's insets (`setDecorFitsSystemWindows(false)` + `enableEdgeToEdge`)
 and every system-bar colour it sets — and that `XoppTheme` sets — is **transparent**, so the only things
 drawn over the page's top and bottom edges are the bars' own contents (the clock, the gesture handle).
+In Standard there is no bottom band, so the sheet still ends at the glass of the gesture bar.
 `XoppTheme`'s `SideEffect` still runs on every theme change, but it now only *chooses the icon
 contrast* (`isAppearanceLightStatusBars` / `…NavigationBars`, from the chrome colour's luminance) and
 leaves the colours alone. That split is the whole rule: **the app has no colour of its own in the
@@ -192,19 +218,15 @@ action could reach it. The band tracked the *app's* colour rather than the launc
 identified it; it is nobody else's surface. With both bars transparent the page reaches the bottom edge
 and the gesture handle floats on the paper.
 
-The floating bars are laid out against **one shared row height** (`TOP_BAR_ROW_HEIGHT`, 52dp), not
-against literals: the top bar pads itself by the status-bar inset and then stands its tools in that row,
-and the two things that hang off the bar read the same number —
-
-- the **rail**, which starts below the whole bar (`statusBarsPadding()` + `TOP_BAR_ROW_HEIGHT`) instead of
-  running up under its glass, where the bar's own surface would swallow its first slot;
-- the **document tab strip** in Standard mode, whose slab hangs from the bar's underside at the same
-  offset. Its slab — not its chips — is what is held out of the rail's column, so the rail's capsule and
-  the tab slab never overlap and the chips still begin where they always did.
-
-The status-bar inset itself is deliberately *not* part of that constant: it is a device value, taken
-with `statusBarsPadding()` at each call site. Before the split, the tab strip was positioned by a `54.dp`
-literal that predated the bar's status-bar padding, so in Standard mode the bar cut the chips in half.
+**One header, one edge.** The bar and the band that carries the tabs are two rows of the same surface,
+not two bars: the bar is filled with the same glass and takes **no rim and no shadow** whenever the tab
+band sits directly under it, and the band below then carries the header's closing edge — one hairline
+along its bottom (`Modifier.bottomHairline`) and one shadow. Two rims a few dp apart with a shadow
+between them is what made one header read as a seam across the middle. The bar's own row is
+`TOP_BAR_ROW_HEIGHT` (52dp, `ui/TopBarIndicator.kt`), padded by `statusBarsPadding()` — a device value,
+deliberately not part of the constant — and the tab band's height is `TAB_STRIP_HEIGHT`
+(`ui/TabStrip.kt`). In Compact the tabs ride inside the bar's title slot instead, so there is no band,
+no rail lane, and the bar keeps its own rim and shadow.
 
 ## A saved toolbar order is not a stale one
 

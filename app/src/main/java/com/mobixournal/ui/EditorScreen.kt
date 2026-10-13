@@ -1,22 +1,20 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
@@ -298,24 +296,15 @@ fun EditorScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            // The **desk**, not transparency: the chrome's bands are laid out *beside* the canvas now (see
+            // [EditorBody]), so a translucent bar or rail is read against this colour — the same one the
+            // canvas paints around a page, so the whole screen reads as one surface with the page on it.
+            containerColor = rememberChromeColor(),
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         ) { _ ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                EditorBody(
-                    ui = ui,
-                    pane = pane,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    audio = audio,
-                    tabs = tabs,
-                    splitView = splitView,
-                    onActivePane = onActivePane,
-                    onSurfaceCreated = onSurfaceCreated,
-                    onPickImage = onPickImage,
-                    paneChrome = paneChrome,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            // Header band first, canvas in what is left: the bar is a row of the layout, not a layer over
+            // the page, so no part of the page ever sits under it (see [EditorBody] for why that matters).
+            Column(modifier = Modifier.fillMaxSize()) {
                 if (!ui.fullPage) {
                     val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
                     if (topBar != null) {
@@ -335,10 +324,24 @@ fun EditorScreen(
                             onExportPageSvg = onExportPageSvg,
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
-                            modifier = Modifier.align(Alignment.TopCenter),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
+                EditorBody(
+                    ui = ui,
+                    pane = pane,
+                    settings = settings,
+                    onSettingsChange = onSettingsChange,
+                    audio = audio,
+                    tabs = tabs,
+                    splitView = splitView,
+                    onActivePane = onActivePane,
+                    onSurfaceCreated = onSurfaceCreated,
+                    onPickImage = onPickImage,
+                    paneChrome = paneChrome,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                )
             }
         }
 
@@ -400,9 +403,16 @@ fun EditorScreen(
 }
 
 /**
- * The rail and the drawing area, laid out per [AppSettings.toolbarPosition] — the rail down either
- * vertical edge, the canvas taking the rest. In full-page mode the rail is simply absent and the
- * canvas has the lot.
+ * The rail and the drawing area, laid out as **bands that do not overlap**: whatever the chrome
+ * occupies, the canvas does not. The vertical rail gets a lane down either edge (per
+ * [AppSettings.toolbarPosition]), the horizontal dock a band along the bottom (Compact), and the
+ * canvas takes the rest. In full-page mode the chrome is absent altogether and the canvas has the
+ * screen.
+ *
+ * This is the point of the split. A floating bar over the page hides the ink under it and swallows the
+ * stylus there — the top strip of a page is where a note taker's hand reaches first — and the rail's
+ * lane over the page does the same down one side. Laying the chrome out *beside* the canvas instead of
+ * over it means every pixel of the page the user can see is a pixel they can write on.
  */
 @Composable
 private fun EditorBody(
@@ -451,24 +461,35 @@ private fun EditorBody(
             paneAt(0, canvasModifier)
         }
     }
-    Box(modifier = modifier) {
-        canvas(Modifier.fillMaxSize())
-        if (!ui.fullPage) {
-            val alignment = if (settings.toolbarLayout == ToolbarLayout.COMPACT) {
-                Alignment.BottomCenter
-            } else {
-                if (settings.toolbarPosition == ToolbarPosition.RIGHT) Alignment.CenterEnd else Alignment.CenterStart
+    when {
+        ui.fullPage -> Box(modifier = modifier) { canvas(Modifier.fillMaxSize()) }
+
+        settings.toolbarLayout == ToolbarLayout.COMPACT -> {
+            // The horizontal dock in a band of its own along the bottom edge, above the nav-bar inset.
+            // The band's height is the rail's own (its shell carries the padding), and the canvas ends
+            // where the band begins.
+            Column(modifier = modifier) {
+                canvas(Modifier.weight(1f).fillMaxWidth())
+                Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) { toolbar() }
             }
-            val toolbarModifier = if (settings.toolbarLayout == ToolbarLayout.COMPACT) {
-                Modifier.navigationBarsPadding()
-            } else {
-                // The floating top bar owns the screen's top edge, so the vertical rail starts under it:
-                // left at the top, the bar's glass slab simply covers the rail's first slot.
-                Modifier.statusBarsPadding().padding(top = TOP_BAR_ROW_HEIGHT)
-            }
-            Box(modifier = Modifier.align(alignment).then(toolbarModifier)) {
-                toolbar()
+        }
+
+        else -> {
+            // The vertical rail as a lane down the chosen edge, the canvas taking the rest. The lane is
+            // the rail's own width ([SideToolbarModernTotalWidth]) and it starts at the top bar's bottom
+            // edge, so the rail hangs directly under the bar and nothing overlaps anything.
+            val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
+            Row(modifier = modifier) {
+                if (railOnLeft) RailLane(toolbar)
+                canvas(Modifier.weight(1f).fillMaxHeight())
+                if (!railOnLeft) RailLane(toolbar)
             }
         }
     }
+}
+
+/** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
+@Composable
+private fun RailLane(toolbar: @Composable () -> Unit) {
+    Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) { toolbar() }
 }
