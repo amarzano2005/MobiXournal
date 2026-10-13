@@ -47,7 +47,7 @@ class SourceStructureTest {
      * is a candidate for extraction; none of them may grow.
      */
     private val longFunctions = setOf(
-        "ui/EditorRegions.kt#OverflowMenu",
+        "ui/EditorOverflowMenu.kt#OverflowMenu",
         "ui/EditorRegions.kt#TopBarToolsRow",
         "ui/EditorRegions.kt#SearchControls",
         "ui/EditorRegions.kt#EditorTopBar",
