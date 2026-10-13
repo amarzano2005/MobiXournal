@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.toArgb
  * Ink, page backgrounds and the pen palette are *document data*, not chrome, and are deliberately absent.
  */
 data class CanvasChromeColors(
-    /** The surround behind the pages — [rememberToolbarColor], the material the toolbars are made of. */
+    /** The surround behind the pages — [rememberChromeColor], true OLED black in dark mode or light neutral. */
     val backdrop: Int,
     /**
      * Hairline traced around each sheet. With the surround painted the same colour as the bars, this is
@@ -31,7 +31,7 @@ data class CanvasChromeColors(
 
 /**
  * The bars' colour: the top bar (the `Scaffold`'s container under the transparent `TopAppBar`), the tab
- * strip, and both Android system bars.
+ * strip, both Android system bars, and the canvas backdrop.
  *
  * These used to be three different neutrals — the tab strip sat one tonal step up from the bar it hangs
  * under. Three dark greys stacked down the screen read as three unrelated surfaces rather than one frame
@@ -39,10 +39,10 @@ data class CanvasChromeColors(
  * this, not on a `surfaceContainer*` role, or the bands come back.
  *
  * `background` is the role because that is what the `Scaffold` under the transparent top bar already
- * painted — so the bar the user sees is unchanged, and the strip and the system bars moved to meet it.
+ * painted — so the bar the user sees is unchanged, and the strip, the system bars and the canvas backdrop
+ * take it (true OLED black in dark mode, light neutral in light mode).
  *
- * The toolbars and the canvas surround are deliberately one step up from this, on
- * [rememberToolbarColor].
+ * The toolbars are deliberately one step up from this, on [rememberToolbarColor] (neutral charcoal in dark mode).
  */
 @Composable
 fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
@@ -50,13 +50,10 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
 /**
  * The toolbars' colour: the fill of the Main Toolbar rail and of the Secondary Toolbar's floating dock.
  *
- * This is the app's *implement* colour — the material the tools are made of — and it is the one the
- * canvas surround is painted with, so the desk a page lies on reads as the same material as the tools
- * floating over it rather than as a darker void behind them. The docks keep it as their fill because the
- * bars above stay on [rememberChromeColor]: one tonal step is what makes a floating dock read as floating
- * instead of dissolving into the bar it hangs from.
+ * This is the app's *implement* colour — the material the tools are made of: neutral charcoal layers
+ * in dark mode and light container in light mode.
  *
- * Rail, dock and surround all read this, so they cannot drift apart.
+ * Rail, dock and popup menus all read this, so they cannot drift apart.
  */
 @Composable
 fun rememberToolbarColor(): Color = MaterialTheme.colorScheme.surfaceContainer
@@ -86,10 +83,9 @@ const val MENU_RIM_ALPHA_BOTTOM = 0.10f
 @Composable
 fun rememberCanvasChromeColors(): CanvasChromeColors {
     val scheme = MaterialTheme.colorScheme
-    val toolbar = rememberToolbarColor()
-    return remember(scheme, toolbar) {
+    return remember(scheme) {
         CanvasChromeColors(
-            backdrop = toolbar.toArgb(),
+            backdrop = scheme.background.toArgb(),
             pageOutline = scheme.outlineVariant.toArgb(),
             selection = scheme.primary.toArgb(),
             guide = scheme.secondary.toArgb(),

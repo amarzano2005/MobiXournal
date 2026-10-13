@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "true-black-dark-mode-with-neutral-charcoal-layers"
-title = "True-black dark mode with neutral charcoal layers"
-description = "Section 3 of docs/ui-modernization.md, pure dark mode depth: replace the tinted Material 3 dark surfaces in ui/theme/Theme.kt (today 0xFF141720 and 0xFF191D28) with a true OLED black canvas backing (0xFF000000) and neutral charcoal layers (0xFF121212, 0xFF1E1E1E), with accents as luminescent micro-highlights rather than pastel washes. The paper, its ruling and an imported PDF background keep their own colours (docs/pages-and-paper.md), so only the chrome changes. Verify on the emulator: dark-mode screenshots over a plain, a ruled and an imported PDF page, plus one light-mode shot proving no regression."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 450
-created = 2026-10-12
-tags = ["ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "floating-glassmorphic-tool-dock-with-1-tap-stem-section"
 title = "Floating glass capsule tool dock over the 1-tap STEM rail"
 description = "Phase 2 of docs/ui-modernization.md, over what already ships: ui/StemRailSection.kt already provides the permanent 1-tap STEM group (f(x), Geometry, Table, Circuit), so this task is the glass capsule itself, not the STEM entries. Render the rail as a translucent frosted capsule - 1 px hairline border at 10-15 percent alpha, backdrop blur at 85-90 percent opacity, 16 dp corner radius, 40 dp buttons, every number from ModernTheme - so the ruling or the PDF underneath stays readable and the rail stops reading as a filled Material container. Touches ui/SideToolbar.kt, ui/EditorRegions.kt and the canvas chrome in render/CanvasChrome.kt; the slots, their order and their pop-ups do not change. Verify on the emulator with screenshots of the rail over a ruled page and over a PDF page, at the left and at the right rail position."

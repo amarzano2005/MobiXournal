@@ -49,8 +49,11 @@ mobile and desktop.
 
 ### 3. Pure dark mode depth (True blacks)
 - Replaces Material 3's tinted dark surfaces with **true OLED black (`#000000`)** canvas backing and sleek,
-  neutral charcoal layers (`#121212`, `#1E1E1E`).
-- Accents use vibrant, luminescent micro-highlights rather than pervasive pastel color washes.
+  neutral charcoal layers (`#121212`, `#1E1E1E`, and container ladder up to `#333333`).
+- Hairline borders use neutral dividers (`#383838`, `#262626`) for clean layer separation without visual clutter.
+- Accents use vibrant, luminescent micro-highlights (`PurpleDark = #C084FC`) rather than pervasive pastel color washes.
+- On Android 12+ with dynamic color active, `dynamicDarkColorScheme` overrides surface and background tokens with true OLED black and neutral charcoal, preserving dynamic primary accents while eliminating muddy wallpaper tints on app chrome.
+- Paper, ruling, and imported PDF backgrounds retain their authentic document data colors (`docs/pages-and-paper.md`), surrounded cleanly by the OLED void.
 
 ---
 

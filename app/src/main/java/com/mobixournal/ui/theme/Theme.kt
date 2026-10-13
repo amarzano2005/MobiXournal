@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.mobixournal.ui.ThemeMode
 
-private val LightColors = lightColorScheme(
+internal val LightColors = lightColorScheme(
     primary = Purple,
     secondary = Amber,
     surface = Color.White,
@@ -28,15 +28,24 @@ private val LightColors = lightColorScheme(
     background = Color(0xFFF8F9FA),
     onBackground = Color(0xFF1B212F),
 )
-private val DarkColors = darkColorScheme(
+internal val DarkColors = darkColorScheme(
     primary = PurpleDark,
     secondary = Amber,
-    surface = Color(0xFF191D28),
-    onSurface = Color(0xFFE6EBF5),
-    surfaceVariant = Color(0xFF222838),
-    onSurfaceVariant = Color(0xFF9AA7C0),
-    background = Color(0xFF141720),
-    onBackground = Color(0xFFE6EBF5),
+    surface = Color(0xFF121212),
+    onSurface = Color(0xFFEDEDED),
+    surfaceVariant = Color(0xFF1E1E1E),
+    onSurfaceVariant = Color(0xFFA0A0A0),
+    surfaceContainer = Color(0xFF1E1E1E),
+    surfaceContainerLow = Color(0xFF121212),
+    surfaceContainerHigh = Color(0xFF242424),
+    surfaceContainerHighest = Color(0xFF2C2C2C),
+    surfaceContainerLowest = Color(0xFF000000),
+    surfaceBright = Color(0xFF373737),
+    surfaceDim = Color(0xFF121212),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFEDEDED),
+    outline = Color(0xFF383838),
+    outlineVariant = Color(0xFF262626),
 )
 
 /**
@@ -66,8 +75,28 @@ fun XoppTheme(
 ) {
     val context = LocalContext.current
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (darkTheme) {
+                dynamicDarkColorScheme(context).copy(
+                    surface = Color(0xFF121212),
+                    surfaceVariant = Color(0xFF1E1E1E),
+                    surfaceContainer = Color(0xFF1E1E1E),
+                    surfaceContainerLow = Color(0xFF121212),
+                    surfaceContainerHigh = Color(0xFF242424),
+                    surfaceContainerHighest = Color(0xFF2C2C2C),
+                    surfaceContainerLowest = Color(0xFF000000),
+                    surfaceBright = Color(0xFF373737),
+                    surfaceDim = Color(0xFF121212),
+                    background = Color(0xFF000000),
+                    onBackground = Color(0xFFEDEDED),
+                    onSurface = Color(0xFFEDEDED),
+                    outline = Color(0xFF383838),
+                    outlineVariant = Color(0xFF262626),
+                )
+            } else {
+                dynamicLightColorScheme(context)
+            }
+        }
         darkTheme -> DarkColors
         else -> LightColors
     }

@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.Color
 /** Brand primary under a light scheme — deep violet, dark enough to carry white text. */
 val Purple = Color(0xFF4A2C7A)
 
-/** Brand primary under a dark scheme — the same violet lightened so it reads on a dark surface. */
-val PurpleDark = Color(0xFFB69DDB)
+/** Brand primary under a dark scheme — luminescent violet micro-highlight (`#C084FC`). */
+val PurpleDark = Color(0xFFC084FC)
 
 /** Brand secondary in both schemes; the accent behind guide overlays on the canvas. */
 val Amber = Color(0xFFFFB300)
