@@ -426,3 +426,115 @@ created = 2026-10-13
 tags = ["ui", "guard"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "open-a-mobix-page-by-page-not-whole"
+title = "Open a .mobix page by page instead of whole"
+description = "The reader is written and tested and nothing calls it: format/mobix/MobixPagedReader.kt walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or a chunk) on demand into an LRU window of the current page plus or minus two, but io/DocumentIo.kt still opens a .mobix through MobixContainer.open + MobixDocument.open + toDocument() and so inflates and parses every page before the editor sees one. On a 200-page notebook that is exactly the difference the format exists to make, so this is the largest unfinished claim of the native format. Working it is an investigation first, because the editor model is eager: Document holds List<Page> and every consumer walks all of it - the .xopp synthesis on export (render/XoppSynthesis.kt off io/DocumentIo.kt encode), the conflict merge (format/mobix/MobixMergeEngine.kt), document search, thumbnails, the page counter and render/CanvasAutoSlicer.kt. Find the smallest lazy surface that actually pays - a page window the editor materialises as it shows pages, or at minimum an open path that stops double-inflating and defers asset payloads - decide what each of those consumers does with a page it has not materialised, and add the atomic tasks that come out of it. Verify the decision with a measurement rather than a feeling: a synthetic 200-page archive, entries inflated and elapsed ms to open, against today path."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 810
+created = 2026-10-14
+tags = ["mobix", "perf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "repack-only-the-pages-a-save-changed"
+title = "Repack only the .mobix pages a save changed"
+description = "The saver is written and tested (format/mobix/MobixIncrementalSaver.kt, MobixIncrementalSaveTest) and no save path uses it: the MOBIX branch of io/DocumentIo.kt encode (around line 475) always calls MobixDocument.of(...).toBytes(), so every save re-compresses the whole archive - on a long notebook, a save that touched one page rewrites every page and the background PDF with it. Wire the incremental path: when the document was opened from a file whose bytes are still reachable (the staged copy io/UriStaging keeps, the source in io/SaveTarget.kt), repack through MobixIncrementalSaver, streaming the untouched entries from the source archive and writing only the manifest and the pages whose bytes changed, with the mimetype first and STORED as always; fall back to the full write whenever there is no source (a new document, a first save, a save to a new target), and never leave a half-written archive behind - every write already goes to a staging file first. Dirtiness comes from the manifest own sha256/modified fields, so the caller supplies the previous manifest and the new page bytes rather than a hand-maintained dirty flag. Verify with JVM tests: after editing one page of a ten-page document the untouched entries come out byte-identical to the source, the mimetype is still first and STORED, preserved unknown entries still survive, and the result read back through MobixDocument.open is equal to a full write of the same document. Measure and report the bytes written for the ten-page document with one dirty page against a full repack. Then check it on the emulator: open a .mobix, edit, save, close, reopen - the document is intact and nothing about it changed."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 820
+created = 2026-10-14
+tags = ["mobix", "perf"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "carry-the-audio-recording-inside-the-document"
+title = "Carry the audio recording inside the .mobix container"
+description = "A stroke already records its audio in a .mobix - format/mobix/MobixElementCodec.kt writes audioRef.assetId from the .xopp fn and audioRef.startMs from ts - but the sound itself never enters the archive: MobixDocument.of is handed only backgroundBytes (PDF and pixmap) and io/DocumentIo.kt supplies nothing else, so audio/AudioStore.kt .wav stays a sidecar beside the document. The file is therefore not self-contained, which is the one promise a native container makes: move the .mobix to another folder, or hand it to another device, and the recording is gone while the strokes still point at it. The desktop plugin already expects better (plugins/mobix-importer/README.md speaks of bundled audio entries mapped to companion .wav sidecars). Add an audio kind to MobixFormat.AssetKind and feed the recording through the same MobixAssetSink the pictures use, named by the hash of its bytes, so the archive holds one entry per distinct recording however many strokes reference it; on open, adopt bundled audio into the local audio store the way adoptBundledBackgrounds already adopts bundled backgrounds, and keep the sidecar path working for .xopp and for a document whose audio is external. Verify: record audio into a .mobix, move that file to an empty folder with no .wav beside it, and playback still works with fn and ts intact; a .xopp exported from it still names its sidecar reference; the container holds exactly one entry for one recording. Reconcile the plugin expected entry name with the name the app actually writes (it says .opus, the app records WAV) in the same commit, or record the mismatch as a known gap."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 830
+created = 2026-10-14
+tags = ["mobix", "audio"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "replay-the-writing-in-time-with-its-recording"
+title = "Replay the writing in time with its recording"
+description = "render/KaraokeStrokeAnimator.kt computes what a stroke should look like at an audio playhead - it reads StrokePoint.dtMs, which only a .mobix carries - and DrawingSurfaceView.karaokeState exists on the view, but nothing sets it and DrawingSurfacePaint.kt never reads it: the animator is dead code. So every timing the app is at pains to capture and store is shown to nobody, and audio playback (audio/AudioPlayer.kt, audio/AudioSession.kt) is play and stop while the page stays still. Working this is an investigation first: what clock the playback can publish into the view (the player owns a MediaPlayer, so the playhead has to come from it rather than from a second timer that would drift), how the paint loop draws a stroke visible prefix without re-tessellating the page each frame, what happens to strokes whose dtMs are null (a .xopp load or an older .mobix - the honest answer is that such a stroke is simply already complete), and whether the first cut is playback only or includes scrubbing. Add the atomic tasks that come out of it."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 840
+created = 2026-10-14
+tags = ["mobix", "audio", "replay"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "finish-the-pen-telemetry-payoff"
+title = "Finish the pen telemetry payoff: roll, timings and dynamics"
+description = "Capture stops at three fields - render/DrawingSurfaceStrokes.kt reads MotionEvent.AXIS_TILT and AXIS_ORIENTATION around line 354 and StrokePoint carries pressure, tilt, azimuth and dtMs - and nothing consumes any of them: the width rule is the desktop pressure filter, the smoother ignores time entirely, and no UI shows the data. docs/mobix-format.md meanwhile lists tilt, azimuth, barrel roll and time-driven dynamics as what the native format buys, which is true of two of them. Working this is an investigation with a schema decision at the end: what the platform actually reports (Android exposes no barrel-roll axis, so check MotionEvent axes and what the owner own pen really sends through the app Pen diagnostics panel - ui/ State holding penDiagnostics), whether mobix-elements.md and StrokePoint gain a roll field or the doc drops the claim, and whether dtMs may drive smoothing at all without changing the drawn width - the pressure filter is pinned by docs/stylus.md, and a tilt- or speed-driven width stays out until a written decision moves it. Add the tasks that come out, or the doc correction if the honest answer is that the platform cannot supply the data."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 850
+created = 2026-10-14
+tags = ["mobix", "stylus"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "render-and-edit-an-infinite-canvas-document"
+title = "Render and edit an infinite-canvas .mobix document"
+description = "A .mobix can be an infinite canvas and the app refuses to open one. The format half is complete: MobixManifest.CanvasMode carries PAGINATED, INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D, format/mobix/MobixChunkCodec.kt reads and writes the spatial tiles under chunks/ (chunk_<cx>_<cy>.json), MobixDocument.forInfinite creates one, and render/CanvasAutoSlicer.kt already knows how to measure and slice living content for a continuous strip. The app half is not: docs/mobix-format.md records the refusal (a chunked document would be rewritten as a paginated one, which is why it is refused rather than opened as an empty page list) and calls the engine that lifts it a later step - and that step is in no task. Working it is an investigation first: how far the existing layout, viewport and auto-slicer go, what an unbounded viewport does to the surface coordinate system and to everything that assumes a page list (the page counter, the rail pages button, bookmarks, the zoom badge, split view, search), how a chunk is materialised, evicted and written back, and what a new-document flow for a mode other than paginated looks like. Add the atomic tasks that come out, smallest first, so a chunked document can be created, shown, written on and saved without ever becoming a paginated one."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 860
+created = 2026-10-14
+tags = ["mobix", "canvas"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "make-the-mobix-format-doc-say-what-the-code-does"
+title = "Make the .mobix format doc say what the code does"
+description = "docs/mobix-format.md reads as if the format engines are running today and three of them are not: MobixPagedReader and MobixIncrementalSaver exist with unit tests and are called by no file in app/src/main, so opening a .mobix still inflates the whole document and every save still repacks the whole archive; audio is a sidecar (MobixElementCodec writes the stroke audioRef but the bytes are never bundled, so the file is not self-contained); and render/KaraokeStrokeAnimator.kt has no caller at all, so the per-point timings a .mobix stores are never replayed. The motivation section stays as it is - it argues for the format, and the argument is still right - but the capability table and the Engine optimizations section must say per row what is live, what exists only as a tested library, and what is not built, each not-yet row pointing at the task that will make it live (open-a-mobix-page-by-page-not-whole, repack-only-the-pages-a-save-changed, carry-the-audio-recording-inside-the-document, replay-the-writing-in-time-with-its-recording, finish-the-pen-telemetry-payoff, render-and-edit-an-infinite-canvas-document). Keep the file inside its DocsGuardTest line budget and keep every claim linkable from docs/architecture.md. This lands before the wiring on purpose: the doc is wrong today, and each wiring task flips its own row as it lands."
+status = "active"
+level = "task"
+category = "docs"
+urgency = "high"
+order = 870
+created = 2026-10-14
+tags = ["mobix", "docs"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "measure-mobix-against-xopp-on-one-document"
+title = "Measure .mobix against .xopp on one document"
+description = "The whole case for the native format is structural - pictures as binary assets addressed by content hash instead of base64 inside XML, a part-per-page archive instead of one XML document, de-duplicated assets - and the repo holds no number for any of it. Produce one, reproducibly: take one multi-page document that carries a picture and a PDF background, write it through the real writers as SaveFormat.MOBIX, as SaveFormat.ORIGINAL and as SaveFormat.ZIPPED, and report the bytes on disk for each, plus the wall time to write and to read back each, with the method stated (a JVM harness over io/DocumentIo.encode and the format readers, so anyone can run it again). Report where the number matters - docs/mobix-format.md and docs/xopp-format.md make the size case - rather than only inside a test, and where a claim cannot be backed by a number, say so instead of leaving it implied. If the honest result is that the difference is small for ink-only documents, say that too: the size case is about pictures and long notebooks, and a measurement that contradicts the prose is the measurement winning."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 880
+created = 2026-10-14
+tags = ["mobix", "xopp"]
+rebuild = false
+emulator_debug = false
