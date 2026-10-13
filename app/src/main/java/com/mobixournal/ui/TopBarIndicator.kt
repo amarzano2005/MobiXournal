@@ -107,12 +107,14 @@ internal val INDICATOR_AS_DOCK_CAP = true
 internal val TOP_BAR_INDICATOR_GAP = 6.dp
 
 /**
- * The floating top bar's own row height, **above** the status-bar inset it pads itself by.
+ * The floating top bar's **tools row**, **above** the status-bar inset it pads itself by.
  *
- * Everything that has to clear the bar reads this one number instead of repeating the bar's height as a
- * literal: the document tab strip that hangs directly under it, and the rail's column, which would
- * otherwise be swallowed by the bar's glass. The status-bar inset is deliberately *not* part of it —
- * that is a device value, taken with `statusBarsPadding()` at each call site.
+ * It is the bar's row, not the whole header: the document tabs are the row *inside* the same slab, one
+ * row down (see [EditorTopBar]), and they are `TAB_STRIP_HEIGHT` tall. What has to clear the whole header
+ * reads the header rather than repeating its height as a literal — the rail's column, whose lane starts
+ * below the header so that neither the bar's glass nor the tabs' row can swallow its first slot. The
+ * status-bar inset is deliberately *not* part of this: that is a device value, taken with
+ * `statusBarsPadding()` at each call site.
  */
 internal val TOP_BAR_ROW_HEIGHT = 52.dp
 
@@ -129,9 +131,9 @@ private val TOP_BAR_FACE_PADDING_TIGHT = 5.dp
  *
  * Two insets sit between the window's edge and the dock: the 4dp the top bar keeps in front of its leading
  * slot and the 4dp between that slot and the dock (Material 3's own, one on each side of the slot). The
- * document tab strip starts 72dp in — the rail's column ([SideToolbarModernTotalWidth]) plus the tab chip's
- * own 4dp lead-in — so a 64dp slot is exactly what lands the dock on the tabs' line: the bar's content and
- * the tab row below it begin on one vertical line.
+ * document tab strip starts 72dp in — the rail's column ([SideToolbarModernTotalWidth]) plus the strip's own
+ * 8dp lead-in (`TAB_STRIP_LEAD_IN`, in `EditorRegions.kt`) — so a 64dp slot is exactly what lands the dock
+ * on the tabs' line: the bar's content and the tab row under it begin on one vertical line.
  *
  * The width is *fixed* rather than left to the face, so the dock cannot drift with the tool in play (the
  * size letter "S"/"M"/"L" is not the same width in every glyph) — the face is padded to fit inside it

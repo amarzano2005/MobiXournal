@@ -21,11 +21,21 @@ import androidx.compose.ui.unit.dp
  * Making every slot visible is not the goal; keeping the buttons the size they were is.
  */
 
-/** Gap between two rail slots. */
-internal val RailSpacing = 6.dp
+/**
+ * Gap between two rail slots.
+ *
+ * 4dp, not 6: the rail's lane starts below the **whole** top bar, and that bar carries the tools row and
+ * the document tabs in one slab (docs/chrome.md), so the lane is a tab row (38dp) shorter than it was
+ * when the tabs sat beside it. At that height a 6dp gap leaves room for 14 whole slots out of the 15 a
+ * full rail holds — which would put the last one behind a scroll, and "everything down to the page
+ * settings is visible without scrolling" is a promise the rail keeps. The gaps and this padding are the
+ * only dimensions the rail may spend on it: the slots themselves are never drawn smaller than their own
+ * size, and a whole number of them still starts at the bottom edge.
+ */
+internal val RailSpacing = 4.dp
 
 /** The rail column's vertical padding (top and bottom). */
-internal val RailColumnPadding = 8.dp
+internal val RailColumnPadding = 6.dp
 
 /**
  * The most [railContentScale] will grow the slots. Growth only happens when the leftover space below

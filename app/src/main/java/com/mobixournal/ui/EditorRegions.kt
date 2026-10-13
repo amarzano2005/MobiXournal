@@ -138,170 +138,195 @@ fun EditorTopBar(
     val glassColor = ModernTheme.glassSurface(isDark)
     val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
 
-    // One header, not two bars. In the Standard layout the document tabs ride on a slab of their own
-    // hung directly under this bar, and a header is **one surface**: only the slab that holds the
-    // header's bottom edge may draw that edge. So when the tabs hang below, this bar takes no rim and
-    // no shadow of its own and the tab slab closes the header with a single hairline and a single
-    // shadow; two rims a few dp apart with a shadow between them are exactly what made one header read
-    // as a seam across the middle. Both rows are filled with the same [glassColor], so with the rims
-    // gone they merge into the one surface they always were.
+    // **One header, one slab.** In the Standard layout the document tabs are this bar's *second row*,
+    // inside the same `Surface`, so one rim and one shadow close the whole header. They used to ride on
+    // a slab of their own hung under the bar, and that left the header's bottom edge with a step: the
+    // slab had to be held out of the rail's column to stop the two colliding, so its left end stopped
+    // where the rail's lane began and the header was a tab row shallower over the lane than over the
+    // page — a notch of bare desk over the rail, with the chips starting to one side of it. A row of
+    // *this* bar cannot notch: it spans the width the bar spans. The rail's lane therefore starts below
+    // the whole slab (see [EditorBody]), which is what the rail's own spacing budget pays for —
+    // `RailSizing.kt` counts the tab row in.
     val tabsInline = settings == null ||
         onSettingsChange == null ||
         settings.toolbarLayout == ToolbarLayout.COMPACT
-    val tabsOnOwnSlab = !tabsInline && !ui.fullPage
+    val tabsUnderTheTools = !tabsInline && !ui.fullPage
     Surface(
         color = glassColor,
-        border = if (tabsOnOwnSlab) null else BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-        shadowElevation = if (tabsOnOwnSlab) 0.dp else 4.dp,
+        border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+        shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        TopAppBar(
-            navigationIcon = {
-                // In the current style the active tool indicator *is* the top bar's leading slot: it stands in
-                // the corner between the two toolbars, and its width is what puts the figures' dock on the
-                // document tabs' own line ([TOP_BAR_INDICATOR_WIDTH]). In the backup dock-cap style the slot
-                // only keeps the top bar's content clear of the rail.
-                if (settings != null && railOnLeft && !ui.fullPage) {
-                    if (!INDICATOR_AS_DOCK_CAP &&
-                        onSettingsChange != null &&
-                        standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
-                    ) {
-                        StandaloneToolIndicator(
-                            ui = ui,
-                            styleCallbacks = rememberToolbarStyleCallbacks(
+        Column {
+            TopAppBar(
+                navigationIcon = {
+                // The leading slot is exactly the rail's lane wide ([SideToolbarModernTotalWidth]), so the
+                // figures' dock starts on the line the canvas starts on — one vertical edge down the window
+                // from the bar's content to the page. In the current style the active tool indicator is the
+                // dock's own cap (its face riding at the dock's leading end); in the standalone style
+                // ([INDICATOR_AS_DOCK_CAP] off) it is this slot's own pill, and its width is fixed
+                // ([TOP_BAR_INDICATOR_WIDTH]) so the dock cannot drift with the size letter in play.
+                    if (settings != null && railOnLeft && !ui.fullPage) {
+                        if (!INDICATOR_AS_DOCK_CAP &&
+                            onSettingsChange != null &&
+                            standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
+                        ) {
+                            StandaloneToolIndicator(
                                 ui = ui,
-                                surface = pane.surface,
-                                settings = settings,
-                                onSettingsChange = onSettingsChange,
-                            ),
-                            modifier = Modifier,
-                        )
-                    } else {
-                        Spacer(Modifier.width(SideToolbarModernTotalWidth))
-                    }
-                }
-            },
-            title = {
-                if (!tabsInline) {
-                    TopBarToolsRow(
-                        ui = ui,
-                        pane = pane,
-                        settings = settings,
-                        onSettingsChange = onSettingsChange,
-                    )
-                } else {
-                    TabStrip(tabs, modifier = Modifier.fillMaxWidth())
-                }
-            },
-            // The bar pads itself by the status-bar inset and then stands its own row of tools under it,
-            // so the glass slab — not the window background — is what the clock and the notch sit on.
-            modifier = Modifier
-                .statusBarsPadding()
-                .height(TOP_BAR_ROW_HEIGHT),
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-            ),
-            actions = {
-            val glassColor = ModernTheme.glassSurface(isDark)
-            val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
-
-            // Order is deliberate: split view sits directly right of the search button, then the
-            // paired undo/redo. The two glyph-shaped file actions follow — a compact quick Export PDF
-            // and then Save, which lands the most-used of the two under the thumb at the far right —
-            // so neither costs a trip into the overflow menu.
-            SearchControls(pane)
-            Surface(
-                shape = CircleShape,
-                color = glassColor,
-                tonalElevation = 0.dp,
-                shadowElevation = 4.dp,
-                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                modifier = Modifier.padding(horizontal = 2.dp),
-            ) {
-                IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        Icons.Outlined.VerticalSplit,
-                        contentDescription = if (splitView) "Close split view" else "Split view",
-                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            Surface(
-                shape = ModernTheme.capsuleShape,
-                color = glassColor,
-                tonalElevation = 0.dp,
-                shadowElevation = 4.dp,
-                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                modifier = Modifier.padding(horizontal = 4.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { pane.surface?.undo() }, enabled = !pane.isReadOnly && pane.canUndo, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = { pane.surface?.redo() }, enabled = !pane.isReadOnly && pane.canRedo, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
-                    }
-                }
-            }
-            Surface(
-                shape = CircleShape,
-                color = glassColor,
-                tonalElevation = 0.dp,
-                shadowElevation = 4.dp,
-                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                modifier = Modifier.padding(horizontal = 2.dp),
-            ) {
-                IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        Icons.Outlined.PictureAsPdf,
-                        contentDescription = "Export PDF",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            Surface(
-                shape = CircleShape,
-                color = glassColor,
-                tonalElevation = 0.dp,
-                shadowElevation = 4.dp,
-                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                modifier = Modifier.padding(horizontal = 2.dp),
-            ) {
-                IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                }
-            }
-            OverflowMenu(
-                isReadOnly = pane.isReadOnly,
-                settings = settings,
-                onSelectPenPreset = { preset ->
-                    if (settings != null && onSettingsChange != null) {
-                        val updated = settings.copy(
-                            selectedPenPresetId = preset.id,
-                            minimumPressure = preset.minimumPressure,
-                            pressureMultiplier = preset.pressureMultiplier,
-                        )
-                        onSettingsChange(updated)
-                        pane.surface?.applySettings(updated)
+                                styleCallbacks = rememberToolbarStyleCallbacks(
+                                    ui = ui,
+                                    surface = pane.surface,
+                                    settings = settings,
+                                    onSettingsChange = onSettingsChange,
+                                ),
+                                modifier = Modifier,
+                            )
+                        } else {
+                            Spacer(Modifier.width(SideToolbarModernTotalWidth))
+                        }
                     }
                 },
-                onOpen = onOpen,
-                onNewTab = onNewTab,
-                onSave = onSave,
-                onSaveAs = { ui.showSaveAs = true },
-                onImportPdf = { ui.showImportPdf = true },
-                onExportPdf = onExportPdf,
-                onExportPagePng = onExportPagePng,
-                onExportPageSvg = onExportPageSvg,
-                onSettings = { ui.showSettings = true },
-                penDiagnostics = ui.penDiagnostics,
-                onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
-                onOpenPenParameters = { ui.showPenParametersDialog = true },
-            )
-        },
-    )
+                title = {
+                    if (!tabsInline) {
+                        TopBarToolsRow(
+                            ui = ui,
+                            pane = pane,
+                            settings = settings,
+                            onSettingsChange = onSettingsChange,
+                        )
+                    } else {
+                        TabStrip(tabs, modifier = Modifier.fillMaxWidth())
+                    }
+                },
+                // The bar pads itself by the status-bar inset and then stands its own row of tools under it,
+                // so the glass slab — not the window background — is what the clock and the notch sit on.
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .height(TOP_BAR_ROW_HEIGHT),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
+                actions = {
+                val glassColor = ModernTheme.glassSurface(isDark)
+                val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+
+                // Order is deliberate: split view sits directly right of the search button, then the
+                // paired undo/redo. The two glyph-shaped file actions follow — a compact quick Export PDF
+                // and then Save, which lands the most-used of the two under the thumb at the far right —
+                // so neither costs a trip into the overflow menu.
+                SearchControls(pane)
+                Surface(
+                    shape = CircleShape,
+                    color = glassColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                ) {
+                    IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Outlined.VerticalSplit,
+                            contentDescription = if (splitView) "Close split view" else "Split view",
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                Surface(
+                    shape = ModernTheme.capsuleShape,
+                    color = glassColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { pane.surface?.undo() }, enabled = !pane.isReadOnly && pane.canUndo, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(onClick = { pane.surface?.redo() }, enabled = !pane.isReadOnly && pane.canRedo, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = glassColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                ) {
+                    IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Outlined.PictureAsPdf,
+                            contentDescription = "Export PDF",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = glassColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                ) {
+                    IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    }
+                }
+                OverflowMenu(
+                    isReadOnly = pane.isReadOnly,
+                    settings = settings,
+                    onSelectPenPreset = { preset ->
+                        if (settings != null && onSettingsChange != null) {
+                            val updated = settings.copy(
+                                selectedPenPresetId = preset.id,
+                                minimumPressure = preset.minimumPressure,
+                                pressureMultiplier = preset.pressureMultiplier,
+                            )
+                            onSettingsChange(updated)
+                            pane.surface?.applySettings(updated)
+                        }
+                    },
+                    onOpen = onOpen,
+                    onNewTab = onNewTab,
+                    onSave = onSave,
+                    onSaveAs = { ui.showSaveAs = true },
+                    onImportPdf = { ui.showImportPdf = true },
+                    onExportPdf = onExportPdf,
+                    onExportPagePng = onExportPagePng,
+                    onExportPageSvg = onExportPageSvg,
+                    onSettings = { ui.showSettings = true },
+                    penDiagnostics = ui.penDiagnostics,
+                    onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
+                    onOpenPenParameters = { ui.showPenParametersDialog = true },
+                )
+            },
+        )
+
+            // The tabs' row — the same slab, one row down. The line between the two rows is a hairline
+            // *inside* the header, which is how a tab row under a top app bar is drawn; the header's own
+            // edge stays the one along its bottom. Its chips keep the starting line they had as a band of
+            // their own — the rail's lane ([SideToolbarModernTotalWidth]) plus their 8dp lead-in, on
+            // whichever side the rail takes — so they still stand over the canvas rather than over the
+            // rail, and still line up with the figures' dock above them.
+            if (tabsUnderTheTools) {
+                TabStrip(
+                    tabs,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .topHairline(hairlineColor)
+                        .padding(
+                            start = TAB_STRIP_LEAD_IN + if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
+                            end = TAB_STRIP_LEAD_IN + if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
+                        ),
+                )
+            }
+        }
     }
 }
 
@@ -1217,12 +1242,6 @@ private fun toolbarPagesCallbacks(
     )
 
 /**
- * One pane: its tab strip over its canvas. All of the surface's callbacks write into *that* pane's
- * [PaneState], never the active one, so a background pane keeps its own page, zoom and undo state up
- * to date while the toolbar drives the other. A touch anywhere in the pane (observed on the initial
- * pass, so the canvas still gets the event) hands it focus.
- */
-/**
  * Applies the initial tool and style settings to the drawing surface.
  */
 private fun DrawingSurfaceView.applyInitialStyle(ui: EditorUiState, settings: AppSettings) {
@@ -1379,13 +1398,19 @@ private fun DrawingSurfaceView.bindEditorActions(
     }
 }
 
+/**
+ * One pane: its canvas, and the surface's callbacks writing into *that* pane's [PaneState] — never the
+ * active one — so a background pane keeps its own page, zoom and undo state up to date while the toolbar
+ * drives the other. A touch anywhere in the pane (observed on the initial pass, so the canvas still gets
+ * the event) hands it focus. Its document tabs are not here: they are the top bar's own second row
+ * ([EditorTopBar]), which is the active pane's at any moment.
+ */
 @Composable
 fun EditorPaneView(
     index: Int,
     ui: EditorUiState,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
-    tabs: List<TabsUiState>,
     onActivePane: (Int) -> Unit,
     onSurfaceCreated: (Int, DrawingSurfaceView) -> Unit,
     onPickImage: (Placement) -> Unit,
@@ -1404,13 +1429,9 @@ fun EditorPaneView(
             }
         },
     ) {
-        // The document tabs ride in a band of their own, directly above the canvas they belong to, so
-        // they take their height out of the canvas instead of covering the page — see [EditorBody] for
-        // why no chrome sits on the canvas. In Compact the tabs live inside the top bar instead
-        // ([EditorTopBar]'s title slot), and in full-page mode they are hidden entirely.
-        if (!ui.fullPage && settings.toolbarLayout != ToolbarLayout.COMPACT) {
-            TabBand(tabs[index.coerceIn(tabs.indices)])
-        }
+        // The document tabs are the top bar's own second row ([EditorTopBar]) — one slab, with the
+        // tools row above them — and in full-page mode there is no bar at all, so this pane is the
+        // canvas and nothing else. No chrome sits on the page: see [EditorBody] for why that matters.
         // the surface's own view px, so the box the surface reports needs no conversion here.
         var canvasSizePx by remember { mutableStateOf(IntSize.Zero) }
         Box(modifier = Modifier.weight(1f).fillMaxWidth().onSizeChanged { canvasSizePx = it }) {
@@ -1489,46 +1510,30 @@ fun EditorPaneView(
 }
 
 /**
- * The document tabs as a **band of their own** — the row that carries the header's bottom edge: one
- * hairline along its bottom and one shadow, while the top bar above it stands rim- and shadow-less for
- * exactly that reason (see the note on [EditorTopBar]'s own `Surface`), so the edge the two rows share
- * is drawn once. The band takes its height out of the canvas, never out of the page.
+ * The tab row's lead-in from the canvas's own edge: the chips begin this far inside it, on the side the
+ * rail's lane takes.
+ *
+ * It is what the tabs kept when they moved from a band of their own into the header ([EditorTopBar]): the
+ * band's content was inset by this much inside the pane, so adding it to the rail's lane lands the chips
+ * on exactly the columns they occupied before — and on the figures' dock's own starting line.
  */
-@Composable
-private fun TabBand(tabs: TabsUiState, modifier: Modifier = Modifier) {
-    val isDark = isSystemInDarkTheme()
-    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
-    Surface(
-        color = ModernTheme.glassSurface(isDark),
-        shadowElevation = 4.dp,
-        modifier = modifier
-            .fillMaxWidth()
-            .bottomHairline(hairlineColor),
-    ) {
-        TabStrip(
-            tabs,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-        )
-    }
-}
+private val TAB_STRIP_LEAD_IN = 8.dp
 
 /**
- * A hairline along the **bottom** edge only.
+ * A hairline along the **top** edge of a row, drawn over what it separates.
  *
- * A header is one surface, and a `Surface`'s own `BorderStroke` draws on all four sides: stacked under
- * another slab it would trace the seam between them, which is the seam this is here to erase. Drawing
- * the one edge the header actually ends on keeps that edge without drawing the one it shares. The line
- * is stroked inside the bounds — half its width up from the bottom — so it closes the surface it
- * belongs to instead of bleeding a pixel past it.
+ * The header is one surface whose two rows are told apart the way a tab row under a top app bar is — by
+ * a line *between* them, not by a second rim: a `Surface`'s own `BorderStroke` draws on all four sides,
+ * and on a row nested in the header the three sides that matter are exactly the seams this avoids. The
+ * line is stroked over the row's content rather than under it, since the row's glass is the header's own
+ * surface: a line drawn beneath it would show *through* the glass instead of on it. Half its width sits
+ * inside the edge, so it closes the row it belongs to instead of bleeding a pixel above it.
  */
-private fun Modifier.bottomHairline(
+private fun Modifier.topHairline(
     color: Color,
     width: Dp = ModernTheme.hairlineStrokeWidthDp,
 ): Modifier = drawWithContent {
     drawContent()
     val stroke = width.toPx()
-    val y = size.height - stroke / 2f
-    drawLine(color, start = Offset(0f, y), end = Offset(size.width, y), strokeWidth = stroke)
+    drawLine(color, start = Offset(0f, stroke / 2f), end = Offset(size.width, stroke / 2f), strokeWidth = stroke)
 }

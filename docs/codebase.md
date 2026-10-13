@@ -265,7 +265,7 @@ app/
     ui/                      # Compose Material 3
       EditorScreen.kt        # the editor's assembly: the chrome's bands (header, rail lane, dock) + the canvas that takes the rest, split panes
       EditorUiState.kt       # the screen's remembered chrome state (pen, open dialogs, panes) in one holder + switchToolTo, the one tool-switch rule
-      EditorRegions.kt       # the screen's regions: top bar (optional Secondary Toolbar tools row), document tab band, Main Toolbar wiring, one pane's canvas
+      EditorRegions.kt       # the screen's regions: header (Secondary Toolbar tools + the tab row in it), Main Toolbar wiring, one pane's canvas
       EditorOverflowMenu.kt  # the top bar's ☰ menu: its button + panel (quick file actions, PDF row, pen, Settings)
       EditorBackHandler.kt   # back peels off one transient editor state at a time before leaving the app
       PaneState.kt           # per-pane canvas state the chrome mirrors (zoom, page, layer, undo) + the pane count

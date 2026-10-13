@@ -334,7 +334,6 @@ fun EditorScreen(
                     settings = settings,
                     onSettingsChange = onSettingsChange,
                     audio = audio,
-                    tabs = tabs,
                     splitView = splitView,
                     onActivePane = onActivePane,
                     onSurfaceCreated = onSurfaceCreated,
@@ -421,7 +420,6 @@ private fun EditorBody(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     audio: AudioUiState,
-    tabs: List<TabsUiState>,
     splitView: Boolean,
     onActivePane: (Int) -> Unit,
     onSurfaceCreated: (Int, DrawingSurfaceView) -> Unit,
@@ -440,7 +438,6 @@ private fun EditorBody(
             ui = ui,
             settings = settings,
             onSettingsChange = onSettingsChange,
-            tabs = tabs,
             onActivePane = onActivePane,
             onSurfaceCreated = onSurfaceCreated,
             onPickImage = onPickImage,
@@ -476,8 +473,10 @@ private fun EditorBody(
 
         else -> {
             // The vertical rail as a lane down the chosen edge, the canvas taking the rest. The lane is
-            // the rail's own width ([SideToolbarModernTotalWidth]) and it starts at the top bar's bottom
-            // edge, so the rail hangs directly under the bar and nothing overlaps anything.
+            // the rail's own width ([SideToolbarModernTotalWidth]) and it starts at the **header's** bottom
+            // edge — the bar plus the row of document tabs inside it — so the rail hangs directly under the
+            // whole header and nothing overlaps anything. That is what costs the rail's spacing budget the
+            // tab row; see `RailSizing.kt`.
             val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
             Row(modifier = modifier) {
                 if (railOnLeft) RailLane(toolbar)

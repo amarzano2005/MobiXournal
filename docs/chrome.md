@@ -16,9 +16,10 @@ The app chrome provides two configurable layout modes (`ToolbarLayout` in `AppSe
 - **Standard (`DEFAULT`)**: The Main Toolbar is docked along the vertical edge (Left or Right, per `ToolbarPosition`) as a vertical floating capsule for classic writing tools, paired with the Secondary Toolbar in the top bar containing all STEM tools.
 - **Compact (`COMPACT`)**: A unified floating horizontal toolbar docked at the bottom center containing primary writing tools plus 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`); the secondary toolbar in the top bar is hidden, displaying only the document title.
 
-The chrome never sits **on** the page: the top bar, the rail's lane and the document tabs each take a
-band of their own and the canvas takes what is left, which is what makes the whole visible page
-writable — the layout is described under _The frame around the page_, below.
+The chrome never sits **on** the page: the header (the top bar and, inside it, the row of document tabs),
+the rail's lane and (in Compact) the bottom band each take a band of their own and the canvas takes what
+is left, which is what makes the whole visible page writable — the layout is described under _The frame
+around the page_, below.
 
 `orderedTopBarItems` places a slot the saved order doesn't name (one added since that order was written) at its **factory
 position** — just ahead of the next factory item the order does name — rather than appending it past
@@ -181,12 +182,15 @@ round-trips.
 Compact) the bottom band are rows of the layout, and the canvas — an `AndroidView`-hosted
 `DrawingSurfaceView` — is handed what is left:
 
-- `EditorScreen` is a `Column`: the top bar first, `EditorBody` in the weight that remains.
+- `EditorScreen` is a `Column`: the header first, `EditorBody` in the weight that remains.
 - `EditorBody` is a `Row` in Standard — the rail's lane (exactly `SideToolbarModernTotalWidth`, the edge
   `AppSettings.toolbarPosition` names) and the canvas taking the weight — or a `Column` in Compact: the
   canvas, then the horizontal dock's band above the navigation-bar inset.
-- the **document tabs** are a band inside each pane, directly above the canvas they belong to, so a split
-  view keeps each document's own tabs over its own canvas.
+- the **document tabs** are the header's own second row, inside the bar's surface (`EditorTopBar`), so no
+  row of the chrome ends on an edge the row beside it does not share. Their chips are inset by the rail's
+  lane plus their 8dp lead-in (`TAB_STRIP_LEAD_IN`), which keeps them over the canvas and on the figures'
+  dock's starting line, and the lane itself begins below the whole header — the tab row is what
+  `RailSizing.kt`'s narrower gap exists to pay for.
 
 Whatever the chrome occupies the canvas does not, and that is the point. A translucent bar floating *on*
 the page hides the ink under it and swallows the stylus there, and the strip it covers is the top of the
@@ -218,15 +222,16 @@ action could reach it. The band tracked the *app's* colour rather than the launc
 identified it; it is nobody else's surface. With both bars transparent the page reaches the bottom edge
 and the gesture handle floats on the paper.
 
-**One header, one edge.** The bar and the band that carries the tabs are two rows of the same surface,
-not two bars: the bar is filled with the same glass and takes **no rim and no shadow** whenever the tab
-band sits directly under it, and the band below then carries the header's closing edge — one hairline
-along its bottom (`Modifier.bottomHairline`) and one shadow. Two rims a few dp apart with a shadow
-between them is what made one header read as a seam across the middle. The bar's own row is
-`TOP_BAR_ROW_HEIGHT` (52dp, `ui/TopBarIndicator.kt`), padded by `statusBarsPadding()` — a device value,
-deliberately not part of the constant — and the tab band's height is `TAB_STRIP_HEIGHT`
-(`ui/TabStrip.kt`). In Compact the tabs ride inside the bar's title slot instead, so there is no band,
-no rail lane, and the bar keeps its own rim and shadow.
+**One header, one slab.** The bar and the row that carries the tabs are the two rows of *one* surface:
+one rim, one shadow, and between the rows a single hairline drawn **inside** the header
+(`Modifier.topHairline`) — which is how a tab row under a top app bar reads. Nested surfaces with a rim
+each read as two bars with a seam across the middle, and that is measured, not theorised: with the tabs on
+a slab of their own, the header's bottom edge sat at 76dp over the rail's lane and at 114dp over the page,
+a 38dp step with the chips starting to one side of it. The rows' heights are `TOP_BAR_ROW_HEIGHT` (52dp,
+`ui/TopBarIndicator.kt`) for the tools — padded by `statusBarsPadding()`, a device value, deliberately not
+part of the constant — and `TAB_STRIP_HEIGHT` (`ui/TabStrip.kt`, 38dp) for the tabs; the lane therefore
+starts below the header's *whole* height, not below the bar's row of it. In Compact the tabs ride in the
+bar's **title** slot instead — the same slab, one row, because the dock holds the tools there.
 
 ## A saved toolbar order is not a stale one
 
