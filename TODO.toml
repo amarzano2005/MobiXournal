@@ -482,3 +482,17 @@ created = 2026-10-13
 tags = ["drag-and-drop", "ingestion"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "guard-the-system-bars-as-one-transparent-contract"
+title = "Guard the system bars as one transparent contract"
+description = "The bug that hid the bottom 64px of every page was two files disagreeing about the system bars: MainActivity set navigationBarColor transparent via enableEdgeToEdge while XoppTheme's SideEffect repainted it with colorScheme.background, and the later write won. Add a guard that fails the build when any source assigns a non-transparent statusBarColor or navigationBarColor, so the one fact (the app owns no colour of its own in the system bars, only icons) cannot be split across two files again."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 820
+created = 2026-10-13
+tags = ["ui", "testing"]
+rebuild = true
+emulator_debug = false
