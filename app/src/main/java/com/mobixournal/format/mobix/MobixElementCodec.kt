@@ -97,10 +97,22 @@ internal object MobixElementCodec {
         // exactly as `.xopp` tells the two apart by the presence of its `width` attribute.
         if (s.uniformWidth) out["lineWidth"] = JsonNode.of(s.points.firstOrNull()?.width ?: 0.0)
         s.capStyle?.let { out["capStyle"] = JsonNode.of(it) }
-        s.fill?.let { out["fill"] = JsonNode.of(it) }
+        val audioFn = s.extraAttrs["fn"]
+        val audioTs = s.extraAttrs["ts"]?.toIntOrNull()
+        if (!audioFn.isNullOrBlank()) {
+            out["audioRef"] = MobixJson.obj { refOut ->
+                refOut["assetId"] = JsonNode.of(audioFn)
+                refOut["startMs"] = JsonNode.of(audioTs ?: 0)
+            }
+        }
         boundsOf(s.points)?.let { out[BOUNDS] = it }
         out["points"] = JsonNode.arr(s.points.map(::encodePoint))
-        if (s.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(s.extraAttrs)
+        val attrsToWrite = if (!audioFn.isNullOrBlank()) {
+            s.extraAttrs.filterKeys { it != "fn" && it != "ts" }
+        } else {
+            s.extraAttrs
+        }
+        if (attrsToWrite.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(attrsToWrite)
     }
 
     private fun encodePoint(p: StrokePoint): JsonNode = MobixJson.obj { out ->
@@ -223,6 +235,15 @@ internal object MobixElementCodec {
         val styleName = node.getStr("lineStyle", LineStyle.PLAIN.name)
         val style = LineStyle.entries.firstOrNull { it.name == styleName }
             ?: throw MobixContainer.MalformedMobixException("stroke lineStyle \"$styleName\" is not one this build knows")
+        val extraAttrs = MobixJson.readAttrs(node).toMutableMap()
+        node.getObj("audioRef")?.let { refObj ->
+            val assetId = refObj.getStrOrNull("assetId") ?: refObj.getStrOrNull("filename")
+            val startMs = refObj.getInt("startMs", 0)
+            if (assetId != null) {
+                extraAttrs["fn"] = assetId
+                extraAttrs["ts"] = startMs.toString()
+            }
+        }
         return Stroke(
             tool = tool,
             color = XoppColor.parse(node.getStrOrNull("color")),
@@ -231,7 +252,7 @@ internal object MobixElementCodec {
             uniformWidth = node.has("lineWidth"),
             lineStyle = style,
             fill = node.getIntOrNull("fill"),
-            extraAttrs = MobixJson.readAttrs(node),
+            extraAttrs = extraAttrs,
             id = node.getStrOrNull(ID) ?: mint(ElementId.STROKE),
         )
     }

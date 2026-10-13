@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "opus-audio-recording-and-content-hashed-asset-bundling"
-title = "Opus audio recording and content-hashed asset bundling"
-description = "Record audio directly to assets/aud_<sha256>.opus using Android MediaCodec/MediaMuxer, saving content-hashed Opus files into the .mobix container and referencing them via stroke audioRef."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 750
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "point-level-dtms-millisecond-telemetry-inking"
 title = "Point-level dtMs millisecond telemetry inking"
 description = "Populate StrokePoint.dtMs dynamically from MotionEvent.eventTime relative to stroke start during live stylus inking in DrawingSurfaceStrokes.kt, and persist point timing in MobixElementCodec."

@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "opus-audio-recording-and-content-hashed-asset-bundling"
+title = "Opus audio recording and content-hashed asset bundling"
+description = "Record audio directly to assets/aud_<sha256>.opus using Android MediaCodec/MediaMuxer, saving content-hashed Opus files into the .mobix container and referencing them via stroke audioRef."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = []
+
+[[task]]
 id = "content-aware-auto-slicer-for-pdf-and-xopp-export"
 title = "Content-aware auto-slicer for PDF and .xopp export"
 description = "Implement render/CanvasAutoSlicer.kt to slice infinite canvas strips into discrete pages: search a +/- 40 pt whitespace window around cut targets to avoid splitting strokes, tables, or plots for clean multi-page PDF and .xopp export."
