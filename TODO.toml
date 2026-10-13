@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "docs-that-still-claim-shipped-step-1-work-is-pending"
-title = "Fix the docs that still call shipped Step 1 work pending"
-description = "Two docs describe shipped work as pending, and one of the two is the paragraph that made this epic necessary. docs/architecture.md still says the read-only open for a newer minAppVersion, the wiring of the export and the drawing of the living entities are to come: all three shipped (read-only-open-for-a-newer-mobix, wire-the-synthesis-into-the-xopp-export and the plot editing work, all unstamped in FINISHED.toml) and the exports draw living entities on screen, in PDF and in SVG through render/LivingInk.kt today. docs/mobix-format.md still opens its status with the export entry point not being wired while the paragraph it introduces says the opposite. Fix both so they describe the build, leave the genuinely open items pointing at their own spokes, and check the rest of the Step 1 status prose while there. Verify by re-reading each corrected passage against the code it names; DocsGuardTest checks reachability and line budgets, not truth."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "high"
-order = 310
-created = 2026-10-13
-tags = ["docs", "mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "infinite-canvas-engine"
 title = "Infinite canvas engine (vertical, horizontal and 2D modes)"
 description = "docs/infinite-canvas.md specifies four spatial modes and their container half: content in chunks/chunk_<cx>_<cy>.json with signed coordinates, a canvas.json envelope carrying mode, widthPt, heightPt, chunkSizePt and origin, 1024 pt chunks, viewport culling with offscreen eviction, and an auto-slicer that looks for a whitespace seam within 40 pt of each target cut and never splits a stroke, a table or a plot, so PDF and .xopp export come out as discrete pages. The vocabulary is already in the code - format/mobix/MobixManifest.kt names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D and carries canvasMode through the manifest and canvas.json - but MobixDocument.kt throws for every mode except PAGINATED and the writer only ever emits that one, so an infinite document cannot be opened, created or saved. Investigate what the viewport and page model would have to gain (docs/rendering.md, docs/pages-and-paper.md), how chunks map to elements and to the merge engine (docs/sync-and-storage.md), and what the slicer means for the existing export path, then add the task-level children. Produce tasks, not code."

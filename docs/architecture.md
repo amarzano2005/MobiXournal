@@ -51,7 +51,7 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 | Step | Spoke | What it owns | Read when | Status |
 |---|---|---|---|---|
 | **Master** | [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap coordinating data, mobile, and desktop | you plan or review the next-generation architecture hierarchy | **Roadmap** |
-| **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Planned Spec** |
+| **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Partly implemented** |
 | **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container and document envelope (mimetype, manifest, canvas, pages) | you read or write the container, the envelope, or the page/background shape | **Partly implemented** |
 | **Step 1** | [`mobix-elements.md`](mobix-elements.md) | the element schema: strokes, text, images, living entities, preservation rules | you add or change an element type inside a `.mobix` document | **Partly implemented** |
 | **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Planned Spec** |
