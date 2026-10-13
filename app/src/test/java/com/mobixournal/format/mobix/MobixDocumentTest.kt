@@ -505,16 +505,35 @@ class MobixDocumentTest {
     }
 
     @Test
-    fun anInfiniteCanvasDocumentIsRefusedRatherThanOpenedAsAnEmptyPageList() {
-        // Opening it as zero pages would let a save rewrite a chunked document as a paginated one: the
-        // user's document would come back in a mode they never chose.
+    fun aChunkMissingFromArchiveIsACorruptFile() {
         val manifest = """{"formatVersion":1,"documentId":"d1","canvasMode":"INFINITE_2D",
             "chunks":[{"id":"ch_1","entry":"chunks/chunk_0_0.json"}]}""".trimIndent()
 
         val thrown = assertThrows(MobixContainer.MalformedMobixException::class.java) {
             openBytes(MobixContainer.toBytes(listOf(MobixContainer.Entry(MobixFormat.MANIFEST_ENTRY, manifest.toByteArray(Charsets.UTF_8)))))
         }
-        assertTrue(thrown.message!!.contains("INFINITE_2D"))
+        assertTrue(thrown.message!!.contains("chunks/chunk_0_0.json"))
+    }
+
+    @Test
+    fun aDocumentCarryingBothPagesAndChunksIsRefused() {
+        val manifestPaginated = """{"formatVersion":1,"documentId":"d1","canvasMode":"PAGINATED",
+            "pages":[{"id":"pg_1","entry":"pages/page-0001.json"}],
+            "chunks":[{"id":"ch_1","entry":"chunks/chunk_0_0.json"}]}""".trimIndent()
+
+        val thrown1 = assertThrows(MobixContainer.MalformedMobixException::class.java) {
+            openBytes(MobixContainer.toBytes(listOf(MobixContainer.Entry(MobixFormat.MANIFEST_ENTRY, manifestPaginated.toByteArray(Charsets.UTF_8)))))
+        }
+        assertTrue(thrown1.message!!.contains("PAGINATED document carries chunks/"))
+
+        val manifestInfinite = """{"formatVersion":1,"documentId":"d1","canvasMode":"INFINITE_VERTICAL",
+            "pages":[{"id":"pg_1","entry":"pages/page-0001.json"}],
+            "chunks":[{"id":"ch_1","entry":"chunks/chunk_0_0.json"}]}""".trimIndent()
+
+        val thrown2 = assertThrows(MobixContainer.MalformedMobixException::class.java) {
+            openBytes(MobixContainer.toBytes(listOf(MobixContainer.Entry(MobixFormat.MANIFEST_ENTRY, manifestInfinite.toByteArray(Charsets.UTF_8)))))
+        }
+        assertTrue(thrown2.message!!.contains("INFINITE_VERTICAL document carries pages/"))
     }
 
     @Test
@@ -580,5 +599,104 @@ class MobixDocumentTest {
             first.encode(now + 1).filter { it.name.startsWith(MobixFormat.ASSETS_DIR) }.map { it.name },
             second.encode(now + 1).filter { it.name.startsWith(MobixFormat.ASSETS_DIR) }.map { it.name },
         )
+    }
+
+    @Test
+    fun infiniteVerticalDocumentEncodesAndReopensRoundTrip() {
+        val stroke = Stroke(
+            tool = Tool.PEN,
+            color = 0xFF0000FF.toInt(),
+            capStyle = "round",
+            points = listOf(StrokePoint(50.0, 100.0, width = 3.0, pressure = 0.6f)),
+            uniformWidth = true,
+            id = "stk_vert_1",
+        )
+        val chunk0 = MobixChunk(
+            cx = 0,
+            cy = 0,
+            layers = listOf(Layer(elements = listOf(stroke), name = "Layer1")),
+            id = "chk_0_0",
+        )
+        val chunk1 = MobixChunk(
+            cx = 0,
+            cy = 1,
+            layers = listOf(Layer(elements = emptyList())),
+            id = "chk_0_1",
+        )
+
+        val doc = MobixDocument.forInfinite(
+            documentId = "doc_vert_123",
+            canvasMode = CanvasMode.INFINITE_VERTICAL,
+            widthPt = 595.28,
+            heightPt = 841.89,
+            chunks = listOf(chunk0, chunk1),
+            title = "Vertical Notes",
+            nowMillis = now,
+        )
+
+        val bytes = doc.toBytes(now)
+        val reopened = openBytes(bytes)
+
+        assertEquals(CanvasMode.INFINITE_VERTICAL, reopened.manifest.canvasMode)
+        assertEquals(CanvasMode.INFINITE_VERTICAL, reopened.canvas.mode)
+        assertEquals(595.28, reopened.canvas.widthPt, 0.001)
+        assertEquals("doc_vert_123", reopened.manifest.documentId)
+        assertEquals("Vertical Notes", reopened.manifest.title)
+        assertEquals(2, reopened.chunks.size)
+        assertEquals("chk_0_0", reopened.chunks[0].id)
+        assertEquals(0, reopened.chunks[0].cx)
+        assertEquals(0, reopened.chunks[0].cy)
+        assertEquals(1, reopened.chunks[0].layers.size)
+        assertEquals("stk_vert_1", (reopened.chunks[0].layers[0].elements[0] as Stroke).id)
+
+        assertEquals("chk_0_1", reopened.chunks[1].id)
+        assertEquals(0, reopened.chunks[1].cx)
+        assertEquals(1, reopened.chunks[1].cy)
+
+        // Verify container entries
+        val container = MobixContainer.open(ByteArrayInputStream(bytes))
+        assertTrue(container.names.contains(MobixFormat.MANIFEST_ENTRY))
+        assertTrue(container.names.contains(MobixFormat.CANVAS_ENTRY))
+        assertTrue(container.names.contains("chunks/chunk_0_0.json"))
+        assertTrue(container.names.contains("chunks/chunk_0_1.json"))
+        assertFalse(container.names.any { it.startsWith("pages/") })
+    }
+
+    @Test
+    fun infinite2dDocumentWithSignedCoordinatesRoundTrip() {
+        val chunkNeg = MobixChunk(
+            cx = -1,
+            cy = 2,
+            layers = listOf(Layer(elements = emptyList(), name = "TileNeg")),
+            id = "chk_neg_1_2",
+        )
+        val chunkPos = MobixChunk(
+            cx = 3,
+            cy = -4,
+            layers = listOf(Layer(elements = emptyList(), name = "TilePos")),
+            id = "chk_pos_3_neg4",
+        )
+
+        val doc = MobixDocument.forInfinite(
+            documentId = "doc_2d_free",
+            canvasMode = CanvasMode.INFINITE_2D,
+            chunks = listOf(chunkNeg, chunkPos),
+            nowMillis = now,
+        )
+
+        val bytes = doc.toBytes(now)
+        val reopened = openBytes(bytes)
+
+        assertEquals(CanvasMode.INFINITE_2D, reopened.manifest.canvasMode)
+        assertEquals(CanvasMode.INFINITE_2D, reopened.canvas.mode)
+        assertEquals(2, reopened.chunks.size)
+        assertEquals(-1, reopened.chunks[0].cx)
+        assertEquals(2, reopened.chunks[0].cy)
+        assertEquals(3, reopened.chunks[1].cx)
+        assertEquals(-4, reopened.chunks[1].cy)
+
+        val container = MobixContainer.open(ByteArrayInputStream(bytes))
+        assertTrue(container.names.contains("chunks/chunk_-1_2.json"))
+        assertTrue(container.names.contains("chunks/chunk_3_-4.json"))
     }
 }

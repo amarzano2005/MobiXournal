@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "implement-chunk-container-codecs-and-canvas-json-spatial-modes"
-title = "Implement chunk container codecs and canvas.json spatial modes"
-description = "Support chunks/chunk_<cx>_<cy>.json part serialization and deserialization in format/mobix/MobixChunkCodec.kt, persist spatial chunk entries in MobixManifest.chunks, and handle INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D in MobixDocument."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 720
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "infinite-viewport-coordinate-system-and-chunk-tile-eviction"
 title = "Infinite viewport coordinate system and chunk tile eviction"
 description = "Extend ViewportState and DrawingSurfaceView to support unbounded or strip-locked infinite coordinates, querying active visible chunk bounds [cxMin..cxMax, cyMin..cyMax] with a 1-chunk cache margin and offscreen memory eviction."

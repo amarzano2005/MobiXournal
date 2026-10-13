@@ -49,6 +49,9 @@ object ElementId {
     /** A circuit component's id prefix. */
     const val CIRCUIT = "ckt"
 
+    /** A spatial chunk's id prefix. */
+    const val CHUNK = "chk"
+
     /**
      * A **page**'s id prefix. A page is a document part rather than an element, but its id needs the
      * same two properties for the same reasons: stable across saves (a merge matches two copies of a

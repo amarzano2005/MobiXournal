@@ -66,6 +66,21 @@ object MobixFormat {
     fun chunkEntry(cx: Int, cy: Int): String = "$CHUNKS_DIR" + "chunk_${cx}_${cy}.json"
 
     /**
+     * Parse the chunk coordinates `(cx, cy)` from entry name [entry], or null if [entry] is not a valid
+     * chunk entry.
+     */
+    fun parseChunkEntry(entry: String): Pair<Int, Int>? {
+        if (!isChunkEntry(entry)) return null
+        val filename = entry.removePrefix(CHUNKS_DIR).removeSuffix(".json")
+        if (!filename.startsWith("chunk_")) return null
+        val parts = filename.removePrefix("chunk_").split('_')
+        if (parts.size != 2) return null
+        val cx = parts[0].toIntOrNull() ?: return null
+        val cy = parts[1].toIntOrNull() ?: return null
+        return cx to cy
+    }
+
+    /**
      * The entry name of a binary asset, addressed by the lowercase hex [sha256] of its bytes: the
      * same picture pasted on ten pages is stored once and referenced ten times, and a name derived
      * from the content cannot go stale the way a counter can.

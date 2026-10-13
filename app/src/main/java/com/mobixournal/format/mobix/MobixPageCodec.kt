@@ -60,14 +60,14 @@ internal object MobixPageCodec {
     )
 
     // ---- layers ---------------------------------------------------------------------------------
-
-    private fun encodeLayer(layer: Layer, assets: MobixAssetSink): JsonNode.Obj = MobixJson.obj { out ->
+ 
+    internal fun encodeLayer(layer: Layer, assets: MobixAssetSink): JsonNode.Obj = MobixJson.obj { out ->
         layer.name?.let { out["name"] = JsonNode.of(it) }
         out["elements"] = JsonNode.arr(layer.elements.map { MobixElementCodec.encode(it, assets) })
         if (layer.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(layer.extraAttrs)
     }
 
-    private fun decodeLayer(node: JsonNode.Obj, assets: MobixAssetSource): Layer = Layer(
+    internal fun decodeLayer(node: JsonNode.Obj, assets: MobixAssetSource): Layer = Layer(
         elements = node.getArr("elements")?.list.orEmpty()
             .mapNotNull { (it as? JsonNode.Obj)?.let { e -> MobixElementCodec.decode(e, assets) } }
             .filterIsInstance<Element>(),

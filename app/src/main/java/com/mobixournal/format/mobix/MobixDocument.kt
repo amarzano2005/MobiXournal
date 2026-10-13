@@ -30,23 +30,25 @@ import java.io.OutputStream
  *    and written back last ([preserved]), which is container rule 4, and every payload that was
  *    referenced keeps its entry even when the model never looked at it.
  *
- * Only **paginated** documents are read: an infinite-canvas one stores its content in `chunks/`, which
- * the page model cannot represent, and opening it as an empty document would let a save rewrite a
- * document in a mode the user never chose. That refusal is deliberate and is the canvas engine's to
- * lift (`docs/infinite-canvas.md`).
+ * Both **paginated** and **infinite-canvas** documents (`INFINITE_VERTICAL`, `INFINITE_HORIZONTAL`,
+ * `INFINITE_2D`) are supported: paginated documents store their content in `pages/`, while infinite
+ * documents store spatial tiles in `chunks/` (`docs/infinite-canvas.md`).
  *
  * Pure Kotlin, no `java.io.File`, like the rest of `format/`: the same code runs on-device and in JVM
  * unit tests.
  */
 internal class MobixDocument(
-    /** The envelope as read (or as built for a new document); its `pages[]` is rewritten by [encode]. */
+    /** The envelope as read (or as built for a new document); its `pages[]` or `chunks[]` is rewritten by [encode]. */
     val manifest: MobixManifest,
 
     /** The geometry sidecar (`canvas.json`). */
     val canvas: MobixCanvasFile,
 
-    /** The pages in document order, each carrying its manifest id. */
-    val pages: List<Page>,
+    /** The pages in document order, each carrying its manifest id. Empty for infinite canvas modes. */
+    val pages: List<Page> = emptyList(),
+
+    /** The spatial chunks for infinite canvas modes, in document order. Empty for paginated mode. */
+    val chunks: List<MobixChunk> = emptyList(),
 
     /** What the source `.xopp` was, when this document came from one; null for a native document. */
     val bridge: MobixBridgeFile? = null,
@@ -66,7 +68,7 @@ internal class MobixDocument(
 
     /**
      * The archive this document is, as entries ready for [MobixContainer.save] — `manifest.json` first,
-     * then `canvas.json`, the pages in document order, the assets, and the preserved entries last.
+     * then `canvas.json`, the pages or chunks in document order, the assets, and the preserved entries last.
      *
      * The asset sink is **one** sink for the whole document, so a picture pasted on ten pages is written
      * once (`MobixAssets`), and a payload read from a file and never inspected is still re-emitted: a
@@ -80,7 +82,11 @@ internal class MobixDocument(
      */
     fun encode(nowMillis: Long, backgroundBytes: (Background) -> ByteArray? = { null }): List<MobixContainer.Entry> {
         val sink = MobixAssetSink()
-        val pagesAndParts = encodePages(sink, backgroundBytes, nowMillis)
+        val partsAndEntries = if (manifest.canvasMode == CanvasMode.PAGINATED) {
+            encodePages(sink, backgroundBytes, nowMillis)
+        } else {
+            encodeChunks(sink, backgroundBytes, nowMillis)
+        }
         val written = sink.entries()
         val carried = payloads.filterKeys { name -> written.none { it.name == name } }
             .map { (name, bytes) -> MobixContainer.Entry(name, bytes) }
@@ -88,7 +94,7 @@ internal class MobixDocument(
         val envelope = mutableListOf(
             MobixContainer.Entry(
                 name = MobixFormat.MANIFEST_ENTRY,
-                bytes = writtenManifest(pagesAndParts.map { it.first }, nowMillis).encode()
+                bytes = writtenManifest(partsAndEntries.map { it.first }, nowMillis).encode()
                     .toByteArray(Charsets.UTF_8),
             ),
             MobixContainer.Entry(MobixFormat.CANVAS_ENTRY, canvas.encode().toByteArray(Charsets.UTF_8)),
@@ -99,7 +105,7 @@ internal class MobixDocument(
             envelope += MobixContainer.Entry(MobixFormat.BRIDGE_ENTRY, out.encode().toByteArray(Charsets.UTF_8))
         }
 
-        val modelled = envelope + pagesAndParts.map { it.second } + written + carried
+        val modelled = envelope + partsAndEntries.map { it.second } + written + carried
 
         // A preserved entry can only collide with a part this build writes when the two describe the
         // same slot — an orphan page entry the manifest no longer lists, while the document has a page
@@ -126,7 +132,7 @@ internal class MobixDocument(
     fun toDocument(): Document = Document(
         creator = bridge?.creator ?: DEFAULT_CREATOR,
         fileVersion = bridge?.fileVersion ?: "4",
-        pages = pages,
+        pages = if (pages.isNotEmpty()) pages else chunks.map { it.toPage() },
         preview = bridge?.preview,
         title = manifest.title,
         documentId = manifest.documentId,
@@ -165,11 +171,40 @@ internal class MobixDocument(
         )
     }
 
+    // ---- chunks ----------------------------------------------------------------------------------
+
+    /** Each chunk paired with the `chunks[]` entry describing it, in document order. */
+    private fun encodeChunks(
+        sink: MobixAssetSink,
+        backgroundBytes: (Background) -> ByteArray?,
+        nowMillis: Long,
+    ): List<Pair<MobixPart, MobixContainer.Entry>> = chunks.map { chunk ->
+        val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgroundBytes))
+            .toByteArray(Charsets.UTF_8)
+        val name = MobixFormat.chunkEntry(chunk.cx, chunk.cy)
+        partForChunk(chunk, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
+    }
+
+    /**
+     * The `chunks[]` entry for [chunk]: its stable [MobixChunk.id] (minted when it has none), the
+     * entry [name] it is written to, and a `modified` stamp that only moves when the bytes did.
+     */
+    private fun partForChunk(chunk: MobixChunk, name: String, sha256: String, nowMillis: Long): MobixPart {
+        val before = chunk.id?.let { id -> manifest.chunks.firstOrNull { it.id == id } }
+            ?: manifest.chunks.firstOrNull { it.entry == name }
+        return MobixPart(
+            id = chunk.id ?: before?.id ?: ElementId.mint(ElementId.CHUNK),
+            entry = name,
+            modified = if (before?.sha256 == sha256) before.modified else nowMillis,
+            sha256 = sha256,
+        )
+    }
+
     /** The envelope as it is written: this file's parts, this file's last-write time. */
     private fun writtenManifest(parts: List<MobixPart>, nowMillis: Long): MobixManifest = manifest.copy(
         formatVersion = MobixManifest.CURRENT_FORMAT_VERSION,
-        pages = parts,
-        chunks = emptyList(),
+        pages = if (manifest.canvasMode == CanvasMode.PAGINATED) parts else emptyList(),
+        chunks = if (manifest.canvasMode != CanvasMode.PAGINATED) parts else emptyList(),
         modified = nowMillis,
     )
 
@@ -182,10 +217,9 @@ internal class MobixDocument(
          * Read the `.mobix` [archive] as a document.
          *
          * @throws MobixContainer.MalformedMobixException when the archive is typed `mobix` but is not a
-         *   document this build can honestly read: a page the manifest names but the archive does not
-         *   carry (a corrupt file — never skipped quietly), a `canvasMode` this build has no page list
-         *   for, a `canvas.json` whose mode disagrees with the manifest's, a `formatVersion` from a
-         *   newer schema, or a page entry that is not a JSON object.
+         *   document this build can honestly read: a page or chunk the manifest names but the archive does not
+         *   carry (a corrupt file — never skipped quietly), a `canvas.json` whose mode disagrees with
+         *   the manifest's, a `formatVersion` from a newer schema, or an entry that is not a JSON object.
          *
          * Whether `minAppVersion` allows a normal open is **the caller's policy**, not this layer's:
          * `manifest.requiresAppNewerThan(appVersion)` is the question, and answering it with "open it
@@ -203,17 +237,34 @@ internal class MobixDocument(
                         " ${MobixManifest.CURRENT_FORMAT_VERSION} and refuses to read a schema it half knows",
                 )
             }
-            if (manifest.canvasMode != CanvasMode.PAGINATED) {
-                throw MobixContainer.MalformedMobixException(
-                    "this document is ${manifest.canvasMode}: an infinite canvas stores its content in" +
-                        " chunks/, which this build cannot lay out yet (docs/infinite-canvas.md)",
-                )
+            if (manifest.canvasMode == CanvasMode.PAGINATED) {
+                if (manifest.chunks.isNotEmpty()) {
+                    throw MobixContainer.MalformedMobixException(
+                        "PAGINATED document carries chunks/ entries; a file that carries both is invalid",
+                    )
+                }
+            } else {
+                if (manifest.pages.isNotEmpty()) {
+                    throw MobixContainer.MalformedMobixException(
+                        "${manifest.canvasMode} document carries pages/ entries; a file that carries both is invalid",
+                    )
+                }
             }
-            val pages = manifest.pages.map { pageIn(archive, it, source) }
+            val pages = if (manifest.canvasMode == CanvasMode.PAGINATED) {
+                manifest.pages.map { pageIn(archive, it, source) }
+            } else {
+                emptyList()
+            }
+            val chunks = if (manifest.canvasMode != CanvasMode.PAGINATED) {
+                manifest.chunks.map { chunkIn(archive, it, source) }
+            } else {
+                emptyList()
+            }
             return MobixDocument(
                 manifest = manifest,
                 canvas = canvasIn(archive, manifest, pages),
                 pages = pages,
+                chunks = chunks,
                 bridge = archive.text(MobixFormat.BRIDGE_ENTRY)?.let(MobixBridgeFile::decode),
                 payloads = archive.entries.filter { it.name.startsWith(MobixFormat.ASSETS_DIR) }
                     .associate { it.name to it.bytes },
@@ -248,6 +299,7 @@ internal class MobixDocument(
             appVersion: String,
             nowMillis: Long,
             source: String? = null,
+            canvasMode: CanvasMode = CanvasMode.PAGINATED,
         ): MobixDocument {
             // Identity is the *document's* own ([withIdentity]): it mints what is missing and keeps what
             // is there, so a document that came from a `.mobix` is written with the ids it read, one
@@ -261,27 +313,71 @@ internal class MobixDocument(
             }
             val pages = identified.pages
             val first = pages.firstOrNull()
+            val isPaginated = canvasMode == CanvasMode.PAGINATED
+            val chunks = if (!isPaginated) {
+                pages.mapIndexed { index, page ->
+                    val cx = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL) index else 0
+                    val cy = if (canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) index else 0
+                    MobixChunk.fromPage(page, cx = cx, cy = cy)
+                }
+            } else {
+                emptyList()
+            }
             return MobixDocument(
                 manifest = MobixManifest.forNewDocument(
                     documentId = documentId,
-                    canvasMode = CanvasMode.PAGINATED,
+                    canvasMode = canvasMode,
                     nowMillis = nowMillis,
                     title = document.title,
                     defaultPaper = first?.background,
                     appVersion = appVersion,
                 ),
                 canvas = MobixCanvasFile(
-                    mode = CanvasMode.PAGINATED,
+                    mode = canvasMode,
                     widthPt = first?.width ?: NO_PAGE_SIZE,
                     heightPt = first?.height ?: NO_PAGE_SIZE,
                 ),
-                pages = pages,
+                pages = if (isPaginated) pages else emptyList(),
+                chunks = chunks,
                 bridge = MobixBridgeFile(
                     creator = document.creator,
                     fileVersion = document.fileVersion,
                     preview = document.preview,
                     source = source,
                 ),
+            )
+        }
+
+        /** Create a brand-new infinite canvas document. */
+        fun forInfinite(
+            documentId: String,
+            canvasMode: CanvasMode,
+            widthPt: Double = 0.0,
+            heightPt: Double = 0.0,
+            chunkSizePt: Double = MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT,
+            chunks: List<MobixChunk> = emptyList(),
+            defaultPaper: Background? = null,
+            title: String? = null,
+            appVersion: String = "2.0.0",
+            nowMillis: Long = 0L,
+        ): MobixDocument {
+            require(canvasMode != CanvasMode.PAGINATED) { "forInfinite requires an infinite canvas mode, got $canvasMode" }
+            return MobixDocument(
+                manifest = MobixManifest.forNewDocument(
+                    documentId = documentId,
+                    canvasMode = canvasMode,
+                    nowMillis = nowMillis,
+                    title = title,
+                    defaultPaper = defaultPaper,
+                    appVersion = appVersion,
+                ),
+                canvas = MobixCanvasFile(
+                    mode = canvasMode,
+                    widthPt = widthPt,
+                    heightPt = heightPt,
+                    chunkSizePt = chunkSizePt,
+                ),
+                chunks = chunks,
             )
         }
 
@@ -297,6 +393,20 @@ internal class MobixDocument(
             val node = JsonParser.parse(bytes.toString(Charsets.UTF_8)) as? JsonNode.Obj
                 ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
             return MobixPageCodec.decode(node, source).copy(id = part.id)
+        }
+
+        /** The chunk the manifest part [part] names. A part with no entry in the archive is corrupt. */
+        private fun chunkIn(
+            archive: MobixContainer.Archive,
+            part: MobixPart,
+            source: MobixAssetSource,
+        ): MobixChunk {
+            val bytes = archive.require(part.entry).bytes
+            val node = JsonParser.parse(bytes.toString(Charsets.UTF_8)) as? JsonNode.Obj
+                ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
+            val coords = MobixFormat.parseChunkEntry(part.entry) ?: (0 to 0)
+            return MobixChunkCodec.decode(node, source, fallbackCx = coords.first, fallbackCy = coords.second)
+                .copy(id = part.id)
         }
 
         /**
@@ -333,7 +443,7 @@ internal class MobixDocument(
             archive: MobixContainer.Archive,
             manifest: MobixManifest,
         ): List<MobixContainer.Entry> {
-            val consumed = manifest.pages.map { it.entry }.toSet()
+            val consumed = (manifest.pages + manifest.chunks).map { it.entry }.toSet()
             return archive.entries.filterNot { entry ->
                 entry.name == MobixFormat.MANIFEST_ENTRY ||
                     entry.name == MobixFormat.CANVAS_ENTRY ||

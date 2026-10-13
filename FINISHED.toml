@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "implement-chunk-container-codecs-and-canvas-json-spatial-modes"
+title = "Implement chunk container codecs and canvas.json spatial modes"
+description = "Support chunks/chunk_<cx>_<cy>.json part serialization and deserialization in format/mobix/MobixChunkCodec.kt, persist spatial chunk entries in MobixManifest.chunks, and handle INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D in MobixDocument."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = []
+
+[[task]]
 id = "step-1-mobix-format-remainder"
 title = "Step 1 - the native .mobix format (what is still owed)"
 description = "The Step 1 epic was archived while the pillar still owed work, so this one carries the rest and keeps the order docs/future-roadmap.md insists on: Step 1 before Step 2. The container, the codecs, the .xopp bridge, the rendering of the living entities and the sync merge all shipped (the unstamped tasks in FINISHED.toml), but four things are open: the infinite canvas (docs/infinite-canvas.md - the manifest already names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D while MobixDocument refuses every mode except PAGINATED, so an infinite document cannot be opened at all), continuous audio-inking sync (docs/audio-inking-sync.md - only the .wav sidecars of docs/audio.md exist), the math engine parameter sliders (docs/math-engine.md promises sliders over PlotElement.parameters and nothing in the UI moves one) and the companion Lua plugin scope already tracked here. Plus the docs that keep calling shipped work pending. EPIC: break it into scopes and tasks; it closes before Step 2 starts."
