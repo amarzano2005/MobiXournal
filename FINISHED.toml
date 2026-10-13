@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "modern-design-token-provider-modern-theme"
+title = "Modern design token provider (ModernTheme)"
+description = "Phase 1 of docs/ui-modernization.md: extract the documented design tokens into one provider instead of scattering literals, so every later task in this epic reads its numbers from there. Add ui/theme/ModernTheme.kt holding the design-token JSON of the doc as typed constants plus the Compose shapes and springs built from it: glassDark rgba(22,22,24,0.85), glassLight rgba(255,255,255,0.88), hairlineBorder rgba(255,255,255,0.12), blurRadiusDp 24, capsuleCornerRadiusDp 16, compactButtonSizeDp 40, hairlineStrokeWidthDp 1.0, springStiffness 380, springDamping 28, fadeTransitionMs 150. Material 3 keeps everything the tokens do not cover. Verify with a JVM unit test that pins each token to the documented value, so a silent drift between the doc and the code fails the build."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = ["ui", "tokens"]
+
+[[task]]
 id = "implement-lua-document-extraction-and-temporary-xopp-open-bridge"
 title = "Implement Lua document extraction and temporary .xopp open bridge"
 description = "Implement the unzipping of .mobix containers, JSON manifest parsing, and generation of a synthesized temporary .xopp document opened via app.openFile in Xournal++."

@@ -217,6 +217,8 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 
 ## Design token specification
 
+The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([ModernTheme.kt](../app/src/main/java/com/mobixournal/ui/theme/ModernTheme.kt)), pinned by `ModernThemeTest` to fail the build on drift:
+
 ```json
 {
   "theme": {
