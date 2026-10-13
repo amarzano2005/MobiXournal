@@ -197,6 +197,11 @@ the page hides the ink under it and swallows the stylus there, and the strip it 
 sheet — where a note taker's hand reaches first. Every pixel of the page the user can see is a pixel
 they can write on.
 
+**The rule this encodes — and its one carve-out — is owned by**
+[ui-modernization.md](ui-modernization.md#core-design-principles): *bands never lie on the page; transient
+surfaces may*. A radial HUD, an anchored popover, a dialog or a selection bar comes and goes with the
+gesture it belongs to; a band is always there, so it never costs the sheet a pixel.
+
 The **desk** is what the bands sit on: `EditorScreen`'s `Scaffold` takes `rememberChromeColor()` (the
 scheme's `background`, the same colour the canvas paints around a page) instead of transparency, so the
 header, the rail's lane and the bottom band read as one surface with the page lying on it rather than as

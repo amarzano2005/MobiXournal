@@ -24,7 +24,7 @@ scope = "Only build features the .xopp format can represent on disk. If a capabi
 [[task]]
 id = "step-2-modern-mobile-ui"
 title = "Step 2 - modern mobile interface (design system, living editors, typesetting, PDF, multi-window)"
-description = "The roadmap second pillar (docs/future-roadmap.md). It owns five spokes, not one: the modern design system and bimanual ergonomics (docs/ui-modernization.md), auto-shape perfection (docs/shape-perfection-engine.md), on-device scientific typesetting (docs/latex-typst-rendering.md), the advanced PDF annotation engine (docs/pdf-annotation-engine.md) and the multi-window workspace (docs/multi-window-workspace.md); it also owns the in-place editors that make the Step 1 living entities editable, one family at a time (docs/mobix-elements.md). Not in this epic: Phase 4 of ui-modernization.md (the desktop shell, Mica / Vibrancy) and everything in docs/desktop-workstation.md, which are Step 3. Sequencing: the Step 1 remainder epic in this file closes first, because docs/future-roadmap.md orders the three pillars strictly. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
+description = "The roadmap second pillar (docs/future-roadmap.md), and the one gate it used to carry is open: Step 1 shipped (the .mobix format and its remainder are both in FINISHED.toml), so no child here waits on another epic. It owns five spokes - the modern design system and bimanual ergonomics (docs/ui-modernization.md), auto-shape perfection (docs/shape-perfection-engine.md), on-device scientific typesetting (docs/latex-typst-rendering.md), the advanced PDF annotation engine (docs/pdf-annotation-engine.md) and the multi-window workspace (docs/multi-window-workspace.md) - plus the in-place editors that make Step 1 living entities editable, one family at a time (docs/mobix-elements.md). First principle, owned by ui-modernization.md (Core design principles): bands never lie on the page, transient surfaces may, and a header closes on one edge across the full width. Order of work: (1) finish the chrome and ergonomics set, and take the chrome geometry guard (guard-the-chrome-bands-as-one-geometry-contract) as the prerequisite of the first UI task started after it; (2) the living families one at a time - plot (shipped), then table, circuit, parametric shape; (3) the three engines, each starting from its riskiest child: typesetting from the offline compilation core, PDF from the full-text index, multi-window from the shared document state. Not in this epic: Phase 4 of ui-modernization.md (the desktop shell, Mica / Vibrancy) and everything in docs/desktop-workstation.md, which are Step 3. Done means: every child closed with its docs in the owning spoke, every UI child verified on the emulator per its own task flags, the chrome guard family green, the spokes asserting only what exists, and a release. Known gap: only the Pixel_Tablet AVD exists here, so a narrow (phone) screen is in no task's pass yet - the first UI child that needs it adds the device. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
 status = "active"
 level = "epic"
 category = "feature"
@@ -38,7 +38,7 @@ emulator_debug = false
 [[task]]
 id = "bimanual-free-hand-thumb-strip-for-tablets"
 title = "Bimanual free-hand thumb strip for tablets"
-description = "The free-hand thumb strip from docs/ui-modernization.md: a slim strip pinned along the non-dominant edge (left for a right-handed writer, right for a left-handed one, using the handedness already in AppSettings and ui/OnboardingHandedness.kt) giving thumb access to Undo, Redo, the eraser toggle and the favourite colour dots while the pen hand keeps writing. It is a touch-only surface: a press on it inks nothing, does not fight palm rejection (docs/stylus.md), and a stylus passes through to the canvas untouched. Verify on the emulator: screenshots with the strip on each edge, and a clean logcat while a stroke is drawn with the strip visible."
+description = "The free-hand thumb strip from docs/ui-modernization.md: a slim strip pinned along the non-dominant edge as a band of its own - never over the page (the rule in ui-modernization.md's Core design principles), and it must not spend the rail's lane or its slot budget - (left for a right-handed writer, right for a left-handed one, using the handedness already in AppSettings and ui/OnboardingHandedness.kt) giving thumb access to Undo, Redo, the eraser toggle and the favourite colour dots while the pen hand keeps writing. It is a touch-only surface: a press on it inks nothing, does not fight palm rejection (docs/stylus.md), and a stylus passes through to the canvas untouched. Verify on the emulator: screenshots with the strip on each edge, and a clean logcat while a stroke is drawn with the strip visible."
 status = "active"
 level = "task"
 category = "feature"
@@ -52,7 +52,7 @@ emulator_debug = true
 [[task]]
 id = "auto-dim-toolbars-while-the-stylus-is-inking"
 title = "Auto-dim toolbars while the stylus is inking"
-description = "Zen inking mode from docs/ui-modernization.md: while the stylus is actively drawing, the floating toolbars fade to 30 percent opacity and come back on lift, animated with the documented 150 ms fade (tokens from ModernTheme). Drive it from the input layer lifecycle (render/DrawingSurface*.kt already distinguishes stylus down, lift and takeover) rather than polling tool state from the UI, and make sure a finger pan or a two-finger zoom never triggers the dim. Verify on the emulator: a screenshot mid-stroke with the chrome dimmed and one after lift with it restored."
+description = "Zen inking mode from docs/ui-modernization.md: while the stylus is actively drawing, the chrome's bands fade to 30 percent opacity (never the page, and never the active tool indicator, which is the one thing worth reading mid-stroke) and come back on lift, animated with the documented 150 ms fade (tokens from ModernTheme). Drive it from the input layer lifecycle (render/DrawingSurface*.kt already distinguishes stylus down, lift and takeover) rather than polling tool state from the UI, and make sure a finger pan or a two-finger zoom never triggers the dim. Verify on the emulator: a screenshot mid-stroke with the chrome dimmed and one after lift with it restored."
 status = "active"
 level = "task"
 category = "feature"
@@ -491,8 +491,36 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 820
+order = 562
 created = 2026-10-13
 tags = ["ui", "testing"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "guard-the-chrome-bands-as-one-geometry-contract"
+title = "Guard the chrome's bands as one geometry contract"
+description = "The principle that bands never lie on the page, and that a header closes on one edge, is discipline today: the two failures it exists to prevent (a pane-local tab band leaving a notch of desk inside the header's own bottom edge, and a rim-less bar stacked over a slab reading as two bars) both shipped and were found by eye. Make it mechanical, as the prerequisite of the first UI task in this epic started after it, next to the system-bar guard (guard-the-system-bars-as-one-transparent-contract). One test in app/src/test/java/com/mobixournal/guards/ reading the layout sources the way SourceStructureTest reads the tree, pinning three properties: (a) the chrome's bands and the canvas partition the window in every combination - Standard and Compact, rail left and rail right - so no band rectangle can intersect the canvas's; (b) the header is one Surface whose closing edge spans what the bar spans, with the tabs row inside it rather than a slab beside it, so its bottom edge is drawn once across the full width; (c) the rail's lane begins at the header's bottom, not at the bar's row. Keep the matrix of combinations in one table so a new layout mode has to be added there instead of slipping past. Verify: the guard fails on the pre-fix shapes (TabStrip outside EditorTopBar's Column, a pane-local TabBand, a lane started at the bar's height) and passes on the current tree - that is what makes it a guard rather than a comment."
+status = "active"
+level = "task"
+category = "test"
+urgency = "high"
+order = 565
+created = 2026-10-13
+tags = ["ui", "guard"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "retire-the-top-and-bottom-toolbar-positions"
+title = "Retire the Top and Bottom toolbar positions"
+description = "ToolbarPosition still carries TOP and BOTTOM plus isHorizontal, and nothing can select or honour them: the settings picker offers Left and Right only (ToolbarSection.kt), the rail's orientation comes from the layout mode (EditorRegions.kt: horizontal = toolbarLayout == COMPACT), and isHorizontal is referenced by SideToolbarCapsuleTest alone. The user decision (2026-10-13, recorded with this task) is to drop them rather than bring back horizontal docking: the top band is the header's, and Compact is what a toolbar along the bottom means. Do it: remove TOP and BOTTOM from the enum and isHorizontal with them; replace the four assertions in SideToolbarCapsuleTest that pin them with the Left/Right round-trip; map a legacy saved or imported value to LEFT so an install that stored Top or Bottom keeps a working rail (AppSettings.load and AppSettingsBackup.fromNode both read through readEnum with a fallback); and fix the enum KDoc that still promises top/bottom centre docking as a horizontal capsule. ui-modernization.md already states that the rail docks to a vertical edge only, so this change makes the code match its owning doc. Verify: unit tests green, Settings -> Toolbar still offers both edges, and picking Right puts the rail on the right with EmulatorDebug screenshots of both."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 545
+created = 2026-10-13
+tags = ["ui", "settings"]
+rebuild = true
+emulator_debug = true

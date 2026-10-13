@@ -21,23 +21,34 @@ mobile and desktop.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│ [≡] [Undo] [Redo]    (Floating Island: 1px Hairline Border, Blur)      │
-│ ┌────────────────────────────────────────────────────────────────────┐ │
-│ │  [Pen] [Highlighter] [Eraser] [Shapes] [Math] | [Color] [Width]    │ │
-│ └────────────────────────────────────────────────────────────────────┘ │
-│                                                                        │
-│                                                                        │
-│                         CANVAS (Content-First)                         │
-│                   Unobtrusive, distraction-free space                  │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
+│ [≡] [Undo] [Redo]   [Pen] [Highlighter] [Eraser] [Shapes] [Math]       │ ← header band
+│ [Untitled] [Untitled.mobix]                              (1px hairline) │ ← the tabs, its 2nd row
+├────────┬───────────────────────────────────────────────────────────────┤
+│ ╭────╮ │                                                               │
+│ │ ✏️ │ │                    CANVAS (Content-First)                    │
+│ │ 🖍️ │ │        the sheet begins where the chrome ends                 │
+│ │ 🧹 │ │        Unobtrusive, distraction-free space                     │
+│ ╰────╯ │                                                               │
+└────────┴───────────────────────────────────────────────────────────────┘
+   ↑ the rail's lane: a band beside the page, never a bar over it
 ```
 
 ### 1. Content-first minimalism ("The canvas is the hero")
 - **Visual Weight**: Chrome elements use thin hairline borders ($1\text{ px}$ with subtle $10\text{--}15\%$ alpha)
   instead of chunky drop shadows or filled cards.
-- **Glassmorphic Islands**: Toolbars float as translucent frosted capsules (backdrop blur with $85\text{--}90\%$
-  opacity), allowing the canvas ruling or PDF beneath to remain subtly visible without losing legibility.
+- **Glass in bands, never over the page**: the toolbars are translucent frosted capsules (backdrop blur at
+  $85\text{--}90\%$ opacity, $1\text{ px}$ hairline at $12\%$ alpha) that live in **bands of their own** —
+  the header across the top, the rail's lane down one edge, the dock's band at the bottom in Compact — so
+  what the glass reveals is the **desk** the page lies on, not the page. A translucent bar *on* the sheet
+  hides the ink under it and swallows the stylus there, and the strip it covers is the top of the sheet,
+  where a hand reaches first (the layout is [chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
+  **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: a radial HUD,
+  an anchored popover, a dialog or a selection bar comes and goes with the gesture, so it may sit over the
+  ink, and none of them is ever a permanent band.
+- **One edge per surface**: a header closes on **one** bottom edge, across the full width, with one rim and
+  one shadow; its rows (tools, document tabs) are separated by a hairline drawn *inside* it. Two nested
+  slabs with a rim each read as two bars, and a row that stops short of the full width leaves a notch of
+  bare desk inside the header's own edge — both were measured on the device before they were fixed.
 - **Auto-Dimming / Zen Inking Mode**: While the stylus is actively drawing or writing, floating toolbars fade to
   $30\%$ opacity or retract into a thin pill, maximizing focus on the handwriting.
 
@@ -61,12 +72,15 @@ mobile and desktop.
 
 ```text
 Tablet Portrait / Landscape:
-- Dockable Floating Capsule: User can drag the toolbar pill to:
-  * Top center (Traditional desktop)
-  * Bottom center (Thumb-friendly mobile reaching)
-  * Left / Right vertical spine (Comfortable palm clearance for left/right-handed stylus users)
+- Rail on one vertical edge, chosen once in settings (AppSettings.toolbarPosition, Left / Right):
+  * a band in its own lane beside the canvas, never a bar over the page;
+  * comfortable palm clearance for left- and right-handed stylus users.
+- Compact layout: the same tools as a horizontal band along the bottom edge, above the nav-bar inset.
+  There is no drag-to-dock and no top/bottom docking: the top band is the header's, and Compact is what
+  "toolbar along the bottom" means.
 - Compact Flyout Inspectors: Color palettes and tip sizes open in sleek, anchored popover bubbles
-  directly adjacent to the tool, rather than heavy centered modal dialogs.
+  directly adjacent to the tool, rather than heavy centered modal dialogs (transient, so they may sit
+  over the page).
 ```
 
 ---
@@ -91,12 +105,12 @@ them with a thumb or index finger without lifting or moving the pen.
 The system formally supports two ergonomic layout modes in settings (`ToolbarLayout`):
 
 ### Standard Layout Mode
-- **Main Floating Toolbar (Left / Right)**: Docked as a vertical floating glass capsule along the edge (left or right per user handedness) containing primary handwriting and drawing tools (pen, highlighter, eraser, selection, favorites, layers, pages, zoom).
-- **Secondary STEM Toolbar (Top bar)**: A floating glass capsule in the top bar containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides).
+- **Main Toolbar (Left / Right)**: the vertical glass capsule in a lane of its own along the edge (left or right per user handedness, a band and never a bar over the page), containing the primary handwriting and drawing tools (pen, highlighter, eraser, selection, favorites, layers, pages, zoom).
+- **Secondary STEM Toolbar (header)**: the glass dock in the header's tools row, containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides), with the document tabs as the row under it — one slab, one closing edge.
 
 ### Compact Layout Mode
-- **Unified Bottom Floating Toolbar**: A horizontal floating glass capsule docked at bottom center combining primary drawing tools and the 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
-- **Clean Top Bar**: The secondary toolbar in the top bar is hidden, displaying only the document title for maximum canvas immersion.
+- **Unified Bottom Toolbar**: a horizontal glass band along the bottom edge, above the navigation-bar inset, combining the primary drawing tools and the 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
+- **Clean Header**: the secondary toolbar is gone from the header, which carries the document tabs instead — the canvas keeps everything the header does not spend.
 
 ### The "Free-Hand Thumb Strip" (Ergonomic edge docking)
 - The toolbar or a detached **Quick-Action Thumb Pad** can pin to the left edge (for right-handed writers)
@@ -248,9 +262,11 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
    - Extract UI colors and dimensions into a modern token provider (`ModernTheme`).
    - Bundle clean geometric typography (**Inter**) in `res/font/` with tabular figures (`tnum`) via `ModernTypography` (`ui/theme/Type.kt`).
    - Swap stock filled Material icons for consistent $1.5\text{ dp}$ monoline vector assets across toolbars, rails, and popups.
-2. **Phase 2: Floating Capsule Toolbar**:
-   - Replace the rigid side rail and heavy top bar with an adaptive, draggable floating capsule bar.
-   - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width).
+2. **Phase 2: floating glass capsules, laid out in bands** (shipped, except where noted):
+   - The rail and the header's docks are the frosted capsules the tokens describe — but they are laid out
+     **beside** the canvas, in bands, not as a floating bar over it: the rail is not draggable and docks to
+     a vertical edge only, and the header carries the document tabs as its second row (the principle above).
+   - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width), standing in a lane exactly that wide whose height begins below the **whole** header; its gap and padding budget (`RailSizing.kt`) is what keeps every slot whole and on screen without a scroll.
    - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge, the header band above, the dock's band at the bottom in Compact — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
    - **1-tap STEM rail section**: Direct 1-tap buttons for Plot (`f(x)`), Geometry/Shapes, Table, and Audio with dedicated hairline dividers.
 3. **Phase 3: Contextual Flyout Inspectors**:
