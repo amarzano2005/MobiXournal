@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "implement-lua-document-extraction-and-temporary-xopp-open-bridge"
+title = "Implement Lua document extraction and temporary .xopp open bridge"
+description = "Implement the unzipping of .mobix containers, JSON manifest parsing, and generation of a synthesized temporary .xopp document opened via app.openFile in Xournal++."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = []
+
+[[task]]
+id = "create-xournal-lua-plugin-manifest-and-directory-scaffolding"
+title = "Create Xournal++ Lua plugin manifest and directory scaffolding"
+description = "Draft the official companion plugin layout under plugins/mobix-importer/: plugin.ini declaring metadata, menus, and author, plus main.lua lifecycle callbacks."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = []
+
+[[task]]
 id = "synthesize-companion-wav-sidecars-on-xopp-audio-export"
 title = "Synthesize companion WAV sidecars on .xopp audio export"
 description = "Convert bundled .opus recordings into companion .wav sidecars during .xopp export, restoring stroke-level ts timestamps for lossless compatibility with desktop Xournal++ audio."

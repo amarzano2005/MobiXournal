@@ -440,31 +440,3 @@ created = 2026-10-13
 tags = ["multi-window"]
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "create-xournal-lua-plugin-manifest-and-directory-scaffolding"
-title = "Create Xournal++ Lua plugin manifest and directory scaffolding"
-description = "Draft the official companion plugin layout under plugins/mobix-importer/: plugin.ini declaring metadata, menus, and author, plus main.lua lifecycle callbacks."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 790
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "implement-lua-document-extraction-and-temporary-xopp-open-bridge"
-title = "Implement Lua document extraction and temporary .xopp open bridge"
-description = "Implement the unzipping of .mobix containers, JSON manifest parsing, and generation of a synthesized temporary .xopp document opened via app.openFile in Xournal++."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 800
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
