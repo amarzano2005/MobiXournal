@@ -538,11 +538,18 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
     val xPt = box.toPtX(x, scrollX)
     val yPt = box.toPtY(y, scrollY)
     val page = doc.pages.getOrNull(box.index) ?: return
-    val ref = SelectionTester.pickTopmost(page, xPt, yPt)
+    val stroke = SelectionTester.pickTopmost(page, xPt, yPt)
         ?.let { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
         ?.let { it as? Stroke }
-        ?.audioRef()
-    onAudioTap?.invoke(ref)
+    val baseRef = stroke?.audioRef()
+    val resolvedRef = if (baseRef != null && stroke.points.isNotEmpty()) {
+        val nearest = stroke.points.minByOrNull { hypot(it.x - xPt, it.y - yPt) }
+        val pointDt = nearest?.dtMs ?: 0
+        com.mobixournal.audio.AudioRef(baseRef.filename, baseRef.startMs + pointDt)
+    } else {
+        baseRef
+    }
+    onAudioTap?.invoke(resolvedRef)
 }
 
 /** [stroke] with the live recording position stamped on, or unchanged when nothing is recording. */

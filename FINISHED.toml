@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "karaoke-stroke-playback-animation-and-sub-stroke-scrubbing"
+title = "Karaoke stroke playback animation and sub-stroke scrubbing"
+description = "Implement synchronized audio-stroke replay in DrawingSurfaceView: dim future strokes, animate inking path dynamically at audio timestamp t, and allow point-accurate seek via audio-tap."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = []
+
+[[task]]
 id = "point-level-dtms-millisecond-telemetry-inking"
 title = "Point-level dtMs millisecond telemetry inking"
 description = "Populate StrokePoint.dtMs dynamically from MotionEvent.eventTime relative to stroke start during live stylus inking in DrawingSurfaceStrokes.kt, and persist point timing in MobixElementCodec."

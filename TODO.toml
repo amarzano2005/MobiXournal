@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "karaoke-stroke-playback-animation-and-sub-stroke-scrubbing"
-title = "Karaoke stroke playback animation and sub-stroke scrubbing"
-description = "Implement synchronized audio-stroke replay in DrawingSurfaceView: dim future strokes, animate inking path dynamically at audio timestamp t, and allow point-accurate seek via audio-tap."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 770
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "synthesize-companion-wav-sidecars-on-xopp-audio-export"
 title = "Synthesize companion WAV sidecars on .xopp audio export"
 description = "Convert bundled .opus recordings into companion .wav sidecars during .xopp export, restoring stroke-level ts timestamps for lossless compatibility with desktop Xournal++ audio."
