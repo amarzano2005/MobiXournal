@@ -450,14 +450,13 @@ private fun EditorBody(
     Box(modifier = modifier) {
         canvas(Modifier.fillMaxSize())
         if (!ui.fullPage) {
-            Box(
-                modifier = Modifier.align(
-                    if (settings.toolbarPosition == ToolbarPosition.LEFT)
-                        Alignment.CenterStart
-                    else
-                        Alignment.CenterEnd
-                )
-            ) {
+            val alignment = when (settings.toolbarPosition) {
+                ToolbarPosition.LEFT -> Alignment.CenterStart
+                ToolbarPosition.RIGHT -> Alignment.CenterEnd
+                ToolbarPosition.TOP -> Alignment.TopCenter
+                ToolbarPosition.BOTTOM -> Alignment.BottomCenter
+            }
+            Box(modifier = Modifier.align(alignment)) {
                 toolbar()
             }
         }

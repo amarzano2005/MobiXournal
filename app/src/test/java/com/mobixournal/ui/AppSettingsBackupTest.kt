@@ -92,6 +92,16 @@ class AppSettingsBackupTest {
     }
 
     @Test
+    fun `round-trips all toolbar positions`() {
+        for (pos in ToolbarPosition.values()) {
+            val settings = AppSettings(toolbarPosition = pos)
+            val json = AppSettingsBackup.toJson(settings)
+            val restored = AppSettingsBackup.fromJson(json)
+            assertEquals(pos, restored.toolbarPosition)
+        }
+    }
+
+    @Test
     fun `an empty custom colour round-trips as empty, and clears a set one`() {
         // The slot starts empty: a backup taken then must hand the importing device an empty slot,
         // not a colour the user never chose.

@@ -4,6 +4,8 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.render.CanvasChrome
 import com.mobixournal.ui.theme.ModernTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -35,5 +37,18 @@ class SideToolbarCapsuleTest {
     fun canvasChromeDefaultBackdropIsOledBlack() {
         assertEquals(0xFF000000.toInt(), CanvasChrome.BACKDROP)
         assertEquals(0x26FFFFFF, CanvasChrome.PAGE_OUTLINE)
+    }
+
+    @Test
+    fun toolbarPositionSupportsAllFourPositionsAndOrientation() {
+        assertEquals("Left", ToolbarPosition.LEFT.label)
+        assertEquals("Right", ToolbarPosition.RIGHT.label)
+        assertEquals("Top", ToolbarPosition.TOP.label)
+        assertEquals("Bottom", ToolbarPosition.BOTTOM.label)
+
+        assertFalse(ToolbarPosition.LEFT.isHorizontal)
+        assertFalse(ToolbarPosition.RIGHT.isHorizontal)
+        assertTrue(ToolbarPosition.TOP.isHorizontal)
+        assertTrue(ToolbarPosition.BOTTOM.isHorizontal)
     }
 }

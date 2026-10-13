@@ -15,17 +15,24 @@ import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
 /**
- * Which vertical edge of the editor the tool rail is docked to.
+ * Which edge of the editor the tool rail is docked to.
  *
- * Only the two vertical edges are offered: the rail always lays its buttons in a column down the
- * side, which keeps it clear of the top bar (where the Secondary Toolbar lives) and leaves the full
- * height beside the canvas for the buttons a hand actually reaches.
+ * Supports left/right vertical spine docking (for right/left handed writers) as well as
+ * top/bottom center docking as a horizontal capsule.
  */
 enum class ToolbarPosition(val label: String) {
+    /** Rail along the top edge, buttons in a horizontal row. */
+    TOP("Top"),
+    /** Rail along the bottom edge, buttons in a horizontal row. */
+    BOTTOM("Bottom"),
     /** Rail down the left edge, buttons in a vertical column. */
     LEFT("Left"),
     /** Rail down the right edge, buttons in a vertical column. */
     RIGHT("Right"),
+    ;
+
+    /** True when the rail runs along a horizontal edge (top/bottom) and so lays its buttons in a row. */
+    val isHorizontal: Boolean get() = this == TOP || this == BOTTOM
 }
 
 /**

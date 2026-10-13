@@ -623,6 +623,7 @@ fun EditorToolbar(
         onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
         onStationery = { surface?.applyStationery(it) },
         onShowGraph = { ui.showGraphDialog = true },
+        horizontal = settings.toolbarPosition.isHorizontal,
     )
 }
 

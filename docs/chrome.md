@@ -10,9 +10,9 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 icon buttons, a compact quick **Export PDF** button and a one-tap **Save** button after it (Save
 outermost, i.e. under the thumb), and a
 **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As,
-Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (rail dockable to the left or right
-edge — `ToolbarPosition` offers only those two, so the rail always runs as a vertical column and
-with core drawing tool slots and pop-up panels; a permanent **Secondary Toolbar** (`TopBarToolsRow`) for geometric
+Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (dockable to the left or right
+edge as a vertical rail, or to the top or bottom center as a horizontal capsule — `ToolbarPosition`
+offers `LEFT`, `RIGHT`, `TOP`, and `BOTTOM`) with core drawing tool slots and pop-up panels; a permanent **Secondary Toolbar** (`TopBarToolsRow`) for geometric
 figures and tools embedded in the top bar — geometric figures, the coordinate axis, the **function graph** button
 (immediately following the Cartesian axis), the arrow/table/circuit/logic/chemistry pop-ups,
 and the guides pop-up (last); and the canvas filling the rest. `orderedTopBarItems` places

@@ -7,9 +7,12 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -81,11 +84,16 @@ fun SideToolbar(
     shapeHidden: Set<String> = emptySet(),
     /** Opens the function-plot dialog (the STEM section's f(x) button). */
     onShowGraph: () -> Unit = {},
+    horizontal: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val items = visibleRailItems(railOrder, railHidden)
-    ToolbarShell(slotCount = items.size + STEM_ENTRY_COUNT, modifier = modifier) {
-        StemRailSection(tool, onTool, onShowGraph)
+    ToolbarShell(
+        slotCount = items.size + STEM_ENTRY_COUNT,
+        horizontal = horizontal,
+        modifier = modifier,
+    ) {
+        StemRailSection(tool, onTool, onShowGraph, horizontal = horizontal)
         for (item in items) {
             val group = toolGroupForRailItem(item.id)
             if (group != null) {
@@ -134,7 +142,7 @@ fun SideToolbar(
     }
 }
 
-/** The floating rail's width: 40dp buttons + 6dp horizontal padding each side = 52dp. */
+/** The floating rail's width (or height when horizontal): 40dp buttons + 6dp padding each side = 52dp. */
 val SideToolbarModernWidth = 52.dp
 /** Margin around the modern floating rail. */
 val SideToolbarModernPadding = 6.dp
@@ -148,8 +156,7 @@ val SideToolbarModernTotalWidth = SideToolbarModernWidth + (SideToolbarModernPad
 internal val SideToolbarModernSlot = ModernTheme.compactButtonSizeDp
 
 /**
- * The rail's shell: a column of slots down whichever vertical edge it is docked to, sized so that it
- * never shows half a button.
+ * The rail's shell: a column or row of slots, sized so that it never shows half a button.
  *
  * Sized as a floating glass capsule with ModernTheme tokens (16dp corner radius, 1px hairline border
  * at 10-15% alpha, backdrop blur at 85-90% opacity, 40dp buttons), so ruling and PDF content underneath
@@ -159,45 +166,97 @@ internal val SideToolbarModernSlot = ModernTheme.compactButtonSizeDp
 private fun ToolbarShell(
     /** The visible slot count — the adaptive pitch's one input it cannot read off the layout. */
     slotCount: Int,
+    horizontal: Boolean,
     modifier: Modifier,
     buttons: @Composable () -> Unit,
 ) {
     val baseSlot = SideToolbarModernSlot
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxHeight()
-            .padding(
-                horizontal = SideToolbarModernPadding,
-                vertical = SideToolbarModernOuterPadding,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        val scale = railContentScale(
-            availableHeightDp = maxHeight.value,
-            slotCount = slotCount,
-            slotDp = baseSlot.value,
-            spacingDp = RailSpacing.value,
-            paddingDp = RailColumnPadding.value,
-        )
-        val isDark = isSystemInDarkTheme()
-        val glassColor = ModernTheme.glassSurface(isDark)
-        val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
-        CompositionLocalProvider(
-            LocalRailSlotSize provides baseSlot * scale,
-            LocalRailSlotScale provides scale,
+    val isDark = isSystemInDarkTheme()
+    val glassColor = ModernTheme.glassSurface(isDark)
+    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+
+    if (horizontal) {
+        BoxWithConstraints(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = SideToolbarModernOuterPadding,
+                    vertical = SideToolbarModernPadding,
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                modifier = Modifier.width(SideToolbarModernWidth),
-                shape = ModernTheme.capsuleShape,
-                color = glassColor,
-                tonalElevation = 0.dp,
-                shadowElevation = 6.dp,
-                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+            val scale = railContentScale(
+                availableHeightDp = maxWidth.value,
+                slotCount = slotCount,
+                slotDp = baseSlot.value,
+                spacingDp = RailSpacing.value,
+                paddingDp = RailColumnPadding.value,
+            )
+            CompositionLocalProvider(
+                LocalRailSlotSize provides baseSlot * scale,
+                LocalRailSlotScale provides scale,
             ) {
-                RailColumn(scale) { buttons() }
+                Surface(
+                    modifier = Modifier.height(SideToolbarModernWidth),
+                    shape = ModernTheme.capsuleShape,
+                    color = glassColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 6.dp,
+                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                ) {
+                    RailRow(scale) { buttons() }
+                }
+            }
+        }
+    } else {
+        BoxWithConstraints(
+            modifier = modifier
+                .fillMaxHeight()
+                .padding(
+                    horizontal = SideToolbarModernPadding,
+                    vertical = SideToolbarModernOuterPadding,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            val scale = railContentScale(
+                availableHeightDp = maxHeight.value,
+                slotCount = slotCount,
+                slotDp = baseSlot.value,
+                spacingDp = RailSpacing.value,
+                paddingDp = RailColumnPadding.value,
+            )
+            CompositionLocalProvider(
+                LocalRailSlotSize provides baseSlot * scale,
+                LocalRailSlotScale provides scale,
+            ) {
+                Surface(
+                    modifier = Modifier.width(SideToolbarModernWidth),
+                    shape = ModernTheme.capsuleShape,
+                    color = glassColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 6.dp,
+                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                ) {
+                    RailColumn(scale) { buttons() }
+                }
             }
         }
     }
+}
+
+/**
+ * The rail's scrolling row when docked to TOP or BOTTOM.
+ */
+@Composable
+private fun RailRow(scale: Float, buttons: @Composable () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(horizontal = RailColumnPadding, vertical = 6.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(RailSpacing * scale),
+        verticalAlignment = Alignment.CenterVertically,
+    ) { buttons() }
 }
 
 /**

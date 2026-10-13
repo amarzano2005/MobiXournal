@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -69,37 +71,52 @@ internal fun OnboardingStep4Handedness(
         }
 
         Text(
-            text = "The Main Toolbar docks to one vertical edge of the canvas. Put it on the side of " +
-                "your writing hand so the buttons stay under it and off the page — pick either now, " +
+            text = "The Main Toolbar can dock to any screen edge. Pick your preferred position now, " +
                 "and change it any time in Settings → Interface → Toolbar.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         HandednessCard(
-            title = "Right-handed",
-            description = "Main Toolbar on the left edge. The default.",
-            arrowRight = false,
+            title = "Right-handed (Left)",
+            description = "Vertical toolbar on the left edge. The default.",
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
             selected = selected == ToolbarPosition.LEFT,
             onClick = { onSelect(ToolbarPosition.LEFT) },
         )
 
         HandednessCard(
-            title = "Left-handed",
-            description = "Main Toolbar on the right edge.",
-            arrowRight = true,
+            title = "Left-handed (Right)",
+            description = "Vertical toolbar on the right edge.",
+            icon = Icons.AutoMirrored.Filled.ArrowForward,
             selected = selected == ToolbarPosition.RIGHT,
             onClick = { onSelect(ToolbarPosition.RIGHT) },
+        )
+
+        HandednessCard(
+            title = "Top Center",
+            description = "Horizontal capsule centered along the top.",
+            icon = Icons.Filled.KeyboardArrowUp,
+            selected = selected == ToolbarPosition.TOP,
+            onClick = { onSelect(ToolbarPosition.TOP) },
+        )
+
+        HandednessCard(
+            title = "Bottom Center",
+            description = "Horizontal capsule centered along the bottom. Thumb-friendly.",
+            icon = Icons.Filled.KeyboardArrowDown,
+            selected = selected == ToolbarPosition.BOTTOM,
+            onClick = { onSelect(ToolbarPosition.BOTTOM) },
         )
     }
 }
 
-/** One hand-choice card: an arrow pointing at the edge the rail moves to, a title, and a check. */
+/** One hand-choice card: an arrow or direction icon, a title, and a check. */
 @Composable
 private fun HandednessCard(
     title: String,
     description: String,
-    arrowRight: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -121,8 +138,7 @@ private fun HandednessCard(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = if (arrowRight) Icons.AutoMirrored.Filled.ArrowForward
-            else Icons.AutoMirrored.Filled.ArrowBack,
+            imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(22.dp),

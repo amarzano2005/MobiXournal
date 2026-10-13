@@ -5,11 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -46,41 +49,79 @@ internal fun stemEntryActive(entry: StemEntry, tool: EditorTool): Boolean {
 
 /**
  * The accent-tinted STEM capsule on the rail: every button is one tap, no sub-menus, and a hairline
- * divider separates it from the inking tools above.
+ * divider separates it from the inking tools.
  */
 @Composable
-internal fun StemRailSection(tool: EditorTool, onTool: (EditorTool) -> Unit, onShowGraph: () -> Unit) {
+internal fun StemRailSection(
+    tool: EditorTool,
+    onTool: (EditorTool) -> Unit,
+    onShowGraph: () -> Unit,
+    horizontal: Boolean = false,
+) {
     val slot = LocalRailSlotSize.current
     val isDark = isSystemInDarkTheme()
     val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
-    HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-            .padding(vertical = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        for (entry in STEM_ENTRIES) {
-            val active = stemEntryActive(entry, tool)
-            Box(
-                modifier = Modifier
-                    .size(slot)
-                    .clip(RoundedCornerShape(10.dp))
-                    .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
-                    .clickable { entry.tool?.let(onTool) ?: onShowGraph() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    entry.icon,
-                    contentDescription = "STEM: ${entry.label}",
-                    tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(slot / 2),
-                )
+    if (horizontal) {
+        VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        Row(
+            modifier = Modifier
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .padding(horizontal = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            for (entry in STEM_ENTRIES) {
+                val active = stemEntryActive(entry, tool)
+                Box(
+                    modifier = Modifier
+                        .size(slot)
+                        .clip(RoundedCornerShape(10.dp))
+                        .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
+                        .clickable { entry.tool?.let(onTool) ?: onShowGraph() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        entry.icon,
+                        contentDescription = "STEM: ${entry.label}",
+                        tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(slot / 2),
+                    )
+                }
             }
         }
+        VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+    } else {
+        HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .padding(vertical = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            for (entry in STEM_ENTRIES) {
+                val active = stemEntryActive(entry, tool)
+                Box(
+                    modifier = Modifier
+                        .size(slot)
+                        .clip(RoundedCornerShape(10.dp))
+                        .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
+                        .clickable { entry.tool?.let(onTool) ?: onShowGraph() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        entry.icon,
+                        contentDescription = "STEM: ${entry.label}",
+                        tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(slot / 2),
+                    )
+                }
+            }
+        }
+        HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
     }
-    HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
 }
