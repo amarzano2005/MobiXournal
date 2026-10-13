@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "step-1-mobix-format-remainder"
+title = "Step 1 - the native .mobix format (what is still owed)"
+description = "The Step 1 epic was archived while the pillar still owed work, so this one carries the rest and keeps the order docs/future-roadmap.md insists on: Step 1 before Step 2. The container, the codecs, the .xopp bridge, the rendering of the living entities and the sync merge all shipped (the unstamped tasks in FINISHED.toml), but four things are open: the infinite canvas (docs/infinite-canvas.md - the manifest already names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D while MobixDocument refuses every mode except PAGINATED, so an infinite document cannot be opened at all), continuous audio-inking sync (docs/audio-inking-sync.md - only the .wav sidecars of docs/audio.md exist), the math engine parameter sliders (docs/math-engine.md promises sliders over PlotElement.parameters and nothing in the UI moves one) and the companion Lua plugin scope already tracked here. Plus the docs that keep calling shipped work pending. EPIC: break it into scopes and tasks; it closes before Step 2 starts."
+status = "finished"
+level = "epic"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = ["mobix", "roadmap"]
+
+[[task]]
+id = "xournalpp-lua-mobix-plugin"
+title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
+description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-13
+tags = ["mobix", "desktop"]
+
+[[task]]
+id = "continuous-audio-inking-sync"
+title = "Continuous audio-inking sync (Opus assets, point-level deltas, karaoke replay)"
+description = "docs/audio-inking-sync.md: Opus recordings bundled at assets/aud_<sha256>.opus (one codec, named by content hash, so the same recording referenced twice is stored once), every stroke point carrying its own time delta so a long sentence maps to sound point by point, and karaoke replay plus sub-stroke scrubbing from the ink back to the audio. What exists is the other half of the pair: docs/audio.md documents .wav sidecars timestamped only at the start of a stroke, and StrokePoint.dtMs is already in the element model and written by MobixElementCodec, so the telemetry channel is open and unused. Investigate the encoder on Android and the decoder the desktop side needs, how the input layer would populate the deltas (docs/stylus.md), how replay drives against the canvas paint loop, and what the .xopp bridge does with a document whose audio it cannot carry. Then add the task-level children. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = ["audio", "mobix"]
+
+[[task]]
+id = "infinite-canvas-engine"
+title = "Infinite canvas engine (vertical, horizontal and 2D modes)"
+description = "docs/infinite-canvas.md specifies four spatial modes and their container half: content in chunks/chunk_<cx>_<cy>.json with signed coordinates, a canvas.json envelope carrying mode, widthPt, heightPt, chunkSizePt and origin, 1024 pt chunks, viewport culling with offscreen eviction, and an auto-slicer that looks for a whitespace seam within 40 pt of each target cut and never splits a stroke, a table or a plot, so PDF and .xopp export come out as discrete pages. The vocabulary is already in the code - format/mobix/MobixManifest.kt names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D and carries canvasMode through the manifest and canvas.json - but MobixDocument.kt throws for every mode except PAGINATED and the writer only ever emits that one, so an infinite document cannot be opened, created or saved. Investigate what the viewport and page model would have to gain (docs/rendering.md, docs/pages-and-paper.md), how chunks map to elements and to the merge engine (docs/sync-and-storage.md), and what the slicer means for the existing export path, then add the task-level children. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = ["canvas", "mobix"]
+
+[[task]]
 id = "plot-parameter-sliders"
 title = "Plot parameter sliders (drag a named parameter, re-evaluate the curve)"
 description = "The half of docs/math-engine.md that is not built: an expression may define named parameters (f(x) = a*sin(b*x+c)), the PlotElement keeps them in format/model/Living.kt parameters and MobixPlotCodec persists them, and a parameter is meant to be moved rather than the formula rewritten - but nothing in the UI offers a slider. Give a selected PlotElement one slider per named parameter, anchored to the plot and drawn in the canvas chrome so a drag on a slider is never a stroke, re-evaluating the curve and the analysis on each drag through the render/FunctionAnalysis.kt path, refreshing the cached summaryText the way render/PlotElementFactory.kt does, and committing the moved parameter as one undoable edit on release. Verify with JVM unit tests that moving a parameter changes the sampled curve and the analysis, plus an emulator pass dragging a slider with a stylus while the plot updates."

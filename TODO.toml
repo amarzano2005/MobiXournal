@@ -22,62 +22,6 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .xopp format can represent on disk. If a capability cannot round-trip through the file, it is out of scope."
 
 [[task]]
-id = "step-1-mobix-format-remainder"
-title = "Step 1 - the native .mobix format (what is still owed)"
-description = "The Step 1 epic was archived while the pillar still owed work, so this one carries the rest and keeps the order docs/future-roadmap.md insists on: Step 1 before Step 2. The container, the codecs, the .xopp bridge, the rendering of the living entities and the sync merge all shipped (the unstamped tasks in FINISHED.toml), but four things are open: the infinite canvas (docs/infinite-canvas.md - the manifest already names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D while MobixDocument refuses every mode except PAGINATED, so an infinite document cannot be opened at all), continuous audio-inking sync (docs/audio-inking-sync.md - only the .wav sidecars of docs/audio.md exist), the math engine parameter sliders (docs/math-engine.md promises sliders over PlotElement.parameters and nothing in the UI moves one) and the companion Lua plugin scope already tracked here. Plus the docs that keep calling shipped work pending. EPIC: break it into scopes and tasks; it closes before Step 2 starts."
-status = "active"
-level = "epic"
-category = "feature"
-urgency = "critical"
-order = 400
-created = 2026-10-13
-tags = ["mobix", "roadmap"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "infinite-canvas-engine"
-title = "Infinite canvas engine (vertical, horizontal and 2D modes)"
-description = "docs/infinite-canvas.md specifies four spatial modes and their container half: content in chunks/chunk_<cx>_<cy>.json with signed coordinates, a canvas.json envelope carrying mode, widthPt, heightPt, chunkSizePt and origin, 1024 pt chunks, viewport culling with offscreen eviction, and an auto-slicer that looks for a whitespace seam within 40 pt of each target cut and never splits a stroke, a table or a plot, so PDF and .xopp export come out as discrete pages. The vocabulary is already in the code - format/mobix/MobixManifest.kt names INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D and carries canvasMode through the manifest and canvas.json - but MobixDocument.kt throws for every mode except PAGINATED and the writer only ever emits that one, so an infinite document cannot be opened, created or saved. Investigate what the viewport and page model would have to gain (docs/rendering.md, docs/pages-and-paper.md), how chunks map to elements and to the merge engine (docs/sync-and-storage.md), and what the slicer means for the existing export path, then add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 320
-created = 2026-10-13
-tags = ["canvas", "mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "continuous-audio-inking-sync"
-title = "Continuous audio-inking sync (Opus assets, point-level deltas, karaoke replay)"
-description = "docs/audio-inking-sync.md: Opus recordings bundled at assets/aud_<sha256>.opus (one codec, named by content hash, so the same recording referenced twice is stored once), every stroke point carrying its own time delta so a long sentence maps to sound point by point, and karaoke replay plus sub-stroke scrubbing from the ink back to the audio. What exists is the other half of the pair: docs/audio.md documents .wav sidecars timestamped only at the start of a stroke, and StrokePoint.dtMs is already in the element model and written by MobixElementCodec, so the telemetry channel is open and unused. Investigate the encoder on Android and the decoder the desktop side needs, how the input layer would populate the deltas (docs/stylus.md), how replay drives against the canvas paint loop, and what the .xopp bridge does with a document whose audio it cannot carry. Then add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 330
-created = 2026-10-13
-tags = ["audio", "mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "xournalpp-lua-mobix-plugin"
-title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
-description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 350
-created = 2026-10-12
-tags = ["mobix", "desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "step-2-modern-mobile-ui"
 title = "Step 2 - modern mobile interface (design system, living editors, typesetting, PDF, multi-window)"
 description = "The roadmap second pillar (docs/future-roadmap.md). It owns five spokes, not one: the modern design system and bimanual ergonomics (docs/ui-modernization.md), auto-shape perfection (docs/shape-perfection-engine.md), on-device scientific typesetting (docs/latex-typst-rendering.md), the advanced PDF annotation engine (docs/pdf-annotation-engine.md) and the multi-window workspace (docs/multi-window-workspace.md); it also owns the in-place editors that make the Step 1 living entities editable, one family at a time (docs/mobix-elements.md). Not in this epic: Phase 4 of ui-modernization.md (the desktop shell, Mica / Vibrancy) and everything in docs/desktop-workstation.md, which are Step 3. Sequencing: the Step 1 remainder epic in this file closes first, because docs/future-roadmap.md orders the three pillars strictly. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
@@ -495,4 +439,130 @@ order = 710
 created = 2026-10-13
 tags = ["multi-window"]
 rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "implement-chunk-container-codecs-and-canvas-json-spatial-modes"
+title = "Implement chunk container codecs and canvas.json spatial modes"
+description = "Support chunks/chunk_<cx>_<cy>.json part serialization and deserialization in format/mobix/MobixChunkCodec.kt, persist spatial chunk entries in MobixManifest.chunks, and handle INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D in MobixDocument."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 720
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "infinite-viewport-coordinate-system-and-chunk-tile-eviction"
+title = "Infinite viewport coordinate system and chunk tile eviction"
+description = "Extend ViewportState and DrawingSurfaceView to support unbounded or strip-locked infinite coordinates, querying active visible chunk bounds [cxMin..cxMax, cyMin..cyMax] with a 1-chunk cache margin and offscreen memory eviction."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 730
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "content-aware-auto-slicer-for-pdf-and-xopp-export"
+title = "Content-aware auto-slicer for PDF and .xopp export"
+description = "Implement render/CanvasAutoSlicer.kt to slice infinite canvas strips into discrete pages: search a +/- 40 pt whitespace window around cut targets to avoid splitting strokes, tables, or plots for clean multi-page PDF and .xopp export."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 740
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "opus-audio-recording-and-content-hashed-asset-bundling"
+title = "Opus audio recording and content-hashed asset bundling"
+description = "Record audio directly to assets/aud_<sha256>.opus using Android MediaCodec/MediaMuxer, saving content-hashed Opus files into the .mobix container and referencing them via stroke audioRef."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 750
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "point-level-dtms-millisecond-telemetry-inking"
+title = "Point-level dtMs millisecond telemetry inking"
+description = "Populate StrokePoint.dtMs dynamically from MotionEvent.eventTime relative to stroke start during live stylus inking in DrawingSurfaceStrokes.kt, and persist point timing in MobixElementCodec."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 760
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "karaoke-stroke-playback-animation-and-sub-stroke-scrubbing"
+title = "Karaoke stroke playback animation and sub-stroke scrubbing"
+description = "Implement synchronized audio-stroke replay in DrawingSurfaceView: dim future strokes, animate inking path dynamically at audio timestamp t, and allow point-accurate seek via audio-tap."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 770
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "synthesize-companion-wav-sidecars-on-xopp-audio-export"
+title = "Synthesize companion WAV sidecars on .xopp audio export"
+description = "Convert bundled .opus recordings into companion .wav sidecars during .xopp export, restoring stroke-level ts timestamps for lossless compatibility with desktop Xournal++ audio."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 780
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "create-xournal-lua-plugin-manifest-and-directory-scaffolding"
+title = "Create Xournal++ Lua plugin manifest and directory scaffolding"
+description = "Draft the official companion plugin layout under plugins/mobix-importer/: plugin.ini declaring metadata, menus, and author, plus main.lua lifecycle callbacks."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 790
+created = 2026-10-13
+tags = []
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "implement-lua-document-extraction-and-temporary-xopp-open-bridge"
+title = "Implement Lua document extraction and temporary .xopp open bridge"
+description = "Implement the unzipping of .mobix containers, JSON manifest parsing, and generation of a synthesized temporary .xopp document opened via app.openFile in Xournal++."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 800
+created = 2026-10-13
+tags = []
+rebuild = true
 emulator_debug = false
