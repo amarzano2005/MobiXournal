@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "infinite-viewport-coordinate-system-and-chunk-tile-eviction"
+title = "Infinite viewport coordinate system and chunk tile eviction"
+description = "Extend ViewportState and DrawingSurfaceView to support unbounded or strip-locked infinite coordinates, querying active visible chunk bounds [cxMin..cxMax, cyMin..cyMax] with a 1-chunk cache margin and offscreen memory eviction."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = []
+
+[[task]]
 id = "implement-chunk-container-codecs-and-canvas-json-spatial-modes"
 title = "Implement chunk container codecs and canvas.json spatial modes"
 description = "Support chunks/chunk_<cx>_<cy>.json part serialization and deserialization in format/mobix/MobixChunkCodec.kt, persist spatial chunk entries in MobixManifest.chunks, and handle INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D in MobixDocument."

@@ -88,6 +88,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
+    /** Active spatial chunk manager for infinite canvas modes, or null in paginated mode. */
+    internal var chunkTileManager: ChunkTileManager? = null
+
     @VisibleForTesting
     internal var scrollY: Float
         get() = viewport.scrollY
@@ -1650,7 +1653,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal fun maxScrollX(): Float = viewport.maxScrollX()
 
     /** Scroll the viewport by one glide step, clamped; false when it didn't move (pinned at a bound). */
-    internal fun scrollViewportBy(dx: Float, dy: Float): Boolean = viewport.scrollBy(dx, dy)
+    internal fun scrollViewportBy(dx: Float, dy: Float): Boolean {
+        val moved = viewport.scrollBy(dx, dy)
+        if (moved) {
+            chunkTileManager?.evictOffscreen(viewport.visibleChunkRange())
+        }
+        return moved
+    }
 
     // --- surface + rendering -------------------------------------------------------------------
 
