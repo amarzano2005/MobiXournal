@@ -12,8 +12,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Outline figure glyphs drawn on Material's 24-unit icon grid with a 2-unit stroke width and
- * no fill, ensuring figures in the Shapes submenu appear consistently as outlines rather than solid shapes.
+ * Outline figure glyphs drawn on Material's 24-unit icon grid with a 1.5-unit stroke width and
+ * no fill, ensuring figures in the Shapes submenu appear consistently as monoline outlines.
  */
 
 private fun buildOutlineIcon(name: String, outline: List<Pair<Float, Float>>): ImageVector =
@@ -27,7 +27,7 @@ private fun buildOutlineIcon(name: String, outline: List<Pair<Float, Float>>): I
         path(
             fill = null,
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -130,7 +130,7 @@ val CoordinateAxisIcon: ImageVector by lazy {
         path(
             fill = null,
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -150,7 +150,7 @@ val CoordinateAxisIcon: ImageVector by lazy {
         path(
             fill = null,
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -170,10 +170,13 @@ val TableIcon: ImageVector by lazy {
         viewportWidth = 24f,
         viewportHeight = 24f,
     ).apply {
-        // Filled header bar across top (distinct from plain wire grid)
+        // Outline header bar across top
         path(
-            fill = SolidColor(Color.Black),
-            stroke = null,
+            fill = null,
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.5f,
+            strokeLineCap = StrokeCap.Round,
+            strokeLineJoin = StrokeJoin.Round,
         ) {
             moveTo(3f, 3f)
             lineTo(21f, 3f)
@@ -185,7 +188,7 @@ val TableIcon: ImageVector by lazy {
         path(
             fill = null,
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {

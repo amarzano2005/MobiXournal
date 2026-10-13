@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -152,7 +152,7 @@ internal fun WidthSlotSliderDialog(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     IconButton(onClick = { nudge(-PEN_WIDTH_STEP) }) {
-                        Icon(Icons.Filled.Remove, contentDescription = "Thinner")
+                        Icon(Icons.Outlined.Remove, contentDescription = "Thinner")
                     }
                     OutlinedTextField(
                         value = text,
@@ -166,7 +166,7 @@ internal fun WidthSlotSliderDialog(
                         modifier = Modifier.width(120.dp),
                     )
                     IconButton(onClick = { nudge(PEN_WIDTH_STEP) }) {
-                        Icon(Icons.Filled.Add, contentDescription = "Thicker")
+                        Icon(Icons.Outlined.Add, contentDescription = "Thicker")
                     }
                 }
                 Slider(

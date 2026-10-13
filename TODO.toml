@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "modern-typography-inter-geist-and-monoline-icon-set"
-title = "Modern typography (Inter/Geist) and monoline icon set"
-description = "Phase 1 of docs/ui-modernization.md: move off stock Roboto to a modern geometric neutral face (Inter or Geist) and replace the filled Material icons with a consistent 1.5 dp monoline set. Bundle the font under app/src/main/res/font/ and apply it in ui/theme/Theme.kt (no new dependency), with tabular figures for the zoom and coordinate readouts so digits stop shifting width; the monoline set covers the rail slots (ui/ToolGroups.kt), the STEM section (ui/StemRailSection.kt) and the toolbars. Verify on the emulator: screenshots of the rail and the top bar showing the face and the icon weight, plus a clean logcat."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 440
-created = 2026-10-12
-tags = ["ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "true-black-dark-mode-with-neutral-charcoal-layers"
 title = "True-black dark mode with neutral charcoal layers"
 description = "Section 3 of docs/ui-modernization.md, pure dark mode depth: replace the tinted Material 3 dark surfaces in ui/theme/Theme.kt (today 0xFF141720 and 0xFF191D28) with a true OLED black canvas backing (0xFF000000) and neutral charcoal layers (0xFF121212, 0xFF1E1E1E), with accents as luminescent micro-highlights rather than pastel washes. The paper, its ruling and an imported PDF background keep their own colours (docs/pages-and-paper.md), so only the chrome changes. Verify on the emulator: dark-mode screenshots over a plain, a ruled and an imported PDF page, plus one light-mode shot proving no regression."

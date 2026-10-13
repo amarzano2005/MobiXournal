@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,7 +55,7 @@ private const val THUMB_WIDTH_PX = 240
 internal fun TabOverviewButton(tabs: TabsUiState) {
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { tabs.onOverview(); open = true }) {
-        Icon(Icons.Filled.GridView, contentDescription = "Tab overview")
+        Icon(Icons.Outlined.GridView, contentDescription = "Tab overview")
     }
     if (!open) return
     // One slot per tab, filled in as each preview lands. Keyed on the tab count so a tab opened or

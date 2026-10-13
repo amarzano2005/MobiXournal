@@ -21,8 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -453,7 +453,7 @@ private fun CartesianCurveList(curves: MutableList<CurveEditorState>) {
                 },
                 modifier = Modifier.align(Alignment.End),
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Text(" Add function")
             }
         }
@@ -484,7 +484,7 @@ private fun CurveRow(
             )
             if (canDelete) {
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                    Icon(Icons.Outlined.Delete, contentDescription = "Remove")
                 }
             }
         }

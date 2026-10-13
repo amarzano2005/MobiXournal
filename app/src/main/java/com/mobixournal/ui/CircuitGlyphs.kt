@@ -17,7 +17,7 @@ val ResistorIcon: ImageVector by lazy {
     ImageVector.Builder("Resistor", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -37,7 +37,7 @@ val CapacitorIcon: ImageVector by lazy {
     ImageVector.Builder("Capacitor", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -53,7 +53,7 @@ val InductorIcon: ImageVector by lazy {
     ImageVector.Builder("Inductor", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -70,7 +70,7 @@ val GroundIcon: ImageVector by lazy {
     ImageVector.Builder("Ground", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -86,7 +86,7 @@ val AndGateIcon: ImageVector by lazy {
     ImageVector.Builder("AndGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -109,7 +109,7 @@ val OrGateIcon: ImageVector by lazy {
     ImageVector.Builder("OrGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -131,7 +131,7 @@ val NotGateIcon: ImageVector by lazy {
     ImageVector.Builder("NotGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -157,7 +157,7 @@ val NandGateIcon: ImageVector by lazy {
     ImageVector.Builder("NandGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -180,7 +180,7 @@ val NorGateIcon: ImageVector by lazy {
     ImageVector.Builder("NorGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -204,7 +204,7 @@ val XorGateIcon: ImageVector by lazy {
     ImageVector.Builder("XorGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -225,7 +225,7 @@ val XnorGateIcon: ImageVector by lazy {
     ImageVector.Builder("XnorGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -251,7 +251,7 @@ val DiodeIcon: ImageVector by lazy {
     ImageVector.Builder("Diode", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -273,7 +273,7 @@ val LedIcon: ImageVector by lazy {
         // Hollow diode body + cathode bar + lead wires
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -304,7 +304,7 @@ val ZenerDiodeIcon: ImageVector by lazy {
         // Hollow diode body + 90-degree Z-bend cathode bar + lead wires
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -321,7 +321,7 @@ val OpAmpIcon: ImageVector by lazy {
     ImageVector.Builder("OpAmp", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -354,7 +354,7 @@ val BjtNpnIcon: ImageVector by lazy {
         // Base lead, collector lead (top) and emitter lead (bottom)
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -400,7 +400,7 @@ val BjtPnpIcon: ImageVector by lazy {
         // Base lead, collector lead (top) and emitter lead (bottom)
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -432,7 +432,7 @@ val DcSourceIcon: ImageVector by lazy {
     ImageVector.Builder("DcSource", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -456,7 +456,7 @@ val CurrentSourceIcon: ImageVector by lazy {
     ImageVector.Builder("CurrentSource", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -482,7 +482,7 @@ val BufferGateIcon: ImageVector by lazy {
     ImageVector.Builder("BufferGate", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -497,7 +497,7 @@ val SwitchOpenIcon: ImageVector by lazy {
     ImageVector.Builder("SwitchOpen", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -512,7 +512,7 @@ val SwitchClosedIcon: ImageVector by lazy {
     ImageVector.Builder("SwitchClosed", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -567,7 +567,7 @@ val DimensionIcon: ImageVector by lazy {
     ImageVector.Builder("Dimension", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {

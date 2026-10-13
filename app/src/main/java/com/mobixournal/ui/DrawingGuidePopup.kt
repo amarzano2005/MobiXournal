@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.GridOn
-import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -103,21 +103,21 @@ val ProtractorIcon: ImageVector by lazy {
 
 /** The icon shown on the toolbar button for [kind]. */
 fun guideButtonIcon(kind: GuideKind): ImageVector = when (kind) {
-    GuideKind.NONE -> Icons.Filled.Straighten
+    GuideKind.NONE -> Icons.Outlined.Straighten
     GuideKind.SETSQUARE -> SetsquareIcon
     GuideKind.COMPASS -> CompassIcon
     GuideKind.PROTRACTOR -> ProtractorIcon
-    GuideKind.RULING -> Icons.Filled.GridOn
+    GuideKind.RULING -> Icons.Outlined.GridOn
     GuideKind.CHEMISTRY -> BenzeneIcon
 }
 
 /** The icon shown in the submenu list for [kind]. */
 fun guideOptionIcon(kind: GuideKind): ImageVector = when (kind) {
-    GuideKind.NONE -> Icons.Filled.Close
+    GuideKind.NONE -> Icons.Outlined.Close
     GuideKind.SETSQUARE -> SetsquareIcon
     GuideKind.COMPASS -> CompassIcon
     GuideKind.PROTRACTOR -> ProtractorIcon
-    GuideKind.RULING -> Icons.Filled.GridOn
+    GuideKind.RULING -> Icons.Outlined.GridOn
     GuideKind.CHEMISTRY -> BenzeneIcon
 }
 
@@ -150,7 +150,7 @@ private fun GuideOptionMenuItem(
         },
         trailingIcon = {
             if (isSelected) {
-                Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Outlined.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
             }
         },
         onClick = {

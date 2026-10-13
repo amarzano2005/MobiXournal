@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.outlined.AutoFixHigh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -101,7 +101,7 @@ internal fun ShapeRecognitionButton(enabled: Boolean, onEnabled: (Boolean) -> Un
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Filled.AutoFixHigh,
+            Icons.Outlined.AutoFixHigh,
             contentDescription = if (enabled) "Shape recognition on" else "Shape recognition off",
             tint = tint,
             modifier = Modifier.size(slot / 2),

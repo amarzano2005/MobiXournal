@@ -20,8 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -170,7 +170,7 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         ) {
             IconButton(onClick = state.onNew, modifier = Modifier.size(30.dp)) {
                 Icon(
-                    Icons.Filled.Add,
+                    Icons.Outlined.Add,
                     contentDescription = "New document",
                     modifier = Modifier.size(TAB_NEW_ICON),
                     tint = MaterialTheme.colorScheme.primary,
@@ -313,7 +313,7 @@ private fun TabCloseButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Filled.Close,
+            Icons.Outlined.Close,
             contentDescription = "Close $title",
             modifier = Modifier.size(TAB_CLOSE_ICON),
             tint = if (selected) colors.onSurface else colors.onSurfaceVariant,

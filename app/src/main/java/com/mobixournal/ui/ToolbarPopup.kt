@@ -20,8 +20,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -92,7 +92,7 @@ internal val LocalRailSlotScale = compositionLocalOf { 1f }
 @Composable
 internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
     Icon(
-        Icons.Filled.KeyboardArrowDown,
+        Icons.Outlined.KeyboardArrowDown,
         contentDescription = null,
         tint = tint,
         modifier = Modifier
@@ -402,7 +402,7 @@ private fun VariantCell(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Filled.Edit,
+                    Icons.Outlined.Edit,
                     contentDescription = editHint,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(14.dp),

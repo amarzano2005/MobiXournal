@@ -1,9 +1,9 @@
 package com.mobixournal.ui
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.GridOn
-import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.Straighten
 import com.mobixournal.render.GuideKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -16,21 +16,21 @@ class DrawingGuidePopupTest {
 
     @Test
     fun `guideButtonIcon resolves specific icons for active guides and ruler for none`() {
-        assertEquals(Icons.Filled.Straighten, guideButtonIcon(GuideKind.NONE))
+        assertEquals(Icons.Outlined.Straighten, guideButtonIcon(GuideKind.NONE))
         assertEquals(SetsquareIcon, guideButtonIcon(GuideKind.SETSQUARE))
         assertEquals(CompassIcon, guideButtonIcon(GuideKind.COMPASS))
         assertEquals(ProtractorIcon, guideButtonIcon(GuideKind.PROTRACTOR))
-        assertEquals(Icons.Filled.GridOn, guideButtonIcon(GuideKind.RULING))
+        assertEquals(Icons.Outlined.GridOn, guideButtonIcon(GuideKind.RULING))
         assertEquals(BenzeneIcon, guideButtonIcon(GuideKind.CHEMISTRY))
     }
 
     @Test
     fun `guideOptionIcon resolves dedicated symbol for every option in the menu`() {
-        assertEquals(Icons.Filled.Close, guideOptionIcon(GuideKind.NONE))
+        assertEquals(Icons.Outlined.Close, guideOptionIcon(GuideKind.NONE))
         assertEquals(SetsquareIcon, guideOptionIcon(GuideKind.SETSQUARE))
         assertEquals(CompassIcon, guideOptionIcon(GuideKind.COMPASS))
         assertEquals(ProtractorIcon, guideOptionIcon(GuideKind.PROTRACTOR))
-        assertEquals(Icons.Filled.GridOn, guideOptionIcon(GuideKind.RULING))
+        assertEquals(Icons.Outlined.GridOn, guideOptionIcon(GuideKind.RULING))
         assertEquals(BenzeneIcon, guideOptionIcon(GuideKind.CHEMISTRY))
     }
 

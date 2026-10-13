@@ -5,7 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,27 +35,27 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.NoteAdd
-import androidx.compose.material.icons.automirrored.filled.Redo
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.outlined.NoteAdd
+import androidx.compose.material.icons.automirrored.outlined.Redo
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.SaveAs
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.VerticalSplit
+import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material.icons.outlined.SaveAs
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.VerticalSplit
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -204,7 +204,7 @@ fun EditorTopBar(
             SearchControls(pane)
             IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
                 Icon(
-                    Icons.Filled.VerticalSplit,
+                    Icons.Outlined.VerticalSplit,
                     contentDescription = if (splitView) "Close split view" else "Split view",
                     tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp),
@@ -218,10 +218,10 @@ fun EditorTopBar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { pane.surface?.undo() }, enabled = !pane.isReadOnly && pane.canUndo, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
                     }
                     IconButton(onClick = { pane.surface?.redo() }, enabled = !pane.isReadOnly && pane.canRedo, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -232,7 +232,7 @@ fun EditorTopBar(
             ) {
                 IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                     Icon(
-                        Icons.Filled.PictureAsPdf,
+                        Icons.Outlined.PictureAsPdf,
                         contentDescription = "Export PDF",
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(20.dp),
@@ -245,7 +245,7 @@ fun EditorTopBar(
                 modifier = Modifier.padding(horizontal = 2.dp),
             ) {
                 IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Filled.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 }
             }
             OverflowMenu(
@@ -347,7 +347,7 @@ private fun SearchControls(pane: PaneState) {
             modifier = Modifier.size(36.dp),
         ) {
             Icon(
-                Icons.Filled.Search,
+                Icons.Outlined.Search,
                 contentDescription = "Search",
                 modifier = Modifier.size(20.dp),
             )
@@ -405,7 +405,7 @@ private fun SearchControls(pane: PaneState) {
                 )
             } else {
                 Icon(
-                    Icons.Filled.Search,
+                    Icons.Outlined.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -462,7 +462,7 @@ private fun SearchControls(pane: PaneState) {
                 modifier = Modifier.size(28.dp),
             ) {
                 Icon(
-                    Icons.Filled.KeyboardArrowUp,
+                    Icons.Outlined.KeyboardArrowUp,
                     contentDescription = "Previous match",
                     modifier = Modifier.size(18.dp),
                 )
@@ -474,7 +474,7 @@ private fun SearchControls(pane: PaneState) {
                 modifier = Modifier.size(28.dp),
             ) {
                 Icon(
-                    Icons.Filled.KeyboardArrowDown,
+                    Icons.Outlined.KeyboardArrowDown,
                     contentDescription = "Next match",
                     modifier = Modifier.size(18.dp),
                 )
@@ -490,7 +490,7 @@ private fun SearchControls(pane: PaneState) {
                 modifier = Modifier.size(28.dp),
             ) {
                 Icon(
-                    Icons.Filled.Close,
+                    Icons.Outlined.Close,
                     contentDescription = "Close search",
                     modifier = Modifier.size(18.dp),
                 )
@@ -798,7 +798,7 @@ fun TopBarToolsRow(
                             onClick = { ui.showGraphDialog = true },
                         ) {
                             Icon(
-                                Icons.AutoMirrored.Filled.ShowChart,
+                                Icons.AutoMirrored.Outlined.ShowChart,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
@@ -943,7 +943,7 @@ private fun CompactShapeKindButton(
                 )
             }
             Icon(
-                Icons.Filled.KeyboardArrowDown,
+                Icons.Outlined.KeyboardArrowDown,
                 contentDescription = null,
                 tint = tint,
                 modifier = Modifier
@@ -981,7 +981,7 @@ private fun CompactShapeKindButton(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Filled.Edit,
+                    Icons.Outlined.Edit,
                     contentDescription = editorHint,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(14.dp),
@@ -1027,7 +1027,7 @@ private fun CompactTopBarToolButton(
         }
         if (members.size > 1) {
             Icon(
-                Icons.Filled.KeyboardArrowDown,
+                Icons.Outlined.KeyboardArrowDown,
                 contentDescription = null,
                 tint = tint,
                 modifier = Modifier
@@ -1465,7 +1465,7 @@ private fun OverflowMenu(
             modifier = Modifier.size(36.dp),
         ) {
             Icon(
-                Icons.Filled.Menu,
+                Icons.Outlined.Menu,
                 contentDescription = "Menu",
                 modifier = Modifier.size(20.dp),
             )
@@ -1483,26 +1483,26 @@ private fun OverflowMenu(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             MenuQuickAction(
-                icon = Icons.AutoMirrored.Filled.NoteAdd,
+                icon = Icons.AutoMirrored.Outlined.NoteAdd,
                 label = "New",
                 onClick = { open = false; onNewTab() },
                 modifier = Modifier.weight(1f),
             )
             MenuQuickAction(
-                icon = Icons.Filled.FileOpen,
+                icon = Icons.Outlined.FileOpen,
                 label = "Open",
                 onClick = { open = false; onOpen() },
                 modifier = Modifier.weight(1f),
             )
             MenuQuickAction(
-                icon = Icons.Filled.Save,
+                icon = Icons.Outlined.Save,
                 label = "Save",
                 enabled = !isReadOnly,
                 onClick = { open = false; onSave() },
                 modifier = Modifier.weight(1f),
             )
             MenuQuickAction(
-                icon = Icons.Filled.SaveAs,
+                icon = Icons.Outlined.SaveAs,
                 label = "Save As",
                 enabled = !isReadOnly,
                 onClick = { open = false; onSaveAs() },
@@ -1523,7 +1523,7 @@ private fun OverflowMenu(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Import PDF", style = MaterialTheme.typography.labelMedium)
             }
@@ -1533,7 +1533,7 @@ private fun OverflowMenu(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Export PDF", style = MaterialTheme.typography.labelMedium)
             }
@@ -1552,7 +1552,7 @@ private fun OverflowMenu(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Page as PNG", style = MaterialTheme.typography.labelMedium)
             }
@@ -1562,7 +1562,7 @@ private fun OverflowMenu(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
             ) {
-                Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Page as SVG", style = MaterialTheme.typography.labelMedium)
             }
@@ -1591,7 +1591,7 @@ private fun OverflowMenu(
                     modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
-                        Icons.Filled.Tune,
+                        Icons.Outlined.Tune,
                         contentDescription = "Pen parameters",
                         modifier = Modifier.size(18.dp),
                     )
@@ -1631,7 +1631,7 @@ private fun OverflowMenu(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    Icons.Filled.BugReport,
+                    Icons.Outlined.BugReport,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = if (penDiagnostics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1644,7 +1644,7 @@ private fun OverflowMenu(
                 )
                 if (penDiagnostics) {
                     Icon(
-                        Icons.Filled.Check,
+                        Icons.Outlined.Check,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
@@ -1658,7 +1658,7 @@ private fun OverflowMenu(
         // Settings
         DropdownMenuItem(
             text = { Text("Settings") },
-            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
             onClick = { open = false; onSettings() },
         )
     }

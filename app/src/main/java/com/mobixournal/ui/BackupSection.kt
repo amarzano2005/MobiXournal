@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -98,7 +98,7 @@ fun BackupSection(
             onClick = { exportLauncher.launch("mobixournal-settings.json") },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         ) {
-            Icon(Icons.Filled.FileDownload, contentDescription = null)
+            Icon(Icons.Outlined.FileDownload, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Export to JSON")
         }
@@ -114,7 +114,7 @@ fun BackupSection(
             onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         ) {
-            Icon(Icons.Filled.FileUpload, contentDescription = null)
+            Icon(Icons.Outlined.FileUpload, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Import from JSON")
         }
@@ -127,7 +127,7 @@ fun BackupSection(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
         ) {
-            Icon(Icons.Filled.RestartAlt, contentDescription = null)
+            Icon(Icons.Outlined.RestartAlt, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Reset to Defaults")
         }

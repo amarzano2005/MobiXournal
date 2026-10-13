@@ -18,7 +18,7 @@ val BondSingleIcon: ImageVector by lazy {
     ImageVector.Builder("BondSingle", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -33,7 +33,7 @@ val BondDoubleIcon: ImageVector by lazy {
     ImageVector.Builder("BondDouble", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -48,7 +48,7 @@ val BondTripleIcon: ImageVector by lazy {
     ImageVector.Builder("BondTriple", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {
@@ -64,7 +64,7 @@ val BenzeneIcon: ImageVector by lazy {
     ImageVector.Builder("Benzene", 24.dp, 24.dp, 24f, 24f).apply {
         path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
+            strokeLineWidth = 1.5f,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
         ) {

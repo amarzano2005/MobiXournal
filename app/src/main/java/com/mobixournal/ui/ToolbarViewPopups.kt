@@ -11,19 +11,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.GridOn
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.ZoomIn
-import androidx.compose.material.icons.filled.ZoomOut
+import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.ZoomIn
+import androidx.compose.material.icons.outlined.ZoomOut
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -81,6 +82,7 @@ internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () ->
                     text = "${(zoom * 100).roundToInt()}%",
                     maxLines = 1,
                     softWrap = false,
+                    style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
                     fontSize = ZOOM_LABEL * LocalRailSlotScale.current,
                 )
             }
@@ -90,9 +92,14 @@ internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () ->
             modifier = Modifier.padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onZoomOut) { Icon(Icons.Filled.ZoomOut, contentDescription = "Zoom out") }
-            TextButton(onClick = onZoomReset) { Text("${(zoom * 100).roundToInt()}%") }
-            IconButton(onClick = onZoomIn) { Icon(Icons.Filled.ZoomIn, contentDescription = "Zoom in") }
+            IconButton(onClick = onZoomOut) { Icon(Icons.Outlined.ZoomOut, contentDescription = "Zoom out") }
+            TextButton(onClick = onZoomReset) {
+                Text(
+                    text = "${(zoom * 100).roundToInt()}%",
+                    style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
+                )
+            }
+            IconButton(onClick = onZoomIn) { Icon(Icons.Outlined.ZoomIn, contentDescription = "Zoom in") }
         }
     }
 }
@@ -140,7 +147,7 @@ internal fun BackgroundPopupButton(
 ) {
     val ruling = remember(config) { BackgroundRuling.parse(config) }
     ToolbarPopupButton(
-        icon = Icons.Filled.GridOn,
+        icon = Icons.Outlined.GridOn,
         contentDescription = "Page background",
     ) { dismiss ->
         MenuHeading("Paper")
@@ -255,7 +262,7 @@ private fun PopupChipRow(content: @Composable RowScope.() -> Unit) {
 @Composable
 internal fun AudioPopupButton(state: AudioUiState) {
     ToolbarPopupButton(
-        icon = if (state.recording) Icons.Filled.Stop else Icons.Filled.Mic,
+        icon = if (state.recording) Icons.Outlined.Stop else Icons.Outlined.Mic,
         contentDescription = "Audio",
         tint = if (state.recording || state.playing) MaterialTheme.colorScheme.primary
         else LocalContentColor.current,
@@ -265,7 +272,7 @@ internal fun AudioPopupButton(state: AudioUiState) {
             text = { Text(if (state.recording) "Stop recording" else "Record") },
             leadingIcon = {
                 Icon(
-                    if (state.recording) Icons.Filled.Stop else Icons.Filled.Mic,
+                    if (state.recording) Icons.Outlined.Stop else Icons.Outlined.Mic,
                     contentDescription = null,
                 )
             },
@@ -274,7 +281,7 @@ internal fun AudioPopupButton(state: AudioUiState) {
         DropdownMenuItem(
             text = { Text("Stop playback") },
             enabled = state.playing,
-            leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Stop, contentDescription = null) },
             onClick = { state.onStopPlayback(); dismiss() },
         )
         HorizontalDivider()

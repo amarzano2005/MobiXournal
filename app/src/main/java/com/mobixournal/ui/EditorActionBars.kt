@@ -14,20 +14,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ContentCut
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.LibraryAdd
-import androidx.compose.material.icons.filled.LineWeight
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.automirrored.outlined.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCut
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LibraryAdd
+import androidx.compose.material.icons.outlined.LineWeight
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -104,22 +104,22 @@ fun SelectionActionBar(
         ) {
             if (hasSelection) {
                 if (canEditPlot) {
-                    BarIconButton("Edit plot", Icons.Filled.Edit, onEditPlot)
+                    BarIconButton("Edit plot", Icons.Outlined.Edit, onEditPlot)
                 }
-                BarIconButton("Cut", Icons.Filled.ContentCut, onCut)
-                BarIconButton("Copy", Icons.Filled.ContentCopy, onCopy)
+                BarIconButton("Cut", Icons.Outlined.ContentCut, onCut)
+                BarIconButton("Copy", Icons.Outlined.ContentCopy, onCopy)
             }
             // Paste rides with Copy: the same idea in the opposite direction, and putting it here is
             // what keeps it usable while something *is* selected.
             if (canPaste) {
-                BarIconButton("Paste", Icons.Filled.ContentPaste, onPaste)
+                BarIconButton("Paste", Icons.Outlined.ContentPaste, onPaste)
             }
             if (hasSelection) {
-                BarIconButton("Duplicate", Icons.Filled.LibraryAdd, onDuplicate)
+                BarIconButton("Duplicate", Icons.Outlined.LibraryAdd, onDuplicate)
                 RecolorMenu(onRecolor, palette)
                 ReWidthMenu(widthSlots, onReWidth)
                 AlignMenu(onAlign, onDistribute)
-                BarIconButton("Delete", Icons.Filled.Delete, onDelete)
+                BarIconButton("Delete", Icons.Outlined.Delete, onDelete)
             }
         }
     }
@@ -137,7 +137,7 @@ private fun AlignMenu(
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        BarIconButton("Align & distribute", Icons.Filled.FormatAlignLeft) { open = true }
+        BarIconButton("Align & distribute", Icons.AutoMirrored.Outlined.FormatAlignLeft) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             @Composable
             fun row(label: String, action: () -> Unit) {
@@ -198,7 +198,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     var open by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     Box {
-        BarIconButton("Recolour", Icons.Filled.Palette) { open = true }
+        BarIconButton("Recolour", Icons.Outlined.Palette) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             ColorPaletteRows(
                 selected = null,
@@ -216,7 +216,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
 private fun ReWidthMenu(widthSlots: List<Float>, onReWidth: (Float) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        BarIconButton("Width", Icons.Filled.LineWeight) { open = true }
+        BarIconButton("Width", Icons.Outlined.LineWeight) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             widthSlots.forEachIndexed { i, pt ->
                 DropdownMenuItem(
@@ -261,19 +261,19 @@ fun SelectModeBar(
         ) {
             if (hasRegion) {
                 TextButton(onClick = onCopyRegion) {
-                    Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                    Icon(Icons.Outlined.ContentCopy, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Copy")
                 }
                 TextButton(onClick = onCutRegion) {
-                    Icon(Icons.Filled.ContentCut, contentDescription = null)
+                    Icon(Icons.Outlined.ContentCut, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Cut")
                 }
             }
             if (hasRegion) {
                 IconButton(onClick = onClearRegion) {
-                    Icon(Icons.Filled.Close, contentDescription = "Clear region")
+                    Icon(Icons.Outlined.Close, contentDescription = "Clear region")
                 }
             }
         }
@@ -310,13 +310,13 @@ fun SplineModeBar(
         ) {
             Text("$nodeCount ${if (nodeCount == 1) "point" else "points"}")
             IconButton(onClick = onUndoPoint) {
-                Icon(Icons.Filled.Undo, contentDescription = "Undo last point")
+                Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo last point")
             }
             IconButton(onClick = onCancel) {
-                Icon(Icons.Filled.Close, contentDescription = "Discard curve")
+                Icon(Icons.Outlined.Close, contentDescription = "Discard curve")
             }
             TextButton(onClick = onFinish, enabled = nodeCount >= 2) {
-                Icon(Icons.Filled.Check, contentDescription = null)
+                Icon(Icons.Outlined.Check, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
                 Text("Finish")
             }
@@ -343,7 +343,7 @@ fun TextSelectionBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(onClick = onCopy) {
-                Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                Icon(Icons.Outlined.ContentCopy, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
                 Text("Copy")
             }
@@ -389,7 +389,7 @@ fun TableModeBar(
                 enabled = rows > 1,
                 modifier = Modifier.size(32.dp),
             ) {
-                Icon(Icons.Filled.Remove, contentDescription = "Fewer rows", modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Remove, contentDescription = "Fewer rows", modifier = Modifier.size(16.dp))
             }
             Text("$rows", style = MaterialTheme.typography.bodyMedium)
             IconButton(
@@ -397,7 +397,7 @@ fun TableModeBar(
                 enabled = rows < 50,
                 modifier = Modifier.size(32.dp),
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "More rows", modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Add, contentDescription = "More rows", modifier = Modifier.size(16.dp))
             }
 
             Spacer(Modifier.width(4.dp))
@@ -408,7 +408,7 @@ fun TableModeBar(
                 enabled = cols > 1,
                 modifier = Modifier.size(32.dp),
             ) {
-                Icon(Icons.Filled.Remove, contentDescription = "Fewer columns", modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Remove, contentDescription = "Fewer columns", modifier = Modifier.size(16.dp))
             }
             Text("$cols", style = MaterialTheme.typography.bodyMedium)
             IconButton(
@@ -416,7 +416,7 @@ fun TableModeBar(
                 enabled = cols < 50,
                 modifier = Modifier.size(32.dp),
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "More columns", modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Add, contentDescription = "More columns", modifier = Modifier.size(16.dp))
             }
 
             Spacer(Modifier.width(4.dp))
@@ -430,7 +430,7 @@ fun TableModeBar(
             Spacer(Modifier.width(4.dp))
 
             TextButton(onClick = onInsert) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Insert")
             }

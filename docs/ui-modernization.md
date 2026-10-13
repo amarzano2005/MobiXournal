@@ -246,9 +246,10 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
 
 ## Phased migration plan
 
-1. **Phase 1: Design Tokens & Monoline Iconography**:
+1. **Phase 1: Design Tokens, Typography & Monoline Iconography**:
    - Extract UI colors and dimensions into a modern token provider (`ModernTheme`).
-   - Swap stock filled Material icons for consistent $1.5\text{ dp}$ monoline vector assets.
+   - Bundle clean geometric typography (**Inter**) in `res/font/` with tabular figures (`tnum`) via `ModernTypography` (`ui/theme/Type.kt`).
+   - Swap stock filled Material icons for consistent $1.5\text{ dp}$ monoline vector assets across toolbars, rails, and popups.
 2. **Phase 2: Floating Capsule Toolbar**:
    - Replace the rigid side rail and heavy top bar with an adaptive, draggable floating capsule bar.
 3. **Phase 3: Contextual Flyout Inspectors**:

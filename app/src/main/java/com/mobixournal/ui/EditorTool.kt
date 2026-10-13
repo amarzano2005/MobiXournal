@@ -1,26 +1,26 @@
 package com.mobixournal.ui
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowRightAlt
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.ChangeHistory
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.Crop
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Functions
-import androidx.compose.material.icons.filled.Gesture
-import androidx.compose.material.icons.filled.HighlightAlt
-import androidx.compose.material.icons.filled.HorizontalRule
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.PanTool
-import androidx.compose.material.icons.filled.PlayCircleOutline
-import androidx.compose.material.icons.filled.Polyline
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
+import androidx.compose.material.icons.outlined.Brush
+import androidx.compose.material.icons.outlined.ChangeHistory
+import androidx.compose.material.icons.outlined.Create
+import androidx.compose.material.icons.outlined.Crop
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Functions
+import androidx.compose.material.icons.outlined.Gesture
+import androidx.compose.material.icons.outlined.HighlightAlt
+import androidx.compose.material.icons.outlined.HorizontalRule
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.Polyline
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mobixournal.format.model.Tool
 
@@ -80,17 +80,17 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
 private data class ToolInfo(val tool: EditorTool, val label: String, val icon: ImageVector)
 
 private val TOOLS: List<ToolInfo> = listOf(
-    ToolInfo(EditorTool.PEN, "Pen", Icons.Filled.Create),
-    ToolInfo(EditorTool.HIGHLIGHTER, "Highlighter", Icons.Filled.Brush),
-    ToolInfo(EditorTool.ERASER, "Eraser (partial)", Icons.Filled.Delete),
-    ToolInfo(EditorTool.ERASER_WHOLE, "Eraser (whole stroke)", Icons.Filled.DeleteSweep),
-    ToolInfo(EditorTool.LINE, "Line", Icons.Filled.HorizontalRule),
-    ToolInfo(EditorTool.ARROW, "Arrow", Icons.Filled.ArrowRightAlt),
-    ToolInfo(EditorTool.DOUBLE_ARROW, "Double arrow", Icons.Filled.SwapHoriz),
+    ToolInfo(EditorTool.PEN, "Pen", Icons.Outlined.Create),
+    ToolInfo(EditorTool.HIGHLIGHTER, "Highlighter", Icons.Outlined.Brush),
+    ToolInfo(EditorTool.ERASER, "Eraser (partial)", Icons.Outlined.Delete),
+    ToolInfo(EditorTool.ERASER_WHOLE, "Eraser (whole stroke)", Icons.Outlined.DeleteSweep),
+    ToolInfo(EditorTool.LINE, "Line", Icons.Outlined.HorizontalRule),
+    ToolInfo(EditorTool.ARROW, "Arrow", Icons.AutoMirrored.Outlined.ArrowRightAlt),
+    ToolInfo(EditorTool.DOUBLE_ARROW, "Double arrow", Icons.Outlined.SwapHoriz),
     ToolInfo(EditorTool.COORDINATE_AXIS, "Coordinate axis", CoordinateAxisIcon),
     ToolInfo(EditorTool.RECTANGLE, "Rectangle", RectangleIcon),
-    ToolInfo(EditorTool.ELLIPSE, "Ellipse", Icons.Filled.RadioButtonUnchecked),
-    ToolInfo(EditorTool.TRIANGLE, "Triangle", Icons.Filled.ChangeHistory),
+    ToolInfo(EditorTool.ELLIPSE, "Ellipse", Icons.Outlined.RadioButtonUnchecked),
+    ToolInfo(EditorTool.TRIANGLE, "Triangle", Icons.Outlined.ChangeHistory),
     ToolInfo(EditorTool.SQUARE, "Square", SquareIcon),
     ToolInfo(EditorTool.RHOMBUS, "Rhombus", RhombusIcon),
     ToolInfo(EditorTool.TRAPEZOID, "Trapezoid", TrapezoidIcon),
@@ -126,17 +126,17 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.CHEM_BOND_DOUBLE, "Double bond", BondDoubleIcon),
     ToolInfo(EditorTool.CHEM_BOND_TRIPLE, "Triple bond", BondTripleIcon),
     ToolInfo(EditorTool.CHEM_BENZENE, "Benzene ring", BenzeneIcon),
-    ToolInfo(EditorTool.SPLINE, "Spline", Icons.Filled.Gesture),
-    ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Filled.PanTool),
-    ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Filled.HighlightAlt),
-    ToolInfo(EditorTool.LASSO_SELECT, "Select lasso", Icons.Filled.Polyline),
-    ToolInfo(EditorTool.TEXT_SELECT, "Select text (PDF)", Icons.Filled.SelectAll),
-    ToolInfo(EditorTool.BG_SELECT, "Select background (flatten)", Icons.Filled.Crop),
-    ToolInfo(EditorTool.TEXT, "Text", Icons.Filled.TextFields),
-    ToolInfo(EditorTool.IMAGE, "Image", Icons.Filled.Image),
-    ToolInfo(EditorTool.TEXIMAGE, "LaTeX", Icons.Filled.Functions),
-    ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", Icons.Filled.SwapVert),
-    ToolInfo(EditorTool.PLAY_OBJECT, "Play object", Icons.Filled.PlayCircleOutline),
+    ToolInfo(EditorTool.SPLINE, "Spline", Icons.Outlined.Gesture),
+    ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Outlined.PanTool),
+    ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Outlined.HighlightAlt),
+    ToolInfo(EditorTool.LASSO_SELECT, "Select lasso", Icons.Outlined.Polyline),
+    ToolInfo(EditorTool.TEXT_SELECT, "Select text (PDF)", Icons.Outlined.SelectAll),
+    ToolInfo(EditorTool.BG_SELECT, "Select background (flatten)", Icons.Outlined.Crop),
+    ToolInfo(EditorTool.TEXT, "Text", Icons.Outlined.TextFields),
+    ToolInfo(EditorTool.IMAGE, "Image", Icons.Outlined.Image),
+    ToolInfo(EditorTool.TEXIMAGE, "LaTeX", Icons.Outlined.Functions),
+    ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", Icons.Outlined.SwapVert),
+    ToolInfo(EditorTool.PLAY_OBJECT, "Play object", Icons.Outlined.PlayCircleOutline),
 )
 
 /** Human-readable label for a tool (the same text the rail's tool menu shows). */

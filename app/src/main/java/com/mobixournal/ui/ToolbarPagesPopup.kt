@@ -13,20 +13,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.automirrored.filled.Toc
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AspectRatio
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.automirrored.outlined.Toc
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,7 +70,7 @@ private fun BookmarkItems(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit)
         text = { Text(if (current == null) "Bookmark this page…" else "Edit bookmark…") },
         leadingIcon = {
             Icon(
-                if (current == null) Icons.Filled.BookmarkBorder else Icons.Filled.Bookmark,
+                if (current == null) Icons.Outlined.BookmarkBorder else Icons.Outlined.Bookmark,
                 contentDescription = null,
                 tint = current?.let { Color(it.color) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -110,7 +110,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var sizing by remember { mutableStateOf(false) }
     var contents by remember { mutableStateOf(false) }
     ToolbarPopupButton(
-        icon = Icons.Filled.Description,
+        icon = Icons.Outlined.Description,
         contentDescription = "Pages",
     ) { dismiss ->
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
@@ -119,19 +119,19 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         if (callbacks.outline?.isEmpty == false) {
             DropdownMenuItem(
                 text = { Text("Contents…") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Toc, contentDescription = null) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Toc, contentDescription = null) },
                 onClick = { contents = true; dismiss() },
             )
         }
         BookmarkItems(callbacks) { dismiss() }
         DropdownMenuItem(
             text = { Text("Add page") },
-            leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
             onClick = { callbacks.onAddPage(); dismiss() },
         )
         DropdownMenuItem(
             text = { Text("Remove page") },
-            leadingIcon = { Icon(Icons.Filled.Remove, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Remove, contentDescription = null) },
             enabled = callbacks.pageCount > 1,
             onClick = { callbacks.onRemovePage(); dismiss() },
         )
@@ -150,7 +150,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text("Page size…") },
-            leadingIcon = { Icon(Icons.Filled.AspectRatio, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.AspectRatio, contentDescription = null) },
             trailingIcon = { callbacks.pageSize?.let { Text(pageSizeLabel(it.first, it.second)) } },
             enabled = callbacks.pageSize != null,
             onClick = { sizing = true; dismiss() },
@@ -187,7 +187,7 @@ private fun PageNavRow(pageCount: Int, currentPage: Int, onGoToPage: (Int) -> Un
         IconButton(
             onClick = { onGoToPage(currentPage - 1); dismiss() },
             enabled = currentPage > 0,
-        ) { Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous page") }
+        ) { Icon(Icons.Outlined.ChevronLeft, contentDescription = "Previous page") }
         Text(
             "Page " + pageLabel(currentPage, pageCount),
             style = MaterialTheme.typography.bodyMedium,
@@ -195,7 +195,7 @@ private fun PageNavRow(pageCount: Int, currentPage: Int, onGoToPage: (Int) -> Un
         IconButton(
             onClick = { onGoToPage(currentPage + 1); dismiss() },
             enabled = currentPage < pageCount - 1,
-        ) { Icon(Icons.Filled.ChevronRight, contentDescription = "Next page") }
+        ) { Icon(Icons.Outlined.ChevronRight, contentDescription = "Next page") }
     }
 }
 
@@ -217,25 +217,25 @@ private fun PageClipboardItems(
     if (selectedPages > 0) {
         DropdownMenuItem(
             text = { Text("Copy $selectedPages selected") },
-            leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
             onClick = onCopySelectedPages,
         )
         DropdownMenuItem(
             text = { Text("Delete $selectedPages selected") },
-            leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
             enabled = selectedPages < pageCount,
             onClick = onDeleteSelectedPages,
         )
         DropdownMenuItem(
             text = { Text("Clear selection") },
-            leadingIcon = { Icon(Icons.Filled.Close, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
             onClick = onClearPageSelection,
         )
     }
     if (copiedPages > 0) {
         DropdownMenuItem(
             text = { Text(if (copiedPages == 1) "Paste page" else "Paste $copiedPages pages") },
-            leadingIcon = { Icon(Icons.Filled.ContentPaste, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.ContentPaste, contentDescription = null) },
             onClick = onPastePages,
         )
     }
@@ -384,7 +384,7 @@ private fun PageSizeDialog(
                     )
                     IconButton(onClick = {
                         val w = widthPt; widthPt = heightPt; heightPt = w; resync()
-                    }) { Icon(Icons.Filled.SwapHoriz, contentDescription = "Swap width and height") }
+                    }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
                     OutlinedTextField(
                         value = heightText,
                         onValueChange = { entered ->

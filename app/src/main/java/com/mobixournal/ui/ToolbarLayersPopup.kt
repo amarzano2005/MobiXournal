@@ -8,16 +8,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.HighlightAlt
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Merge
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.HighlightAlt
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Merge
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,7 +45,7 @@ internal fun LayersPopupButton(callbacks: ToolbarLayerCallbacks) {
     var renaming by remember { mutableStateOf(-1) }
     var renameLabel by remember { mutableStateOf("") }
     ToolbarPopupButton(
-        icon = Icons.Filled.Layers,
+        icon = Icons.Outlined.Layers,
         contentDescription = "Layers",
     ) { dismiss ->
         MenuHeading("Layers (top first)")
@@ -68,7 +68,7 @@ internal fun LayersPopupButton(callbacks: ToolbarLayerCallbacks) {
         }
         DropdownMenuItem(
             text = { Text("Add layer") },
-            leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
             onClick = { callbacks.onAddLayer(); dismiss() },
         )
     }
@@ -106,7 +106,7 @@ private fun LayerRow(
     ) {
         TextButton(onClick = onActivate) {
             Icon(
-                if (info.active) Icons.Filled.Circle else Icons.Filled.RadioButtonUnchecked,
+                if (info.active) Icons.Outlined.Circle else Icons.Outlined.RadioButtonUnchecked,
                 contentDescription = if (info.active) "Active layer" else "Make active",
                 tint = if (info.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(14.dp),
@@ -117,20 +117,20 @@ private fun LayerRow(
         Spacer(Modifier.width(4.dp))
         IconButton(onClick = onToggleHidden, modifier = Modifier.size(32.dp)) {
             Icon(
-                if (info.visible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                if (info.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
                 contentDescription = if (info.visible) "Hide layer" else "Show layer",
             )
         }
         IconButton(onClick = onMergeDown, enabled = canMergeDown, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Filled.Merge, contentDescription = "Merge layer down")
+            Icon(Icons.Outlined.Merge, contentDescription = "Merge layer down")
         }
         if (hasSelection) {
             IconButton(onClick = onMoveSelectionHere, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Filled.HighlightAlt, contentDescription = "Move selection here")
+                Icon(Icons.Outlined.HighlightAlt, contentDescription = "Move selection here")
             }
         }
         IconButton(onClick = onRename, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Filled.Edit, contentDescription = "Rename layer")
+            Icon(Icons.Outlined.Edit, contentDescription = "Rename layer")
         }
         ReorderControls(
             canMoveUp = canMoveUp,
