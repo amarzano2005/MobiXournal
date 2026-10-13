@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "split-floating-islands-layout-with-pinned-stem-satellite"
-title = "Split floating islands layout with pinned STEM satellite"
-description = "Layout Option 2 of docs/ui-modernization.md: two visually paired capsules instead of the unified dock - Island A (inking: pen, highlighter, eraser, select, colour) anchored near the free hand, and Island B, the STEM satellite, pinned open and draggable to a secondary area of the screen. The chosen layout lives in AppSettings beside ToolbarPosition, the satellite keeps its position across restarts, and both islands take their geometry from ModernTheme so they stay consistent with the unified dock. Verify on the emulator: screenshots of both layouts and of a dragged satellite, plus a settings round-trip unit test."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 480
-created = 2026-10-12
-tags = ["ui", "stem"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "bimanual-free-hand-thumb-strip-for-tablets"
 title = "Bimanual free-hand thumb strip for tablets"
 description = "The free-hand thumb strip from docs/ui-modernization.md: a slim strip pinned along the non-dominant edge (left for a right-handed writer, right for a left-handed one, using the handedness already in AppSettings and ui/OnboardingHandedness.kt) giving thumb access to Undo, Redo, the eraser toggle and the favourite colour dots while the pen hand keeps writing. It is a touch-only surface: a press on it inks nothing, does not fight palm rejection (docs/stylus.md), and a stylus passes through to the canvas untouched. Verify on the emulator: screenshots with the strip on each edge, and a clean logcat while a stroke is drawn with the strip visible."

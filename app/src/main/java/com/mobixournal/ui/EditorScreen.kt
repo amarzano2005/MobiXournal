@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
@@ -450,11 +451,10 @@ private fun EditorBody(
     Box(modifier = modifier) {
         canvas(Modifier.fillMaxSize())
         if (!ui.fullPage) {
-            val alignment = when (settings.toolbarPosition) {
-                ToolbarPosition.LEFT -> Alignment.CenterStart
-                ToolbarPosition.RIGHT -> Alignment.CenterEnd
-                ToolbarPosition.TOP -> Alignment.TopCenter
-                ToolbarPosition.BOTTOM -> Alignment.BottomCenter
+            val alignment = if (settings.toolbarLayout == ToolbarLayout.COMPACT) {
+                Alignment.BottomCenter
+            } else {
+                if (settings.toolbarPosition == ToolbarPosition.RIGHT) Alignment.CenterEnd else Alignment.CenterStart
             }
             Box(modifier = Modifier.align(alignment)) {
                 toolbar()

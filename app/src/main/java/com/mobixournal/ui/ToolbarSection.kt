@@ -19,13 +19,23 @@ import androidx.compose.ui.unit.dp
 fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Main Toolbar") {
         OptionGroup(
-            title = "Position",
-            subtitle = "Which edge the Main Toolbar is docked to.",
-            options = ToolbarPosition.values().toList(),
-            selected = settings.toolbarPosition,
+            title = "Layout",
+            subtitle = "Standard: main writing toolbar (left/right) + secondary STEM toolbar in top bar. Compact: bottom toolbar with main + 4 STEM tools (hides top bar).",
+            options = ToolbarLayout.values().toList(),
+            selected = settings.toolbarLayout,
             label = { it.label },
-            onSelect = { onChange(settings.copy(toolbarPosition = it)) },
+            onSelect = { onChange(settings.copy(toolbarLayout = it)) },
         )
+        if (settings.toolbarLayout == ToolbarLayout.DEFAULT) {
+            OptionGroup(
+                title = "Position",
+                subtitle = "Which edge the Main Toolbar is docked to (Left or Right).",
+                options = listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
+                selected = if (settings.toolbarPosition == ToolbarPosition.RIGHT) ToolbarPosition.RIGHT else ToolbarPosition.LEFT,
+                label = { it.label },
+                onSelect = { onChange(settings.copy(toolbarPosition = it)) },
+            )
+        }
     }
     SettingsGroup("Main Toolbar buttons") {
         MainToolbarButtons(settings, onChange)

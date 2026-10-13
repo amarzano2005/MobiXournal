@@ -36,6 +36,19 @@ enum class ToolbarPosition(val label: String) {
 }
 
 /**
+ * Layout option for the app chrome toolbars.
+ *
+ * [DEFAULT]: Main Toolbar for primary writing tools + Secondary Toolbar in top bar with all STEM tools.
+ * [COMPACT]: Main Toolbar with writing tools + 4 compact STEM elements (hides Secondary Toolbar in top bar).
+ */
+enum class ToolbarLayout(val label: String) {
+    /** Standard: Main Toolbar (Left/Right) for writing + Secondary Toolbar in top bar with all STEM tools. */
+    DEFAULT("Standard"),
+    /** Compact: Floating bottom toolbar with main writing tools + 4 compact STEM slots (hides top secondary bar). */
+    COMPACT("Compact"),
+}
+
+/**
  * Which row of the canvas the "page X of Y" badge sits in.
  *
  * Paired with [PageCounterHorizontal] to place the badge in any of the nine positions on the canvas.
@@ -215,6 +228,12 @@ data class AppSettings(
     val panSensitivity: Float = PanSensitivity.NORMAL,
     /** Which vertical edge of the editor the Main Toolbar is docked to. */
     val toolbarPosition: ToolbarPosition = ToolbarPosition.LEFT,
+    /** Layout mode: DEFAULT (main writing toolbar + secondary STEM toolbar in top bar) or COMPACT (4 STEM tools in main toolbar, hiding secondary top bar). */
+    val toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
+    /** Horizontal offset (dp) of the STEM satellite from its default anchor in split layout mode. */
+    val stemSatelliteOffsetX: Float = 0f,
+    /** Vertical offset (dp) of the STEM satellite from its default anchor in split layout mode. */
+    val stemSatelliteOffsetY: Float = 0f,
     /**
      * The pen palette every colour picker draws from, in display order. Seeded with [PEN_COLORS] and
      * edited under **Settings → Colors**; an empty or unparsable stored list falls back to the
@@ -593,6 +612,9 @@ class SettingsStore(context: Context) {
             momentumCurve = enumOr(prefs.getString(KEY_MOMENTUM_CURVE, null), d.momentumCurve),
             panSensitivity = PanSensitivity.coerce(prefs.getFloat(KEY_PAN_SENSITIVITY, d.panSensitivity)),
             toolbarPosition = enumOr(prefs.getString(KEY_TOOLBAR_POSITION, null), d.toolbarPosition),
+            toolbarLayout = enumOr(prefs.getString(KEY_TOOLBAR_LAYOUT, null), d.toolbarLayout),
+            stemSatelliteOffsetX = prefs.getFloat(KEY_STEM_SATELLITE_OFFSET_X, d.stemSatelliteOffsetX),
+            stemSatelliteOffsetY = prefs.getFloat(KEY_STEM_SATELLITE_OFFSET_Y, d.stemSatelliteOffsetY),
             penColors = decodePenColors(prefs.getString(KEY_PEN_COLORS, null), d.penColors),
             penFavorites = decodeFavorites(prefs.getString(KEY_PEN_FAVORITES, null), d.penFavorites),
             highlighterFavorites = decodeFavorites(
@@ -728,6 +750,9 @@ class SettingsStore(context: Context) {
         e.putString(KEY_MOMENTUM_CURVE, s.momentumCurve.name)
         e.putFloat(KEY_PAN_SENSITIVITY, s.panSensitivity)
         e.putString(KEY_TOOLBAR_POSITION, s.toolbarPosition.name)
+        e.putString(KEY_TOOLBAR_LAYOUT, s.toolbarLayout.name)
+        e.putFloat(KEY_STEM_SATELLITE_OFFSET_X, s.stemSatelliteOffsetX)
+        e.putFloat(KEY_STEM_SATELLITE_OFFSET_Y, s.stemSatelliteOffsetY)
         e.putString(KEY_PEN_COLORS, encodePenColors(s.penColors))
         e.putString(KEY_PEN_FAVORITES, encodeFavorites(s.penFavorites))
         e.putString(KEY_HIGHLIGHTER_FAVORITES, encodeFavorites(s.highlighterFavorites))
@@ -828,6 +853,9 @@ class SettingsStore(context: Context) {
         const val KEY_MOMENTUM_CURVE = "momentum_curve"
         const val KEY_PAN_SENSITIVITY = "pan_sensitivity"
         const val KEY_TOOLBAR_POSITION = "toolbar_position"
+        const val KEY_TOOLBAR_LAYOUT = "toolbar_layout"
+        const val KEY_STEM_SATELLITE_OFFSET_X = "stem_satellite_offset_x"
+        const val KEY_STEM_SATELLITE_OFFSET_Y = "stem_satellite_offset_y"
         const val KEY_NEW_DOCUMENT_FORMAT = "new_document_format"
         const val KEY_PEN_COLORS = "pen_colors"
         const val KEY_PEN_FAVORITES = "pen_favorites"

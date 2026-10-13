@@ -57,12 +57,16 @@ internal fun StemRailSection(
     onTool: (EditorTool) -> Unit,
     onShowGraph: () -> Unit,
     horizontal: Boolean = false,
+    leadingDivider: Boolean = false,
+    trailingDivider: Boolean = true,
 ) {
     val slot = LocalRailSlotSize.current
     val isDark = isSystemInDarkTheme()
     val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
     if (horizontal) {
-        VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        if (leadingDivider) {
+            VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        }
         Row(
             modifier = Modifier
                 .fillMaxHeight()
@@ -91,9 +95,13 @@ internal fun StemRailSection(
                 }
             }
         }
-        VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        if (trailingDivider) {
+            VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        }
     } else {
-        HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        if (leadingDivider) {
+            HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -122,6 +130,8 @@ internal fun StemRailSection(
                 }
             }
         }
-        HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        if (trailingDivider) {
+            HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
+        }
     }
 }

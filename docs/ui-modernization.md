@@ -88,20 +88,15 @@ them with a thumb or index finger without lifting or moving the pen.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-The system formally supports and preserves two complementary layouts in settings:
+The system formally supports two ergonomic layout modes in settings (`ToolbarLayout`):
 
-### Layout Option 1: Unified Long Dock with Integrated STEM Section
-- A single continuous floating glass capsule.
-- Writing tools (`[Pen]`, `[Highlighter]`, `[Eraser]`, `[Select]`) sit alongside an accent-bordered
-  **STEM Dock** (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
-- Every STEM feature is accessible in a **single tap** without opening submenus.
-- Can be docked along the bottom or top center, or aligned vertically along the free-hand margin.
+### Standard Layout Mode
+- **Main Floating Toolbar (Left / Right)**: Docked as a vertical floating glass capsule along the edge (left or right per user handedness) containing primary handwriting and drawing tools (pen, highlighter, eraser, selection, favorites, layers, pages, zoom).
+- **Secondary STEM Toolbar (Top bar)**: A floating glass capsule in the top bar containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides).
 
-### Layout Option 2: Split Floating Islands (Main Capsule + Pinned STEM Satellite)
-- Two distinct but visually paired capsules.
-- **Island A (Inking)**: Primary drawing tools and color palette, anchored near the free hand for instant switching.
-- **Island B (STEM Satellite)**: A dedicated scientific capsule that remains **pinned open** on the screen.
-  Users can drag it to any secondary screen area (e.g. top right) while keeping the free-hand toolbar on the left.
+### Compact Layout Mode
+- **Unified Bottom Floating Toolbar**: A horizontal floating glass capsule docked at bottom center combining primary drawing tools and the 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
+- **Clean Top Bar**: The secondary toolbar in the top bar is hidden, displaying only the document title for maximum canvas immersion.
 
 ### The "Free-Hand Thumb Strip" (Ergonomic edge docking)
 - The toolbar or a detached **Quick-Action Thumb Pad** can pin to the left edge (for right-handed writers)

@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "split-floating-islands-layout-with-pinned-stem-satellite"
+title = "Split floating islands layout with pinned STEM satellite"
+description = "Layout Option 2 of docs/ui-modernization.md: two visually paired capsules instead of the unified dock - Island A (inking: pen, highlighter, eraser, select, colour) anchored near the free hand, and Island B, the STEM satellite, pinned open and draggable to a secondary area of the screen. The chosen layout lives in AppSettings beside ToolbarPosition, the satellite keeps its position across restarts, and both islands take their geometry from ModernTheme so they stay consistent with the unified dock. Verify on the emulator: screenshots of both layouts and of a dragged satellite, plus a settings round-trip unit test."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-13
+tags = ["ui", "stem"]
+
+[[task]]
 id = "dockable-toolbar-at-top-and-bottom-center"
 title = "Dockable toolbar at top and bottom center"
 description = "Extend ToolbarPosition (ui/AppSettings.kt, today only LEFT and RIGHT) with TOP and BOTTOM centre docking as a horizontal capsule, per the mobile ergonomics section of docs/ui-modernization.md; the capsule keeps its STEM section and its pop-ups must land inside the window at every position. Layout lands in ui/EditorRegions.kt, the setting and the onboarding handedness step in ui/OnboardingHandedness.kt, and ui/AppSettingsBackup.kt round-trips the enum through the generic readEnum path. Verify with a unit test for the settings round-trip and the backup codec, then on the emulator with one screenshot per position."

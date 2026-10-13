@@ -85,15 +85,18 @@ fun SideToolbar(
     /** Opens the function-plot dialog (the STEM section's f(x) button). */
     onShowGraph: () -> Unit = {},
     horizontal: Boolean = false,
+    showStemSection: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val items = visibleRailItems(railOrder, railHidden)
     ToolbarShell(
-        slotCount = items.size + STEM_ENTRY_COUNT,
+        slotCount = items.size + (if (showStemSection) STEM_ENTRY_COUNT else 0),
         horizontal = horizontal,
         modifier = modifier,
     ) {
-        StemRailSection(tool, onTool, onShowGraph, horizontal = horizontal)
+        if (showStemSection) {
+            StemRailSection(tool, onTool, onShowGraph, horizontal = horizontal)
+        }
         for (item in items) {
             val group = toolGroupForRailItem(item.id)
             if (group != null) {

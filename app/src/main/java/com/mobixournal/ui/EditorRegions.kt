@@ -107,6 +107,8 @@ import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
 import com.mobixournal.ui.theme.rememberToolbarColor
 
@@ -167,7 +169,7 @@ fun EditorTopBar(
             }
         },
         title = {
-            if (settings != null && onSettingsChange != null) {
+            if (settings != null && onSettingsChange != null && settings.toolbarLayout != ToolbarLayout.COMPACT) {
                 TopBarToolsRow(
                     ui = ui,
                     pane = pane,
@@ -623,7 +625,8 @@ fun EditorToolbar(
         onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
         onStationery = { surface?.applyStationery(it) },
         onShowGraph = { ui.showGraphDialog = true },
-        horizontal = settings.toolbarPosition.isHorizontal,
+        horizontal = settings.toolbarLayout == ToolbarLayout.COMPACT,
+        showStemSection = settings.toolbarLayout == ToolbarLayout.COMPACT,
     )
 }
 
@@ -821,18 +824,20 @@ fun TopBarToolsRow(
         }
     }
 
+    val isDark = isSystemInDarkTheme()
+    val glassColor = ModernTheme.glassSurface(isDark)
+    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+
     val dock = @Composable {
         Surface(
-            shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
-            // The dock is the app's implement colour — the same value the rail and the canvas surround take
-            // (see `rememberToolbarColor`), so the tools and the desk are visibly one material.
-            color = rememberToolbarColor(),
-            tonalElevation = 3.dp,
-            shadowElevation = 4.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            shape = ModernTheme.capsuleShape,
+            color = glassColor,
+            tonalElevation = 0.dp,
+            shadowElevation = 6.dp,
+            border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
             modifier = modifier
                 .wrapContentWidth()
-                .height(TOP_BAR_DOCK_HEIGHT),
+                .height(SideToolbarModernWidth),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (INDICATOR_AS_DOCK_CAP) {

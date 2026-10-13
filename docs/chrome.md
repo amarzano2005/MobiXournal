@@ -10,13 +10,13 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 icon buttons, a compact quick **Export PDF** button and a one-tap **Save** button after it (Save
 outermost, i.e. under the thumb), and a
 **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As,
-Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** (dockable to the left or right
-edge as a vertical rail, or to the top or bottom center as a horizontal capsule — `ToolbarPosition`
-offers `LEFT`, `RIGHT`, `TOP`, and `BOTTOM`) with core drawing tool slots and pop-up panels; a permanent **Secondary Toolbar** (`TopBarToolsRow`) for geometric
-figures and tools embedded in the top bar — geometric figures, the coordinate axis, the **function graph** button
-(immediately following the Cartesian axis), the arrow/table/circuit/logic/chemistry pop-ups,
-and the guides pop-up (last); and the canvas filling the rest. `orderedTopBarItems` places
-a slot the saved order doesn't name (one added since that order was written) at its **factory
+Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
+
+The app chrome provides two configurable layout modes (`ToolbarLayout` in `AppSettings`):
+- **Standard (`DEFAULT`)**: The Main Toolbar is docked along the vertical edge (Left or Right, per `ToolbarPosition`) as a vertical floating capsule for classic writing tools, paired with the Secondary Toolbar in the top bar containing all STEM tools.
+- **Compact (`COMPACT`)**: A unified floating horizontal toolbar docked at the bottom center containing primary writing tools plus 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`); the secondary toolbar in the top bar is hidden, displaying only the document title.
+
+`orderedTopBarItems` places a slot the saved order doesn't name (one added since that order was written) at its **factory
 position** — just ahead of the next factory item the order does name — rather than appending it past
 everything the user arranged, which is what would otherwise park a new button at the wrong end of an
 existing install's row.

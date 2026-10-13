@@ -64,6 +64,9 @@ object AppSettingsBackup {
         b.append("  \"momentumCurve\": \"").append(settings.momentumCurve.name).append("\",\n")
         b.append("  \"panSensitivity\": ").append(settings.panSensitivity).append(",\n")
         b.append("  \"toolbarPosition\": \"").append(settings.toolbarPosition.name).append("\",\n")
+        b.append("  \"toolbarLayout\": \"").append(settings.toolbarLayout.name).append("\",\n")
+        b.append("  \"stemSatelliteOffsetX\": ").append(settings.stemSatelliteOffsetX).append(",\n")
+        b.append("  \"stemSatelliteOffsetY\": ").append(settings.stemSatelliteOffsetY).append(",\n")
         b.append("  \"newDocumentFormat\": \"").append(settings.newDocumentFormat.name).append("\",\n")
         b.append("  \"penColors\": [")
             .append(settings.penColors.joinToString(", "))
@@ -278,6 +281,9 @@ object AppSettingsBackup {
             momentumCurve = readEnum("momentumCurve", MomentumCurve.values(), fallback.momentumCurve),
             panSensitivity = root.getFloat("panSensitivity", fallback.panSensitivity),
             toolbarPosition = readEnum("toolbarPosition", ToolbarPosition.values(), fallback.toolbarPosition),
+            toolbarLayout = readEnum("toolbarLayout", ToolbarLayout.values(), fallback.toolbarLayout),
+            stemSatelliteOffsetX = root.getFloat("stemSatelliteOffsetX", fallback.stemSatelliteOffsetX),
+            stemSatelliteOffsetY = root.getFloat("stemSatelliteOffsetY", fallback.stemSatelliteOffsetY),
             newDocumentFormat = readEnum("newDocumentFormat", NewDocumentFormat.values(), fallback.newDocumentFormat),
             penColors = root.getIntList("penColors") ?: fallback.penColors,
             penFavorites = root.getIntList("penFavorites") ?: fallback.penFavorites,

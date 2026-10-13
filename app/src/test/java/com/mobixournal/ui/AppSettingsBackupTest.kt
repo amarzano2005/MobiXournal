@@ -102,6 +102,22 @@ class AppSettingsBackupTest {
     }
 
     @Test
+    fun `round-trips all toolbar layouts and satellite offsets`() {
+        for (layout in ToolbarLayout.values()) {
+            val settings = AppSettings(
+                toolbarLayout = layout,
+                stemSatelliteOffsetX = -120.5f,
+                stemSatelliteOffsetY = 45.0f,
+            )
+            val json = AppSettingsBackup.toJson(settings)
+            val restored = AppSettingsBackup.fromJson(json)
+            assertEquals(layout, restored.toolbarLayout)
+            assertEquals(-120.5f, restored.stemSatelliteOffsetX, 0.001f)
+            assertEquals(45.0f, restored.stemSatelliteOffsetY, 0.001f)
+        }
+    }
+
+    @Test
     fun `an empty custom colour round-trips as empty, and clears a set one`() {
         // The slot starts empty: a backup taken then must hand the importing device an empty slot,
         // not a colour the user never chose.
