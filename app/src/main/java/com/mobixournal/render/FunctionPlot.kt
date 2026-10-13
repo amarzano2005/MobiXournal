@@ -89,12 +89,13 @@ object FunctionPlot {
     /**
      * Compile [source], or null when it isn't a valid formula. Case-insensitive; whitespace ignored.
      * Supports implicit multiplication, scientific notation, superscripts, and standard math aliases.
+     * Named [parameters] resolve to constant values.
      */
-    fun compile(source: String): Formula? {
+    fun compile(source: String, parameters: Map<String, Double> = emptyMap()): Formula? {
         AdvancedCurves.compilePiecewise(source)?.let { return it }
         return try {
             val normalized = normalizeSource(source)
-            val parser = Parser(normalized)
+            val parser = Parser(normalized, parameters)
             val f = parser.expression()
             if (parser.rest().isNotEmpty()) null else f
         } catch (_: IllegalArgumentException) {
@@ -410,7 +411,10 @@ object FunctionPlot {
  * [IllegalArgumentException] on anything it doesn't understand — [FunctionPlot.compile] turns that
  * into a null so callers only ever see "a formula" or "no formula".
  */
-private class Parser(private val source: String) {
+private class Parser(
+    private val source: String,
+    private val parameters: Map<String, Double> = emptyMap(),
+) {
 
     private var at = 0
 
@@ -533,6 +537,11 @@ private class Parser(private val source: String) {
         }
         FunctionPlot.CONSTANTS[name]?.let { constant -> return Formula { constant } }
         if (name == "x") return Formula { x -> x }
+        parameters[name]?.let { paramVal -> return Formula { paramVal } }
+        val matchedParam = parameters.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+        if (matchedParam != null) {
+            return Formula { matchedParam }
+        }
         throw IllegalArgumentException("unknown name \"$name\" at $start")
     }
 

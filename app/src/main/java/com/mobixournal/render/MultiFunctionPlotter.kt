@@ -30,12 +30,13 @@ object MultiFunctionPlotter {
         includeDerivative: Boolean = false,
         includeSummary: Boolean = false,
         axisColor: Int = 0xFF000000.toInt(),
+        parameters: Map<String, Double> = emptyMap(),
     ): MultiPlotResult {
         if (curves.isEmpty() || xMax <= xMin || widthPt <= 0.0 || heightPt <= 0.0) {
             return MultiPlotResult(emptyList(), emptyList(), emptyList())
         }
 
-        val compiledCurves = compileCurves(curves, includeDerivative)
+        val compiledCurves = compileCurves(curves, includeDerivative, parameters)
         if (compiledCurves.isEmpty()) return MultiPlotResult(emptyList(), emptyList(), emptyList())
 
         val curveSamples = compiledCurves.map { (curve, formula) ->
@@ -60,21 +61,25 @@ object MultiFunctionPlotter {
         }
 
         val criticalPoints = if (showCriticalPoints) {
-            detectAllCriticalPoints(curves, xMin, xMax, yMin, yMax, toX, toY, strokeWidthPt, pathGroups)
+            detectAllCriticalPoints(curves, xMin, xMax, yMin, yMax, toX, toY, strokeWidthPt, pathGroups, parameters)
         } else emptyList()
 
         val summary = if (includeSummary) FunctionAnalysis.buildSummaryReport(curves, criticalPoints, xMin, xMax) else ""
         return MultiPlotResult(pathGroups, labels, criticalPoints, summary)
     }
 
-    private fun compileCurves(curves: List<PlotCurve>, includeDerivative: Boolean): List<Pair<PlotCurve, Formula>> {
+    private fun compileCurves(
+        curves: List<PlotCurve>,
+        includeDerivative: Boolean,
+        parameters: Map<String, Double> = emptyMap(),
+    ): List<Pair<PlotCurve, Formula>> {
         val out = mutableListOf<Pair<PlotCurve, Formula>>()
         for (c in curves) {
             // This plotter places `y = f(x)` and nothing else: a parametric or polar curve needs the
             // sampling and the fitted frame `PlotInk` gives it, so it is skipped rather than compiled
             // as the wave its formula would look like (which is a different drawing, not a worse one).
             if (c.kind != PlotKind.CARTESIAN) continue
-            val f = FunctionPlot.compile(c.source) ?: continue
+            val f = FunctionPlot.compile(c.source, parameters) ?: continue
             out.add(c to f)
             if (includeDerivative) {
                 val df = FunctionAnalysis.derivative(f)
@@ -133,17 +138,18 @@ object MultiFunctionPlotter {
         toX: (Double) -> Double, toY: (Double) -> Double,
         strokeWidthPt: Double,
         pathGroups: MutableList<PlotPathGroup>,
+        parameters: Map<String, Double> = emptyMap(),
     ): List<CriticalPoint> {
         val points = mutableListOf<CriticalPoint>()
         curves.forEachIndexed { i, c ->
-            val f = FunctionPlot.compile(c.source) ?: return@forEachIndexed
+            val f = FunctionPlot.compile(c.source, parameters) ?: return@forEachIndexed
             points.addAll(FunctionAnalysis.findCriticalPoints(f, xMin, xMax, curveName = c.label.ifEmpty { "f${i + 1}(x)" }))
         }
         for (i in 0 until curves.size) {
-            val f1 = FunctionPlot.compile(curves[i].source) ?: continue
+            val f1 = FunctionPlot.compile(curves[i].source, parameters) ?: continue
             val l1 = curves[i].label.ifEmpty { "f${i + 1}" }
             for (j in i + 1 until curves.size) {
-                val f2 = FunctionPlot.compile(curves[j].source) ?: continue
+                val f2 = FunctionPlot.compile(curves[j].source, parameters) ?: continue
                 val l2 = curves[j].label.ifEmpty { "f${j + 1}" }
                 points.addAll(FunctionAnalysis.findIntersections(f1, f2, xMin, xMax, label1 = l1, label2 = l2))
             }

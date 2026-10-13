@@ -82,10 +82,13 @@ $$x(\theta) = r(\theta) \cos(\theta), \quad y(\theta) = r(\theta) \sin(\theta)$$
 
 ## Interactive parameter sliders (Dynamic reactive math)
 
-Expressions can define named parameters (e.g., $f(x) = a \cdot \sin(b \cdot x + c)$). When placed on the
-Infinite Canvas (see [infinite-canvas.md](infinite-canvas.md)) or saved in `.mobix`
-(see [mobix-schema-spec.md](mobix-schema-spec.md)), the plot can display floating slider widgets.
-Dragging a slider dynamically recalculates the vector path at 60–120 FPS without re-generating text annotations.
+Expressions can define named parameters (e.g., $f(x) = a \cdot \sin(b \cdot x + c)$). When a `PlotElement`
+carrying named `parameters` is selected on the canvas, the canvas chrome renders interactive slider widgets
+anchored directly below the plot frame. Each named parameter receives a dedicated track, label, and draggable thumb.
+Dragging a slider dynamically evaluates the expression and numerical calculus (derivatives, critical points, and
+summary report) in real-time, refreshing the cached `summaryText`. On pointer release, the adjusted parameter
+value commits as a single undoable edit. Dragging a slider is intercepted by the gesture layer so it never draws
+accidental ink strokes.
 
 ### What a plot keeps on disk
 

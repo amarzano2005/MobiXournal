@@ -117,6 +117,49 @@ internal class CanvasChrome {
         textAlign = Paint.Align.CENTER
     }
 
+    /** Interactive parameter slider background pill. */
+    val sliderBackground = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = 0xDD242424.toInt()
+    }
+    /** Interactive parameter slider card border. */
+    val sliderCardBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1f
+        color = 0x33FFFFFF
+    }
+    /** Interactive parameter slider inactive track line. */
+    val sliderTrack = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+        strokeCap = Paint.Cap.ROUND
+        color = 0x55FFFFFF
+    }
+    /** Interactive parameter slider active track line. */
+    val sliderTrackActive = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+        strokeCap = Paint.Cap.ROUND
+        color = SELECTION_COLOR
+    }
+    /** Interactive parameter slider thumb knob. */
+    val sliderThumb = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = SELECTION_COLOR
+    }
+    /** Interactive parameter slider thumb white border. */
+    val sliderThumbBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        color = 0xFFFFFFFF.toInt()
+    }
+    /** Interactive parameter slider name and value text. */
+    val sliderText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFFECEFF1.toInt()
+        textSize = 20f
+        isFakeBoldText = true
+    }
+
     /** Page-overview reorder: lifted page wash (translucent white). */
     val pageLift = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -237,6 +280,8 @@ internal class CanvasChrome {
         guideMesh.color = guide.withAlpha(GUIDE_MESH_ALPHA)
         guideText.color = guide
         paletteHighlight.color = selection
+        sliderTrackActive.color = selection
+        sliderThumb.color = selection
     }
 
     /** Tint the hover dot to match the pen colour, at the fixed hover alpha. */

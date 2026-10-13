@@ -3,6 +3,7 @@ package com.mobixournal.render
 import android.view.MotionEvent
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -106,8 +107,14 @@ internal class SelectionGestureController(
     private var rotatePivotY = 0.0
     private var rotateStartAngle = 0.0
 
-    /** True while any of the three transforms is mid-drag. */
-    val transforming: Boolean get() = moving || resizing || rotating
+    // Live parameter slider drag on a selected PlotElement.
+    var slidingParam = false
+        private set
+    private var activeTrack: PlotSliderTrack? = null
+    private var sliderPlotRef: ElementRef? = null
+
+    /** True while any of the transforms or slider adjustments is mid-drag. */
+    val transforming: Boolean get() = moving || resizing || rotating || slidingParam
 
     /** Drop the selection without recording anything (a view-only change). */
     fun clearSelection() {
@@ -122,6 +129,9 @@ internal class SelectionGestureController(
         resizing = false
         rotating = false
         banding = false
+        slidingParam = false
+        activeTrack = null
+        sliderPlotRef = null
         startDoc = null
     }
 
@@ -147,6 +157,21 @@ internal class SelectionGestureController(
         val box = layout().boxes.getOrNull(sel.pageIndex) ?: return false
         val page = document().pages.getOrNull(sel.pageIndex) ?: return false
         val b = SelectionTester.boundsOf(page, sel.refs) ?: return false
+
+        // Interactive parameter sliders for a single selected plot
+        if (sel.refs.size == 1) {
+            val ref = sel.refs.first()
+            val plot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement
+            if (plot != null && plot.parameters.isNotEmpty()) {
+                val tracks = PlotSliders.computeSliderTracks(plot, box, viewport.scrollX, viewport.scrollY)
+                val hit = PlotSliders.hitTestSlider(tracks, event.x, event.y)
+                if (hit != null) {
+                    beginSlide(hit, ref, event.x)
+                    return true
+                }
+            }
+        }
+
         // Rotate knob poking out midway from the right edge, offered only when every element is a stroke.
         if (isAllStrokes(sel)) {
             val midY = ((b.top + b.bottom) / 2 * box.scale + box.topPx - viewport.scrollY).toFloat()
@@ -213,6 +238,56 @@ internal class SelectionGestureController(
         return sel.refs.isNotEmpty() && sel.refs.all {
             page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) is Stroke
         }
+    }
+
+    /** Checks whether a touch hits a parameter slider of a single selected plot. */
+    fun tryBeginSlide(event: MotionEvent): Boolean {
+        val sel = selection ?: return false
+        val box = layout().boxes.getOrNull(sel.pageIndex) ?: return false
+        val page = document().pages.getOrNull(sel.pageIndex) ?: return false
+        if (sel.refs.size != 1) return false
+        val ref = sel.refs.first()
+        val plot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement ?: return false
+        if (plot.parameters.isEmpty()) return false
+        val tracks = PlotSliders.computeSliderTracks(plot, box, viewport.scrollX, viewport.scrollY)
+        val hit = PlotSliders.hitTestSlider(tracks, event.x, event.y) ?: return false
+        beginSlide(hit, ref, event.x)
+        return true
+    }
+
+    private fun beginSlide(track: PlotSliderTrack, ref: ElementRef, touchX: Float) {
+        slidingParam = true
+        activeTrack = track
+        sliderPlotRef = ref
+        snapshot()
+        val newVal = track.valueForTouch(touchX)
+        applySliderValue(newVal)
+    }
+
+    private fun applySliderValue(newVal: Double) {
+        val track = activeTrack ?: return
+        val ref = sliderPlotRef ?: return
+        val sel = selection ?: return
+        val doc = document()
+        val page = doc.pages.getOrNull(sel.pageIndex) ?: return
+        val oldPlot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement ?: return
+        val newPlot = PlotElementFactory.updateParameter(oldPlot, track.paramName, newVal)
+        val updatedDoc = ElementEdits.replaceElement(doc, oldPlot, newPlot) ?: return
+        setDocument(updatedDoc)
+        activeTrack = track.copy(value = newVal)
+        render()
+    }
+
+    fun slideParam(event: MotionEvent) {
+        val track = activeTrack ?: return
+        val newVal = track.valueForTouch(event.x)
+        applySliderValue(newVal)
+    }
+
+    fun commitSlide() {
+        slidingParam = false
+        activeTrack = null
+        sliderPlotRef = null
     }
 
     private fun beginMove(event: MotionEvent, box: PageBox) {

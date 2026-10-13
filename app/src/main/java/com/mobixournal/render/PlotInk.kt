@@ -62,7 +62,7 @@ internal object PlotInk {
     // ---- the common case: the app's own plotter ------------------------------------------------
 
     private fun cartesianInk(plot: PlotElement): CompiledPlot {
-        val compiled = plot.curves.map { it to compileFormula(it.source) }
+        val compiled = plot.curves.map { it to compileFormula(it.source, plot.parameters) }
         val drawable = compiled.mapNotNull { (curve, formula) -> formula?.let { curve } }
         val unparsed = unparsed(compiled)
         if (drawable.isEmpty()) return CompiledPlot(emptyList(), unparsed)
@@ -81,6 +81,7 @@ internal object PlotInk {
             includeDerivative = plot.includeDerivative,
             includeSummary = plot.summaryText != null,
             axisColor = plot.axisColor,
+            parameters = plot.parameters,
         )
         if (result.pathGroups.isEmpty()) return CompiledPlot(emptyList(), unparsed)
 
@@ -157,12 +158,12 @@ internal object PlotInk {
 
     /** A curve's points over its own range: the variable the [PlotKind] makes it a function of. */
     private fun sample(curve: PlotCurve, plot: PlotElement): List<Pair<Double, Double>>? = when (curve.kind) {
-        PlotKind.CARTESIAN -> compileFormula(curve.source)
+        PlotKind.CARTESIAN -> compileFormula(curve.source, plot.parameters)
             ?.let { formula -> FunctionPlot.sample(formula, plot.xMin, plot.xMax, plot.samples) }
 
         PlotKind.PARAMETRIC -> {
-            val x = compileFormula(curve.source)
-            val y = curve.sourceY?.let(::compileFormula)
+            val x = compileFormula(curve.source, plot.parameters)
+            val y = curve.sourceY?.let { compileFormula(it, plot.parameters) }
             if (x == null || y == null) {
                 null
             } else {
@@ -170,7 +171,7 @@ internal object PlotInk {
             }
         }
 
-        PlotKind.POLAR -> compileFormula(curve.source)?.let { radius ->
+        PlotKind.POLAR -> compileFormula(curve.source, plot.parameters)?.let { radius ->
             val from = curve.thetaMin ?: 0.0
             val to = curve.thetaMax ?: DEFAULT_T_MAX
             val steps = plot.samples.coerceIn(10, 4000)
@@ -205,9 +206,9 @@ internal object PlotInk {
      * A curve's formula, compiled — in the parser's variable, or in a parameterised curve's own
      * spelling of it ([PARAMETER_VARIABLE]).
      */
-    private fun compileFormula(source: String): Formula? =
-        FunctionPlot.compile(source)
-            ?: FunctionPlot.compile(PARAMETER_VARIABLE.replace(source, PARSER_VARIABLE))
+    private fun compileFormula(source: String, parameters: Map<String, Double> = emptyMap()): Formula? =
+        FunctionPlot.compile(source, parameters)
+            ?: FunctionPlot.compile(PARAMETER_VARIABLE.replace(source, PARSER_VARIABLE), parameters)
 
     /** The sources of the curves of [compiled] whose formula would not parse. */
     private fun unparsed(compiled: List<Pair<PlotCurve, Any?>>): List<String> =

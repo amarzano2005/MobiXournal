@@ -402,6 +402,12 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
         canvas.drawLine(r, midY, knobX, midY, chrome.handleArm)
         canvas.drawCircle(knobX, midY, HANDLE_DRAW_PX, chrome.handle)
     }
+    // Interactive parameter sliders for a selected plot
+    val plot = singleSelectedPlot()
+    if (plot != null && plot.parameters.isNotEmpty()) {
+        val tracks = PlotSliders.computeSliderTracks(plot, box, scrollX, scrollY)
+        PlotSliders.draw(canvas, tracks, chrome)
+    }
 }
 
 /** Draw the guide overlay in view px: the setsquare's outline, or the compass's circle and hub. */

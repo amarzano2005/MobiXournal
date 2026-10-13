@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "plot-parameter-sliders"
+title = "Plot parameter sliders (drag a named parameter, re-evaluate the curve)"
+description = "The half of docs/math-engine.md that is not built: an expression may define named parameters (f(x) = a*sin(b*x+c)), the PlotElement keeps them in format/model/Living.kt parameters and MobixPlotCodec persists them, and a parameter is meant to be moved rather than the formula rewritten - but nothing in the UI offers a slider. Give a selected PlotElement one slider per named parameter, anchored to the plot and drawn in the canvas chrome so a drag on a slider is never a stroke, re-evaluating the curve and the analysis on each drag through the render/FunctionAnalysis.kt path, refreshing the cached summaryText the way render/PlotElementFactory.kt does, and committing the moved parameter as one undoable edit on release. Verify with JVM unit tests that moving a parameter changes the sampled curve and the analysis, plus an emulator pass dragging a slider with a stylus while the plot updates."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-13
+tags = ["plot", "math"]
+
+[[task]]
 id = "docs-that-still-claim-shipped-step-1-work-is-pending"
 title = "Fix the docs that still call shipped Step 1 work pending"
 description = "Two docs describe shipped work as pending, and one of the two is the paragraph that made this epic necessary. docs/architecture.md still says the read-only open for a newer minAppVersion, the wiring of the export and the drawing of the living entities are to come: all three shipped (read-only-open-for-a-newer-mobix, wire-the-synthesis-into-the-xopp-export and the plot editing work, all unstamped in FINISHED.toml) and the exports draw living entities on screen, in PDF and in SVG through render/LivingInk.kt today. docs/mobix-format.md still opens its status with the export entry point not being wired while the paragraph it introduces says the opposite. Fix both so they describe the build, leave the genuinely open items pointing at their own spokes, and check the rest of the Step 1 status prose while there. Verify by re-reading each corrected passage against the code it names; DocsGuardTest checks reachability and line budgets, not truth."

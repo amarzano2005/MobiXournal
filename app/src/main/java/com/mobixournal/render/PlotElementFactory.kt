@@ -198,6 +198,7 @@ internal object PlotElementFactory {
         includeDerivative: Boolean,
         includeSummary: Boolean,
         axisColor: Int,
+        parameters: Map<String, Double> = emptyMap(),
     ): String? {
         if (!includeSummary) return null
         val plotted = MultiFunctionPlotter.plot(
@@ -213,8 +214,61 @@ internal object PlotElementFactory {
             includeDerivative = includeDerivative,
             includeSummary = true,
             axisColor = axisColor,
+            parameters = parameters,
         )
         return plotted.summaryText.ifEmpty { null }
+    }
+
+    /**
+     * Updates [paramName] to [paramValue] in [plot.parameters] and recomputes the analysis
+     * summary cache if one was present.
+     */
+    fun updateParameter(
+        plot: PlotElement,
+        paramName: String,
+        paramValue: Double,
+    ): PlotElement {
+        val updated = plot.parameters.toMutableMap()
+        updated[paramName] = paramValue
+        return applyParameters(plot, updated)
+    }
+
+    /**
+     * Applies new [parameters] to an existing [plot], refreshing its cached [PlotElement.summaryText]
+     * if one was present, through [MultiFunctionPlotter] and [FunctionAnalysis].
+     */
+    fun applyParameters(
+        plot: PlotElement,
+        parameters: Map<String, Double>,
+    ): PlotElement {
+        val dialogCurves = plot.curves.map { c ->
+            PlotCurve(
+                source = c.source,
+                color = c.color,
+                lineStyle = c.lineStyle,
+                kind = c.kind,
+                sourceY = c.sourceY,
+            )
+        }
+        val box = PlotBox(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top)
+        val summary = if (plot.summaryText != null) {
+            summaryFor(
+                curves = dialogCurves,
+                xMin = plot.xMin,
+                xMax = plot.xMax,
+                box = box,
+                strokeWidthPt = plot.curves.firstOrNull()?.strokeWidth ?: 1.0,
+                showCriticalPoints = plot.showCriticalPoints,
+                includeDerivative = plot.includeDerivative,
+                includeSummary = true,
+                axisColor = plot.axisColor,
+                parameters = parameters,
+            )
+        } else null
+        return plot.copy(
+            parameters = parameters,
+            summaryText = summary,
+        )
     }
 
     /**

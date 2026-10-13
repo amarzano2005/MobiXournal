@@ -64,20 +64,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "plot-parameter-sliders"
-title = "Plot parameter sliders (drag a named parameter, re-evaluate the curve)"
-description = "The half of docs/math-engine.md that is not built: an expression may define named parameters (f(x) = a*sin(b*x+c)), the PlotElement keeps them in format/model/Living.kt parameters and MobixPlotCodec persists them, and a parameter is meant to be moved rather than the formula rewritten - but nothing in the UI offers a slider. Give a selected PlotElement one slider per named parameter, anchored to the plot and drawn in the canvas chrome so a drag on a slider is never a stroke, re-evaluating the curve and the analysis on each drag through the render/FunctionAnalysis.kt path, refreshing the cached summaryText the way render/PlotElementFactory.kt does, and committing the moved parameter as one undoable edit on release. Verify with JVM unit tests that moving a parameter changes the sampled curve and the analysis, plus an emulator pass dragging a slider with a stylus while the plot updates."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 340
-created = 2026-10-13
-tags = ["plot", "math"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "xournalpp-lua-mobix-plugin"
 title = "Scope the companion Lua plugin that opens .mobix in desktop Xournal++"
 description = "docs/mobix-format.md commits to an official companion plugin (xournalpp-mobix-plugin) so a .mobix opens directly in desktop Xournal++, installed under ~/.config/xournalpp/plugins/. It is a separate deliverable, not part of this app build, and its feasibility has not been checked: find out what the Xournal++ Lua API can really do (build a document element by element, or only open a file through app.openFile), whether the plugin is shipped from this repo and how it is versioned against the format, and what it does when a construct cannot be expressed. Then add the task-level children. Produce tasks, not code."

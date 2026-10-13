@@ -46,6 +46,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 erasing -> eraseMove(event)
                 placing -> placeMove(event)
                 backgroundSelecting -> backgroundSelectMove(event)
+                gestures.slidingParam -> gestures.slideParam(event)
                 gestures.resizing -> gestures.resizeSelect(event)
                 gestures.rotating -> gestures.rotateSelect(event)
                 gestures.moving -> {
@@ -149,6 +150,8 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // A finger laid on the guide manipulates it, whatever the active tool — the pen keeps
     // drawing against it meanwhile, exactly as you'd hold a real setsquare down and rule along it.
     if (kind == PointerKind.FINGER && guideDrag.begin(event, pointerIndex)) return
+    // Touching a slider anchored to an active plot adjusts the parameter — never a stroke.
+    if (gestures.tryBeginSlide(event)) return
     // Play-object is a pure query — it never edits the document, so it short-circuits the whole
     // gesture machinery rather than earning a GestureIntent of its own.
     if (audioPlayMode) { audioTap(event, pointerIndex); return }
@@ -513,7 +516,7 @@ internal fun DrawingSurfaceView.endGesture() {
     val wasErasing = erasing
     val wasPlacing = placing
     val wasMoving = gestures.moving
-    val wasTransforming = gestures.resizing || gestures.rotating
+    val wasTransforming = gestures.resizing || gestures.rotating || gestures.slidingParam
     val wasBanding = gestures.banding
     val wasTextSelecting = textSelecting
     val wasVspacing = vspace.active
