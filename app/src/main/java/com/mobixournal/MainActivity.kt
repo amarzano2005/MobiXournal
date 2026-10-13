@@ -4,11 +4,15 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -262,12 +266,37 @@ class MainActivity : ComponentActivity() {
             ThemeMode.SYSTEM -> setTheme(R.style.Theme_MobiXournal)
         }
         MobiXournalApp.applyThemeMode(this, initialSettings.themeMode)
-        val isDark = when (initialSettings.themeMode) {
-            ThemeMode.SYSTEM -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-            ThemeMode.LIGHT -> false
-            ThemeMode.DARK -> true
+        window.setBackgroundDrawableResource(
+            if (isDarkTheme(initialSettings)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
+        )
+    }
+
+    /** Whether [settings]' theme choice paints dark right now — `SYSTEM` defers to the OS setting. */
+    private fun isDarkTheme(settings: AppSettings): Boolean = when (settings.themeMode) {
+        ThemeMode.SYSTEM ->
+            (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+
+    /**
+     * Draw the whole screen, under both system bars: the canvas is the document, so a bar-shaped band
+     * of window background along any edge would read as part of the page. Both bars are transparent
+     * and their contrast scrims are off, so only their contents (clock, gesture handle) remain.
+     */
+    private fun applyEdgeToEdge(isDark: Boolean) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
+            ) { isDark },
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
         }
-        window.setBackgroundDrawableResource(if (isDark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light)
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -276,6 +305,7 @@ class MainActivity : ComponentActivity() {
         setupThemeAndWindow(initialSettings)
 
         super.onCreate(savedInstanceState)
+        applyEdgeToEdge(isDarkTheme(initialSettings))
 
         // PDFBox needs its font/resource loader primed once before any PDF export can run.
         PDFBoxResourceLoader.init(applicationContext)
@@ -340,12 +370,9 @@ class MainActivity : ComponentActivity() {
                     onSettingsChange = {
                         if (settings.themeMode != it.themeMode) {
                             MobiXournalApp.applyThemeMode(this@MainActivity, it.themeMode)
-                            val isDark = when (it.themeMode) {
-                                ThemeMode.SYSTEM -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-                                ThemeMode.LIGHT -> false
-                                ThemeMode.DARK -> true
-                            }
-                            window.setBackgroundDrawableResource(if (isDark) R.drawable.splash_screen_dark else R.drawable.splash_screen_light)
+                            window.setBackgroundDrawableResource(
+                                if (isDarkTheme(it)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
+                            )
                         }
                         settings = it
                         store.save(it)

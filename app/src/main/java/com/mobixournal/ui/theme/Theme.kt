@@ -100,20 +100,22 @@ fun XoppTheme(
         darkTheme -> DarkColors
         else -> LightColors
     }
-    // Paint both system bars with the app's own chrome colour instead of leaving them transparent over
-    // the launch theme's (always white) window background, then pick the icon contrast from that
-    // colour's luminance. Deriving it from `darkTheme` alone gave white icons on a white bar. The bars
-    // take the *same* value as the top bar and the tab strip (`rememberChromeColor`), so the frame
-    // around the document is one continuous field from the status bar to the navigation bar.
-    // `colorScheme.background` directly: [rememberChromeColor] reads the ambient theme, and this runs
-    // above the `MaterialTheme` below, so it would report the *outer* scheme rather than this one.
+    // Both system bars are left **clear**, because the document runs edge to edge underneath them: the
+    // canvas is full-bleed and the chrome is the floating top bar and the rail, so any colour painted
+    // here is a band of window the page cannot reach — a strip of the app's own background along the
+    // bottom edge of the screen, read as if the page had ended early. Only the *icons* are still chosen
+    // here, which is what the two `isAppearanceLight*Bars` flags are for: a light chrome takes dark
+    // icons. Deriving that from `darkTheme` alone gave white icons on a white bar, so it comes from the
+    // chrome colour's luminance. `colorScheme.background` is read directly rather than through
+    // [rememberChromeColor], which reads the ambient theme and would report the *outer* scheme — this
+    // runs above the `MaterialTheme` below.
     val chrome = colorScheme.background
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = chrome.toArgb()
-            window.navigationBarColor = chrome.toArgb()
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
             val controller = WindowCompat.getInsetsController(window, view)
             val lightIcons = chrome.luminance() > 0.5f
             controller.isAppearanceLightStatusBars = lightIcons
