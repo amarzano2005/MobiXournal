@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "point-level-dtms-millisecond-telemetry-inking"
-title = "Point-level dtMs millisecond telemetry inking"
-description = "Populate StrokePoint.dtMs dynamically from MotionEvent.eventTime relative to stroke start during live stylus inking in DrawingSurfaceStrokes.kt, and persist point timing in MobixElementCodec."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 760
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "karaoke-stroke-playback-animation-and-sub-stroke-scrubbing"
 title = "Karaoke stroke playback animation and sub-stroke scrubbing"
 description = "Implement synchronized audio-stroke replay in DrawingSurfaceView: dim future strokes, animate inking path dynamically at audio timestamp t, and allow point-accurate seek via audio-tap."

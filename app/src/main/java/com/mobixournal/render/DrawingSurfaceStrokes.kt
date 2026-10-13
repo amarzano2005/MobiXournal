@@ -19,7 +19,10 @@ import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import kotlin.math.hypot
 
+internal var strokeStartEventTimeMs: Long = 0L
+
 internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: Int) {
+    strokeStartEventTimeMs = event.eventTime
     scrolling = false
     shaping = shapeKind != null
     cancelHoldSnap()
@@ -43,7 +46,7 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
         shapeStartY = sy
         shapeWidthPt = nominalShapeWidthPt()
         currentStrokes = null
-        current = ArrayList(listOf(StrokePoint(shapeStartX, shapeStartY, shapeWidthPt)))
+        current = ArrayList(listOf(StrokePoint(shapeStartX, shapeStartY, shapeWidthPt, dtMs = 0)))
     } else {
         // Decimate against this page's real px/pt, so a stroke drawn zoomed out or in a
         // multi-column view keeps the same document-space detail as one drawn at 100%.
@@ -348,17 +351,25 @@ internal fun DrawingSurfaceView.commitPlace() {
  * coexist with the pen: the palm is a different pointer and is never read here.
  */
 internal fun DrawingSurfaceView.addSamples(event: MotionEvent, pointerIndex: Int, box: PageBox, into: MutableList<StrokePoint>) {
+    val tilt = event.getAxisValue(MotionEvent.AXIS_TILT, pointerIndex).takeIf { it != 0f }
+    val azimuth = event.getAxisValue(MotionEvent.AXIS_ORIENTATION, pointerIndex).takeIf { it != 0f }
+
     for (h in 0 until event.historySize) {
         smoother.accept(
             event.getHistoricalX(pointerIndex, h),
             event.getHistoricalY(pointerIndex, h),
             event.getHistoricalPressure(pointerIndex, h),
-        )?.let { into += point(box, it.x, it.y, it.pressure) }
+        )?.let {
+            val hTime = event.getHistoricalEventTime(h)
+            into += point(box, it.x, it.y, it.pressure, hTime, tilt, azimuth)
+        }
     }
     // The batch's newest sample is always kept, so the drawn line reaches the pen.
     smoother.accept(
         event.getX(pointerIndex), event.getY(pointerIndex), event.getPressure(pointerIndex), force = true,
-    )?.let { into += point(box, it.x, it.y, it.pressure) }
+    )?.let {
+        into += point(box, it.x, it.y, it.pressure, event.eventTime, tilt, azimuth)
+    }
 }
 
 /**
@@ -390,10 +401,27 @@ internal fun DrawingSurfaceView.widthForPressure(pressure: Float): Double = if (
  */
 internal fun DrawingSurfaceView.nominalShapeWidthPt(): Double = baseWidthPt.toDouble()
 
-internal fun DrawingSurfaceView.point(box: PageBox, vx: Float, vy: Float, pressure: Float): StrokePoint {
+internal fun DrawingSurfaceView.point(
+    box: PageBox,
+    vx: Float,
+    vy: Float,
+    pressure: Float,
+    eventTime: Long = strokeStartEventTimeMs,
+    tilt: Float? = null,
+    azimuth: Float? = null,
+): StrokePoint {
     val width = widthForPressure(pressure)
     val (gx, gy) = guided(box, box.toPtX(vx, scrollX), box.toPtY(vy, scrollY))
-    return StrokePoint(x = gx, y = gy, width = width)
+    val dt = if (strokeStartEventTimeMs > 0L) (eventTime - strokeStartEventTimeMs).coerceAtLeast(0).toInt() else 0
+    return StrokePoint(
+        x = gx,
+        y = gy,
+        width = width,
+        pressure = pressure,
+        tilt = tilt,
+        azimuth = azimuth,
+        dtMs = dt,
+    )
 }
 
 internal fun DrawingSurfaceView.commitCurrent() {
