@@ -101,6 +101,26 @@ class AppSettingsBackupTest {
         }
     }
 
+    /**
+     * A backup written while the rail could also dock to the top or the bottom carries one of those
+     * retired names. It has to come back as a rail the app can draw — LEFT, the position's own home — and
+     * not as whatever this install happens to use, which is what the generic enum reader would answer.
+     */
+    @Test
+    fun `a retired toolbar position restores as the left edge`() {
+        val json = """{"version": 1, "toolbarPosition": "TOP"}"""
+        assertEquals(ToolbarPosition.LEFT, AppSettingsBackup.fromJson(json).toolbarPosition)
+        // The other retired name lands there too, and a name that exists is still read as itself.
+        assertEquals(
+            ToolbarPosition.LEFT,
+            AppSettingsBackup.fromJson("""{"version": 1, "toolbarPosition": "BOTTOM"}""").toolbarPosition,
+        )
+        assertEquals(
+            ToolbarPosition.RIGHT,
+            AppSettingsBackup.fromJson("""{"version": 1, "toolbarPosition": "RIGHT"}""").toolbarPosition,
+        )
+    }
+
     @Test
     fun `round-trips all toolbar layouts and satellite offsets`() {
         for (layout in ToolbarLayout.values()) {

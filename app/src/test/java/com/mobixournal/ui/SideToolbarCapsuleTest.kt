@@ -4,8 +4,6 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.render.CanvasChrome
 import com.mobixournal.ui.theme.ModernTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -39,16 +37,20 @@ class SideToolbarCapsuleTest {
         assertEquals(0x26FFFFFF, CanvasChrome.PAGE_OUTLINE)
     }
 
+    /**
+     * The rail docks to a **vertical edge** only, and the two values are the two hands. The `TOP`/`BOTTOM`
+     * centre dockings that used to sit beside them are retired (2026-10-13): a toolbar along the bottom is
+     * what the Compact *layout* means, and the header owns the top band. Pinning the list rather than a
+     * count is what makes a third position a deliberate edit here, instead of a value nobody can place.
+     */
     @Test
-    fun toolbarPositionSupportsAllFourPositionsAndOrientation() {
+    fun toolbarPositionOffersTheTwoVerticalEdges() {
         assertEquals("Left", ToolbarPosition.LEFT.label)
         assertEquals("Right", ToolbarPosition.RIGHT.label)
-        assertEquals("Top", ToolbarPosition.TOP.label)
-        assertEquals("Bottom", ToolbarPosition.BOTTOM.label)
-
-        assertFalse(ToolbarPosition.LEFT.isHorizontal)
-        assertFalse(ToolbarPosition.RIGHT.isHorizontal)
-        assertTrue(ToolbarPosition.TOP.isHorizontal)
-        assertTrue(ToolbarPosition.BOTTOM.isHorizontal)
+        assertEquals(
+            "the rail docks to a vertical edge only",
+            listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
+            ToolbarPosition.entries.toList(),
+        )
     }
 }

@@ -106,7 +106,7 @@ them with a thumb or index finger without lifting or moving the pen.
 The system formally supports two ergonomic layout modes in settings (`ToolbarLayout`):
 
 ### Standard Layout Mode
-- **Main Toolbar (Left / Right)**: the vertical glass capsule in a lane of its own along the edge (left or right per user handedness, a band and never a bar over the page), containing the primary handwriting and drawing tools (pen, highlighter, eraser, selection, favorites, layers, pages, zoom).
+- **Main Toolbar (Left / Right)**: the vertical glass capsule in a lane of its own along the edge (left or right per user handedness, a band and never a bar over the page), containing the primary handwriting and drawing tools (pen, highlighter, eraser, selection, favorites, layers, pages, zoom). Those are the only two dockings: the `TOP`/`BOTTOM` centre positions are retired (2026-10-13), since the header owns the top band and a bar along the bottom is what Compact means (`docs/chrome.md`).
 - **Secondary STEM Toolbar (header)**: the glass dock in the header's tools row, containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides), with the document tabs as the row under it — one slab, one closing edge.
 
 ### Compact Layout Mode

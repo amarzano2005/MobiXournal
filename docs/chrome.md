@@ -16,6 +16,16 @@ The app chrome provides two configurable layout modes (`ToolbarLayout` in `AppSe
 - **Standard (`DEFAULT`)**: The Main Toolbar is docked along the vertical edge (Left or Right, per `ToolbarPosition`) as a vertical floating capsule for classic writing tools, paired with the Secondary Toolbar in the top bar containing all STEM tools.
 - **Compact (`COMPACT`)**: A unified floating horizontal toolbar docked at the bottom center containing primary writing tools plus 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`); the secondary toolbar in the top bar is hidden, displaying only the document title.
 
+The rail's edge is not a placement menu but the **handedness** answer: a right hand writes from the left,
+so `ToolbarPosition.LEFT` is the default and `RIGHT` is its mirror — and those are the two values it has,
+because the `TOP`/`BOTTOM` centre dockings were retired (2026-10-13: the header owns the top band and a
+toolbar along the bottom is what Compact *means*, so neither could be drawn as anything but a second bar).
+First launch asks it as **which hand writes**, each answer carrying a miniature of the editor with the rail
+on the edge that hand implies, and the settings picker later offers the two edges under **Settings →
+Interface → Toolbar**. A stored or imported `TOP`/`BOTTOM` ages into `LEFT` in the readers
+(`AppSettings.load`, `AppSettingsBackup.fromNode`), so an install from that era still opens with a rail it
+can place. The tour that asks it is owned by [`stylus.md`](stylus.md#first-launch-onboarding).
+
 The chrome never sits **on** the page: the header (the top bar and, inside it, the row of document tabs),
 the rail's lane and (in Compact) the bottom band each take a band of their own and the canvas takes what
 is left, which is what makes the whole visible page writable — the layout is described under _The frame

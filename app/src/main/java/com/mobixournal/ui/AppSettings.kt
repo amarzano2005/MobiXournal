@@ -15,24 +15,21 @@ import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 
 /**
- * Which edge of the editor the tool rail is docked to.
+ * Which **vertical** edge of the editor the tool rail is docked to — a handedness choice, not a
+ * placement menu.
  *
- * Supports left/right vertical spine docking (for right/left handed writers) as well as
- * top/bottom center docking as a horizontal capsule.
+ * [LEFT] is where a right hand writes with the tools under the free left hand; [RIGHT] is the mirror.
+ * The rail docks to a vertical edge only (see `docs/chrome.md`): a toolbar along the bottom is what the
+ * Compact **layout** means, and the header owns the top band, so there is nothing else to choose. The
+ * `TOP` / `BOTTOM` centre dockings that used to live here were retired on 2026-10-13; a saved pref or a
+ * backup carrying one of those names degrades to [LEFT] in the readers (`AppSettings.load` through
+ * [enumOr], `AppSettingsBackup.fromNode` explicitly) rather than leaving a rail the app cannot place.
  */
 enum class ToolbarPosition(val label: String) {
-    /** Rail along the top edge, buttons in a horizontal row. */
-    TOP("Top"),
-    /** Rail along the bottom edge, buttons in a horizontal row. */
-    BOTTOM("Bottom"),
-    /** Rail down the left edge, buttons in a vertical column. */
+    /** Rail down the **left** edge, buttons in a vertical column: the edge a **right** hand writes from. */
     LEFT("Left"),
-    /** Rail down the right edge, buttons in a vertical column. */
+    /** Rail down the **right** edge, buttons in a vertical column: the edge a **left** hand writes from. */
     RIGHT("Right"),
-    ;
-
-    /** True when the rail runs along a horizontal edge (top/bottom) and so lays its buttons in a row. */
-    val isHorizontal: Boolean get() = this == TOP || this == BOTTOM
 }
 
 /**
@@ -611,6 +608,9 @@ class SettingsStore(context: Context) {
             momentum = Momentum.coerce(prefs.getFloat(KEY_MOMENTUM, d.momentum)),
             momentumCurve = enumOr(prefs.getString(KEY_MOMENTUM_CURVE, null), d.momentumCurve),
             panSensitivity = PanSensitivity.coerce(prefs.getFloat(KEY_PAN_SENSITIVITY, d.panSensitivity)),
+            // A `TOP`/`BOTTOM` stored by an older build is retired, and [enumOr] lands an unknown name on
+            // the default — LEFT, the rail's own home — so a legacy install still opens with a rail the
+            // app can draw (docs/chrome.md).
             toolbarPosition = enumOr(prefs.getString(KEY_TOOLBAR_POSITION, null), d.toolbarPosition),
             toolbarLayout = enumOr(prefs.getString(KEY_TOOLBAR_LAYOUT, null), d.toolbarLayout),
             stemSatelliteOffsetX = prefs.getFloat(KEY_STEM_SATELLITE_OFFSET_X, d.stemSatelliteOffsetX),

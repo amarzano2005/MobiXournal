@@ -29,7 +29,8 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         if (settings.toolbarLayout == ToolbarLayout.DEFAULT) {
             OptionGroup(
                 title = "Position",
-                subtitle = "Which edge the Main Toolbar is docked to (Left or Right).",
+                subtitle = "The edge the Main Toolbar docks to: the one opposite your writing hand — " +
+                    "Left for a right hand (the default), Right for a left hand.",
                 options = listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
                 selected = if (settings.toolbarPosition == ToolbarPosition.RIGHT) ToolbarPosition.RIGHT else ToolbarPosition.LEFT,
                 label = { it.label },

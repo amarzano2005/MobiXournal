@@ -426,17 +426,3 @@ created = 2026-10-13
 tags = ["ui", "guard"]
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "retire-the-top-and-bottom-toolbar-positions"
-title = "Retire the Top and Bottom toolbar positions"
-description = "ToolbarPosition still carries TOP and BOTTOM plus isHorizontal, and nothing can select or honour them: the settings picker offers Left and Right only (ToolbarSection.kt), the rail's orientation comes from the layout mode (EditorRegions.kt: horizontal = toolbarLayout == COMPACT), and isHorizontal is referenced by SideToolbarCapsuleTest alone. The user decision (2026-10-13, recorded with this task) is to drop them rather than bring back horizontal docking: the top band is the header's, and Compact is what a toolbar along the bottom means. Do it: remove TOP and BOTTOM from the enum and isHorizontal with them; replace the four assertions in SideToolbarCapsuleTest that pin them with the Left/Right round-trip; map a legacy saved or imported value to LEFT so an install that stored Top or Bottom keeps a working rail (AppSettings.load and AppSettingsBackup.fromNode both read through readEnum with a fallback); and fix the enum KDoc that still promises top/bottom centre docking as a horizontal capsule. ui-modernization.md already states that the rail docks to a vertical edge only, so this change makes the code match its owning doc. Verify: unit tests green, Settings -> Toolbar still offers both edges, and picking Right puts the rail on the right with EmulatorDebug screenshots of both."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 545
-created = 2026-10-13
-tags = ["ui", "settings"]
-rebuild = true
-emulator_debug = true

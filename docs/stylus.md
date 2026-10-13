@@ -143,11 +143,17 @@ them through two complementary paths:
 ## First-launch onboarding
 
 **First-launch onboarding.** Fresh installs display `OnboardingDialog.kt` over `EditorScreen`, controlled
-by `AppSettings.hasSeenOnboarding`. Its four steps are stylus pressure and barrel-button configuration,
-harmonizing figure sizes with handwriting pressure, graphics-tablet ExpressKeys, and **handedness**
-(`OnboardingHandedness.kt`: right-handed — the default, Main Toolbar on the left — or left-handed, on the
-right). The last step edits `AppSettings.toolbarPosition` live through `onToolbarPosition`, so the rail is
-seen moving behind the dialog rather than described.
+by `AppSettings.hasSeenOnboarding`. Its five steps are stylus pressure and barrel-button configuration,
+harmonizing figure sizes with handwriting pressure, graphics-tablet ExpressKeys, **handedness**, and the
+format a new document is written in (`.mobix` or `.xopp`).
+
+The handedness step (`OnboardingHandedness.kt`) asks the question the rail is really about — *which hand
+writes* — rather than which edge to dock to: two cards, a radio set, each carrying a miniature of the
+editor with the rail drawn on the edge that hand implies (right hand → **left** edge, the default; left
+hand → the **right** edge), so the answer is a hand rather than a coin flip. The last two steps edit the
+settings they ask about — `AppSettings.toolbarPosition` and `AppSettings.newDocumentFormat`, through
+`onToolbarPosition` / `onDocumentFormat` — and because the editor is composed behind the dialog, the rail
+is *seen* moving as a card is tapped rather than described.
 
 ## Mouse wheel
 

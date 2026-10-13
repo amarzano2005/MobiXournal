@@ -60,7 +60,8 @@ import androidx.compose.ui.window.DialogProperties
  * 2. Shape sizing & pressure sensitivity: explains why shapes have uniform thickness
  *    and how to match or balance them with freehand pen strokes in Settings.
  * 3. Graphics tablet support: using hardware tablets and assigning tool shortcuts.
- * 4. Handedness: which vertical edge the Main Toolbar docks to (left by default).
+ * 4. Handedness: which hand writes, which is what docks the Main Toolbar to the opposite vertical edge
+ *    (a drawing behind it shows the rail moving).
  * 5. The format a new document is written in (`.mobix`, recommended, or the interchange `.xopp`).
  *
  * Steps 4 and 5 edit the settings they ask about — [onToolbarPosition] writes

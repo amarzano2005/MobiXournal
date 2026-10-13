@@ -280,7 +280,14 @@ object AppSettingsBackup {
             momentum = root.getFloat("momentum", fallback.momentum),
             momentumCurve = readEnum("momentumCurve", MomentumCurve.values(), fallback.momentumCurve),
             panSensitivity = root.getFloat("panSensitivity", fallback.panSensitivity),
-            toolbarPosition = readEnum("toolbarPosition", ToolbarPosition.values(), fallback.toolbarPosition),
+            // A backup written while the rail could also dock to the top or the bottom carries one of
+            // those retired names, and a *present* retired value has to land on LEFT — the position's own
+            // home — rather than on [fallback], which is the position this install happens to use. A file
+            // that says nothing about the setting still keeps what it was restored over.
+            toolbarPosition = root.getStrOrNull("toolbarPosition")?.let { saved ->
+                ToolbarPosition.entries.firstOrNull { it.name.equals(saved, ignoreCase = true) }
+                    ?: ToolbarPosition.LEFT
+            } ?: fallback.toolbarPosition,
             toolbarLayout = readEnum("toolbarLayout", ToolbarLayout.values(), fallback.toolbarLayout),
             stemSatelliteOffsetX = root.getFloat("stemSatelliteOffsetX", fallback.stemSatelliteOffsetX),
             stemSatelliteOffsetY = root.getFloat("stemSatelliteOffsetY", fallback.stemSatelliteOffsetY),

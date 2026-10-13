@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "ask-the-writing-hand-at-first-launch-not-which-edge"
+title = "Ask the writing hand at first launch, not which edge"
+description = "The fourth onboarding step (OnboardingHandedness.kt, wired in OnboardingDialog.kt) asks which hand writes rather than which edge to dock to: two radio cards - Right-handed, which docks the rail on the left edge and is the default, and Left-handed on the right - each carrying a miniature of the editor with the rail drawn on the edge that hand implies, over a line saying the tool edge is the one opposite the writing hand. The step writes AppSettings.toolbarPosition live, so a tap moves the rail behind the dialog: verified on the Pixel_Tablet AVD, where tapping Left-handed stored toolbar_position=RIGHT and the rail's lane moved from the left band to the right one while the dialog was still up. The miniature takes its desk and rail from the chrome tokens but draws the sheet as paper white, because a sheet painted with surface was #121212 on the dark theme's #181818 card and the comparison vanished exactly where it is the only thing on screen; checked in both a dark and a light theme. docs/stylus.md and README.md updated in the same commit."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["ui", "onboarding"]
+
+[[task]]
+id = "retire-the-top-and-bottom-toolbar-positions"
+title = "Retire the Top and Bottom toolbar positions"
+description = "ToolbarPosition (app/src/main/java/com/mobixournal/ui/AppSettings.kt) now offers only LEFT and RIGHT: TOP, BOTTOM and the isHorizontal property are gone, so the rail can only dock to a vertical edge. Both readers age a retired value into LEFT - AppSettings.load falls back through enumOr to the default, and AppSettingsBackup.fromNode keeps a present retired name on LEFT rather than on the fallback position, pinned by the new 'a retired toolbar position restores as the left edge' case in AppSettingsBackupTest - while a file that says nothing about the setting still keeps what it was restored over. SideToolbarCapsuleTest pins the two-value list (toolbarPositionOffersTheTwoVerticalEdges) instead of pinning the retired pair, ToolbarSection drops the Left/Right-only guard now that there is nothing else to offer and its subtitle says the edge is the one opposite the writing hand, and chrome.md, ui-modernization.md and README.md say so in the same commit. Verified live on the Pixel_Tablet AVD: Settings -> Interface -> Toolbar shows Layout plus a Position group holding exactly Left and Right, and picking Right docks the rail on the right band."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-13
+completed = 2026-10-14
+tags = ["ui", "settings"]
+
+[[task]]
 id = "no-rim-and-no-line-through-the-header"
 title = "Remove the header's rim and the line between its rows"
 description = "The Standard header (EditorTopBar, ui/EditorRegions.kt) wore a BorderStroke rim and a hairline inside itself between the tools row and the tab row (Modifier.topHairline). On the true-black dark scheme the rim closed the header at the top *and* the bottom of the screen while the hairline cut the slab in two, so the chrome read as banded by three grey rules through what the docs call one header. The user photographed the installed build and marked exactly those two lines in orange, asking for all of them to go including the top one that was not marked. Both are removed: the header Surface keeps only its glass fill and its 4dp shadow, the TabStrip no longer draws a hairline, and the now-dead topHairline helper plus the three imports it alone used (drawWithContent, Offset, Dp) are deleted. Geometry is untouched - the tabs are still the bar second row inside the same Surface, so the header still closes on one bottom edge across the full width and the rail lane still begins below the whole header. Docs updated in the same commit: docs/chrome.md (One header, one slab), docs/ui-modernization.md (One edge per surface, and the mock), README.md. Verify: ./gradlew testDebugUnitTest green, including the docs and source-structure guards; no emulator pass (build and unit tests only)."
