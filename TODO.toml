@@ -440,3 +440,129 @@ created = 2026-10-13
 tags = ["multi-window"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "embedded-katex-and-typst-offline-compilation-core"
+title = "Embedded KaTeX and Typst offline compilation core"
+description = "Integrate offline KaTeX and Typst scientific typesetting engines into the rendering pipeline for sub-15ms vector math generation."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 720
+created = 2026-10-13
+tags = ["latex", "typst"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "living-mathblockelement-and-interactive-editor-modal"
+title = "Living MathBlockElement and interactive editor modal"
+description = "Model MathBlockElement in the canvas, rendering crisp Skia vector paths at any zoom with double-tap in-place equation editing modal."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 730
+created = 2026-10-13
+tags = ["math", "canvas"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "export-mathblocks-to-xopp-teximages-and-pdf-vector-glyphs"
+title = "Export MathBlocks to .xopp TexImages and PDF vector glyphs"
+description = "Compile MathBlock elements to standard TexImage elements with embedded LaTeX/Typst comments for .xopp export and native vector glyphs for PDF."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 740
+created = 2026-10-13
+tags = ["export", "math"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "snap-to-text-magnetic-highlighter-line-detection"
+title = "Snap-to-text magnetic highlighter line detection"
+description = "Align highlighter strokes to PDF text glyph bounding boxes, replacing wavy freehand ink with crisp rectangular highlight bands."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 750
+created = 2026-10-13
+tags = ["pdf", "highlighter"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "inverted-full-text-index-worker-pdftextindex"
+title = "Inverted full-text index worker (PdfTextIndex)"
+description = "Implement background tokenized inverted text indexing in .mobix/assets/pdf_index.bin for sub-2ms multi-page document search."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 760
+created = 2026-10-13
+tags = ["pdf", "search"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "native-iso-pdf-annotation-dictionaries-export"
+title = "Native ISO PDF annotation dictionaries export"
+description = "Export interoperable /Highlight, /Ink, and /Text annotation dictionaries into the generated PDF stream for Adobe Acrobat and Okular compatibility."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 770
+created = 2026-10-13
+tags = ["pdf", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "split-view-and-dex-multi-window-document-state-sync"
+title = "Split-view and DeX multi-window document state sync"
+description = "Support Android freeform windows and split-screen with shared DocumentState, unified undo/redo, and cross-window dirty-rect invalidation."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 780
+created = 2026-10-13
+tags = ["multi-window", "dex"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "multi-flavored-clipboard-and-drag-and-drop-selection"
+title = "Multi-flavored clipboard and drag-and-drop selection"
+description = "Enable dragging canvas selections with multi-flavored payloads (application/vnd.mobixournal.element, SVG, PNG, and plain text/LaTeX)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 790
+created = 2026-10-13
+tags = ["drag-and-drop", "selection"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "external-content-ingestion-drag-and-drop-to-canvas"
+title = "External content ingestion drag-and-drop to canvas"
+description = "Handle dropping external images, PDFs, math strings, and CSV/TSV tables directly onto the active canvas page as living entities."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 800
+created = 2026-10-13
+tags = ["drag-and-drop", "ingestion"]
+rebuild = true
+emulator_debug = true
