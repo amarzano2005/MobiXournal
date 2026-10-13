@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -456,7 +459,14 @@ private fun EditorBody(
             } else {
                 if (settings.toolbarPosition == ToolbarPosition.RIGHT) Alignment.CenterEnd else Alignment.CenterStart
             }
-            Box(modifier = Modifier.align(alignment)) {
+            val toolbarModifier = if (settings.toolbarLayout == ToolbarLayout.COMPACT) {
+                Modifier.navigationBarsPadding()
+            } else {
+                // The floating top bar owns the screen's top edge, so the vertical rail starts under it:
+                // left at the top, the bar's glass slab simply covers the rail's first slot.
+                Modifier.statusBarsPadding().padding(top = TOP_BAR_ROW_HEIGHT)
+            }
+            Box(modifier = Modifier.align(alignment).then(toolbarModifier)) {
                 toolbar()
             }
         }

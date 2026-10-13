@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.BorderStroke
@@ -142,50 +143,63 @@ fun EditorTopBar(
     // The rail can only be docked to a vertical edge now, so the spacer that keeps the top bar's
     // content clear of it is simply needed whenever that edge is the left one.
     val railOnLeft = (settings?.toolbarPosition ?: ToolbarPosition.LEFT) == ToolbarPosition.LEFT
-    TopAppBar(
-        navigationIcon = {
-            // In the current style the active tool indicator *is* the top bar's leading slot: it stands in
-            // the corner between the two toolbars, and its width is what puts the figures' dock on the
-            // document tabs' own line ([TOP_BAR_INDICATOR_WIDTH]). In the backup dock-cap style the slot
-            // only keeps the top bar's content clear of the rail.
-            if (settings != null && railOnLeft && !ui.fullPage) {
-                if (!INDICATOR_AS_DOCK_CAP &&
-                    onSettingsChange != null &&
-                    standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
-                ) {
-                    StandaloneToolIndicator(
-                        ui = ui,
-                        styleCallbacks = rememberToolbarStyleCallbacks(
+    val isDark = isSystemInDarkTheme()
+    val glassColor = ModernTheme.glassSurface(isDark)
+    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+
+    Surface(
+        color = glassColor,
+        border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+        shadowElevation = 4.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        TopAppBar(
+            navigationIcon = {
+                // In the current style the active tool indicator *is* the top bar's leading slot: it stands in
+                // the corner between the two toolbars, and its width is what puts the figures' dock on the
+                // document tabs' own line ([TOP_BAR_INDICATOR_WIDTH]). In the backup dock-cap style the slot
+                // only keeps the top bar's content clear of the rail.
+                if (settings != null && railOnLeft && !ui.fullPage) {
+                    if (!INDICATOR_AS_DOCK_CAP &&
+                        onSettingsChange != null &&
+                        standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
+                    ) {
+                        StandaloneToolIndicator(
                             ui = ui,
-                            surface = pane.surface,
-                            settings = settings,
-                            onSettingsChange = onSettingsChange,
-                        ),
-                        modifier = Modifier,
+                            styleCallbacks = rememberToolbarStyleCallbacks(
+                                ui = ui,
+                                surface = pane.surface,
+                                settings = settings,
+                                onSettingsChange = onSettingsChange,
+                            ),
+                            modifier = Modifier,
+                        )
+                    } else {
+                        Spacer(Modifier.width(SideToolbarModernTotalWidth))
+                    }
+                }
+            },
+            title = {
+                if (settings != null && onSettingsChange != null && settings.toolbarLayout != ToolbarLayout.COMPACT) {
+                    TopBarToolsRow(
+                        ui = ui,
+                        pane = pane,
+                        settings = settings,
+                        onSettingsChange = onSettingsChange,
                     )
                 } else {
-                    Spacer(Modifier.width(SideToolbarModernTotalWidth))
+                    TabStrip(tabs, modifier = Modifier.fillMaxWidth())
                 }
-            }
-        },
-        title = {
-            if (settings != null && onSettingsChange != null && settings.toolbarLayout != ToolbarLayout.COMPACT) {
-                TopBarToolsRow(
-                    ui = ui,
-                    pane = pane,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                )
-            } else {
-                TabStrip(tabs, modifier = Modifier.fillMaxWidth())
-            }
-        },
-        modifier = modifier.height(52.dp),
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-        ),
-        actions = {
-            val isDark = isSystemInDarkTheme()
+            },
+            // The bar pads itself by the status-bar inset and then stands its own row of tools under it,
+            // so the glass slab — not the window background — is what the clock and the notch sit on.
+            modifier = Modifier
+                .statusBarsPadding()
+                .height(TOP_BAR_ROW_HEIGHT),
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+            ),
+            actions = {
             val glassColor = ModernTheme.glassSurface(isDark)
             val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
 
@@ -286,6 +300,7 @@ fun EditorTopBar(
             )
         },
     )
+    }
 }
 
 @Composable
@@ -1465,12 +1480,27 @@ fun EditorPaneView(
             val railInset = SideToolbarModernTotalWidth
             val startPadding = if (settings.toolbarPosition == ToolbarPosition.LEFT) railInset else 8.dp
             val endPadding = if (settings.toolbarPosition == ToolbarPosition.RIGHT) railInset else 8.dp
-            TabStrip(
-                tabs[index.coerceIn(tabs.indices)],
+            val isDark = isSystemInDarkTheme()
+            val glassColor = ModernTheme.glassSurface(isDark)
+            val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+            // The slab hangs from the top bar's own underside — [TOP_BAR_ROW_HEIGHT] below the status-bar
+            // inset the bar pads itself by — so the two slabs stack flush instead of the bar cutting the
+            // tabs in half. The rail's column is held out of the *slab* rather than out of its chips, so
+            // this slab and the rail's capsule never overlap.
+            Surface(
+                color = glassColor,
+                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                shadowElevation = 2.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = startPadding, end = endPadding, top = 54.dp),
-            )
+                    .statusBarsPadding()
+                    .padding(top = TOP_BAR_ROW_HEIGHT, start = startPadding, end = endPadding),
+            ) {
+                TabStrip(
+                    tabs[index.coerceIn(tabs.indices)],
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

@@ -85,17 +85,19 @@ internal fun topBarCapShape(capOnLeft: Boolean): RoundedCornerShape {
 /**
  * Which of the indicator's two styles the chrome draws — the one line that makes the move reversible.
  *
- * `true` is the **dock cap** the indicator shipped with: the Secondary Toolbar dock's own end cap,
- * flush with the dock's edge and wearing the dock's corner ([ActiveToolIndicator]). `false` — the
- * current style — lifts the indicator out of the dock into a floating button of its own
- * ([StandaloneToolIndicator]) that stands *between the two toolbars*: in the corner the rail's column and
- * the dock leave between them, sized ([TOP_BAR_INDICATOR_WIDTH]) so the dock starts on the document tabs'
- * line — which from there on holds the figures alone.
+ * `true` — the style in force — is the **dock cap**: the Secondary Toolbar dock's own end cap, flush with
+ * the dock's edge and wearing the dock's corner ([ActiveToolIndicator]). `false` lifts the indicator out
+ * of the dock into a floating button of its own ([StandaloneToolIndicator]) that stands *between the two
+ * toolbars*: in the corner the rail's column and the dock leave between them, sized
+ * ([TOP_BAR_INDICATOR_WIDTH]) so the dock starts on the document tabs' line — which from there on holds
+ * the figures alone. That pill's width is deliberately the rail's own column, though, so it also sits
+ * flush against the **screen's** left edge; as the cap the indicator starts clear of both the edge and
+ * the rail, and the run still reads rail → indicator → figures.
  *
  * Both styles stay live code — the branch is compiled either way, so the backup cannot rot — and the
  * choice is a constant rather than a user setting, as asked: flip it and rebuild for the old look.
  */
-internal val INDICATOR_AS_DOCK_CAP = false
+internal val INDICATOR_AS_DOCK_CAP = true
 
 /**
  * The air between the standalone indicator and the dock it was cut out of — read here (where the pill
@@ -103,6 +105,16 @@ internal val INDICATOR_AS_DOCK_CAP = false
  * before the dock.
  */
 internal val TOP_BAR_INDICATOR_GAP = 6.dp
+
+/**
+ * The floating top bar's own row height, **above** the status-bar inset it pads itself by.
+ *
+ * Everything that has to clear the bar reads this one number instead of repeating the bar's height as a
+ * literal: the document tab strip that hangs directly under it, and the rail's column, which would
+ * otherwise be swallowed by the bar's glass. The status-bar inset is deliberately *not* part of it —
+ * that is a device value, taken with `statusBarsPadding()` at each call site.
+ */
+internal val TOP_BAR_ROW_HEIGHT = 52.dp
 
 /** Air on each side of the indicator's face while it fills the dock's own end as the cap. */
 private val TOP_BAR_FACE_PADDING = 10.dp

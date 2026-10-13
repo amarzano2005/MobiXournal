@@ -32,7 +32,7 @@ class SourceStructureTest {
      * allowed — but it is a deliberate line in a diff, which is the whole point of the ratchet.
      */
     private val fileCeilings = mapOf(
-        "ui/EditorRegions.kt" to 1750,
+        "ui/EditorRegions.kt" to 1780,
         "render/DrawingSurfaceView.kt" to 1700,
         "render/CircuitShapes.kt" to 1180,
         "ui/AppSettings.kt" to 1010,
