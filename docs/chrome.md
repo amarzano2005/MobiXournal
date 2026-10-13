@@ -77,7 +77,7 @@ whole-number fit stays exact.
 
 Chrome styling is one design, with no switch: the Material 3 floating dock.
 - The Main Toolbar fill is translucent (`rememberToolbarColor()` at 88% alpha) with a 1dp hairline at 25% alpha, and it opens with a **1-tap STEM section** (`StemRailSection`, `ui/StemRailSection.kt`): f(x) (opens the graph dialog), Geometry, Table, Circuit — one tap each, no sub-menus, grouped in an accent-tinted capsule between hairline dividers. Pinned by `StemRailSectionTest`.
-- The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures, and not drawn at all while none are visible; the **active tool indicator** stands outside that dock as a button of its own (`StandaloneToolIndicator`), which on a left-docked rail is the top bar's leading slot — the corner between the rail's column and the dock, and the slot whose fixed width (`TOP_BAR_INDICATOR_WIDTH`) leaves the dock starting on the document tab strip's own line — and trails the dock when the rail is docked right (`standaloneIndicatorSlot`, pinned by `IndicatorSlotTest`), so the run always reads rail → indicator → figures; it is `TOP_BAR_DOCK_HEIGHT` (40dp) tall with `TOP_BAR_DOCK_CORNER` (`20.dp`) on all four sides plus the dock's tonal and shadow elevation and hairline border, its face is shared with the old cap (`ToolIndicatorFace`) and shows the selected tool, colour and stroke width with no thickness bar beside the size letter, tapping it opens the Colour & size pop-up, and its grey is the `surfaceContainerHighest` role — a surface step, never the accent `primaryContainer` a picked tool button wears; the style it replaced (the indicator as the dock's own **end cap**, grey flush to the dock's rounded border, `ActiveToolIndicator`) is kept behind the `INDICATOR_AS_DOCK_CAP` constant as a one-flip restore path; the top bar uses 48dp height with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
+- The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures, and not drawn at all while none are visible; the **active tool indicator** is the dock's own **end cap** (`ActiveToolIndicator`), grey running flush into the dock's rounded border, `TOP_BAR_DOCK_HEIGHT` (40dp) tall with `TOP_BAR_DOCK_CORNER` (`20.dp`), the dock's tonal and shadow elevation and hairline border, its face (`ToolIndicatorFace`) showing the selected tool, colour and stroke width with no thickness bar beside the size letter, tapping it opening the Colour & size pop-up, and its grey the `surfaceContainerHighest` role — a surface step, never the accent `primaryContainer` a picked tool button wears; the style it replaced — the indicator standing **outside** the dock as a button of its own (`StandaloneToolIndicator`) in the top bar's leading slot, the corner between the rail's column and the dock, sized so a left-docked rail's dock starts on the document tab strip's own line, and trailing the dock when the rail is docked right (`standaloneIndicatorSlot`, pinned by `IndicatorSlotTest`) — is kept behind the `INDICATOR_AS_DOCK_CAP` constant as a one-flip restore path. The cap is the style in force because the standalone pill's fixed width is exactly the rail's own column (`TOP_BAR_INDICATOR_WIDTH`), so it sits flush against the *screen's* left edge; as the cap the indicator starts clear of both the edge and the rail, and the run still reads rail → indicator → figures; the top bar uses `TOP_BAR_ROW_HEIGHT` (52dp) with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
 Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. Every
 one of those menus — the rail's, the dock's, the views'/pages'/layers' panels, the ☰ overflow and
@@ -170,6 +170,41 @@ thumb sits faint when idle, brightens after a scroll, and is brightest while dra
 page-number bubble beside it. A rounded grip "peninsula" bulges out of the thumb's centre (purely
 visual — the whole band already catches touches) so there's an obvious finger-sized target to grab. It is a pure navigation affordance — no `.xopp` state, so nothing
 round-trips.
+
+## The frame around the page: floating bars over a full-bleed canvas
+
+**The canvas is the screen.** The document runs edge to edge under both system bars: `MainActivity`
+takes the window out of the system's insets (`setDecorFitsSystemWindows(false)` + `enableEdgeToEdge`)
+and every system-bar colour it sets — and that `XoppTheme` sets — is **transparent**, so the only things
+drawn over the page's top and bottom edges are the bars' own contents (the clock, the gesture handle).
+`XoppTheme`'s `SideEffect` still runs on every theme change, but it now only *chooses the icon
+contrast* (`isAppearanceLightStatusBars` / `…NavigationBars`, from the chrome colour's luminance) and
+leaves the colours alone. That split is the whole rule: **the app has no colour of its own in the
+system bars, only icons.**
+
+This is the one place the two halves of the chrome could silently disagree, and it did: for a while
+`XoppTheme` painted both bars with `colorScheme.background` while `MainActivity` set them transparent,
+and the later of the two won. An opaque `navigationBarColor` on a full-bleed canvas is not a tint over
+the page — the framework draws the bar's own background *above* the app's window (the emulator measures
+it as a hard-edged band of `#FAF8FF` in the light theme, `#000000` in the dark one) — so the page
+appeared to stop 64px short of the screen's bottom edge and no amount of Compose drawing inside the
+action could reach it. The band tracked the *app's* colour rather than the launcher's, which is what
+identified it; it is nobody else's surface. With both bars transparent the page reaches the bottom edge
+and the gesture handle floats on the paper.
+
+The floating bars are laid out against **one shared row height** (`TOP_BAR_ROW_HEIGHT`, 52dp), not
+against literals: the top bar pads itself by the status-bar inset and then stands its tools in that row,
+and the two things that hang off the bar read the same number —
+
+- the **rail**, which starts below the whole bar (`statusBarsPadding()` + `TOP_BAR_ROW_HEIGHT`) instead of
+  running up under its glass, where the bar's own surface would swallow its first slot;
+- the **document tab strip** in Standard mode, whose slab hangs from the bar's underside at the same
+  offset. Its slab — not its chips — is what is held out of the rail's column, so the rail's capsule and
+  the tab slab never overlap and the chips still begin where they always did.
+
+The status-bar inset itself is deliberately *not* part of that constant: it is a device value, taken
+with `statusBarsPadding()` at each call site. Before the split, the tab strip was positioned by a `54.dp`
+literal that predated the bar's status-bar padding, so in Standard mode the bar cut the chips in half.
 
 ## A saved toolbar order is not a stale one
 
