@@ -9,10 +9,9 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 While [pdf.md](pdf.md) documents the low-latency raster tile cache for PDF backgrounds, academic and
 professional workflows require intelligent, bidirectional interaction with the underlying document text.
 
-This engine introduces three advanced capabilities:
+This engine introduces two advanced capabilities:
 1. **Snap-to-Text Highlighter**: Automatically straightens and constrains freehand highlighter strokes to text lines.
-2. **Instant Full-Text Inverted Index**: Sub-millisecond search across multi-hundred-page textbooks.
-3. **Native ISO PDF/A Annotation Export**: Produces interoperable annotations compatible with Adobe Acrobat and Okular.
+2. **Native ISO PDF/A Annotation Export**: Produces interoperable annotations compatible with Adobe Acrobat and Okular.
 
 ---
 

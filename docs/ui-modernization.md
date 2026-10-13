@@ -49,8 +49,6 @@ mobile and desktop.
   one shadow; its rows (tools, document tabs) are separated by a hairline drawn *inside* it. Two nested
   slabs with a rim each read as two bars, and a row that stops short of the full width leaves a notch of
   bare desk inside the header's own edge — both were measured on the device before they were fixed.
-- **Auto-Dimming / Zen Inking Mode**: While the stylus is actively drawing or writing, floating toolbars fade to
-  $30\%$ opacity or retract into a thin pill, maximizing focus on the handwriting.
 
 ### 2. Modern typography and line-art iconography
 - **Typography**: Shift from stock Roboto to a modern, geometric neutral typeface (**Inter** or **Geist**),
@@ -78,9 +76,9 @@ Tablet Portrait / Landscape:
 - Compact layout: the same tools as a horizontal band along the bottom edge, above the nav-bar inset.
   There is no drag-to-dock and no top/bottom docking: the top band is the header's, and Compact is what
   "toolbar along the bottom" means.
-- Compact Flyout Inspectors: Color palettes and tip sizes open in sleek, anchored popover bubbles
-  directly adjacent to the tool, rather than heavy centered modal dialogs (transient, so they may sit
-  over the page).
+- Anchored Micro-Inspectors: Living entity editors (function plot inspector, table cell editing) open in
+  anchored micro-inspectors directly adjacent to the element rather than heavy full-screen dialogs (transient,
+  so they may sit over the page).
 ```
 
 ---
@@ -111,11 +109,6 @@ The system formally supports two ergonomic layout modes in settings (`ToolbarLay
 ### Compact Layout Mode
 - **Unified Bottom Toolbar**: a horizontal glass band along the bottom edge, above the navigation-bar inset, combining the primary drawing tools and the 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
 - **Clean Header**: the secondary toolbar is gone from the header, which carries the document tabs instead — the canvas keeps everything the header does not spend.
-
-### The "Free-Hand Thumb Strip" (Ergonomic edge docking)
-- The toolbar or a detached **Quick-Action Thumb Pad** can pin to the left edge (for right-handed writers)
-  or the right edge (for left-handed writers).
-- Allows toggling pen/eraser or hitting undo with the resting thumb while writing without palm-rejection conflicts.
 
 ---
 
@@ -201,7 +194,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Dynamic Table | `T` | 1-tap STEM dock button |
 | | Circuit Components | `K` | 1-tap STEM dock button |
 | | Audio Tap / Replay | `Y` | Audio tool slot |
-| **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Free-hand thumb dot tap |
+| **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Tap on color swatch / Rail slot |
 | | Stroke Width Up / Down | `]`, `[` | Rotary Touch Ring / Dial Wheel |
 | | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture / Dial Wheel |
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap / Three-finger tap |
@@ -269,7 +262,7 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
    - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width), standing in a lane exactly that wide whose height begins below the **whole** header; its gap and padding budget (`RailSizing.kt`) is what keeps every slot whole and on screen without a scroll.
    - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge, the header band above, the dock's band at the bottom in Compact — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
    - **1-tap STEM rail section**: Direct 1-tap buttons for Plot (`f(x)`), Geometry/Shapes, Table, and Audio with dedicated hairline dividers.
-3. **Phase 3: Contextual Flyout Inspectors**:
-   - Transition dialogs (Color & Width, Function Plot, Table editor) into anchor-positioned micro-inspectors.
+3. **Phase 3: Contextual Micro-Inspectors**:
+   - Transition living entity editing dialogs (Function Plot, Table editor) into anchor-positioned micro-inspectors.
 4. **Phase 4: Desktop Shell Integration**:
    - Apply platform-native window styling (Mica / Vibrancy) in Compose Desktop.

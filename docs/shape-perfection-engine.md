@@ -26,7 +26,7 @@ Stylus Down ──► Freehand Drawing ──► Stylus Dwells (Still for 300 ms
                       │                      │                      │
                       └──────────────────────┼──────────────────────┘
                                              │
-                                             ▼ Spring Morph Animation (60-120 FPS)
+                                             ▼ Clean Vector Replacement
                                    Pristine Vector Geometry
                                              │
                                    On-Screen Vertex Handles
@@ -53,13 +53,11 @@ The classifier analyzes curvature profile, aspect ratio, end-point closure, and 
 
 ---
 
-## Morphing feedback animation
+## Vector transformation
 
-To provide immediate visual delight and clarity:
-1. When recognized, the wobbly freehand path does not snap abruptly.
-2. A lightweight spring animation ($120\text{ ms}$, damped harmonic motion) interpolates the points of the
-   wobbly path toward the idealized mathematical vector geometry.
-3. A subtle haptic pulse (on supported Android pens and trackpads) confirms the transformation.
+When recognized, the wobbly freehand path transitions cleanly and deterministically:
+1. The wobbly stroke points are replaced by the idealized mathematical vector geometry.
+2. The direct transformation keeps inking responsive and avoids frame overhead.
 
 ---
 

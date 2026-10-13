@@ -18,7 +18,7 @@ note-taking suite proceeds along **three strictly ordered strategic pillars**:
                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                   STEP 2: NUOVA INTERFACCIA GRAFICA MOBILE                             │
-│  Design leggero in vetro satinato, ergonomia mano libera, snap-to-text, KaTeX/Typst    │
+│  Design leggero in vetro satinato, HUD radiale penna, snap-to-text, KaTeX/Typst        │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │ Shares KMP core & modernized tokens
                                             ▼
@@ -65,15 +65,15 @@ toward a lightweight, content-first creative tool.
 1. **Modern Design System**: [ui-modernization.md](ui-modernization.md) replaces rigid toolbars with:
    - Translucent frosted glass capsules (1px hairline borders, $85\%$ blur opacity).
    - Pure OLED black dark mode (`#000000`) and crisp $1.5\text{ dp}$ monoline line-art iconography.
-   - Dual layout options: **Option 1 (Unified Long Dock with 1-tap STEM section)** vs **Option 2 (Dual Floating Islands with Pinned STEM Satellite)**.
-   - Non-dominant "Free-Hand Thumb Strip" edge docking for effortless bimanual tablet note-taking.
+   - Layout options: Standard (vertical rail in its own lane + header STEM dock) and Compact (unified bottom band).
+   - Pen-Tip Radial HUD (pie menu) summoned by barrel button for rapid color, width, and tool switching.
    - Universal shortcut and individual custom color remapping (every tool and custom HEX color slot remappable).
 2. **Auto-Shape Perfection**: [shape-perfection-engine.md](shape-perfection-engine.md) provides $300\text{ ms}$
-   pen dwell recognition, morphing freehand sketches into living parametric shapes with interactive vertex handles.
+   pen dwell recognition, transforming freehand sketches into living parametric shapes with interactive vertex handles.
 3. **On-Device Scientific Typesetting**: [latex-typst-rendering.md](latex-typst-rendering.md) compiles LaTeX
    via KaTeX and modern Typst markup offline in $< 15\text{ ms}$ into double-tap editable `MathBlockElement` entities.
 4. **Advanced PDF Annotations**: [pdf-annotation-engine.md](pdf-annotation-engine.md) adds the magnetic
-   "Snap-to-Text" highlighter, sub-millisecond full-text indexing, and ISO PDF/A annotation exports.
+   "Snap-to-Text" highlighter and native ISO PDF/A annotation exports.
 5. **Multi-Window Productivity**: [multi-window-workspace.md](multi-window-workspace.md) powers side-by-side
    split view, Samsung DeX freeform windows, and cross-window/cross-app drag and drop of living snippets.
 
