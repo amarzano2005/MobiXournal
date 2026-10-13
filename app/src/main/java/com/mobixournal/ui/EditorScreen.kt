@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -446,12 +447,19 @@ private fun EditorBody(
             paneAt(0, canvasModifier)
         }
     }
-    when (settings.toolbarPosition) {
-        ToolbarPosition.LEFT -> Row(modifier = modifier) {
-            toolbar(); canvas(Modifier.fillMaxHeight().weight(1f))
-        }
-        ToolbarPosition.RIGHT -> Row(modifier = modifier) {
-            canvas(Modifier.fillMaxHeight().weight(1f)); toolbar()
+    Box(modifier = modifier) {
+        canvas(Modifier.fillMaxSize())
+        if (!ui.fullPage) {
+            Box(
+                modifier = Modifier.align(
+                    if (settings.toolbarPosition == ToolbarPosition.LEFT)
+                        Alignment.CenterStart
+                    else
+                        Alignment.CenterEnd
+                )
+            ) {
+                toolbar()
+            }
         }
     }
 }

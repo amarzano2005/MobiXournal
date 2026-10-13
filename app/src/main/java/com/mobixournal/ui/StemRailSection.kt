@@ -19,6 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Color
+import com.mobixournal.ui.theme.ModernTheme
+
 /** One 1-tap STEM entry: a tool to activate, or (tool == null) the function-plot dialog. */
 internal data class StemEntry(val label: String, val icon: ImageVector, val tool: EditorTool?)
 
@@ -47,11 +51,13 @@ internal fun stemEntryActive(entry: StemEntry, tool: EditorTool): Boolean {
 @Composable
 internal fun StemRailSection(tool: EditorTool, onTool: (EditorTool) -> Unit, onShowGraph: () -> Unit) {
     val slot = LocalRailSlotSize.current
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    val isDark = isSystemInDarkTheme()
+    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
             .padding(vertical = 2.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -62,7 +68,7 @@ internal fun StemRailSection(tool: EditorTool, onTool: (EditorTool) -> Unit, onS
             Box(
                 modifier = Modifier
                     .size(slot)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
                     .clickable { entry.tool?.let(onTool) ?: onShowGraph() },
                 contentAlignment = Alignment.Center,
@@ -76,5 +82,5 @@ internal fun StemRailSection(tool: EditorTool, onTool: (EditorTool) -> Unit, onS
             }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    HorizontalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)
 }

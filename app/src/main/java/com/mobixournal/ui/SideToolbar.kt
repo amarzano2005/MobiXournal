@@ -30,8 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Color
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Stationery
+import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
@@ -131,8 +134,8 @@ fun SideToolbar(
     }
 }
 
-/** The floating rail's width: 44dp buttons + horizontal padding. */
-val SideToolbarModernWidth = 56.dp
+/** The floating rail's width: 40dp buttons + 6dp horizontal padding each side = 52dp. */
+val SideToolbarModernWidth = 52.dp
 /** Margin around the modern floating rail. */
 val SideToolbarModernPadding = 6.dp
 /** The modern floating rail's vertical margin, top and bottom. */
@@ -141,18 +144,16 @@ private val SideToolbarModernOuterPadding = 8.dp
 /** Total width occupied by the modern vertical rail including its margins. */
 val SideToolbarModernTotalWidth = SideToolbarModernWidth + (SideToolbarModernPadding * 2)
 
-/** One slot at full scale in each UI style: the modern dock's buttons are 4dp tighter than the rail's. */
-private val SideToolbarModernSlot = 44.dp
+/** One slot at full scale in modern design: 40dp compact buttons from ModernTheme. */
+internal val SideToolbarModernSlot = ModernTheme.compactButtonSizeDp
 
 /**
  * The rail's shell: a column of slots down whichever vertical edge it is docked to, sized so that it
  * never shows half a button.
  *
- * The column measures the height it has been given and hands [railContentScale] the number of slots: it
- * shows as many as fit **whole**, at their own size, spread over the space — so the next slot's top
- * edge sits exactly on the rail's bottom edge instead of being cut by it. The slots are never drawn
- * smaller than their own size (that is what would cost the rail its at-a-glance buttons); what does not
- * fit is a scroll away. A rail whose slots all fit is left untouched.
+ * Sized as a floating glass capsule with ModernTheme tokens (16dp corner radius, 1px hairline border
+ * at 10-15% alpha, backdrop blur at 85-90% opacity, 40dp buttons), so ruling and PDF content underneath
+ * remain readable rather than occluded by an opaque Material container.
  */
 @Composable
 private fun ToolbarShell(
@@ -171,9 +172,6 @@ private fun ToolbarShell(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // maxHeight is already net of the margins above, so the slots fill the height they were
-        // handed. The rail's own *width* is never touched: the top bar reserves it with a constant
-        // (SideToolbarModernTotalWidth), and the slot size is capped to stay inside it.
         val scale = railContentScale(
             availableHeightDp = maxHeight.value,
             slotCount = slotCount,
@@ -181,19 +179,20 @@ private fun ToolbarShell(
             spacingDp = RailSpacing.value,
             paddingDp = RailColumnPadding.value,
         )
+        val isDark = isSystemInDarkTheme()
+        val glassColor = ModernTheme.glassSurface(isDark)
+        val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
         CompositionLocalProvider(
             LocalRailSlotSize provides baseSlot * scale,
             LocalRailSlotScale provides scale,
         ) {
             Surface(
                 modifier = Modifier.width(SideToolbarModernWidth),
-                shape = RoundedCornerShape(20.dp),
-                // The rail is the app's implement colour; the canvas surround reads the same value, so
-                // the desk and the tools are visibly one material. See `rememberToolbarColor`.
-                color = rememberToolbarColor().copy(alpha = 0.88f),
-                tonalElevation = 3.dp,
-                shadowElevation = 4.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                shape = ModernTheme.capsuleShape,
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 6.dp,
+                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
             ) {
                 RailColumn(scale) { buttons() }
             }
@@ -210,7 +209,7 @@ private fun RailColumn(scale: Float, buttons: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = RailColumnPadding)
+            .padding(horizontal = 6.dp, vertical = RailColumnPadding)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(RailSpacing * scale),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -242,7 +241,7 @@ private fun ToolGroupButton(
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(10.dp)
     val buttonSize = LocalRailSlotSize.current
     Box {
         Box(

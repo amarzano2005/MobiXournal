@@ -290,9 +290,9 @@ internal class CanvasChrome {
     }
 
     internal companion object {
-        const val BACKDROP = 0xFF3A3A3A.toInt()
+        const val BACKDROP = 0xFF000000.toInt()
         /** Page hairline before the app's colour scheme arrives — faint white, since [BACKDROP] is dark. */
-        const val PAGE_OUTLINE = 0x40FFFFFF
+        const val PAGE_OUTLINE = 0x26FFFFFF
         const val SELECTION_COLOR = 0xFF2060E0.toInt()
 
         /** Outline colour of the setsquare/compass overlay — amber, so it reads as an instrument

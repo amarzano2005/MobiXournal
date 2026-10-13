@@ -255,6 +255,9 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
    - Swap stock filled Material icons for consistent $1.5\text{ dp}$ monoline vector assets across toolbars, rails, and popups.
 2. **Phase 2: Floating Capsule Toolbar**:
    - Replace the rigid side rail and heavy top bar with an adaptive, draggable floating capsule bar.
+   - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width).
+   - **Canvas underlay**: The document canvas fills the full viewport underneath the floating rail (anchored left or right via `Box` overlay in `EditorScreen`), keeping underlying ruling lines, grid squares, and PDF pages subtly visible through the glassmorphic capsule.
+   - **1-tap STEM rail section**: Direct 1-tap buttons for Plot (`f(x)`), Geometry/Shapes, Table, and Audio with dedicated hairline dividers.
 3. **Phase 3: Contextual Flyout Inspectors**:
    - Transition dialogs (Color & Width, Function Plot, Table editor) into anchor-positioned micro-inspectors.
 4. **Phase 4: Desktop Shell Integration**:

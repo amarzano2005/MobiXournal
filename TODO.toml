@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "floating-glassmorphic-tool-dock-with-1-tap-stem-section"
-title = "Floating glass capsule tool dock over the 1-tap STEM rail"
-description = "Phase 2 of docs/ui-modernization.md, over what already ships: ui/StemRailSection.kt already provides the permanent 1-tap STEM group (f(x), Geometry, Table, Circuit), so this task is the glass capsule itself, not the STEM entries. Render the rail as a translucent frosted capsule - 1 px hairline border at 10-15 percent alpha, backdrop blur at 85-90 percent opacity, 16 dp corner radius, 40 dp buttons, every number from ModernTheme - so the ruling or the PDF underneath stays readable and the rail stops reading as a filled Material container. Touches ui/SideToolbar.kt, ui/EditorRegions.kt and the canvas chrome in render/CanvasChrome.kt; the slots, their order and their pop-ups do not change. Verify on the emulator with screenshots of the rail over a ruled page and over a PDF page, at the left and at the right rail position."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 460
-created = 2026-10-12
-tags = ["ui", "stem"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "dockable-toolbar-at-top-and-bottom-center"
 title = "Dockable toolbar at top and bottom center"
 description = "Extend ToolbarPosition (ui/AppSettings.kt, today only LEFT and RIGHT) with TOP and BOTTOM centre docking as a horizontal capsule, per the mobile ergonomics section of docs/ui-modernization.md; the capsule keeps its STEM section and its pop-ups must land inside the window at every position. Layout lands in ui/EditorRegions.kt, the setting and the onboarding handedness step in ui/OnboardingHandedness.kt, and ui/AppSettingsBackup.kt round-trips the enum through the generic readEnum path. Verify with a unit test for the settings round-trip and the backup codec, then on the emulator with one screenshot per position."

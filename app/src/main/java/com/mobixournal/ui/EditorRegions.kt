@@ -560,9 +560,11 @@ fun EditorToolbar(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     audio: AudioUiState,
+    modifier: Modifier = Modifier,
 ) {
     val surface = pane.surface
     SideToolbar(
+        modifier = modifier,
         tool = ui.tool,
         onTool = { tool ->
             // One rule for every path: the outgoing tool's style goes into its own slot, the
