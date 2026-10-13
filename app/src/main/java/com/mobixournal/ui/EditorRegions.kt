@@ -70,12 +70,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -136,24 +133,32 @@ fun EditorTopBar(
     val railOnLeft = (settings?.toolbarPosition ?: ToolbarPosition.LEFT) == ToolbarPosition.LEFT
     val isDark = isSystemInDarkTheme()
     val glassColor = ModernTheme.glassSurface(isDark)
-    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
 
-    // **One header, one slab.** In the Standard layout the document tabs are this bar's *second row*,
-    // inside the same `Surface`, so one rim and one shadow close the whole header. They used to ride on
-    // a slab of their own hung under the bar, and that left the header's bottom edge with a step: the
-    // slab had to be held out of the rail's column to stop the two colliding, so its left end stopped
-    // where the rail's lane began and the header was a tab row shallower over the lane than over the
-    // page — a notch of bare desk over the rail, with the chips starting to one side of it. A row of
-    // *this* bar cannot notch: it spans the width the bar spans. The rail's lane therefore starts below
-    // the whole slab (see [EditorBody]), which is what the rail's own spacing budget pays for —
-    // `RailSizing.kt` counts the tab row in.
+    // **One header, one slab — and no line across it.** In the Standard layout the document tabs are this
+    // bar's *second row*, inside the same `Surface`, and neither the slab nor the seam between its rows is
+    // drawn: the header is one continuous surface of its own colour, closed by its own shadow, and its two
+    // rows are told apart by their content (tools above, chips below) rather than by an edge.
+    //
+    // It used to wear a `BorderStroke` rim and a hairline *inside* itself between the rows
+    // (`Modifier.topHairline`) — one header, one rim, one seam, as a tab row under a top app bar is drawn.
+    // On the OLED dark scheme both read as grey lines across the whole window: the rim closed the header at
+    // the top and the bottom of the screen and the hairline cut it in two, so the chrome was banded by
+    // three grey rules through what the design calls a single slab (removed 2026-10-13; `docs/chrome.md`
+    // carries the rule, and the geometry is what a guard will pin, not the ink).
+    //
+    // The tabs are inside the bar rather than on a slab of their own because that arrangement left the
+    // header's bottom edge with a step: the slab had to be held out of the rail's column to stop the two
+    // colliding, so its left end stopped where the rail's lane began and the header was a tab row shallower
+    // over the lane than over the page — a notch of bare desk over the rail, with the chips starting to one
+    // side of it. A row of *this* bar cannot notch: it spans the width the bar spans. The rail's lane
+    // therefore starts below the whole slab (see [EditorBody]), which is what the rail's own spacing budget
+    // pays for — `RailSizing.kt` counts the tab row in.
     val tabsInline = settings == null ||
         onSettingsChange == null ||
         settings.toolbarLayout == ToolbarLayout.COMPACT
     val tabsUnderTheTools = !tabsInline && !ui.fullPage
     Surface(
         color = glassColor,
-        border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
         shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -308,18 +313,17 @@ fun EditorTopBar(
             },
         )
 
-            // The tabs' row — the same slab, one row down. The line between the two rows is a hairline
-            // *inside* the header, which is how a tab row under a top app bar is drawn; the header's own
-            // edge stays the one along its bottom. Its chips keep the starting line they had as a band of
-            // their own — the rail's lane ([SideToolbarModernTotalWidth]) plus their 8dp lead-in, on
-            // whichever side the rail takes — so they still stand over the canvas rather than over the
-            // rail, and still line up with the figures' dock above them.
+            // The tabs' row — the same slab, one row down, and no line between the two: nothing divides
+            // them but their own content (see the note on the header's edges above). Its chips keep the
+            // starting line they had as a band of their own — the rail's lane
+            // ([SideToolbarModernTotalWidth]) plus their 8dp lead-in, on whichever side the rail takes —
+            // so they still stand over the canvas rather than over the rail, and still line up with the
+            // figures' dock above them.
             if (tabsUnderTheTools) {
                 TabStrip(
                     tabs,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .topHairline(hairlineColor)
                         .padding(
                             start = TAB_STRIP_LEAD_IN + if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
                             end = TAB_STRIP_LEAD_IN + if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
@@ -1519,21 +1523,3 @@ fun EditorPaneView(
  */
 private val TAB_STRIP_LEAD_IN = 8.dp
 
-/**
- * A hairline along the **top** edge of a row, drawn over what it separates.
- *
- * The header is one surface whose two rows are told apart the way a tab row under a top app bar is — by
- * a line *between* them, not by a second rim: a `Surface`'s own `BorderStroke` draws on all four sides,
- * and on a row nested in the header the three sides that matter are exactly the seams this avoids. The
- * line is stroked over the row's content rather than under it, since the row's glass is the header's own
- * surface: a line drawn beneath it would show *through* the glass instead of on it. Half its width sits
- * inside the edge, so it closes the row it belongs to instead of bleeding a pixel above it.
- */
-private fun Modifier.topHairline(
-    color: Color,
-    width: Dp = ModernTheme.hairlineStrokeWidthDp,
-): Modifier = drawWithContent {
-    drawContent()
-    val stroke = width.toPx()
-    drawLine(color, start = Offset(0f, stroke / 2f), end = Offset(size.width, stroke / 2f), strokeWidth = stroke)
-}

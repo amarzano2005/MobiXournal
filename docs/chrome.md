@@ -227,12 +227,18 @@ action could reach it. The band tracked the *app's* colour rather than the launc
 identified it; it is nobody else's surface. With both bars transparent the page reaches the bottom edge
 and the gesture handle floats on the paper.
 
-**One header, one slab.** The bar and the row that carries the tabs are the two rows of *one* surface:
-one rim, one shadow, and between the rows a single hairline drawn **inside** the header
-(`Modifier.topHairline`) — which is how a tab row under a top app bar reads. Nested surfaces with a rim
-each read as two bars with a seam across the middle, and that is measured, not theorised: with the tabs on
-a slab of their own, the header's bottom edge sat at 76dp over the rail's lane and at 114dp over the page,
-a 38dp step with the chips starting to one side of it. The rows' heights are `TOP_BAR_ROW_HEIGHT` (52dp,
+**One header, one slab — and no line through it.** The bar and the row that carries the tabs are the two
+rows of *one* surface, and nothing is drawn along the header's edges or between its rows: the slab's own
+colour (the header glass) and its `4dp` shadow are the whole of its edge, and its two rows are told apart
+by their content — the tools above, the chips below. It used to wear a `BorderStroke` rim **and** a hairline
+inside itself, between the rows (`Modifier.topHairline`), as a tab row under a top app bar is drawn; on the
+true-black dark scheme both read as grey rules across the whole window — the rim closing the header at the
+top *and* the bottom of the screen, the hairline cutting the slab in two — so what this page calls one
+header was banded by three grey lines. Both were removed on request (2026-10-13): the header's closing edge
+is its shadow. Nested surfaces with a rim each read as two bars with a seam across the middle, and that is
+measured, not theorised: with the tabs on a slab of their own, the header's bottom edge sat at 76dp over
+the rail's lane and at 114dp over the page, a 38dp step with the chips starting to one side of it. The
+rows' heights are `TOP_BAR_ROW_HEIGHT` (52dp,
 `ui/TopBarIndicator.kt`) for the tools — padded by `statusBarsPadding()`, a device value, deliberately not
 part of the constant — and `TAB_STRIP_HEIGHT` (`ui/TabStrip.kt`, 38dp) for the tabs; the lane therefore
 starts below the header's *whole* height, not below the bar's row of it. In Compact the tabs ride in the

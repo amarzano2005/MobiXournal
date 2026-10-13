@@ -22,7 +22,7 @@ mobile and desktop.
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │ [≡] [Undo] [Redo]   [Pen] [Highlighter] [Eraser] [Shapes] [Math]       │ ← header band
-│ [Untitled] [Untitled.mobix]                              (1px hairline) │ ← the tabs, its 2nd row
+│ [Untitled] [Untitled.mobix]                                            │ ← the tabs, its 2nd row
 ├────────┬───────────────────────────────────────────────────────────────┤
 │ ╭────╮ │                                                               │
 │ │ ✏️ │ │                    CANVAS (Content-First)                    │
@@ -45,10 +45,13 @@ mobile and desktop.
   **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: a radial HUD,
   an anchored popover, a dialog or a selection bar comes and goes with the gesture, so it may sit over the
   ink, and none of them is ever a permanent band.
-- **One edge per surface**: a header closes on **one** bottom edge, across the full width, with one rim and
-  one shadow; its rows (tools, document tabs) are separated by a hairline drawn *inside* it. Two nested
-  slabs with a rim each read as two bars, and a row that stops short of the full width leaves a notch of
-  bare desk inside the header's own edge — both were measured on the device before they were fixed.
+- **One edge per surface**: a header closes on **one** bottom edge, across the full width, with one shadow
+  and **no rim**; its rows (tools, document tabs) are separated by their own content, not by a line. A rim
+  and an inner hairline are tidy on a light scheme, but over the true-black one they read as three grey
+  rules across the window — one above the header, one through it, one below — so the slab's fill and its
+  shadow are the whole of its edge (removed 2026-10-13; `docs/chrome.md` owns the note). Two nested slabs
+  with a rim each still read as two bars, and a row that stops short of the full width still leaves a notch
+  of bare desk inside the header's own edge — both were measured on the device before they were fixed.
 
 ### 2. Modern typography and line-art iconography
 - **Typography**: Shift from stock Roboto to a modern, geometric neutral typeface (**Inter** or **Geist**),
