@@ -295,10 +295,24 @@ fun EditorScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            // The one chrome colour: the top bar is transparent over this, so the bar, the tab strip,
-            // the canvas surround and both system bars are literally the same value.
-            containerColor = rememberChromeColor(),
-            topBar = {
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        ) { _ ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                EditorBody(
+                    ui = ui,
+                    pane = pane,
+                    settings = settings,
+                    onSettingsChange = onSettingsChange,
+                    audio = audio,
+                    tabs = tabs,
+                    splitView = splitView,
+                    onActivePane = onActivePane,
+                    onSurfaceCreated = onSurfaceCreated,
+                    onPickImage = onPickImage,
+                    paneChrome = paneChrome,
+                    modifier = Modifier.fillMaxSize(),
+                )
                 if (!ui.fullPage) {
                     val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
                     if (topBar != null) {
@@ -318,25 +332,11 @@ fun EditorScreen(
                             onExportPageSvg = onExportPageSvg,
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
+                            modifier = Modifier.align(Alignment.TopCenter),
                         )
                     }
                 }
-            },
-        ) { padding ->
-            EditorBody(
-                ui = ui,
-                pane = pane,
-                settings = settings,
-                onSettingsChange = onSettingsChange,
-                audio = audio,
-                tabs = tabs,
-                splitView = splitView,
-                onActivePane = onActivePane,
-                onSurfaceCreated = onSurfaceCreated,
-                onPickImage = onPickImage,
-                paneChrome = paneChrome,
-                modifier = Modifier.fillMaxSize().padding(padding),
-            )
+            }
         }
 
         // Re-apply settings to the live surface whenever the user changes them in Settings.

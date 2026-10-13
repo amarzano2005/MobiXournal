@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.mobixournal.ui.theme.ModernTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -289,12 +290,16 @@ internal fun StandaloneToolIndicator(
     styleCallbacks: ToolbarStyleCallbacks,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val glassColor = com.mobixournal.ui.theme.ModernTheme.glassSurface(isDark)
+    val hairlineColor = if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+
     Surface(
-        shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = 3.dp,
-        shadowElevation = 4.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        shape = ModernTheme.capsuleShape,
+        color = glassColor,
+        tonalElevation = 0.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(com.mobixournal.ui.theme.ModernTheme.hairlineStrokeWidthDp, hairlineColor),
         modifier = modifier
             .width(TOP_BAR_INDICATOR_WIDTH)
             .height(TOP_BAR_DOCK_HEIGHT),

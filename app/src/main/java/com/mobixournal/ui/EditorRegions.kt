@@ -177,45 +177,46 @@ fun EditorTopBar(
                     onSettingsChange = onSettingsChange,
                 )
             } else {
-                val title = tabs.titles.getOrNull(tabs.activeIndex)?.ifBlank { "Untitled" } ?: "MobiXournal"
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    )
-                }
+                TabStrip(tabs, modifier = Modifier.fillMaxWidth())
             }
         },
-        modifier = modifier.height(48.dp),
+        modifier = modifier.height(52.dp),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
         ),
         actions = {
+            val isDark = isSystemInDarkTheme()
+            val glassColor = ModernTheme.glassSurface(isDark)
+            val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+
             // Order is deliberate: split view sits directly right of the search button, then the
             // paired undo/redo. The two glyph-shaped file actions follow — a compact quick Export PDF
             // and then Save, which lands the most-used of the two under the thumb at the far right —
             // so neither costs a trip into the overflow menu.
             SearchControls(pane)
-            IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.Outlined.VerticalSplit,
-                    contentDescription = if (splitView) "Close split view" else "Split view",
-                    tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp),
-                )
+            Surface(
+                shape = CircleShape,
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+                modifier = Modifier.padding(horizontal = 2.dp),
+            ) {
+                IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Outlined.VerticalSplit,
+                        contentDescription = if (splitView) "Close split view" else "Split view",
+                        tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
             Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-                tonalElevation = 1.dp,
+                shape = ModernTheme.capsuleShape,
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
                 modifier = Modifier.padding(horizontal = 4.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -229,21 +230,27 @@ fun EditorTopBar(
             }
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = if (pane.isReadOnly) 0.38f else 0.7f),
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
                 modifier = Modifier.padding(horizontal = 2.dp),
             ) {
                 IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Outlined.PictureAsPdf,
                         contentDescription = "Export PDF",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp),
                     )
                 }
             }
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (pane.isReadOnly) 0.38f else 0.7f),
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 4.dp,
+                border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
                 modifier = Modifier.padding(horizontal = 2.dp),
             ) {
                 IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
@@ -344,15 +351,27 @@ private fun SearchControls(pane: PaneState) {
         pane.searchTotal = status.total
     }
     if (!pane.searchOpen) {
-        IconButton(
-            onClick = { pane.searchOpen = true },
-            modifier = Modifier.size(36.dp),
+        val isDark = isSystemInDarkTheme()
+        val glassColor = ModernTheme.glassSurface(isDark)
+        val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+        Surface(
+            shape = CircleShape,
+            color = glassColor,
+            tonalElevation = 0.dp,
+            shadowElevation = 4.dp,
+            border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+            modifier = Modifier.padding(horizontal = 2.dp),
         ) {
-            Icon(
-                Icons.Outlined.Search,
-                contentDescription = "Search",
-                modifier = Modifier.size(20.dp),
-            )
+            IconButton(
+                onClick = { pane.searchOpen = true },
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Search,
+                    contentDescription = "Search",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
         return
     }
@@ -837,7 +856,7 @@ fun TopBarToolsRow(
             border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
             modifier = modifier
                 .wrapContentWidth()
-                .height(SideToolbarModernWidth),
+                .height(TOP_BAR_DOCK_HEIGHT),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (INDICATOR_AS_DOCK_CAP) {
@@ -1358,7 +1377,7 @@ fun EditorPaneView(
     val state = ui.panes[index]
     val chrome = rememberCanvasChromeColors()
     val latestSettings = rememberUpdatedState(settings)
-    Column(
+    Box(
         modifier = modifier.pointerInput(index) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -1368,11 +1387,9 @@ fun EditorPaneView(
             }
         },
     ) {
-        if (!ui.fullPage) TabStrip(tabs[index.coerceIn(tabs.indices)], modifier = Modifier.fillMaxWidth())
-        // The canvas box doubles as the coordinate space for the floating selection bar: its px are
         // the surface's own view px, so the box the surface reports needs no conversion here.
         var canvasSizePx by remember { mutableStateOf(IntSize.Zero) }
-        Box(modifier = Modifier.fillMaxWidth().weight(1f).onSizeChanged { canvasSizePx = it }) {
+        Box(modifier = Modifier.fillMaxSize().onSizeChanged { canvasSizePx = it }) {
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
@@ -1444,6 +1461,17 @@ fun EditorPaneView(
                 )
             }
         }
+        if (!ui.fullPage && settings.toolbarLayout != ToolbarLayout.COMPACT) {
+            val railInset = SideToolbarModernTotalWidth
+            val startPadding = if (settings.toolbarPosition == ToolbarPosition.LEFT) railInset else 8.dp
+            val endPadding = if (settings.toolbarPosition == ToolbarPosition.RIGHT) railInset else 8.dp
+            TabStrip(
+                tabs[index.coerceIn(tabs.indices)],
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = startPadding, end = endPadding, top = 54.dp),
+            )
+        }
     }
 }
 
@@ -1467,16 +1495,28 @@ private fun OverflowMenu(
     onOpenPenParameters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
+    val glassColor = ModernTheme.glassSurface(isDark)
+    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
     Box {
-        IconButton(
-            onClick = { open = true },
-            modifier = Modifier.size(36.dp),
+        Surface(
+            shape = CircleShape,
+            color = glassColor,
+            tonalElevation = 0.dp,
+            shadowElevation = 4.dp,
+            border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
+            modifier = Modifier.padding(horizontal = 2.dp),
         ) {
-            Icon(
-                Icons.Outlined.Menu,
-                contentDescription = "Menu",
-                modifier = Modifier.size(20.dp),
-            )
+            IconButton(
+                onClick = { open = true },
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Menu,
+                    contentDescription = "Menu",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
         ToolbarMenu(
             expanded = open,

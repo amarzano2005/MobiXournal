@@ -119,13 +119,11 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         }
         scroll.animateScrollTo(target.toInt().coerceIn(0, scroll.maxValue))
     }
-    // The strip is the chrome, not a fifth surface: same colour as the top bar it sits under, so the
-    // bar and the tabs read as one band.
-    val containerColor = rememberChromeColor()
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     Row(
         modifier = modifier
             .height(TAB_STRIP_HEIGHT)
-            .background(containerColor)
+            .background(Color.Transparent)
             .onSizeChanged { viewportWidth = it.width.toFloat() }
             .horizontalScroll(scroll),
         verticalAlignment = Alignment.CenterVertically,
@@ -165,7 +163,8 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         }
         Surface(
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            color = if (isDark) Color(0x22FFFFFF) else Color(0x10000000),
+            border = BorderStroke(1.dp, if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0x18000000)),
             modifier = Modifier.padding(start = 4.dp, end = 8.dp),
         ) {
             IconButton(onClick = state.onNew, modifier = Modifier.size(30.dp)) {
@@ -253,19 +252,22 @@ private fun Modifier.tabChipInteractions(
     drag: androidx.compose.runtime.State<Triple<() -> Unit, (Float, Float) -> Unit, () -> Unit>>,
     chipWidth: Float,
 ): Modifier {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val shape = RoundedCornerShape(TAB_CHIP_CORNER)
+    val glassColor = com.mobixournal.ui.theme.ModernTheme.glassSurface(isDark)
+    val hairlineColor = if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
     val background = if (selected) {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+        glassColor
     } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.45f)
+        glassColor.copy(alpha = if (isDark) 0.45f else 0.6f)
     }
-    val borderModifier = if (selected) {
-        Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)), shape)
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
     } else {
-        Modifier
+        hairlineColor
     }
     return this
-        .then(borderModifier)
+        .border(BorderStroke(1.dp, borderColor), shape)
         .clip(shape)
         .background(background)
         .combinedClickable(onClick = onSelect, onLongClick = onLongClick)
