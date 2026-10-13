@@ -67,9 +67,10 @@ object XoppSynthesis {
      *   block for the sake of a later "which export was this?", and nothing the import decides on.
      */
     fun synthesize(document: Document, documentId: String? = null): SynthesisResult {
+        val preparedDoc = com.mobixournal.audio.WavAudioSynthesizer.prepareDocumentForXoppExport(document)
         val gaps = mutableListOf<Uncompilable>()
         val claims = mutableListOf<MobixMetaClaim>()
-        val pages = document.pages.mapIndexed { pageIndex, page ->
+        val pages = preparedDoc.pages.mapIndexed { pageIndex, page ->
             page.copy(
                 layers = page.layers.mapIndexed { layerIndex, layer ->
                     layer.copy(elements = compileLayer(layer.elements, pageIndex, layerIndex, claims, gaps))
@@ -77,7 +78,7 @@ object XoppSynthesis {
             )
         }
         return SynthesisResult(
-            document = document.copy(pages = pages, bridge = block(document, claims, documentId)),
+            document = preparedDoc.copy(pages = pages, bridge = block(preparedDoc, claims, documentId)),
             uncompiled = gaps,
         )
     }

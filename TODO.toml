@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "synthesize-companion-wav-sidecars-on-xopp-audio-export"
-title = "Synthesize companion WAV sidecars on .xopp audio export"
-description = "Convert bundled .opus recordings into companion .wav sidecars during .xopp export, restoring stroke-level ts timestamps for lossless compatibility with desktop Xournal++ audio."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 780
-created = 2026-10-13
-tags = []
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "create-xournal-lua-plugin-manifest-and-directory-scaffolding"
 title = "Create Xournal++ Lua plugin manifest and directory scaffolding"
 description = "Draft the official companion plugin layout under plugins/mobix-importer/: plugin.ini declaring metadata, menus, and author, plus main.lua lifecycle callbacks."
