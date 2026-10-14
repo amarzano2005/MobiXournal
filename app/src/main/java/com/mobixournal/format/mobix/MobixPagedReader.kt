@@ -24,12 +24,20 @@ internal interface MobixEntrySource : AutoCloseable {
     /** Read the entire uncompressed payload for entry [name], or null if absent. */
     fun readBytes(name: String): ByteArray? = openEntry(name)?.use { it.readBytes() }
 
+    /**
+     * The bytes of [name] **as the archive stores them**, or null when this source cannot hand them
+     * over — an in-memory map holds inflated bytes and nothing else. A repack copies what it is given
+     * verbatim instead of inflating it and deflating it again ([MobixZip]): this is what makes an
+     * incremental save cheaper than a full write rather than more expensive.
+     */
+    fun rawEntry(name: String): MobixZip.RawEntry? = null
+
     companion object {
         /**
          * Create an entry source from a physical [File] using [ZipFile].
          * [ZipFile] reads the central directory at the end of the archive and only inflates entries on demand.
          */
-        fun fromFile(file: File): MobixEntrySource = ZipFileEntrySource(ZipFile(file))
+        fun fromFile(file: File): MobixEntrySource = ZipFileEntrySource(ZipFile(file), file)
 
         /**
          * In-memory entry source for tests or synthetic fixtures.
@@ -38,11 +46,14 @@ internal interface MobixEntrySource : AutoCloseable {
     }
 }
 
-private class ZipFileEntrySource(private val zip: ZipFile) : MobixEntrySource {
+private class ZipFileEntrySource(private val zip: ZipFile, private val file: File) : MobixEntrySource {
     override val entryNames: Set<String> = zip.entries().asSequence().map { it.name }.toSet()
 
     override fun openEntry(name: String): InputStream? =
         zip.getEntry(name)?.let { zip.getInputStream(it) }
+
+    /** The file's own bytes, for a caller that wants an entry the way the archive stores it. */
+    override fun rawEntry(name: String): MobixZip.RawEntry? = MobixZip.rawEntry(file, name)
 
     override fun close() {
         zip.close()
@@ -71,6 +82,10 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
         counts[name] = (counts[name] ?: 0) + 1
         return delegate.openEntry(name)
     }
+
+    /** A raw copy is still a read of that entry, so it is counted like any other. */
+    override fun rawEntry(name: String): MobixZip.RawEntry? =
+        delegate.rawEntry(name)?.also { counts[name] = (counts[name] ?: 0) + 1 }
 
     /** How many times [name] was opened/inflated. */
     fun openCount(name: String): Int = counts[name] ?: 0

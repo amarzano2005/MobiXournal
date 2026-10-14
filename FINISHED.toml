@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "repack-the-streamed-entries-without-recompressing-them"
+title = "Repack the streamed entries without recompressing them"
+description = "MobixIncrementalSaver streams an unchanged entry by inflating it from the source and deflating it again, so an incremental save costs what a full one costs in CPU and writes a data descriptor per streamed entry (measured on ten pages with one dirty: output 5088 B against a full write's 4928 B, docs/data-path.md). Copy the source entry's compressed bytes and its crc/size verbatim instead: java.util.zip cannot put a raw deflated entry, so this needs a small zip writer (local header, central directory, EOCD) plus a way to read an entry's raw bytes from the source - the ZipFile-backed MobixEntrySource has to find the data offset itself. Verify with JVM tests: a streamed entry's compressed bytes are byte-identical to the source's, the repacked archive is smaller than or equal to a full write of the same document, and it still opens through MobixDocument.open and MobixPagedReader."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["mobix", "perf"]
+
+[[task]]
 id = "verify-the-shaded-plot-area-on-the-emulator"
 title = "Verify the shaded plot area on the emulator"
 description = "Draw-the-shaded-integral-area-for-a-plotelement shipped JVM-verified only: its verify clause asks for an emulator pass with a screenshot of the shaded area over a selected plot, and the /data/android harness (docs/tools.md, Android emulator) was not reachable from the host this shipped on - no adb, no AVD. Install the APK, open a .mobix holding a plot with shadeIntegral set (or set one through the plot editor), and screenshot the area over the selected plot; check logcat is clean and that the wash sits under the curves. If the wash is missing or misshapen on the device, fix it there and record what the JVM tests could not see."

@@ -105,16 +105,21 @@ preserved-but-unrendered attributes so the file round-trips.
 
 **A `.mobix` save repacks over the file it was opened from.** `DocumentIo` remembers each open
 `.mobix`'s staged copy by document id, and a save that lands back on that same URI goes through
-`MobixIncrementalSave`: the entries whose bytes did not change stream out of the open archive and
-only the manifest and the pages that moved are written again. The decision is derived, never flagged —
-a page is compared by the `sha256` its own manifest already records, and an asset by the hash in its
-name. Anywhere else (a new document, a first save, a Save As to another target) there is no source and
-the whole archive is written. **Measured on a ten-page notebook with one edited page: 2 of 14 entries
-written (2363 B of content instead of 4928 B), 12 streamed; the finished file is ~160 B *larger*, one
-data descriptor per streamed entry.** The saving is therefore in the work and the peak memory, not the
-file size — a streamed entry is still inflated and deflated on its way through, so the entries that
-really pay (a multi-megabyte background PDF) need the compressed bytes copied verbatim before this
-claims a compression win (`repack-the-streamed-entries-without-recompressing-them`).
+`MobixIncrementalSave`: an entry whose bytes did not change is **copied verbatim** — the compressed
+bytes the archive already holds, not a second deflation of the same content — and only the manifest
+and the pages that moved are written again. `MobixZip` is what makes that possible: it reads an
+entry's offset out of the central directory (the only record that states it, and the one that still
+has the sizes when a local header left them zero) and writes the local headers, the central directory
+and the end record itself, because `java.util.zip` will neither hand out a compressed entry nor accept
+one it did not produce. The decision is derived, never flagged: a page is compared by the `sha256` its
+own manifest records, an asset by the hash in its name. Anywhere else — a new document, a first save,
+a Save As to another target — there is no source and the whole archive is written.
+
+**Measured on a ten-page notebook with one edited page: 12 of the 14 entries are copied, 2363 B of
+content is re-encoded instead of 4928 B, and the finished file is 4862 B against a full write's
+4926 B** — smaller, since a copied entry needs no data descriptor. A background PDF is never inflated
+or deflated at all, which is where the saving actually is (the page JSON of an untouched page is still
+rebuilt to hash it).
 
 ### Tabs and the session cache
 

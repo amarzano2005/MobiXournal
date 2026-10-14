@@ -144,14 +144,26 @@ class MobixIncrementalSavePlanTest {
         val full = MobixContainer.toBytes(entries)
         assertEquals("the repack is the document a full write describes", open(full), open(bytes))
         assertTrue(
-            "and it is no larger: repacked=${stats.totalOutputBytes}B full=${full.size}B",
-            stats.totalOutputBytes <= full.size + 512L,
+            "the repack is no larger than a full write: repacked=${stats.totalOutputBytes}B full=${full.size}B",
+            stats.totalOutputBytes <= full.size.toLong(),
+        )
+
+        // The point of the raw copy: an untouched entry's *compressed* bytes are the source's own, not a
+        // second deflation of the same content.
+        val repacked = File.createTempFile("mobix_plan_repacked_", ".mobix").apply { deleteOnExit() }
+        repacked.writeBytes(bytes)
+        val untouched = MobixZip.rawEntry(source, MobixFormat.pageEntry(2))
+        val copied = MobixZip.rawEntry(repacked, MobixFormat.pageEntry(2))
+        assertArrayEquals(
+            "an untouched page is copied, not recompressed",
+            untouched!!.bytes,
+            copied!!.bytes,
         )
 
         // The number this task asked for: what a one-page edit actually writes, against the whole file.
         println(
-            "MEASURE ten pages, one dirty: streamed ${stats.streamedEntries} entries / ${stats.streamedRawBytes}B, " +
-                "written ${stats.rewrittenEntries} entries / ${stats.rewrittenRawBytes}B, " +
+            "MEASURE ten pages, one dirty: streamed ${stats.streamedEntries} entries / ${stats.streamedRawBytes}B " +
+                "(copied verbatim), written ${stats.rewrittenEntries} entries / ${stats.rewrittenRawBytes}B, " +
                 "out ${stats.totalOutputBytes}B vs full ${full.size}B",
         )
     }

@@ -1,10 +1,6 @@
 package com.mobixournal.format.mobix
 
-import java.io.InputStream
 import java.io.OutputStream
-import java.util.zip.CRC32
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 /**
  * Result metrics from an incremental `.mobix` repack operation.
@@ -31,8 +27,9 @@ internal data class MobixIncrementalSaveStats(
  * ZIP archives do not support in-place mutation. To achieve millisecond saves on multi-page notebooks:
  *  1. [MobixFormat.MIMETYPE_ENTRY] is written first, STORED and uncompressed (container rule 1).
  *  2. Unchanged entries (unmodified pages whose `sha256` has not changed, background PDFs, pictures,
- *     and unknown preserved entries from newer builds) are streamed directly from the [source]
- *     to [output].
+ *     and unknown preserved entries from newer builds) are **copied verbatim** from the [source] to
+ *     [output]: the bytes the archive already holds, not the bytes they inflate to, so a background
+ *     PDF is neither inflated nor deflated on the way through ([MobixZip]).
  *  3. Only dirty entries (the updated `manifest.json` and pages whose content bytes changed)
  *     are compressed from memory.
  *
@@ -77,30 +74,34 @@ internal object MobixIncrementalSaver {
         var streamedBytes = 0L
         var rewrittenBytes = 0L
 
-        val countingOut = CountingOutputStream(output)
-        ZipOutputStream(countingOut).use { zip ->
-            // Container rule 1: mimetype first, STORED
-            putStoredMimetype(zip)
+        val zip = MobixZip.Writer(output)
+        // Container rule 1: mimetype first, STORED, and never recompressed.
+        zip.putStored(MobixFormat.MIMETYPE_ENTRY, MobixFormat.MIMETYPE.toByteArray(Charsets.UTF_8))
 
-            for (name in allEntryNames) {
-                val dirty = dirtyEntries[name]
-                if (dirty != null) {
-                    zip.putNextEntry(ZipEntry(name))
-                    zip.write(dirty)
-                    zip.closeEntry()
-                    rewrittenCount++
-                    rewrittenBytes += dirty.size.toLong()
-                } else {
-                    source.openEntry(name)?.use { input ->
-                        zip.putNextEntry(ZipEntry(name))
-                        val copied = copyStream(input, zip)
-                        zip.closeEntry()
-                        streamedCount++
-                        streamedBytes += copied
-                    }
-                }
+        for (name in allEntryNames) {
+            val dirty = dirtyEntries[name]
+            if (dirty != null) {
+                zip.putDeflated(name, dirty)
+                rewrittenCount++
+                rewrittenBytes += dirty.size.toLong()
+                continue
+            }
+            // An entry the source holds as it wrote it is copied verbatim; one it can only inflate
+            // (an in-memory source) is deflated here instead. Either way it is not re-created.
+            val raw = source.rawEntry(name)
+            if (raw != null) {
+                zip.putRaw(name, raw)
+                streamedCount++
+                streamedBytes += raw.size
+                continue
+            }
+            source.readBytes(name)?.let { bytes ->
+                zip.putDeflated(name, bytes)
+                streamedCount++
+                streamedBytes += bytes.size.toLong()
             }
         }
+        val total = zip.finish()
 
         return MobixIncrementalSaveStats(
             totalEntries = streamedCount + rewrittenCount,
@@ -108,23 +109,8 @@ internal object MobixIncrementalSaver {
             rewrittenEntries = rewrittenCount,
             streamedRawBytes = streamedBytes,
             rewrittenRawBytes = rewrittenBytes,
-            totalOutputBytes = countingOut.bytesWritten,
+            totalOutputBytes = total,
         )
-    }
-
-    private fun putStoredMimetype(zip: ZipOutputStream) {
-        val bytes = MobixFormat.MIMETYPE.toByteArray(Charsets.UTF_8)
-        val crc = CRC32().apply { update(bytes) }
-        zip.putNextEntry(
-            ZipEntry(MobixFormat.MIMETYPE_ENTRY).apply {
-                method = ZipEntry.STORED
-                size = bytes.size.toLong()
-                compressedSize = bytes.size.toLong()
-                this.crc = crc.value
-            },
-        )
-        zip.write(bytes)
-        zip.closeEntry()
     }
 
     private fun sortEntries(names: Collection<String>): List<String> {
@@ -146,33 +132,4 @@ internal object MobixIncrementalSaver {
         else -> 5 // Preserved entries / unknown markup last
     }
 
-    private fun copyStream(input: InputStream, output: OutputStream): Long {
-        val buf = ByteArray(8192)
-        var total = 0L
-        while (true) {
-            val r = input.read(buf)
-            if (r == -1) break
-            output.write(buf, 0, r)
-            total += r
-        }
-        return total
-    }
-
-    private class CountingOutputStream(val delegate: OutputStream) : OutputStream() {
-        var bytesWritten = 0L
-            private set
-
-        override fun write(b: Int) {
-            delegate.write(b)
-            bytesWritten++
-        }
-
-        override fun write(b: ByteArray, off: Int, len: Int) {
-            delegate.write(b, off, len)
-            bytesWritten += len
-        }
-
-        override fun flush() = delegate.flush()
-        override fun close() = delegate.close()
-    }
 }

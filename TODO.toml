@@ -513,8 +513,8 @@ emulator_debug = false
 
 [[task]]
 id = "expose-a-page-source-and-count-pages-from-the-manifest"
-title = "Expose a page source and count pages from the manifest"
-description = "docs/data-path.md decides a page window: a .mobix opened streaming (stream-the-mobix-open-path-and-defer-asset-payloads) still decodes every page, and the tab page counter, the rail pages button and the page list walk them all. Introduce the surface: a PageSource in format/mobix with pageCount, pageId(i) and page(i), backed by MobixPagedReader for a .mobix and by the in-memory Document.pages for a .xopp or a new document. Wire the page counter, the rail pages button and the page list to pageCount and pageId(i) so a 200-page document shows the correct count and page names before a single page is decoded. Verify with JVM tests: pageCount and the ids come from the manifest without materialising a page (TrackedEntrySource counts no page entry), and a .xopp-backed source answers the in-memory list unchanged."
+title = "Expose a PageSource over a .mobix manifest or a document's pages"
+description = "The surface only, and the wiring is not in this task any more. docs/data-path.md decides a page window: a .mobix opened streaming still decodes every page, and the tab page counter, the rail pages button and the page list walk them all. Introduce the surface: a PageSource in format/mobix with pageCount, pageId(i) and page(i), backed by MobixPagedReader for a .mobix and by the in-memory Document.pages for a .xopp or a new document, plus the one real caller that needs no editor plumbing - the merge (merge-a-mobix-from-the-manifest-parts) reads a side's page count and ids and materialises only the pages it must compare. Verify with JVM tests: pageCount and the ids come from the manifest without materialising a page (TrackedEntrySource counts no page entry), and a .xopp-backed source answers the in-memory list unchanged. The counter, the rail pages button and the page list need the editor to hold the source instead of a Document, which is its own task (carry-the-page-source-into-the-editor) because it moves LoadedFile.Doc, the tab session and DrawingSurfaceView.doc together."
 status = "active"
 level = "task"
 category = "feature"
@@ -596,15 +596,15 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "repack-the-streamed-entries-without-recompressing-them"
-title = "Repack the streamed entries without recompressing them"
-description = "MobixIncrementalSaver streams an unchanged entry by inflating it from the source and deflating it again, so an incremental save costs what a full one costs in CPU and writes a data descriptor per streamed entry (measured on ten pages with one dirty: output 5088 B against a full write's 4928 B, docs/data-path.md). Copy the source entry's compressed bytes and its crc/size verbatim instead: java.util.zip cannot put a raw deflated entry, so this needs a small zip writer (local header, central directory, EOCD) plus a way to read an entry's raw bytes from the source - the ZipFile-backed MobixEntrySource has to find the data offset itself. Verify with JVM tests: a streamed entry's compressed bytes are byte-identical to the source's, the repacked archive is smaller than or equal to a full write of the same document, and it still opens through MobixDocument.open and MobixPagedReader."
+id = "carry-the-page-source-into-the-editor"
+title = "Carry the page source into the editor"
+description = "The page counter, the rail pages button and the page list read document.pages today: DrawingSurfaceView.doc.pages.size flows through onPageCountChanged into the Compose state (ui/EditorRegions.kt), and the pages popup counts the same list. Once a PageSource exists (expose-a-page-source-and-count-pages-from-the-manifest), carry it from the open path to the surface - LoadedFile.Doc, OpenTab/TabSession and DrawingSurfaceView.doc move together, so a .mobix opened from its manifest answers the count and the page names without decoding a page, and a .xopp answers from its in-memory list exactly as now. The canvas keeps reading its document for the pages it draws; only the count, the ids and the page list stop walking them all. Verify on the emulator with a 200-page .mobix: the counter and the pages menu show 200 rows and the right names on open, with no page entry read until one is drawn (TrackedEntrySource), and the journal notes the same for a .xopp."
 status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 830
+order = 840
 created = 2026-10-14
-tags = ["mobix", "perf"]
+tags = ["mobix", "ui"]
 rebuild = true
-emulator_debug = false
+emulator_debug = true
