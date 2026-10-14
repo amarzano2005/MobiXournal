@@ -512,20 +512,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "make-the-mobix-format-doc-say-what-the-code-does"
-title = "Make the .mobix format doc say what the code does"
-description = "docs/mobix-format.md reads as if the format engines are running today and three of them are not: MobixPagedReader and MobixIncrementalSaver exist with unit tests and are called by no file in app/src/main, so opening a .mobix still inflates the whole document and every save still repacks the whole archive; audio is a sidecar (MobixElementCodec writes the stroke audioRef but the bytes are never bundled, so the file is not self-contained); and render/KaraokeStrokeAnimator.kt has no caller at all, so the per-point timings a .mobix stores are never replayed. The motivation section stays as it is - it argues for the format, and the argument is still right - but the capability table and the Engine optimizations section must say per row what is live, what exists only as a tested library, and what is not built, each not-yet row pointing at the task that will make it live (open-a-mobix-page-by-page-not-whole, repack-only-the-pages-a-save-changed, carry-the-audio-recording-inside-the-document, replay-the-writing-in-time-with-its-recording, finish-the-pen-telemetry-payoff, render-and-edit-an-infinite-canvas-document). Keep the file inside its DocsGuardTest line budget and keep every claim linkable from docs/architecture.md. This lands before the wiring on purpose: the doc is wrong today, and each wiring task flips its own row as it lands."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "normal"
-order = 430
-created = 2026-10-14
-tags = ["mobix", "docs"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "measure-mobix-against-xopp-on-one-document"
 title = "Measure .mobix against .xopp on one document"
 description = "The whole case for the native format is structural - pictures as binary assets addressed by content hash instead of base64 inside XML, a part-per-page archive instead of one XML document, de-duplicated assets - and the repo holds no number for any of it. Produce one, reproducibly: take one multi-page document that carries a picture and a PDF background, write it through the real writers as SaveFormat.MOBIX, as SaveFormat.ORIGINAL and as SaveFormat.ZIPPED, and report the bytes on disk for each, plus the wall time to write and to read back each, with the method stated (a JVM harness over io/DocumentIo.encode and the format readers, so anyone can run it again). Report where the number matters - docs/mobix-format.md and docs/xopp-format.md make the size case - rather than only inside a test, and where a claim cannot be backed by a number, say so instead of leaving it implied. If the honest result is that the difference is small for ink-only documents, say that too: the size case is about pictures and long notebooks, and a measurement that contradicts the prose is the measurement winning."

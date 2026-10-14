@@ -31,26 +31,32 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 
 ## What `.mobix` does beyond `.xopp`
 
-| Capability | `.xopp` (Current) | `.mobix` (Native) |
-|---|---|---|
-| **Mathematical plots** | Baked into dead strokes & text boxes | Living `PlotElement`: formula $f(x)$, range, samples, re-editable anytime |
-| **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text |
-| **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \text{barrel roll}, \Delta t_{\text{ms}})$ |
-| **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps |
-| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache |
-| **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication |
-| **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps |
-| **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries |
+| Capability | `.xopp` (Current) | `.mobix` (Native) | Status today |
+|---|---|---|---|
+| **Mathematical plots** | Baked into dead strokes & text boxes | Living `PlotElement`: formula $f(x)$, range, samples, re-editable anytime | **Live** — created, drawn, re-edited in place ([mobix-elements.md](mobix-elements.md)) |
+| **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **Model only** — codec and ink are live; the table tool still draws a static grid and no editor exists (Step 2: `insert-a-living-table-from-the-table-tool`) |
+| **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \text{barrel roll}, \Delta t_{\text{ms}})$ | **Stored, unconsumed** — tilt, azimuth and $\Delta t$ are captured and written; nothing reads them, and no barrel-roll axis is captured at all (`finish-the-pen-telemetry-payoff`) |
+| **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Not built** — `render/KaraokeStrokeAnimator.kt` has no caller (`replay-the-writing-in-time-with-its-recording`) |
+| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Library only** — `MobixPagedReader` is written and tested and called by nothing; opening still inflates and parses every page (`open-a-mobix-page-by-page-not-whole`) |
+| **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
+| **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Not self-contained** — the stroke's `audioRef` is written, the bytes stay a sidecar (`carry-the-audio-recording-inside-the-document`) |
+| **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Library only** — `MobixIncrementalSaver` is written and tested and called by nothing; every save repacks the whole archive (`repack-only-the-pages-a-save-changed`) |
+
+The **Status today** column is the honest one: a capability is **Live** only where the open/save path
+actually runs it, **Library only** where a tested engine exists with no caller in `app/src/main`, and
+otherwise names what is missing and the task that will make it live. Everything in the *Native* column
+is what the format is designed to hold, not a claim that it runs.
 
 Its three structural advantages, all of which follow from the container being a ZIP of small parts
-rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec.md)):
+rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec.md)). Whether each
+*runs* today is the capability table's **Status today** column above, not a claim here:
 
-- **Streaming & fast startup**: The app reads `manifest.json` and loads only visible pages
-  (`page-0001.json`). Navigating to page 200 does not parse pages 1–199.
-- **Deduplication of binary assets**: If an image is pasted across multiple pages, it is stored once
-  in `assets/` and referenced by hash.
-- **Atomic saves**: Changes to page 3 only require repacking `page-0003.json` inside the archive,
-  saving battery and flash write cycles.
+- **Streaming & fast startup** — **not live yet**: the container is part-per-page and `MobixPagedReader`
+  can read one page at a time, but the open path loads every page (`open-a-mobix-page-by-page-not-whole`).
+- **Deduplication of binary assets** — **live**: an image pasted across pages is stored once in
+  `assets/` and referenced by content hash.
+- **Atomic saves** — **not live yet**: changes to page 3 *should* repack only `page-0003.json`, but
+  every save repacks the whole archive (`repack-only-the-pages-a-save-changed`).
 
 ---
 
@@ -166,7 +172,8 @@ the archive does not carry (a corrupt file, never an empty page), a `formatVersi
 schema, a `canvas.json` that disagrees with the manifest about the mode, and an infinite-canvas
 document — its content lives in `chunks/`, the page model cannot hold it, and opening it as an empty
 page list would let a save rewrite a chunked document as a paginated one. The canvas engine lifting
-that last refusal is a later step ([infinite-canvas.md](infinite-canvas.md)). `minAppVersion` is a
+that last refusal is a later step ([infinite-canvas.md](infinite-canvas.md)), tracked as
+`render-and-edit-an-infinite-canvas-document`. `minAppVersion` is a
 **caller's** question, not this layer's: the document layer exposes
 `manifest.requiresAppNewerThan(appVersion)`, and whether that means "open read-only" or "refuse" is the
 app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).
@@ -315,33 +322,44 @@ not as this app's code**:
 
 ## Engine optimizations enabled by the format
 
-Migrating to the `.mobix` format directly enables four major performance optimizations in the engine:
+Migrating to the `.mobix` format directly enables four major performance optimizations in the engine.
+Each one is labelled with **what actually runs today** — **Live**, **library only** (a tested engine with
+no caller in `app/src/main`), or **not built** — and names the task that makes it live.
 
-1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)**:
-   - Rather than loading a 200-page XML document into an in-memory DOM, the app initialises an
-     active sliding window (e.g. current page $\pm 2$ adjacent pages via `format/mobix/MobixPagedReader.kt`).
+1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)** — **library only**:
+   - `format/mobix/MobixPagedReader.kt` walks the ZIP central directory and materialises a page (or a
+     chunk) on demand into an active sliding window (e.g. current page $\pm 2$ adjacent pages), but
+     **no file in `app/src/main` calls it**: `io/DocumentIo.kt` still opens a `.mobix` through
+     `MobixContainer.open` + `MobixDocument.open` + `toDocument()`, so a 200-page notebook is fully
+     inflated and parsed before the editor sees a page. `open-a-mobix-page-by-page-not-whole` is what
+     makes it live.
    - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand
      in $< 5\text{ ms}$ when scrolled into view, verified across synthetic 200-page archives in `MobixPagedReaderTest`.
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
-2. **Incremental Delta-Writes (Zero save latency)**:
-   - During auto-save or explicit save, the app only re-compresses modified page entries (`pages/page-N.json`)
-     and the updated `manifest.json` into the ZIP archive via `format/mobix/MobixIncrementalSaver.kt`.
+2. **Incremental Delta-Writes (Zero save latency)** — **library only**:
+   - `format/mobix/MobixIncrementalSaver.kt` re-compresses only modified page entries (`pages/page-N.json`)
+     and the updated `manifest.json` into the ZIP archive, but **no save path uses it**: the `MOBIX`
+     branch of `io/DocumentIo.kt` encode always calls `MobixDocument.of(...).toBytes()`, so every save
+     repacks the whole archive. `repack-only-the-pages-a-save-changed` wires it in.
    - Unmodified pages, heavy background PDFs, and image assets are streamed directly from the source archive
      without re-compression; unknown/unmodelled entries survive untouched (container rule 4,
      [mobix-schema-spec.md](mobix-schema-spec.md)).
    - Evaluated in `MobixIncrementalSaveTest`: on a 10-page notebook with 1 page modified, only 2 entries
      (manifest + dirty page) are rewritten while 11 entries (9 pages, canvas, preserved payload) are streamed
      byte-for-byte, cutting compression overhead by $> 80\%$. Saves complete in milliseconds without UI freezes.
-3. **Zero-Allocation Inking Loop (No GC stutter)**:
+3. **Zero-Allocation Inking Loop (No GC stutter)** — **not built**:
    - High-rate stylus events (120 Hz–240 Hz on modern tablets and stylus digitizers) can trigger frequent
      JVM Garbage Collection pauses if objects (`StrokePoint`, temporary event wrappers) are allocated per touch.
-   - Point buffers are pre-allocated and pooled. The dynamic stroke is drawn directly from primitive arrays
-     until touch-up commits the element.
-4. **GPU Texture Layering & Path Tessellation Cache**:
+   - The live stroke is still a growing `ArrayList<StrokePoint>` (`render/DrawingSurfaceStrokes.kt`),
+     so a `StrokePoint` and its wrappers are allocated per touch today. The pre-allocated, pooled
+     primitive-array path this item describes is not implemented.
+4. **GPU Texture Layering & Path Tessellation Cache** — **live (off-screen raster)**:
    - Static elements (paper rulings, PDF page backgrounds, committed lower layers) are rendered once into
      an off-screen GPU texture (`android.graphics.Bitmap` hardware texture on Android, Skia `Image` on Desktop).
+     This is what `render/InkCache.kt` does (one bitmap per page at a zoom bucket, charged to a shared
+     `BitmapBudget` beside `render/BitmapLruCache.kt` and `render/PdfPageCache`).
    - In-flight strokes are rendered solely on a lightweight transparent overlay, keeping per-frame redraw times
      under $4\text{ ms}$ (comfortably achieving 144 Hz / 240 Hz displays).
-   - Vector paths for completed strokes are tessellated and cached in GPU memory; zooming and panning reuse
-     GPU transformation matrices without re-rasterizing vector math.
+   - Vector paths for completed strokes are cached for reuse across zoom and pan; the tessellation cache
+     named here is the platform `Canvas` path cache, not an app-owned one.

@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "make-the-mobix-format-doc-say-what-the-code-does"
+title = "Make the .mobix format doc say what the code does"
+description = "docs/mobix-format.md reads as if the format engines are running today and three of them are not: MobixPagedReader and MobixIncrementalSaver exist with unit tests and are called by no file in app/src/main, so opening a .mobix still inflates the whole document and every save still repacks the whole archive; audio is a sidecar (MobixElementCodec writes the stroke audioRef but the bytes are never bundled, so the file is not self-contained); and render/KaraokeStrokeAnimator.kt has no caller at all, so the per-point timings a .mobix stores are never replayed. The motivation section stays as it is - it argues for the format, and the argument is still right - but the capability table and the Engine optimizations section must say per row what is live, what exists only as a tested library, and what is not built, each not-yet row pointing at the task that will make it live (open-a-mobix-page-by-page-not-whole, repack-only-the-pages-a-save-changed, carry-the-audio-recording-inside-the-document, replay-the-writing-in-time-with-its-recording, finish-the-pen-telemetry-payoff, render-and-edit-an-infinite-canvas-document). Keep the file inside its DocsGuardTest line budget and keep every claim linkable from docs/architecture.md. This lands before the wiring on purpose: the doc is wrong today, and each wiring task flips its own row as it lands."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["mobix", "docs"]
+
+[[task]]
 id = "ask-the-writing-hand-at-first-launch-not-which-edge"
 title = "Ask the writing hand at first launch, not which edge"
 description = "The fourth onboarding step (OnboardingHandedness.kt, wired in OnboardingDialog.kt) asks which hand writes rather than which edge to dock to: two radio cards - Right-handed, which docks the rail on the left edge and is the default, and Left-handed on the right - each carrying a miniature of the editor with the rail drawn on the edge that hand implies, over a line saying the tool edge is the one opposite the writing hand. The step writes AppSettings.toolbarPosition live, so a tap moves the rail behind the dialog: verified on the Pixel_Tablet AVD, where tapping Left-handed stored toolbar_position=RIGHT and the rail's lane moved from the left band to the right one while the dialog was still up. The miniature takes its desk and rail from the chrome tokens but draws the sheet as paper white, because a sheet painted with surface was #121212 on the dark theme's #181818 card and the comparison vanished exactly where it is the only thing on screen; checked in both a dark and a light theme. docs/stylus.md and README.md updated in the same commit."
