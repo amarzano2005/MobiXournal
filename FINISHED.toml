@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "draw-the-shaded-integral-area-for-a-plotelement"
+title = "Draw the shaded integral area for a PlotElement"
+description = "docs/math-engine.md section 3 promises Shade Integral Area: a semi-transparent polygonal fill bounded between the curve and the x-axis over PlotElement.shadeIntegral.from..to. The field exists in format/model/Living.kt and MobixPlotCodec round-trips it, but nothing draws it - the only readers of shadeIntegral are the codec and a KDoc comment. Fill it inside the plot ink compiler render/PlotInk.kt so screen, SVG, PDF and the .xopp synthesis through render/LivingInk.kt cannot disagree: build the closed polygon between the curve and the axis (or between the two curves when the plot has two) clipped to the from..to bounds, fill colour from the curve colour, alpha from the design token already used for a translucent fill. A shadeIntegral outside the plot range, or a curve that does not parse, draws nothing rather than a wrong area. Verify with JVM unit tests over the pure compiler: a shaded plot yields a closed filled polygon, an unshaded one yields none, and a shaded .mobix exports through XoppSynthesis with the fill ink present. Then an emulator pass with a screenshot of the shaded area over a selected plot."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["plot", "math"]
+
+[[task]]
+id = "compute-the-definite-integral-in-the-plot-analysis"
+title = "Compute the definite integral in the plot analysis"
+description = "docs/math-engine.md section 3: a definite integral int_a^b f(x) dx is meant to be evaluated with Adaptive Simpson rule (tolerance 1e-7) and its value reported with the rest of the analysis, so the number a shaded area stands for actually exists. Nothing computes it today: the only mention of an integral in render/ is the model field. Add the integrator to render/FunctionAnalysis.kt beside derivative and findCriticalPoints, pure and Android-free, honouring each curve own range, and expose the value through the summary that buildSummaryReport already builds so render/MultiFunctionPlotter.kt picks it up on every path (canvas, PDF, SVG, .xopp export). Verify with JVM unit tests over the pure integrator: int_0^1 x dx = 0.5, int_0^pi sin x dx = 2, a non-finite or discontinuous integrand is refused rather than returned as NaN, and the value is present in the summary text."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["plot", "math"]
+
+[[task]]
+id = "give-the-editor-a-page-window-for-a-mobix"
+title = "Give the editor a page window for a .mobix"
+description = "docs/data-path.md records the decision and docs/mobix-format.md the measurement: the editor is to read a .mobix a page at a time. Document holds List<Page> and every consumer walks it (render/DrawingSurfaceView.kt, render/DrawingSurfacePaint.kt, render/DrawingSurfaceSelection.kt, render/SelectionGestureController.kt, render/PageCommands.kt, render/DocumentSearch.kt, render/XoppSynthesis.kt, render/PdfExporter.kt, format/mobix/MobixMergeEngine.kt, the tabs page counter), but format/mobix/MobixPagedReader.kt already materialises a page on demand into a five-page LRU window and is called by nothing. Investigate how a page-window surface is exposed to the editor - a PageSource with pageCount, pageIds and page(i), backed by the reader for a big .mobix and by the in-memory list for a .xopp or a new document - how the canvas and its edit ops read and mutate a page that is not materialised, and what each whole-document consumer (export, search, merge, page counter, thumbnails) does with one. Then add the atomic tasks - the canvas read, the page counter, export, search and merge - smallest first. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["mobix", "perf"]
+
+[[task]]
 id = "stream-the-mobix-open-path-and-defer-asset-payloads"
 title = "Stream the .mobix open path and defer asset payloads"
 description = "io/DocumentIo.kt opens a .mobix by inflating the whole archive: MobixContainer.open reads every entry into memory, and MobixDocument.open then parses all pages and preloads every assets/ payload into MobixDocument.payloads. A 200-page document with a 1 MiB asset inflates all 204 entries (13 ms, MobixPagedOpenBenchmarkTest, docs/data-path.md). Give the format layer a streaming open: add MobixDocument.open(source: MobixEntrySource) that reads only mimetype, manifest, canvas and bridge at open and exposes assets through the source (a lazy accessor) instead of a preloaded map, keep the existing Archive-based open for callers already holding an archive, and make DocumentIo.mobix pass MobixEntrySource.fromFile(staged). Pages stay eagerly decoded in this task - the editor page window is the next child. MobixDocument.encode must still write every payload the model references: an asset never read must be read from the source on save, or its entry carried through untouched. Verify with JVM tests: opening the 200-page plus 1 MiB archive never inflates the asset entry (TrackedEntrySource.openCount is 0), a document opened this way round-trips equal to the same document opened whole, and a re-save still carries every payload."

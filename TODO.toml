@@ -512,42 +512,70 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "compute-the-definite-integral-in-the-plot-analysis"
-title = "Compute the definite integral in the plot analysis"
-description = "docs/math-engine.md section 3: a definite integral int_a^b f(x) dx is meant to be evaluated with Adaptive Simpson rule (tolerance 1e-7) and its value reported with the rest of the analysis, so the number a shaded area stands for actually exists. Nothing computes it today: the only mention of an integral in render/ is the model field. Add the integrator to render/FunctionAnalysis.kt beside derivative and findCriticalPoints, pure and Android-free, honouring each curve own range, and expose the value through the summary that buildSummaryReport already builds so render/MultiFunctionPlotter.kt picks it up on every path (canvas, PDF, SVG, .xopp export). Verify with JVM unit tests over the pure integrator: int_0^1 x dx = 0.5, int_0^pi sin x dx = 2, a non-finite or discontinuous integrand is refused rather than returned as NaN, and the value is present in the summary text."
+id = "expose-a-page-source-and-count-pages-from-the-manifest"
+title = "Expose a page source and count pages from the manifest"
+description = "docs/data-path.md decides a page window: a .mobix opened streaming (stream-the-mobix-open-path-and-defer-asset-payloads) still decodes every page, and the tab page counter, the rail pages button and the page list walk them all. Introduce the surface: a PageSource in format/mobix with pageCount, pageId(i) and page(i), backed by MobixPagedReader for a .mobix and by the in-memory Document.pages for a .xopp or a new document. Wire the page counter, the rail pages button and the page list to pageCount and pageId(i) so a 200-page document shows the correct count and page names before a single page is decoded. Verify with JVM tests: pageCount and the ids come from the manifest without materialising a page (TrackedEntrySource counts no page entry), and a .xopp-backed source answers the in-memory list unchanged."
 status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 505
+order = 437
 created = 2026-10-14
-tags = ["plot", "math"]
+tags = ["mobix", "perf"]
 rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "draw-the-shaded-integral-area-for-a-plotelement"
-title = "Draw the shaded integral area for a PlotElement"
-description = "docs/math-engine.md section 3 promises Shade Integral Area: a semi-transparent polygonal fill bounded between the curve and the x-axis over PlotElement.shadeIntegral.from..to. The field exists in format/model/Living.kt and MobixPlotCodec round-trips it, but nothing draws it - the only readers of shadeIntegral are the codec and a KDoc comment. Fill it inside the plot ink compiler render/PlotInk.kt so screen, SVG, PDF and the .xopp synthesis through render/LivingInk.kt cannot disagree: build the closed polygon between the curve and the axis (or between the two curves when the plot has two) clipped to the from..to bounds, fill colour from the curve colour, alpha from the design token already used for a translucent fill. A shadeIntegral outside the plot range, or a curve that does not parse, draws nothing rather than a wrong area. Verify with JVM unit tests over the pure compiler: a shaded plot yields a closed filled polygon, an unshaded one yields none, and a shaded .mobix exports through XoppSynthesis with the fill ink present. Then an emulator pass with a screenshot of the shaded area over a selected plot."
+id = "materialise-only-the-visible-pages-in-the-canvas"
+title = "Materialise only the visible pages in the canvas"
+description = "docs/data-path.md: the canvas is to read a page through the PageSource when it shows it, and not before. Today render/DrawingSurfaceView.kt, render/DrawingSurfacePaint.kt, render/DrawingSurfaceSelection.kt and render/SelectionGestureController.kt read document.pages directly. Move the canvas page reads onto the source: single-page and overview (multi-column) modes materialise the pages in the viewport and let the LRU window evict the rest, and the canvas keeps drawing the same pixels. Verify on the emulator: open a 200-page .mobix, scroll from page 1 to page 200, and screenshot each end with a clean logcat; a JVM test pins that rendering a page through the source materialises only that page."
 status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 508
+order = 447
 created = 2026-10-14
-tags = ["plot", "math"]
+tags = ["mobix", "perf"]
 rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "give-the-editor-a-page-window-for-a-mobix"
-title = "Give the editor a page window for a .mobix"
-description = "docs/data-path.md records the decision and docs/mobix-format.md the measurement: the editor is to read a .mobix a page at a time. Document holds List<Page> and every consumer walks it (render/DrawingSurfaceView.kt, render/DrawingSurfacePaint.kt, render/DrawingSurfaceSelection.kt, render/SelectionGestureController.kt, render/PageCommands.kt, render/DocumentSearch.kt, render/XoppSynthesis.kt, render/PdfExporter.kt, format/mobix/MobixMergeEngine.kt, the tabs page counter), but format/mobix/MobixPagedReader.kt already materialises a page on demand into a five-page LRU window and is called by nothing. Investigate how a page-window surface is exposed to the editor - a PageSource with pageCount, pageIds and page(i), backed by the reader for a big .mobix and by the in-memory list for a .xopp or a new document - how the canvas and its edit ops read and mutate a page that is not materialised, and what each whole-document consumer (export, search, merge, page counter, thumbnails) does with one. Then add the atomic tasks - the canvas read, the page counter, export, search and merge - smallest first. Produce tasks, not code."
+id = "edit-a-page-the-lru-window-has-evicted"
+title = "Edit a page the LRU window has evicted"
+description = "An edit op (render/PageCommands.kt, render/ElementEdits.kt, DrawingSurfaceStrokes.kt) may act on a page the page window has evicted. Decide and implement: an edit materialises the page it touches first, keeps it until the edit settles, and the dirty page is written back on save. Undo and redo must not lose an edit whose page leaves the window. Verify with JVM tests: move, delete and insert on page 150 of a 200-page document while pages 0 to 4 are the only window, then assert page 150 holds the edit and pages 0 to 4 are unchanged."
 status = "active"
-level = "scope"
+level = "task"
 category = "feature"
 urgency = "normal"
-order = 456
+order = 457
+created = 2026-10-14
+tags = ["mobix"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "export-and-search-a-mobix-through-the-page-source"
+title = "Export and search a .mobix through the page source"
+description = "render/XoppSynthesis.kt (the .xopp export) and render/DocumentSearch.kt (find) walk every page of a document. Route both through the PageSource: the export materialises one page at a time and releases it, and search iterates the same way, so neither holds all 200 pages. Verify with JVM tests: an export of a 200-page document produces the same .xopp as before and a search finds a text hit on page 150; both keep the working set bounded (TrackedEntrySource counts only the pages touched)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 467
+created = 2026-10-14
+tags = ["mobix"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "merge-a-mobix-from-the-manifest-parts"
+title = "Merge a .mobix from the manifest parts"
+description = "format/mobix/MobixMergeEngine.kt resolves pages by walking local.pages and remote.pages. It already has each page sha256 and modified in the manifest, so a page only one side changed can be adopted by part without decoding it. Materialise only the pages that must be compared or element-merged, and carry the rest through by part. Verify with JVM tests: a merge of two 200-page documents that differ on one page decodes only that page (TrackedEntrySource), and the merged document equals the current implementation result."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 477
 created = 2026-10-14
 tags = ["mobix", "perf"]
 rebuild = true
