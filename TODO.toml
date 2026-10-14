@@ -512,20 +512,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "measure-mobix-against-xopp-on-one-document"
-title = "Measure .mobix against .xopp on one document"
-description = "The whole case for the native format is structural - pictures as binary assets addressed by content hash instead of base64 inside XML, a part-per-page archive instead of one XML document, de-duplicated assets - and the repo holds no number for any of it. Produce one, reproducibly: take one multi-page document that carries a picture and a PDF background, write it through the real writers as SaveFormat.MOBIX, as SaveFormat.ORIGINAL and as SaveFormat.ZIPPED, and report the bytes on disk for each, plus the wall time to write and to read back each, with the method stated (a JVM harness over io/DocumentIo.encode and the format readers, so anyone can run it again). Report where the number matters - docs/mobix-format.md and docs/xopp-format.md make the size case - rather than only inside a test, and where a claim cannot be backed by a number, say so instead of leaving it implied. If the honest result is that the difference is small for ink-only documents, say that too: the size case is about pictures and long notebooks, and a measurement that contradicts the prose is the measurement winning."
-status = "active"
-level = "task"
-category = "test"
-urgency = "normal"
-order = 440
-created = 2026-10-14
-tags = ["mobix", "xopp"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "step-1-mobix-format-engines"
 title = "Step 1 - the native .mobix format (the engines it promises and does not run)"
 description = "The roadmap first pillar (docs/future-roadmap.md), carried for the third time and this time for what the first two left running rather than planned: step-1-native-mobix-format closed the data model (the PKWARE container, the schema, the living families, the math engine) and step-1-mobix-format-remainder closed the infinite canvas, audio and plugin scopes believing them built - and the format half of each did land, while the app half did not. No user-facing interface can exceed the data model beneath it, so the pillar is not finished until these run: format/mobix/MobixPagedReader.kt and MobixIncrementalSaver.kt exist with unit tests and are called by no file in app/src/main, so a .mobix still opens whole and saves whole; the inking telemetry is captured and stored and consumed by nothing (tilt, azimuth and dtMs, a barrel roll nowhere, and KaraokeStrokeAnimator has no caller); an infinite-canvas document can be written by this app and not opened by it; and a recording is still a sidecar beside a container whose whole point is to be self-contained (docs/audio-inking-sync.md). Order of work, following the pillar's own spokes: (1) the ground truth first - the format page stops promising engines it does not run, and its size case gets a number behind it (make-the-mobix-format-doc-say-what-the-code-does, measure-mobix-against-xopp-on-one-document); (2) the container's two engines (open-a-mobix-page-by-page-not-whole, repack-only-the-pages-a-save-changed); (3) the schema and inking payoff (finish-the-pen-telemetry-payoff); (4) the canvas engine (render-and-edit-an-infinite-canvas-document); (5) audio last, as the pillar lists it - bundled first, then the replay that makes the stored timings worth keeping (carry-the-audio-recording-inside-the-document, replay-the-writing-in-time-with-its-recording). Not in this epic: everything Step 2 owns (step-2-modern-mobile-ui) and Step 3 (docs/desktop-workstation.md). Done means: every child closed with its documentation in the owning spoke, docs/mobix-format.md asserting only what the document path actually does, both container engines measured rather than assumed, and a release. Known gaps: the desktop half cannot be exercised here - no Xournal++ on this machine, so plugins/mobix-importer is covered by its JVM test alone and a real desktop round trip is outside any pass - and the emulator is a Pixel_Tablet AVD only. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."

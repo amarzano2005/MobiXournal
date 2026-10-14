@@ -21,8 +21,10 @@ interoperability, `.xopp` imposes hard architectural bottlenecks:
    per-point timestamps. Advanced pen engines and velocity-based smoothing cannot persist their data.
 3. **Monolithic I/O**: An XML file cannot be streamed or paged. Loading or saving a 500-page document
    requires decompressing and parsing the entire document tree in memory, which degrades mobile performance.
-4. **Embedded binary bloat**: Images in `.xopp` are base64-encoded inside XML tags, inflating file size
-   and requiring expensive string allocations.
+4. **Embedded binary bloat**: Images in `.xopp` are base64-encoded inside XML tags, which costs a
+   third more bytes before compression and a fresh string allocation per image. Deflate reclaims
+   almost all of the size (see the measurement below), so this is a decode-time and memory cost
+   more than a disk one.
 
 The solution is a **two-tier architecture**: a modern native container format (`.mobix`) with an
 uncompromising **lossless export/import bridge to `.xopp`**.
@@ -57,6 +59,32 @@ rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec
   `assets/` and referenced by content hash.
 - **Atomic saves** — **not live yet**: changes to page 3 *should* repack only `page-0003.json`, but
   every save repacks the whole archive (`repack-only-the-pages-a-save-changed`).
+
+### Measured: `.mobix` against `.xopp` on one document
+
+The size case is a number, not a claim. `MobixXoppSizeBenchmarkTest` writes one document through
+the real writers (`io/DocumentIo.encode`) in all three formats and reports bytes on disk plus write
+and read-back wall time — run `./gradlew testDebugUnitTest --tests com.mobixournal.format.MobixXoppSizeBenchmarkTest`,
+report in `app/build/reports/mobix-vs-xopp.txt`. The document is 8 pages / 160 ink strokes plus one
+embedded picture (120 kB) and a PDF background (250 kB), both fixed incompressible blobs, so the
+container overhead is what is measured (bytes, then write/read ms — median of 5 runs on the host):
+
+| case | `MOBIX` | `ORIGINAL` (gzip) | `ZIPPED` (self-contained) |
+|---|---|---|---|
+| ink-only | 6 792 B, 12/20 ms | 2 717 B, 42/22 ms | 3 108 B, 11/16 ms |
+| picture + PDF | 377 984 B, 17/14 ms | 124 975 B, 18/8 ms | 375 546 B, 20/10 ms |
+
+`ORIGINAL` **links** the PDF instead of carrying it, so its number is a different comparison. What
+the numbers say, including where they contradict this doc:
+
+- An **ink-only** `.mobix` is **larger** (6.8 kB vs 2.7 kB gzipped): per-page JSON is more verbose
+  than one gzipped XML. The size case is about pictures and long notebooks, not ink.
+- With a picture and a PDF, a self-contained `.mobix` and a ZIP-package `.xopp` land **within ~1 %**
+  of each other. Base64 inflates an embedded `<image>` by a third on disk, but deflate reclaims
+  nearly all of it (the body's 6-bit alphabet), so the "embedded binary bloat" above is a
+  decode-time cost, **not** a size win against a compressed `.xopp`. The native format's payoff is
+  **structure**: per-page streaming, incremental saves, and asset dedup (one PDF entry behind the
+  eight pages here, not eight).
 
 ---
 

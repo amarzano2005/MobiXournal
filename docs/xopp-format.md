@@ -212,7 +212,10 @@ format attribute — it's a view-only editor state (a hidden layer still round-t
 (`&amp; &lt; &gt;`). The description has no underline token, so underline is not representable.
 
 **`<image>`** — attributes `left`, `top`, `right`, `bottom` (pt bounding box). **Inner text**
-is base64-encoded raw image bytes (PNG/JPEG as stored). Desktop line-wraps that body, so both
+is base64-encoded raw image bytes (PNG/JPEG as stored) — a third more bytes than the binary, though
+the measurement in [mobix-format.md](mobix-format.md#measured-mobix-against-xopp-on-one-document)
+shows deflate reclaims almost all of that, so it is not the size win the `.mobix` motivation once
+claimed. Desktop line-wraps that body, so both
 `<image>` and `<teximage>` decode with the MIME decoder (whitespace-tolerant); an undecodable
 body yields an empty image rather than failing the whole file.
 
