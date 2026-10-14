@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stream-the-mobix-open-path-and-defer-asset-payloads"
+title = "Stream the .mobix open path and defer asset payloads"
+description = "io/DocumentIo.kt opens a .mobix by inflating the whole archive: MobixContainer.open reads every entry into memory, and MobixDocument.open then parses all pages and preloads every assets/ payload into MobixDocument.payloads. A 200-page document with a 1 MiB asset inflates all 204 entries (13 ms, MobixPagedOpenBenchmarkTest, docs/data-path.md). Give the format layer a streaming open: add MobixDocument.open(source: MobixEntrySource) that reads only mimetype, manifest, canvas and bridge at open and exposes assets through the source (a lazy accessor) instead of a preloaded map, keep the existing Archive-based open for callers already holding an archive, and make DocumentIo.mobix pass MobixEntrySource.fromFile(staged). Pages stay eagerly decoded in this task - the editor page window is the next child. MobixDocument.encode must still write every payload the model references: an asset never read must be read from the source on save, or its entry carried through untouched. Verify with JVM tests: opening the 200-page plus 1 MiB archive never inflates the asset entry (TrackedEntrySource.openCount is 0), a document opened this way round-trips equal to the same document opened whole, and a re-save still carries every payload."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["mobix", "perf"]
+
+[[task]]
 id = "open-a-mobix-page-by-page-not-whole"
 title = "Open a .mobix page by page instead of whole"
 description = "The reader is written and tested and nothing calls it: format/mobix/MobixPagedReader.kt walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or a chunk) on demand into an LRU window of the current page plus or minus two, but io/DocumentIo.kt still opens a .mobix through MobixContainer.open + MobixDocument.open + toDocument() and so inflates and parses every page before the editor sees one. On a 200-page notebook that is exactly the difference the format exists to make, so this is the largest unfinished claim of the native format. Working it is an investigation first, because the editor model is eager: Document holds List<Page> and every consumer walks all of it - the .xopp synthesis on export (render/XoppSynthesis.kt off io/DocumentIo.kt encode), the conflict merge (format/mobix/MobixMergeEngine.kt), document search, thumbnails, the page counter and render/CanvasAutoSlicer.kt. Find the smallest lazy surface that actually pays - a page window the editor materialises as it shows pages, or at minimum an open path that stops double-inflating and defers asset payloads - decide what each of those consumers does with a page it has not materialised, and add the atomic tasks that come out of it. Verify the decision with a measurement rather than a feeling: a synthetic 200-page archive, entries inflated and elapsed ms to open, against today path."

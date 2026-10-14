@@ -51,13 +51,13 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   `canvas.json` disagrees with the manifest, or that stores its content in `chunks/` (an infinite
   canvas this build cannot lay out) fails the open with the reason, rather than being opened as
   something it is not.
-- **It is read whole today, and the decision is to stop that.** Every entry is inflated on open — the
-  number is in [mobix-format.md](mobix-format.md) (*Engine optimizations*, item 1) — while
-  `format/mobix/MobixPagedReader.kt` already opens only the envelope. The surface the editor is to get
-  is a **page window**: the manifest supplies `pageCount` and the page ids without inflating a page,
-  and a page is materialised when the canvas shows it. Two children carry it:
-  `stream-the-mobix-open-path-and-defer-asset-payloads` (the open path) and
-  `give-the-editor-a-page-window` (the editor's lazy read, which then reaches export, search and merge).
+- **It streams, and the assets are deferred.** The open reads the envelope and the pages and leaves
+  every `assets/` payload in the archive, inflated only when someone adopts a background from it or the
+  document is written (`MobixDocument.open(source)`, `format/mobix/MobixEntrySource.kt`); before this
+  the whole archive was read into memory first (the numbers are in [mobix-format.md](mobix-format.md),
+  *Engine optimizations*, item 1). The pages are still decoded eagerly, so the surface the editor gets
+  next is a **page window**: the manifest supplies `pageCount` and the page ids without inflating a
+  page, and a page is materialised when the canvas shows it (`give-the-editor-a-page-window-for-a-mobix`).
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 

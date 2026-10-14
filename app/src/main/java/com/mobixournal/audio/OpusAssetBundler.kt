@@ -47,7 +47,7 @@ internal object OpusAssetBundler {
      */
     fun adoptAudio(document: MobixDocument, assetName: String, bytes: ByteArray): MobixDocument {
         val normalized = normalizeAssetName(assetName)
-        val updatedPayloads = document.payloads + (normalized to bytes)
+        val updatedPayloads = document.allPayloads + (normalized to bytes)
         return MobixDocument(
             manifest = document.manifest,
             canvas = document.canvas,

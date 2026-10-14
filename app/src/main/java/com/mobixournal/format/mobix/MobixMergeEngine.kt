@@ -70,8 +70,8 @@ internal object MobixMergeEngine {
 
         val pageResolution = resolveMergedPages(local, remote, base)
         val mergedPayloads = LinkedHashMap<String, ByteArray>().apply {
-            putAll(local.payloads)
-            putAll(remote.payloads)
+            putAll(local.allPayloads)
+            putAll(remote.allPayloads)
         }
         val mergedPreserved = unionPreserved(local, remote, pageResolution.pages, mergedPayloads.keys)
 

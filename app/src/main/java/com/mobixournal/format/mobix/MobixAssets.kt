@@ -12,6 +12,16 @@ internal fun interface MobixAssetSource {
 internal fun MobixContainer.Archive.asAssetSource(): MobixAssetSource = MobixAssetSource { bytes(it) }
 
 /**
+ * The [MobixAssetSource] view of a streaming [MobixEntrySource]: assets are the `assets/` entries,
+ * read on demand. A bare name (no `assets/` prefix) is resolved under the assets directory, matching
+ * the names a page's codec hands back.
+ */
+internal fun MobixEntrySource.asAssetSource(): MobixAssetSource = MobixAssetSource { name ->
+    val entry = if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
+    readBytes(entry)
+}
+
+/**
  * Collects the binary payloads a document references, addressing each by the hash of its own bytes.
  *
  * Content addressing is what makes this a *format* decision rather than housekeeping: a picture pasted

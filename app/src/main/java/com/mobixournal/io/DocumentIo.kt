@@ -10,6 +10,7 @@ import com.mobixournal.format.XoppZip
 import com.mobixournal.format.mobix.MobixConflictDetector
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
+import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
@@ -236,28 +237,36 @@ class DocumentIo(
      * exactly as a gzip `.xopp`'s is, so neither kind comes up blank when it need not.
      */
     private fun mobix(staged: File, name: String, source: Uri?): LoadedFile.Doc {
-        val archive = staged.inputStream().use { MobixContainer.open(it.buffered()) }
-        var mobixDoc = MobixDocument.open(archive)
-        val conflictNote = checkForConflictSiblingAndMerge(mobixDoc, staged, name, source)?.also {
-            mobixDoc = it.first
-        }?.second
+        // A streaming open: the envelope and the pages are read, the `assets/` payloads are left in the
+        // archive and inflated only if a background is adopted from them or the document is written.
+        // Nothing keeps this source past the call — the open document holds pages, not the MobixDocument
+        // that was read from it (see docs/data-path.md, and MobixDocument.open(source)).
+        val entries = MobixEntrySource.fromFile(staged)
+        return try {
+            var mobixDoc = MobixDocument.open(entries)
+            val conflictNote = checkForConflictSiblingAndMerge(mobixDoc, staged, name, source)?.also {
+                mobixDoc = it.first
+            }?.second
 
-        val document = mobixDoc.toDocument()
-        val adopted = adoptBundledBackgrounds(document, archive)
-        val pdf = adopted.pdf ?: refs.resolvePdfBackground(document, name, source)
-        val images = adopted.images + refs.resolvePixmapBackgrounds(document, name, source)
-        val references = refs.pixmapReferences(document)
-        val needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion)
-        return LoadedFile.Doc(
-            document,
-            pdf,
-            SaveFormat.MOBIX,
-            missingPdf = pdf == null && document.pages.any { it.background is Background.Pdf },
-            images = images,
-            missingImage = references.any { it !in images },
-            needsNewerApp = needsNewerApp,
-            conflictNotification = conflictNote,
-        )
+            val document = mobixDoc.toDocument()
+            val adopted = adoptBundledBackgrounds(document, entries)
+            val pdf = adopted.pdf ?: refs.resolvePdfBackground(document, name, source)
+            val images = adopted.images + refs.resolvePixmapBackgrounds(document, name, source)
+            val references = refs.pixmapReferences(document)
+            val needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion)
+            LoadedFile.Doc(
+                document,
+                pdf,
+                SaveFormat.MOBIX,
+                missingPdf = pdf == null && document.pages.any { it.background is Background.Pdf },
+                images = images,
+                missingImage = references.any { it !in images },
+                needsNewerApp = needsNewerApp,
+                conflictNotification = conflictNote,
+            )
+        } finally {
+            entries.close()
+        }
     }
 
     /**
@@ -340,7 +349,7 @@ class DocumentIo(
      */
     private fun adoptBundledBackgrounds(
         document: Document,
-        archive: MobixContainer.Archive,
+        entries: MobixEntrySource,
     ): BundledBackgrounds {
         // One local copy per asset, so the same PDF behind forty pages is read and written once.
         val byAsset = HashMap<String, File?>()
@@ -354,7 +363,7 @@ class DocumentIo(
                 is Background.Pixmap -> background.bundledAsset
                 is Background.Solid -> null
             } ?: continue
-            val file = byAsset.getOrPut(asset) { archive.bytes(asset)?.let { store(background, it) } }
+            val file = byAsset.getOrPut(asset) { entries.readBytes(asset)?.let { store(background, it) } }
             if (file == null) {
                 missing = true
                 continue

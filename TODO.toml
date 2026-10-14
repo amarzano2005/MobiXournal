@@ -540,20 +540,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "stream-the-mobix-open-path-and-defer-asset-payloads"
-title = "Stream the .mobix open path and defer asset payloads"
-description = "io/DocumentIo.kt opens a .mobix by inflating the whole archive: MobixContainer.open reads every entry into memory, and MobixDocument.open then parses all pages and preloads every assets/ payload into MobixDocument.payloads. A 200-page document with a 1 MiB asset inflates all 204 entries (13 ms, MobixPagedOpenBenchmarkTest, docs/data-path.md). Give the format layer a streaming open: add MobixDocument.open(source: MobixEntrySource) that reads only mimetype, manifest, canvas and bridge at open and exposes assets through the source (a lazy accessor) instead of a preloaded map, keep the existing Archive-based open for callers already holding an archive, and make DocumentIo.mobix pass MobixEntrySource.fromFile(staged). Pages stay eagerly decoded in this task - the editor page window is the next child. MobixDocument.encode must still write every payload the model references: an asset never read must be read from the source on save, or its entry carried through untouched. Verify with JVM tests: opening the 200-page plus 1 MiB archive never inflates the asset entry (TrackedEntrySource.openCount is 0), a document opened this way round-trips equal to the same document opened whole, and a re-save still carries every payload."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 453
-created = 2026-10-14
-tags = ["mobix", "perf"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "give-the-editor-a-page-window-for-a-mobix"
 title = "Give the editor a page window for a .mobix"
 description = "docs/data-path.md records the decision and docs/mobix-format.md the measurement: the editor is to read a .mobix a page at a time. Document holds List<Page> and every consumer walks it (render/DrawingSurfaceView.kt, render/DrawingSurfacePaint.kt, render/DrawingSurfaceSelection.kt, render/SelectionGestureController.kt, render/PageCommands.kt, render/DocumentSearch.kt, render/XoppSynthesis.kt, render/PdfExporter.kt, format/mobix/MobixMergeEngine.kt, the tabs page counter), but format/mobix/MobixPagedReader.kt already materialises a page on demand into a five-page LRU window and is called by nothing. Investigate how a page-window surface is exposed to the editor - a PageSource with pageCount, pageIds and page(i), backed by the reader for a big .mobix and by the in-memory list for a .xopp or a new document - how the canvas and its edit ops read and mutate a page that is not materialised, and what each whole-document consumer (export, search, merge, page counter, thumbnails) does with one. Then add the atomic tasks - the canvas read, the page counter, export, search and merge - smallest first. Produce tasks, not code."

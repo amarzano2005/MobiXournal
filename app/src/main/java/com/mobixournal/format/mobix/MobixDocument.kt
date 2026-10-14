@@ -58,13 +58,41 @@ internal class MobixDocument(
 
     /** Entries this build does not model, in archive order: kept, and written back untouched. */
     val preserved: List<MobixContainer.Entry> = emptyList(),
+
+    /**
+     * The streaming entry source the `assets/` payloads are **deferred** to, or null when every
+     * payload was already in memory (an [Archive][MobixContainer.Archive]-based open). A document
+     * opened [from a source][open] holds no asset bytes until someone asks for one ([asset]) or the
+     * document is written ([encode]), which is what keeps opening a notebook with a bundled PDF or a
+     * photo from inflating bytes nothing has looked at yet (`docs/data-path.md`).
+     */
+    private val assetEntries: MobixEntrySource? = null,
 ) {
 
+    /** The `assets/` entry names the archive carries, without inflating any of them. */
+    private val deferredAssetNames: List<String>
+        get() = assetEntries?.entryNames?.filter { it.startsWith(MobixFormat.ASSETS_DIR) }?.toList().orEmpty()
+
     /** The bytes of the bundled payload [name], or null when the document does not carry it. */
-    fun asset(name: String): ByteArray? = payloads[name]
+    fun asset(name: String): ByteArray? = payloads[name] ?: readDeferred(name)
 
     /** The payload entry names, in archive order. */
-    val assetNames: List<String> get() = payloads.keys.toList()
+    val assetNames: List<String> get() = (payloads.keys + deferredAssetNames).toList()
+
+    /**
+     * Every bundled asset as bytes, **materialising** any payload deferred to [assetEntries]. A caller
+     * that has to combine documents (a merge, an asset bundler) needs the bytes and pays for them here;
+     * opening alone does not.
+     */
+    val allPayloads: Map<String, ByteArray>
+        get() = if (assetEntries == null) payloads
+        else payloads + deferredAssetNames.associateWith { readDeferred(it) ?: ByteArray(0) }
+
+    private fun readDeferred(name: String): ByteArray? {
+        val entry = if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
+        return assetEntries?.readBytes(entry)
+    }
+
 
     /**
      * The archive this document is, as entries ready for [MobixContainer.save] — `manifest.json` first,
@@ -88,7 +116,9 @@ internal class MobixDocument(
             encodeChunks(sink, backgroundBytes, nowMillis)
         }
         val written = sink.entries()
-        val carried = payloads.filterKeys { name -> written.none { it.name == name } }
+        // Every payload the model carries is re-emitted: an asset still deferred to the source is read
+        // here, so a reference the model kept can never point at an entry the save dropped.
+        val carried = allPayloads.filterKeys { name -> written.none { it.name == name } }
             .map { (name, bytes) -> MobixContainer.Entry(name, bytes) }
 
         val envelope = mutableListOf(
@@ -273,6 +303,79 @@ internal class MobixDocument(
         }
 
         /**
+         * Read the `.mobix` [source] streams, without inflating the whole archive.
+         *
+         * Where [open] over a [MobixContainer.Archive] has already read every entry into memory, this
+         * reads the envelope (`mimetype`, `manifest.json`, `canvas.json`, the bridge) and every page,
+         * and leaves the `assets/` payloads **deferred** to the source: a bundled PDF or photo is
+         * inflated only when someone asks for it or the document is written, so opening a 200-page
+         * notebook no longer pays for a megabyte of pictures it has not looked at (`docs/data-path.md`).
+         *
+         * The source is **not** closed — the caller owns it, exactly as [MobixContainer.open] leaves the
+         * stream it is handed, and a caller that lets the document go must close the source itself.
+         */
+        fun open(source: MobixEntrySource): MobixDocument {
+            val declared = source.readBytes(MobixFormat.MIMETYPE_ENTRY)?.toString(Charsets.UTF_8)?.trim()
+            if (declared == null) {
+                throw MobixContainer.MalformedMobixException(
+                    "not a .mobix archive: it declares no ${MobixFormat.MIMETYPE_ENTRY} entry" +
+                        " (a ZIP-package .xopp is a ZIP too — see MobixContainer.mimetypeOf)",
+                )
+            }
+            if (declared != MobixFormat.MIMETYPE) {
+                throw MobixContainer.MalformedMobixException(
+                    "not a .mobix archive: its mimetype is \"$declared\", not \"${MobixFormat.MIMETYPE}\"",
+                )
+            }
+            val assets = source.asAssetSource()
+            val manifestText = source.readBytes(MobixFormat.MANIFEST_ENTRY)?.toString(Charsets.UTF_8)
+                ?: throw MobixContainer.MalformedMobixException(
+                    "${MobixFormat.MANIFEST_ENTRY} is missing: a .mobix without its manifest is not a document",
+                )
+            val manifest = MobixManifest.decode(manifestText, assets)
+            if (manifest.formatVersion > MobixManifest.CURRENT_FORMAT_VERSION) {
+                throw MobixContainer.MalformedMobixException(
+                    "this document is formatVersion ${manifest.formatVersion}; this build writes" +
+                        " ${MobixManifest.CURRENT_FORMAT_VERSION} and refuses to read a schema it half knows",
+                )
+            }
+            if (manifest.canvasMode == CanvasMode.PAGINATED) {
+                if (manifest.chunks.isNotEmpty()) {
+                    throw MobixContainer.MalformedMobixException(
+                        "PAGINATED document carries chunks/ entries; a file that carries both is invalid",
+                    )
+                }
+            } else {
+                if (manifest.pages.isNotEmpty()) {
+                    throw MobixContainer.MalformedMobixException(
+                        "${manifest.canvasMode} document carries pages/ entries; a file that carries both is invalid",
+                    )
+                }
+            }
+            val pages = if (manifest.canvasMode == CanvasMode.PAGINATED) {
+                manifest.pages.map { pageIn(source, it, assets) }
+            } else {
+                emptyList()
+            }
+            val chunks = if (manifest.canvasMode != CanvasMode.PAGINATED) {
+                manifest.chunks.map { chunkIn(source, it, assets) }
+            } else {
+                emptyList()
+            }
+            return MobixDocument(
+                manifest = manifest,
+                canvas = canvasIn(source, manifest, pages),
+                pages = pages,
+                chunks = chunks,
+                bridge = source.readBytes(MobixFormat.BRIDGE_ENTRY)?.toString(Charsets.UTF_8)?.let(MobixBridgeFile::decode),
+                // Every asset is left in the archive, addressed by name; nothing is read yet.
+                payloads = emptyMap(),
+                assetEntries = source,
+                preserved = preservedEntries(source, manifest),
+            )
+        }
+
+        /**
          * Build a document from the app's model: the `.xopp` → `.mobix` half of the bridge.
          *
          * A `.xopp` has no page ids, so every page gets one here — exactly once — and from then on the
@@ -382,6 +485,65 @@ internal class MobixDocument(
         }
 
         // ---- reading helpers ---------------------------------------------------------------------
+
+        /** The page the manifest part [part] names, read on demand from a streaming [source]. */
+        private fun pageIn(
+            source: MobixEntrySource,
+            part: MobixPart,
+            assets: MobixAssetSource,
+        ): Page {
+            val bytes = source.readBytes(part.entry)
+                ?: throw MobixContainer.MalformedMobixException("page entry ${part.entry} is missing from the archive")
+            val node = JsonParser.parse(bytes.toString(Charsets.UTF_8)) as? JsonNode.Obj
+                ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
+            return MobixPageCodec.decode(node, assets).copy(id = part.id)
+        }
+
+        /** The chunk the manifest part [part] names, read on demand from a streaming [source]. */
+        private fun chunkIn(
+            source: MobixEntrySource,
+            part: MobixPart,
+            assets: MobixAssetSource,
+        ): MobixChunk {
+            val bytes = source.readBytes(part.entry)
+                ?: throw MobixContainer.MalformedMobixException("chunk entry ${part.entry} is missing from the archive")
+            val node = JsonParser.parse(bytes.toString(Charsets.UTF_8)) as? JsonNode.Obj
+                ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
+            val coords = MobixFormat.parseChunkEntry(part.entry) ?: (0 to 0)
+            return MobixChunkCodec.decode(node, assets, fallbackCx = coords.first, fallbackCy = coords.second)
+                .copy(id = part.id)
+        }
+
+        /** The geometry sidecar, read from a streaming [source]. */
+        private fun canvasIn(
+            source: MobixEntrySource,
+            manifest: MobixManifest,
+            pages: List<Page>,
+        ): MobixCanvasFile {
+            val text = source.readBytes(MobixFormat.CANVAS_ENTRY)?.toString(Charsets.UTF_8) ?: return MobixCanvasFile(
+                mode = manifest.canvasMode,
+                widthPt = pages.firstOrNull()?.width ?: NO_PAGE_SIZE,
+                heightPt = pages.firstOrNull()?.height ?: NO_PAGE_SIZE,
+            )
+            val canvas = MobixCanvasFile.decode(text)
+            if (canvas.mode != manifest.canvasMode) {
+                throw MobixContainer.MalformedMobixException(
+                    "canvas.json says ${canvas.mode} but the manifest says ${manifest.canvasMode}",
+                )
+            }
+            return canvas
+        }
+
+        /** The entries a streaming read did not consume, kept verbatim and in order. */
+        private fun preservedEntries(source: MobixEntrySource, manifest: MobixManifest): List<MobixContainer.Entry> {
+            val consumed = (manifest.pages + manifest.chunks).map { it.entry }.toSet()
+            return source.entryNames
+                .filterNot { name ->
+                    name == MobixFormat.MANIFEST_ENTRY || name == MobixFormat.CANVAS_ENTRY ||
+                        name == MobixFormat.BRIDGE_ENTRY || name.startsWith(MobixFormat.ASSETS_DIR) || name in consumed
+                }
+                .mapNotNull { name -> source.readBytes(name)?.let { MobixContainer.Entry(name, it) } }
+        }
 
         /** The page the manifest part [part] names. A part with no entry in the archive is corrupt. */
         private fun pageIn(
