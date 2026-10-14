@@ -363,6 +363,8 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
      makes it live.
    - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand
      in $< 5\text{ ms}$ when scrolled into view, verified across synthetic 200-page archives in `MobixPagedReaderTest`.
+   - **Measured** (`MobixPagedOpenBenchmarkTest`): a 200-page document with a 1 MiB asset opens in 13 ms
+     inflating all 204 entries today; the reader opens it in 2 ms and inflates 8, never touching the asset.
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)** — **library only**:

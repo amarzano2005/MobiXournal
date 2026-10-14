@@ -428,20 +428,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "open-a-mobix-page-by-page-not-whole"
-title = "Open a .mobix page by page instead of whole"
-description = "The reader is written and tested and nothing calls it: format/mobix/MobixPagedReader.kt walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or a chunk) on demand into an LRU window of the current page plus or minus two, but io/DocumentIo.kt still opens a .mobix through MobixContainer.open + MobixDocument.open + toDocument() and so inflates and parses every page before the editor sees one. On a 200-page notebook that is exactly the difference the format exists to make, so this is the largest unfinished claim of the native format. Working it is an investigation first, because the editor model is eager: Document holds List<Page> and every consumer walks all of it - the .xopp synthesis on export (render/XoppSynthesis.kt off io/DocumentIo.kt encode), the conflict merge (format/mobix/MobixMergeEngine.kt), document search, thumbnails, the page counter and render/CanvasAutoSlicer.kt. Find the smallest lazy surface that actually pays - a page window the editor materialises as it shows pages, or at minimum an open path that stops double-inflating and defers asset payloads - decide what each of those consumers does with a page it has not materialised, and add the atomic tasks that come out of it. Verify the decision with a measurement rather than a feeling: a synthetic 200-page archive, entries inflated and elapsed ms to open, against today path."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 450
-created = 2026-10-14
-tags = ["mobix", "perf"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "repack-only-the-pages-a-save-changed"
 title = "Repack only the .mobix pages a save changed"
 description = "The saver is written and tested (format/mobix/MobixIncrementalSaver.kt, MobixIncrementalSaveTest) and no save path uses it: the MOBIX branch of io/DocumentIo.kt encode (around line 475) always calls MobixDocument.of(...).toBytes(), so every save re-compresses the whole archive - on a long notebook, a save that touched one page rewrites every page and the background PDF with it. Wire the incremental path: when the document was opened from a file whose bytes are still reachable (the staged copy io/UriStaging keeps, the source in io/SaveTarget.kt), repack through MobixIncrementalSaver, streaming the untouched entries from the source archive and writing only the manifest and the pages whose bytes changed, with the mimetype first and STORED as always; fall back to the full write whenever there is no source (a new document, a first save, a save to a new target), and never leave a half-written archive behind - every write already goes to a staging file first. Dirtiness comes from the manifest own sha256/modified fields, so the caller supplies the previous manifest and the new page bytes rather than a hand-maintained dirty flag. Verify with JVM tests: after editing one page of a ten-page document the untouched entries come out byte-identical to the source, the mimetype is still first and STORED, preserved unknown entries still survive, and the result read back through MobixDocument.open is equal to a full write of the same document. Measure and report the bytes written for the ten-page document with one dirty page against a full repack. Then check it on the emulator: open a .mobix, edit, save, close, reopen - the document is intact and nothing about it changed."
@@ -552,3 +538,31 @@ created = 2026-10-14
 tags = ["plot", "math"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "stream-the-mobix-open-path-and-defer-asset-payloads"
+title = "Stream the .mobix open path and defer asset payloads"
+description = "io/DocumentIo.kt opens a .mobix by inflating the whole archive: MobixContainer.open reads every entry into memory, and MobixDocument.open then parses all pages and preloads every assets/ payload into MobixDocument.payloads. A 200-page document with a 1 MiB asset inflates all 204 entries (13 ms, MobixPagedOpenBenchmarkTest, docs/data-path.md). Give the format layer a streaming open: add MobixDocument.open(source: MobixEntrySource) that reads only mimetype, manifest, canvas and bridge at open and exposes assets through the source (a lazy accessor) instead of a preloaded map, keep the existing Archive-based open for callers already holding an archive, and make DocumentIo.mobix pass MobixEntrySource.fromFile(staged). Pages stay eagerly decoded in this task - the editor page window is the next child. MobixDocument.encode must still write every payload the model references: an asset never read must be read from the source on save, or its entry carried through untouched. Verify with JVM tests: opening the 200-page plus 1 MiB archive never inflates the asset entry (TrackedEntrySource.openCount is 0), a document opened this way round-trips equal to the same document opened whole, and a re-save still carries every payload."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 453
+created = 2026-10-14
+tags = ["mobix", "perf"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "give-the-editor-a-page-window-for-a-mobix"
+title = "Give the editor a page window for a .mobix"
+description = "docs/data-path.md records the decision and docs/mobix-format.md the measurement: the editor is to read a .mobix a page at a time. Document holds List<Page> and every consumer walks it (render/DrawingSurfaceView.kt, render/DrawingSurfacePaint.kt, render/DrawingSurfaceSelection.kt, render/SelectionGestureController.kt, render/PageCommands.kt, render/DocumentSearch.kt, render/XoppSynthesis.kt, render/PdfExporter.kt, format/mobix/MobixMergeEngine.kt, the tabs page counter), but format/mobix/MobixPagedReader.kt already materialises a page on demand into a five-page LRU window and is called by nothing. Investigate how a page-window surface is exposed to the editor - a PageSource with pageCount, pageIds and page(i), backed by the reader for a big .mobix and by the in-memory list for a .xopp or a new document - how the canvas and its edit ops read and mutate a page that is not materialised, and what each whole-document consumer (export, search, merge, page counter, thumbnails) does with one. Then add the atomic tasks - the canvas read, the page counter, export, search and merge - smallest first. Produce tasks, not code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 456
+created = 2026-10-14
+tags = ["mobix", "perf"]
+rebuild = true
+emulator_debug = false

@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "open-a-mobix-page-by-page-not-whole"
+title = "Open a .mobix page by page instead of whole"
+description = "The reader is written and tested and nothing calls it: format/mobix/MobixPagedReader.kt walks the ZIP central directory, exposes the manifest and the entry index without inflating the payload, and materialises a page (or a chunk) on demand into an LRU window of the current page plus or minus two, but io/DocumentIo.kt still opens a .mobix through MobixContainer.open + MobixDocument.open + toDocument() and so inflates and parses every page before the editor sees one. On a 200-page notebook that is exactly the difference the format exists to make, so this is the largest unfinished claim of the native format. Working it is an investigation first, because the editor model is eager: Document holds List<Page> and every consumer walks all of it - the .xopp synthesis on export (render/XoppSynthesis.kt off io/DocumentIo.kt encode), the conflict merge (format/mobix/MobixMergeEngine.kt), document search, thumbnails, the page counter and render/CanvasAutoSlicer.kt. Find the smallest lazy surface that actually pays - a page window the editor materialises as it shows pages, or at minimum an open path that stops double-inflating and defers asset payloads - decide what each of those consumers does with a page it has not materialised, and add the atomic tasks that come out of it. Verify the decision with a measurement rather than a feeling: a synthetic 200-page archive, entries inflated and elapsed ms to open, against today path."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["mobix", "perf"]
+
+[[task]]
 id = "measure-mobix-against-xopp-on-one-document"
 title = "Measure .mobix against .xopp on one document"
 description = "The whole case for the native format is structural - pictures as binary assets addressed by content hash instead of base64 inside XML, a part-per-page archive instead of one XML document, de-duplicated assets - and the repo holds no number for any of it. Produce one, reproducibly: take one multi-page document that carries a picture and a PDF background, write it through the real writers as SaveFormat.MOBIX, as SaveFormat.ORIGINAL and as SaveFormat.ZIPPED, and report the bytes on disk for each, plus the wall time to write and to read back each, with the method stated (a JVM harness over io/DocumentIo.encode and the format readers, so anyone can run it again). Report where the number matters - docs/mobix-format.md and docs/xopp-format.md make the size case - rather than only inside a test, and where a claim cannot be backed by a number, say so instead of leaving it implied. If the honest result is that the difference is small for ink-only documents, say that too: the size case is about pictures and long notebooks, and a measurement that contradicts the prose is the measurement winning."
