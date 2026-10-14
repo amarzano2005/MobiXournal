@@ -611,7 +611,7 @@ internal fun DrawingSurfaceView.handleHandTapUp(event: MotionEvent) {
     if (columns > 1) {
         handFirstTapTime = 0L
         val box = layout.pageAt(scrollX + handTapDownX, scrollY + handTapDownY) ?: return
-        if (overview.editMode) overview.toggleSelection(box.index, doc.pages.size) else goToPage(box.index)
+        if (overview.editMode) overview.toggleSelection(box.index, pageSource.pageCount) else goToPage(box.index)
         return
     }
     val pairsWithPrevious = handFirstTapTime != 0L &&

@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Page
 
 /**
@@ -49,7 +50,8 @@ object PageRegionRenderer {
         val offsetY = (-region.top * capped).toFloat()
         val box = PageBox(
             index = 0, topPx = offsetY, leftPx = offsetX,
-            heightPx = (page.height * capped).toFloat(), scale = capped, page = page,
+            widthPx = (page.width * capped).toFloat(), heightPx = (page.height * capped).toFloat(),
+            scale = capped, source = PageSource.of(listOf(page)),
         )
         BackgroundRenderer.draw(canvas, box, scrollX = 0f, scrollY = 0f, pageImage = pageImage)
         // One-shot renderer: close it so its decoded images don't sit in the shared bitmap budget

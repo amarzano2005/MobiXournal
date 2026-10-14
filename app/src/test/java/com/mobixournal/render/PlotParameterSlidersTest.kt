@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
@@ -162,7 +163,10 @@ class PlotParameterSlidersTest {
         )
 
         val page = Page(width = 800.0, height = 1000.0, background = Background.Solid(0, "plain"), layers = listOf(Layer(emptyList())))
-        val box = PageBox(index = 0, topPx = 50f, leftPx = 50f, heightPx = 1000f, scale = 1.0f, page = page)
+        val box = PageBox(
+            index = 0, topPx = 50f, leftPx = 50f, widthPx = 800f, heightPx = 1000f, scale = 1.0f,
+            source = PageSource.of(listOf(page)),
+        )
 
         val tracks = PlotSliders.computeSliderTracks(plot, box, scrollX = 0f, scrollY = 0f)
 

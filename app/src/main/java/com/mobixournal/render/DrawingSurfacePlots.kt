@@ -55,7 +55,7 @@ fun DrawingSurfaceView.insertMultiPlot(
     includeSummary: Boolean = false,
 ) {
     val index = visiblePageIndex()
-    val page = doc.pages.getOrNull(index) ?: return
+    val page = pageAt(index) ?: return
     val (centreX, centreY) = viewportCentrePt(index)
     // The box comes from the factory that also places the *element* insertion, so a graph lands in the
     // same spot whichever of the two paths produced it.
@@ -140,7 +140,7 @@ fun DrawingSurfaceView.insertPlotElement(
 ) {
     if (curves.isEmpty()) return
     val index = visiblePageIndex()
-    val page = doc.pages.getOrNull(index) ?: return
+    val page = pageAt(index) ?: return
     val (centreX, centreY) = viewportCentrePt(index)
     val element = PlotElementFactory.plotElementFor(
         curves = curves,

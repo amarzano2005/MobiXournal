@@ -17,6 +17,7 @@ import com.mobixournal.audio.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.XoppColor.withAlpha
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
@@ -85,6 +86,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
             }
             onDocumentEdited?.invoke(value)
         }
+    /** The pages the canvas reads: a box resolves its page only when drawn (`CanvasPageSource`). */
+    internal val pageSource: PageSource = canvasPageSource { docValue.pages }
+
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
@@ -557,6 +561,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      */
     internal val gestures = SelectionGestureController(
         document = { doc },
+        pageAt = { pageAt(it) },
         setDocument = { doc = it },
         layout = { layout },
         viewport = viewport,
@@ -725,7 +730,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerIndex = -1
         history.clear()
         notifyHistory()
-        onPageCountChanged?.invoke(this.doc.pages.size)
+        onPageCountChanged?.invoke(pageSource.pageCount)
         lastReportedPage = -1
         searchHits = emptyList()
         currentSearchHit = -1
@@ -761,7 +766,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onSelectionChanged?.invoke(false)
         history.clear()
         notifyHistory()
-        onPageCountChanged?.invoke(docValue.pages.size)
+        onPageCountChanged?.invoke(pageSource.pageCount)
         searchHits = emptyList()
         currentSearchHit = -1
         notifySearchChanged()
@@ -1199,7 +1204,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * isn't a solid sheet (PDF/pixmap) and so has no selectable paper style.
      */
     fun visiblePageBackgroundStyle(): String? =
-        (doc.pages.getOrNull(visiblePageIndex())?.background as? Background.Solid)?.style
+        (pageAt(visiblePageIndex())?.background as? Background.Solid)?.style
 
     /**
      * Set the visible page's paper [style] (plain/lined/ruled/graph/dotted) as one undoable edit.
@@ -1212,7 +1217,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * has none (or isn't a solid sheet). See [BackgroundRuling].
      */
     fun visiblePageBackgroundConfig(): String? =
-        (doc.pages.getOrNull(visiblePageIndex())?.background as? Background.Solid)?.config
+        (pageAt(visiblePageIndex())?.background as? Background.Solid)?.config
 
     /** Set the visible page's ruling parameters as one undoable edit (null restores the defaults). */
     fun setPageBackgroundConfig(config: String?) = pages.setPageBackgroundConfig(config)
@@ -1222,7 +1227,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** The visible page's size in points (width to height), or null when the document has no pages. */
     fun visiblePageSize(): Pair<Double, Double>? =
-        doc.pages.getOrNull(visiblePageIndex())?.let { it.width to it.height }
+        pageAt(visiblePageIndex())?.let { it.width to it.height }
 
     /**
      * Set the visible page's size to [widthPt] × [heightPt] points as one undoable edit; both are
@@ -1233,7 +1238,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Index of the page nearest the viewport centre — the one add/remove act on. */
     internal fun currentPageIndex(): Int =
-        layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: doc.pages.lastIndex.coerceAtLeast(0)
+        layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index
+            ?: (pageSource.pageCount - 1).coerceAtLeast(0)
 
     // --- layers --------------------------------------------------------------------------------
     // The panel acts on the page nearest the viewport centre ([visiblePageIndex]); layer indices are
@@ -1246,7 +1252,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The visible page's layers, bottom-up, as UI-facing rows (label / visible / active). */
     fun visibleLayers(): List<LayerInfo> {
         val pi = visiblePageIndex()
-        val page = doc.pages.getOrNull(pi) ?: return emptyList()
+        val page = pageAt(pi) ?: return emptyList()
         val active = resolvedActiveLayer(page)
         return page.layers.indices.map { li ->
             LayerInfo(li, LayerOps.label(page, li), !isLayerHidden(pi, li), li == active)
@@ -1323,7 +1329,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Emit [onCurrentPageChanged] if the page under the viewport centre changed since last time. */
     internal fun reportCurrentPage() {
-        if (doc.pages.isEmpty()) return
+        if (pageSource.pageCount == 0) return
         val idx = currentPageIndex()
         if (idx != lastReportedPage) {
             lastReportedPage = idx
@@ -1349,7 +1355,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun selectionScreenRect(): android.graphics.RectF? {
         val sel = selection ?: return null
         val box = layout.boxes.getOrNull(sel.pageIndex) ?: return null
-        val page = doc.pages.getOrNull(sel.pageIndex) ?: return null
+        val page = pageAt(sel.pageIndex) ?: return null
         val b = SelectionTester.boundsOf(page, sel.refs) ?: return null
         val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
         return android.graphics.RectF(
@@ -1550,7 +1556,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The long-press fired: lift the page under the finger and take the gesture away from panning. */
     private fun startPageDrag() {
         overview.disarm()
-        if (columns <= 1 || doc.pages.size < 2) return
+        if (columns <= 1 || pageSource.pageCount < 2) return
         val box = layout.pageAt(scrollX + overview.armDownX, scrollY + overview.armDownY) ?: return
         momentum.stop()
         scrolling = false

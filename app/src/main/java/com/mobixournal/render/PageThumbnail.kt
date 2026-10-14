@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Page
 
 /**
@@ -30,7 +31,11 @@ object PageThumbnail {
         val height = (page.height * scale).toInt().coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val box = PageBox(index = 0, topPx = 0f, leftPx = 0f, heightPx = height.toFloat(), scale = scale, page = page)
+        val box = PageBox(
+            index = 0, topPx = 0f, leftPx = 0f,
+            widthPx = width.toFloat(), heightPx = height.toFloat(), scale = scale,
+            source = PageSource.of(listOf(page)),
+        )
         BackgroundRenderer.draw(canvas, box, scrollX = 0f, scrollY = 0f)
         // One-shot renderer: close it so its decoded images don't sit in the shared bitmap budget
         // for the life of the process — the thumbnail itself is the only thing worth keeping.

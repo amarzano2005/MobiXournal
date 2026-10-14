@@ -89,7 +89,7 @@ fun DrawingSurfaceView.distributeSelection(horizontal: Boolean) {
 /** Copy the selected elements to the clipboard (leaves the document and selection unchanged). */
 fun DrawingSurfaceView.copySelection() {
     val sel = selection ?: return
-    val page = doc.pages.getOrNull(sel.pageIndex) ?: return
+    val page = pageAt(sel.pageIndex) ?: return
     clipboard = SelectionOps.elementsAt(page, sel.refs)
     onClipboardChanged?.invoke(clipboard.isNotEmpty())
 }
@@ -131,7 +131,7 @@ fun DrawingSurfaceView.pasteClipboard() {
 /** Duplicate the selection in place (offset a little), selecting the duplicates. */
 fun DrawingSurfaceView.duplicateSelection() {
     val sel = selection ?: return
-    val page = doc.pages.getOrNull(sel.pageIndex) ?: return
+    val page = pageAt(sel.pageIndex) ?: return
     val copies = SelectionOps.elementsAt(page, sel.refs).map {
         SelectionOps.translate(it, DrawingSurfaceDefaults.PASTE_OFFSET_PT, DrawingSurfaceDefaults.PASTE_OFFSET_PT)
     }
@@ -209,7 +209,7 @@ fun DrawingSurfaceView.singleSelectedPlot(): PlotElement? {
     val sel = selection ?: return null
     if (sel.refs.size != 1) return null
     val ref = sel.refs.first()
-    val page = doc.pages.getOrNull(sel.pageIndex) ?: return null
+    val page = pageAt(sel.pageIndex) ?: return null
     return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement
 }
 

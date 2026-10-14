@@ -30,6 +30,12 @@ internal data class ActiveSelection(val pageIndex: Int, val refs: Set<ElementRef
 internal class SelectionGestureController(
     /** The working document, read fresh at the start of every gesture (the view owns it). */
     private val document: () -> Document,
+    /**
+     * A page of the working document, read through the canvas's page source (the view owns it). The
+     * controller reads a page the same way the canvas draws it, so a document read one page at a time
+     * never has its whole page list walked by a gesture.
+     */
+    private val pageAt: (Int) -> Page?,
     /** Adopt [Document] as a live edit — assigned straight through, not recorded; see [beginGesture]. */
     private val setDocument: (Document) -> Unit,
     /** The current page layout, for view-px ↔ page-pt conversion and page hit-testing. */
@@ -155,7 +161,7 @@ internal class SelectionGestureController(
     /** Try to start a resize/rotate/move for [sel] from a down at (event.x, event.y); else false. */
     private fun dispatchHandle(event: MotionEvent, sel: ActiveSelection): Boolean {
         val box = layout().boxes.getOrNull(sel.pageIndex) ?: return false
-        val page = document().pages.getOrNull(sel.pageIndex) ?: return false
+        val page = pageAt(sel.pageIndex) ?: return false
         val b = SelectionTester.boundsOf(page, sel.refs) ?: return false
 
         // Interactive parameter sliders for a single selected plot
@@ -234,7 +240,7 @@ internal class SelectionGestureController(
     /** True if every element in [sel] is a stroke (the only element whose rotation round-trips) —
      *  the condition for offering the rotate knob, which the view also asks before drawing it. */
     fun isAllStrokes(sel: ActiveSelection): Boolean {
-        val page = document().pages.getOrNull(sel.pageIndex) ?: return false
+        val page = pageAt(sel.pageIndex) ?: return false
         return sel.refs.isNotEmpty() && sel.refs.all {
             page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) is Stroke
         }
@@ -244,7 +250,7 @@ internal class SelectionGestureController(
     fun tryBeginSlide(event: MotionEvent): Boolean {
         val sel = selection ?: return false
         val box = layout().boxes.getOrNull(sel.pageIndex) ?: return false
-        val page = document().pages.getOrNull(sel.pageIndex) ?: return false
+        val page = pageAt(sel.pageIndex) ?: return false
         if (sel.refs.size != 1) return false
         val ref = sel.refs.first()
         val plot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement ?: return false
@@ -269,7 +275,7 @@ internal class SelectionGestureController(
         val ref = sliderPlotRef ?: return
         val sel = selection ?: return
         val doc = document()
-        val page = doc.pages.getOrNull(sel.pageIndex) ?: return
+        val page = pageAt(sel.pageIndex) ?: return
         val oldPlot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement ?: return
         val newPlot = PlotElementFactory.updateParameter(oldPlot, track.paramName, newVal)
         val updatedDoc = ElementEdits.replaceElement(doc, oldPlot, newPlot) ?: return
@@ -398,7 +404,7 @@ internal class SelectionGestureController(
     fun commitMove() {
         val sel = selection ?: return
         val srcBox = layout().boxes.getOrNull(sel.pageIndex) ?: return
-        val page = document().pages.getOrNull(sel.pageIndex) ?: return
+        val page = pageAt(sel.pageIndex) ?: return
         val b = SelectionTester.boundsOf(page, sel.refs) ?: return
         val centreXContent = ((b.left + b.right) / 2 * srcBox.scale + srcBox.leftPx).toFloat()
         val centreYContent = ((b.top + b.bottom) / 2 * srcBox.scale + srcBox.topPx).toFloat()
@@ -455,7 +461,7 @@ internal class SelectionGestureController(
      */
     fun commitBand() {
         val box = layout().boxes.getOrNull(bandPage) ?: return
-        val page = document().pages.getOrNull(bandPage) ?: return
+        val page = pageAt(bandPage) ?: return
         val layer = activeLayerOf(page)
         // Measure the drag on screen (pt × scale = view px): a marquee that never grew past a tap's
         // slop is a tap, whether or not the auto-scroll nudged the page under it in the meantime. A

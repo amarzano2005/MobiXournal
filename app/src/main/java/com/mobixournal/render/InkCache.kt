@@ -63,7 +63,7 @@ class InkCache(
      * Blit page [box]'s ink at its on-screen position, rasterising it first if needed. Returns false
      * if this page can't be cached at this zoom — the caller must then draw its elements directly.
      */
-    fun draw(
+    internal fun draw(
         canvas: Canvas,
         box: PageBox,
         scrollX: Float,

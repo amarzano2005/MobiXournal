@@ -50,7 +50,7 @@ internal fun DrawingSurfaceView.commitBackgroundSelect() {
     backgroundSelecting = false
     backgroundSelectPage = -1
     val box = layout.boxes.getOrNull(pageIndex)
-    val page = doc.pages.getOrNull(pageIndex)
+    val page = pageAt(pageIndex)
     if (box == null || page == null) {
         render()
         return
@@ -96,7 +96,7 @@ fun DrawingSurfaceView.clearBackgroundRegion() {
 fun DrawingSurfaceView.captureBackgroundRegion(): Boolean {
     val region = backgroundRegion ?: return false
     val box = layout.boxes.getOrNull(backgroundRegionPage) ?: return false
-    val page = doc.pages.getOrNull(backgroundRegionPage) ?: return false
+    val page = pageAt(backgroundRegionPage) ?: return false
     val pageImage = backgroundSelectionPageImage(page.background, box.widthPx.toInt())
     val bitmap = PageRegionRenderer.render(page, region, box.scale, pageImage = pageImage) ?: return false
     val bytes = bitmap.toPngBytes()
@@ -117,7 +117,7 @@ fun DrawingSurfaceView.cutBackgroundRegion() {
     val region = backgroundRegion ?: return
     val pageIndex = backgroundRegionPage
     if (!captureBackgroundRegion()) return
-    val page = doc.pages.getOrNull(pageIndex) ?: return
+    val page = pageAt(pageIndex) ?: return
     val refs = SelectionTester.inRect(page, region, resolvedActiveLayer(page))
     if (refs.isEmpty()) { render(); return }
     val before = doc

@@ -229,7 +229,7 @@ fun DrawingSurfaceView.insertTable(
     val (cx, cy) = if (box != null && width > 0 && height > 0) {
         box.toPtX(width / 2f, scrollX) to box.toPtY(height / 2f, scrollY)
     } else {
-        val page = doc.pages.getOrNull(target)
+        val page = pageAt(target)
         ((page?.width ?: 612.0) / 2.0) to ((page?.height ?: 792.0) / 2.0)
     }
     val halfW = widthPt / 2.0
@@ -537,7 +537,7 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
     val box = layout.pageAt(x + scrollX, y + scrollY) ?: return
     val xPt = box.toPtX(x, scrollX)
     val yPt = box.toPtY(y, scrollY)
-    val page = doc.pages.getOrNull(box.index) ?: return
+    val page = pageAt(box.index) ?: return
     val stroke = SelectionTester.pickTopmost(page, xPt, yPt)
         ?.let { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
         ?.let { it as? Stroke }

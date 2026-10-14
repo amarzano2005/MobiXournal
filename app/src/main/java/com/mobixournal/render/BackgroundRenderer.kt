@@ -38,7 +38,7 @@ object BackgroundRenderer {
     // tile per frame was pure churn for the collector.
     private val dst = RectF()
 
-    fun draw(
+    internal fun draw(
         canvas: Canvas,
         box: PageBox,
         scrollX: Float,

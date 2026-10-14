@@ -5,6 +5,13 @@ import com.mobixournal.format.model.Page
 import java.io.File
 
 /**
+ * A page's size in pt, and nothing else — what a layout needs of a page to place it *before* anyone
+ * draws it. Kept apart from [Page] on purpose: a canvas can then be laid out from the sizes alone,
+ * and the page models are read only for the boxes it actually shows.
+ */
+internal data class PageSize(val widthPt: Double, val heightPt: Double)
+
+/**
  * The page surface of an open document, and the seam that lets a caller work page by page instead
  * of holding every page model at once (`docs/data-path.md` → *The page window*).
  *
@@ -37,6 +44,21 @@ internal interface PageSource : AutoCloseable {
      * @throws IllegalArgumentException when [index] is out of range.
      */
     fun page(index: Int): Page
+
+    /**
+     * The size of page [index], which a layout places every page by.
+     *
+     * The default reads the page ([page]), which is all a store that only holds page models can do.
+     * A backing store that **declares** the size answers it without touching a page — a paginated
+     * `.mobix` says its page size once in `canvas.json` — and that is what lets a canvas lay out a
+     * 200-page notebook without opening one of them (`docs/data-path.md` → *The page window*).
+     *
+     * @throws IllegalArgumentException when [index] is out of range.
+     */
+    fun pageSize(index: Int): PageSize {
+        val page = page(index)
+        return PageSize(page.width, page.height)
+    }
 
     /**
      * Id → index over every declared page, built from [pageId] alone and therefore materialising no
@@ -88,6 +110,18 @@ private class PagedMobix(private val reader: MobixPagedReader) : PageSource {
     override fun pageId(index: Int): String? = reader.pageId(index)
 
     override fun page(index: Int): Page = reader.getPage(index)
+
+    /**
+     * The document's declared page size, from `canvas.json` — the one `PAGINATED` mode carries
+     * (`docs/infinite-canvas.md`). Falls back to reading the page when the sidecar declares none, so
+     * a hand-written or older archive still lays out rather than collapsing to zero-sized pages.
+     */
+    override fun pageSize(index: Int): PageSize {
+        val width = reader.canvas.widthPt
+        val height = reader.canvas.heightPt
+        if (width > 0.0 && height > 0.0) return PageSize(width, height)
+        return super.pageSize(index)
+    }
 
     override fun close() = reader.close()
 }

@@ -58,12 +58,21 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   *Engine optimizations*, item 1). The pages are still decoded eagerly, so the surface the editor gets
   next is a **page window**: the manifest supplies `pageCount` and the page ids without inflating a
   page, and a page is materialised when the canvas shows it. That surface exists — `format/mobix/PageSource.kt`
-  (`pageCount`, `pageId(i)`, `page(i)`, `idIndex()`), backed by `MobixPagedReader` for a `.mobix`, where
-  counting and id'ing inflate no page, and by the in-memory page list for a `.xopp` or a new document.
-  Its first caller is the merge engine, which reads each side through it and materialises only the page
-  the branch it takes answers with. The editor does not hold one yet: the tab counter, the rail pages
-  button and the page list still walk every page (`carry-the-page-source-into-the-editor`), and the canvas
-  follows in `materialise-only-the-visible-pages-in-the-canvas`.
+  (`pageCount`, `pageId(i)`, `pageSize(i)`, `page(i)`, `idIndex()`), backed by `MobixPagedReader` for a
+  `.mobix`, where counting, id'ing and the **page size** inflate no page (`canvas.json` declares the
+  paginated page size), and by the in-memory page list for a `.xopp` or a new document. Its callers are
+  the merge engine — which reads each side through it and materialises only the page the branch it takes
+  answers with — and **the canvas** (`materialise-only-the-visible-pages-in-the-canvas`): a
+  `StackedLayout` places every page from `pageSize(i)` and its `PageBox` resolves its page through the
+  source only when the box is drawn, so a 200-page `.mobix` is laid out without opening a page and
+  materialises exactly the pages in the viewport.
+
+  What is **not** live yet: the editor still hands the canvas a document whose pages are all in memory,
+  so on device the source answers from that list and no page is deferred. The tab counter, the rail pages
+  button and the page list still walk every page, and the open path still decodes them all
+  (`carry-the-page-source-into-the-editor`); the canvas's lazy path becomes live when that task supplies
+  it with a reader-backed source, and an edit on a page the window has evicted is
+  `edit-a-page-the-lru-window-has-evicted`.
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 

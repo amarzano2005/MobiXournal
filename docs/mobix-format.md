@@ -39,7 +39,7 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 | **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **Model only** — codec and ink are live; the table tool still draws a static grid and no editor exists (Step 2: `insert-a-living-table-from-the-table-tool`) |
 | **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \text{barrel roll}, \Delta t_{\text{ms}})$ | **Stored, unconsumed** — tilt, azimuth and $\Delta t$ are captured and written; nothing reads them, and no barrel-roll axis is captured at all (`finish-the-pen-telemetry-payoff`) |
 | **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Not built** — `render/KaraokeStrokeAnimator.kt` has no caller (`replay-the-writing-in-time-with-its-recording`) |
-| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Library only** — `MobixPagedReader` is wrapped by the page surface (`PageSource`) and only the merge engine calls that; the open path uses neither, so opening still inflates and parses every page (`carry-the-page-source-into-the-editor`) |
+| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Part live** — the merge engine and the **canvas** read through the page surface (`PageSource`), which lays out and draws a `.mobix` page by page off `canvas.json`'s declared page size; the open path still inflates and parses every page, so opening itself is not yet streaming (`carry-the-page-source-into-the-editor`) |
 | **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
 | **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Not self-contained** — the stroke's `audioRef` is written, the bytes stay a sidecar (`carry-the-audio-recording-inside-the-document`) |
 | **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Part live** — a save landing back on the same `.mobix` URI repacks only the changed entries, copying the rest verbatim; an unchanged page's JSON is still rebuilt to hash it, and the on-device round trip is unrun (`repack-only-the-pages-a-save-changed`) |
@@ -53,8 +53,9 @@ Its three structural advantages, all of which follow from the container being a 
 rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec.md)). Whether each
 *runs* today is the capability table's **Status today** column above, not a claim here:
 
-- **Streaming & fast startup** — **not live yet**: the container is part-per-page and `MobixPagedReader`
-  reads one page at a time, but the open path loads every page (`carry-the-page-source-into-the-editor`).
+- **Streaming & fast startup** — **part live**: the container is part-per-page and the canvas places and
+  draws through the page surface without opening the pages outside the viewport; the **open path** still
+  loads every page, so start-up itself is not yet streaming (`carry-the-page-source-into-the-editor`).
 - **Deduplication of binary assets** — **live**: an image pasted across pages is stored once in
   `assets/` and referenced by content hash.
 - **Atomic saves** — **not live yet**: changes to page 3 *should* repack only `page-0003.json`, but
@@ -354,13 +355,15 @@ Migrating to the `.mobix` format directly enables four major performance optimiz
 Each one is labelled with **what actually runs today** — **Live**, **library only** (a tested engine with
 no caller in `app/src/main`), or **not built** — and names the task that makes it live.
 
-1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)** — **library only**:
+1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)** — **part live**:
    - `format/mobix/MobixPagedReader.kt` walks the ZIP central directory and materialises a page (or a
-     chunk) on demand into an active sliding window (e.g. current page $\pm 2$ adjacent pages). Its one
-     caller, the page surface in `format/mobix/PageSource.kt`, opens no document: `io/DocumentIo.kt`
-     still opens a `.mobix` through `MobixContainer.open` + `MobixDocument.open` + `toDocument()`, so a
-     200-page notebook is fully inflated and parsed before the editor sees a page.
-     `carry-the-page-source-into-the-editor` is what makes it live.
+     chunk) on demand into an active sliding window (e.g. current page $\pm 2$ adjacent pages). Its
+     callers are the page surface in `format/mobix/PageSource.kt`: the merge engine, and — since
+     `materialise-only-the-visible-pages-in-the-canvas` — the canvas, which lays a document out from the
+     page sizes alone and reads only the pages it draws.
+   - The **open** path does not use it yet (`io/DocumentIo.kt` still goes `MobixContainer.open` +
+     `MobixDocument.open` + `toDocument()`, and hands the canvas that in-memory document rather than a
+     reader-backed source), so `carry-the-page-source-into-the-editor` is what makes start-up live.
    - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand
      in $< 5\text{ ms}$ when scrolled into view, verified across synthetic 200-page archives in `MobixPagedReaderTest`.
    - **Measured** (`MobixPagedOpenBenchmarkTest`): a 200-page document with a 1 MiB asset opens in 15 ms
