@@ -57,7 +57,13 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   the whole archive was read into memory first (the numbers are in [mobix-format.md](mobix-format.md),
   *Engine optimizations*, item 1). The pages are still decoded eagerly, so the surface the editor gets
   next is a **page window**: the manifest supplies `pageCount` and the page ids without inflating a
-  page, and a page is materialised when the canvas shows it (`give-the-editor-a-page-window-for-a-mobix`).
+  page, and a page is materialised when the canvas shows it. That surface exists — `format/mobix/PageSource.kt`
+  (`pageCount`, `pageId(i)`, `page(i)`, `idIndex()`), backed by `MobixPagedReader` for a `.mobix`, where
+  counting and id'ing inflate no page, and by the in-memory page list for a `.xopp` or a new document.
+  Its first caller is the merge engine, which reads each side through it and materialises only the page
+  the branch it takes answers with. The editor does not hold one yet: the tab counter, the rail pages
+  button and the page list still walk every page (`carry-the-page-source-into-the-editor`), and the canvas
+  follows in `materialise-only-the-visible-pages-in-the-canvas`.
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 

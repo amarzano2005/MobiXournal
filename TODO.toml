@@ -512,20 +512,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "expose-a-page-source-and-count-pages-from-the-manifest"
-title = "Expose a PageSource over a .mobix manifest or a document's pages"
-description = "The surface only, and the wiring is not in this task any more. docs/data-path.md decides a page window: a .mobix opened streaming still decodes every page, and the tab page counter, the rail pages button and the page list walk them all. Introduce the surface: a PageSource in format/mobix with pageCount, pageId(i) and page(i), backed by MobixPagedReader for a .mobix and by the in-memory Document.pages for a .xopp or a new document, plus the one real caller that needs no editor plumbing - the merge (merge-a-mobix-from-the-manifest-parts) reads a side's page count and ids and materialises only the pages it must compare. Verify with JVM tests: pageCount and the ids come from the manifest without materialising a page (TrackedEntrySource counts no page entry), and a .xopp-backed source answers the in-memory list unchanged. The counter, the rail pages button and the page list need the editor to hold the source instead of a Document, which is its own task (carry-the-page-source-into-the-editor) because it moves LoadedFile.Doc, the tab session and DrawingSurfaceView.doc together."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 437
-created = 2026-10-14
-tags = ["mobix", "perf"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "materialise-only-the-visible-pages-in-the-canvas"
 title = "Materialise only the visible pages in the canvas"
 description = "docs/data-path.md: the canvas is to read a page through the PageSource when it shows it, and not before. Today render/DrawingSurfaceView.kt, render/DrawingSurfacePaint.kt, render/DrawingSurfaceSelection.kt and render/SelectionGestureController.kt read document.pages directly. Move the canvas page reads onto the source: single-page and overview (multi-column) modes materialise the pages in the viewport and let the LRU window evict the rest, and the canvas keeps drawing the same pixels. Verify on the emulator: open a 200-page .mobix, scroll from page 1 to page 200, and screenshot each end with a clean logcat; a JVM test pins that rendering a page through the source materialises only that page."

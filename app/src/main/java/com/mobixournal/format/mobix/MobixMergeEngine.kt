@@ -115,8 +115,10 @@ internal object MobixMergeEngine {
         val localPartsById = local.manifest.pages.associateBy { it.id }
         val remotePartsById = remote.manifest.pages.associateBy { it.id }
 
-        val localPagesById = local.pages.associateBy { it.id ?: "" }
-        val remotePagesById = remote.pages.associateBy { it.id ?: "" }
+        // Each side is read through the page surface: the ids come from the manifest and a page
+        // model is materialised only by the branch that answers with it.
+        val localSide = PageSide(PageSource.of(local.pages))
+        val remoteSide = PageSide(PageSource.of(remote.pages))
 
         val allPageIds = LinkedHashSet<String>()
         local.manifest.pages.forEach { allPageIds.add(it.id) }
@@ -130,43 +132,25 @@ internal object MobixMergeEngine {
         val mergedPages = mutableListOf<Page>()
 
         for (id in allPageIds) {
-            val localPart = localPartsById[id]
-            val remotePart = remotePartsById[id]
-            val basePart = basePartsById[id]
-            val localPage = localPagesById[id]
-            val remotePage = remotePagesById[id]
+            val resolved = resolvePage(
+                id = id,
+                localPart = localPartsById[id],
+                remotePart = remotePartsById[id],
+                basePart = basePartsById[id],
+                local = localSide,
+                remote = remoteSide,
+            ) ?: continue
 
-            when {
-                localPart == null && remotePage != null -> {
-                    mergedPages.add(remotePage)
-                    adoptedRemote++
-                }
-                remotePart == null && localPage != null -> {
-                    mergedPages.add(localPage)
-                    adoptedLocal++
-                }
-                localPart != null && remotePart != null && localPart.sha256 == remotePart.sha256 -> {
-                    mergedPages.add(localPage ?: remotePage!!)
-                    unchanged++
-                }
-                basePart != null && localPart?.sha256 == basePart.sha256 && remotePage != null -> {
-                    mergedPages.add(remotePage)
-                    adoptedRemote++
-                }
-                basePart != null && remotePart?.sha256 == basePart.sha256 && localPage != null -> {
-                    mergedPages.add(localPage)
-                    adoptedLocal++
-                }
-                localPage != null && remotePage != null -> {
-                    val (mergedPage, count) = mergePageElements(localPage, remotePage)
-                    mergedPages.add(mergedPage)
+            mergedPages.add(resolved.page)
+            when (resolved.outcome) {
+                PageOutcome.ADOPTED_REMOTE -> adoptedRemote++
+                PageOutcome.ADOPTED_LOCAL -> adoptedLocal++
+                PageOutcome.UNCHANGED -> unchanged++
+                PageOutcome.ELEMENT_MERGED -> {
                     elementMerged++
-                    totalMergedElements += count
+                    totalMergedElements += resolved.mergedElements
                 }
-                else -> {
-                    val fallback = localPage ?: remotePage
-                    if (fallback != null) mergedPages.add(fallback)
-                }
+                PageOutcome.TAKEN_AS_IS -> Unit
             }
         }
 
@@ -179,6 +163,70 @@ internal object MobixMergeEngine {
             totalMergedElements = totalMergedElements,
         )
     }
+
+    /**
+     * Resolve one page id against the two sides, materialising only the page models the answered
+     * branch needs, and say how it was resolved so the caller can count it.
+     *
+     * @return the resolved page and its disposition, or null when neither side can produce a model
+     *   for [id] (the id then drops out of the merge, as it did before the surface existed).
+     */
+    private fun resolvePage(
+        id: String,
+        localPart: MobixPart?,
+        remotePart: MobixPart?,
+        basePart: MobixPart?,
+        local: PageSide,
+        remote: PageSide,
+    ): ResolvedPage? = when {
+        // Only remote declares the page: it is new on that side.
+        localPart == null -> remote.pageById(id)?.let { ResolvedPage(it, PageOutcome.ADOPTED_REMOTE) }
+        // Only local declares it.
+        remotePart == null -> local.pageById(id)?.let { ResolvedPage(it, PageOutcome.ADOPTED_LOCAL) }
+        // Byte-identical on both sides: one model answers for both.
+        localPart.sha256 == remotePart.sha256 ->
+            (local.pageById(id) ?: remote.pageById(id))?.let { ResolvedPage(it, PageOutcome.UNCHANGED) }
+        // Local still matches the ancestor, so remote's page is adopted wholesale.
+        basePart?.sha256 == localPart.sha256 ->
+            remote.pageById(id)?.let { ResolvedPage(it, PageOutcome.ADOPTED_REMOTE) }
+        // Remote still matches the ancestor, so local's page is adopted wholesale.
+        basePart?.sha256 == remotePart.sha256 ->
+            local.pageById(id)?.let { ResolvedPage(it, PageOutcome.ADOPTED_LOCAL) }
+        // Both sides changed the page: merge their elements.
+        else -> {
+            val localPage = local.pageById(id)
+            val remotePage = remote.pageById(id)
+            if (localPage != null && remotePage != null) {
+                val (mergedPage, count) = mergePageElements(localPage, remotePage)
+                ResolvedPage(mergedPage, PageOutcome.ELEMENT_MERGED, count)
+            } else {
+                (localPage ?: remotePage)?.let { ResolvedPage(it, PageOutcome.TAKEN_AS_IS) }
+            }
+        }
+    }
+
+    /**
+     * One side of the merge, read page by page through [PageSource].
+     *
+     * The id index is built from the ids alone ([PageSource.idIndex]), so constructing a side
+     * materialises nothing, and the source is owned by whoever opened it — the merge only borrows it.
+     */
+    private class PageSide(private val source: PageSource) {
+        private val indexById = source.idIndex()
+
+        /** The page model whose stable id is [id], materialised on demand, or null when absent. */
+        fun pageById(id: String): Page? = indexById[id]?.let { source.page(it) }
+    }
+
+    /** How a page was resolved, so the caller counts outcomes without re-inspecting the page. */
+    private enum class PageOutcome { ADOPTED_REMOTE, ADOPTED_LOCAL, UNCHANGED, ELEMENT_MERGED, TAKEN_AS_IS }
+
+    /** A resolved page and what was done to it; [mergedElements] is set only by an element merge. */
+    private data class ResolvedPage(
+        val page: Page,
+        val outcome: PageOutcome,
+        val mergedElements: Int = 0,
+    )
 
     private fun unionPreserved(
         local: MobixDocument,
