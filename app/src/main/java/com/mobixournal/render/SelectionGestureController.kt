@@ -278,8 +278,9 @@ internal class SelectionGestureController(
         val page = pageAt(sel.pageIndex) ?: return
         val oldPlot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement ?: return
         val newPlot = PlotElementFactory.updateParameter(oldPlot, track.paramName, newVal)
-        val updatedDoc = ElementEdits.replaceElement(doc, oldPlot, newPlot) ?: return
-        setDocument(updatedDoc)
+        // The slider's plot is on the selected page, so replace it there: no whole-document search.
+        val edited = ElementEdits.replaceElementOn(page, oldPlot, newPlot) ?: return
+        setDocument(doc.copy(pages = doc.pages.toMutableList().also { it[sel.pageIndex] = edited }))
         activeTrack = track.copy(value = newVal)
         render()
     }

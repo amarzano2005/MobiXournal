@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "edit-a-page-the-lru-window-has-evicted"
+title = "Edit a page the LRU window has evicted"
+description = "Landed: render/PageWindow.kt is the editable window over a PageSource - a bounded read cache plus an overlay of edited pages that eviction never touches, with pin/unpin for a live gesture, dirtyIndices for the save, applyTo to write the edits into the document touching only the edited pages, and revert/reset for undo. render/PageWindowEdits.kt is the canvas seam (windowEditPage materialises the page it touches first and keeps the result; resetPageWindow on a wholesale swap), PageCommands.editVisiblePage and DrawingSurfaceStrokes.appendStroke/eraseOnPage go through it, and undo/redo/load/mirror/pages-list reset it. The element ops gained one-page cores (ElementEdits.addElementOn/replaceElementOn; SelectionOps.deleteOn/addToTopLayerOn/moveOnto) so a caller that knows the page never walks the document - replacePlotElement (when the plot is selected), the plot slider and TextEditController (which now remembers its target's page) use them. PageWindowTest pins it on a synthetic 200-page .mobix: an edit on page 151 with only pages 0..4 in hand opens exactly that page, delete/insert/move on page 151 leave 0..4 unchanged, the edit survives the page leaving the read cache, undo/redo restore and reapply it, applyTo carries every other page through by reference, and a pinned page is not evictable. VERIFIED: 1425 unit tests / 0 failures, assembleDebug green. CAVEAT: the editor still hands the canvas an in-memory document, so on device the window wraps that list and the dirty set is not yet consumed by the incremental saver - both arrive with carry-the-page-source-into-the-editor and the save half of repack-only-the-pages-a-save-changed."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["mobix"]
+
+[[task]]
 id = "expose-a-page-source-and-count-pages-from-the-manifest"
 title = "Expose a PageSource over a .mobix manifest or a document's pages"
 description = "The surface only, and the wiring is not in this task any more. docs/data-path.md decides a page window: a .mobix opened streaming still decodes every page, and the tab page counter, the rail pages button and the page list walk them all. Introduce the surface: a PageSource in format/mobix with pageCount, pageId(i) and page(i), backed by MobixPagedReader for a .mobix and by the in-memory Document.pages for a .xopp or a new document, plus the one real caller that needs no editor plumbing - the merge (merge-a-mobix-from-the-manifest-parts) reads a side's page count and ids and materialises only the pages it must compare. Verify with JVM tests: pageCount and the ids come from the manifest without materialising a page (TrackedEntrySource counts no page entry), and a .xopp-backed source answers the in-memory list unchanged. The counter, the rail pages button and the page list need the editor to hold the source instead of a Document, which is its own task (carry-the-page-source-into-the-editor) because it moves LoadedFile.Doc, the tab session and DrawingSurfaceView.doc together."

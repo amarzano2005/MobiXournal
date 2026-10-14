@@ -27,6 +27,12 @@ internal class TextEditController(
     private var editingTarget: TextElement? = null
 
     /**
+     * The page [editingTarget] is on, so finishing an edit replaces it **on that page** rather than
+     * searching every page of the document for it.
+     */
+    private var editingTargetPage = -1
+
+    /**
      * The text box at ([xPt], [yPt]) on [pageIndex], remembered as the pending edit target so the
      * next [insertText] edits it instead of creating a new box. Null when the tap hit empty page.
      * @param pageIndex Page index to search (0-based).
@@ -35,7 +41,10 @@ internal class TextEditController(
      * @return TextElement if found, null otherwise.
      */
     fun pickForEditing(pageIndex: Int, xPt: Double, yPt: Double): TextElement? =
-        ElementEdits.pickText(document(), pageIndex, xPt, yPt)?.also { editingTarget = it }
+        ElementEdits.pickText(document(), pageIndex, xPt, yPt)?.also {
+            editingTarget = it
+            editingTargetPage = pageIndex
+        }
 
     /**
      * Create a text box (or edit the one a tap hit) at the placement; blank content deletes it.
@@ -47,13 +56,15 @@ internal class TextEditController(
      */
     fun insertText(p: Placement, content: String, font: String, sizePt: Double, colorArgb: Int) {
         val target = editingTarget
+        val targetPage = editingTargetPage
         editingTarget = null
+        editingTargetPage = -1
         if (content.isBlank()) {
-            if (target != null) replace(target, null)
+            if (target != null) replace(targetPage, target, null)
             return
         }
         val text = TextElement(font, sizePt, p.xPt, p.yPt, colorArgb, content)
-        if (target != null) replace(target, text) else add(p.pageIndex, text)
+        if (target != null) replace(targetPage, target, text) else add(p.pageIndex, text)
     }
 
     /**
@@ -85,13 +96,20 @@ internal class TextEditController(
     }
 
     /** Discard a pending text-edit target (the editor's dialog was dismissed without saving). */
-    fun cancel() { editingTarget = null }
+    fun cancel() {
+        editingTarget = null
+        editingTargetPage = -1
+    }
 
     private fun add(pageIndex: Int, element: Element) {
         ElementEdits.addElement(document(), pageIndex, element, activeLayerOf)?.let(commit)
     }
 
-    private fun replace(old: Element, new: Element?) {
-        ElementEdits.replaceElement(document(), old, new)?.let(commit)
+    /** Replace [old] on the page the edit target lives on — the element is looked for there, only. */
+    private fun replace(pageIndex: Int, old: Element, new: Element?) {
+        val doc = document()
+        val page = doc.pages.getOrNull(pageIndex) ?: return
+        val edited = ElementEdits.replaceElementOn(page, old, new) ?: return
+        commit(doc.copy(pages = doc.pages.toMutableList().also { it[pageIndex] = edited }))
     }
 }

@@ -219,8 +219,15 @@ fun DrawingSurfaceView.singleSelectedPlot(): PlotElement? {
  */
 fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
     val before = doc
-    val updated = ElementEdits.replaceElement(doc, old, new) ?: return
-    doc = updated
+    // The page is known whenever the plot is the selected one, which is the usual case: edit it
+    // through the page window, so only that page is touched. Without a selection fall back to the
+    // whole-document search (a plot opened from the overlay, with nothing selected).
+    val index = selection?.pageIndex
+    if (index != null) {
+        windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
+    } else {
+        doc = ElementEdits.replaceElement(doc, old, new) ?: return
+    }
     history.record(before)
     notifyHistory()
     relayout()

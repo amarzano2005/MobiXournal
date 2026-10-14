@@ -526,20 +526,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "edit-a-page-the-lru-window-has-evicted"
-title = "Edit a page the LRU window has evicted"
-description = "An edit op (render/PageCommands.kt, render/ElementEdits.kt, DrawingSurfaceStrokes.kt) may act on a page the page window has evicted. Decide and implement: an edit materialises the page it touches first, keeps it until the edit settles, and the dirty page is written back on save. Undo and redo must not lose an edit whose page leaves the window. Verify with JVM tests: move, delete and insert on page 150 of a 200-page document while pages 0 to 4 are the only window, then assert page 150 holds the edit and pages 0 to 4 are unchanged."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 457
-created = 2026-10-14
-tags = ["mobix"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "export-and-search-a-mobix-through-the-page-source"
 title = "Export and search a .mobix through the page source"
 description = "render/XoppSynthesis.kt (the .xopp export) and render/DocumentSearch.kt (find) walk every page of a document. Route both through the PageSource: the export materialises one page at a time and releases it, and search iterates the same way, so neither holds all 200 pages. Verify with JVM tests: an export of a 200-page document produces the same .xopp as before and a search finds a text hit on page 150; both keep the working set bounded (TrackedEntrySource counts only the pages touched)."

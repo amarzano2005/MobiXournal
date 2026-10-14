@@ -371,11 +371,12 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
      asset is deferred), and 1 ms on the reader, which inflates 8.
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
-2. **Incremental Delta-Writes (Zero save latency)** — **library only**:
+2. **Incremental Delta-Writes (Zero save latency)** — **part live**:
    - `format/mobix/MobixIncrementalSaver.kt` re-compresses only modified page entries (`pages/page-N.json`)
-     and the updated `manifest.json` into the ZIP archive, but **no save path uses it**: the `MOBIX`
-     branch of `io/DocumentIo.kt` encode always calls `MobixDocument.of(...).toBytes()`, so every save
-     repacks the whole archive. `repack-only-the-pages-a-save-changed` wires it in.
+     and the manifest, and a save landing back on the same `.mobix` URI repacks over the file it was
+     opened from, copying everything else verbatim; an unchanged page's JSON is still rebuilt to hash it
+     and the on-device round trip is unrun (`repack-only-the-pages-a-save-changed`). Its edit set is the
+     page window's `dirtyIndices` (`render/PageWindow.kt`, `edit-a-page-the-lru-window-has-evicted`).
    - Unmodified pages, heavy background PDFs, and image assets are streamed directly from the source archive
      without re-compression; unknown/unmodelled entries survive untouched (container rule 4,
      [mobix-schema-spec.md](mobix-schema-spec.md)).

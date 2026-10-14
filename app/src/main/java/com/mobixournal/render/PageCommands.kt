@@ -25,6 +25,8 @@ import com.mobixournal.format.model.Tool
 internal class PageCommands(
     /** The working document, read fresh on every command (the view owns it). */
     private val document: () -> Document,
+    /** The editable page window: where a per-page command materialises, keeps and marks its page. */
+    private val window: PageWindow,
     /** Adopt [Document] as an edit: assign it, snapshot the previous one, notify the history. */
     private val commit: (Document) -> Unit,
     /** Index of the page under the viewport centre — what the per-page commands act on. */
@@ -264,6 +266,8 @@ internal class PageCommands(
     fun editPages(pages: List<Page>) {
         val doc = document()
         if (pages === doc.pages) return
+        // Page indices shifted, so a window keyed by index no longer describes this document.
+        window.reset()
         commit(doc.copy(pages = pages))
         onPageCountChanged(pages.size)
         // Page indices shifted: view state keyed by page index is no longer valid.
@@ -283,9 +287,9 @@ internal class PageCommands(
     fun editVisiblePage(resetViewState: Boolean, op: (Page) -> Page, after: () -> Unit = {}) {
         val doc = document()
         val pi = visiblePage()
-        val page = doc.pages.getOrNull(pi) ?: return
-        val newPage = op(page)
-        if (newPage === page) { after(); onLayersChanged(); return }
+        // Through the window: the page is materialised first, so a command may act on a page the
+        // window had evicted, and the result it keeps is the one the save writes back.
+        val newPage = window.edit(pi, op) ?: run { after(); onLayersChanged(); return }
         if (resetViewState) resetLayerVisibility()
         commit(doc.copy(pages = doc.pages.toMutableList().also { it[pi] = newPage }))
         after()

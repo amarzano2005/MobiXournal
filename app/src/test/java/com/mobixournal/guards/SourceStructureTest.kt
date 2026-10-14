@@ -33,7 +33,8 @@ class SourceStructureTest {
      */
     private val fileCeilings = mapOf(
         "ui/EditorRegions.kt" to 1780,
-        "render/DrawingSurfaceView.kt" to 1700,
+        // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
+        "render/DrawingSurfaceView.kt" to 1705,
         "render/CircuitShapes.kt" to 1180,
         "ui/AppSettings.kt" to 1010,
         "ui/EditorDialogs.kt" to 920,

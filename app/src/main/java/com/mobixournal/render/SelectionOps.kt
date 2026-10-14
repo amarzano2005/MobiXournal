@@ -300,6 +300,20 @@ object SelectionOps {
     ): Pair<List<Page>, Set<ElementRef>> {
         val page = pages.getOrNull(pageIndex) ?: return pages to emptySet()
         if (elements.isEmpty()) return pages to emptySet()
+        val (edited, refs) = addToTopLayerOn(page, elements)
+        val out = pages.toMutableList().also { it[pageIndex] = edited }
+        return out to refs
+    }
+
+    /**
+     * [addToTopLayer] for **one page** — the same append with no page list in sight, so a caller that
+     * holds a single page (a page window editing a page it just materialised) does not have to build
+     * the document's list to append three elements.
+     *
+     * @return the edited page and the [ElementRef]s of the appended elements on it.
+     */
+    fun addToTopLayerOn(page: Page, elements: List<Element>): Pair<Page, Set<ElementRef>> {
+        if (elements.isEmpty()) return page to emptySet()
         val layers = page.layers
         val topIndex = (layers.size - 1).coerceAtLeast(0)
         val base = layers.lastOrNull()?.elements?.size ?: 0
@@ -309,8 +323,7 @@ object SelectionOps {
             layers.toMutableList().also { it[topIndex] = Layer(it[topIndex].elements + elements, it[topIndex].name) }
         }
         val refs = elements.indices.map { ElementRef(topIndex, base + it) }.toSet()
-        val out = pages.toMutableList().also { it[pageIndex] = page.copy(layers = newLayers) }
-        return out to refs
+        return page.copy(layers = newLayers) to refs
     }
 
     /**
@@ -332,9 +345,25 @@ object SelectionOps {
     ): Pair<List<Page>, Set<ElementRef>> {
         if (from == to || refs.isEmpty()) return pages to refs
         val src = pages.getOrNull(from) ?: return pages to refs
-        val moved = elementsAt(src, refs).map { affine(it, s, dx, dy) }
-        val afterDelete = delete(pages, from, refs)
-        return addToTopLayer(afterDelete, to, moved)
+        val dst = pages.getOrNull(to) ?: return pages to refs
+        val (editedFrom, editedTo, refsOnTo) = moveOnto(src, dst, refs, s, dx, dy)
+        val out = pages.toMutableList().also { it[from] = editedFrom; it[to] = editedTo }
+        return out to refsOnTo
+    }
+
+    /**
+     * [moveToPage] for **two pages** — the same move with no page list, for a caller that holds the
+     * two pages (a page window editing a page it just materialised).
+     *
+     * @return the edited source page, the edited destination page, and the moved elements' refs on it.
+     */
+    fun moveOnto(
+        from: Page, to: Page, refs: Set<ElementRef>, s: Double, dx: Double, dy: Double,
+    ): Triple<Page, Page, Set<ElementRef>> {
+        if (refs.isEmpty()) return Triple(from, to, refs)
+        val moved = elementsAt(from, refs).map { affine(it, s, dx, dy) }
+        val (appended, refsOnTo) = addToTopLayerOn(to, moved)
+        return Triple(deleteOn(from, refs), appended, refsOnTo)
     }
 
     /**
@@ -347,11 +376,27 @@ object SelectionOps {
     fun delete(pages: List<Page>, pageIndex: Int, refs: Set<ElementRef>): List<Page> {
         if (refs.isEmpty()) return pages
         val page = pages.getOrNull(pageIndex) ?: return pages
+        val edited = deleteOn(page, refs)
+        if (edited === page) return pages
+        return pages.toMutableList().also { it[pageIndex] = edited }
+    }
+
+    /**
+     * [delete] for **one page**: remove the elements at [refs], or hand back the same instance when
+     * none of them is there. What a page window calls, so the page list is never built.
+     */
+    fun deleteOn(page: Page, refs: Set<ElementRef>): Page {
+        if (refs.isEmpty()) return page
+        var changed = false
         val layers = page.layers.mapIndexed { li, layer ->
-            val kept = layer.elements.filterIndexed { ei, _ -> ElementRef(li, ei) !in refs }
+            val kept = layer.elements.filterIndexed { ei, _ ->
+                val gone = ElementRef(li, ei) in refs
+                changed = changed || gone
+                !gone
+            }
             if (kept.size == layer.elements.size) layer else Layer(kept, layer.name)
         }
-        return pages.toMutableList().also { it[pageIndex] = page.copy(layers = layers) }
+        return if (changed) page.copy(layers = layers) else page
     }
 
     /** Rebuild page [pageIndex]'s layers, letting [transform] replace each element in place. */

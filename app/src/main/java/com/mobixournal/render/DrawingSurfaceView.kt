@@ -89,6 +89,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The pages the canvas reads: a box resolves its page only when drawn (`CanvasPageSource`). */
     internal val pageSource: PageSource = canvasPageSource { docValue.pages }
 
+    /** The editable window over [pageSource] (`PageWindow`); [resetPageWindow] on a wholesale swap. */
+    internal val pageWindow = PageWindow(pageSource)
+
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
@@ -311,6 +314,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The page/layer edit commands and the two commit pipelines behind them (see [PageCommands]). */
     private val pages = PageCommands(
         document = { doc },
+        window = pageWindow,
         commit = { edited ->
             val before = doc
             doc = edited
@@ -730,6 +734,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerIndex = -1
         history.clear()
         notifyHistory()
+        resetPageWindow()
         onPageCountChanged?.invoke(pageSource.pageCount)
         lastReportedPage = -1
         searchHits = emptyList()
@@ -766,6 +771,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onSelectionChanged?.invoke(false)
         history.clear()
         notifyHistory()
+        resetPageWindow()
         onPageCountChanged?.invoke(pageSource.pageCount)
         searchHits = emptyList()
         currentSearchHit = -1
@@ -1080,6 +1086,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     private fun afterHistoryMove() {
         current = null
+        resetPageWindow()
         relayout()
         render()
         notifyHistory()

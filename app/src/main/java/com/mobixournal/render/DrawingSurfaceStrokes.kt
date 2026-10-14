@@ -558,14 +558,13 @@ internal fun DrawingSurfaceView.withAudioStamp(stroke: Stroke): Stroke =
 
 /** Append [stroke] to the active (or top) layer of page [pageIndex], rebuilding the model. */
 internal fun DrawingSurfaceView.appendStroke(pageIndex: Int, stroke: Stroke) {
-    val pages = doc.pages.toMutableList()
-    val page = pages.getOrNull(pageIndex) ?: return
-    val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
-    val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
-    // Stamping here rather than at each commit site covers freehand, shapes and splines alike.
-    layers[target] = Layer(layers[target].elements + withAudioStamp(stroke), layers[target].name)
-    pages[pageIndex] = page.copy(layers = layers)
-    doc = doc.copy(pages = pages)
+    val edited = windowEditPage(pageIndex) { page ->
+        val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
+        val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
+        // Stamping here rather than at each commit site covers freehand, shapes and splines alike.
+        layers[target] = Layer(layers[target].elements + withAudioStamp(stroke), layers[target].name)
+        page.copy(layers = layers)
+    } ?: return
     relayout() // rebuild boxes so they reference the updated pages, not stale ones
 }
 
@@ -589,13 +588,13 @@ internal fun DrawingSurfaceView.resolvedActiveLayer(page: Page): Int =
  * only and skipping hidden layers ([PageEraser]). Returns true if anything on the page changed.
  */
 internal fun DrawingSurfaceView.eraseOnPage(pageIndex: Int, px: Double, py: Double, radius: Double, mode: EraserMode = eraserMode): Boolean {
-    val page = doc.pages.getOrNull(pageIndex) ?: return false
+    val page = pageAt(pageIndex) ?: return false
     val hidden = page.layers.indices.filter { isLayerHidden(pageIndex, it) }.toSet()
     val target = resolvedActiveLayer(page)
-    val erased = PageEraser.erase(page, px, py, radius, mode, hidden, target) ?: return false
-    val pages = doc.pages.toMutableList()
-    pages[pageIndex] = erased
-    doc = doc.copy(pages = pages)
+    // `erase` answers null when the disc touched nothing; handing the page straight back keeps this a
+    // no-op for the window, so a wipe that erased nothing records no undo step.
+    val erased = windowEditPage(pageIndex) { PageEraser.erase(it, px, py, radius, mode, hidden, target) ?: it }
+    if (erased == null) return false
     relayout()
     return true
 }

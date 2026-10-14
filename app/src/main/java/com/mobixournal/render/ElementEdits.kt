@@ -22,32 +22,55 @@ internal object ElementEdits {
         element: Element,
         activeLayerOf: (Page) -> Int,
     ): Document? {
-        val pages = doc.pages.toMutableList()
-        val page = pages.getOrNull(pageIndex) ?: return null
+        val page = doc.pages.getOrNull(pageIndex) ?: return null
+        val edited = addElementOn(page, element, activeLayerOf)
+        return doc.copy(pages = doc.pages.toMutableList().also { it[pageIndex] = edited })
+    }
+
+    /**
+     * [addElement] for **one page**: append [element] to its active layer. No page list is built, so a
+     * caller holding a single page — a page window editing a page it just materialised — can add to it
+     * without dragging the rest of the document into memory.
+     */
+    fun addElementOn(page: Page, element: Element, activeLayerOf: (Page) -> Int): Page {
         val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
         val target = activeLayerOf(page).coerceIn(0, layers.lastIndex)
         layers[target] = Layer(layers[target].elements + element, layers[target].name)
-        pages[pageIndex] = page.copy(layers = layers)
-        return doc.copy(pages = pages)
+        return page.copy(layers = layers)
     }
 
     /**
      * Replace [old] (matched by identity, so two equal text boxes never swap) with [new], or remove
      * it when [new] is null. Null when [old] isn't in the document.
+     *
+     * This looks through **every** page, because the caller does not say where [old] is; a caller that
+     * knows uses [replaceElementOn], which touches one page and never walks the document.
      */
     fun replaceElement(doc: Document, old: Element, new: Element?): Document? {
         var changed = false
         val pages = doc.pages.map { page ->
-            page.copy(layers = page.layers.map { layer ->
-                val idx = layer.elements.indexOfFirst { it === old }
-                if (idx < 0) return@map layer
-                changed = true
-                val els = layer.elements.toMutableList()
-                if (new == null) els.removeAt(idx) else els[idx] = new
-                Layer(els, layer.name)
-            })
+            val edited = replaceElementOn(page, old, new) ?: return@map page
+            changed = true
+            edited
         }
         return if (changed) doc.copy(pages = pages) else null
+    }
+
+    /**
+     * [replaceElement] for **one page**: replace [old] on [page], or null when it is not on it. This
+     * is the one a page window calls, so finding an element to edit never walks the document.
+     */
+    fun replaceElementOn(page: Page, old: Element, new: Element?): Page? {
+        var changed = false
+        val layers = page.layers.map { layer ->
+            val idx = layer.elements.indexOfFirst { it === old }
+            if (idx < 0) return@map layer
+            changed = true
+            val els = layer.elements.toMutableList()
+            if (new == null) els.removeAt(idx) else els[idx] = new
+            Layer(els, layer.name)
+        }
+        return if (changed) page.copy(layers = layers) else null
     }
 
     /** The top-most text box on [pageIndex] whose (approximate) bounds contain the point, or null. */

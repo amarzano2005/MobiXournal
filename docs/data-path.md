@@ -67,12 +67,28 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   source only when the box is drawn, so a 200-page `.mobix` is laid out without opening a page and
   materialises exactly the pages in the viewport.
 
+  **Editing** goes through the window too (`render/PageWindow.kt`,
+  `edit-a-page-the-lru-window-has-evicted`): a bounded read cache over the same source plus an overlay
+  of edited pages that eviction never touches. A single-page command runs through
+  `DrawingSurfaceView.windowEditPage`, which **materialises the page it touches first** — so a command
+  may act on a page the window has evicted, without its caller knowing which pages are resident — keeps
+  the result in the overlay (so the edit is still there when the page leaves the cache, which is what
+  lets undo and redo find it), and records the index as dirty for the save. `PageWindow.pin` holds a
+  page for as long as a live gesture keeps re-reading it. A **wholesale replacement** of the document —
+  a load, undo/redo, a mirrored pane, a page-list edit — calls `resetPageWindow()`, because the overlay
+  then describes pages the document no longer has. The element ops expose a **one-page core** beside
+  their document-wide form — `ElementEdits.replaceElementOn` against `replaceElement`, and
+  `SelectionOps.deleteOn`/`addToTopLayerOn`/`moveOnto` — so a caller that knows the page (the text
+  editor remembers its target's page, a plot's slider edits the selected page) never searches the
+  document for the element. Every other commit still writes the document directly, so `dirtyIndices`
+  is complete only for the edits that go through the window.
+
   What is **not** live yet: the editor still hands the canvas a document whose pages are all in memory,
   so on device the source answers from that list and no page is deferred. The tab counter, the rail pages
   button and the page list still walk every page, and the open path still decodes them all
-  (`carry-the-page-source-into-the-editor`); the canvas's lazy path becomes live when that task supplies
-  it with a reader-backed source, and an edit on a page the window has evicted is
-  `edit-a-page-the-lru-window-has-evicted`.
+  (`carry-the-page-source-into-the-editor`); the canvas's lazy path, and the save that writes back only
+  `PageWindow.dirtyIndices`, become live when that task supplies a reader-backed source and
+  `repack-only-the-pages-a-save-changed` consumes the window's dirty set.
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 
