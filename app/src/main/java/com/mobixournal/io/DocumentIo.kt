@@ -11,6 +11,7 @@ import com.mobixournal.format.mobix.MobixConflictDetector
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
+import com.mobixournal.format.mobix.MobixIncrementalSave
 import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
@@ -138,6 +139,17 @@ class DocumentIo(
     private val refs = DocumentReferenceResolver(resolver, pdfStore, imageStore)
 
     /**
+     * Where each open `.mobix` was read from, by document id: the staged copy the session keeps, and
+     * the URI it came in through. A save that lands back on that same URI repacks over these bytes
+     * instead of writing the whole archive again ([MobixIncrementalSave]) — which is what makes a save
+     * on a long notebook cost a page rather than the notebook.
+     */
+    private val mobixSources = HashMap<String, MobixSource>()
+
+    /** An open `.mobix`'s own bytes: the staged copy, and the URI it was opened through. */
+    private class MobixSource(val staged: File, val uri: String?)
+
+    /**
      * The two storage caps the user sets in Settings → Storage, pushed in by the activity whenever
      * settings change. Held as a field rather than a constructor argument because this object
      * outlives any one settings value; unset, both are effectively unlimited.
@@ -247,6 +259,10 @@ class DocumentIo(
             val conflictNote = checkForConflictSiblingAndMerge(mobixDoc, staged, name, source)?.also {
                 mobixDoc = it.first
             }?.second
+
+            // Remember what this document was read from, so the next save can repack over it. Keyed by
+            // the document's own id, which is what a save of it carries ([Document.documentId]).
+            mobixSources[mobixDoc.manifest.documentId] = MobixSource(staged, source?.toString())
 
             val document = mobixDoc.toDocument()
             val adopted = adoptBundledBackgrounds(document, entries)
@@ -485,14 +501,26 @@ class DocumentIo(
                     val now = System.currentTimeMillis()
                     // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
                     // again is the same document ([Document.documentId]).
-                    output.write(
-                        MobixDocument.of(
-                            document = document,
-                            appVersion = appVersion,
-                            nowMillis = now,
-                            source = target?.let { displayName(it, "document") },
-                        ).toBytes(nowMillis = now, backgroundBytes = backgroundBytesOf(pdf, images)),
+                    val mobix = MobixDocument.of(
+                        document = document,
+                        appVersion = appVersion,
+                        nowMillis = now,
+                        source = target?.let { displayName(it, "document") },
                     )
+                    val entries = mobix.encode(now, backgroundBytesOf(pdf, images))
+                    val opened = mobixSources[mobix.manifest.documentId]
+                    // Repack over the file this document was opened from when the save lands back on
+                    // it: the entries whose bytes did not change stream out of that archive instead of
+                    // being deflated again. Everywhere else — a new document, a first save, a Save As to
+                    // another target — there is no source, and the whole archive is written.
+                    val source = opened?.takeIf { it.staged.isFile && it.uri != null && it.uri == target?.toString() }
+                    if (source == null) {
+                        MobixContainer.save(entries, output)
+                    } else {
+                        MobixEntrySource.fromFile(source.staged).use { from ->
+                            MobixIncrementalSave.repack(from, entries, output)
+                        }
+                    }
                 }
                 SaveFormat.ZIPPED -> {
                     val ink = ink(document)

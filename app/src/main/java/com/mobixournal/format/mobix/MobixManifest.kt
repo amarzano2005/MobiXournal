@@ -137,6 +137,17 @@ internal data class MobixManifest(
             title = title,
             defaultPaper = defaultPaper,
         )
+
+        /**
+         * Just the envelope at [source], without decoding a single page — what an incremental save
+         * diffs against ([MobixIncrementalSave]). Null when the source carries no readable manifest,
+         * which is the caller's cue to write the whole archive instead of repacking over something it
+         * cannot read.
+         */
+        fun read(source: MobixEntrySource): MobixManifest? =
+            source.readBytes(MobixFormat.MANIFEST_ENTRY)?.toString(Charsets.UTF_8)?.let { text ->
+                runCatching { decode(text, source.asAssetSource()) }.getOrNull()
+            }
     }
 
     /** The parts the [canvasMode] makes authoritative — the other list is empty by construction. */

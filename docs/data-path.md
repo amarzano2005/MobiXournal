@@ -103,6 +103,19 @@ Reading and writing are **streaming and symmetric**: the parser builds the model
 element; the serializer walks the model in document order and re-emits it, carrying through any
 preserved-but-unrendered attributes so the file round-trips.
 
+**A `.mobix` save repacks over the file it was opened from.** `DocumentIo` remembers each open
+`.mobix`'s staged copy by document id, and a save that lands back on that same URI goes through
+`MobixIncrementalSave`: the entries whose bytes did not change stream out of the open archive and
+only the manifest and the pages that moved are written again. The decision is derived, never flagged —
+a page is compared by the `sha256` its own manifest already records, and an asset by the hash in its
+name. Anywhere else (a new document, a first save, a Save As to another target) there is no source and
+the whole archive is written. **Measured on a ten-page notebook with one edited page: 2 of 14 entries
+written (2363 B of content instead of 4928 B), 12 streamed; the finished file is ~160 B *larger*, one
+data descriptor per streamed entry.** The saving is therefore in the work and the peak memory, not the
+file size — a streamed entry is still inflated and deflated on its way through, so the entries that
+really pay (a multi-megabyte background PDF) need the compressed bytes copied verbatim before this
+claims a compression win (`repack-the-streamed-entries-without-recompressing-them`).
+
 ### Tabs and the session cache
 
 Several documents can be open at once, but there is only **one** `DrawingSurfaceView`. A tab switch

@@ -430,7 +430,7 @@ emulator_debug = false
 [[task]]
 id = "repack-only-the-pages-a-save-changed"
 title = "Repack only the .mobix pages a save changed"
-description = "The saver is written and tested (format/mobix/MobixIncrementalSaver.kt, MobixIncrementalSaveTest) and no save path uses it: the MOBIX branch of io/DocumentIo.kt encode (around line 475) always calls MobixDocument.of(...).toBytes(), so every save re-compresses the whole archive - on a long notebook, a save that touched one page rewrites every page and the background PDF with it. Wire the incremental path: when the document was opened from a file whose bytes are still reachable (the staged copy io/UriStaging keeps, the source in io/SaveTarget.kt), repack through MobixIncrementalSaver, streaming the untouched entries from the source archive and writing only the manifest and the pages whose bytes changed, with the mimetype first and STORED as always; fall back to the full write whenever there is no source (a new document, a first save, a save to a new target), and never leave a half-written archive behind - every write already goes to a staging file first. Dirtiness comes from the manifest own sha256/modified fields, so the caller supplies the previous manifest and the new page bytes rather than a hand-maintained dirty flag. Verify with JVM tests: after editing one page of a ten-page document the untouched entries come out byte-identical to the source, the mimetype is still first and STORED, preserved unknown entries still survive, and the result read back through MobixDocument.open is equal to a full write of the same document. Measure and report the bytes written for the ten-page document with one dirty page against a full repack. Then check it on the emulator: open a .mobix, edit, save, close, reopen - the document is intact and nothing about it changed."
+description = "PARTLY DONE 2026-10-14, and the premise needs a decision. The wiring exists: MobixIncrementalSave plans the diff (a page compared by the sha256 its own manifest records, an asset by the hash in its name, the envelope byte-compared) and DocumentIo remembers each open .mobix staged copy by document id, repacking over it when a save lands back on the same URI, falling back to the whole archive otherwise. MobixIncrementalSavePlanTest proves the result is exactly the document a full write describes. What is NOT settled is the win it was written for: MobixIncrementalSaver streams unchanged entries through putNextEntry and COPY, so each one is inflated and deflated again - the CPU cost is the same or worse than a full write - and each streamed entry adds a data descriptor, so the file grows. Measured: ten pages, one edited page -> 12 of 14 entries streamed, 2363 B of content written instead of 4928 B, output 5088 B vs full 4928 B. Decide and implement the real win: copy the source entry compressed bytes verbatim (java.util.zip cannot put a raw deflated entry, so this needs a small zip writer that can), and skip regenerating the JSON of pages whose model did not change. Then run the emulator round trip that was never run: open a .mobix, edit, save, close, reopen, and confirm the document is intact."
 status = "active"
 level = "task"
 category = "feature"
@@ -594,3 +594,17 @@ created = 2026-10-14
 tags = ["plot", "ui"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "repack-the-streamed-entries-without-recompressing-them"
+title = "Repack the streamed entries without recompressing them"
+description = "MobixIncrementalSaver streams an unchanged entry by inflating it from the source and deflating it again, so an incremental save costs what a full one costs in CPU and writes a data descriptor per streamed entry (measured on ten pages with one dirty: output 5088 B against a full write's 4928 B, docs/data-path.md). Copy the source entry's compressed bytes and its crc/size verbatim instead: java.util.zip cannot put a raw deflated entry, so this needs a small zip writer (local header, central directory, EOCD) plus a way to read an entry's raw bytes from the source - the ZipFile-backed MobixEntrySource has to find the data offset itself. Verify with JVM tests: a streamed entry's compressed bytes are byte-identical to the source's, the repacked archive is smaller than or equal to a full write of the same document, and it still opens through MobixDocument.open and MobixPagedReader."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 830
+created = 2026-10-14
+tags = ["mobix", "perf"]
+rebuild = true
+emulator_debug = false
