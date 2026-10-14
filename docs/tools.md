@@ -163,11 +163,13 @@ Where `/data/android` isn't present, the SDK's own emulator is the same loop, dr
 `adb` instead of `emulator.sh`:
 
 ```sh
-$ANDROID_SDK/emulator/emulator -avd <name> -no-window &   # or start it from Android Studio
-$ANDROID_SDK/platform-tools/adb wait-for-device           # then poll sys.boot_completed for 1
-$ANDROID_SDK/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
-$ANDROID_SDK/platform-tools/adb shell am start -n com.mobixournal.v2/com.mobixournal.MainActivity
-$ANDROID_SDK/platform-tools/adb exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
+# The SDK this checkout builds with — `host-build.sh --list` prints the path it picked
+SDK=$(scripts/host-build.sh --list | sed -n 's/^host-build: SDK //p')
+"$SDK/emulator/emulator" -avd Pixel_Tablet &   # `.exe` under Git Bash; or start it from Android Studio
+"$SDK/platform-tools/adb" wait-for-device      # then poll sys.boot_completed for 1
+"$SDK/platform-tools/adb" install -r app/build/outputs/apk/debug/app-debug.apk
+"$SDK/platform-tools/adb" shell am start -n com.mobixournal.v2/com.mobixournal.MainActivity
+"$SDK/platform-tools/adb" exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
 ```
 
 **The instrumented suite runs on this host too.** Gradle's `connectedDebugAndroidTest` is only
@@ -205,6 +207,13 @@ reaches the device. Keep it for the `/data/android` pipeline, where that mismatc
   turn that setting on or exercise pen-only paths another way.
 - **Find a control's coordinates instead of guessing them:** `adb shell uiautomator dump` then
   `adb pull` gives every button's `content-desc` and bounds (`Tool: Pen`, `Drawing guides`, …).
+- **Hand a document to the app without driving the picker:** `adb shell am start -a
+  android.intent.action.VIEW -d file://<path> -t application/vnd.mobixournal+zip` opens it straight
+  into a tab (the manifest declares both `content` and `file` schemes for that type). The path must be
+  one *the app* can read: it asks for no storage permission, so `/sdcard/Download/…` fails silently —
+  a toast, no tab. `adb push x.mobix /data/local/tmp/` then
+  `adb shell run-as com.mobixournal.v2 cp /data/local/tmp/x.mobix files/x.mobix` puts it in the app's
+  own sandbox, and `file:///data/data/com.mobixournal.v2/files/x.mobix` opens every time.
 - **Verify colours and geometry from the screenshot, not by eye:** crop and sample it (PIL/`magick`),
   e.g. compare a pop-up's fill with the toolbar's. Two pixels that look alike are one `assert` apart.
 - **Windows/Git Bash mangles `/sdcard/…` paths** into `C:/Program Files/Git/sdcard/…`: prefix the

@@ -582,20 +582,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "verify-the-shaded-plot-area-on-the-emulator"
-title = "Verify the shaded plot area on the emulator"
-description = "Draw-the-shaded-integral-area-for-a-plotelement shipped JVM-verified only: its verify clause asks for an emulator pass with a screenshot of the shaded area over a selected plot, and the /data/android harness (docs/tools.md, Android emulator) was not reachable from the host this shipped on - no adb, no AVD. Install the APK, open a .mobix holding a plot with shadeIntegral set (or set one through the plot editor), and screenshot the area over the selected plot; check logcat is clean and that the wash sits under the curves. If the wash is missing or misshapen on the device, fix it there and record what the JVM tests could not see."
-status = "active"
-level = "task"
-category = "test"
-urgency = "normal"
-order = 810
-created = 2026-10-14
-tags = ["plot", "emulator"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "give-the-shaded-area-a-control-that-sets-its-bounds"
 title = "Give the shaded area a control that sets its bounds"
 description = "The shaded integral now draws (draw-the-shaded-integral-area-for-a-plotelement) and the value it stands for is computed (compute-the-definite-integral-in-the-plot-analysis), but nothing in the app lets a user choose the area: PlotElement.shadeIntegral has no input anywhere - ui/AdvancedFunctionGraphDialog.kt does not offer it, and the edit path (render/PlotElementFactory.applyPlotEdit) preserves it only because it never touches it. So the feature is reachable only from a file another implementation wrote. Add the control: a Shade Integral Area toggle with a from/to pair in the plot editor, defaulting to the element's own xMin..xMax, written through applyPlotEdit so the shading, the summary's integral value and the exported ink all move together, with undo covering the change. Verify with a JVM test that an edit through it round-trips the bounds and that the compiled ink gains the wash, then an emulator pass with a screenshot of the shaded area appearing as the bounds are dragged."

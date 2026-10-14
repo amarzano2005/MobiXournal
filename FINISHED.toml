@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "verify-the-shaded-plot-area-on-the-emulator"
+title = "Verify the shaded plot area on the emulator"
+description = "Draw-the-shaded-integral-area-for-a-plotelement shipped JVM-verified only: its verify clause asks for an emulator pass with a screenshot of the shaded area over a selected plot, and the /data/android harness (docs/tools.md, Android emulator) was not reachable from the host this shipped on - no adb, no AVD. Install the APK, open a .mobix holding a plot with shadeIntegral set (or set one through the plot editor), and screenshot the area over the selected plot; check logcat is clean and that the wash sits under the curves. If the wash is missing or misshapen on the device, fix it there and record what the JVM tests could not see."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-10-14
+completed = 2026-10-14
+tags = ["plot", "emulator"]
+
+[[task]]
 id = "draw-the-shaded-integral-area-for-a-plotelement"
 title = "Draw the shaded integral area for a PlotElement"
 description = "docs/math-engine.md section 3 promises Shade Integral Area: a semi-transparent polygonal fill bounded between the curve and the x-axis over PlotElement.shadeIntegral.from..to. The field exists in format/model/Living.kt and MobixPlotCodec round-trips it, but nothing draws it - the only readers of shadeIntegral are the codec and a KDoc comment. Fill it inside the plot ink compiler render/PlotInk.kt so screen, SVG, PDF and the .xopp synthesis through render/LivingInk.kt cannot disagree: build the closed polygon between the curve and the axis (or between the two curves when the plot has two) clipped to the from..to bounds, fill colour from the curve colour, alpha from the design token already used for a translucent fill. A shadeIntegral outside the plot range, or a curve that does not parse, draws nothing rather than a wrong area. Verify with JVM unit tests over the pure compiler: a shaded plot yields a closed filled polygon, an unshaded one yields none, and a shaded .mobix exports through XoppSynthesis with the fill ink present. Then an emulator pass with a screenshot of the shaded area over a selected plot."
