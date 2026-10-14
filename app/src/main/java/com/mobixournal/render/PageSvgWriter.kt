@@ -21,7 +21,9 @@ import java.util.Base64
  * Everything the page holds is re-emitted as vector geometry: the sheet fill and its ruling —
  * including an isometric page's triangular mesh ([BackgroundGrid.isometric]) — as
  * `<rect>`/`<line>`/`<circle>`, strokes as `<polyline>` (round caps and joins, the stroke's own colour and
- * average width, its alpha as `stroke-opacity`), text as `<text>`, and images/LaTeX as `<image>` with
+ * average width, its alpha as `stroke-opacity`) — a stroke carrying a `fill` alpha also gets the `<polygon>`
+ * that fill floods under the outline, so a shaded area or a filled figure is not lost on the way out —
+ * text as `<text>`, and images/LaTeX as `<image>` with
  * the element's own encoded bytes inline as a `data:` URL. Elements we don't model ([Element.RawElement])
  * are skipped — SVG has no faithful translation for a shape we never interpreted.
  *
@@ -156,17 +158,28 @@ object PageSvgWriter {
     private fun emitStroke(sb: StringBuilder, stroke: Stroke) {
         if (stroke.points.size < 2) return
         val width = stroke.points.sumOf { it.width } / stroke.points.size
+        // The desktop's `fill` alpha floods the inside of a closed stroke. SVG has no fill on a polyline,
+        // so a filled stroke is two shapes: the polygon the fill floods (under), and the outline (over) —
+        // the same order the canvas and the PDF export paint them in.
+        stroke.fill?.takeIf { it > 0 }?.let { fill ->
+            sb.append("  <polygon fill=\"").append(hex(stroke.color))
+                .append("\" fill-opacity=\"").append(num(fill / 255.0))
+                .append("\" stroke=\"none\" points=\"").append(pointsOf(stroke)).append("\"/>\n")
+        }
         sb.append("  <polyline fill=\"none\" stroke=\"").append(hex(stroke.color))
             .append("\" stroke-width=\"").append(num(width))
             .append("\" stroke-linecap=\"round\" stroke-linejoin=\"round\"")
         val alpha = alphaOf(stroke.color)
         if (alpha < 255) sb.append(" stroke-opacity=\"").append(num(alpha / 255.0)).append("\"")
-        sb.append(" points=\"")
+        sb.append(" points=\"").append(pointsOf(stroke)).append("\"/>\n")
+    }
+
+    /** The stroke's vertices as an SVG `points` list. */
+    private fun pointsOf(stroke: Stroke): String = buildString {
         stroke.points.forEachIndexed { i, pt ->
-            if (i > 0) sb.append(' ')
-            sb.append(num(pt.x)).append(',').append(num(pt.y))
+            if (i > 0) append(' ')
+            append(num(pt.x)).append(',').append(num(pt.y))
         }
-        sb.append("\"/>\n")
     }
 
     private fun emitText(sb: StringBuilder, text: TextElement) {

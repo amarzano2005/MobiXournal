@@ -64,9 +64,27 @@ object MultiFunctionPlotter {
             detectAllCriticalPoints(curves, xMin, xMax, yMin, yMax, toX, toY, strokeWidthPt, pathGroups, parameters)
         } else emptyList()
 
-        val summary = if (includeSummary) FunctionAnalysis.buildSummaryReport(curves, criticalPoints, xMin, xMax) else ""
-        return MultiPlotResult(pathGroups, labels, criticalPoints, summary)
+        val summary = if (includeSummary) {
+            FunctionAnalysis.buildSummaryReport(curves, criticalPoints, xMin, xMax, buildIntegrals(compiledCurves, curves, xMin, xMax))
+        } else ""
+        return MultiPlotResult(pathGroups, labels, criticalPoints, summary, PlotFrame(xMin, xMax, yMin, yMax, leftPt, topPt, widthPt, heightPt))
     }
+
+    /**
+     * The definite integral of each of the caller's own Cartesian curves over the frame, paired with the
+     * label the summary names it by. The derivative copies [compileCurves] appends are skipped — they are
+     * not the caller's curves — so the report shows one line per plotted function.
+     */
+    private fun buildIntegrals(
+        compiledCurves: List<Pair<PlotCurve, Formula>>,
+        curves: List<PlotCurve>,
+        xMin: Double,
+        xMax: Double,
+    ): List<Pair<String, Double?>> = compiledCurves
+        .filter { (curve, _) -> curves.any { it === curve } }
+        .map { (curve, formula) ->
+            curve.label.ifEmpty { curve.source } to FunctionAnalysis.definiteIntegral(formula, xMin, xMax)
+        }
 
     private fun compileCurves(
         curves: List<PlotCurve>,

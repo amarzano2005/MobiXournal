@@ -55,12 +55,19 @@ data class PlotPathGroup(
     val lineStyle: LineStyle = LineStyle.PLAIN,
 )
 
-/** Full multi-curve plot output with styled strokes, labels, critical points, and summary table text. */
+/**
+ * Full multi-curve plot output with styled strokes, labels, critical points, and summary table text.
+ *
+ * [frame] is the fitted mapping the strokes were placed in (see [PlotFrame]); it is null when nothing
+ * was drawn, so a caller that has to place something in the plot's own coordinates knows there is no
+ * frame to place it in rather than inventing one.
+ */
 data class MultiPlotResult(
     val pathGroups: List<PlotPathGroup>,
     val labels: List<PlotLabel>,
     val criticalPoints: List<CriticalPoint>,
     val summaryText: String = "",
+    val frame: PlotFrame? = null,
 )
 
 /**
@@ -74,6 +81,12 @@ object FunctionAnalysis {
     private const val H = 1e-5
     private const val EPSILON = 1e-7
 
+    /** Deepest an adaptive Simpson subdivision may recurse before it settles for what it has. */
+    private const val MAX_INTEGRATION_DEPTH = 24
+
+    /** Samples a curve is checked at before integrating, to refuse one that is not finite. */
+    private const val FINITE_PRESCAN = 64
+
     /** Central difference numerical derivative: f'(x) ≈ (f(x + h) - f(x - h)) / (2h). */
     fun derivative(formula: Formula): Formula = Formula { x ->
         val yPlus = formula.at(x + H)
@@ -83,6 +96,53 @@ object FunctionAnalysis {
         } else {
             Double.NaN
         }
+    }
+
+    /**
+     * The **definite integral** $\int_a^b f(x)\,dx$, evaluated with adaptive Simpson's rule
+     * (`docs/math-engine.md`, section 3), or null when the integrand is not finite across the interval —
+     * a discontinuity is refused rather than returned as a NaN that would print as a number.
+     *
+     * The sign follows the bounds, so integrating the other way round negates the value.
+     */
+    fun definiteIntegral(formula: Formula, a: Double, b: Double, tolerance: Double = EPSILON): Double? {
+        if (!a.isFinite() || !b.isFinite()) return null
+        if (a == b) return 0.0
+        val lo = minOf(a, b)
+        val hi = maxOf(a, b)
+        if (!finiteAcross(formula, lo, hi)) return null
+        val whole = simpson(formula, lo, hi)
+        if (!whole.isFinite()) return null
+        val value = adaptiveSimpson(formula, lo, hi, tolerance.coerceAtLeast(1e-12), 0, whole) ?: return null
+        return if (a < b) value else -value
+    }
+
+    /** One parabola through [a], the midpoint and [b]: the elementary Simpson estimate on a slice. */
+    private fun simpson(f: Formula, a: Double, b: Double): Double {
+        val c = (a + b) / 2.0
+        return (b - a) / 6.0 * (f.at(a) + 4.0 * f.at(c) + f.at(b))
+    }
+
+    private fun adaptiveSimpson(f: Formula, a: Double, b: Double, eps: Double, depth: Int, whole: Double): Double? {
+        val c = (a + b) / 2.0
+        val left = simpson(f, a, c)
+        val right = simpson(f, c, b)
+        if (!left.isFinite() || !right.isFinite()) return null
+        val refined = left + right
+        if (depth >= MAX_INTEGRATION_DEPTH || abs(refined - whole) <= 15.0 * eps) {
+            return refined + (refined - whole) / 15.0
+        }
+        val l = adaptiveSimpson(f, a, c, eps / 2.0, depth + 1, left) ?: return null
+        val r = adaptiveSimpson(f, c, b, eps / 2.0, depth + 1, right) ?: return null
+        return l + r
+    }
+
+    private fun finiteAcross(f: Formula, a: Double, b: Double): Boolean {
+        for (i in 0..FINITE_PRESCAN) {
+            val x = a + (b - a) * i / FINITE_PRESCAN
+            if (!f.at(x).isFinite()) return false
+        }
+        return true
     }
 
     /**
@@ -205,13 +265,33 @@ object FunctionAnalysis {
         return roots
     }
 
-    /** Formats a compact multi-line analysis report for the given curves and their critical points. */
-    fun buildSummaryReport(curves: List<PlotCurve>, points: List<CriticalPoint>, xMin: Double, xMax: Double): String {
+    /**
+     * Formats a compact multi-line analysis report for the given curves and their critical points.
+     *
+     * [integrals] are the definite integrals to report, one `label to value` per curve — a null value
+     * marks one that could not be evaluated, so the summary says so instead of printing a number.
+     */
+    fun buildSummaryReport(
+        curves: List<PlotCurve>,
+        points: List<CriticalPoint>,
+        xMin: Double,
+        xMax: Double,
+        integrals: List<Pair<String, Double?>> = emptyList(),
+    ): String {
         val sb = StringBuilder()
         sb.append("Function Study (x in [${fmt(xMin)}, ${fmt(xMax)}])\n")
         curves.forEachIndexed { i, c ->
             val label = c.label.ifEmpty { "f${i + 1}(x)" }
             sb.append("• $label = ${c.source}\n")
+        }
+        if (integrals.isNotEmpty()) {
+            sb.append("Definite integrals over [${fmt(xMin)}, ${fmt(xMax)}]:\n")
+            integrals.forEach { (label, value) ->
+                sb.append(
+                    if (value == null) "• ∫ $label dx: not finite over the range\n"
+                    else "• ∫ $label dx = ${fmt(value)}\n",
+                )
+            }
         }
         if (points.isEmpty()) {
             sb.append("No critical points detected in this range.")

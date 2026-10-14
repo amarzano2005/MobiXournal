@@ -59,9 +59,21 @@ $$f''(x) \approx \frac{-f(x + 2h) + 16f(x + h) - 30f(x) + 16f(x - h) - f(x - 2h)
 - **Inflection Points ($f''(x) = 0$)**: Sign changes of $f''(x)$ indicate concavity transitions.
 
 ### 3. Definite integration & area shading
-Definite integrals $\int_a^b f(x)\,dx$ are calculated using **Adaptive Simpson's rule**. In the UI, users
-can enable "Shade Integral Area", which generates a semi-transparent polygonal fill bounded between the curve
-and the x-axis.
+Definite integrals $\int_a^b f(x)\,dx$ are calculated using **Adaptive Simpson's rule**
+(`FunctionAnalysis.definiteIntegral`, tolerance $10^{-7}$, recursing to 24 levels), and each curve's value is
+reported in the analysis summary the plot already carries. An integrand that is not finite across the bounds
+is **refused**, not returned as NaN: `sqrt(x)` over $[-1,1]$ and `1/x` over $[-1,1]$ report
+"not finite over the range".
+
+A plot whose `shadeIntegral` is set is drawn with the area filled, compiled **once** by `PlotInk` into one
+closed polygon in the frame the plotter fitted, so the canvas, SVG, PDF and the `.xopp` synthesis cannot
+disagree about the region a shaded plot stands for. The fill is the curve's own colour at the canvas'
+translucent-fill alpha (`CanvasChrome.BAND_FILL_ALPHA`), carried on the stroke's `fill` — the desktop's own
+way of saying a fill. The bounds are clipped to the element's `xMin`..`xMax`.
+
+Nothing is drawn for an area this build cannot draw: a curve that does not parse, a curve that leaves the
+plane inside the bounds (an asymptote is a break, not a region), a single-curve plot whose fitted frame does
+not contain the x-axis to shade against, or three or more curves ("the area" is then not one region).
 
 ---
 

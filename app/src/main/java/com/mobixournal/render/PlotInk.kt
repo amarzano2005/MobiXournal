@@ -4,6 +4,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.StrokePoint
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -47,6 +48,14 @@ internal object PlotInk {
     private const val PARSER_VARIABLE = "x"
 
     /**
+     * The wash alpha of the shaded integral area: the canvas' own translucent-fill token, the one the
+     * drag-select band is washed with, so a shade reads as a highlight over the graph rather than as a
+     * second curve. It rides the stroke's `fill`, which is exactly how the desktop carries a fill
+     * (`docs/xopp-format.md`), so the area survives a save to `.xopp`, SVG and PDF.
+     */
+    private const val SHADE_FILL_ALPHA = CanvasChrome.BAND_FILL_ALPHA
+
+    /**
      * The **other** spellings a parameterised curve's variable arrives in. The app itself writes the
      * parameter as the parser's `x` — the graph dialog's parametric tab enters `cos(x)`/`sin(x)` — but
      * this format is not only written by this app: [mobix-elements.md] documents a polar curve as
@@ -86,6 +95,9 @@ internal object PlotInk {
         if (result.pathGroups.isEmpty()) return CompiledPlot(emptyList(), unparsed)
 
         val out = mutableListOf<Element>()
+        // The shaded integral area is a background wash: it goes in before the frame, the axes and the
+        // curves, so it never paints over the graph it is the area *of*.
+        result.frame?.let { frame -> out += shade(plot, frame) }
         for (group in result.pathGroups) {
             // A group carries its curve's colour, which is how the per-curve width survives a plotter
             // that takes one width for all of them; the axis and marker groups fall back to the nominal.
@@ -106,6 +118,98 @@ internal object PlotInk {
         }
         return CompiledPlot(out, unparsed)
     }
+
+    // ---- the shaded integral area (docs/math-engine.md, section 3) -------------------------------
+
+    /**
+     * The **shaded integral area**: the region `shadeIntegral.from`..`shadeIntegral.to` between the
+     * plot's curve and the x-axis (or between its two curves), as one closed polygon filled with the
+     * curve's own colour at [SHADE_FILL_ALPHA].
+     *
+     * It is drawn **here, once**, and every surface reads it from here: the canvas through `LivingInk`,
+     * SVG, PDF and the `.xopp` synthesis all walk the same elements, so they cannot disagree about the
+     * area a shaded plot stands for. The polygon is placed in the frame the plotter fitted ([frame]), so
+     * its edge is the curve that was drawn rather than a second approximation of it.
+     *
+     * The bounds are clipped to the plot's own domain. Nothing is drawn when the element does not
+     * describe an area this build can draw — a curve that does not parse, a curve that leaves the plane
+     * inside the bounds (an asymptote is a break, not a region), or, for a single curve, a frame that
+     * does not contain the x-axis to shade against. An absent shade is a smaller loss than a filled
+     * region that is not the integral.
+     */
+    private fun shade(plot: PlotElement, frame: PlotFrame): List<Element> {
+        val shading = plot.shadeIntegral ?: return emptyList()
+        val lo = minOf(shading.from, shading.to)
+        val hi = maxOf(shading.from, shading.to)
+        val from = maxOf(lo, plot.xMin)
+        val to = minOf(hi, plot.xMax)
+        // A range that never meets the domain has no area; degenerate bounds are no area either.
+        if (to <= from) return emptyList()
+        val polygon = when (plot.curves.size) {
+            // One curve: the area between it and the x-axis. The y-window is fitted to the data and the
+            // axis is only drawn when it falls inside it, so there is nothing to shade against otherwise.
+            1 -> if (frame.containsXAxis) axisBand(plot.curves[0], from, to, plot, frame) else null
+            // Two curves: the area between them — the region a shaded two-curve plot asks about.
+            2 -> betweenCurves(plot.curves[0], plot.curves[1], from, to, plot, frame)
+            // Three or more: "the area" is not one region, and guessing which one would be worse than
+            // no wash at all.
+            else -> null
+        } ?: return emptyList()
+        return listOf(InkPrimitives.stroke(polygon.points, polygon.color, polygon.widthPt, fill = SHADE_FILL_ALPHA))
+    }
+
+    /** The region between [curve] and the x-axis, closed down onto the axis at both bounds. */
+    private fun axisBand(
+        curve: PlotCurve,
+        from: Double,
+        to: Double,
+        plot: PlotElement,
+        frame: PlotFrame,
+    ): Shade? {
+        val formula = compileFormula(curve.source, plot.parameters) ?: return null
+        val run = FunctionPlot.sample(formula, from, to, plot.samples).takeIf(::isUnbroken) ?: return null
+        val points = ArrayList<StrokePoint>(run.size + 3)
+        run.forEach { (x, y) -> points += InkPrimitives.pt(frame.toX(x), frame.toY(y), curve.strokeWidth) }
+        points += InkPrimitives.pt(frame.toX(to), frame.toY(0.0), curve.strokeWidth)
+        points += InkPrimitives.pt(frame.toX(from), frame.toY(0.0), curve.strokeWidth)
+        points += points.first()
+        return Shade(points, curve.color, curve.strokeWidth)
+    }
+
+    /**
+     * The region enclosed by [a] and [b]: forward along the first, back along the second, closed. Where
+     * the two cross inside the bounds the polygon crosses itself and a renderer fills both lobes, which
+     * is the region between them rather than a wrong one.
+     */
+    private fun betweenCurves(
+        a: PlotCurve,
+        b: PlotCurve,
+        from: Double,
+        to: Double,
+        plot: PlotElement,
+        frame: PlotFrame,
+    ): Shade? {
+        val fa = compileFormula(a.source, plot.parameters) ?: return null
+        val fb = compileFormula(b.source, plot.parameters) ?: return null
+        val first = FunctionPlot.sample(fa, from, to, plot.samples).takeIf(::isUnbroken) ?: return null
+        val second = FunctionPlot.sample(fb, from, to, plot.samples).takeIf(::isUnbroken) ?: return null
+        val points = ArrayList<StrokePoint>(first.size + second.size + 1)
+        first.forEach { (x, y) -> points += InkPrimitives.pt(frame.toX(x), frame.toY(y), a.strokeWidth) }
+        for (index in second.indices.reversed()) {
+            val (x, y) = second[index]
+            points += InkPrimitives.pt(frame.toX(x), frame.toY(y), a.strokeWidth)
+        }
+        points += points.first()
+        return Shade(points, a.color, a.strokeWidth)
+    }
+
+    /**
+     * Whether [points] are one uninterrupted run: at least two, all finite. A single non-finite sample
+     * means the curve leaves the plane inside the bounds, and the polygon across that break would be a
+     * region the integral does not have.
+     */
+    private fun isUnbroken(points: List<Pair<Double, Double>>): Boolean =
+        points.size >= 2 && points.all { (x, y) -> x.isFinite() && y.isFinite() }
 
     // ---- parametric and polar curves, which the plotter cannot place -----------------------------
 
@@ -216,6 +320,9 @@ internal object PlotInk {
 
     private fun nominalWidth(plot: PlotElement): Double =
         plot.curves.firstOrNull()?.strokeWidth ?: NOMINAL_WIDTH_PT
+
+    /** A shading polygon: its closed outline, and the curve colour and width it is washed in. */
+    private data class Shade(val points: List<StrokePoint>, val color: Int, val widthPt: Double)
 }
 
 /**
