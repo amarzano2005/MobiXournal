@@ -524,3 +524,31 @@ created = 2026-10-14
 tags = ["mobix", "format", "roadmap"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "compute-the-definite-integral-in-the-plot-analysis"
+title = "Compute the definite integral in the plot analysis"
+description = "docs/math-engine.md section 3: a definite integral int_a^b f(x) dx is meant to be evaluated with Adaptive Simpson rule (tolerance 1e-7) and its value reported with the rest of the analysis, so the number a shaded area stands for actually exists. Nothing computes it today: the only mention of an integral in render/ is the model field. Add the integrator to render/FunctionAnalysis.kt beside derivative and findCriticalPoints, pure and Android-free, honouring each curve own range, and expose the value through the summary that buildSummaryReport already builds so render/MultiFunctionPlotter.kt picks it up on every path (canvas, PDF, SVG, .xopp export). Verify with JVM unit tests over the pure integrator: int_0^1 x dx = 0.5, int_0^pi sin x dx = 2, a non-finite or discontinuous integrand is refused rather than returned as NaN, and the value is present in the summary text."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 505
+created = 2026-10-14
+tags = ["plot", "math"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "draw-the-shaded-integral-area-for-a-plotelement"
+title = "Draw the shaded integral area for a PlotElement"
+description = "docs/math-engine.md section 3 promises Shade Integral Area: a semi-transparent polygonal fill bounded between the curve and the x-axis over PlotElement.shadeIntegral.from..to. The field exists in format/model/Living.kt and MobixPlotCodec round-trips it, but nothing draws it - the only readers of shadeIntegral are the codec and a KDoc comment. Fill it inside the plot ink compiler render/PlotInk.kt so screen, SVG, PDF and the .xopp synthesis through render/LivingInk.kt cannot disagree: build the closed polygon between the curve and the axis (or between the two curves when the plot has two) clipped to the from..to bounds, fill colour from the curve colour, alpha from the design token already used for a translucent fill. A shadeIntegral outside the plot range, or a curve that does not parse, draws nothing rather than a wrong area. Verify with JVM unit tests over the pure compiler: a shaded plot yields a closed filled polygon, an unshaded one yields none, and a shaded .mobix exports through XoppSynthesis with the fill ink present. Then an emulator pass with a screenshot of the shaded area over a selected plot."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 508
+created = 2026-10-14
+tags = ["plot", "math"]
+rebuild = true
+emulator_debug = true
