@@ -428,20 +428,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "repack-only-the-pages-a-save-changed"
-title = "Repack only the .mobix pages a save changed"
-description = "PARTLY DONE 2026-10-14. The wiring exists and the win is measured: MobixIncrementalSave plans the diff (a page compared by the sha256 its own manifest records, an asset by the hash in its name, the envelope byte-compared) and DocumentIo remembers each open .mobix staged copy by document id, repacking over it when a save lands back on the same URI, falling back to the whole archive otherwise; MobixZipRewrite copies an unchanged entry's compressed bytes verbatim (java.util.zip cannot put a raw deflated entry, so the container's local headers, central directory and end record are written by hand). Measured on ten pages with one edited: 12 of 14 entries copied verbatim, 4862 B written against 4926 B for a full write, and an untouched page's compressed bytes asserted identical to the source - so the file no longer grows and a background PDF is never inflated or recompressed. Two pieces remain. (1) Skipping the JSON regeneration of a page whose model did not change: today every copied page's JSON is still rebuilt, only to hash it. (2) The emulator round trip that has never been run: open a .mobix, edit, save, close, reopen, confirm the document is intact. It cannot be driven the short way - measured 2026-10-14, handing the app a content:// URI from adb is refused (SecurityException: UID 2000 may not grant another app's content URI), and UriStaging.isWritable accepts only a *persisted* write grant, which only the system picker produces. So the tab must be opened through the Open picker once (the open path persists that grant, which makes the in-place repack reachable on save), or the document must be saved through Save As and reopened."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 460
-created = 2026-10-14
-tags = ["mobix", "perf"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "replay-the-writing-in-time-with-its-recording"
 title = "Replay the writing in time with its recording"
 description = "render/KaraokeStrokeAnimator.kt computes what a stroke should look like at an audio playhead - it reads StrokePoint.dtMs, which only a .mobix carries - and DrawingSurfaceView.karaokeState exists on the view, but nothing sets it and DrawingSurfacePaint.kt never reads it: the animator is dead code. So every timing the app is at pains to capture and store is shown to nobody, and audio playback (audio/AudioPlayer.kt, audio/AudioSession.kt) is play and stop while the page stays still. Working this is an investigation first: what clock the playback can publish into the view (the player owns a MediaPlayer, so the playhead has to come from it rather than from a second timer that would drift), how the paint loop draws a stroke visible prefix without re-tessellating the page each frame, what happens to strokes whose dtMs are null (a .xopp load or an older .mobix - the honest answer is that such a stroke is simply already complete), and whether the first cut is playback only or includes scrubbing. Add the atomic tasks that come out of it."
@@ -565,4 +551,18 @@ order = 880
 created = 2026-10-15
 tags = ["mobix", "audio"]
 rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "confine-the-save-identity-adoption-to-the-pages-it-writes"
+title = "Adopt a .mobix save's identity only over the pages it writes"
+description = "The .mobix save no longer builds a page nothing touched (repack-only-the-pages-a-save-changed), but the editor still hands it a document whose every page has been opened. MainActivityDocuments calls DrawingSurfaceView.adoptIdentity() on the UI thread before the snapshot, and that runs format/model/DocumentIdentity.kt's Document.withIdentity(), which walks pages.map { ElementId.withIds(page) } over the WHOLE page list. For a paged .mobix that list is the reader-backed one, so a save of a 200-page notebook opens all 200 pages — 199 of them only to be told they already have ids — which is exactly the cost MobixPageReuse was built to avoid; the format layer's measurement (2 ms, 1 page opened) is therefore not what the editor actually pays. The narrow form already exists: Document.withIdentityOn(indices) adopts over the pages a save will write. Adopting identity where the plan is known (io/DocumentIo/MobixDocument.of already pass withIdentityOn(reuse.written)) leaves the caller's adoption to cover the pages the plan lists as written, and the document id alone for the rest. Care is needed on the mirrored pane and the undo stack: DrawingSurfaceView.doc's setter is what tells a second pane the document moved on, and identity must not become an undo entry. Verify with JVM tests: saving a 200-page .mobix through the editor's path (adoptIdentity + encode) opens only the pages the plan writes (TrackedEntrySource / a counting PageSource), the saved file re-opens to the same document, and a second save adopts nothing. Then re-run the benchmark to state what the editor pays rather than what the format layer pays, and update docs/data-path.md's \"not live yet\" note, README.md and docs/mobix-format.md with the measurement."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 890
+created = 2026-10-15
+tags = ["mobix"]
+rebuild = false
 emulator_debug = false
