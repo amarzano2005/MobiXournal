@@ -178,9 +178,15 @@ Nothing that decides what to write is a flag. A part is compared by the `sha256`
 records, an asset by the hash in its name, the envelope byte for byte, and a copied page by the shape of
 the list it is in; a recording is bundled the way a picture is (the bytes the stroke's sidecar name
 resolves to in the audio store, so one entry covers every stroke that replays from it). Anywhere else —
-a new document, a first save, a Save As to another target — there is no source and the whole archive is
-written, which is also where a payload no store ever adopted (a page that was never read) can still be
-dropped (`supply-a-deferred-payload-on-a-save-that-has-no-source`).
+a new document, a first save, a Save As to another target — there is no source to repack over and the
+whole archive is built from the model. The payloads such a document still **references** travel with it
+anyway: the model keeps the names it was read with (`Background.Pdf.bundledAsset`,
+`Background.Pixmap.bundledAsset`, `Stroke.bundledAudio`), and `DocumentIo.carriedAssets` reads those
+`assets/` entries back out of the staged copy the session still holds and hands them to the writer as
+payloads — so a picture or a recording that no page has ever adopted (a page that was never read) is
+not lost to a Save As. A document whose staged copy the session no longer holds has nothing left to
+read, which is the one case a payload can still be missing; the page that needs it is what
+`report-a-mobix-page-whose-background-is-missing` exists to report.
 
 **Measured** (`MobixIncrementalSaveBenchmarkTest`, report in
 `app/build/reports/mobix-incremental-save.txt`): on a two-hundred-page notebook with one edited page, the

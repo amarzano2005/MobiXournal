@@ -3,6 +3,7 @@ package com.mobixournal.io
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.mobixournal.audio.audioRef
 import com.mobixournal.format.FileKind
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp
@@ -11,13 +12,16 @@ import com.mobixournal.format.mobix.MobixConflictDetector
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
+import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixIncrementalSave
 import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.format.mobix.asAssetSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.withIdentity
 import com.mobixournal.render.ATTACH_DOMAIN
 import com.mobixournal.render.BackgroundResolver
@@ -578,6 +582,11 @@ class DocumentIo(
                             appVersion = appVersion,
                             nowMillis = now,
                             source = target?.let { displayName(it, "document") },
+                            // A whole-archive write builds every page from the model, so a page that
+                            // names `assets/…` writes that reference back. Carry the bytes it points
+                            // at out of the archive this document was opened from, or the new file
+                            // names an entry it does not have ([carriedAssets]).
+                            payloads = carriedAssets(document),
                         )
                         MobixContainer.save(mobix.encode(now, backgroundBytes, audio).entries, output)
                     } else {
@@ -632,6 +641,65 @@ class DocumentIo(
      * could not draw into it. A `.mobix` keeps everything, so its list is always empty.
      */
     class Encoded(val file: File, val uncompiled: List<Uncompilable> = emptyList())
+
+    /**
+     * The `assets/` entries a **source-less** `.mobix` write still has to carry, read out of the
+     * archive this document was opened from.
+     *
+     * A save that repacks over its own archive needs none of this: an entry whose bytes did not change
+     * is streamed out of that file verbatim ([MobixIncrementalSave]). But a Save As, or a first save of
+     * a document whose staged copy is gone, writes a fresh archive from the model — and the model keeps
+     * the *names* of the payloads it was read with ([Background.Pdf.bundledAsset],
+     * [Stroke.bundledAudio]) precisely so a rewrite cannot orphan them. The bytes those names point at
+     * are only adopted into the app's stores when a page is read ([`BundledPageAssets`]), so a page
+     * nothing has drawn yet has no local copy and the stores answer nothing for it. Left alone, the
+     * written page would name `assets/img_<sha>.png` with no such entry in the archive: the picture, the
+     * bundled PDF or the recording would be silently gone from the new file.
+     *
+     * So the entries the document still *references* are read back out of the staged copy and handed to
+     * the writer as payloads. Reading them is the only pass over the pages that costs anything, and it
+     * is a pass this path is already making: every page is being built from the model anyway. A document
+     * whose staged copy the session no longer holds has nothing to read and yields nothing — the honest
+     * answer, reported to the user where a page needs a background it cannot get
+     * (`report-a-mobix-page-whose-background-is-missing`).
+     */
+    private fun carriedAssets(document: Document): Map<String, ByteArray> {
+        val source = document.documentId?.let { mobixSources[it] }?.takeIf { it.staged.isFile }
+            ?: return emptyMap()
+        val referenced = referencedAssets(document)
+        if (referenced.isEmpty()) return emptyMap()
+        return entrySources(source.staged).use { entries ->
+            val assets = entries.asAssetSource()
+            referenced.mapNotNull { name -> assets.bytes(name)?.let { bytes -> name to bytes } }.toMap()
+        }
+    }
+
+    /**
+     * The `assets/` entry names the model itself still carries: a page's bundled background and a
+     * stroke's bundled recording. A stroke that names an asset through its `fn` instead — the shape
+     * this app wrote before it kept the two apart — counts as one too, which is the same rule the
+     * adoption step reads it by ([`BundledPageAssets`]).
+     */
+    private fun referencedAssets(document: Document): Set<String> {
+        val names = LinkedHashSet<String>()
+        for (page in document.pages) {
+            when (val background = page.background) {
+                is Background.Pdf -> background.bundledAsset?.let(names::add)
+                is Background.Pixmap -> background.bundledAsset?.let(names::add)
+                is Background.Solid -> Unit
+            }
+            for (layer in page.layers) {
+                for (element in layer.elements) {
+                    val stroke = element as? Stroke ?: continue
+                    stroke.bundledAudio?.let(names::add)
+                    stroke.audioRef()?.filename
+                        ?.takeIf { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO) }
+                        ?.let(names::add)
+                }
+            }
+        }
+        return names
+    }
 
     /**
      * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's

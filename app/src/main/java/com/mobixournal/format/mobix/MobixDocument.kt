@@ -442,6 +442,13 @@ internal class MobixDocument(
      *   only** — a page nobody is going to write is a page nobody has to open. The same plan is what
      *   [encode] is given; it applies to a paginated document and is ignored for an infinite one,
      *   whose chunks are always derived from the pages.
+     * @param payloads the bundled `assets/` entries the written document must carry, by entry name. A
+     *   **source-less** write — a Save As, a first save — builds every page from the model, so a page
+     *   that names `assets/img_<sha>.png` writes that reference back ([MobixPageCodec] keeps
+     *   `bundledAsset` for exactly this); a payload supplied here is emitted as its entry, so the
+     *   reference keeps pointing at bytes instead of at nothing. The caller reads them from whatever
+     *   archive it still holds — the document layer does this off the staged copy the document was
+     *   opened from. A repack over the original file needs none: the entry is copied verbatim.
      */
     fun of(
         document: Document,
@@ -450,6 +457,7 @@ internal class MobixDocument(
         source: String? = null,
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
         reuse: MobixPageReuse = MobixPageReuse.none,
+        payloads: Map<String, ByteArray> = emptyMap(),
     ): MobixDocument {
         val isPaginated = canvasMode == CanvasMode.PAGINATED
         val reuse = if (isPaginated) reuse else MobixPageReuse.none
@@ -499,6 +507,7 @@ internal class MobixDocument(
                     preview = document.preview,
                     source = source,
                 ),
+                payloads = payloads,
             )
         }
 
