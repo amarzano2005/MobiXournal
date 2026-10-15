@@ -42,7 +42,8 @@ No user-facing interface can exceed the capabilities of the data model beneath i
    - Parametric Function Plots (`PlotElement` preserving formulas $f(x)$, intervals, and styles).
    - Parametric Shapes (`ParametricShapeElement` with vertex handles).
    - Circuit & Electronics Components (`CircuitElement` with magnetic connection pins).
-   - High-fidelity Inking (`Stroke` with tilt, azimuth, barrel roll, and $\Delta t$ millisecond timestamps).
+   - High-fidelity Inking (`Stroke` with tilt, azimuth, and $\Delta t$ millisecond timestamps — and
+     deliberately no barrel roll: Android exposes no roll axis, so the platform cannot supply it).
 2. **Lossless Round-Trip Bridge**: [mobix-format.md](mobix-format.md) provides
    bidirectional `.xopp` ingestion and synthesis export, plus official Lua companion plugins for desktop Xournal++.
 3. **Reactive Math Engine**: [math-engine.md](math-engine.md) powers real-time expression evaluation, numerical

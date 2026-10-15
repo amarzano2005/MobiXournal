@@ -284,14 +284,26 @@ default, round-tripped by the settings backup and offered in **Settings → Shor
 because a finger tap that silently rewrites the document is exactly the kind of thing a user must be
 able to turn off.
 
-## Out of scope: tilt / orientation
+## Telemetry: stored, never drawn
 
-**Out of scope: tilt / orientation.** The `.xopp` format stores only per-vertex width — it has no
-place for stylus **tilt / orientation** (`AXIS_TILT` / `AXIS_ORIENTATION`), so tilt-driven width
-can't round-trip through the file and is **out of scope** per the project's scope rule (we only
-build features the `.xopp` format can represent — see `AGENTS.md`). None of the input layer changes
-the file format — it's all input-layer behaviour, so it lives entirely in `render/`/`ui/` without
-touching `format/`.
+**Telemetry: stored, never drawn.** `.xopp` stores only per-vertex width, so nothing about tilt or
+orientation round-trips through it — but a `.mobix` carries a stroke's raw `tilt`, `azimuth` and
+per-point `dtMs` ([mobix-elements.md](mobix-elements.md) owns the element schema), and this paragraph
+is the **written decision** about what they are for:
+
+- **The width rule is the desktop pressure filter, exactly as above.** Telemetry never feeds the
+  drawn width and never feeds the smoother: `StrokeSmoother` stays a function of position and
+  pressure, so the same hand movement draws the same stroke whether or not a recording, a tilt, or a
+  timestamp was captured. A tilt- or speed-driven width is **out**, and stays out until a later written
+  decision moves it — the storage of a value is not a promise to draw with it.
+- **`dtMs` exists for replay, not for drawing.** It is what
+  [audio-inking-sync.md](audio-inking-sync.md) replays the writing against, point by point.
+- **Barrel roll is not capturable here.** Android's `MotionEvent` exposes tilt and orientation and no
+  roll axis, so the platform cannot supply it and no field is captured or stored; a `.mobix` from
+  another writer that carried one would simply be an uninterpreted field.
+- The input layer therefore writes telemetry (a `format/` concern, on the `.mobix` path only) while
+  everything it decides about *drawing* stays in `render/`/`ui/`. A `.xopp` write drops the three
+  fields, which is stated in [mobix-format.md](mobix-format.md).
 
 ## Selection — desktop parity (shipped)
 

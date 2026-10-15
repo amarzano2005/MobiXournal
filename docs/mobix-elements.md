@@ -73,8 +73,8 @@ translation.
   "capStyle": "round",
   "bounds": { "left": 101.7, "top": 204.4, "right": 104.5, "bottom": 207.5 },
   "points": [
-    { "x": 102.4, "y": 205.1, "width": 1.2, "pressure": 0.55, "tilt": 14.2, "azimuth": 32.0, "dtMs": 0 },
-    { "x": 103.8, "y": 206.8, "width": 1.4, "pressure": 0.62, "tilt": 14.8, "azimuth": 33.1, "dtMs": 6 }
+    { "x": 102.4, "y": 205.1, "width": 1.2, "pressure": 0.55, "tilt": 0.248, "azimuth": 0.558, "dtMs": 0 },
+    { "x": 103.8, "y": 206.8, "width": 1.4, "pressure": 0.62, "tilt": 0.258, "azimuth": 0.578, "dtMs": 6 }
   ]
 }
 ```
@@ -85,6 +85,13 @@ translation.
 - `points[].width` is the **pressure-resolved** width actually drawn, so the document renders the same
   without re-running the pressure filter; `.pressure`, `.tilt`, `.azimuth` and `.dtMs` are the raw
   telemetry and are absent (not zero) for a `.xopp` import, which has none of them.
+- **Units and presence.** `.tilt` is radians from the screen normal and `.azimuth` is radians of the
+  pen's in-plane angle, exactly as `MotionEvent.AXIS_TILT` and `AXIS_ORIENTATION` report them — the app
+  stores the platform's own numbers rather than converting — and `.dtMs` is milliseconds from the
+  stroke's first point. A `tilt` of `0` means a pen held upright; a field is meant to be absent only
+  when the tablet declares no such axis, and today a genuine zero and a missing axis are both written
+  as absent (`store-a-genuine-zero-tilt-instead-of-dropping-it`). None of the three is a width: the
+  width is `points[].width`, and telemetry never feeds it ([stylus.md](stylus.md)).
 - `fill` is the desktop alpha (`0`–`255`) of a closed stroke's interior; absent when unfilled.
 
 ### Text
