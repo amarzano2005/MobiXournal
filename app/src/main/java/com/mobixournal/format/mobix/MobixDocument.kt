@@ -8,8 +8,6 @@ import com.mobixournal.format.model.DEFAULT_CREATOR
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.Page
-import com.mobixournal.format.model.withIdentity
-import com.mobixournal.format.model.withIdentityOn
 import java.io.OutputStream
 
 /**
@@ -455,15 +453,16 @@ internal class MobixDocument(
     ): MobixDocument {
         val isPaginated = canvasMode == CanvasMode.PAGINATED
         val reuse = if (isPaginated) reuse else MobixPageReuse.none
-        // Identity is the *document's* own ([withIdentity]): it mints what is missing and keeps what
-        // is there, so a document that came from a `.mobix` is written with the ids it read, one
-        // that came from a `.xopp` gets a set of ids that the open document adopts from then on,
-        // and a re-save of either mints nothing. A revived entity already carries the id the block
-        // recorded, so it keeps it too. A caller that wants a specific id (a test, a future import)
-        // sets it on the document it passes rather than overruling it here. It runs over [reuse]'s
-        // written pages alone when there is a plan: a copied page is not a page that needs an id.
+        // Identity is the *document's* own: it mints what is missing and keeps what is there, so a
+        // document that came from a `.mobix` is written with the ids it read, one that came from a
+        // `.xopp` gets a set of ids that the open document adopts from then on, and a re-save of either
+        // mints nothing. A revived entity already carries the id the block recorded, so it keeps it
+        // too. A caller that wants a specific id (a test, a future import) sets it on the document it
+        // passes rather than overruling it here. [reuse] decides **which pages are asked**: the ones
+        // this save writes and no others, the same choice the editor makes on the model it snapshots
+        // (`MobixPageReuse.identified`, reached through `DocumentIo.identifyForSave`).
         val revived = MobixMetaRevival.apply(document)
-        val identified = if (reuse.written == null) revived.withIdentity() else revived.withIdentityOn(reuse.written)
+        val identified = reuse.identified(revived)
         val documentId = requireNotNull(identified.documentId) {
             "withIdentity() mints the document id when a document has none"
         }

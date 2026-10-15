@@ -436,7 +436,15 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     // unidentified, and the next save hands out a fresh set — which a merge or a sync client reads as
     // the whole page replaced. Adopting here, on the UI thread and before the snapshot, is what keeps
     // model and file in step; every save after the first finds nothing to adopt and costs nothing.
-    val document = if (saveFormat == SaveFormat.MOBIX) view.adoptIdentity() else view.toDocument()
+    // **Which pages are asked for an id is the save's own answer** ([DocumentIo.identifyForSave]): the
+    // pages this write will build, not every page of the document — a page the archive already holds
+    // needs no id minted into it, and asking it for one would inflate it here, on the UI thread.
+    val snapshot = view.toDocument()
+    val document = if (saveFormat == SaveFormat.MOBIX) {
+        view.adoptIdentity(io.identifyForSave(snapshot, uri))
+    } else {
+        snapshot
+    }
     val pdf = view.pdfSourceFile()
     val images = view.imageSources()
     inBackground(

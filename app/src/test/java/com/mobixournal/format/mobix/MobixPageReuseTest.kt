@@ -8,6 +8,7 @@ import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.withIdentity
 import com.mobixournal.format.model.withIdentityOn
 import com.mobixournal.format.model.withPage
 import java.io.ByteArrayInputStream
@@ -314,6 +315,72 @@ class MobixPageReuseTest {
     // ---- identity -----------------------------------------------------------------------------------
 
     @Test
+    fun adoptingTheIdentityOfThePagesASaveWritesOpensNoOtherPage() {
+        val file = temp.newFile("notebook.mobix")
+        val opened = notebook(file, pageCount = 200)
+        opened.use {
+            val edited = opened.document.editPage(150)
+            val reuse = reuseOf(file, edited)
+            assertEquals("only the edited page is written", setOf(150), reuse.written)
+
+            opened.pages.opened.clear()
+            val identified = reuse.identified(edited)
+
+            // The page this save writes is in the model already (the page list overlays it), so
+            // identifying what the save writes costs the archive nothing — and every page it copies is
+            // left alone. What the editor did before this exists is the assertion below it.
+            assertEquals("no page is opened to identify the pages this save writes", emptyList<Int>(), opened.pages.opened)
+            assertEquals("the document keeps the id it was opened with", edited.documentId, identified.documentId)
+            assertTrue(
+                "the page this save writes carries its ids",
+                identified.pages[150].layers.flatMap { it.elements }.all { ElementId.idOf(it) != null },
+            )
+
+            // The whole-document form, which is what [DrawingSurfaceView.adoptIdentity] used to call
+            // before every `.mobix` save: it opens the notebook to find nothing to do.
+            opened.pages.opened.clear()
+            opened.document.withIdentity()
+            assertEquals(
+                "the whole-document adoption opens every page — the cost this removes",
+                (0 until 200).toList(),
+                opened.pages.opened,
+            )
+        }
+    }
+
+    @Test
+    fun theIdentityASaveWritesIsTheIdentityTheModelKeeps() {
+        val file = temp.newFile("notebook.mobix")
+        val opened = notebook(file, pageCount = 3)
+        opened.use {
+            // The document's own id is the case the editor's adoption still has to do, whatever the
+            // pages look like (a page read out of an archive carries ids — its decoder mints them); and
+            // it is minted into the *manifest*, so a model that did not adopt it would hand out a fresh
+            // one on the next save (`format/model/DocumentIdentity.kt`).
+            val edited = opened.document.editPage(1).copy(documentId = null)
+            val reuse = reuseOf(file, edited)
+            assertEquals(setOf(1), reuse.written)
+
+            opened.pages.opened.clear()
+            val identified = reuse.identified(edited)
+
+            assertNotNull("the adoption mints the document's own id", identified.documentId)
+            assertEquals(
+                "and it does so without opening a page — the pages it copies are never asked for one",
+                emptyList<Int>(),
+                opened.pages.opened,
+            )
+
+            val saved = save(file, identified, reuse)
+            assertEquals(
+                "the file holds the id the model holds",
+                identified.documentId,
+                openDocument(saved.bytes).documentId,
+            )
+        }
+    }
+
+    @Test
     fun identityIsAdoptedOnThePagesASaveWrites() {
         val file = temp.newFile("notebook.mobix")
         val opened = notebook(file)
@@ -348,7 +415,7 @@ class MobixPageReuseTest {
     }
 }
 
-/** The same element with no id of its own, for the identity test above. */
+/** The same element with no id of its own, for the identity tests above. */
 private fun Element.withoutId(): Element = when (this) {
     is Stroke -> copy(id = null)
     is com.mobixournal.format.model.TextElement -> copy(id = null)

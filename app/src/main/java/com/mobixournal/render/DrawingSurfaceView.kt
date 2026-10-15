@@ -24,7 +24,6 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
-import com.mobixournal.format.model.withIdentity
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TextElement
@@ -799,15 +798,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * selection, no scrolled-to-top, no `onDocumentLoaded`. A save must not throw away the undo stack,
      * which is exactly what [load] does, so a save does not go through it.
      *
-     * Assigning through [doc] is deliberate: that setter is the one place a mirrored pane hears that
-     * the document moved on, so both views of a document stay the same document. When there is nothing
-     * to adopt — every save after the first — [withIdentity] hands back the very same document and the
-     * assignment is a no-op, so no pane is woken for a document that did not change.
+     * [identified] is **what the save resolved** ([DocumentIo.identifyForSave]), not a whole-document
+     * adoption: the identity is adopted over the pages that write will build, so a page the archive
+     * already holds is never asked for one — on a two-hundred-page notebook that is the difference
+     * between no page read at all and the notebook. An already identified document comes back *itself*,
+     * in which case this is a no-op and no pane is woken for a document that did not change.
      *
-     * Returns the model the save must encode.
+     * Assigning through [doc] is deliberate: that setter is the one place a mirrored pane hears that
+     * the document moved on, so both views of a document stay the same document.
      */
-    fun adoptIdentity(): Document {
-        val identified = doc.withIdentity()
+    fun adoptIdentity(identified: Document): Document {
         doc = identified
         return identified
     }

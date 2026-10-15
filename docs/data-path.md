@@ -37,11 +37,16 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   (`Document.documentId`) and is written back on the next save, so saving an open document is an edit
   of that document rather than a new one — the difference a sync client or a later merge sees. The ids
   of the pages and elements come with it the same way, and a document that arrives *without* them (a
-  `.xopp` has none) **adopts** them before the first `.mobix` write (`Document.withIdentity`,
-  `format/model/DocumentIdentity.kt`): minted into the model rather than into the file, so the file's
-  ids are the model's own and every later save writes the same ones. A writer that minted them on a
-  copy would leave the open document unidentified, and the next save would hand out a fresh set — which
-  a merge reads as the whole page replaced rather than edited.
+  `.xopp` has none) **adopts** them before the first `.mobix` write (`format/model/DocumentIdentity.kt`):
+  minted into the model rather than into the file, so the file's ids are the model's own and every later
+  save writes the same ones. A writer that minted them on a copy would leave the open document
+  unidentified, and the next save would hand out a fresh set — which a merge reads as the whole page
+  replaced rather than edited. *Which* pages get that treatment is the save's own plan: the ones it will
+  write, through one function both sides call (`MobixPageReuse.identified` — below, and
+  [mobix-format.md](mobix-format.md)). A page that was *read* carries element ids either way, because the
+  `.mobix` decoder mints one for an element that has none (`MobixElementCodec`'s `mint`), so what a save
+  has to identify is narrower than it looks: the document's own id, and the page ids the manifest records
+  for the pages it rebuilds.
 - **Its bundled payloads are adopted a page at a time** (a `.mobix` is self-contained, so the bytes in
   the archive *are* the background — and the recording), when the page that names them is read:
   `io/BundledPageAssets.kt` is a `PageSource` layer over the reader, the `BackgroundResolver` the
@@ -92,9 +97,12 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
 
   What is **not** live yet: the reader-backed open has had no on-device pass — this host has no emulator
   or device, so the page counter, the page list and the first frame of a 200-page notebook are covered by
-  unit tests alone, and a save still **adopts identity over every page** before it encodes
-  (`DrawingSurfaceView.adoptIdentity` → `Document.withIdentity`), which opens a document it is not going
-  to write. The save itself already writes only the pages that moved (`repack-only-the-pages-a-save-changed`).
+  unit tests alone, and so is the identity adoption a save needs, whose source-matching branch needs a
+  `content://` URI a JVM test cannot build (`verify-the-paged-mobix-open-and-canvas-on-the-emulator`).
+  The save writes the pages that moved, and **the editor's identity adoption is the save's own answer**:
+  `MainActivityDocuments` asks what this write will build (`DocumentIo.identifyForSave`) and
+  `DrawingSurfaceView.adoptIdentity` applies it, so a two-hundred-page notebook is no longer opened to be
+  told its pages already have ids.
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 
@@ -158,10 +166,13 @@ hash and its decode. `format/mobix/MobixPageReuse.kt` answers first, from the sh
 page list — a `.mobix` held page by page keeps the reader's own list with the edited pages overlaid, so
 a page an edit did not replace **is** the source's page at that index: it has an entry the manifest
 names and a `sha256` the manifest recorded, and the save copies the one and writes the other without
-building anything. Identity follows the same rule, one step earlier: `MobixDocument.of` adopts ids over
-the pages it will **write** (`Document.withIdentityOn`), because a copied page's ids came with the file.
-The plan is `MobixSavePlan` — the entries to write, plus the order the whole file goes in, reused pages
-included.
+building anything. Identity follows the same rule, one step earlier, and through **one** function
+(`MobixPageReuse.identified`): a save adopts ids over the pages it will *write* and over nothing else,
+because a copied page's ids came with the file and asking it for one would open it. The write takes that
+answer on the copy it encodes (`MobixDocument.of`) and the editor takes the same answer on the model it
+is about to snapshot (`DocumentIo.identifyForSave`, from `MainActivityDocuments`), which is what keeps
+the open document and the file from disagreeing about which page needed an id. The plan is
+`MobixSavePlan` — the entries to write, plus the order the whole file goes in, reused pages included.
 
 Nothing that decides what to write is a flag. A part is compared by the `sha256` its own manifest
 records, an asset by the hash in its name, the envelope byte for byte, and a copied page by the shape of

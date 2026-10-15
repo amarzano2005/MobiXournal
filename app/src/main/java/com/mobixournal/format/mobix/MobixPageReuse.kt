@@ -1,7 +1,10 @@
 package com.mobixournal.format.mobix
 
+import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.EditedPages
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.withIdentity
+import com.mobixournal.format.model.withIdentityOn
 
 /**
  * Which of a document's pages a save will **write**, and the part the archive it is repacking over
@@ -49,6 +52,27 @@ internal class MobixPageReuse private constructor(
      */
     val written: Set<Int>?,
 ) {
+
+    /**
+     * [document] as its write needs it: the identity adopted over the pages **this save writes**, and
+     * over nothing else.
+     *
+     * A page the file already holds is a page no id has to be minted into — the ids are in the file and
+     * the model read them from it — so asking that page whether it has one is what would open it: the
+     * whole-document form ([withIdentity]) walks every page, so on a two-hundred-page notebook a save
+     * would inflate the notebook to be told it has nothing to do (`docs/data-path.md` → *The page
+     * window*).
+     *
+     * This is the **single** place that choice is made, because two callers need the same one: the write
+     * takes it on the copy it encodes ([MobixDocument.of]) and the editor takes it on the model it is
+     * about to snapshot (`DocumentIo.identifyForSave`, which asks [of] the same question). Made twice,
+     * the two would drift, and a page identified on one side of a save and not the other is exactly the
+     * fresh-id-per-save that [withIdentityOn] exists to prevent.
+     *
+     * The document's own id is adopted either way, since a `.mobix` manifest needs one.
+     */
+    fun identified(document: Document): Document =
+        if (written == null) document.withIdentity() else document.withIdentityOn(written)
 
     companion object {
 

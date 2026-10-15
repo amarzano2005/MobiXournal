@@ -13,10 +13,12 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixIncrementalSave
 import com.mobixournal.format.mobix.MobixMergeEngine
+import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.withIdentity
 import com.mobixournal.render.ATTACH_DOMAIN
 import com.mobixournal.render.BackgroundResolver
 import com.mobixournal.render.PdfMerger
@@ -486,6 +488,48 @@ class DocumentIo(
     // --- writing --------------------------------------------------------------------------------
 
     /**
+     * [document] as the `.mobix` save of it to [target] will write it: the **identity** that write
+     * needs, and nothing else changed.
+     *
+     * A `.mobix` names its pages and elements, and those names have to be the *model's* own before the
+     * bytes are written — minting them inside the writer leaves the open document unidentified, and the
+     * next save hands out a fresh set, which a merge or a sync client reads as the whole page replaced
+     * (`format/model/DocumentIdentity.kt`). Identity is therefore adopted *before* the document is
+     * snapshotted, which is what this is for, and a page the archive being repacked over already holds
+     * is **not** asked: its ids came with the file, the save copies them back verbatim, and asking would
+     * inflate it — which on a two-hundred-page notebook is the notebook ([MobixPageReuse], consulted
+     * here exactly as the save itself will consult it).
+     *
+     * A save with no archive behind it — a new document, a first save, a Save As to another target —
+     * reuses nothing and so identifies every page, which is what today's whole-document adoption does;
+     * so does a caller whose source will not open, since the encode that follows reports that failure
+     * where a save can show it (and identity is the one thing here that must not fail the save).
+     */
+    fun identifyForSave(document: Document, target: Uri?): Document {
+        val source = mobixSourceFor(document, target)
+            ?: return document.withIdentity()
+        return runCatching {
+            entrySources(source.staged).use { from ->
+                MobixPageReuse.of(document.pages, from).identified(document)
+            }
+        }.getOrElse { document.withIdentity() }
+    }
+
+    /**
+     * The archive a save of [document] to [target] repacks over, or null when there is none: a
+     * `.mobix` written back to the very file it was opened from is the one case that can copy anything,
+     * so anything else — a new document, a first save, a Save As — writes the whole archive.
+     *
+     * Keyed by the *incoming* document's id: a document that never was a `.mobix` has none, and one
+     * that [MobixDocument.of] was about to mint has no source either. The target has to match the URI
+     * the document came in through **as a string**, because that is what a session remembers it as
+     * ([mobixSources]) and what SAF hands back for the same file.
+     */
+    private fun mobixSourceFor(document: Document, target: Uri?): MobixSource? =
+        document.documentId?.let { mobixSources[it] }
+            ?.takeIf { it.staged.isFile && it.uri != null && it.uri == target?.toString() }
+
+    /**
      * Serialise [document] into a local scratch file in [format], returning it for [stageOut]. On a
      * slow or flaky remote share, serialising straight down the wire risks leaving a half-written
      * `.xopp` behind, so the finished bytes are always pushed across in one later pass.
@@ -524,10 +568,7 @@ class DocumentIo(
                     // copied out of the file it is still holding ([MobixPageReuse]). Everywhere else — a
                     // new document, a first save, a Save As to another target — there is no source to
                     // copy from, so every page is built and the whole archive is written.
-                    // Keyed by the *incoming* document's id: a document that never was a `.mobix` has
-                    // none, and one `MobixDocument.of` was about to mint has no source either.
-                    val opened = document.documentId?.let { mobixSources[it] }
-                    val source = opened?.takeIf { it.staged.isFile && it.uri != null && it.uri == target?.toString() }
+                    val source = mobixSourceFor(document, target)
                     val backgroundBytes = backgroundBytesOf(pdf, images)
                     if (source == null) {
                         // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
