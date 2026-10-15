@@ -127,6 +127,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Where a background's local copy comes from when the document did not hand one over. */
     internal var backgroundResolver: BackgroundResolver? = null
 
+    /**
+     * Told once per background a page asked for and could not have ([BackgroundResolver.drainMissing]),
+     * right after the frame that needed it — a `.mobix` adopts its backgrounds as its pages are read, so
+     * there is no open to report at. Set by the host, which is the only layer that can speak to the user.
+     */
+    var onMissingBackground: ((List<String>) -> Unit)? = null
+
     /** In-progress stroke (page-local pt space) and the page it belongs to. */
     internal var current: ArrayList<StrokePoint>? = null
     /** In-progress multi-stroke shape (e.g. capacitor with an open gap). */

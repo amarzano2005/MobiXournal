@@ -80,6 +80,15 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   source only when the box is drawn, so a 200-page `.mobix` is laid out without opening a page and
   materialises exactly the pages in the viewport.
 
+  **A background a page names and does not have is reported when that page is read.** Adoption is lazy,
+  so a `.mobix` whose `assets/` entry for a page's picture or PDF is absent cannot be reported at the
+  open without walking every page — the walk the paged open exists to avoid. `BundledPageAssets` records
+  the reference at the ask that came back empty (`BackgroundResolver.drainMissing`), the surface drains it
+  right after the frame that needed the bytes (`reportMissingBackgrounds`, `onMissingBackground`) and the
+  host says so **once per reference**, so a page draws its bare sheet with an explanation instead of
+  looking like a bug. A document whose backgrounds resolve up front keeps reporting them at the open, in
+  the same words (`LoadedFile.Doc.missingPdf`/`missingImage`).
+
   **Editing** goes through the window too (`render/PageWindow.kt`,
   `edit-a-page-the-lru-window-has-evicted`): a bounded read cache over the same source plus an overlay
   of edited pages that eviction never touches. A single-page command runs through

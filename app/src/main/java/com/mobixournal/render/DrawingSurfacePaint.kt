@@ -122,6 +122,23 @@ internal fun DrawingSurfaceView.paint() {
     reportCurrentPage()
     reportScroll()
     reportSelectionRect()
+    reportMissingBackgrounds()
+}
+
+/**
+ * Tell the host about any background a page asked for and could not have, once each.
+ *
+ * The ask happens here, in the frame that needs the bytes, which for a `.mobix` can be long after the
+ * open: a page's bundled picture is adopted when the page is read, and a page the archive does not hold
+ * the bytes for draws its bare sheet. Reported **after** the frame is posted rather than inside it, so
+ * the message never delays the drawing it is about, and drained so the same reference is said once
+ * ([BackgroundResolver.drainMissing]). A document whose backgrounds resolved at open reports them at
+ * open instead, which is why this stays silent when there is no resolver.
+ */
+private fun DrawingSurfaceView.reportMissingBackgrounds() {
+    val missing = backgroundResolver?.drainMissing().orEmpty()
+    if (missing.isEmpty()) return
+    onMissingBackground?.invoke(missing)
 }
 
 /**

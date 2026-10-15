@@ -157,6 +157,18 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
     // A `.mobix` opened page by page adopts a page's background when that page is read, so the
     // canvas is handed the resolver that does it (null for every document resolved at open).
     surface?.setBackgroundResolver(loaded.backgrounds)
+    // …and because that adoption happens at the frame that needs the bytes, a background the archive
+    // does not hold is discovered there rather than at the open: reported once per reference, in the
+    // same words the open uses for a document whose references resolve up front.
+    surface?.onMissingBackground = { references ->
+        toast(
+            if (references.size == 1) {
+                "Background not found: ${references.first()}; that page will be blank"
+            } else {
+                "Backgrounds not found: ${references.joinToString(", ")}; those pages will be blank"
+            },
+        )
+    }
     surface?.load(loaded.document)
     if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
     else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
