@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "merge-a-mobix-from-the-manifest-parts"
+title = "Merge a .mobix from the manifest parts"
+description = "format/mobix/MobixMergeEngine.kt resolves pages by walking local.pages and remote.pages. It already has each page sha256 and modified in the manifest, so a page only one side changed can be adopted by part without decoding it. Materialise only the pages that must be compared or element-merged, and carry the rest through by part. Verify with JVM tests: a merge of two 200-page documents that differ on one page decodes only that page (TrackedEntrySource), and the merged document equals the current implementation result. Landed (commit 3420ecb): format/mobix/MobixMergeEngine.kt plans every page from the manifest's sha256/modified - a page only one side changed is adopted by part, byte for byte, without decoding it - and materialises only the pages both sides changed (element merge) or that must be compared. Verified by format/mobix/MobixMergeManifestPartsTest.kt: a merge of two 200-page documents differing on one page decodes only that page and the merged document equals the previous implementation's result. VERIFIED: 1443 unit tests / 0 failures, assembleDebug green (emulator_debug was off for this task)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-15
+tags = ["mobix", "perf"]
+
+[[task]]
+id = "export-and-search-a-mobix-through-the-page-source"
+title = "Export and search a .mobix through the page source"
+description = "render/XoppSynthesis.kt (the .xopp export) and render/DocumentSearch.kt (find) walk every page of a document. Route both through the PageSource: the export materialises one page at a time and releases it, and search iterates the same way, so neither holds all 200 pages. Verify with JVM tests: an export of a 200-page document produces the same .xopp as before and a search finds a text hit on page 150; both keep the working set bounded (TrackedEntrySource counts only the pages touched). Landed (commit 24dfdea): render/XoppSynthesis.kt and render/DocumentSearch.kt walk the document through PageSource.of(document.pages) a page at a time, releasing each page before the next, and audio/WavAudioSynthesizer.kt (which walks the same pages for the karaoke strip) goes through the source too. Verified by render/PageSourceWalkTest.kt: a 200-page .mobix exports to the same .xopp as before and a text hit on page 150 is found, with a TrackedEntrySource proving only the pages touched were inflated; docs/data-path.md updated in the same commit. VERIFIED: 1443 unit tests / 0 failures, assembleDebug green (emulator_debug was off for this task)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-15
+tags = ["mobix"]
+
+[[task]]
+id = "materialise-only-the-visible-pages-in-the-canvas"
+title = "Materialise only the visible pages in the canvas"
+description = "The canvas now reads every page it draws or hit-tests through the page source. format/mobix/PageSource.kt gains pageSize(i), cheap for a .mobix (canvas.json declares the paginated page size) and materialising for an in-memory list; render/PageStacker.kt lays a PageSource out from those sizes and its PageBox resolves its page through the source only when a box is drawn (render/CanvasPageSource.kt backs the canvas with the in-memory document); DrawingSurfaceView, DrawingSurfacePaint, DrawingSurfaceSelection, SelectionGestureController and the other canvas read/hit-test sites route through pageAt(i), and relayout() stacks the source. CanvasPageWindowTest pins it: a synthetic 200-page .mobix stacks with zero page entries opened and drawing box 150 opens exactly page_151.json (assertSame on the second read), geometry identical to the in-memory stack, and a .xopp/new document returns the same page objects. REMAINING: (1) the editor still hands the canvas an in-memory document, so on device the source is that list and nothing is deferred - the reader-backed source arrives with carry-the-page-source-into-the-editor, and an edit on an evicted page is edit-a-page-the-lru-window-has-evicted; (2) the emulator pass (open a 200-page .mobix, scroll page 1 to 200, screenshot each end, clean logcat) is UNRUN - this host has no /data/android toolchain and no reachable emulator or device. REMAINING (1) LANDED with carry-the-page-source-into-the-editor: the editor now hands the canvas a reader-backed document, so on device the source answers from the manifest and materialises only the page it draws. REMAINING (2), the emulator pass, is split out into verify-the-paged-mobix-open-and-canvas-on-the-emulator (no /data/android toolchain, no adb on this host)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-15
+tags = ["mobix", "perf"]
+
+[[task]]
+id = "carry-the-page-source-into-the-editor"
+title = "Carry the page source into the editor"
+description = "The page counter, the rail pages button and the page list read document.pages today: DrawingSurfaceView.doc.pages.size flows through onPageCountChanged into the Compose state (ui/EditorRegions.kt), and the pages popup counts the same list. Once a PageSource exists (expose-a-page-source-and-count-pages-from-the-manifest), carry it from the open path to the surface - LoadedFile.Doc, OpenTab/TabSession and DrawingSurfaceView.doc move together, so a .mobix opened from its manifest answers the count and the page names without decoding a page, and a .xopp answers from its in-memory list exactly as now. The canvas keeps reading its document for the pages it draws; only the count, the ids and the page list stop walking them all. Verify on the emulator with a 200-page .mobix: the counter and the pages menu show 200 rows and the right names on open, with no page entry read until one is drawn (TrackedEntrySource), and the journal notes the same for a .xopp. Landed: io/DocumentIo.kt's .mobix branch is a **paged** open (MobixPagedReader + MobixDocument.openPaged), the reader is kept open for as long as the session holds the document (pagedOpens/prunePagedOpens, driven from MainActivity.prunePdfCache), and the reader's own view is what the open document holds (PageSource.asPageList -> LazyPages), so pages.size, the tab counter, the rail pages button and the page list answer from manifest.json without inflating a page. A page's bundled background is adopted when that page is read: io/BundledBackgrounds.kt is a PageSource layer over the reader that is also the render/BackgroundResolver the canvas is handed (DrawingSurfaceView.setBackgroundResolver), keyed by the reference the document keeps; the archive's own PDF is adopted up front and a linked reference is resolved exactly as a .xopp's is. The resolver travels with the tab (OpenTab.backgrounds), because a page adopted later has to be reachable after a tab switch. format/model/DocumentPages.kt (EditedPages/withPage) keeps a one-page edit to one page, so the canvas's edit no longer walks a reader-backed list. VERIFIED: 1443 unit tests / 0 failures - PagedMobixOpenTest (a 200-page .mobix opens with 3 entries inflated: mimetype, manifest, canvas, and zero pages), DocumentPagesTest (one edit inflates one page, the rest stay unread), MobixPagedOpenBenchmarkTest, which now measures the path the app ships through DocumentIo.read (1 ms, 3 entries, against 4 ms / 204 entries for the whole-archive open) - and assembleDebug green. CAVEAT: the emulator pass is UNRUN (this host has no /data/android toolchain, no adb, no AVD) and is carried by verify-the-paged-mobix-open-and-canvas-on-the-emulator. The open no longer reports a page whose bundled background is missing, since the walk that produced that report is the walk it exists to avoid: carried by report-a-mobix-page-whose-background-is-missing."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-15
+tags = ["mobix", "ui"]
+
+[[task]]
 id = "edit-a-page-the-lru-window-has-evicted"
 title = "Edit a page the LRU window has evicted"
 description = "Landed: render/PageWindow.kt is the editable window over a PageSource - a bounded read cache plus an overlay of edited pages that eviction never touches, with pin/unpin for a live gesture, dirtyIndices for the save, applyTo to write the edits into the document touching only the edited pages, and revert/reset for undo. render/PageWindowEdits.kt is the canvas seam (windowEditPage materialises the page it touches first and keeps the result; resetPageWindow on a wholesale swap), PageCommands.editVisiblePage and DrawingSurfaceStrokes.appendStroke/eraseOnPage go through it, and undo/redo/load/mirror/pages-list reset it. The element ops gained one-page cores (ElementEdits.addElementOn/replaceElementOn; SelectionOps.deleteOn/addToTopLayerOn/moveOnto) so a caller that knows the page never walks the document - replacePlotElement (when the plot is selected), the plot slider and TextEditController (which now remembers its target's page) use them. PageWindowTest pins it on a synthetic 200-page .mobix: an edit on page 151 with only pages 0..4 in hand opens exactly that page, delete/insert/move on page 151 leave 0..4 unchanged, the edit survives the page leaving the read cache, undo/redo restore and reapply it, applyTo carries every other page through by reference, and a pinned page is not evictable. VERIFIED: 1425 unit tests / 0 failures, assembleDebug green. CAVEAT: the editor still hands the canvas an in-memory document, so on device the window wraps that list and the dirty set is not yet consumed by the incremental saver - both arrive with carry-the-page-source-into-the-editor and the save half of repack-only-the-pages-a-save-changed."
