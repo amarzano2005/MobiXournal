@@ -127,9 +127,10 @@ class DocumentIo(
 ) {
 
     /**
-     * How a `.mobix` is opened for reading: the file-backed entry source on device, a counting one
-     * in a test ([MobixEntrySource] is internal, so this is reachable through the internal
-     * constructor below) — which is what makes "the open inflated no page" an assertion.
+     * How a `.mobix` on disk is read — for an **open** and for the repack an incremental save does over
+     * the file it was opened from: the file-backed entry source on device, a counting one in a test
+     * ([MobixEntrySource] is internal, so this is reachable through the internal constructor below) —
+     * which is what makes "the open inflated no page" and "the save rebuilt no page" assertions.
      */
     private var entrySources: (File) -> MobixEntrySource = MobixEntrySource::fromFile
 
@@ -517,26 +518,39 @@ class DocumentIo(
                 }
                 SaveFormat.MOBIX -> {
                     val now = System.currentTimeMillis()
-                    // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
-                    // again is the same document ([Document.documentId]).
-                    val mobix = MobixDocument.of(
-                        document = document,
-                        appVersion = appVersion,
-                        nowMillis = now,
-                        source = target?.let { displayName(it, "document") },
-                    )
-                    val entries = mobix.encode(now, backgroundBytesOf(pdf, images), audio)
-                    val opened = mobixSources[mobix.manifest.documentId]
                     // Repack over the file this document was opened from when the save lands back on
                     // it: the entries whose bytes did not change stream out of that archive instead of
-                    // being deflated again. Everywhere else — a new document, a first save, a Save As to
-                    // another target — there is no source, and the whole archive is written.
+                    // being deflated again, and a page nothing touched is not even built — its bytes are
+                    // copied out of the file it is still holding ([MobixPageReuse]). Everywhere else — a
+                    // new document, a first save, a Save As to another target — there is no source to
+                    // copy from, so every page is built and the whole archive is written.
+                    // Keyed by the *incoming* document's id: a document that never was a `.mobix` has
+                    // none, and one `MobixDocument.of` was about to mint has no source either.
+                    val opened = document.documentId?.let { mobixSources[it] }
                     val source = opened?.takeIf { it.staged.isFile && it.uri != null && it.uri == target?.toString() }
+                    val backgroundBytes = backgroundBytesOf(pdf, images)
                     if (source == null) {
-                        MobixContainer.save(entries, output)
+                        // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
+                        // again is the same document ([Document.documentId]).
+                        val mobix = MobixDocument.of(
+                            document = document,
+                            appVersion = appVersion,
+                            nowMillis = now,
+                            source = target?.let { displayName(it, "document") },
+                        )
+                        MobixContainer.save(mobix.encode(now, backgroundBytes, audio).entries, output)
                     } else {
-                        MobixEntrySource.fromFile(source.staged).use { from ->
-                            MobixIncrementalSave.repack(from, entries, output)
+                        entrySources(source.staged).use { from ->
+                            MobixIncrementalSave.saveOver(
+                                source = from,
+                                document = document,
+                                appVersion = appVersion,
+                                nowMillis = now,
+                                output = output,
+                                backgroundBytes = backgroundBytes,
+                                audioBytes = audio,
+                                bridgeSource = target?.let { displayName(it, "document") },
+                            )
                         }
                     }
                 }

@@ -42,7 +42,7 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 | **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Live** — every reader goes through the page surface (`PageSource`): counting, ids and layout come from `manifest.json`/`canvas.json`, and a page is inflated only when the canvas, find or the export asks for it, never at open ([data-path.md](data-path.md)) |
 | **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
 | **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Live** — a recording the stores hold is bundled by content hash as `assets/aud_<sha256>.<ext>` and the stroke names both that entry and the sidecar it replayed from; a page adopts its recording when it is read, so the file plays with no `.wav` beside it ([audio-inking-sync.md](audio-inking-sync.md)) |
-| **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Part live** — a save landing back on the same `.mobix` URI repacks only the changed entries, copying the rest verbatim; an unchanged page's JSON is still rebuilt to hash it, and the on-device round trip is unrun (`repack-only-the-pages-a-save-changed`) |
+| **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Live** — a save landing back on the same `.mobix` URI repacks only the changed entries, copying the rest verbatim *and never rebuilding a page nothing touched*: measured on a 200-page notebook, one edit costs 2 ms and opens one page. The on-device round trip is unrun (`verify-the-paged-mobix-open-and-canvas-on-the-emulator`) |
 
 The **Status today** column is the honest one: a capability is **Live** only where the open/save path
 actually runs it, **Library only** where a tested engine exists with no caller in `app/src/main`, and
@@ -58,8 +58,9 @@ rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec
   document (measured below; [data-path.md](data-path.md)).
 - **Deduplication of binary assets** — **live**: an image pasted across pages is stored once in
   `assets/` and referenced by content hash.
-- **Atomic saves** — **not live yet**: changes to page 3 *should* repack only `page-0003.json`, but
-  every save repacks the whole archive (`repack-only-the-pages-a-save-changed`).
+- **Atomic saves** — **live**: a save that lands back on the file the document came from repacks over it,
+  writing the manifest and the pages that moved, and copying every other entry as the bytes the archive
+  already holds ([data-path.md](data-path.md)).
 
 ### Measured: `.mobix` against `.xopp` on one document
 
@@ -371,18 +372,17 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
      3** (`mimetype`, `manifest.json`, `canvas.json`: no page, no asset).
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
-2. **Incremental Delta-Writes (Zero save latency)** — **part live**:
-   - `format/mobix/MobixIncrementalSaver.kt` re-compresses only modified page entries (`pages/page-N.json`)
-     and the manifest, and a save landing back on the same `.mobix` URI repacks over the file it was
-     opened from, copying everything else verbatim; an unchanged page's JSON is still rebuilt to hash it
-     and the on-device round trip is unrun (`repack-only-the-pages-a-save-changed`). Its edit set is the
-     page window's `dirtyIndices` (`render/PageWindow.kt`, `edit-a-page-the-lru-window-has-evicted`).
-   - Unmodified pages, heavy background PDFs, and image assets are streamed directly from the source archive
-     without re-compression; unknown/unmodelled entries survive untouched (container rule 4,
-     [mobix-schema-spec.md](mobix-schema-spec.md)).
-   - Evaluated in `MobixIncrementalSaveTest`: on a 10-page notebook with 1 page modified, only 2 entries
-     (manifest + dirty page) are rewritten while 11 entries (9 pages, canvas, preserved payload) are streamed
-     byte-for-byte, cutting compression overhead by $> 80\%$. Saves complete in milliseconds without UI freezes.
+2. **Incremental Delta-Writes (Zero save latency)** — **live** when the save lands back on the file the
+   document came from: the manifest and the entries that moved are written, everything else — untouched
+   pages, background PDFs, pictures — is copied as the bytes the archive already holds, and a page the
+   source still holds is **not built at all** (`MobixPageReuse` answers from the shape of the document's
+   page list), so its JSON is never parsed, rebuilt or hashed (`repack-only-the-pages-a-save-changed`).
+   The diff is derived, never flagged (a part is compared by the `sha256` its own manifest recorded);
+   unknown/unmodelled entries survive untouched (container rule 4, [mobix-schema-spec.md](mobix-schema-spec.md)).
+   - Measured in `MobixIncrementalSaveBenchmarkTest` (`app/build/reports/mobix-incremental-save.txt`): one
+     edited page of a 200-page notebook costs **2 ms and one page opened**, against **13 ms and 399** for
+     the path it replaced — constant, not proportional to the notebook. On-device round trip unrun
+     (`verify-the-paged-mobix-open-and-canvas-on-the-emulator`).
 3. **Zero-Allocation Inking Loop (No GC stutter)** — **not built**:
    - High-rate stylus events (120 Hz–240 Hz on modern tablets and stylus digitizers) can trigger frequent
      JVM Garbage Collection pauses if objects (`StrokePoint`, temporary event wrappers) are allocated per touch.

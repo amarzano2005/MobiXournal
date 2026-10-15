@@ -46,17 +46,25 @@ internal interface MobixEntrySource : AutoCloseable {
     }
 }
 
-private class ZipFileEntrySource(private val zip: ZipFile, private val file: File) : MobixEntrySource {
+private class ZipFileEntrySource(private val zip: ZipFile, file: File) : MobixEntrySource {
     override val entryNames: Set<String> = zip.entries().asSequence().map { it.name }.toSet()
+
+    /**
+     * The file's central directory, held for as long as this source is: a save copies an entry through
+     * it once per unchanged part, and reading the directory per copy is what made that quadratic
+     * (`MobixZip.Index`).
+     */
+    private val raw = MobixZip.Index(file)
 
     override fun openEntry(name: String): InputStream? =
         zip.getEntry(name)?.let { zip.getInputStream(it) }
 
     /** The file's own bytes, for a caller that wants an entry the way the archive stores it. */
-    override fun rawEntry(name: String): MobixZip.RawEntry? = MobixZip.rawEntry(file, name)
+    override fun rawEntry(name: String): MobixZip.RawEntry? = raw.rawEntry(name)
 
     override fun close() {
         zip.close()
+        raw.close()
     }
 }
 
@@ -72,14 +80,21 @@ private class MapEntrySource(private val entries: Map<String, ByteArray>) : Mobi
 /**
  * Decorator around [MobixEntrySource] that tracks how many times each entry has been opened or read.
  * Used in tests to verify that opening a 200-page notebook does not inflate untouched pages.
+ *
+ * [openCount] counts every read — an inflation *and* a raw copy, since both are a read of that entry.
+ * [inflateCount] counts the inflations alone, which is the question a *save* asks: a page whose JSON was
+ * never rebuilt is a page this source never opened, however often it was copied out of the file
+ * (`MobixPageReuse`).
  */
 internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySource {
     private val counts = Collections.synchronizedMap(mutableMapOf<String, Int>())
+    private val inflates = Collections.synchronizedMap(mutableMapOf<String, Int>())
 
     override val entryNames: Set<String> get() = delegate.entryNames
 
     override fun openEntry(name: String): InputStream? {
         counts[name] = (counts[name] ?: 0) + 1
+        inflates[name] = (inflates[name] ?: 0) + 1
         return delegate.openEntry(name)
     }
 
@@ -89,6 +104,9 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
 
     /** How many times [name] was opened/inflated. */
     fun openCount(name: String): Int = counts[name] ?: 0
+
+    /** How many times [name] was **inflated** — a read that decoded it, not a byte copy. */
+    fun inflateCount(name: String): Int = inflates[name] ?: 0
 
     override fun close() = delegate.close()
 }

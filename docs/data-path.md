@@ -79,23 +79,22 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   `edit-a-page-the-lru-window-has-evicted`): a bounded read cache over the same source plus an overlay
   of edited pages that eviction never touches. A single-page command runs through
   `DrawingSurfaceView.windowEditPage`, which **materialises the page it touches first** — so a command
-  may act on a page the window has evicted, without its caller knowing which pages are resident — keeps
-  the result in the overlay (so the edit is still there when the page leaves the cache, which is what
-  lets undo and redo find it), and records the index as dirty for the save. `PageWindow.pin` holds a
-  page for as long as a live gesture keeps re-reading it. A **wholesale replacement** of the document —
-  a load, undo/redo, a mirrored pane, a page-list edit — calls `resetPageWindow()`, because the overlay
-  then describes pages the document no longer has. The element ops expose a **one-page core** beside
-  their document-wide form — `ElementEdits.replaceElementOn` against `replaceElement`, and
+  may act on a page the window has evicted, without its caller knowing which pages are resident — and
+  keeps the result in the overlay (so the edit is still there when the page leaves the cache, which is
+  what lets undo and redo find it). `PageWindow.pin` holds a page for as long as a live gesture keeps
+  re-reading it. A **wholesale replacement** of the document — a load, undo/redo, a mirrored pane, a
+  page-list edit — calls `resetPageWindow()`, because the overlay then describes pages the document no
+  longer has. The element ops expose a **one-page core** beside their document-wide form —
+  `ElementEdits.replaceElementOn` against `replaceElement`, and
   `SelectionOps.deleteOn`/`addToTopLayerOn`/`moveOnto` — so a caller that knows the page (the text
   editor remembers its target's page, a plot's slider edits the selected page) never searches the
-  document for the element. Every other commit still writes the document directly, so `dirtyIndices`
-  is complete only for the edits that go through the window.
+  document for the element.
 
-  What is **not** live yet: a save re-encodes every page's JSON to decide which pages moved, so an
-  unchanged page's bytes are copied but already rebuilt once (`repack-only-the-pages-a-save-changed`),
-  and the reader-backed open has had no on-device pass — this host has no emulator or device, so the
-  page counter, the page list and the first frame of a 200-page notebook are covered by unit tests
-  alone.
+  What is **not** live yet: the reader-backed open has had no on-device pass — this host has no emulator
+  or device, so the page counter, the page list and the first frame of a 200-page notebook are covered by
+  unit tests alone, and a save still **adopts identity over every page** before it encodes
+  (`DrawingSurfaceView.adoptIdentity` → `Document.withIdentity`), which opens a document it is not going
+  to write. The save itself already writes only the pages that moved (`repack-only-the-pages-a-save-changed`).
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 
@@ -143,25 +142,43 @@ preserved-but-unrendered attributes so the file round-trips.
 
 **A `.mobix` save repacks over the file it was opened from.** `DocumentIo` remembers each open
 `.mobix`'s staged copy by document id, and a save that lands back on that same URI goes through
-`MobixIncrementalSave`: an entry whose bytes did not change is **copied verbatim** — the compressed
-bytes the archive already holds, not a second deflation of the same content — and only the manifest
-and the pages that moved are written again. `MobixZip` is what makes that possible: it reads an
-entry's offset out of the central directory (the only record that states it, and the one that still
-has the sizes when a local header left them zero) and writes the local headers, the central directory
-and the end record itself, because `java.util.zip` will neither hand out a compressed entry nor accept
-one it did not produce. The decision is derived, never flagged: a page is compared by the `sha256` its
-own manifest records, an asset by the hash in its name. A recording is bundled the way a picture is:
-`DocumentIo.encode` is handed the bytes the stroke's sidecar name resolves to in the audio store, so one
-entry covers every stroke that replays from it. Anywhere else — a new document, a first save, a Save As
-to another target — there is no source and the whole archive is written, which is also where a payload
-no store ever adopted (a page that was never read) can still be dropped
-(`supply-a-deferred-payload-on-a-save-that-has-no-source`).
+`MobixIncrementalSave.saveOver`: an entry whose bytes did not change is **copied verbatim** — the
+compressed bytes the archive already holds, not a second deflation of the same content — and only the
+manifest, the source record and the pages that moved are written again. `MobixZip` is what makes that
+possible: it reads an entry's offset out of the central directory (the only record that states it, and
+the one that still has the sizes when a local header left them zero) and writes the local headers, the
+central directory and the end record itself, because `java.util.zip` will neither hand out a compressed
+entry nor accept one it did not produce. It reads that directory **once per file** (`MobixZip.Index`):
+one directory read per copied entry made a save quadratic, which the benchmark below caught at half a
+second for a two-hundred-page notebook.
 
-**Measured on a ten-page notebook with one edited page: 12 of the 14 entries are copied, 2363 B of
-content is re-encoded instead of 4928 B, and the finished file is 4862 B against a full write's
-4926 B** — smaller, since a copied entry needs no data descriptor. A background PDF is never inflated
-or deflated at all, which is where the saving actually is (the page JSON of an untouched page is still
-rebuilt to hash it).
+**A page the save is not going to write is a page it never opens.** That is the second half, and it is
+where the cost actually comes from: rebuilding a page's JSON to *hash* it costs the page its JSON, its
+hash and its decode. `format/mobix/MobixPageReuse.kt` answers first, from the shape of the document's
+page list — a `.mobix` held page by page keeps the reader's own list with the edited pages overlaid, so
+a page an edit did not replace **is** the source's page at that index: it has an entry the manifest
+names and a `sha256` the manifest recorded, and the save copies the one and writes the other without
+building anything. Identity follows the same rule, one step earlier: `MobixDocument.of` adopts ids over
+the pages it will **write** (`Document.withIdentityOn`), because a copied page's ids came with the file.
+The plan is `MobixSavePlan` — the entries to write, plus the order the whole file goes in, reused pages
+included.
+
+Nothing that decides what to write is a flag. A part is compared by the `sha256` its own manifest
+records, an asset by the hash in its name, the envelope byte for byte, and a copied page by the shape of
+the list it is in; a recording is bundled the way a picture is (the bytes the stroke's sidecar name
+resolves to in the audio store, so one entry covers every stroke that replays from it). Anywhere else —
+a new document, a first save, a Save As to another target — there is no source and the whole archive is
+written, which is also where a payload no store ever adopted (a page that was never read) can still be
+dropped (`supply-a-deferred-payload-on-a-save-that-has-no-source`).
+
+**Measured** (`MobixIncrementalSaveBenchmarkTest`, report in
+`app/build/reports/mobix-incremental-save.txt`): on a two-hundred-page notebook with one edited page, the
+save takes **2 ms and opens one page** — the first, which states the document's own paper and page size —
+against **13 ms and 399 page openings** for the build-everything path it replaced, and the file it leaves
+is the source's own bytes for every page nothing touched. On ten pages with one edited (`MobixIncrementalSaveTest`,
+`MobixIncrementalSavePlanTest`): 12 of the 14 entries are copied, 2363 B of content is re-encoded instead
+of 4928 B, and the finished file is 4862 B against a full write's 4926 B — smaller, since a copied entry
+needs no data descriptor. A background PDF is never inflated or deflated at all.
 
 ### Tabs and the session cache
 

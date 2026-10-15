@@ -25,6 +25,16 @@ internal class EditedPages private constructor(
     /** The pages an edit replaced, by index — what a save compares against the source. */
     val editedIndices: Set<Int> get() = edits.keys
 
+    /**
+     * The list this view overlays, edits *not* applied — the reader's own page list when the document
+     * was opened page by page (`PageSource`).
+     *
+     * A caller that has to know where an untouched page came from asks the base: an index this view did
+     * not replace is the base's own page, and a base that is a source's view can say which entry those
+     * bytes already live in ([MobixPageReuse]).
+     */
+    val basePages: List<Page> get() = base
+
     /** A document's own summary: the pages are not printed, they are read. */
     override fun toString(): String = "EditedPages(${edits.size} edited of $size)"
 

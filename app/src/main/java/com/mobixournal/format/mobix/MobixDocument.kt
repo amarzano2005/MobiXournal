@@ -9,6 +9,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.withIdentity
+import com.mobixournal.format.model.withIdentityOn
 import java.io.OutputStream
 
 /**
@@ -19,10 +20,12 @@ import java.io.OutputStream
  *
  * Three things it is responsible for, none of which belongs in a codec:
  *
- *  - **The manifest's `pages[]` is derived from what is being written**, never copied from what was
- *    read. A save recomputes each page's `sha256`, keeps an unchanged page's `modified` stamp (so a
- *    sync client does not see an untouched page as an edit — `docs/sync-and-storage.md`) and stamps
- *    only the pages whose bytes actually changed.
+ *  - **The manifest's `pages[]` is derived from what is being written**, never copied wholesale from
+ *    what was read. A save recomputes each page's `sha256`, keeps an unchanged page's `modified` stamp
+ *    (so a sync client does not see an untouched page as an edit — `docs/sync-and-storage.md`) and
+ *    stamps only the pages whose bytes actually changed. A page a save **copies** out of the archive
+ *    it came from keeps the part that archive recorded for it ([MobixPageReuse]), `sha256` included —
+ *    which is the same statement, made one step earlier: the hash is of the bytes being copied.
  *  - **Page identity is stable.** A page that arrives without an id gets one, and the id then lives in
  *    the manifest (`docs/mobix-schema-spec.md`), so a page can be reordered without becoming a
  *    different page to a merge. Its position is not its identity.
@@ -111,17 +114,23 @@ internal class MobixDocument(
      *   `AudioStore` does), so a `.mobix` carries its audio instead of pointing at a file that has to sit
      *   beside it (`docs/audio-inking-sync.md`); the stroke then names the bundled entry *and* keeps the
      *   sidecar name the `.xopp` export writes a file for. A caller with no audio passes nothing.
+     * @param reuse the pages the source archive already holds ([MobixPageReuse]): each one contributes
+     *   **its source part and no entry**, so its JSON is neither rebuilt nor hashed here, and the repack
+     *   streams the bytes out of the file instead. The plan's parts are the manifest's own record of
+     *   those pages, `sha256` included, which is what makes this exact rather than a guess.
      */
     fun encode(
         nowMillis: Long,
         backgroundBytes: (Background) -> ByteArray? = { null },
         audioBytes: (String) -> ByteArray? = { null },
-    ): List<MobixContainer.Entry> {
+        reuse: MobixPageReuse = MobixPageReuse.none,
+    ): MobixSavePlan {
         val sink = MobixAssetSink()
-        val partsAndEntries = if (manifest.canvasMode == CanvasMode.PAGINATED) {
-            encodePages(sink, backgroundBytes, audioBytes, nowMillis)
+        val parts = if (manifest.canvasMode == CanvasMode.PAGINATED) {
+            encodePages(sink, backgroundBytes, audioBytes, nowMillis, reuse)
         } else {
             encodeChunks(sink, backgroundBytes, audioBytes, nowMillis)
+                .map { (part, entry) -> BuiltPart(part, entry) }
         }
         val written = sink.entries()
         // Every payload the model carries is re-emitted: an asset still deferred to the source is read
@@ -132,7 +141,7 @@ internal class MobixDocument(
         val envelope = mutableListOf(
             MobixContainer.Entry(
                 name = MobixFormat.MANIFEST_ENTRY,
-                bytes = writtenManifest(partsAndEntries.map { it.first }, nowMillis).encode()
+                bytes = writtenManifest(manifest, parts.map { it.part }, nowMillis).encode()
                     .toByteArray(Charsets.UTF_8),
             ),
             MobixContainer.Entry(MobixFormat.CANVAS_ENTRY, canvas.encode().toByteArray(Charsets.UTF_8)),
@@ -143,14 +152,21 @@ internal class MobixDocument(
             envelope += MobixContainer.Entry(MobixFormat.BRIDGE_ENTRY, out.encode().toByteArray(Charsets.UTF_8))
         }
 
-        val modelled = envelope + partsAndEntries.map { it.second } + written + carried
+        // A reused part has no entry of its own: its bytes are in the archive being repacked over, and
+        // the order below is what keeps it in the file (`MobixSavePlan`).
+        val modelled = envelope + parts.mapNotNull { it.entry } + written + carried
 
         // A preserved entry can only collide with a part this build writes when the two describe the
         // same slot — an orphan page entry the manifest no longer lists, while the document has a page
         // at that index. A ZIP cannot hold the name twice, and the modelled part is the document, so the
         // orphan is the one that goes; container rule 4 protects entries this build has no part for.
         val taken = modelled.map { it.name }.toSet()
-        return modelled + preserved.filterNot { it.name in taken }
+        val preserved = preserved.filterNot { it.name in taken }
+        return MobixSavePlan(
+            entries = modelled + preserved,
+            order = envelope.map { it.name } + parts.map { it.part.entry } +
+                written.map { it.name } + carried.map { it.name } + preserved.map { it.name },
+        )
     }
 
     /** This document as a `.mobix` byte array — the shape a caller stages to a file or a URI. */
@@ -158,7 +174,7 @@ internal class MobixDocument(
         nowMillis: Long,
         backgroundBytes: (Background) -> ByteArray? = { null },
         audioBytes: (String) -> ByteArray? = { null },
-    ): ByteArray = MobixContainer.toBytes(encode(nowMillis, backgroundBytes, audioBytes))
+    ): ByteArray = MobixContainer.toBytes(encode(nowMillis, backgroundBytes, audioBytes).entries)
 
     /** Write this document as a `.mobix` on [output] (which is finished and not left open). */
     fun save(
@@ -166,7 +182,7 @@ internal class MobixDocument(
         nowMillis: Long,
         backgroundBytes: (Background) -> ByteArray? = { null },
         audioBytes: (String) -> ByteArray? = { null },
-    ) = MobixContainer.save(encode(nowMillis, backgroundBytes, audioBytes), output)
+    ) = MobixContainer.save(encode(nowMillis, backgroundBytes, audioBytes).entries, output)
 
     /**
      * The app's document model: the pages and the title, plus the source `.xopp`'s creator, file version
@@ -191,29 +207,19 @@ internal class MobixDocument(
         backgroundBytes: (Background) -> ByteArray?,
         audioBytes: (String) -> ByteArray?,
         nowMillis: Long,
-    ): List<Pair<MobixPart, MobixContainer.Entry>> = pages.mapIndexed { index, page ->
+        reuse: MobixPageReuse,
+    ): List<BuiltPart> = (0 until pages.size).map { index ->
+        // Read by index, never by iterating the list: an untouched page of a document opened page by
+        // page is a page this save must not even *open*, and the list's own iterator would inflate and
+        // decode every page of the document before this loop's body ever ran.
+        reuse.reused[index]?.let { part -> return@map BuiltPart(part, entry = null) }
+        val page = pages[index]
         val json = JsonWriter.write(MobixPageCodec.encode(page, sink, backgroundBytes, audioBytes))
             .toByteArray(Charsets.UTF_8)
         val name = MobixFormat.pageEntry(index + 1)
-        partFor(page, index, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
-    }
-
-    /**
-     * The `pages[]` entry for the page at [index]: its stable [Page.id] (minted when it has none), the
-     * entry [name] it is written to, and a `modified` stamp that only moves when the bytes did.
-     *
-     * The page a previous write described is found **by id**; a page with no id falls back to the part
-     * at the same index, so a document whose pages arrive without identity still keeps the ids it was
-     * given rather than minting fresh ones on every save.
-     */
-    private fun partFor(page: Page, index: Int, name: String, sha256: String, nowMillis: Long): MobixPart {
-        val before = page.id?.let { id -> manifest.pages.firstOrNull { it.id == id } }
-            ?: if (page.id == null) manifest.pages.getOrNull(index) else null
-        return MobixPart(
-            id = page.id ?: before?.id ?: ElementId.mint(ElementId.PAGE),
-            entry = name,
-            modified = if (before?.sha256 == sha256) before.modified else nowMillis,
-            sha256 = sha256,
+        BuiltPart(
+            part = pagePartFor(manifest, page, index, name, MobixAssetSink.sha256(json), nowMillis),
+            entry = MobixContainer.Entry(name, json),
         )
     }
 
@@ -229,31 +235,8 @@ internal class MobixDocument(
         val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgroundBytes, audioBytes))
             .toByteArray(Charsets.UTF_8)
         val name = MobixFormat.chunkEntry(chunk.cx, chunk.cy)
-        partForChunk(chunk, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
+        chunkPartFor(manifest, chunk, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
     }
-
-    /**
-     * The `chunks[]` entry for [chunk]: its stable [MobixChunk.id] (minted when it has none), the
-     * entry [name] it is written to, and a `modified` stamp that only moves when the bytes did.
-     */
-    private fun partForChunk(chunk: MobixChunk, name: String, sha256: String, nowMillis: Long): MobixPart {
-        val before = chunk.id?.let { id -> manifest.chunks.firstOrNull { it.id == id } }
-            ?: manifest.chunks.firstOrNull { it.entry == name }
-        return MobixPart(
-            id = chunk.id ?: before?.id ?: ElementId.mint(ElementId.CHUNK),
-            entry = name,
-            modified = if (before?.sha256 == sha256) before.modified else nowMillis,
-            sha256 = sha256,
-        )
-    }
-
-    /** The envelope as it is written: this file's parts, this file's last-write time. */
-    private fun writtenManifest(parts: List<MobixPart>, nowMillis: Long): MobixManifest = manifest.copy(
-        formatVersion = MobixManifest.CURRENT_FORMAT_VERSION,
-        pages = if (manifest.canvasMode == CanvasMode.PAGINATED) parts else emptyList(),
-        chunks = if (manifest.canvasMode != CanvasMode.PAGINATED) parts else emptyList(),
-        modified = nowMillis,
-    )
 
     companion object {
 
@@ -452,32 +435,41 @@ internal class MobixDocument(
          * document that travels `.mobix` → `.xopp` → `.mobix` comes back edited rather than merely
          * redrawn ([MobixMetaRevival]).
          *
-         * @param appVersion the version written as `minAppVersion` — the build that must be present to
-         *   write this file safely (`docs/mobix-schema-spec.md`). The caller passes its own version, so
-         *   the format layer needs no build configuration.
-         * @param source what the `.xopp` was called, when the caller knows it.
-         */
-        fun of(
-            document: Document,
-            appVersion: String,
-            nowMillis: Long,
-            source: String? = null,
-            canvasMode: CanvasMode = CanvasMode.PAGINATED,
-        ): MobixDocument {
-            // Identity is the *document's* own ([withIdentity]): it mints what is missing and keeps what
-            // is there, so a document that came from a `.mobix` is written with the ids it read, one
-            // that came from a `.xopp` gets a set of ids that the open document adopts from then on,
-            // and a re-save of either mints nothing. A revived entity already carries the id the block
-            // recorded, so it keeps it too. A caller that wants a specific id (a test, a future import)
-            // sets it on the document it passes rather than overruling it here.
-            val identified = MobixMetaRevival.apply(document).withIdentity()
-            val documentId = requireNotNull(identified.documentId) {
-                "withIdentity() mints the document id when a document has none"
-            }
-            val pages = identified.pages
-            val first = pages.firstOrNull()
-            val isPaginated = canvasMode == CanvasMode.PAGINATED
-            val chunks = if (!isPaginated) {
+     * @param appVersion the version written as `minAppVersion` — the build that must be present to
+     *   write this file safely (`docs/mobix-schema-spec.md`). The caller passes its own version, so
+     *   the format layer needs no build configuration.
+     * @param source what the `.xopp` was called, when the caller knows it.
+     * @param reuse the pages the archive this document came from already holds ([MobixPageReuse]):
+     *   they are the pages this save will copy rather than build, so identity is adopted **on the rest
+     *   only** — a page nobody is going to write is a page nobody has to open. The same plan is what
+     *   [encode] is given; it applies to a paginated document and is ignored for an infinite one,
+     *   whose chunks are always derived from the pages.
+     */
+    fun of(
+        document: Document,
+        appVersion: String,
+        nowMillis: Long,
+        source: String? = null,
+        canvasMode: CanvasMode = CanvasMode.PAGINATED,
+        reuse: MobixPageReuse = MobixPageReuse.none,
+    ): MobixDocument {
+        val isPaginated = canvasMode == CanvasMode.PAGINATED
+        val reuse = if (isPaginated) reuse else MobixPageReuse.none
+        // Identity is the *document's* own ([withIdentity]): it mints what is missing and keeps what
+        // is there, so a document that came from a `.mobix` is written with the ids it read, one
+        // that came from a `.xopp` gets a set of ids that the open document adopts from then on,
+        // and a re-save of either mints nothing. A revived entity already carries the id the block
+        // recorded, so it keeps it too. A caller that wants a specific id (a test, a future import)
+        // sets it on the document it passes rather than overruling it here. It runs over [reuse]'s
+        // written pages alone when there is a plan: a copied page is not a page that needs an id.
+        val revived = MobixMetaRevival.apply(document)
+        val identified = if (reuse.written == null) revived.withIdentity() else revived.withIdentityOn(reuse.written)
+        val documentId = requireNotNull(identified.documentId) {
+            "withIdentity() mints the document id when a document has none"
+        }
+        val pages = identified.pages
+        val first = pages.firstOrNull()
+        val chunks = if (!isPaginated) {
                 pages.mapIndexed { index, page ->
                     val cx = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL) index else 0
                     val cy = if (canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) index else 0

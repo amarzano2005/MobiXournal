@@ -174,7 +174,9 @@ class MobixAudioBundleTest {
             nowMillis = 2L,
         ).encode(nowMillis = 2L)
         val out = ByteArrayOutputStream()
-        MobixEntrySource.fromFile(file).use { from -> MobixIncrementalSave.repack(from, entries, out) }
+        MobixEntrySource.fromFile(file).use { from ->
+            MobixIncrementalSave.repack(from, MobixSavePlan.of(entries), out)
+        }
         val saved = openBytes(out.toByteArray())
 
         assertEquals(

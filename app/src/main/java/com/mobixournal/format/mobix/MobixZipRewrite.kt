@@ -39,21 +39,42 @@ internal object MobixZip {
     /**
      * The bytes [name] is stored as in [file], or null when this archive cannot be read that way — ZIP64,
      * encrypted, not a ZIP at all, or no such entry. A null is not an error: the caller re-deflates.
+     *
+     * One entry, one file open: a caller that copies many entries wants [Index] instead, which reads the
+     * file once.
      */
-    fun rawEntry(file: File, name: String): RawEntry? {
-        return try {
-            RandomAccessFile(file, "r").use { raf ->
-                val record = centralDirectory(raf).firstOrNull { it.name == name } ?: return null
-                if (record.method != ZipEntry.STORED && record.method != ZipEntry.DEFLATED) return null
-                val dataOffset = record.localHeaderOffset + LOCAL_HEADER_SIZE + localHeaderSizes(raf, record.localHeaderOffset)
-                raf.seek(dataOffset)
-                val bytes = ByteArray(record.compressedSize.toInt())
-                raf.readFully(bytes)
-                RawEntry(record.method, record.crc, record.size, record.compressedSize, bytes)
-            }
-        } catch (e: Exception) {
-            null
+    fun rawEntry(file: File, name: String): RawEntry? =
+        runCatching { Index(file).use { it.rawEntry(name) } }.getOrNull()
+
+    /**
+     * One file's entries, as the archive stores them, **read once**.
+     *
+     * A repack copies every unchanged entry out of the source, so reading the central directory per
+     * entry — which is what [rawEntry] does, and what the first version of this did for every copy — made
+     * a save quadratic: a two-hundred-page notebook re-parsed two hundred records two hundred times,
+     * which cost half a second and buried everything the save was actually doing
+     * (`MobixIncrementalSaveBenchmarkTest` is the measurement that found it). The directory is the
+     * archive's own index, so this holds it while the file is open and answers every copy from it.
+     */
+    class Index(file: File) : AutoCloseable {
+
+        private val raf = RandomAccessFile(file, "r")
+        private val records = centralDirectory(raf).associateBy { it.name }
+
+        /** The bytes [name] is stored as, or null when this archive cannot hand them over. */
+        @Synchronized
+        fun rawEntry(name: String): RawEntry? {
+            val record = records[name] ?: return null
+            if (record.method != ZipEntry.STORED && record.method != ZipEntry.DEFLATED) return null
+            val dataOffset = record.localHeaderOffset + LOCAL_HEADER_SIZE +
+                localHeaderSizes(raf, record.localHeaderOffset)
+            raf.seek(dataOffset)
+            val bytes = ByteArray(record.compressedSize.toInt())
+            raf.readFully(bytes)
+            return RawEntry(record.method, record.crc, record.size, record.compressedSize, bytes)
         }
+
+        override fun close() = raf.close()
     }
 
     private class Record(

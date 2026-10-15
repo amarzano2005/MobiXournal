@@ -80,10 +80,13 @@ class MobixIncrementalSavePlanTest {
     private fun open(bytes: ByteArray): Document =
         MobixEntrySource.fromMap(rawEntries(bytes).associate { it.first to it.third }).use { MobixDocument.open(it).toDocument() }
 
-    private fun repack(source: File, entries: List<MobixContainer.Entry>): Pair<ByteArray, MobixIncrementalSaveStats> {
+    private fun repack(
+        source: File,
+        entries: List<MobixContainer.Entry>,
+    ): Pair<ByteArray, MobixIncrementalSaveStats> {
         val out = ByteArrayOutputStream()
         val stats = MobixEntrySource.fromFile(source).use { from ->
-            MobixIncrementalSave.repack(from, entries, out)
+            MobixIncrementalSave.repack(from, MobixSavePlan.of(entries), out)
         }
         return out.toByteArray() to stats
     }

@@ -1,5 +1,7 @@
 package com.mobixournal.format.mobix
 
+import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.Document
 import java.io.OutputStream
 
 /**
@@ -20,27 +22,65 @@ import java.io.OutputStream
  * What is left — the envelope's own entries (`canvas.json`, a bridge file, a preserved entry) — is small
  * enough to compare byte for byte. `manifest.json` is always rewritten: it carries this file's
  * `modified` stamp, so it is never the same bytes twice.
+ *
+ * A page that is **not in [MobixSavePlan.entries] at all** is the case the comparison never has to
+ * reach: the page was never built, because the archive already holds it ([MobixPageReuse]) — so the
+ * bytes are streamed like any other unchanged entry, and the hash this diff would have computed is the
+ * one the source manifest already recorded.
  */
 internal object MobixIncrementalSave {
 
     /**
-     * Repack [entries] over [source], which holds the archive this document was opened from.
+     * Repack [plan] over [source], which holds the archive this document was opened from.
      *
-     * [entries] is what a full write would hold — [MobixDocument.encode] produced it — so the archive
-     * that comes out describes the same document either way, and a caller with no source has the plain
-     * write as an exact fallback. Entries the source holds that this build does not model are streamed
+     * [plan] is what a full write would hold — [MobixDocument.encode] produced it — so the archive that
+     * comes out describes the same document either way, and a caller with no source has the plain write
+     * as an exact fallback. Entries the source holds that this build does not model are streamed
      * verbatim, which is container rule 4 (`docs/mobix-format.md`).
      */
     fun repack(
         source: MobixEntrySource,
-        entries: List<MobixContainer.Entry>,
+        plan: MobixSavePlan,
         output: OutputStream,
     ): MobixIncrementalSaveStats = MobixIncrementalSaver.repack(
         source = source,
-        dirtyEntries = dirtyEntries(entries, MobixManifest.read(source), source),
+        dirtyEntries = dirtyEntries(plan.entries, MobixManifest.read(source), source),
         output = output,
-        explicitOrder = entries.map { it.name },
+        explicitOrder = plan.order,
     )
+
+    /**
+     * Save [document] **over** the archive [source] holds — the whole incremental save in one step:
+     * which pages the source already has ([MobixPageReuse]), the build that skips them, and the repack
+     * that streams them back out.
+     *
+     * This is what the app's save path does when a save lands back on the file the document was opened
+     * from, kept here rather than in the I/O layer because nothing about it needs a device: it is source,
+     * document and output, which is what lets a JVM test drive the shipped save over a real archive.
+     *
+     * @param bridgeSource what the document was called on disk, for the source record a `.mobix` carries
+     *   (`MobixBridgeFile`), when the caller knows it.
+     */
+    fun saveOver(
+        source: MobixEntrySource,
+        document: Document,
+        appVersion: String,
+        nowMillis: Long,
+        output: OutputStream,
+        backgroundBytes: (Background) -> ByteArray? = { null },
+        audioBytes: (String) -> ByteArray? = { null },
+        bridgeSource: String? = null,
+    ): MobixIncrementalSaveStats {
+        val reuse = MobixPageReuse.of(document.pages, source)
+        val mobix = MobixDocument.of(
+            document = document,
+            appVersion = appVersion,
+            nowMillis = nowMillis,
+            source = bridgeSource,
+            reuse = reuse,
+        )
+        return repack(source, mobix.encode(nowMillis, backgroundBytes, audioBytes, reuse), output)
+    }
 
     /**
      * The entries that must be freshly written, and only those. [previous] is the source's own manifest,
@@ -67,9 +107,16 @@ internal object MobixIncrementalSave {
             val digest = MobixAssetSink.sha256(entry.bytes)
             // An asset's name is the hash of its own bytes: the same name is the same payload.
             if (entry.name.contains(digest) && entry.name in source.entryNames) continue
-            // A part the manifest described: its hash settles it, without inflating anything.
-            if (recorded[entry.name] == digest) continue
-            // The envelope: small, so it is simply compared.
+            // A part the manifest described: its hash settles it either way, and — the point here —
+            // nothing is inflated to find out. A recorded hash that is not this one means the bytes
+            // moved, which is exactly the entry the save is about to write.
+            val recordedHash = recorded[entry.name]
+            if (recordedHash != null) {
+                if (recordedHash == digest) continue
+                dirty[entry.name] = entry.bytes
+                continue
+            }
+            // The envelope: small, and nobody recorded its bytes, so it is simply compared.
             if (source.readBytes(entry.name)?.contentEquals(entry.bytes) == true) continue
             dirty[entry.name] = entry.bytes
         }

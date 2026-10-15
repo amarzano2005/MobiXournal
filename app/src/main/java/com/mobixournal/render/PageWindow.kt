@@ -16,9 +16,13 @@ import java.util.Collections
  *   without the caller knowing or caring which pages are resident;
  * - keeps the result in the *overlay*, which eviction never touches, so the edit survives the page
  *   leaving the cache — which is what lets undo, redo and a save still find it;
- * - records the index as [dirty], so a save can write back exactly the pages that moved instead of
- *   rebuilding the document ([MobixIncrementalSaver]'s input; the editor wiring is
- *   `repack-only-the-pages-a-save-changed`).
+ * - records the index as [dirty], so **it** knows which pages moved ([dirtyIndices]).
+ *
+ * That record is the window's own, and a **save does not read it**: which pages a save may copy out of
+ * the file the document came from is derived from the shape of the document's page list instead — a page
+ * an edit did not replace is still the source's own (`format/mobix/MobixPageReuse.kt`). A flag is a
+ * second copy of the answer, and a page-list edit that never went through the window would be missing
+ * from it; the overlay itself cannot be, because it *is* the edit.
  *
  * Pinning ([pin]) keeps a page in the *read* cache for as long as a gesture touches it — a live
  * resize re-reads the page every frame, and re-inflating it per frame would be the very cost the
@@ -56,13 +60,18 @@ internal class PageWindow(
     /** Pages an edit produced, by index — kept for the whole window's life, never evicted. */
     private val overlay = LinkedHashMap<Int, Page>()
 
+    // The overlay is what a save reads — through the document the edit was written into
+    // (`format/mobix/MobixPageReuse.kt`). The accessors below are the window's own account of itself,
+    // for a diagnostic or an editor that wants to know which pages it has moved: the save derives the
+    // same answer from the page list, so that one can never go stale.
+
     /** Pages a live gesture is touching; they stay in the read cache until it settles. */
     private val pinned = Collections.synchronizedSet(mutableSetOf<Int>())
 
     /** The edited pages, in the order they were first edited. */
     val dirtyPages: Map<Int, Page> get() = overlay.toMap()
 
-    /** The indices of the pages an edit produced — what a save has to write back. */
+    /** The indices of the pages an edit produced. */
     val dirtyIndices: Set<Int> get() = overlay.keys.toSet()
 
     /** True when nothing has been edited; the window is then a pure read-through view. */

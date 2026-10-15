@@ -97,6 +97,17 @@ internal interface PageSource : AutoCloseable {
         for (index in 0 until pageCount) put(pageId(index) ?: "", index)
     }
 
+    /**
+     * The parts this source's pages **were decoded from**, in index order, or null when its pages are
+     * not a document's at all ([MaterializedPages], the canvas's own view of a page list).
+     *
+     * Only a source that read a `.mobix` can answer it, and the answer is what lets a save tell "this
+     * page is still the archive's own" from "this page is the model's" without opening a thing: the
+     * part names the entry the page's bytes already live in and the `sha256` those bytes were recorded
+     * with ([MobixPageReuse]). Reading it never materialises a page — it is the manifest's own list.
+     */
+    fun sourceParts(): List<MobixPart>? = null
+
     /** Release what this source opened itself. The in-memory one opened nothing. */
     override fun close() = Unit
 
@@ -149,6 +160,9 @@ private class PagedMobix(private val reader: MobixPagedReader) : PageSource {
     override fun pageId(index: Int): String? = reader.pageId(index)
 
     override fun page(index: Int): Page = reader.getPage(index)
+
+    /** The parts the reader's own manifest lists: the entry and the recorded hash of each page. */
+    override fun sourceParts(): List<MobixPart> = reader.manifest.pages
 
     /**
      * The document's declared page size, from `canvas.json` — the one `PAGINATED` mode carries

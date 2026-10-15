@@ -79,7 +79,7 @@ class DocumentIoNewerAppTest {
             payloads = base.payloads,
             preserved = base.preserved,
         )
-        val entries = doc.encode(nowMillis) { null }.map { entry ->
+        val entries = doc.encode(nowMillis, backgroundBytes = { null }).map { entry ->
             if (minAppVersion == null && entry.name == com.mobixournal.format.mobix.MobixFormat.MANIFEST_ENTRY) {
                 // Remove minAppVersion from manifest.json to test actual missing field in archive
                 val text = entry.bytes.toString(Charsets.UTF_8)

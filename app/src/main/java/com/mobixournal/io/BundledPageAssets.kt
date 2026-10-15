@@ -3,6 +3,7 @@ package com.mobixournal.io
 import com.mobixournal.audio.audioRef
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
+import com.mobixournal.format.mobix.MobixPart
 import com.mobixournal.format.mobix.PageSize
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.asAssetSource
@@ -74,6 +75,13 @@ internal class BundledPageAssets(
     override fun pageSize(index: Int): PageSize = delegate.pageSize(index)
 
     override fun idIndex(): Map<String, Int> = delegate.idIndex()
+
+    /**
+     * Forwarded so a save can tell which pages this layer's reads came from (`MobixPageReuse`): the
+     * pages are the reader's own — this class adopts a page's payloads and hands the page on — so the
+     * parts the reader decoded them from are still its answer to give.
+     */
+    override fun sourceParts(): List<MobixPart>? = delegate.sourceParts()
 
     /** A page read adopts the payloads that page names — the only place the archive says which. */
     override fun page(index: Int): Page = delegate.page(index).also { page ->

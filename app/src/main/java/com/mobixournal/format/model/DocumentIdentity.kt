@@ -34,6 +34,38 @@ fun Document.withIdentity(): Document {
 }
 
 /**
+ * [withIdentity] on the pages [indices] names, and **only** those: the pages a save is about to write.
+ *
+ * A page a save copies out of the file it came from is not a page the save has to identify — the ids in
+ * the file are the ones the model already read, and they are written back verbatim. Passing only the
+ * pages that will be rebuilt is therefore what keeps a save from *opening* a document it is not going
+ * to touch: the page-list read that would have to answer "does page 40 have ids?" is exactly the page
+ * read a paged `.mobix` exists to avoid (`docs/data-path.md` → *The page window*), and the answering
+ * pass would hand every page of a two-hundred-page notebook to the decoder on the UI thread.
+ *
+ * The document's own id is still adopted here, since the manifest needs one either way. An empty
+ * [indices] is a document nothing will be written from but the manifest: it costs the id check alone.
+ */
+fun Document.withIdentityOn(indices: Set<Int>): Document {
+    var identified = this
+    var changed = documentId == null
+    for (index in indices) {
+        // Out-of-range indices are the caller's business, not a reason to throw mid-adoption: a plan
+        // built before a page list changed must not take the save down with it.
+        if (index !in identified.pages.indices) continue
+        val page = identified.pages[index]
+        val withIds = ElementId.withIds(page)
+        val withPageId =
+            if (withIds.id == null) withIds.copy(id = ElementId.mint(ElementId.PAGE)) else withIds
+        if (withPageId === page) continue
+        changed = true
+        identified = identified.withPage(index, withPageId)
+    }
+    if (!changed) return this
+    return if (documentId != null) identified else identified.copy(documentId = mintDocumentId())
+}
+
+/**
  * A fresh document id.
  *
  * A UUID, unlike the short prefixed id an element gets ([ElementId.mint]): an element id only has to
