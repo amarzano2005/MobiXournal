@@ -552,17 +552,3 @@ created = 2026-10-15
 tags = ["mobix", "audio"]
 rebuild = true
 emulator_debug = false
-
-[[task]]
-id = "confine-the-save-identity-adoption-to-the-pages-it-writes"
-title = "Adopt a .mobix save's identity only over the pages it writes"
-description = "The .mobix save no longer builds a page nothing touched (repack-only-the-pages-a-save-changed), but the editor still hands it a document whose every page has been opened. MainActivityDocuments calls DrawingSurfaceView.adoptIdentity() on the UI thread before the snapshot, and that runs format/model/DocumentIdentity.kt's Document.withIdentity(), which walks pages.map { ElementId.withIds(page) } over the WHOLE page list. For a paged .mobix that list is the reader-backed one, so a save of a 200-page notebook opens all 200 pages — 199 of them only to be told they already have ids — which is exactly the cost MobixPageReuse was built to avoid; the format layer's measurement (2 ms, 1 page opened) is therefore not what the editor actually pays. The narrow form already exists: Document.withIdentityOn(indices) adopts over the pages a save will write. Adopting identity where the plan is known (io/DocumentIo/MobixDocument.of already pass withIdentityOn(reuse.written)) leaves the caller's adoption to cover the pages the plan lists as written, and the document id alone for the rest. Care is needed on the mirrored pane and the undo stack: DrawingSurfaceView.doc's setter is what tells a second pane the document moved on, and identity must not become an undo entry. Verify with JVM tests: saving a 200-page .mobix through the editor's path (adoptIdentity + encode) opens only the pages the plan writes (TrackedEntrySource / a counting PageSource), the saved file re-opens to the same document, and a second save adopts nothing. Then re-run the benchmark to state what the editor pays rather than what the format layer pays, and update docs/data-path.md's \"not live yet\" note, README.md and docs/mobix-format.md with the measurement."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 890
-created = 2026-10-15
-tags = ["mobix"]
-rebuild = false
-emulator_debug = false
