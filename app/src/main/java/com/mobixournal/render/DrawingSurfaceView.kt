@@ -125,6 +125,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Local copies of the `pixmap` pictures, by document reference (see [setImageSources]). */
     internal var imageBackgrounds: Map<String, java.io.File> = emptyMap()
 
+    /** Where a background's local copy comes from when the document did not hand one over. */
+    internal var backgroundResolver: BackgroundResolver? = null
+
     /** In-progress stroke (page-local pt space) and the page it belongs to. */
     internal var current: ArrayList<StrokePoint>? = null
     /** In-progress multi-stroke shape (e.g. capacitor with an open gap). */

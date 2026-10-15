@@ -31,3 +31,26 @@ internal fun canvasPageSource(pages: () -> List<Page>): PageSource = object : Pa
  */
 internal fun DrawingSurfaceView.pageAt(index: Int): Page? =
     if (index in 0 until pageSource.pageCount) pageSource.page(index) else null
+
+/**
+ * Hand the canvas where a background's bytes are (`io/BundledBackgrounds.kt`), for a document whose
+ * pages are read on demand.
+ *
+ * A `.mobix` opened page by page adopts a page's picture or its PDF **when that page is read**, which
+ * can be long after the load — so the resolver's adopted copies become the map the picture decoder
+ * reads from (live, so a page drawn later finds the file its own read adopted), and a background PDF
+ * no page has named yet is opened the first time one names it (`pdfSourceFor`).
+ *
+ * Passing null — a `.xopp`, or any document whose backgrounds were resolved at open — only drops the
+ * resolver: the copies already handed over stay, so a caller that keeps using `setImageSources` is
+ * unaffected.
+ */
+internal fun DrawingSurfaceView.setBackgroundResolver(resolver: BackgroundResolver?) {
+    if (resolver === backgroundResolver) return
+    backgroundResolver = resolver
+    if (resolver != null) imageBackgrounds = resolver.images
+    // The same reference may mean different bytes now, and a remembered decode failure would keep a
+    // page that can be resolved from ever being drawn.
+    imageSource.clear()
+    requestRender()
+}

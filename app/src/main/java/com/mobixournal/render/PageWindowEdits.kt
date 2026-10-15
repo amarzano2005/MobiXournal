@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.withPage
 
 /**
  * Drop the page window's kept pages and cached pages: the document was replaced wholesale (a load,
@@ -22,6 +23,9 @@ internal fun DrawingSurfaceView.resetPageWindow() = pageWindow.reset()
 internal fun DrawingSurfaceView.windowEditPage(index: Int, transform: (Page) -> Page): Page? {
     if (index !in 0 until pageWindow.pageCount) return null
     val edited = pageWindow.edit(index, transform) ?: return null
-    doc = doc.copy(pages = doc.pages.toMutableList().also { it[index] = edited })
+    // One page of the document moved, so one page of it is rebuilt: `withPage` overlays the edit
+    // instead of walking the list, which is what keeps a two-hundred-page notebook that was opened
+    // page by page from being read in full the moment a stroke lands.
+    doc = doc.withPage(index, edited)
     return edited
 }

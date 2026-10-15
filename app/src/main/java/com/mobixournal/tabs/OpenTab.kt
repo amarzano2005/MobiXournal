@@ -2,6 +2,7 @@ package com.mobixournal.tabs
 
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Document
+import com.mobixournal.render.BackgroundResolver
 
 /**
  * One document open in the editor — a tab.
@@ -54,6 +55,17 @@ data class OpenTab(
      * exporting are disabled for this tab.
      */
     val isReadOnly: Boolean = false,
+    /**
+     * How this document's backgrounds become local files when its pages are read, for a `.mobix`
+     * opened page by page (`io/BundledBackgrounds.kt`, `carry-the-page-source-into-the-editor`).
+     *
+     * It travels with the **tab** because a page's picture or PDF is adopted when the page is read,
+     * which is after the load: switching away and back has to hand the canvas the same resolver, or a
+     * page whose asset has not been asked for yet would come up blank. Null for every document whose
+     * backgrounds were resolved at open, and **not persisted** — a tab restored from the session has
+     * a snapshot whose pages are already in memory.
+     */
+    val backgrounds: BackgroundResolver? = null,
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

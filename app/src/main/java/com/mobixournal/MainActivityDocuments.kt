@@ -21,6 +21,7 @@ import com.mobixournal.render.PdfOutlineExtractor
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.PdfTextExtractor
 import com.mobixournal.render.PdfTextIndexCache
+import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.render.setDefaultPageSize
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
@@ -153,6 +154,9 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
     // The pictures behind pixmap backgrounds were copied out to local files on load;
     // hand them over before the document, so the first frame already has them.
     surface?.setImageSources(loaded.images)
+    // A `.mobix` opened page by page adopts a page's background when that page is read, so the
+    // canvas is handed the resolver that does it (null for every document resolved at open).
+    surface?.setBackgroundResolver(loaded.backgrounds)
     surface?.load(loaded.document)
     if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
     else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")

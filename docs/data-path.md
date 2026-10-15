@@ -42,22 +42,26 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   ids are the model's own and every later save writes the same ones. A writer that minted them on a
   copy would leave the open document unidentified, and the next save would hand out a fresh set — which
   a merge reads as the whole page replaced rather than edited.
-- **Its bundled backgrounds are adopted into the stores on the way in** (a `.mobix` is self-contained,
-  so the bytes in the archive *are* the background), keyed by the reference the document keeps, which
-  is what the renderer looks a picture up by; a background the document only references is resolved as
-  a gzip `.xopp`'s is. A bundle the archive does not actually hold is reported — those pages would be
-  blank, and "missing" is a different thing to explain than "empty".
+- **Its bundled backgrounds are adopted a page at a time** (a `.mobix` is self-contained, so the bytes
+  in the archive *are* the background), when the page that names them is read: `io/BundledBackgrounds.kt`
+  is a `PageSource` layer over the reader, and the `BackgroundResolver` the renderer asks afterwards.
+  The copies are keyed by the reference the document keeps, which is what the renderer looks a picture
+  up by, and a background the document only *references* is resolved exactly as a gzip `.xopp`'s is.
+  The archive's own PDF is adopted up front, since the model holds **one** background PDF per document;
+  a page whose bytes can be reached neither way draws its bare sheet, silently — the report the eager
+  walk used to give ("Background PDF not found") would cost that walk back, and is owed its own lazy
+  version.
 - **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
   `canvas.json` disagrees with the manifest, or that stores its content in `chunks/` (an infinite
   canvas this build cannot lay out) fails the open with the reason, rather than being opened as
   something it is not.
-- **It streams, and the assets are deferred.** The open reads the envelope and the pages and leaves
-  every `assets/` payload in the archive, inflated only when someone adopts a background from it or the
-  document is written (`MobixDocument.open(source)`, `format/mobix/MobixEntrySource.kt`); before this
-  the whole archive was read into memory first (the numbers are in [mobix-format.md](mobix-format.md),
-  *Engine optimizations*, item 1). The pages are still decoded eagerly, so the surface the editor gets
-  next is a **page window**: the manifest supplies `pageCount` and the page ids without inflating a
-  page, and a page is materialised when the canvas shows it. That surface exists — `format/mobix/PageSource.kt`
+- **It streams, one page at a time.** The open reads the envelope and the manifest and hands the editor
+  a document whose pages *are* the reader's own view (`io/DocumentIo.kt` → `MobixDocument.openPaged`), so
+  `pages.size` answers the manifest's count, `pages[150]` inflates page 150, and every `assets/` payload
+  stays in the archive until a page names one or the document is written
+  (`format/mobix/MobixEntrySource.kt`); before this the whole archive was read into memory and every page
+  decoded (the numbers are in [mobix-format.md](mobix-format.md), *Engine optimizations*, item 1). What
+  the editor carries is a **page window**: the surface is `format/mobix/PageSource.kt`
   (`pageCount`, `pageId(i)`, `pageSize(i)`, `page(i)`, `idIndex()`), backed by `MobixPagedReader` for a
   `.mobix`, where counting, id'ing and the **page size** inflate no page (`canvas.json` declares the
   paginated page size), and by the in-memory page list for a `.xopp` or a new document. Its callers are
@@ -85,12 +89,11 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   document for the element. Every other commit still writes the document directly, so `dirtyIndices`
   is complete only for the edits that go through the window.
 
-  What is **not** live yet: the editor still hands the canvas a document whose pages are all in memory,
-  so on device the source answers from that list and no page is deferred. The tab counter, the rail pages
-  button and the page list still walk every page, and the open path still decodes them all
-  (`carry-the-page-source-into-the-editor`); the canvas's lazy path, and the save that writes back only
-  `PageWindow.dirtyIndices`, become live when that task supplies a reader-backed source and
-  `repack-only-the-pages-a-save-changed` consumes the window's dirty set.
+  What is **not** live yet: a save re-encodes every page's JSON to decide which pages moved, so an
+  unchanged page's bytes are copied but already rebuilt once (`repack-only-the-pages-a-save-changed`),
+  and the reader-backed open has had no on-device pass — this host has no emulator or device, so the
+  page counter, the page list and the first frame of a 200-page notebook are covered by unit tests
+  alone.
 
 ### Staging: remote (SSHFS/FTP/cloud) documents
 

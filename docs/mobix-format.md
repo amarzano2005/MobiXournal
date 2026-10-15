@@ -39,7 +39,7 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 | **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **Model only** — codec and ink are live; the table tool still draws a static grid and no editor exists (Step 2: `insert-a-living-table-from-the-table-tool`) |
 | **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \text{barrel roll}, \Delta t_{\text{ms}})$ | **Stored, unconsumed** — tilt, azimuth and $\Delta t$ are captured and written; nothing reads them, and no barrel-roll axis is captured at all (`finish-the-pen-telemetry-payoff`) |
 | **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Not built** — `render/KaraokeStrokeAnimator.kt` has no caller (`replay-the-writing-in-time-with-its-recording`) |
-| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Part live** — the merge engine and the **canvas** read through the page surface (`PageSource`), which lays out and draws a `.mobix` page by page off `canvas.json`'s declared page size; the open path still inflates and parses every page, so opening itself is not yet streaming (`carry-the-page-source-into-the-editor`) |
+| **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Live** — every reader goes through the page surface (`PageSource`): counting, ids and layout come from `manifest.json`/`canvas.json`, and a page is inflated only when the canvas, find or the export asks for it, never at open ([data-path.md](data-path.md)) |
 | **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
 | **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Not self-contained** — the stroke's `audioRef` is written, the bytes stay a sidecar (`carry-the-audio-recording-inside-the-document`) |
 | **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Part live** — a save landing back on the same `.mobix` URI repacks only the changed entries, copying the rest verbatim; an unchanged page's JSON is still rebuilt to hash it, and the on-device round trip is unrun (`repack-only-the-pages-a-save-changed`) |
@@ -53,9 +53,9 @@ Its three structural advantages, all of which follow from the container being a 
 rather than one XML document (layout in [mobix-schema-spec.md](mobix-schema-spec.md)). Whether each
 *runs* today is the capability table's **Status today** column above, not a claim here:
 
-- **Streaming & fast startup** — **part live**: the container is part-per-page and the canvas places and
-  draws through the page surface without opening the pages outside the viewport; the **open path** still
-  loads every page, so start-up itself is not yet streaming (`carry-the-page-source-into-the-editor`).
+- **Streaming & fast startup** — **live**: the container is part-per-page, the **open** reads the manifest
+  and nothing else, and the canvas, find and the export each read the page they are on rather than the
+  document (measured below; [data-path.md](data-path.md)).
 - **Deduplication of binary assets** — **live**: an image pasted across pages is stored once in
   `assets/` and referenced by content hash.
 - **Atomic saves** — **not live yet**: changes to page 3 *should* repack only `page-0003.json`, but
@@ -148,7 +148,7 @@ flattens a document holding living entities into ink through one compiler per fa
 `PlotInk`, `ShapeInk`, `CircuitInk` — the same compilers the canvas draws through, `render/LivingInk.kt`,
 so an export is the screen and not a second opinion about it) and hands the result to the **ordinary** `.xopp`
 writer, so there is one emitter and not a second one to keep in step. A `.mobix` opens and saves as itself (the type is registered, the sticky format is per document, its
-bundled backgrounds are adopted on the way in — [data-path.md](data-path.md)), and the export is wired:
+bundled backgrounds are adopted a page at a time — [data-path.md](data-path.md)), and the export is wired:
 every `.xopp` write goes through the synthesis (`io/DocumentIo.encode`), so Save As to Original or
 Zipped is how a `.mobix` is handed to the desktop — the tab keeps its own format and the export is a
 copy on disk. An ink-only document passes through byte for byte (the synthesis is the identity on it),
@@ -355,20 +355,20 @@ Migrating to the `.mobix` format directly enables four major performance optimiz
 Each one is labelled with **what actually runs today** — **Live**, **library only** (a tested engine with
 no caller in `app/src/main`), or **not built** — and names the task that makes it live.
 
-1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)** — **part live**:
+1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)** — **live**:
    - `format/mobix/MobixPagedReader.kt` walks the ZIP central directory and materialises a page (or a
-     chunk) on demand into an active sliding window (e.g. current page $\pm 2$ adjacent pages). Its
-     callers are the page surface in `format/mobix/PageSource.kt`: the merge engine, and — since
-     `materialise-only-the-visible-pages-in-the-canvas` — the canvas, which lays a document out from the
-     page sizes alone and reads only the pages it draws.
-   - The **open** path does not use it yet (`io/DocumentIo.kt` still goes `MobixContainer.open` +
-     `MobixDocument.open` + `toDocument()`, and hands the canvas that in-memory document rather than a
-     reader-backed source), so `carry-the-page-source-into-the-editor` is what makes start-up live.
-   - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand
-     in $< 5\text{ ms}$ when scrolled into view, verified across synthetic 200-page archives in `MobixPagedReaderTest`.
-   - **Measured** (`MobixPagedOpenBenchmarkTest`): a 200-page document with a 1 MiB asset opens in 15 ms
-     inflating all 204 entries on the whole-archive path, 8 ms inflating 203 on the streaming open (the
-     asset is deferred), and 1 ms on the reader, which inflates 8.
+     chunk) on demand into an active sliding window (e.g. current page $\pm 2$). Its callers are the page
+     surface in `format/mobix/PageSource.kt`: the open, the canvas, the merge, find and the export.
+   - `io/DocumentIo.kt` opens a `.mobix` through that reader and keeps it open for as long as the session
+     holds the document (`prunePagedOpens`), so the editor is handed a document whose pages are read on
+     demand — and a page's bundled background is adopted when that page is read
+     (`io/BundledBackgrounds.kt`), which is what keeps the open free of pages *and* assets.
+   - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand in
+     $< 5\text{ ms}$ when scrolled into view, verified on synthetic 200-page archives in `MobixPagedReaderTest`.
+   - **Measured** (`MobixPagedOpenBenchmarkTest`, report in `app/build/reports/mobix-open.txt`): a
+     200-page archive, one 1 MiB asset, 204 entries — the whole-archive path opens in 4 ms inflating all
+     204, the old streaming open in 3 ms inflating 203, and **the open the app ships in 1 ms inflating
+     3** (`mimetype`, `manifest.json`, `canvas.json`: no page, no asset).
    - This is a property of the container's part-per-page layout; the same reader serves the
      infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)** — **part live**:

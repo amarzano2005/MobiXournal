@@ -6,6 +6,7 @@ import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
+import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.tabs.DocColors
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
@@ -108,6 +109,9 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
             document = view.toDocument(),
             format = p.saveFormat,
             pdfPath = view.pdfSourceFile()?.absolutePath,
+            // The resolver a paged `.mobix` reads its backgrounds through, captured like the PDF
+            // path: the tab has to be able to hand the next canvas the same one.
+            backgrounds = view.backgroundResolver,
             page = view.visiblePageIndex(),
         )
     }
@@ -148,6 +152,9 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     p.pendingSaveName = tab.title
     val pdf = tab.pdfPath?.let(::File)?.takeIf(File::exists)
     view.isReadOnly = tab.isReadOnly
+    // Backgrounds first: a paged `.mobix` resolves its PDF when a page names it, so the file the
+    // tab recorded may be null while the resolver can still answer.
+    view.setBackgroundResolver(tab.backgrounds)
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
     view.load(tab.document)
@@ -293,6 +300,12 @@ internal fun MainActivity.prunePdfCache() {
     val live = panes.flatMap { p ->
         p.tabs.tabs.map(OpenTab::pdfPath) + listOf(p.surface?.pdfSourceFile()?.absolutePath)
     }
+    // The documents still open keep their page readers: a paged `.mobix` reads its pages through
+    // one, so a reader whose document is gone from every tab *and* every canvas is safe to close.
+    val liveDocuments = panes.flatMap { p ->
+        p.tabs.tabs.map { it.document.documentId } + listOf(p.surface?.toDocument()?.documentId)
+    }
+    io.prunePagedOpens(liveDocuments)
     // Pixmap copies aren't recorded in a tab (a reopened document re-resolves them), so only the
     // pictures the live canvases are decoding from are kept.
     val liveImages = panes.flatMap { p ->

@@ -13,9 +13,12 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixIncrementalSave
 import com.mobixournal.format.mobix.MobixMergeEngine
+import com.mobixournal.format.mobix.MobixPagedReader
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.ATTACH_DOMAIN
+import com.mobixournal.render.BackgroundResolver
 import com.mobixournal.render.PdfMerger
 import com.mobixournal.render.SynthesisResult
 import com.mobixournal.render.TextPdfGenerator
@@ -67,6 +70,13 @@ sealed interface LoadedFile {
         val needsNewerApp: Boolean = false,
         /** Non-null message when a sync conflict sibling was detected and merged into this document. */
         val conflictNotification: String? = null,
+        /**
+         * How a page's background becomes a local file when the page is read, for a `.mobix` opened
+         * page by page (`BundledBackgrounds`) — the tab and the canvas both have to carry it, since
+         * the pages it answers for are only read later. Null for a document whose backgrounds were
+         * resolved at open: a `.xopp`, or a `.mobix` opened whole.
+         */
+        val backgrounds: BackgroundResolver? = null,
     ) : LoadedFile
 }
 
@@ -109,6 +119,25 @@ class DocumentIo(
     textPdf: TextPdfGenerator? = null,
 ) {
 
+    /**
+     * How a `.mobix` is opened for reading: the file-backed entry source on device, a counting one
+     * in a test ([MobixEntrySource] is internal, so this is reachable through the internal
+     * constructor below) — which is what makes "the open inflated no page" an assertion.
+     */
+    private var entrySources: (File) -> MobixEntrySource = MobixEntrySource::fromFile
+
+    /** The same document I/O with the entry source supplied — the test seam for the counters. */
+    internal constructor(
+        resolver: ContentResolver,
+        cacheDir: File,
+        filesDir: File,
+        appVersion: String,
+        textPdf: TextPdfGenerator?,
+        entrySources: (File) -> MobixEntrySource,
+    ) : this(resolver, cacheDir, filesDir, appVersion, textPdf) {
+        this.entrySources = entrySources
+    }
+
     /** Staging for document bytes, so slow remote (SSHFS/FTP/cloud) URIs never block the canvas. */
     private val staging = UriStaging(resolver, File(cacheDir, STAGING_DIR))
 
@@ -148,6 +177,27 @@ class DocumentIo(
 
     /** An open `.mobix`'s own bytes: the staged copy, and the URI it was opened through. */
     private class MobixSource(val staged: File, val uri: String?)
+
+    /**
+     * The page readers of the `.mobix` documents opened page by page, by the document they back.
+     *
+     * A paged document reads its pages **through** its reader ([MobixDocument.openPaged]), so the
+     * reader has to outlive the open call and be closed when the session lets the document go —
+     * which is what [prunePagedOpens] does, from the same sweep that prunes the background stores.
+     */
+    private val pagedOpens = LinkedHashMap<String, MutableList<MobixPagedReader>>()
+
+    /**
+     * Close the page readers behind documents the session no longer holds. Called with the ids every
+     * open tab and live canvas still carries, so a document being shown, mirrored or kept in the
+     * background keeps its reader and only the ones nothing points at are released.
+     */
+    fun prunePagedOpens(liveDocumentIds: Collection<String?>) {
+        val live = liveDocumentIds.filterNotNull().toSet()
+        for (id in pagedOpens.keys.filterNot { it in live }) {
+            pagedOpens.remove(id)?.forEach { reader -> runCatching { reader.close() } }
+        }
+    }
 
     /**
      * The two storage caps the user sets in Settings → Storage, pushed in by the activity whenever
@@ -240,22 +290,41 @@ class DocumentIo(
         staged.inputStream().use { MobixContainer.isMobix(it.buffered()) }
 
     /**
-     * Open a native `.mobix` document ([MobixContainer.open] decides whether it *is* one).
+     * Open a native `.mobix` document page by page ([MobixPagedReader] decides whether it *is* one).
      *
-     * Its bundled backgrounds are adopted into the two stores on the way, because a `.mobix` is
-     * self-contained by design: the bytes in the archive are the background, and a pixmap is keyed by
-     * the reference the document carries (which is what the renderer looks one up by). A background the
-     * document only *references* — a native document may still point at a file beside it — is resolved
-     * exactly as a gzip `.xopp`'s is, so neither kind comes up blank when it need not.
+     * Its bundled backgrounds are adopted a **page at a time**, because a `.mobix` is self-contained by
+     * design and *which* asset a page names is written in that page: `BundledBackgrounds` reads page `i`
+     * and adopts what page `i` names, keyed by the reference the document carries (what the renderer
+     * looks one up by), so the open costs no page read and no asset read. A background the document only
+     * *references* — a native document may still point at a file beside it — is resolved exactly as a
+     * gzip `.xopp`'s is; the archive's own PDF is adopted up front, since the model holds one background
+     * PDF per document.
      */
     private fun mobix(staged: File, name: String, source: Uri?): LoadedFile.Doc {
-        // A streaming open: the envelope and the pages are read, the `assets/` payloads are left in the
-        // archive and inflated only if a background is adopted from them or the document is written.
-        // Nothing keeps this source past the call — the open document holds pages, not the MobixDocument
-        // that was read from it (see docs/data-path.md, and MobixDocument.open(source)).
-        val entries = MobixEntrySource.fromFile(staged)
+        // A **paged** open: the envelope and the manifest are read, a page is inflated when someone
+        // asks for it, and the `assets/` payloads stay in the archive until a page names one. The
+        // reader therefore outlives this call — the document reads its pages through it — and is
+        // closed when the session lets the document go ([prunePagedOpens]).
+        val entries = entrySources(staged)
+        val reader = try {
+            MobixPagedReader(entries)
+        } catch (e: Throwable) {
+            entries.close()
+            throw e
+        }
+        // Backgrounds are adopted page by page, from the page that names them, instead of walking
+        // every page at open (`BundledBackgrounds`).
+        val backgrounds = BundledBackgrounds(
+            delegate = PageSource.of(reader),
+            entries = entries,
+            storePdf = { bytes -> pdfStore.newFile().also { it.writeBytes(bytes) } },
+            storeImage = { bytes -> imageStore.copyIn(bytes.inputStream()) },
+            resolveLinked = { refs.resolveBackground(it, name, source) },
+        )
         return try {
-            var mobixDoc = MobixDocument.open(entries)
+            var mobixDoc = MobixDocument.openPaged(reader, backgrounds)
+            backgrounds.adoptBundledPdf()
+
             val conflictNote = checkForConflictSiblingAndMerge(mobixDoc, staged, name, source)?.also {
                 mobixDoc = it.first
             }?.second
@@ -263,25 +332,21 @@ class DocumentIo(
             // Remember what this document was read from, so the next save can repack over it. Keyed by
             // the document's own id, which is what a save of it carries ([Document.documentId]).
             mobixSources[mobixDoc.manifest.documentId] = MobixSource(staged, source?.toString())
+            // …and that the reader backing it has to stay open for as long as the session holds it.
+            pagedOpens.getOrPut(mobixDoc.manifest.documentId) { mutableListOf() } += reader
 
-            val document = mobixDoc.toDocument()
-            val adopted = adoptBundledBackgrounds(document, entries)
-            val pdf = adopted.pdf ?: refs.resolvePdfBackground(document, name, source)
-            val images = adopted.images + refs.resolvePixmapBackgrounds(document, name, source)
-            val references = refs.pixmapReferences(document)
-            val needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion)
             LoadedFile.Doc(
-                document,
-                pdf,
-                SaveFormat.MOBIX,
-                missingPdf = pdf == null && document.pages.any { it.background is Background.Pdf },
-                images = images,
-                missingImage = references.any { it !in images },
-                needsNewerApp = needsNewerApp,
+                document = mobixDoc.toDocument(),
+                pdf = backgrounds.pdf,
+                format = SaveFormat.MOBIX,
+                images = backgrounds.images,
+                needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion),
                 conflictNotification = conflictNote,
+                backgrounds = backgrounds,
             )
-        } finally {
-            entries.close()
+        } catch (e: Throwable) {
+            reader.close()
+            throw e
         }
     }
 
@@ -347,65 +412,6 @@ class DocumentIo(
 
         return mergeResult.mergedDocument to note
     }
-
-    /** What a `.mobix`'s bundled backgrounds became: the local copies, and whether one was unreadable. */
-    private class BundledBackgrounds(
-        val pdf: File?,
-        val images: Map<String, File>,
-        val missing: Boolean,
-    )
-
-    /**
-     * Copy every background a `.mobix` **bundles** out of the archive into the stores, once per asset:
-     * a document with the same PDF behind forty pages carries one entry and gets one local copy.
-     *
-     * An asset the archive does not actually hold is reported rather than skipped in silence — the
-     * pages behind it would render blank, and "file not found" and "file empty" are different things
-     * to try to explain to a user.
-     */
-    private fun adoptBundledBackgrounds(
-        document: Document,
-        entries: MobixEntrySource,
-    ): BundledBackgrounds {
-        // One local copy per asset, so the same PDF behind forty pages is read and written once.
-        val byAsset = HashMap<String, File?>()
-        val images = LinkedHashMap<String, File>()
-        var pdf: File? = null
-        var missing = false
-        for (page in document.pages) {
-            val background = page.background
-            val asset = when (background) {
-                is Background.Pdf -> background.bundledAsset
-                is Background.Pixmap -> background.bundledAsset
-                is Background.Solid -> null
-            } ?: continue
-            val file = byAsset.getOrPut(asset) { entries.readBytes(asset)?.let { store(background, it) } }
-            if (file == null) {
-                missing = true
-                continue
-            }
-            when (background) {
-                is Background.Pdf -> pdf = file
-                // Keyed by the reference the document keeps: that is what the renderer looks a
-                // background picture up by (`openBackgroundImage`), not the asset name it arrived under.
-                is Background.Pixmap -> images[background.filename] = file
-                is Background.Solid -> Unit
-            }
-        }
-        return BundledBackgrounds(pdf, images, missing)
-    }
-
-    /**
-     * Put bundled [bytes] where a background of this kind lives: the PDF store for a PDF (one file for
-     * the whole document) or the image store for a picture — keyed, at the call site, by the reference
-     * the document keeps.
-     */
-    private fun store(background: Background, bytes: ByteArray): File =
-        if (background is Background.Pdf) {
-            pdfStore.newFile().also { file -> file.outputStream().use { it.write(bytes) } }
-        } else {
-            imageStore.copyIn(bytes.inputStream())
-        }
 
     /**
      * Resolve the PDF background a gzip/XML document links to, so a saved project reopens with its

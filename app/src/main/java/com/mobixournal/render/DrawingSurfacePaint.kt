@@ -135,10 +135,25 @@ internal fun DrawingSurfaceView.paint() {
 internal fun DrawingSurfaceView.pageBitmapFor(box: PageBox): Bitmap? {
     val width = if (columns > 1) box.widthPx.toInt().coerceAtMost(OVERVIEW_PREVIEW_CAP) else box.widthPx.toInt()
     return when (val bg = box.page.background) {
-        is Background.Pdf -> pdfSource?.request(bg.pageNo, width)
+        is Background.Pdf -> pdfSourceFor(bg)?.request(bg.pageNo, width)
         is Background.Pixmap -> imageSource.request(bg.filename, width)
         else -> null
     }
+}
+
+/**
+ * The rasteriser for [background]'s PDF page: the one the document handed over, or the one its own
+ * resolved local copy makes the first time a page needs it.
+ *
+ * A `.mobix` opened page by page has no PDF file at load time — which PDF the document uses is
+ * written in the page that names it — so the cache is opened here, on the frame that first draws
+ * such a page. Every other document sets its source at load, and this is then the identity.
+ */
+private fun DrawingSurfaceView.pdfSourceFor(background: Background.Pdf): PdfPageCache? {
+    pdfSource?.let { return it }
+    val file = backgroundResolver?.file(background) ?: return null
+    setPdfSource(PdfPageCache.shared(file))
+    return pdfSource
 }
 
 /** Max preview width in overview mode (columns > 1). */
@@ -168,7 +183,7 @@ internal fun DrawingSurfaceView.openBackgroundImage(reference: String): java.io.
  */
 internal fun DrawingSurfaceView.pdfTilesFor(box: PageBox): List<PdfTile> {
     val bg = box.page.background as? Background.Pdf ?: return emptyList()
-    val src = pdfSource ?: return emptyList()
+    val src = pdfSourceFor(bg) ?: return emptyList()
     if (box.widthPx <= 0f || box.heightPx <= 0f) return emptyList()
     val x = scrollX - box.leftPx
     val y = scrollY - box.topPx
@@ -202,7 +217,7 @@ internal fun DrawingSurfaceView.prefetchAround(visible: List<PageBox>) {
     for (i in intArrayOf(first - 1, last + 1)) {
         val box = layout.boxes.getOrNull(i) ?: continue
         val bg = box.page.background as? Background.Pdf ?: continue
-        src.prefetch(bg.pageNo, box.widthPx.toInt())
+        pdfSourceFor(bg)?.prefetch(bg.pageNo, box.widthPx.toInt())
     }
 }
 

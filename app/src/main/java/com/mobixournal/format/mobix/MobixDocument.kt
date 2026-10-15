@@ -384,10 +384,17 @@ internal class MobixDocument(
          * `assets/` payloads stay in the archive as they do on the [readBytes][open] path. The
          * reader's cache window decides how many pages are resident (see [MobixPagedReader]).
          *
+         * @param pages where the page models come from — the reader's own surface by default, or a
+         *   layer over it that adopts a page's backgrounds as the page is read (`BundledBackgrounds`).
+         *   It is read through on every index, so the document holds the layer and not the pages.
+         *
          * The **caller owns the reader**: it is what the pages read from, so it must outlive the
          * document and be closed by whoever opened it.
          */
-        fun openPaged(reader: MobixPagedReader): MobixDocument {
+        fun openPaged(
+            reader: MobixPagedReader,
+            pages: PageSource = PageSource.of(reader),
+        ): MobixDocument {
             val source = reader.source
             // The reader settles the mimetype, the schema version and the canvas mode; a paginated
             // document carrying `chunks/` is the one corruption it does not look for, and a file
@@ -400,7 +407,7 @@ internal class MobixDocument(
             return MobixDocument(
                 manifest = reader.manifest,
                 canvas = reader.canvas,
-                pages = PageSource.of(reader).asPageList(),
+                pages = pages.asPageList(),
                 bridge = source.readBytes(MobixFormat.BRIDGE_ENTRY)?.toString(Charsets.UTF_8)
                     ?.let(MobixBridgeFile::decode),
                 // Every asset is left in the archive, addressed by name; nothing is read yet.

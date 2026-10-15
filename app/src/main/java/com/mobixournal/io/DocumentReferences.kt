@@ -39,6 +39,25 @@ internal class DocumentReferenceResolver(
     }
 
     /**
+     * Resolve **one** background's reference to a local copy, or null when it cannot be reached.
+     *
+     * The per-background form of [resolvePdfBackground] and [resolvePixmapBackgrounds], for a caller
+     * that has the background in hand and must not walk the document to find it — a `.mobix` opened
+     * page by page resolves a page's background when that page is read (`BundledBackgrounds`).
+     */
+    fun resolveBackground(background: Background, name: String, source: Uri?): File? = when (background) {
+        is Background.Pdf -> background.filename
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { openReference(it, background.domain, name, source) }
+            ?.let(::copyIntoStore)
+        is Background.Pixmap -> background.filename
+            .takeIf { it.isNotEmpty() }
+            ?.let { openReference(it, background.domain, name, source) }
+            ?.let { imageStore.copyIn(it) }
+        is Background.Solid -> null
+    }
+
+    /**
      * Open an input stream to a sibling file named [siblingName] relative to [source], or null if unreachable.
      */
     fun openSiblingStream(source: Uri?, siblingName: String): java.io.InputStream? =
