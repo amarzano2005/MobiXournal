@@ -121,6 +121,14 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
  * Pages outside the active window are evicted from memory; navigating back to an evicted page
  * re-reads its JSON entry from disk losslessly.
  *
+ * **A chunked document reads the same way** ([infinite-canvas.md](docs/infinite-canvas.md)): the parts
+ * a `.mobix` declares are its `pages[]` for a paginated document and its `chunks[]` for an infinite
+ * one, and the two differ only in how a part becomes a [Page] — a chunk decodes through
+ * [MobixChunkCodec] and hands back the page it stands for, which is the shape the rest of the app
+ * works in. The coordinates stay where they are (the entry name, and the manifest's own record of it),
+ * and are read out of the entry name rather than assumed, so a document written onto a 2D board comes
+ * back at its own coordinates. [isPaginated] is the one place the two modes are told apart.
+ *
  * @param source The underlying entry source exposing archive entries on demand.
  * @param cacheBudget The maximum number of materialised pages kept in memory simultaneously.
  */
@@ -161,9 +169,16 @@ internal class MobixPagedReader(
                 "formatVersion ${manifest.formatVersion} is newer than supported ${MobixManifest.CURRENT_FORMAT_VERSION}",
             )
         }
-        if (manifest.canvasMode != CanvasMode.PAGINATED) {
+        // A file that carries both is invalid, whichever mode it claims (`MobixDocument.open` is the
+        // other half of this rule, for the whole-archive read).
+        if (isPaginated && manifest.chunks.isNotEmpty()) {
             throw MobixContainer.MalformedMobixException(
-                "canvasMode is ${manifest.canvasMode}; only PAGINATED is supported by page reader",
+                "PAGINATED document carries chunks/ entries; a file that carries both is invalid",
+            )
+        }
+        if (!isPaginated && manifest.pages.isNotEmpty()) {
+            throw MobixContainer.MalformedMobixException(
+                "${manifest.canvasMode} document carries pages/ entries; a file that carries both is invalid",
             )
         }
 
@@ -175,14 +190,24 @@ internal class MobixPagedReader(
         }
     }
 
-    /** Total number of pages declared in the document manifest. */
-    val pageCount: Int get() = manifest.pages.size
+    /** True when the content is `pages/`; false when it is `chunks/` ([CanvasMode]). */
+    val isPaginated: Boolean get() = manifest.canvasMode == CanvasMode.PAGINATED
+
+    /**
+     * The parts this document declares, in document order: `pages[]` for a paginated document,
+     * `chunks[]` for an infinite one. Counting, ids and the save's reuse plan all read this — which is
+     * what makes "a chunk is a page" a fact of one list rather than a special case in each of them.
+     */
+    val parts: List<MobixPart> get() = if (isPaginated) manifest.pages else manifest.chunks
+
+    /** Total number of pages (or chunks) declared in the document manifest. */
+    val pageCount: Int get() = parts.size
 
     /** Stable manifest identifier of page [pageIndex], or null if index is out of bounds. */
-    fun pageId(pageIndex: Int): String? = manifest.pages.getOrNull(pageIndex)?.id
+    fun pageId(pageIndex: Int): String? = parts.getOrNull(pageIndex)?.id
 
     /** Manifest part descriptor for page [pageIndex], or null if index is out of bounds. */
-    fun pagePart(pageIndex: Int): MobixPart? = manifest.pages.getOrNull(pageIndex)
+    fun pagePart(pageIndex: Int): MobixPart? = parts.getOrNull(pageIndex)
 
     /** Returns true if page [pageIndex] is currently materialised in the in-memory LRU cache. */
     @Synchronized
@@ -202,15 +227,28 @@ internal class MobixPagedReader(
         require(pageIndex in 0 until pageCount) { "page index $pageIndex out of bounds (0..${pageCount - 1})" }
         cache[pageIndex]?.let { return it }
 
-        val part = manifest.pages[pageIndex]
+        val part = parts[pageIndex]
         val bytes = source.readBytes(part.entry)
             ?: throw MobixContainer.MalformedMobixException("page entry ${part.entry} is missing from archive")
         val node = JsonParser.parse(bytes.toString(Charsets.UTF_8)) as? JsonNode.Obj
             ?: throw MobixContainer.MalformedMobixException("${part.entry} is not a JSON object")
 
-        val page = MobixPageCodec.decode(node, assetSource).copy(id = part.id)
+        val page = pageOf(part, node)
         cache[pageIndex] = page
         return page
+    }
+
+    /**
+     * The [Page] a part stands for: a page entry decodes as itself, a chunk entry decodes as the page
+     * it holds. Its coordinates are read out of the entry name (the only place a chunk has any), so a
+     * chunk that arrives under a name nothing can parse keeps its position in the manifest order and
+     * no invented coordinates.
+     */
+    private fun pageOf(part: MobixPart, node: JsonNode.Obj): Page = if (isPaginated) {
+        MobixPageCodec.decode(node, assetSource).copy(id = part.id)
+    } else {
+        val (cx, cy) = MobixFormat.parseChunkEntry(part.entry) ?: (0 to 0)
+        MobixChunkCodec.decode(node, assetSource, fallbackCx = cx, fallbackCy = cy).toPage().copy(id = part.id)
     }
 
     /**

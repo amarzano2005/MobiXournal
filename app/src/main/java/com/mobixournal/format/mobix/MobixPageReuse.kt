@@ -86,7 +86,12 @@ internal class MobixPageReuse private constructor(
          *   read from. Its entry names are what the reuse is checked against: an entry that is not
          *   there cannot be copied.
          */
-        fun of(pages: List<Page>, source: MobixEntrySource): MobixPageReuse {
+        fun of(
+            pages: List<Page>,
+            source: MobixEntrySource,
+            /** The mode the write will claim: it decides what a part's entry name has to be. */
+            canvasMode: CanvasMode = CanvasMode.PAGINATED,
+        ): MobixPageReuse {
             val (base, edited) = sourceView(pages) ?: return none
             val parts = base.backing.sourceParts() ?: return none
             val reusable = LinkedHashMap<Int, MobixPart>()
@@ -95,13 +100,32 @@ internal class MobixPageReuse private constructor(
                 val part = parts.getOrNull(index) ?: continue
                 // The page has to be exactly where it was: a part that names some other entry would
                 // have to be copied to this index's name, which is a rewrite, not a copy.
-                if (part.entry != MobixFormat.pageEntry(index + 1)) continue
+                if (!entryMatches(part, index, canvasMode)) continue
                 if (part.entry !in source.entryNames) continue
                 reusable[index] = part
             }
             if (reusable.isEmpty()) return none
             return MobixPageReuse(reusable, (0 until pages.size).toSet() - reusable.keys)
         }
+
+        /**
+         * Whether the entry a write gives the page at [index] is the entry [part] already holds.
+         *
+         * A **paginated** document names a page by its position (`pages/page-0007.json`), so the name
+         * has to be this index's own. A **chunk** is named by its coordinates, and a chunk's place in
+         * the manifest is not its place on the board — which is why a chunked write takes its
+         * coordinates from the source's own manifest ([MobixDocument.of] `chunkCoords`) instead of
+         * deriving them: an index the overlay did not replace is therefore still exactly the entry the
+         * source holds, and anything that is not a chunk entry at all is a rewrite, not a copy.
+         */
+        private fun entryMatches(part: MobixPart, index: Int, canvasMode: CanvasMode): Boolean =
+            when (canvasMode) {
+                CanvasMode.PAGINATED -> part.entry == MobixFormat.pageEntry(index + 1)
+                CanvasMode.INFINITE_VERTICAL,
+                CanvasMode.INFINITE_HORIZONTAL,
+                CanvasMode.INFINITE_2D,
+                -> MobixFormat.parseChunkEntry(part.entry) != null
+            }
 
         /**
          * [pages] as the source's own list plus the indices an edit replaced, or null when the list is

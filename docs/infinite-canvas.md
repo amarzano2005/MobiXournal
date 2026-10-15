@@ -108,6 +108,39 @@ interpreted in:
 - `origin` records where document coordinates `(0, 0)` sit on the *printed* sheet — the anchor the
   auto-slicer below uses to decide where page 1 of an export begins.
 
+### A chunked document opens, is edited and saves as chunks
+
+What the app does with this geometry today, so the mode is not a format the editor cannot keep.
+
+- **A chunk is a part.** The list a reader counts, ids and inflates is `pages[]` for a paginated document
+  and `chunks[]` for an infinite one, and the two differ only in how a part becomes a page —
+  `chunks/chunk_<cx>_<cy>.json` decodes through `MobixChunkCodec` into the page it stands for. So a
+  chunked document opens **page by page** like any other (`io/DocumentIo.kt` → `MobixDocument.openPaged`),
+  and the mode travels with what was loaded (`LoadedFile.Doc.canvasMode`) rather than being asked of the
+  page model, which has no notion of a board.
+- **Its shape is remembered, not re-derived.** A chunk is named after where it sits, so the coordinates are
+  a fact of the file: `MobixOpenSessions` keeps the manifest's own chunk order and the `canvas.json` it was
+  read with, and hands both to the write. A save therefore lands on `chunks/`, **at the coordinates the
+  parts were at**, and writes the board geometry back as the file had it (the locked dimension, the tile
+  size the names were computed against, the printed-sheet `origin`, and any field this build does not
+  model). A write that derived coordinates from the page index would move every chunk of a 2D board into
+  the first column, and one that rebuilt `canvas.json` from the pages would change a board's geometry —
+  both are data loss dressed as a format choice.
+- **An unchanged chunk is copied, not rebuilt.** The incremental save covers a chunk exactly as it covers a
+  page ([mobix-format.md](mobix-format.md) → *What a `.mobix` save writes*): a chunk the archive already
+  holds contributes its manifest part and no entry, and its bytes are streamed out of the source file
+  instead of being decoded and re-encoded. The manifest keeps that part's `sha256` and `modified` stamp as
+  the archive recorded them, which is what a merge and a sync client read
+  ([sync-and-storage.md](sync-and-storage.md)). A chunk the write does *not* build is never even converted
+  from its page (`LazyChunks`), so the only page such a save reads is the board's first, which carries
+  `defaultPaper` into the new manifest.
+- **What is still missing** is the *canvas engine*: the surface still lays out pages of a fixed size, so a
+  board scrolls past its first chunk only once the chunk geometry reaches the renderer
+  (`render-a-chunked-document-as-an-unbounded-canvas`), strokes have nowhere to be written yet
+  (`write-strokes-into-a-chunk-and-keep-them-across-eviction`), the chrome still counts pages
+  (`make-the-chrome-tell-the-truth-for-a-document-with-no-pages`), and export still slices nothing
+  (`export-an-infinite-document-through-the-auto-slicer`).
+
 ### Spatial query and culling
 1. **Viewport intersection**: At each frame, the active viewport bounds $[x_{\min}, y_{\min}, x_{\max}, y_{\max}]$
    are converted to the integer range of visible chunk coordinates:

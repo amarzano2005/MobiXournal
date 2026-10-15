@@ -60,6 +60,13 @@ internal object MobixIncrementalSave {
      *
      * @param bridgeSource what the document was called on disk, for the source record a `.mobix` carries
      *   (`MobixBridgeFile`), when the caller knows it.
+     * @param canvasMode the mode the document was opened in and must be written back in — a chunked
+     *   document stays chunked ([MobixDocument.of], `docs/infinite-canvas.md`), and the same mode reaches
+     *   the reuse plan, which is what lets an untouched chunk be copied rather than rebuilt.
+     * @param chunkCoords where each page sits on an infinite canvas, in page order, when the caller knows
+     *   (a document opened from a chunked file does: the coordinates are the source manifest's own).
+     * @param canvas the board geometry a chunked document was opened with, when the caller knows it: the
+     *   `canvas.json` it must write back ([MobixDocument.of], `docs/infinite-canvas.md`).
      */
     fun saveOver(
         source: MobixEntrySource,
@@ -70,14 +77,20 @@ internal object MobixIncrementalSave {
         backgroundBytes: (Background) -> ByteArray? = { null },
         audioBytes: (String) -> ByteArray? = { null },
         bridgeSource: String? = null,
+        canvasMode: CanvasMode = CanvasMode.PAGINATED,
+        chunkCoords: List<Pair<Int, Int>>? = null,
+        canvas: MobixCanvasFile? = null,
     ): MobixIncrementalSaveStats {
-        val reuse = MobixPageReuse.of(document.pages, source)
+        val reuse = MobixPageReuse.of(document.pages, source, canvasMode)
         val mobix = MobixDocument.of(
             document = document,
             appVersion = appVersion,
             nowMillis = nowMillis,
             source = bridgeSource,
             reuse = reuse,
+            canvasMode = canvasMode,
+            chunkCoords = chunkCoords,
+            canvas = canvas,
         )
         return repack(source, mobix.encode(nowMillis, backgroundBytes, audioBytes, reuse), output)
     }

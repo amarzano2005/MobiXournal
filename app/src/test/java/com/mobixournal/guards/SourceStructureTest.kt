@@ -36,7 +36,13 @@ class SourceStructureTest {
         // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
-        "render/DrawingSurfaceView.kt" to 1707,
+        // +7 deliberate: the lazy "this page's background is missing" report the resolver drains.
+        "render/DrawingSurfaceView.kt" to 1714,
+        // The canvas geometry a write has to keep lives in the writer (chunkCoords / canvas / stripCoords
+        // and the reuse guard), which put it past the budget: the chunk half is meant to move out the way
+        // io/DocumentIo.kt was split into LoadedFile.kt and MobixOpenSessions.kt
+        // (`split-the-chunk-half-out-of-mobixdocument-kt`).
+        "format/mobix/MobixDocument.kt" to 771,
         "render/CircuitShapes.kt" to 1180,
         "ui/AppSettings.kt" to 1010,
         "ui/EditorDialogs.kt" to 920,

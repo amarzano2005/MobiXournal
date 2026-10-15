@@ -34,71 +34,6 @@ import com.mobixournal.render.documentWithPdfDomain
 import com.mobixournal.render.documentWithPixmapAttachments
 import java.io.File
 
-/**
- * What a staged file turned out to hold. [DocumentIo.read] sniffs the container and returns one of
- * these; resolving it onto a canvas (rasterising the PDF, loading the document) is the caller's job,
- * so everything here stays free of Android view code and unit-testable.
- */
-sealed interface LoadedFile {
-    /**
-     * A raw PDF, which becomes a fresh annotatable document over its pages. [generated] marks one we
-     * typeset ourselves from a text file: it exists only in the cache, so the saved `.xopp` has to
-     * carry the bytes with it ([SaveFormat.ZIPPED]) rather than link a path that will be swept.
-     */
-    data class Pdf(val file: File, val generated: Boolean = false) : LoadedFile
-
-    /**
-     * A raster image ([FileKind.IMAGE]), staged locally. It becomes a one-page document with the
-     * picture as that page's pixmap background — the only shape the `.xopp` format has for an image
-     * — so, like a generated PDF, the caller resolves it rather than parsing anything here.
-     */
-    data class Image(val file: File, val name: String) : LoadedFile
-
-    /**
-     * A parsed `.xopp`. [pdf] is the local copy of its background PDF, if it had one we could
-     * reach; [missingPdf] says the document referenced a background we could *not* resolve, so
-     * those pages will come up blank.
-     */
-    data class Doc(
-        val document: Document,
-        val pdf: File?,
-        val format: SaveFormat,
-        val missingPdf: Boolean = false,
-        /**
-         * The local copy of each `pixmap` background's picture, keyed by the reference the document
-         * carries. The document's own references are left as they were read (so a plain Save writes
-         * them back unchanged) and the renderer decodes through this side table instead.
-         */
-        val images: Map<String, File> = emptyMap(),
-        /** True when some pixmap background named a picture we could not reach. */
-        val missingImage: Boolean = false,
-        /** True when a .mobix manifest requires a newer app version than this build (minAppVersion). */
-        val needsNewerApp: Boolean = false,
-        /** Non-null message when a sync conflict sibling was detected and merged into this document. */
-        val conflictNotification: String? = null,
-        /**
-         * How a page's background becomes a local file when the page is read, for a `.mobix` opened
-         * page by page (`BundledPageAssets`) — the tab and the canvas both have to carry it, since
-         * the pages it answers for are only read later. Null for a document whose backgrounds were
-         * resolved at open: a `.xopp`, or a `.mobix` opened whole.
-         */
-        val backgrounds: BackgroundResolver? = null,
-    ) : LoadedFile
-}
-
-/**
- * The user-set bounds on what document I/O may spend on disk and on a single import (Settings →
- * Storage). Kept as a plain value here rather than reaching for `AppSettings`, so the I/O layer stays
- * independent of the UI one.
- */
-data class StorageLimits(
-    /** Largest plain-text file that may be typeset into a background PDF (see [TextImport]). */
-    val textImportBytes: Long = Long.MAX_VALUE,
-    /** Byte budget for the generated/background PDF cache (see [PdfStore.prune]). */
-    val pdfCacheBytes: Long = PdfStore.UNLIMITED,
-    /** Byte budget for the pixmap-background copies (see [ImageStore.prune]). */
-    val imageCacheBytes: Long = ImageStore.UNLIMITED,
-)
 
 /**
  * Owns everything between a `content://` URI and a document the canvas can show: the staging area,
@@ -183,36 +118,19 @@ class DocumentIo(
     private val refs = DocumentReferenceResolver(resolver, pdfStore, imageStore)
 
     /**
-     * Where each open `.mobix` was read from, by document id: the staged copy the session keeps, and
-     * the URI it came in through. A save that lands back on that same URI repacks over these bytes
-     * instead of writing the whole archive again ([MobixIncrementalSave]) — which is what makes a save
-     * on a long notebook cost a page rather than the notebook.
+     * What this session knows about the `.mobix` files it opened: where each was read from, how it is
+     * shaped, and the page readers still backing it ([MobixOpenSessions]). It is what makes a save an
+     * edit of the file it came from rather than a fresh archive, and it is released by the same sweep
+     * that prunes the stores below ([prunePagedOpens]).
      */
-    private val mobixSources = HashMap<String, MobixSource>()
-
-    /** An open `.mobix`'s own bytes: the staged copy, and the URI it was opened through. */
-    private class MobixSource(val staged: File, val uri: String?)
-
-    /**
-     * The page readers of the `.mobix` documents opened page by page, by the document they back.
-     *
-     * A paged document reads its pages **through** its reader ([MobixDocument.openPaged]), so the
-     * reader has to outlive the open call and be closed when the session lets the document go —
-     * which is what [prunePagedOpens] does, from the same sweep that prunes the background stores.
-     */
-    private val pagedOpens = LinkedHashMap<String, MutableList<MobixPagedReader>>()
+    private val openSessions = MobixOpenSessions()
 
     /**
      * Close the page readers behind documents the session no longer holds. Called with the ids every
      * open tab and live canvas still carries, so a document being shown, mirrored or kept in the
      * background keeps its reader and only the ones nothing points at are released.
      */
-    fun prunePagedOpens(liveDocumentIds: Collection<String?>) {
-        val live = liveDocumentIds.filterNotNull().toSet()
-        for (id in pagedOpens.keys.filterNot { it in live }) {
-            pagedOpens.remove(id)?.forEach { reader -> runCatching { reader.close() } }
-        }
-    }
+    fun prunePagedOpens(liveDocumentIds: Collection<String?>) = openSessions.prune(liveDocumentIds)
 
     /**
      * The two storage caps the user sets in Settings → Storage, pushed in by the activity whenever
@@ -347,9 +265,13 @@ class DocumentIo(
 
             // Remember what this document was read from, so the next save can repack over it. Keyed by
             // the document's own id, which is what a save of it carries ([Document.documentId]).
-            mobixSources[mobixDoc.manifest.documentId] = MobixSource(staged, source?.toString())
+            openSessions.remember(mobixDoc.manifest.documentId, staged, source?.toString())
+            // …and how it is shaped, so the save writes the same shape back: the canvas mode, and — for
+            // a chunked document — the coordinates each part sits at (read out of the manifest's own
+            // entry names, which costs no page read).
+            openSessions.shape(mobixDoc)
             // …and that the reader backing it has to stay open for as long as the session holds it.
-            pagedOpens.getOrPut(mobixDoc.manifest.documentId) { mutableListOf() } += reader
+            openSessions.keep(mobixDoc.manifest.documentId, reader)
 
             LoadedFile.Doc(
                 document = mobixDoc.toDocument(),
@@ -359,6 +281,7 @@ class DocumentIo(
                 needsNewerApp = mobixDoc.manifest.requiresAppNewerThan(appVersion),
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
+                canvasMode = mobixDoc.manifest.canvasMode,
             )
         } catch (e: Throwable) {
             reader.close()
@@ -510,28 +433,14 @@ class DocumentIo(
      * where a save can show it (and identity is the one thing here that must not fail the save).
      */
     fun identifyForSave(document: Document, target: Uri?): Document {
-        val source = mobixSourceFor(document, target)
+        val source = openSessions.sourceFor(document, target)
             ?: return document.withIdentity()
         return runCatching {
             entrySources(source.staged).use { from ->
-                MobixPageReuse.of(document.pages, from).identified(document)
+                MobixPageReuse.of(document.pages, from, openSessions.canvasModeOf(document)).identified(document)
             }
         }.getOrElse { document.withIdentity() }
     }
-
-    /**
-     * The archive a save of [document] to [target] repacks over, or null when there is none: a
-     * `.mobix` written back to the very file it was opened from is the one case that can copy anything,
-     * so anything else — a new document, a first save, a Save As — writes the whole archive.
-     *
-     * Keyed by the *incoming* document's id: a document that never was a `.mobix` has none, and one
-     * that [MobixDocument.of] was about to mint has no source either. The target has to match the URI
-     * the document came in through **as a string**, because that is what a session remembers it as
-     * ([mobixSources]) and what SAF hands back for the same file.
-     */
-    private fun mobixSourceFor(document: Document, target: Uri?): MobixSource? =
-        document.documentId?.let { mobixSources[it] }
-            ?.takeIf { it.staged.isFile && it.uri != null && it.uri == target?.toString() }
 
     /**
      * Serialise [document] into a local scratch file in [format], returning it for [stageOut]. On a
@@ -572,8 +481,14 @@ class DocumentIo(
                     // copied out of the file it is still holding ([MobixPageReuse]). Everywhere else — a
                     // new document, a first save, a Save As to another target — there is no source to
                     // copy from, so every page is built and the whole archive is written.
-                    val source = mobixSourceFor(document, target)
+                    val source = openSessions.sourceFor(document, target)
                     val backgroundBytes = backgroundBytesOf(pdf, images)
+                    // The shape this write has to keep: a chunked document stays chunked, at its own
+                    // coordinates, whether the save repacks over its file or builds a new archive.
+                    val canvasMode = openSessions.canvasModeOf(document)
+                    val chunkCoords = openSessions.chunkCoordsOf(document)
+                    // …and the board geometry the file declared, which no page carries.
+                    val canvas = openSessions.canvasOf(document)
                     if (source == null) {
                         // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
                         // again is the same document ([Document.documentId]).
@@ -587,6 +502,9 @@ class DocumentIo(
                             // at out of the archive this document was opened from, or the new file
                             // names an entry it does not have ([carriedAssets]).
                             payloads = carriedAssets(document),
+                            canvasMode = canvasMode,
+                            chunkCoords = chunkCoords,
+                            canvas = canvas,
                         )
                         MobixContainer.save(mobix.encode(now, backgroundBytes, audio).entries, output)
                     } else {
@@ -600,6 +518,9 @@ class DocumentIo(
                                 backgroundBytes = backgroundBytes,
                                 audioBytes = audio,
                                 bridgeSource = target?.let { displayName(it, "document") },
+                                canvasMode = canvasMode,
+                                chunkCoords = chunkCoords,
+                                canvas = canvas,
                             )
                         }
                     }
@@ -664,11 +585,10 @@ class DocumentIo(
      * (`report-a-mobix-page-whose-background-is-missing`).
      */
     private fun carriedAssets(document: Document): Map<String, ByteArray> {
-        val source = document.documentId?.let { mobixSources[it] }?.takeIf { it.staged.isFile }
-            ?: return emptyMap()
+        val source = openSessions.stagedOf(document) ?: return emptyMap()
         val referenced = referencedAssets(document)
         if (referenced.isEmpty()) return emptyMap()
-        return entrySources(source.staged).use { entries ->
+        return entrySources(source).use { entries ->
             val assets = entries.asAssetSource()
             referenced.mapNotNull { name -> assets.bytes(name)?.let { bytes -> name to bytes } }.toMap()
         }

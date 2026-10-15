@@ -247,8 +247,16 @@ internal data class MobixPart(
     )
 }
 
-/** The spatial geometry mode of a document (`docs/infinite-canvas.md` owns what each one means). */
-internal enum class CanvasMode {
+/**
+ * The spatial geometry mode of a document (`docs/infinite-canvas.md` owns what each one means).
+ *
+ * **Public** on purpose, unlike the rest of this layer: the app's document I/O reports the mode a
+ * `.mobix` was opened with (`LoadedFile.Doc.canvasMode`) so the editor and the next save write the same
+ * shape back, and a mode is the one stable name for that — a container-internal spelling would have to
+ * be translated at every seam. A `.xopp` has no notion of it, which is why it rides on the loaded file
+ * and not on the document model (`format/model/Document.kt`).
+ */
+enum class CanvasMode {
     /** Fixed pages, the `.xopp`-compatible mode: content lives in `pages/`. */
     PAGINATED,
 

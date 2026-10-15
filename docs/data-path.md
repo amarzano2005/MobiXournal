@@ -58,10 +58,16 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   a page whose bytes can be reached neither way draws its bare sheet, silently — the report the eager
   walk used to give ("Background PDF not found") would cost that walk back, and is owed its own lazy
   version.
+- **An infinite-canvas document travels the same road.** A `.mobix` whose content is `chunks/` opens
+  as a document whose pages *are* those chunks, in manifest order, and a save keeps it chunked **at its
+  own coordinates** (`MobixOpenSessions` remembers the canvas mode and the grid the open read out of the
+  manifest's entry names, and hands both to the write): a chunk is named after where it sits, so a write
+  deriving coordinates from the page index would move every chunk of a 2D board to the first column. An
+  untouched chunk is copied out of the source archive rather than rebuilt, the chunk half of the reuse
+  plan ([mobix-format.md](mobix-format.md), [infinite-canvas.md](infinite-canvas.md)).
 - **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
-  `canvas.json` disagrees with the manifest, or that stores its content in `chunks/` (an infinite
-  canvas this build cannot lay out) fails the open with the reason, rather than being opened as
-  something it is not.
+  `canvas.json` disagrees with the manifest, or that carries `pages/` and `chunks/` both fails the open
+  with the reason, rather than being opened as something it is not.
 - **It streams, one page at a time.** The open reads the envelope and the manifest and hands the editor
   a document whose pages *are* the reader's own view (`io/DocumentIo.kt` → `MobixDocument.openPaged`), so
   `pages.size` answers the manifest's count, `pages[150]` inflates page 150, and every `assets/` payload

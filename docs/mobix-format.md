@@ -197,13 +197,12 @@ edit of all of them to a sync client ([sync-and-storage.md](sync-and-storage.md)
 build does not model are written back untouched, and a payload read from a file and never inspected is
 re-written rather than orphaned.
 
-**What a reader refuses, rather than opening something it cannot keep:** a page the manifest names but
-the archive does not carry (a corrupt file, never an empty page), a `formatVersion` from a newer
-schema, a `canvas.json` that disagrees with the manifest about the mode, and an infinite-canvas
-document — its content lives in `chunks/`, the page model cannot hold it, and opening it as an empty
-page list would let a save rewrite a chunked document as a paginated one. The canvas engine lifting
-that last refusal is a later step ([infinite-canvas.md](infinite-canvas.md)), tracked as
-`render-and-edit-an-infinite-canvas-document`. `minAppVersion` is a
+**What a reader refuses, rather than opening something it cannot keep:** a page (or chunk) the manifest
+names but the archive does not carry (a corrupt file, never an empty page), a `formatVersion` from a
+newer schema, a `canvas.json` that disagrees with the manifest about the mode, and a file that carries
+both `pages/` and `chunks/` — the entries and the declared mode have to agree with each other. The
+canvas *engine* drawing that geometry unbounded is a later step ([infinite-canvas.md](infinite-canvas.md),
+`render-a-chunked-document-as-an-unbounded-canvas`). `minAppVersion` is a
 **caller's** question, not this layer's: the document layer exposes
 `manifest.requiresAppNewerThan(appVersion)`, and whether that means "open read-only" or "refuse" is the
 app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).

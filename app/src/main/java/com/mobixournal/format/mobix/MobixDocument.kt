@@ -38,6 +38,47 @@ import java.io.OutputStream
  * Pure Kotlin, no `java.io.File`, like the rest of `format/`: the same code runs on-device and in JVM
  * unit tests.
  */
+/**
+ * The chunks of a document built from a page list, **one at a time**.
+ *
+ * A chunk is a page's own content with the coordinate it sits at, so building one means reading that
+ * page — and a save that copies a chunk out of the archive it was opened from must not build it
+ * ([MobixPageReuse]). A plain `List<MobixChunk>` built up front would read every page of the board on
+ * every save, which is exactly the cost the incremental save exists to avoid; this builds the ones a
+ * write actually encodes and leaves the rest unread. `toString` says how many there are rather than
+ * printing them, the same reason `LazyPages` does.
+ *
+ * A chunk the writer never asks for is a chunk never built, so a `chunks` list of this kind is meant to
+ * be **indexed**, not iterated: an iteration builds every chunk of the board.
+ */
+private class LazyChunks(
+    private val pages: List<Page>,
+    private val grid: List<Pair<Int, Int>>?,
+    private val canvasMode: CanvasMode,
+) : AbstractList<MobixChunk>() {
+
+    override val size: Int get() = pages.size
+
+    override fun get(index: Int): MobixChunk {
+        val (cx, cy) = grid?.get(index) ?: stripCoords(index, canvasMode)
+        return MobixChunk.fromPage(pages[index], cx = cx, cy = cy)
+    }
+
+    override fun toString(): String = "LazyChunks($size chunks)"
+}
+
+/**
+ * Where page [index] sits when nothing says otherwise: a strip, one part per index, in the direction the
+ * mode runs — down for a vertical canvas, right for a horizontal one. `INFINITE_2D` has no implied
+ * direction at all, so it gets the vertical strip: a board whose chunks are genuinely scattered has
+ * coordinates in the file, and a caller that knows them passes `chunkCoords` rather than letting this
+ * guess.
+ */
+private fun stripCoords(index: Int, canvasMode: CanvasMode): Pair<Int, Int> = when (canvasMode) {
+    CanvasMode.INFINITE_HORIZONTAL -> index to 0
+    else -> 0 to index
+}
+
 internal class MobixDocument(
     /** The envelope as read (or as built for a new document); its `pages[]` or `chunks[]` is rewritten by [encode]. */
     val manifest: MobixManifest,
@@ -127,8 +168,7 @@ internal class MobixDocument(
         val parts = if (manifest.canvasMode == CanvasMode.PAGINATED) {
             encodePages(sink, backgroundBytes, audioBytes, nowMillis, reuse)
         } else {
-            encodeChunks(sink, backgroundBytes, audioBytes, nowMillis)
-                .map { (part, entry) -> BuiltPart(part, entry) }
+            encodeChunks(sink, backgroundBytes, audioBytes, nowMillis, reuse)
         }
         val written = sink.entries()
         // Every payload the model carries is re-emitted: an asset still deferred to the source is read
@@ -223,17 +263,34 @@ internal class MobixDocument(
 
     // ---- chunks ----------------------------------------------------------------------------------
 
-    /** Each chunk paired with the `chunks[]` entry describing it, in document order. */
+    /**
+     * Each chunk paired with the `chunks[]` entry describing it, in document order — the chunk half of
+     * [encodePages], and it reuses the same way.
+     *
+     * A chunk is a part like any other, so a chunk the source archive still holds contributes **its
+     * part and no entry**: its JSON is neither rebuilt nor hashed here, and the repack copies the bytes
+     * out of the file. What makes that safe is the coordinates travelling with the plan
+     * ([MobixPageReuse.of][MobixPageReuse.Companion.of] is only handed a grid that lines up), because a
+     * chunk is named after where it sits rather than after its index.
+     */
     private fun encodeChunks(
         sink: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray?,
         audioBytes: (String) -> ByteArray?,
         nowMillis: Long,
-    ): List<Pair<MobixPart, MobixContainer.Entry>> = chunks.map { chunk ->
+        reuse: MobixPageReuse,
+    ): List<BuiltPart> = (0 until chunks.size).map { index ->
+        // Indexed, never iterated: a chunk the source still holds must not even be *built*, and
+        // building one means reading its page — the very cost a copy avoids (`LazyChunks`).
+        reuse.reused[index]?.let { part -> return@map BuiltPart(part, entry = null) }
+        val chunk = chunks[index]
         val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgroundBytes, audioBytes))
             .toByteArray(Charsets.UTF_8)
         val name = MobixFormat.chunkEntry(chunk.cx, chunk.cy)
-        chunkPartFor(manifest, chunk, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
+        BuiltPart(
+            part = chunkPartFor(manifest, chunk, name, MobixAssetSink.sha256(json), nowMillis),
+            entry = MobixContainer.Entry(name, json),
+        )
     }
 
     companion object {
@@ -382,6 +439,9 @@ internal class MobixDocument(
          * `assets/` payloads stay in the archive as they do on the [readBytes][open] path. The
          * reader's cache window decides how many pages are resident (see [MobixPagedReader]).
          *
+         * A **chunked** document reads the same way: its chunks are the parts, and a page read from
+         * one is the page that chunk stands for (see [MobixPagedReader.parts]).
+         *
          * @param pages where the page models come from — the reader's own surface by default, or a
          *   layer over it that adopts a page's bundled assets — backgrounds and recordings — as the page
          *   is read (`BundledPageAssets`).
@@ -395,14 +455,8 @@ internal class MobixDocument(
             pages: PageSource = PageSource.of(reader),
         ): MobixDocument {
             val source = reader.source
-            // The reader settles the mimetype, the schema version and the canvas mode; a paginated
-            // document carrying `chunks/` is the one corruption it does not look for, and a file
-            // that carries both is invalid (the same rule [open] enforces).
-            if (reader.manifest.chunks.isNotEmpty()) {
-                throw MobixContainer.MalformedMobixException(
-                    "PAGINATED document carries chunks/ entries; a file that carries both is invalid",
-                )
-            }
+            // The reader settles the mimetype, the schema version, the canvas mode and the
+            // pages-or-chunks rule (the same two rules [open] enforces for the whole-archive read).
             return MobixDocument(
                 manifest = reader.manifest,
                 canvas = reader.canvas,
@@ -440,8 +494,22 @@ internal class MobixDocument(
      * @param reuse the pages the archive this document came from already holds ([MobixPageReuse]):
      *   they are the pages this save will copy rather than build, so identity is adopted **on the rest
      *   only** — a page nobody is going to write is a page nobody has to open. The same plan is what
-     *   [encode] is given; it applies to a paginated document and is ignored for an infinite one,
-     *   whose chunks are always derived from the pages.
+     *   [encode] is given, and it covers a chunk as it covers a page; a chunked write uses it only when
+     *   `chunkCoords` says where the parts sit, since a part this write builds is named from the grid.
+     * @param chunkCoords where on an infinite canvas each page sits, in the same order as the pages —
+     *   the shape a **chunked** document needs and a paginated one ignores. A chunk is named by its
+     *   coordinates, and they are a fact of the file rather than of the page list, so a write that
+     *   derived them from the index would move every chunk of a 2D board to the first column
+     *   (`docs/infinite-canvas.md`). A caller that has them keeps them; one that does not (a brand-new
+     *   document) gets the strip the mode implies — down for `INFINITE_VERTICAL`, right for
+     *   `INFINITE_HORIZONTAL`, and a vertical strip for `INFINITE_2D`, which is the only honest guess a
+     *   document with no board behind it allows. Entries that do not line up fall back to that strip
+     *   rather than being trusted.
+     * @param canvas the board geometry a **chunked** write records, when the caller knows it — the
+     *   `canvas.json` of the file the document was opened from, whose locked dimension, tile size,
+     *   printed-sheet origin and unknown fields are the board's own facts and are not derivable from the
+     *   pages. A brand-new board passes nothing and takes the first page's size instead; a paginated
+     *   write ignores it (its size is the page's own).
      * @param payloads the bundled `assets/` entries the written document must carry, by entry name. A
      *   **source-less** write — a Save As, a first save — builds every page from the model, so a page
      *   that names `assets/img_<sha>.png` writes that reference back ([MobixPageCodec] keeps
@@ -458,9 +526,10 @@ internal class MobixDocument(
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
         reuse: MobixPageReuse = MobixPageReuse.none,
         payloads: Map<String, ByteArray> = emptyMap(),
+        chunkCoords: List<Pair<Int, Int>>? = null,
+        canvas: MobixCanvasFile? = null,
     ): MobixDocument {
         val isPaginated = canvasMode == CanvasMode.PAGINATED
-        val reuse = if (isPaginated) reuse else MobixPageReuse.none
         // Identity is the *document's* own: it mints what is missing and keeps what is there, so a
         // document that came from a `.mobix` is written with the ids it read, one that came from a
         // `.xopp` gets a set of ids that the open document adopts from then on, and a re-save of either
@@ -476,40 +545,62 @@ internal class MobixDocument(
         }
         val pages = identified.pages
         val first = pages.firstOrNull()
-        val chunks = if (!isPaginated) {
-                pages.mapIndexed { index, page ->
-                    val cx = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL) index else 0
-                    val cy = if (canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) index else 0
-                    MobixChunk.fromPage(page, cx = cx, cy = cy)
-                }
-            } else {
-                emptyList()
-            }
-            return MobixDocument(
-                manifest = MobixManifest.forNewDocument(
-                    documentId = documentId,
-                    canvasMode = canvasMode,
-                    nowMillis = nowMillis,
-                    title = document.title,
-                    defaultPaper = first?.background,
-                    appVersion = appVersion,
-                ),
-                canvas = MobixCanvasFile(
+        val grid = chunkCoords?.takeIf { it.size == pages.size }
+        // A chunked write reuses the source's own parts only when it also knows where they sit. A reused
+        // part keeps the entry the source gave it, so nothing has to be renamed — but the parts this
+        // write **does** build are named from the grid, and a write with no grid would put an edited
+        // chunk at a strip position, moving it off the board. Rather than move content, a coordinate-less
+        // chunked write rebuilds every part (`docs/infinite-canvas.md`).
+        val reuse = if (isPaginated || grid != null) reuse else MobixPageReuse.none
+        // Built one at a time, not up front: only a chunk this write actually *writes* is ever built,
+        // and building one reads its page (`LazyChunks`).
+        val chunks = if (!isPaginated) LazyChunks(pages, grid, canvasMode) else emptyList()
+        return MobixDocument(
+            manifest = MobixManifest.forNewDocument(
+                documentId = documentId,
+                canvasMode = canvasMode,
+                nowMillis = nowMillis,
+                title = document.title,
+                defaultPaper = first?.background,
+                appVersion = appVersion,
+            ),
+            canvas = if (isPaginated) {
+                MobixCanvasFile(
                     mode = canvasMode,
                     widthPt = first?.width ?: NO_PAGE_SIZE,
                     heightPt = first?.height ?: NO_PAGE_SIZE,
-                ),
-                pages = if (isPaginated) pages else emptyList(),
-                chunks = chunks,
-                bridge = MobixBridgeFile(
-                    creator = document.creator,
-                    fileVersion = document.fileVersion,
-                    preview = document.preview,
-                    source = source,
-                ),
-                payloads = payloads,
-            )
-        }
+                )
+            } else {
+                boardCanvas(canvas, canvasMode, first)
+            },
+            pages = if (isPaginated) pages else emptyList(),
+            chunks = chunks,
+            bridge = MobixBridgeFile(
+                creator = document.creator,
+                fileVersion = document.fileVersion,
+                preview = document.preview,
+                source = source,
+            ),
+            payloads = payloads,
+        )
+    }
+
+    /**
+     * The `canvas.json` a **chunked** write records, given the board [known] from the file it came from.
+     *
+     * A chunked board's geometry is the file's own fact and not a page's: the locked dimension, the tile
+     * size its chunk names were computed against, the printed-sheet origin and whatever fields this build
+     * does not model. A write that rebuilt it from the pages would change the board's geometry and drop
+     * the rest, so a board the session opened is written back as it was read — with the mode the write is
+     * claiming, which is the one field this layer owns. A brand-new board has none of that to keep and
+     * takes the first page's own size, the only number it has.
+     */
+    private fun boardCanvas(known: MobixCanvasFile?, canvasMode: CanvasMode, first: Page?): MobixCanvasFile =
+        known?.copy(mode = canvasMode) ?: MobixCanvasFile(
+            mode = canvasMode,
+            widthPt = first?.width ?: NO_PAGE_SIZE,
+            heightPt = first?.height ?: NO_PAGE_SIZE,
+        )
 
         /** Create a brand-new infinite canvas document. */
         fun forInfinite(

@@ -456,20 +456,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "report-a-mobix-page-whose-background-is-missing"
-title = "Report a .mobix page whose bundled background is missing"
-description = "A .mobix opened page by page (io/BundledBackgrounds.kt, carry-the-page-source-into-the-editor) adopts a page's bundled asset when that page is read and, when the archive does not hold it and the link does not resolve, draws the page's bare sheet in silence. Before that the open walked every page and reported it (LoadedFile.Doc.missingPdf/missingImage -> MainActivityDocuments.kt toasts \"Background PDF not found; those pages will be blank\"), which is exactly the walk the paged open exists to avoid - the flags are no longer computed for a .mobix. Give the lazy report a home: BundledBackgrounds already knows when an ask came back empty, so it can record that a page was drawn without the background it names and expose it (per page, or as a single flag), and the canvas or the activity can surface it once after the frame that first needed it, without reading any other page. Verify with a JVM test: a .mobix whose assets/ entry for a page's background is absent opens with no page inflated and reports the page once it is read, and a .xopp still reports its unresolvable reference exactly as today."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 850
-created = 2026-10-15
-tags = ["mobix", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "verify-the-paged-mobix-open-and-canvas-on-the-emulator"
 title = "Verify the paged .mobix open and canvas on the emulator"
 description = "carry-the-page-source-into-the-editor and materialise-only-the-visible-pages-in-the-canvas shipped JVM-verified only: both carry emulator_debug=yes, and this host has no /data/android toolchain (no adb, no AVD), so the runtime behaviour they exist for has never been seen. Install the APK and make a 200-page .mobix (the synthetic writer in MobixPagedOpenBenchmarkTest can produce one) reachable to the app, open it through the system picker, and check: (1) the tab counter and the pages menu show 200 rows with the manifest's page names on open, before any page is drawn - logcat clean, no per-page parse at open; (2) scroll from page 1 to page 200 and screenshot both ends, confirming pages render with their backgrounds (a bundled PDF page and a picture page drawn later than the open, which is what the BackgroundResolver adoption is for); (3) open a .mobix whose page names a bundled picture, draw one stroke on it, save, close, reopen: the background is still there and the stroke survived; (4) switch to another tab and back, and mirror the tab in the second pane, confirming the adopted backgrounds survive the switch; (5) edit a page the window has evicted (jump to page 150, then edit) and confirm no stale page comes back. Record failures with the screenshot and the log line, and if the lazy path misbehaves only on device, fix it there and note what the JVM tests could not see. (6) A bundled recording plays from the .mobix alone: record audio while writing a stroke, save as .mobix, copy the file to an empty folder with no .wav beside it, reopen it there and tap the stroke with the Play Object tool — the recording must sound from the right offset, with the page that names it drawn at least once first (adoption happens on that page's read)."
@@ -484,20 +470,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "supply-a-deferred-payload-on-a-save-that-has-no-source"
-title = "Supply a deferred payload on a .mobix save that has no source"
-description = "Found while landing carry-the-audio-recording-inside-the-document, and it is not about audio: a .mobix opened page by page adopts a page's bundled picture, PDF or recording when that page is read (io/BundledPageAssets.kt), so a page nothing has drawn yet has no local copy. MobixDocument.of() builds the document to write from the model with NO payloads, and io/DocumentIo.encode supplies bytes only from the app's stores (backgroundBytesOf, the audio lookup) - so a save with no source to repack over (Save As to another name, or a first save of a document whose staged copy is gone) writes a page that names assets/... while the entry is not in the archive: the picture or the recording is silently gone from the new file. A save that lands back on the URI it was opened from is safe, because MobixIncrementalSave copies an unchanged entry verbatim. Fix it from the archive the document still has: DocumentIo keeps each open .mobix's staged copy by document id (MobixSource, and the reader in pagedOpens), so on a source-less MOBIX write it can read the assets/ entries the document still references - Background.bundledAsset and Stroke.bundledAudio are the references, both in the model - and carry their bytes into the encode/MobixDocument.of payloads instead of dropping them. Verify with a JVM test: open a .mobix with a bundled picture and a bundled recording on pages nobody reads, save it to a SECOND file (no source match), and reopen it - both payloads are still there and their pages still name them; and a page neither side can supply is reported rather than silently blank (see report-a-mobix-page-whose-background-is-missing)."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "high"
-order = 870
-created = 2026-10-15
-tags = ["mobix", "audio", "data-loss"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "record-and-bundle-opus-audio"
 title = "Record and bundle Opus audio instead of WAV"
 description = "A .mobix now bundles the recording it references (carry-the-audio-recording-inside-the-document), but in the container the app's recorder produces: 16-bit mono WAV, so an hour of notes is about 300 MB, where the format's own spoke says Opus at 32-64 kbps mono would be about 15 MB (docs/audio-inking-sync.md, Bundled compressed audio). audio/OpusAudioRecorder.kt and audio/OpusAssetBundler.kt already exist with unit tests and no caller in app/src/main. Wire the recorder in behind AudioSession.startRecording (keeping the WAV path as the fallback when the encoder is unavailable), bundle through OpusAssetBundler-style content addressing so the entry becomes assets/aud_<sha256>.ogg, and let the player decode it (android.media.MediaPlayer takes an .ogg file the same way). Keep the .xopp side of the contract honest: a .xopp names a sidecar the desktop can play, so an exported document still needs a WAV beside it - either transcode on export with android.media.MediaCodec, or report the gap the way WavAudioSynthesizer's silence framing does today (which is a stub, not a conversion). Verify with a JVM test that one recording is one entry and that an opened document adopts it under its sidecar name, plus the on-device pass: record a minute of speech and compare the saved .mobix's size against the WAV build."
@@ -508,48 +480,6 @@ urgency = "normal"
 order = 880
 created = 2026-10-15
 tags = ["mobix", "audio"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "log-tilt-and-azimuth-in-the-pen-diagnostics-panel"
-title = "Log tilt and azimuth in the pen diagnostics panel"
-description = "finish-the-pen-telemetry-payoff. The app captures stylus tilt (MotionEvent.AXIS_TILT) and azimuth (AXIS_ORIENTATION) in render/DrawingSurfaceStrokes.kt addSamples (around line 354) and stores both on StrokePoint, but nothing can tell whether a given pen reports them at all: the on-canvas Pen diagnostics panel prints pressure only, so the one hardware question this feature raises is unanswerable. Extend the motion line. render/PenInputLog.kt PenEventText.motionLine and motionKey gain two optional readings, printed as t= and a= in degrees (converted at this boundary, ROOT locale, two decimals - the stored values stay in the radians the platform reports) and both go into the dedupe key for the same reason pressure is already there. render/DrawingSurfacePenDebug.kt tracePenMotion reads event.getAxisValue(MotionEvent.AXIS_TILT, index) and event.getAxisValue(MotionEvent.AXIS_ORIENTATION, index) and takes support from event.device?.getMotionRange(axis), so a tablet that declares no tilt axis prints t=- rather than t=0.00 (the range lookup is also the guard: getAxisValue throws for an axis the device does not declare). Verify with PenInputLogTest over the formatting, the no-axis case and the dedupe key, and on the tablet with a pen: open Pen diagnostics, tilt the pen, watch t= move. The Pen diagnostics paragraph in docs/stylus.md lands in the same commit."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 471
-created = 2026-10-15
-tags = ["stylus", "telemetry"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "store-a-genuine-zero-tilt-instead-of-dropping-it"
-title = "Store a genuine zero tilt instead of dropping it"
-description = "finish-the-pen-telemetry-payoff. render/DrawingSurfaceStrokes.kt addSamples (line 354) reads getAxisValue(AXIS_TILT, pointerIndex).takeIf { it != 0f }, so a pen held upright - the ordinary writing posture, which reports tilt 0 - and a tablet with no tilt axis both store null, and a reader downstream cannot tell a real zero from an unsupported axis. Add a pure, JVM-testable helper (render/StrokeTelemetry.kt) that takes one raw axis reading plus whether the device declares that axis and returns what to store: the reading itself when the axis is declared (0 included), null when it is not. Wire both tilt and azimuth through it, keep the stored units as the platform reports them (radians), and leave a .xopp import carrying null telemetry, exactly as today. Cover it with JVM tests: a declared axis reporting 0 keeps 0, an undeclared axis yields null, a declared non-zero reading passes through unconverted, and a stroke with no telemetry at all stays null. docs/mobix-elements.md states the units of the stored fields, so a reader can interpret what this now records."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 472
-created = 2026-10-15
-tags = ["stylus", "mobix"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "open-a-chunked-mobix-and-save-it-back-as-chunks"
-title = "Open a chunked .mobix and save it back as chunks"
-description = "render-and-edit-an-infinite-canvas-document, the smallest step: a chunked .mobix cannot even be opened today. format/mobix/MobixPagedReader.kt throws MalformedMobixException for any canvasMode other than PAGINATED (around line 164, only PAGINATED is supported by page reader), io/DocumentIo.kt mobix() opens every .mobix through that reader, and the save path (io/DocumentIo.kt encode -> MobixDocument.of) never passes a canvasMode, so it writes PAGINATED whatever it opened - the exact rewrite docs/mobix-format.md refuses the document to avoid. The format layer is already complete: MobixDocument.open(source) reads chunks when the manifest says so, MobixDocument.toDocument() maps chunks to pages in order (chunks.map { it.toPage() }), MobixDocument.of(document, canvasMode = ...) derives chunks from pages, and MobixDocument.forInfinite builds a new one. Give format/model/Document.kt a canvasMode field defaulting to PAGINATED, let the open take the non-paged route for an infinite document (MobixDocument.open over the entry source, its chunks exposed as the document pages in manifest order) instead of refusing it, and pass the document own mode through DocumentIo.encode into MobixDocument.of so the save lands on chunks/ with the same canvas.json mode. A file carrying both pages/ and chunks/ stays invalid, the rule MobixDocument.open already enforces. Verify with a JVM test: write a chunked document with MobixDocument.forInfinite (three chunks), read it through DocumentIo.read, assert three pages in chunk order and the INFINITE_2D mode, save it, and assert the reopened archive carries chunks/chunk_*.json, no pages/ entry, and the same mode - never a paginated rewrite. Update the refusal paragraph in docs/mobix-format.md (around line 200) and the chunk half of docs/data-path.md in the same commit."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 481
-created = 2026-10-15
-tags = ["mobix", "canvas"]
 rebuild = true
 emulator_debug = false
 
@@ -594,20 +524,6 @@ created = 2026-10-15
 tags = ["canvas", "mobix"]
 rebuild = true
 emulator_debug = true
-
-[[task]]
-id = "save-only-the-chunks-a-session-changed"
-title = "Save only the chunks a session changed"
-description = "render-and-edit-an-infinite-canvas-document, the saved half. format/mobix/MobixIncrementalSaver.kt repacks only the pages that moved for a paginated document (MobixIncrementalSave.kt, MobixSavePlan.kt, MobixPageReuse.kt), and a chunked document needs the same trade by chunk: chunks/chunk_<cx>_<cy>.json through MobixChunkCodec.kt, named by MobixFormat.chunkEntry. Extend the save plan with a dirty-chunk set taken from the tile manager or the chunk store at save time (ChunkTileManager.dirtyCoords), encode exactly those chunks, copy every other entry verbatim from the archive the document was opened from, and keep an unchanged chunk manifest part (id, sha256, modified) exactly as the archive recorded it, because that is what a merge and a sync client read (docs/sync-and-storage.md). Clear the dirty set only after the bytes are pushed, never before. A save that lands back on the same URI must repack; a Save As to another name builds every chunk, as the page path does. Verify with JVM tests: save a document with two of five chunks dirty and assert the untouched three are byte-identical to the source archive and their manifest parts unchanged; save with nothing dirty and assert nothing was recompressed; and reopen the file to confirm the mode is still the infinite one."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 485
-created = 2026-10-15
-tags = ["canvas", "mobix"]
-rebuild = true
-emulator_debug = false
 
 [[task]]
 id = "make-the-chrome-tell-the-truth-for-a-document-with-no-pages"
@@ -706,3 +622,17 @@ created = 2026-10-15
 tags = ["audio", "mobix"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "split-the-chunk-half-out-of-mobixdocument-kt"
+title = "Split the chunk half out of MobixDocument.kt"
+description = "SourceStructureTest now records format/mobix/MobixDocument.kt at 744 lines because the canvas work (chunkCoords, canvas.json pass-through, stripCoords, the reuse guard in of()) put it past the 700-line budget. Move the chunk writers into their own file the way io/DocumentIo.kt was split into io/LoadedFile.kt and io/MobixOpenSessions.kt: encodeChunks, chunkPartFor and the chunk branch of open()/open(source) become format/mobix/MobixChunkWriting.kt (and MobixChunkReading.kt if the read half does not fit), with BuiltPart and the part helpers made internal so the split compiles. Keep the public surface unchanged (MobixDocument.of/forInfinite/open/openPaged stay reachable the same way) and lower the ceiling in app/src/test/java/com/mobixournal/guards/SourceStructureTest.kt to nothing once the file is back under 700, deleting the entry and its comment. Verify with scripts/host-build.sh testDebugUnitTest (the whole suite, especially ChunkedMobixRoundTripTest, PagedMobixOpenTest and the incremental-save tests)."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 890
+created = 2026-10-15
+tags = ["format", "guard"]
+rebuild = false
+emulator_debug = false

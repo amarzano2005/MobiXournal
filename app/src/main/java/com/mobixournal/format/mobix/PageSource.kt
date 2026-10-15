@@ -47,7 +47,8 @@ internal data class PageSize(val widthPt: Double, val heightPt: Double)
  * Two documents can back it:
  *
  * - a **`.mobix`**, through [MobixPagedReader]: [pageCount] and [pageId] are answered from
- *   `manifest.json` alone, and [page] inflates exactly the entry it is asked for;
+ *   `manifest.json` alone, and [page] inflates exactly the entry it is asked for — a page's entry, or
+ *   the chunk that stands for one in an infinite-canvas document ([infinite-canvas.md](docs/infinite-canvas.md));
  * - **pages already in memory** — a `.xopp`, or a document that was just created — where the
  *   surface is a thin view of the list the caller already holds.
  *
@@ -161,8 +162,12 @@ private class PagedMobix(private val reader: MobixPagedReader) : PageSource {
 
     override fun page(index: Int): Page = reader.getPage(index)
 
-    /** The parts the reader's own manifest lists: the entry and the recorded hash of each page. */
-    override fun sourceParts(): List<MobixPart> = reader.manifest.pages
+    /**
+     * The parts the reader's own manifest lists — its `pages[]`, or its `chunks[]` for an infinite
+     * document: the entry and the recorded hash of each, which is what the save's reuse plan matches a
+     * page against.
+     */
+    override fun sourceParts(): List<MobixPart> = reader.parts
 
     /**
      * The document's declared page size, from `canvas.json` — the one `PAGINATED` mode carries
