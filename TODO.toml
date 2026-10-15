@@ -428,51 +428,9 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "replay-the-writing-in-time-with-its-recording"
-title = "Replay the writing in time with its recording"
-description = "render/KaraokeStrokeAnimator.kt computes what a stroke should look like at an audio playhead - it reads StrokePoint.dtMs, which only a .mobix carries - and DrawingSurfaceView.karaokeState exists on the view, but nothing sets it and DrawingSurfacePaint.kt never reads it: the animator is dead code. So every timing the app is at pains to capture and store is shown to nobody, and audio playback (audio/AudioPlayer.kt, audio/AudioSession.kt) is play and stop while the page stays still. Working this is an investigation first: what clock the playback can publish into the view (the player owns a MediaPlayer, so the playhead has to come from it rather than from a second timer that would drift), how the paint loop draws a stroke visible prefix without re-tessellating the page each frame, what happens to strokes whose dtMs are null (a .xopp load or an older .mobix - the honest answer is that such a stroke is simply already complete), and whether the first cut is playback only or includes scrubbing. Add the atomic tasks that come out of it."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 500
-created = 2026-10-14
-tags = ["mobix", "audio", "replay"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "finish-the-pen-telemetry-payoff"
-title = "Finish the pen telemetry payoff: roll, timings and dynamics"
-description = "Capture stops at three fields - render/DrawingSurfaceStrokes.kt reads MotionEvent.AXIS_TILT and AXIS_ORIENTATION around line 354 and StrokePoint carries pressure, tilt, azimuth and dtMs - and nothing consumes any of them: the width rule is the desktop pressure filter, the smoother ignores time entirely, and no UI shows the data. docs/mobix-format.md meanwhile lists tilt, azimuth, barrel roll and time-driven dynamics as what the native format buys, which is true of two of them. Working this is an investigation with a schema decision at the end: what the platform actually reports (Android exposes no barrel-roll axis, so check MotionEvent axes and what the owner own pen really sends through the app Pen diagnostics panel - ui/ State holding penDiagnostics), whether mobix-elements.md and StrokePoint gain a roll field or the doc drops the claim, and whether dtMs may drive smoothing at all without changing the drawn width - the pressure filter is pinned by docs/stylus.md, and a tilt- or speed-driven width stays out until a written decision moves it. Add the tasks that come out, or the doc correction if the honest answer is that the platform cannot supply the data."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 470
-created = 2026-10-14
-tags = ["mobix", "stylus"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "render-and-edit-an-infinite-canvas-document"
-title = "Render and edit an infinite-canvas .mobix document"
-description = "A .mobix can be an infinite canvas and the app refuses to open one. The format half is complete: MobixManifest.CanvasMode carries PAGINATED, INFINITE_VERTICAL, INFINITE_HORIZONTAL and INFINITE_2D, format/mobix/MobixChunkCodec.kt reads and writes the spatial tiles under chunks/ (chunk_<cx>_<cy>.json), MobixDocument.forInfinite creates one, and render/CanvasAutoSlicer.kt already knows how to measure and slice living content for a continuous strip. The app half is not: docs/mobix-format.md records the refusal (a chunked document would be rewritten as a paginated one, which is why it is refused rather than opened as an empty page list) and calls the engine that lifts it a later step - and that step is in no task. Working it is an investigation first: how far the existing layout, viewport and auto-slicer go, what an unbounded viewport does to the surface coordinate system and to everything that assumes a page list (the page counter, the rail pages button, bookmarks, the zoom badge, split view, search), how a chunk is materialised, evicted and written back, and what a new-document flow for a mode other than paginated looks like. Add the atomic tasks that come out, smallest first, so a chunked document can be created, shown, written on and saved without ever becoming a paginated one."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 480
-created = 2026-10-14
-tags = ["mobix", "canvas"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "step-1-mobix-format-engines"
 title = "Step 1 - the native .mobix format (the engines it promises and does not run)"
-description = "The roadmap first pillar (docs/future-roadmap.md), carried for the third time and this time for what the first two left running rather than planned: step-1-native-mobix-format closed the data model (the PKWARE container, the schema, the living families, the math engine) and step-1-mobix-format-remainder closed the infinite canvas, audio and plugin scopes believing them built - and the format half of each did land, while the app half did not. No user-facing interface can exceed the data model beneath it, so the pillar is not finished until these run: the two container engines now do run - a `.mobix` opens page by page (`format/mobix/MobixPagedReader.kt`, carry-the-page-source-into-the-editor) and a save repacks only the pages that moved (`MobixIncrementalSaver.kt`, repack-only-the-pages-a-save-changed) - and what the second one left open is the rest of this step: neither engine has been seen on a device (verify-the-paged-mobix-open-and-canvas-on-the-emulator), the adoption is per page so a save with no source to repack over still drops a bundled picture or recording (supply-a-deferred-payload-on-a-save-that-has-no-source), and a page drawn without the background it names is silent rather than reported (report-a-mobix-page-whose-background-is-missing); the inking telemetry is captured and stored and consumed by nothing (tilt, azimuth and dtMs, a barrel roll nowhere, and KaraokeStrokeAnimator has no caller); an infinite-canvas document can be written by this app and not opened by it; and a recording does travel inside the container now (carry-the-audio-recording-inside-the-document), but as a WAV where the format's own spoke asks for Opus, with nothing yet replaying the writing in time with it (record-and-bundle-opus-audio, replay-the-writing-in-time-with-its-recording, docs/audio-inking-sync.md). Order of work, following the pillar's own spokes - steps (1) and (2) are behind us and their remaining children are the three named just above, so the next step to pick up is (3); the enumeration below is the plan as a whole: (1) the ground truth first - the format page stops promising engines it does not run, and its size case gets a number behind it (make-the-mobix-format-doc-say-what-the-code-does, measure-mobix-against-xopp-on-one-document); (2) the container's two engines (open-a-mobix-page-by-page-not-whole, repack-only-the-pages-a-save-changed); (3) the schema and inking payoff (finish-the-pen-telemetry-payoff); (4) the canvas engine (render-and-edit-an-infinite-canvas-document); (5) audio last, as the pillar lists it - bundled first, then the replay that makes the stored timings worth keeping (carry-the-audio-recording-inside-the-document, replay-the-writing-in-time-with-its-recording). Not in this epic: everything Step 2 owns (step-2-modern-mobile-ui) and Step 3 (docs/desktop-workstation.md). Done means: every child closed with its documentation in the owning spoke, docs/mobix-format.md asserting only what the document path actually does, both container engines measured rather than assumed, and a release. Known gaps: the desktop half cannot be exercised here - no Xournal++ on this machine, so plugins/mobix-importer is covered by its JVM test alone and a real desktop round trip is outside any pass - and the emulator is a Pixel_Tablet AVD only. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
+description = "The roadmap first pillar (docs/future-roadmap.md), carried for the third time and this time for what the first two left running rather than planned: step-1-native-mobix-format closed the data model (the PKWARE container, the schema, the living families, the math engine) and step-1-mobix-format-remainder closed the infinite canvas, audio and plugin scopes believing them built - and the format half of each did land, while the app half did not. No user-facing interface can exceed the data model beneath it, so the pillar is not finished until these run: the two container engines now do run - a `.mobix` opens page by page (`format/mobix/MobixPagedReader.kt`, carry-the-page-source-into-the-editor) and a save repacks only the pages that moved (`MobixIncrementalSaver.kt`, repack-only-the-pages-a-save-changed) - and what the second one left open is the rest of this step: neither engine has been seen on a device (verify-the-paged-mobix-open-and-canvas-on-the-emulator), the adoption is per page so a save with no source to repack over still drops a bundled picture or recording (supply-a-deferred-payload-on-a-save-that-has-no-source), and a page drawn without the background it names is silent rather than reported (report-a-mobix-page-whose-background-is-missing); the inking telemetry is captured and stored and consumed by nothing (tilt, azimuth and dtMs, a barrel roll nowhere, and KaraokeStrokeAnimator has no caller); an infinite-canvas document can be written by this app and not opened by it; and a recording does travel inside the container now (carry-the-audio-recording-inside-the-document), but as a WAV where the format doc asks for Opus, with nothing yet replaying the writing in time with it (record-and-bundle-opus-audio, docs/audio-inking-sync.md). The three scopes carrying those last three gaps were investigated and closed with the atomic children they broke into. (3) The schema and inking payoff: log-tilt-and-azimuth-in-the-pen-diagnostics-panel (471) and store-a-genuine-zero-tilt-instead-of-dropping-it (472), after the doc correction landed with them - docs/mobix-format.md, docs/future-roadmap.md, docs/mobix-elements.md and docs/stylus.md now say that tilt and azimuth are the platform own radians, that barrel roll is not obtainable on Android and so is in no schema, and that telemetry never drives the drawn width, which is the written decision that keeps tilt- and speed-driven width out. The diagnostics finding: the panel prints pressure only, so whether a pen reports tilt at all is unanswerable on the device that has the pen. (4) The canvas engine, smallest first: open-a-chunked-mobix-and-save-it-back-as-chunks (481), create-a-new-document-in-an-infinite-canvas-mode (482), render-a-chunked-document-as-an-unbounded-canvas (483), write-strokes-into-a-chunk-and-keep-them-across-eviction (484), save-only-the-chunks-a-session-changed (485), make-the-chrome-tell-the-truth-for-a-document-with-no-pages (486), export-an-infinite-document-through-the-auto-slicer (487). The investigation found the format half complete and the app half missing: MobixDocument.open reads chunks, toDocument maps them to pages, of() and forInfinite write them; the refusal lives in MobixPagedReader, DocumentIo never passes a canvas mode, setInfiniteCanvas and ChunkTileManager have no caller, every edit path is keyed by page index, and CanvasAutoSlicer has no caller either. (5) Audio last: publish-the-audio-playhead-from-the-player (501), drive-the-surface-karaoke-state-from-the-playhead (502), draw-the-karaoke-directive-on-the-canvas (503), scrub-the-recording-and-the-ink-together (504), seek-to-the-point-not-the-stroke (505) - KaraokeStrokeAnimator.resolve, its State and the DrawingSurfaceView.karaokeState property all exist and are unwired, and AudioPlayer exposes no playhead at all; the first cut is playback, with scrubbing and point-precise seeking as their own tasks, and record-and-bundle-opus-audio stays open. Order of work: step (3) and step (4) in parallel, step (5) last, as the pillar lists it. Not in this epic: everything Step 2 owns (step-2-modern-mobile-ui) and Step 3 (docs/desktop-workstation.md). Done means: every child closed with its documentation in the owning spoke, docs/mobix-format.md asserting only what the document path actually does, both container engines measured rather than assumed, the chunked path round-tripping on a device, and a release. Known gaps: the desktop half cannot be exercised here - no Xournal++ on this machine, so plugins/mobix-importer is covered by its JVM test alone and a real desktop round trip is outside any pass - and the host this epic was worked on has no AVD and no system image either (adb is present, the AVD list is empty), so every emulator_debug=yes child in this epic is queued for a machine that has a device. EPIC: never implement in one pass; children are scope items (investigate, then add tasks) and atomic tasks, and it stays active until the last child ships."
 status = "active"
 level = "epic"
 category = "feature"
@@ -552,3 +510,199 @@ created = 2026-10-15
 tags = ["mobix", "audio"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "log-tilt-and-azimuth-in-the-pen-diagnostics-panel"
+title = "Log tilt and azimuth in the pen diagnostics panel"
+description = "finish-the-pen-telemetry-payoff. The app captures stylus tilt (MotionEvent.AXIS_TILT) and azimuth (AXIS_ORIENTATION) in render/DrawingSurfaceStrokes.kt addSamples (around line 354) and stores both on StrokePoint, but nothing can tell whether a given pen reports them at all: the on-canvas Pen diagnostics panel prints pressure only, so the one hardware question this feature raises is unanswerable. Extend the motion line. render/PenInputLog.kt PenEventText.motionLine and motionKey gain two optional readings, printed as t= and a= in degrees (converted at this boundary, ROOT locale, two decimals - the stored values stay in the radians the platform reports) and both go into the dedupe key for the same reason pressure is already there. render/DrawingSurfacePenDebug.kt tracePenMotion reads event.getAxisValue(MotionEvent.AXIS_TILT, index) and event.getAxisValue(MotionEvent.AXIS_ORIENTATION, index) and takes support from event.device?.getMotionRange(axis), so a tablet that declares no tilt axis prints t=- rather than t=0.00 (the range lookup is also the guard: getAxisValue throws for an axis the device does not declare). Verify with PenInputLogTest over the formatting, the no-axis case and the dedupe key, and on the tablet with a pen: open Pen diagnostics, tilt the pen, watch t= move. The Pen diagnostics paragraph in docs/stylus.md lands in the same commit."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 471
+created = 2026-10-15
+tags = ["stylus", "telemetry"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "store-a-genuine-zero-tilt-instead-of-dropping-it"
+title = "Store a genuine zero tilt instead of dropping it"
+description = "finish-the-pen-telemetry-payoff. render/DrawingSurfaceStrokes.kt addSamples (line 354) reads getAxisValue(AXIS_TILT, pointerIndex).takeIf { it != 0f }, so a pen held upright - the ordinary writing posture, which reports tilt 0 - and a tablet with no tilt axis both store null, and a reader downstream cannot tell a real zero from an unsupported axis. Add a pure, JVM-testable helper (render/StrokeTelemetry.kt) that takes one raw axis reading plus whether the device declares that axis and returns what to store: the reading itself when the axis is declared (0 included), null when it is not. Wire both tilt and azimuth through it, keep the stored units as the platform reports them (radians), and leave a .xopp import carrying null telemetry, exactly as today. Cover it with JVM tests: a declared axis reporting 0 keeps 0, an undeclared axis yields null, a declared non-zero reading passes through unconverted, and a stroke with no telemetry at all stays null. docs/mobix-elements.md states the units of the stored fields, so a reader can interpret what this now records."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 472
+created = 2026-10-15
+tags = ["stylus", "mobix"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "open-a-chunked-mobix-and-save-it-back-as-chunks"
+title = "Open a chunked .mobix and save it back as chunks"
+description = "render-and-edit-an-infinite-canvas-document, the smallest step: a chunked .mobix cannot even be opened today. format/mobix/MobixPagedReader.kt throws MalformedMobixException for any canvasMode other than PAGINATED (around line 164, only PAGINATED is supported by page reader), io/DocumentIo.kt mobix() opens every .mobix through that reader, and the save path (io/DocumentIo.kt encode -> MobixDocument.of) never passes a canvasMode, so it writes PAGINATED whatever it opened - the exact rewrite docs/mobix-format.md refuses the document to avoid. The format layer is already complete: MobixDocument.open(source) reads chunks when the manifest says so, MobixDocument.toDocument() maps chunks to pages in order (chunks.map { it.toPage() }), MobixDocument.of(document, canvasMode = ...) derives chunks from pages, and MobixDocument.forInfinite builds a new one. Give format/model/Document.kt a canvasMode field defaulting to PAGINATED, let the open take the non-paged route for an infinite document (MobixDocument.open over the entry source, its chunks exposed as the document pages in manifest order) instead of refusing it, and pass the document own mode through DocumentIo.encode into MobixDocument.of so the save lands on chunks/ with the same canvas.json mode. A file carrying both pages/ and chunks/ stays invalid, the rule MobixDocument.open already enforces. Verify with a JVM test: write a chunked document with MobixDocument.forInfinite (three chunks), read it through DocumentIo.read, assert three pages in chunk order and the INFINITE_2D mode, save it, and assert the reopened archive carries chunks/chunk_*.json, no pages/ entry, and the same mode - never a paginated rewrite. Update the refusal paragraph in docs/mobix-format.md (around line 200) and the chunk half of docs/data-path.md in the same commit."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 481
+created = 2026-10-15
+tags = ["mobix", "canvas"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "create-a-new-document-in-an-infinite-canvas-mode"
+title = "Create a new document in an infinite canvas mode"
+description = "render-and-edit-an-infinite-canvas-document, the created half. Nothing in the app can make a chunked document: ui/AppSettings.kt carries only newDocumentFormat (NewDocumentFormat.MOBIX or XOPP), MainActivityTabs.kt newTab builds blankDocument() (render/DrawingSurfaceConstants.kt, one ruled page), and io/DocumentIo.encode writes PAGINATED unless the caller passes a mode. Add a canvas-mode setting beside the format one - PAGINATED, INFINITE_VERTICAL, INFINITE_HORIZONTAL, INFINITE_2D, with the locked width or height taken from the default page size when the mode is a strip - offered in Settings -> Documents (ui/DocumentsSection.kt, AppSettings.kt with its prefs and backup round trip) and only meaningful while the document format is .mobix, since a .xopp has no chunk container. MainActivityTabs.newTab then creates the document with that mode (Document.canvasMode, from the open/save task), so a new notebook is written as chunks from its first save rather than converted later. Verify with JVM tests: MainActivityTabs-level creation is not testable, so pin the pure part - a Document with INFINITE_VERTICAL survives DocumentIo.encode then DocumentIo.read with its mode and its chunk entries, and a NewDocumentFormat.XOPP target ignores the mode. Add an emulator pass: choose Infinite vertical in Settings, create a tab, save it, reopen it, and confirm canvas.json still says INFINITE_VERTICAL."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 482
+created = 2026-10-15
+tags = ["canvas", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "render-a-chunked-document-as-an-unbounded-canvas"
+title = "Render a chunked document as an unbounded canvas"
+description = "render-and-edit-an-infinite-canvas-document, the shown half. The rendering side exists and has no caller: render/DrawingSurfaceInfinite.kt setInfiniteCanvas(mode, chunkSizePt, chunks) sets viewport.canvasMode and builds a render/ChunkTileManager.kt, and nothing calls it, while render/DrawingSurfacePaint.kt paint() lays out and draws a PageBox stack from render/PageStacker.kt (layout.visible(scrollY, height)), page outlines, the bookmark flag, the overview grid and the page counter. Wire the open path so a chunked document reaches the surface: call setInfiniteCanvas with the document canvas mode, the chunkSizePt from format/mobix/MobixCanvasFile.kt, and its chunks, and make paint() take the chunk path when chunkTileManager is not null - draw the unbounded sheet for the mode (the locked width or height from canvas.json, the default paper otherwise) plus the chunks the viewport intersects (ViewportState.visibleChunkRange, ChunkTileManager.visibleChunks), and skip the page-stack pass instead of drawing one page box per chunk. Document coordinates: the sheet origin for the two strip modes, a free plane for INFINITE_2D, so a view point maps to a document point without a PageBox. Eviction stays the tile manager concern (the next task). Verify with JVM tests that ViewportState.visibleChunkRange and ChunkTileManager.visibleChunks agree for a known viewport and zoom, plus an emulator pass on a chunked document: the sheet scrolls past the first chunk instead of ending, no page outline or counter is drawn, and logcat is clean."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 483
+created = 2026-10-15
+tags = ["canvas", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "write-strokes-into-a-chunk-and-keep-them-across-eviction"
+title = "Write strokes into a chunk and keep them across eviction"
+description = "render-and-edit-an-infinite-canvas-document, the written-on half. Every edit path today is keyed by page index: render/DrawingSurfaceStrokes.kt commits into layout.boxes.getOrNull(currentPage) through a PageBox, and render/PageEraser.kt, render/Selection.kt, render/EditHistory.kt and the page window (render/PageWindow.kt) all speak pages. For a chunked document a stroke has to land in the chunk under the pen: derive cx/cy from the document point and canvas.json chunkSizePt, take the chunk from ChunkTileManager.getOrCreateChunk(cx, cy), append the stroke to its top layer and markDirty(cx, cy). Load the chunk first when it is not resident (returning to a chunk the viewport evicted must read it back, the trap edit-a-page-the-lru-window-has-evicted fixed for pages), and let eviction write a dirty chunk back into a store the document owns (ChunkTileManager.onEvict, or a chunk store beside it in render/DrawingSurfaceInfinite.kt) instead of dropping it - an evicted stroke is a lost stroke. Keep the path honest where the rest of the app cannot follow: eraser, selection and undo either work in chunk space or are refused for a chunked document, and whichever is true is written in docs/infinite-canvas.md. Verify with JVM tests: a stroke committed at a document point in chunk (1, 0) is found through the store, a chunk evicted and re-read keeps its stroke, and an erase on an evicted chunk loads it first; plus an emulator pass writing across a chunk boundary, panning away and back, with the ink still there and logcat clean."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 484
+created = 2026-10-15
+tags = ["canvas", "mobix"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "save-only-the-chunks-a-session-changed"
+title = "Save only the chunks a session changed"
+description = "render-and-edit-an-infinite-canvas-document, the saved half. format/mobix/MobixIncrementalSaver.kt repacks only the pages that moved for a paginated document (MobixIncrementalSave.kt, MobixSavePlan.kt, MobixPageReuse.kt), and a chunked document needs the same trade by chunk: chunks/chunk_<cx>_<cy>.json through MobixChunkCodec.kt, named by MobixFormat.chunkEntry. Extend the save plan with a dirty-chunk set taken from the tile manager or the chunk store at save time (ChunkTileManager.dirtyCoords), encode exactly those chunks, copy every other entry verbatim from the archive the document was opened from, and keep an unchanged chunk manifest part (id, sha256, modified) exactly as the archive recorded it, because that is what a merge and a sync client read (docs/sync-and-storage.md). Clear the dirty set only after the bytes are pushed, never before. A save that lands back on the same URI must repack; a Save As to another name builds every chunk, as the page path does. Verify with JVM tests: save a document with two of five chunks dirty and assert the untouched three are byte-identical to the source archive and their manifest parts unchanged; save with nothing dirty and assert nothing was recompressed; and reopen the file to confirm the mode is still the infinite one."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 485
+created = 2026-10-15
+tags = ["canvas", "mobix"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "make-the-chrome-tell-the-truth-for-a-document-with-no-pages"
+title = "Make the chrome tell the truth for a document with no pages"
+description = "render-and-edit-an-infinite-canvas-document. Everything the chrome reports assumes a page list: the page counter, the rail pages button and the overview grid (ui/EditorRegions.kt, render/PageOverview.kt), bookmarks (DrawingSurfaceView.bookmarkedPages, MainActivity.kt bookmarkKey), the zoom badge, split view (panes/, docs/data-path.md), find results (render/DocumentSearch.kt hits carry a pageIndex) and the text-selection and vertical-space affordances. A chunked document has no page 1 of N, so decide per surface and implement it in one place: what the counter reads, whether the overview shows chunk tiles instead of pages, whether a bookmark is kept per chunk coordinate or the feature is hidden, what find ranges over, and whether split view still mirrors the pane. The rule to keep is that no surface may claim a page that does not exist - the same discipline as the missing-background report in this epic. Record the answer in docs/chrome.md and docs/infinite-canvas.md, which owns the mode. Verify with an emulator pass over each surface on a chunked document and a JVM test over the pure part (whatever index or text the counter and the find hit mapping format)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 486
+created = 2026-10-15
+tags = ["canvas", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "export-an-infinite-document-through-the-auto-slicer"
+title = "Export an infinite document through the auto-slicer"
+description = "render-and-edit-an-infinite-canvas-document, the way out. render/CanvasAutoSlicer.kt is complete and has no caller at all: findVerticalCuts, findBestSeam, sliceVerticalStripToPages and sliceHorizontalStripToPages already cut a continuous strip at a whitespace seam within 40 pt of each target cut and never split a stroke, a table or a plot (docs/infinite-canvas.md). Wire it into the export path so a chunked document can leave the app: Save As .xopp and PDF (io/DocumentIo.kt encode, render/XoppSynthesis.kt, render/PdfExporter.kt) slices the document content using canvas.json origin, widthPt and heightPt, where origin records where page 1 begins, and the result is an ordinary paginated document that desktop Xournal++ and any PDF reader open. Nothing about the source document changes: the .mobix keeps its chunks. Verify with JVM tests: a vertical strip whose strokes leave a clear gap yields whole pages with no stroke split across a seam, a horizontal strip slices the same way, a document whose content is one long stroke produces a page holding it whole rather than two halves, and the exported .xopp re-parses through Xopp.parseXml with the expected page count."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 487
+created = 2026-10-15
+tags = ["canvas", "export"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "publish-the-audio-playhead-from-the-player"
+title = "Publish the audio playhead from the player"
+description = "replay-the-writing-in-time-with-its-recording, the clock first. audio/AudioPlayer.kt wraps a MediaPlayer but exposes only isPlaying, and audio/AudioSession.kt only play, stopPlayback and isPlaying, so nothing downstream can know where in the recording playback is - which is why render/KaraokeStrokeAnimator.kt, whose State wants a playheadMs, has no caller. Add the playhead to the player: currentPositionMs (null when nothing is sounding), seekTo(ms) clamped to the clip duration, and completion reported through the existing onPlayingChanged callback. Put the MediaPlayer reading behind a small seam - a position supplier that defaults to the player and is injectable - so the arithmetic around it (clamp, null-when-idle, position after a seek) is JVM-testable with no Android. AudioSession exposes the same surface (playheadMs, seek) so the activity and the chrome read one place, and keeps its one-clip-at-a-time and release semantics untouched. Nothing draws yet: this task is only the clock. Verify with JVM tests over the seam for a playing clip, an idle player, a seek past the end and a completed clip."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 501
+created = 2026-10-15
+tags = ["audio", "mobix"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "drive-the-surface-karaoke-state-from-the-playhead"
+title = "Drive the surface karaoke state from the playhead"
+description = "replay-the-writing-in-time-with-its-recording. render/KaraokeStrokeAnimator.kt owns the playback state (State(audioFile, playheadMs, isPlaying)) and its resolve function, and DrawingSurfaceView.karaokeState exists as an extension property (KaraokeStrokeAnimator.kt, around line 125) that nothing sets, so a recording plays while the page stays still. Set it while a clip sounds: add a small frame driver beside render/MomentumDriver.kt that posts Choreographer frames while playback is live and stops on completion, on stop, and when the editor goes away, publishing State(audioFile = the playing sidecar name, playheadMs = AudioSession.playheadMs, isPlaying = true) onto the surface each frame; stop and completion set null so the page paints normally again. Note that DrawingSurfaceView.render() no-ops while a fling runs, so the driver has to be the one posting frames rather than leaning on requestRender per tick. MainActivityAudio.kt attachAudio owns the wiring, next to audioStamp and onAudioTap. Verify with a JVM test over the pure frame-to-State mapping (a tick at a given position yields the expected State, a completion yields null) plus an emulator pass: play a stroke recording and the canvas repaints as it sounds, with logcat clean and no frames posted once it stops."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 502
+created = 2026-10-15
+tags = ["audio", "mobix"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "draw-the-karaoke-directive-on-the-canvas"
+title = "Draw the karaoke directive on the canvas"
+description = "replay-the-writing-in-time-with-its-recording. The animator already computes, per stroke, a RenderDirective - Normal, Dimmed(colour) or Animating(visiblePoints, activeTip, futurePoints) - from KaraokeStrokeAnimator.resolve, and the paint loop never reads it. In render/DrawingSurfacePaint.kt drawPageElements, resolve each stroke of the page shown while karaokeState is not null (render/StrokePainter.kt draws it): a Dimmed stroke draws in its dimmed colour, an Animating stroke draws only its visible points and then KaraokeStrokeAnimator.drawTipIndicator at the active tip, and a Normal stroke draws exactly as today. The animating stroke must not come out of render/InkCache.kt, whose cached bitmap holds the finished stroke - key the cache with the animating state or draw that one stroke directly. Pin the no-telemetry rule with a test rather than leaving it implied: a stroke whose points carry no dtMs (a .xopp import, an older .mobix) is simply complete - never dimmed once the playhead is past its start and never animating (KaraokeStrokeAnimatorTest). Verify with those JVM tests plus an emulator screenshot of a half-drawn stroke with its tip indicator over a page, and one of the same page after the clip ends."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 503
+created = 2026-10-15
+tags = ["audio", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "scrub-the-recording-and-the-ink-together"
+title = "Scrub the recording and the ink together"
+description = "replay-the-writing-in-time-with-its-recording, the interactive half (mode 2 of docs/audio-inking-sync.md). KaraokeStrokeAnimator.resolve returns Normal whenever State.isPlaying is false, so a held or paused playhead draws nothing special, and the Audio pop-up (ui/ToolbarViewPopups.kt, wired in MainActivityAudio.kt audioUiState) offers play and stop with no position at all. Add the paused frame: a state that still resolves the karaoke directive at a held playhead, so the canvas shows the writing as it stood at that moment while nothing is sounding. Then give the pop-up a scrubber that reads AudioSession.playheadMs, seeks on drag (AudioSession.seek from the clock task), and repaints - the audio-to-ink direction - while the ink-to-audio direction already exists as the Play object tap. Keep the one-clip rule: a seek stops and restarts cleanly rather than opening a second player. Verify on the emulator: record a sentence, drag the scrubber and watch the writing fill and empty as the playhead moves, confirm no stroke reaches the document, and check logcat."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 504
+created = 2026-10-15
+tags = ["audio", "ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "seek-to-the-point-not-the-stroke"
+title = "Seek to the point, not the stroke"
+description = "replay-the-writing-in-time-with-its-recording. A tap with the Play object tool seeks to the stroke AudioRef.startMs, stroke granularity, where docs/audio-inking-sync.md asks for the nearest StrokePoint - the point telemetry only a .mobix carries. Add the lookup as a pure function in render/KaraokeStrokeAnimator.kt beside resolve: the absolute time of a point (strokeStart plus dtMs) and the point nearest a document coordinate together with the time it names, both over List<StrokePoint> so they are JVM-testable. Use it when the tapped stroke carries dtMs so a tap on the fifth word starts there rather than at the stroke head, and fall back to AudioRef.startMs when the stroke has none (a .xopp import or an older .mobix), which keeps the promise exactly where the data exists. Verify with JVM tests over the lookup (nearest point on a sparse stroke, a coordinate past both ends, the fallback when dtMs is null, a stroke with mixed null and present deltas) plus an emulator tap on a long recorded stroke to hear it start from the point tapped."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 505
+created = 2026-10-15
+tags = ["audio", "mobix"]
+rebuild = true
+emulator_debug = true
