@@ -351,8 +351,10 @@ internal fun DrawingSurfaceView.commitPlace() {
  * coexist with the pen: the palm is a different pointer and is never read here.
  */
 internal fun DrawingSurfaceView.addSamples(event: MotionEvent, pointerIndex: Int, box: PageBox, into: MutableList<StrokePoint>) {
-    val tilt = event.getAxisValue(MotionEvent.AXIS_TILT, pointerIndex).takeIf { it != 0f }
-    val azimuth = event.getAxisValue(MotionEvent.AXIS_ORIENTATION, pointerIndex).takeIf { it != 0f }
+    // Raw telemetry, stored and never drawn with (`docs/stylus.md`). Zero is a *reading* - a pen held
+    // upright - so it is kept when the tablet declares the axis; only a tablet without it stores null.
+    val tilt = event.telemetryAxis(MotionEvent.AXIS_TILT, pointerIndex)
+    val azimuth = event.telemetryAxis(MotionEvent.AXIS_ORIENTATION, pointerIndex)
 
     for (h in 0 until event.historySize) {
         smoother.accept(

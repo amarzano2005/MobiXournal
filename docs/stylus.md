@@ -96,9 +96,18 @@ paths above are claims about hardware the app cannot see, the input layer carrie
 — and it is what settled the Honor pen rather than a guess: **☰ menu → Pen diagnostics** floats a live log over the canvas
 (`ui/PenDiagnosticsPanel.kt`), fed by the pure, JVM-tested **`PenInputLog`** (`PenInputLogTest`) whose
 lines are formatted by **`PenEventText`** — tool types, actions, button bits, the **raw pressure**
-the tablet reports for the pointer, key codes with their names, and the input-device list with each
-device's source flags (`DrawingSurfacePenDebug.kt` records the devices when the panel opens). Pressure
-is part of the de-duplication key, so a press that never moves still shows up.
+the tablet reports for the pointer, the **tilt and azimuth axes shown in degrees** (a spec sheet quotes
+degrees; the document stores the platform's radians), key codes with their names, and the input-device
+list with each device's source flags (`DrawingSurfacePenDebug.kt` records the devices when the panel
+opens). Pressure and both axes are part of the de-duplication key, so a press that never moves — or a
+pen tilted without moving — still shows up.
+
+An axis the tablet does not declare reads `t=-` rather than `t=0.00deg`, because the platform reports
+`0` for an axis it lacks and a pen held upright reports `0` too: `StrokeTelemetry` keeps both facts
+apart (and asks `InputDevice.getMotionRange` *before* the value, since `getAxisValue` throws for an
+axis the device does not have). The same rule decides what a stroke stores, so what the panel shows is
+what a `.mobix` would carry — the panel is where the question "does this pen report tilt at all?" is
+answered, by the pen in your hand rather than by a guess.
 
 The same panel answers the other "it does nothing" question — *did my setting reach the pen at all* —
 with `tracePenParameters()`: `applySettings` (and switching the panel on) logs one `PEN sens/mult/min/

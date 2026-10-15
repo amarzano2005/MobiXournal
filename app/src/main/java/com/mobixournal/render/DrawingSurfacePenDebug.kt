@@ -28,12 +28,21 @@ internal fun DrawingSurfaceView.tracePenMotion(event: MotionEvent) {
     val toolType = event.getToolType(index)
     val deviceName = event.device?.name
     val pressure = event.getPressure(index)
+    // The two stylus axes the platform has, under the same rule the inking path stores them by: a zero
+    // from a declared axis is a reading, an undeclared axis is `-` (`StrokeTelemetry`). Shown so the
+    // question "does this pen report tilt at all?" is answered by the pen that has it, not by a guess.
+    val telemetry = PenTelemetry(
+        tiltRadians = event.telemetryAxis(MotionEvent.AXIS_TILT, index),
+        azimuthRadians = event.telemetryAxis(MotionEvent.AXIS_ORIENTATION, index),
+    )
     recordPenLine(
         PenEventText.motionLine(
             event.actionMasked, toolType, event.buttonState, event.pointerCount, deviceName, pressure,
+            telemetry,
         ),
         PenEventText.motionKey(
             event.actionMasked, toolType, event.buttonState, event.pointerCount, deviceName, pressure,
+            telemetry,
         ),
     )
 }

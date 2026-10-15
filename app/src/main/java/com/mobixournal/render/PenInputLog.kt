@@ -54,6 +54,18 @@ internal class PenInputLog(private val capacity: Int = DEFAULT_CAPACITY) {
 }
 
 /**
+ * The stylus telemetry axes of one event, as the panel should show them.
+ *
+ * Both are nullable for the same reason [StrokeTelemetry] returns a nullable: a tablet that declares no
+ * such axis has no reading to show, and printing `0.00` for it would claim a pen held upright when the
+ * hardware cannot know. Null therefore prints as `-`.
+ *
+ * The values are whatever the platform reported — **radians** — and are converted for display only, so
+ * what the panel shows is the reading the document would store.
+ */
+internal data class PenTelemetry(val tiltRadians: Float?, val azimuthRadians: Float?)
+
+/**
  * Turns the raw numbers of a pointer or key event into one readable diagnostic line.
  *
  * Every Android constant it names is mirrored locally, so the whole thing stays a pure function of
@@ -101,11 +113,20 @@ internal object PenEventText {
         pointerCount: Int,
         deviceName: String?,
         pressure: Float? = null,
+        /**
+         * The stylus axes to report, or null when the caller reports none and the line should not
+         * mention them at all. A null *within* it is "this tablet declares no such axis".
+         */
+        telemetry: PenTelemetry? = null,
     ): String = buildString {
         append(actionName(actionMasked))
         append(" tool=").append(toolName(toolType))
         append(" btn=").append(buttons(buttonState))
         if (pressure != null) append(" p=").append(pressure(pressure))
+        telemetry?.let {
+            append(" t=").append(degreesOrDash(it.tiltRadians))
+            append(" a=").append(degreesOrDash(it.azimuthRadians))
+        }
         if (pointerCount > 1) append(" pointers=").append(pointerCount)
         appendDevice(this, deviceName)
     }
@@ -122,8 +143,11 @@ internal object PenEventText {
         pointerCount: Int,
         deviceName: String?,
         pressure: Float? = null,
+        /** The telemetry of [motionLine]; it is part of the key for the same reason pressure is. */
+        telemetry: PenTelemetry? = null,
     ): String = "$actionMasked/$toolType/$buttonState/$pointerCount/$deviceName/" +
-        (pressure?.let(::pressure) ?: "-")
+        (pressure?.let(::pressure) ?: "-") +
+        "/" + (telemetry?.let { "${degreesOrDash(it.tiltRadians)}:${degreesOrDash(it.azimuthRadians)}" } ?: "-")
 
     /**
      * `PEN sens=on mult=1.50 min=0.05 base=1.50pt -> @p=0.50 w=0.75pt` — the live pressure filter and
@@ -242,6 +266,17 @@ internal object PenEventText {
 
     /** `0.42` — two decimals, the precision the pressure is worth reading at. */
     private fun pressure(value: Float): String = "%.2f".format(Locale.ROOT, value)
+
+    /**
+     * `14.21deg` — a stylus axis shown in degrees, or `-` when the tablet declares no such axis.
+     *
+     * The platform reports tilt and orientation in **radians**, which nobody reads off a spec sheet; a
+     * pen's own documentation quotes degrees (a Wacom-style pen tilts to 60°), and this line exists to be
+     * compared against exactly that. The conversion is display-only: what the document stores is the
+     * raw reading (`docs/mobix-elements.md`).
+     */
+    private fun degreesOrDash(radians: Float?): String =
+        if (radians == null) "-" else "%.2fdeg".format(Locale.ROOT, Math.toDegrees(radians.toDouble()))
 
     /** `1.50x` — a multiplier or a pressure fraction. */
     private fun times(value: Float): String = "%.2fx".format(Locale.ROOT, value)

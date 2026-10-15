@@ -157,6 +157,76 @@ class PenInputLogTest {
     }
 
     @Test
+    fun `a motion line reports the tilt and azimuth axes in degrees`() {
+        val line = PenEventText.motionLine(
+            actionMasked = 2,
+            toolType = 2,
+            buttonState = 0,
+            pointerCount = 1,
+            deviceName = null,
+            telemetry = PenTelemetry(tiltRadians = 0.248f, azimuthRadians = 0.558f),
+        )
+
+        assertEquals("MOVE tool=stylus btn=- t=14.21deg a=31.97deg", line)
+    }
+
+    @Test
+    fun `an axis the tablet does not declare reads as a dash, not as zero`() {
+        val line = PenEventText.motionLine(
+            actionMasked = 2,
+            toolType = 2,
+            buttonState = 0,
+            pointerCount = 1,
+            deviceName = null,
+            telemetry = PenTelemetry(tiltRadians = null, azimuthRadians = 0f),
+        )
+
+        assertEquals(
+            "a pen held upright reports 0; a tablet with no tilt axis cannot report anything",
+            "MOVE tool=stylus btn=- t=- a=0.00deg",
+            line,
+        )
+    }
+
+    @Test
+    fun `a caller that reports no telemetry gets the line it always got`() {
+        assertEquals(
+            "the line is unchanged when nothing passes any axes",
+            PenEventText.motionLine(2, 1, 0, 1, null),
+            PenEventText.motionLine(2, 1, 0, 1, null, telemetry = null),
+        )
+        assertEquals("MOVE tool=finger btn=-", PenEventText.motionLine(2, 1, 0, 1, null, telemetry = null))
+    }
+
+    @Test
+    fun `the dedupe key tracks the telemetry, so tilting the pen is recorded`() {
+        val base = PenEventText.motionKey(2, 2, 0, 1, "pen")
+        val tilted = PenEventText.motionKey(
+            2, 2, 0, 1, "pen",
+            telemetry = PenTelemetry(tiltRadians = 0.30f, azimuthRadians = 0f),
+        )
+
+        assertEquals(base, PenEventText.motionKey(2, 2, 0, 1, "pen"))
+        assertNotEquals("a pen tilted without moving is news", base, tilted)
+        assertEquals(
+            "digitiser jitter inside the shown precision stays one line",
+            tilted,
+            PenEventText.motionKey(
+                2, 2, 0, 1, "pen",
+                telemetry = PenTelemetry(tiltRadians = 0.3001f, azimuthRadians = 0f),
+            ),
+        )
+        assertNotEquals(
+            "an axis that went from declared to absent is news too",
+            PenEventText.motionKey(
+                2, 2, 0, 1, "pen",
+                telemetry = PenTelemetry(tiltRadians = 0.30f, azimuthRadians = null),
+            ),
+            tilted,
+        )
+    }
+
+    @Test
     fun `the dedupe key tracks the pressure, so a harder press is recorded`() {
         val soft = PenEventText.motionKey(2, 2, 0, 1, null, pressure = 0.30f)
         assertEquals(soft, PenEventText.motionKey(2, 2, 0, 1, null, pressure = 0.30f))
