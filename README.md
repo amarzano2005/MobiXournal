@@ -194,7 +194,8 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **Text & Images**: Insert resizable text boxes (Sans, Serif, Monospace, bold, italic, custom colors) and external bitmap images.
 - **Synchronized Audio Notes**:
   - Record audio while handwriting. Strokes are tagged with precise timestamps (`fn`/`ts`).
-  - Use the **Play Object** tool to tap any stroke and replay the audio recorded at that exact moment (stored as companion `.wav` files compatible with desktop Xournal++).
+  - Use the **Play Object** tool to tap any stroke and replay the audio recorded at that exact moment.
+  - In a **`.mobix`** the recording travels **inside the file**: it is bundled by content hash (`assets/aud_<sha256>.wav`, one entry however many strokes replay from it) and adopted the moment the page that names it is read, so the document still plays after being moved to a folder with no `.wav` beside it. A **`.xopp`** is unchanged — desktop Xournal++ needs its companion `.wav` files, and the app writes them beside the file from your chosen audio folder.
 - **Page Management & Overview**:
   - **Page Layout**: Single-page stack or multi-column grid overview (**1, 2, 3, or 4 pages per row**).
   - **Page Grid Edit Mode**: Select, reorder by dragging, copy, paste, or delete entire pages.

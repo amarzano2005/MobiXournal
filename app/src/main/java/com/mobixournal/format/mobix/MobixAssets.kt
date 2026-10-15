@@ -66,8 +66,11 @@ internal class MobixAssetSink {
 
         /**
          * The container [bytes] are in, for the asset name. Recognises the three raster formats the app
-         * can open and display; **`bin` otherwise**, because guesses here would be worse than an honest
-         * unknown — the name only has to be unique and recognisable, and the reader keys on the hash.
+         * can open and display plus the two audio containers an inking recording arrives in — the app's
+         * own recorder writes **WAV**, so that is what its recordings are bundled as, and an `ogg`/Opus
+         * stream from another writer keeps its own container rather than being renamed. **`bin`
+         * otherwise**, because guesses here would be worse than an honest unknown — the name only has to
+         * be unique and recognisable, and the reader keys on the hash.
          *
          * This is deliberately not `FileKind`'s sniffing: that answers "what kind of *document* is
          * this, and how do I open it?", while this answers "what container are these *asset* bytes in,
@@ -80,6 +83,7 @@ internal class MobixAssetSink {
                 at(0) == 0x89 && tag(1, "PNG") -> "png"
                 at(0) == 0xff && at(1) == 0xd8 && at(2) == 0xff -> "jpg"
                 tag(0, "RIFF") && tag(8, "WEBP") -> "webp"
+                tag(0, "RIFF") && tag(8, "WAVE") -> "wav"
                 tag(0, "OggS") -> "ogg"
                 else -> "bin"
             }

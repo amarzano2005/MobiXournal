@@ -33,7 +33,7 @@ internal fun DrawingSurfaceView.pageAt(index: Int): Page? =
     if (index in 0 until pageSource.pageCount) pageSource.page(index) else null
 
 /**
- * Hand the canvas where a background's bytes are (`io/BundledBackgrounds.kt`), for a document whose
+ * Hand the canvas where a background's bytes are (`io/BundledPageAssets.kt`), for a document whose
  * pages are read on demand.
  *
  * A `.mobix` opened page by page adopts a page's picture or its PDF **when that page is read**, which

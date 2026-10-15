@@ -9,7 +9,7 @@ A companion Lua plugin for [Xournal++](https://github.com/xournalpp/xournalpp) o
 - **Container Extraction**: Unpacks `.mobix` ZIP containers into a local staging directory.
 - **Envelope & Manifest Parsing**: Reads `manifest.json` and page schemas.
 - **XML Synthesis**: Generates a valid temporary `.xopp`/`.xoj` document preserving strokes, text elements, and layer hierarchies.
-- **Audio Companion Sync**: Maps bundled `.opus` audio references to companion `.wav` sidecars, restoring stroke-level `ts` timestamps for desktop Xournal++ audio playback.
+- **Audio Companion Sync**: A stroke's `audioRef` carries two names — `filename`, the sidecar the stroke replayed from, and `assetId`, the entry the recording is bundled in — and the importer emits the sidecar name with its `ts` timestamp, so desktop Xournal++ looks for a companion file beside the document. The extension is never rewritten: a `.mobix` bundles a recording in the container it was recorded in, which for this app's own recorder is `.wav` (`assets/aud_<sha256>.wav`, `docs/audio-inking-sync.md`). A recording an older writer bundled as Opus needs the app to re-export it (Save As to `.xopp` writes the companion sidecar), because the plugin cannot transcode.
 - **Desktop Launch**: Loads the synthesized document seamlessly via Xournal++'s `app.openFile` API.
 
 ---

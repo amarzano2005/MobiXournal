@@ -57,7 +57,7 @@ data class OpenTab(
     val isReadOnly: Boolean = false,
     /**
      * How this document's backgrounds become local files when its pages are read, for a `.mobix`
-     * opened page by page (`io/BundledBackgrounds.kt`, `carry-the-page-source-into-the-editor`).
+     * opened page by page (`io/BundledPageAssets.kt`, `carry-the-page-source-into-the-editor`).
      *
      * It travels with the **tab** because a page's picture or PDF is adopted when the page is read,
      * which is after the load: switching away and back has to hand the canvas the same resolver, or a

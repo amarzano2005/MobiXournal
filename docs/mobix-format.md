@@ -41,7 +41,7 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 | **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Not built** — `render/KaraokeStrokeAnimator.kt` has no caller (`replay-the-writing-in-time-with-its-recording`) |
 | **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Live** — every reader goes through the page surface (`PageSource`): counting, ids and layout come from `manifest.json`/`canvas.json`, and a page is inflated only when the canvas, find or the export asks for it, never at open ([data-path.md](data-path.md)) |
 | **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
-| **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Not self-contained** — the stroke's `audioRef` is written, the bytes stay a sidecar (`carry-the-audio-recording-inside-the-document`) |
+| **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Live** — a recording the stores hold is bundled by content hash as `assets/aud_<sha256>.<ext>` and the stroke names both that entry and the sidecar it replayed from; a page adopts its recording when it is read, so the file plays with no `.wav` beside it ([audio-inking-sync.md](audio-inking-sync.md)) |
 | **Document saving** | Entire document re-serialized | Incremental saves: writes only modified `pages/page-N.json` entries | **Part live** — a save landing back on the same `.mobix` URI repacks only the changed entries, copying the rest verbatim; an unchanged page's JSON is still rebuilt to hash it, and the on-device round trip is unrun (`repack-only-the-pages-a-save-changed`) |
 
 The **Status today** column is the honest one: a capability is **Live** only where the open/save path
@@ -362,7 +362,7 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
    - `io/DocumentIo.kt` opens a `.mobix` through that reader and keeps it open for as long as the session
      holds the document (`prunePagedOpens`), so the editor is handed a document whose pages are read on
      demand — and a page's bundled background is adopted when that page is read
-     (`io/BundledBackgrounds.kt`), which is what keeps the open free of pages *and* assets.
+     (`io/BundledPageAssets.kt`), which is what keeps the open free of pages *and* assets.
    - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand in
      $< 5\text{ ms}$ when scrolled into view, verified on synthetic 200-page archives in `MobixPagedReaderTest`.
    - **Measured** (`MobixPagedOpenBenchmarkTest`, report in `app/build/reports/mobix-open.txt`): a

@@ -52,8 +52,12 @@ internal object SyntheticNotebook {
     /** A stable id for page [index]'s stroke, so a page survives a write and a read unchanged. */
     fun strokeIdOf(index: Int): String = "stk_p%03d".format(index + 1)
 
-    /** The archive entry of page [index] (0-based). */
-    fun entryOf(index: Int): String = "pages/page_%03d.json".format(index + 1)
+    /**
+     * The archive entry of page [index] (0-based) — the format's own name for it, not a fixture-local
+     * one: the manifest is what a reader goes by, but a fixture written under a name the app's writer
+     * would never produce hides a mismatch until an encode test hits it.
+     */
+    fun entryOf(index: Int): String = MobixFormat.pageEntry(index + 1)
 
     /** Write [pages] to [file] as a real `.mobix`, with the page order the manifest fixes. */
     fun write(file: File, pages: List<Page>) {

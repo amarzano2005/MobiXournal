@@ -63,7 +63,10 @@ class MobixElementCodecTest {
         assertEquals("per-point widths are the points', not a lineWidth", false, json.has("lineWidth"))
         assertTrue("audioRef object is emitted in .mobix format", json.has("audioRef"))
         val audioRefNode = json.getObj("audioRef")!!
-        assertEquals("aud_7a9f1c.opus", audioRefNode.getStrOrNull("assetId"))
+        // The reference the stroke replays from, and — only when the caller's stores could supply the
+        // bytes — the entry they were bundled into (`docs/audio-inking-sync.md`).
+        assertEquals("aud_7a9f1c.opus", audioRefNode.getStrOrNull("filename"))
+        assertNull("nothing was bundled here, so no entry is named", audioRefNode.getStrOrNull("assetId"))
         assertEquals(14250, audioRefNode.getInt("startMs", 0))
         assertEquals(6.0, back.points[1].dtMs!!.toDouble(), 0.0)
         assertEquals(14.8f, back.points[1].tilt!!)

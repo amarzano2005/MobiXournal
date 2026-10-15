@@ -28,15 +28,21 @@ Point Sequence: P0(3200ms) ──► P1(3210ms) ──► P2(3225ms) ... ──�
 ## Bundled compressed audio (`assets/`)
 
 Rather than relying on vulnerable loose sidecars in user folders:
-- Recordings are encoded using **Opus** at $32\text{--}64\text{ kbps}$ mono speech profiles. Opus is
-  the *only* bundled codec, and the entry name carries it
-  (`assets/aud_<sha256>.opus`, [mobix-schema-spec.md](mobix-schema-spec.md)): one codec means one
-  decoder on Android and on desktop, so a document recorded on the tablet plays on the laptop without
-  a codec negotiation nobody can debug. (`AAC`/`M4A` were considered and dropped for that reason.)
-- An hour of audio takes $\approx 15\text{ MB}$ (compared to $> 300\text{ MB}$ uncompressed WAV).
-- Stored directly inside `document.mobix/assets/`, named by content hash so the same recording
-  referenced twice is stored once. The audio is inextricably bound to the document and cannot be
-  detached when sharing or syncing.
+- A recording the app's stores hold is **bundled** into the archive by content hash
+  (`assets/aud_<sha256>.<ext>`, [mobix-schema-spec.md](mobix-schema-spec.md)), so the same recording
+  referenced twice is stored once: a save and an open go through
+  `MobixAssetSink.add(bytes, AssetKind.AUDIO)` and `io/BundledPageAssets.kt` respectively.
+- **The container is the one the bytes are in**, and the extension says which — the app's own recorder
+  writes 16-bit mono RIFF/WAVE, so its recordings are `aud_<sha256>.wav`; an `.ogg`/Opus stream from
+  another writer keeps `.ogg` rather than being renamed. Opus at $32\text{--}64\text{ kbps}$ mono is the
+  *intended* recorder codec ($\approx 15\text{ MB}$ an hour against $> 300\text{ MB}$ of WAV) and
+  `audio/OpusAudioRecorder.kt` exists for it, but nothing calls it yet: there is no transcode on the
+  save path, and pretending one had happened would put Opus bytes under a `.wav` name.
+- On open, the recording is adopted into the app's audio store when **the page that names it is read**
+  (`io/BundledPageAssets.kt`), under the sidecar name the stroke carries — so playback needs nothing
+  beside the file, and the `.xopp` export still names that sidecar and pushes a copy out for it.
+- The audio is bound to the document and cannot be detached when sharing or syncing; a `.xopp`
+  exported from it is the one shape that still needs a sidecar file on disk.
 
 ---
 
@@ -48,7 +54,11 @@ $$t_{\text{abs}}(P_i) = T_{\text{stroke\_start}} + \sum_{k=0}^{i} \Delta t_k$$
 ```json
 {
   "type": "stroke",
-  "audioRef": { "assetId": "aud_7a9f1c.opus", "startMs": 14250 },
+  "audioRef": {
+    "filename": "2026-08-02T09-14-33.wav",
+    "assetId": "assets/aud_7a9f1c0e…wav",
+    "startMs": 14250
+  },
   "points": [
     { "x": 120.4, "y": 80.2, "dtMs": 0 },
     { "x": 121.0, "y": 81.5, "dtMs": 12 },

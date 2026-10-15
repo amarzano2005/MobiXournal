@@ -18,6 +18,7 @@ import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
+import com.mobixournal.audio.audioRef
 
 /**
  * The `.mobix` element codec: one JSON object per element of the app's own model
@@ -72,9 +73,21 @@ internal object MobixElementCodec {
 
     // ---- encode ---------------------------------------------------------------------------------
 
-    /** [element] as JSON, registering any binary payload it carries in [assets]. */
-    fun encode(element: Element, assets: MobixAssetSink): JsonNode.Obj = when (element) {
-        is Stroke -> encodeStroke(element)
+    /**
+     * [element] as JSON, registering any binary payload it carries in [assets].
+     *
+     * [audioBytes] supplies the bytes of the recording a stroke's `fn` names, when the caller's stores
+     * hold them: a `.mobix` carries its audio inside itself, so a recording the document references and
+     * the app can read is bundled by content hash and named by the stroke ([encodeStroke]). A caller
+     * with no audio (a format-only test, the metadata block) passes nothing and the sidecar name stands
+     * alone, exactly as it does in a `.xopp`.
+     */
+    fun encode(
+        element: Element,
+        assets: MobixAssetSink,
+        audioBytes: (String) -> ByteArray? = { null },
+    ): JsonNode.Obj = when (element) {
+        is Stroke -> encodeStroke(element, assets, audioBytes)
         is TextElement -> encodeText(element)
         is ImageElement -> encodeImage(element, assets)
         is TexImageElement -> encodeTexImage(element, assets)
@@ -87,7 +100,11 @@ internal object MobixElementCodec {
         is RawElement -> encodeRaw(element)
     }
 
-    private fun encodeStroke(s: Stroke): JsonNode.Obj = MobixJson.obj { out ->
+    private fun encodeStroke(
+        s: Stroke,
+        assets: MobixAssetSink,
+        audioBytes: (String) -> ByteArray?,
+    ): JsonNode.Obj = MobixJson.obj { out ->
         out[TYPE] = JsonNode.of(STROKE)
         s.id?.let { out[ID] = JsonNode.of(it) }
         out["tool"] = JsonNode.of(s.tool.name)
@@ -97,17 +114,24 @@ internal object MobixElementCodec {
         // exactly as `.xopp` tells the two apart by the presence of its `width` attribute.
         if (s.uniformWidth) out["lineWidth"] = JsonNode.of(s.points.firstOrNull()?.width ?: 0.0)
         s.capStyle?.let { out["capStyle"] = JsonNode.of(it) }
-        val audioFn = s.extraAttrs["fn"]
-        val audioTs = s.extraAttrs["ts"]?.toIntOrNull()
-        if (!audioFn.isNullOrBlank()) {
+        val audio = s.audioRef()
+        if (audio != null) {
+            // Both names are written, and they are different things: `assetId` is the entry the bytes
+            // are in — the archive that makes this file self-contained — and `filename` is the sidecar
+            // the stroke replayed from, which the `.xopp` export has to write a file for.
+            val bundled = audioBytes(audio.filename)
+                ?.let { assets.add(it, MobixFormat.AssetKind.AUDIO) }
+                ?: s.bundledAudio
+                ?: audio.filename.takeIf { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO) }
             out["audioRef"] = MobixJson.obj { refOut ->
-                refOut["assetId"] = JsonNode.of(audioFn)
-                refOut["startMs"] = JsonNode.of(audioTs ?: 0)
+                refOut["filename"] = JsonNode.of(audio.filename)
+                bundled?.let { refOut["assetId"] = JsonNode.of(it) }
+                refOut["startMs"] = JsonNode.of(audio.startMs)
             }
         }
         boundsOf(s.points)?.let { out[BOUNDS] = it }
         out["points"] = JsonNode.arr(s.points.map(::encodePoint))
-        val attrsToWrite = if (!audioFn.isNullOrBlank()) {
+        val attrsToWrite = if (audio != null) {
             s.extraAttrs.filterKeys { it != "fn" && it != "ts" }
         } else {
             s.extraAttrs
@@ -236,12 +260,23 @@ internal object MobixElementCodec {
         val style = LineStyle.entries.firstOrNull { it.name == styleName }
             ?: throw MobixContainer.MalformedMobixException("stroke lineStyle \"$styleName\" is not one this build knows")
         val extraAttrs = MobixJson.readAttrs(node).toMutableMap()
+        // A recording the container carries: the entry it lives in, plus — when the writer kept one —
+        // the sidecar name the stroke replayed from. A file that names only an asset (the shape this
+        // codec wrote before) is read as both, so its `fn` is the entry and the adoption step knows it.
+        var bundledAudio: String? = null
         node.getObj("audioRef")?.let { refObj ->
-            val assetId = refObj.getStrOrNull("assetId") ?: refObj.getStrOrNull("filename")
-            val startMs = refObj.getInt("startMs", 0)
-            if (assetId != null) {
-                extraAttrs["fn"] = assetId
-                extraAttrs["ts"] = startMs.toString()
+            val assetId = refObj.getStrOrNull("assetId")
+            val filename = refObj.getStrOrNull("filename")
+            val reference = filename ?: assetId
+            if (reference != null) {
+                extraAttrs["fn"] = reference
+                extraAttrs["ts"] = refObj.getInt("startMs", 0).toString()
+            }
+            // Only when the entry and the reference are two different names: a stroke that names an
+            // `aud_…` asset as its `fn` has one name, and reading it back as two would make a round trip
+            // through the codec change the model. The adoption step reads that shape off `fn` itself.
+            bundledAudio = assetId?.takeIf {
+                it != reference && MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO)
             }
         }
         return Stroke(
@@ -254,6 +289,7 @@ internal object MobixElementCodec {
             fill = node.getIntOrNull("fill"),
             extraAttrs = extraAttrs,
             id = node.getStrOrNull(ID) ?: mint(ElementId.STROKE),
+            bundledAudio = bundledAudio,
         )
     }
 

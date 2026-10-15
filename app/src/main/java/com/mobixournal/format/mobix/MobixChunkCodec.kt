@@ -59,11 +59,12 @@ internal object MobixChunkCodec {
 
     private const val ATTRS = "attrs"
 
-    /** [chunk] as JSON, registering bundled payloads in [assets]. */
+    /** [chunk] as JSON, registering bundled payloads in [assets] — backgrounds and stroke recordings. */
     fun encode(
         chunk: MobixChunk,
         assets: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray? = { null },
+        audioBytes: (String) -> ByteArray? = { null },
     ): JsonNode.Obj = MobixJson.obj { out ->
         out["cx"] = JsonNode.of(chunk.cx)
         out["cy"] = JsonNode.of(chunk.cy)
@@ -72,7 +73,7 @@ internal object MobixChunkCodec {
         chunk.background?.let {
             out["background"] = MobixPageCodec.encodeBackground(it, assets, backgroundBytes)
         }
-        out["layers"] = JsonNode.arr(chunk.layers.map { MobixPageCodec.encodeLayer(it, assets) })
+        out["layers"] = JsonNode.arr(chunk.layers.map { MobixPageCodec.encodeLayer(it, assets, audioBytes) })
         if (chunk.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(chunk.extraAttrs)
     }
 

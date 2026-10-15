@@ -70,12 +70,9 @@ internal object OpusAssetBundler {
     /**
      * Whether [filename] refers to a bundled Opus asset (`aud_<sha256>.opus` or `assets/aud_<sha256>.opus`).
      */
-    fun isOpusAsset(filename: String): Boolean {
-        val bare = filename.removePrefix(MobixFormat.ASSETS_DIR)
-        if (!bare.startsWith("aud_") || !bare.endsWith(".opus")) return false
-        val hash = bare.removePrefix("aud_").removeSuffix(".opus")
-        return hash.length == 64 && hash.all { it in "0123456789abcdef" }
-    }
+    fun isOpusAsset(filename: String): Boolean =
+        MobixFormat.isAssetEntry(filename, MobixFormat.AssetKind.AUDIO) &&
+            filename.removePrefix(MobixFormat.ASSETS_DIR).endsWith(".opus")
 
     /**
      * Normalize an asset name to ensure it has the canonical `assets/` prefix.

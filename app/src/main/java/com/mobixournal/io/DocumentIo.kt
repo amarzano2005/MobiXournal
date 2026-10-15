@@ -72,7 +72,7 @@ sealed interface LoadedFile {
         val conflictNotification: String? = null,
         /**
          * How a page's background becomes a local file when the page is read, for a `.mobix` opened
-         * page by page (`BundledBackgrounds`) — the tab and the canvas both have to carry it, since
+         * page by page (`BundledPageAssets`) — the tab and the canvas both have to carry it, since
          * the pages it answers for are only read later. Null for a document whose backgrounds were
          * resolved at open: a `.xopp`, or a `.mobix` opened whole.
          */
@@ -117,6 +117,13 @@ class DocumentIo(
      * bundled fonts (and so an `AssetManager`); when absent, text files are simply unreadable.
      */
     textPdf: TextPdfGenerator? = null,
+    /**
+     * Where the recordings a `.mobix` bundles are adopted on open, so a stroke replays from the file
+     * that has no sidecar beside it ([BundledAudio], implemented by the app's audio store). Injected
+     * rather than answered from a path, because where recordings live is the audio layer's business.
+     * Null in a caller that keeps no recordings (a format-only test).
+     */
+    private val audio: BundledAudio? = null,
 ) {
 
     /**
@@ -134,7 +141,8 @@ class DocumentIo(
         appVersion: String,
         textPdf: TextPdfGenerator?,
         entrySources: (File) -> MobixEntrySource,
-    ) : this(resolver, cacheDir, filesDir, appVersion, textPdf) {
+        audio: BundledAudio? = null,
+    ) : this(resolver, cacheDir, filesDir, appVersion, textPdf, audio) {
         this.entrySources = entrySources
     }
 
@@ -293,7 +301,7 @@ class DocumentIo(
      * Open a native `.mobix` document page by page ([MobixPagedReader] decides whether it *is* one).
      *
      * Its bundled backgrounds are adopted a **page at a time**, because a `.mobix` is self-contained by
-     * design and *which* asset a page names is written in that page: `BundledBackgrounds` reads page `i`
+     * design and *which* asset a page names is written in that page: `BundledPageAssets` reads page `i`
      * and adopts what page `i` names, keyed by the reference the document carries (what the renderer
      * looks one up by), so the open costs no page read and no asset read. A background the document only
      * *references* — a native document may still point at a file beside it — is resolved exactly as a
@@ -312,14 +320,15 @@ class DocumentIo(
             entries.close()
             throw e
         }
-        // Backgrounds are adopted page by page, from the page that names them, instead of walking
-        // every page at open (`BundledBackgrounds`).
-        val backgrounds = BundledBackgrounds(
+        // Backgrounds and recordings are adopted page by page, from the page that names them, instead
+        // of walking every page at open (`BundledPageAssets`).
+        val backgrounds = BundledPageAssets(
             delegate = PageSource.of(reader),
             entries = entries,
             storePdf = { bytes -> pdfStore.newFile().also { it.writeBytes(bytes) } },
             storeImage = { bytes -> imageStore.copyIn(bytes.inputStream()) },
             resolveLinked = { refs.resolveBackground(it, name, source) },
+            storeAudio = audio,
         )
         return try {
             var mobixDoc = MobixDocument.openPaged(reader, backgrounds)
@@ -483,9 +492,10 @@ class DocumentIo(
      * - [SaveFormat.ORIGINAL] — gzip XML, PDF background linked by path/URI, made **relative** to
      *   [target] whenever the PDF sits in the same folder ([portableReference]).
      * - [SaveFormat.ZIPPED] — a ZIP package with [pdf] embedded (`domain="attach"`, `bg.pdf`).
-     * - [SaveFormat.MOBIX] — this app's own archive, where [pdf] and [images] are **bundled** into it:
-     *   the format is self-contained by design, so a background the stores hold a copy of travels with
-     *   the file instead of being linked (see [backgroundBytesOf]).
+     * - [SaveFormat.MOBIX] — this app's own archive, where [pdf], [images] and the recordings
+     *   [audio] supplies are **bundled** into it: the format is self-contained by design, so a
+     *   background or a recording the stores hold a copy of travels with the file instead of being
+     *   linked (see [backgroundBytesOf]).
      */
     fun encode(
         document: Document,
@@ -493,6 +503,8 @@ class DocumentIo(
         format: SaveFormat,
         target: Uri? = null,
         images: Map<String, File> = emptyMap(),
+        /** The bytes of the recording a stroke's `fn` names, or null when the store has none. */
+        audio: (String) -> ByteArray? = { null },
     ): Encoded {
         val out = staging.newFile("save")
         var uncompiled: List<Uncompilable> = emptyList()
@@ -513,7 +525,7 @@ class DocumentIo(
                         nowMillis = now,
                         source = target?.let { displayName(it, "document") },
                     )
-                    val entries = mobix.encode(now, backgroundBytesOf(pdf, images))
+                    val entries = mobix.encode(now, backgroundBytesOf(pdf, images), audio)
                     val opened = mobixSources[mobix.manifest.documentId]
                     // Repack over the file this document was opened from when the save lands back on
                     // it: the entries whose bytes did not change stream out of that archive instead of

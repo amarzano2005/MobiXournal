@@ -39,6 +39,16 @@ class AudioStore(context: Context) {
     fun present(names: Set<String>): Set<String> = names.filterTo(HashSet()) { local(it).isFile }
 
     /**
+     * Keep [bytes] as the recording [reference] names — what a `.mobix` open does with the audio the
+     * archive bundles ([com.mobixournal.io.BundledAudio]). It lands exactly where a recording made here
+     * lands and under the same name, so playback of that stroke needs nothing else and a later export
+     * can push the sidecar out beside a `.xopp` like any other.
+     */
+    fun adopt(reference: String, bytes: ByteArray) {
+        local(reference).writeBytes(bytes)
+    }
+
+    /**
      * Copy every sidecar in [names] that the nominated [folder] holds into [dir], overwriting stale
      * local copies. Returns the names successfully pulled in. Best-effort throughout: a revoked
      * grant or a missing file just means that recording won't play.

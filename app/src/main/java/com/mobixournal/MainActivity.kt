@@ -153,6 +153,9 @@ class MainActivity : ComponentActivity() {
             // The build's own version is what a `.mobix` records as `minAppVersion`.
             appVersion = BuildConfig.VERSION_NAME,
             textPdf = TextPdfGenerator(fonts::load),
+            // A `.mobix` open adopts its bundled recordings into the same store the recorder writes
+            // to, under the name the stroke carries ([BundledAudio]).
+            audio = audio,
         )
     }
 

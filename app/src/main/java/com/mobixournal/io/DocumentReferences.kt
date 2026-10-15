@@ -43,7 +43,7 @@ internal class DocumentReferenceResolver(
      *
      * The per-background form of [resolvePdfBackground] and [resolvePixmapBackgrounds], for a caller
      * that has the background in hand and must not walk the document to find it — a `.mobix` opened
-     * page by page resolves a page's background when that page is read (`BundledBackgrounds`).
+     * page by page resolves a page's background when that page is read (`BundledPageAssets`).
      */
     fun resolveBackground(background: Background, name: String, source: Uri?): File? = when (background) {
         is Background.Pdf -> background.filename

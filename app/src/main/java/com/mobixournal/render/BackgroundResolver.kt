@@ -11,7 +11,7 @@ import java.io.File
  * background's bytes live in the archive under an asset name that only the page's own JSON carries
  * (`docs/mobix-format.md`), so adopting them for *every* page at open is exactly the walk the paged
  * open exists to avoid. A page read through the source adopts the backgrounds that page names
- * (`io/BundledBackgrounds.kt`), the renderer asks for one when it has to draw a page without a local
+ * (`io/BundledPageAssets.kt`), the renderer asks for one when it has to draw a page without a local
  * copy, and the rest of the document's pages are never touched.
  *
  * Implemented by whoever owns the archive and the app's stores — the document I/O layer, which is

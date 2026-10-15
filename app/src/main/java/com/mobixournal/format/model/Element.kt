@@ -77,6 +77,17 @@ data class Stroke(
     val extraAttrs: Map<String, String> = emptyMap(),
     /** The element's stable identity; see [ElementId]. Null until one is minted (a `.xopp` has none). */
     val id: String? = null,
+    /**
+     * The `assets/aud_<sha256>.<ext>` entry this stroke's recording is bundled in, or null when the
+     * recording is an external sidecar (`fn` names a file beside the document, as in a `.xopp`).
+     *
+     * Kept in the model for the same reason a background's `bundledAsset` is: a page read out of a
+     * `.mobix` carries no bytes of its own, so this is the only thing that can tell the adoption step
+     * where the recording lives — and dropping it on a rewrite would orphan the entry while the stroke
+     * still pointed at a sidecar that is not there. It is **not** an extra attribute: `extraAttrs` is
+     * re-emitted into `.xopp` verbatim, and a `.xopp` has nowhere to keep this.
+     */
+    val bundledAudio: String? = null,
 ) : Element
 
 /**

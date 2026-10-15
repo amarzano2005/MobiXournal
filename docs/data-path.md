@@ -42,9 +42,11 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   ids are the model's own and every later save writes the same ones. A writer that minted them on a
   copy would leave the open document unidentified, and the next save would hand out a fresh set — which
   a merge reads as the whole page replaced rather than edited.
-- **Its bundled backgrounds are adopted a page at a time** (a `.mobix` is self-contained, so the bytes
-  in the archive *are* the background), when the page that names them is read: `io/BundledBackgrounds.kt`
-  is a `PageSource` layer over the reader, and the `BackgroundResolver` the renderer asks afterwards.
+- **Its bundled payloads are adopted a page at a time** (a `.mobix` is self-contained, so the bytes in
+  the archive *are* the background — and the recording), when the page that names them is read:
+  `io/BundledPageAssets.kt` is a `PageSource` layer over the reader, the `BackgroundResolver` the
+  renderer asks afterwards, and the `BundledAudio` sink a recording is written to under the sidecar name
+  the stroke carries, so the file plays with no `.wav` beside it ([audio-inking-sync.md](audio-inking-sync.md)).
   The copies are keyed by the reference the document keeps, which is what the renderer looks a picture
   up by, and a background the document only *references* is resolved exactly as a gzip `.xopp`'s is.
   The archive's own PDF is adopted up front, since the model holds **one** background PDF per document;
@@ -148,8 +150,12 @@ entry's offset out of the central directory (the only record that states it, and
 has the sizes when a local header left them zero) and writes the local headers, the central directory
 and the end record itself, because `java.util.zip` will neither hand out a compressed entry nor accept
 one it did not produce. The decision is derived, never flagged: a page is compared by the `sha256` its
-own manifest records, an asset by the hash in its name. Anywhere else — a new document, a first save,
-a Save As to another target — there is no source and the whole archive is written.
+own manifest records, an asset by the hash in its name. A recording is bundled the way a picture is:
+`DocumentIo.encode` is handed the bytes the stroke's sidecar name resolves to in the audio store, so one
+entry covers every stroke that replays from it. Anywhere else — a new document, a first save, a Save As
+to another target — there is no source and the whole archive is written, which is also where a payload
+no store ever adopted (a page that was never read) can still be dropped
+(`supply-a-deferred-payload-on-a-save-that-has-no-source`).
 
 **Measured on a ten-page notebook with one edited page: 12 of the 14 entries are copied, 2363 B of
 content is re-encoded instead of 4928 B, and the finished file is 4862 B against a full write's

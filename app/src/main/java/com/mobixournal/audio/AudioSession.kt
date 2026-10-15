@@ -3,6 +3,7 @@ package com.mobixournal.audio
 import android.content.Context
 import android.net.Uri
 import com.mobixournal.format.model.Document
+import com.mobixournal.io.BundledAudio
 import java.io.File
 
 /**
@@ -16,7 +17,7 @@ import java.io.File
 class AudioSession(
     context: Context,
     private val clock: () -> Long = System::currentTimeMillis,
-) {
+) : BundledAudio {
 
     private val recorder = AudioRecorder()
     private val player = AudioPlayer()
@@ -68,6 +69,18 @@ class AudioSession(
         val name = currentFile?.takeIf { recorder.isRecording } ?: return null
         return AudioRef(name, recorder.elapsedMs())
     }
+
+    /**
+     * Keep a recording a `.mobix` bundles, under the name the stroke carries — what lets a document
+     * moved to an empty folder still replay ([com.mobixournal.io.BundledAudio]).
+     */
+    override fun adopt(reference: String, bytes: ByteArray) = store.adopt(reference, bytes)
+
+    /**
+     * The bytes of the recording [name] names, or null when this session does not hold it — what a
+     * `.mobix` save hands [com.mobixournal.io.DocumentIo.encode] so the archive carries its audio.
+     */
+    fun recording(name: String): ByteArray? = store.local(name).takeIf(File::isFile)?.readBytes()
 
     /** Play [ref]'s recording from its offset; false when the sidecar isn't available locally. */
     fun play(ref: AudioRef): Boolean = player.play(store.local(ref.filename), ref.startMs)

@@ -107,13 +107,21 @@ internal class MobixDocument(
      * @param backgroundBytes supplies a background's own bytes when the caller's stores can (the app's
      *   `ImageStore`/`PdfStore` do; a pure format test passes none), so a document can be written
      *   self-contained.
+     * @param audioBytes supplies a recording's bytes for the sidecar name a stroke carries (the app's
+     *   `AudioStore` does), so a `.mobix` carries its audio instead of pointing at a file that has to sit
+     *   beside it (`docs/audio-inking-sync.md`); the stroke then names the bundled entry *and* keeps the
+     *   sidecar name the `.xopp` export writes a file for. A caller with no audio passes nothing.
      */
-    fun encode(nowMillis: Long, backgroundBytes: (Background) -> ByteArray? = { null }): List<MobixContainer.Entry> {
+    fun encode(
+        nowMillis: Long,
+        backgroundBytes: (Background) -> ByteArray? = { null },
+        audioBytes: (String) -> ByteArray? = { null },
+    ): List<MobixContainer.Entry> {
         val sink = MobixAssetSink()
         val partsAndEntries = if (manifest.canvasMode == CanvasMode.PAGINATED) {
-            encodePages(sink, backgroundBytes, nowMillis)
+            encodePages(sink, backgroundBytes, audioBytes, nowMillis)
         } else {
-            encodeChunks(sink, backgroundBytes, nowMillis)
+            encodeChunks(sink, backgroundBytes, audioBytes, nowMillis)
         }
         val written = sink.entries()
         // Every payload the model carries is re-emitted: an asset still deferred to the source is read
@@ -146,12 +154,19 @@ internal class MobixDocument(
     }
 
     /** This document as a `.mobix` byte array — the shape a caller stages to a file or a URI. */
-    fun toBytes(nowMillis: Long, backgroundBytes: (Background) -> ByteArray? = { null }): ByteArray =
-        MobixContainer.toBytes(encode(nowMillis, backgroundBytes))
+    fun toBytes(
+        nowMillis: Long,
+        backgroundBytes: (Background) -> ByteArray? = { null },
+        audioBytes: (String) -> ByteArray? = { null },
+    ): ByteArray = MobixContainer.toBytes(encode(nowMillis, backgroundBytes, audioBytes))
 
     /** Write this document as a `.mobix` on [output] (which is finished and not left open). */
-    fun save(output: OutputStream, nowMillis: Long, backgroundBytes: (Background) -> ByteArray? = { null }) =
-        MobixContainer.save(encode(nowMillis, backgroundBytes), output)
+    fun save(
+        output: OutputStream,
+        nowMillis: Long,
+        backgroundBytes: (Background) -> ByteArray? = { null },
+        audioBytes: (String) -> ByteArray? = { null },
+    ) = MobixContainer.save(encode(nowMillis, backgroundBytes, audioBytes), output)
 
     /**
      * The app's document model: the pages and the title, plus the source `.xopp`'s creator, file version
@@ -174,9 +189,10 @@ internal class MobixDocument(
     private fun encodePages(
         sink: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray?,
+        audioBytes: (String) -> ByteArray?,
         nowMillis: Long,
     ): List<Pair<MobixPart, MobixContainer.Entry>> = pages.mapIndexed { index, page ->
-        val json = JsonWriter.write(MobixPageCodec.encode(page, sink, backgroundBytes))
+        val json = JsonWriter.write(MobixPageCodec.encode(page, sink, backgroundBytes, audioBytes))
             .toByteArray(Charsets.UTF_8)
         val name = MobixFormat.pageEntry(index + 1)
         partFor(page, index, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
@@ -207,9 +223,10 @@ internal class MobixDocument(
     private fun encodeChunks(
         sink: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray?,
+        audioBytes: (String) -> ByteArray?,
         nowMillis: Long,
     ): List<Pair<MobixPart, MobixContainer.Entry>> = chunks.map { chunk ->
-        val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgroundBytes))
+        val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgroundBytes, audioBytes))
             .toByteArray(Charsets.UTF_8)
         val name = MobixFormat.chunkEntry(chunk.cx, chunk.cy)
         partForChunk(chunk, name, MobixAssetSink.sha256(json), nowMillis) to MobixContainer.Entry(name, json)
@@ -385,7 +402,8 @@ internal class MobixDocument(
          * reader's cache window decides how many pages are resident (see [MobixPagedReader]).
          *
          * @param pages where the page models come from — the reader's own surface by default, or a
-         *   layer over it that adopts a page's backgrounds as the page is read (`BundledBackgrounds`).
+         *   layer over it that adopts a page's bundled assets — backgrounds and recordings — as the page
+         *   is read (`BundledPageAssets`).
          *   It is read through on every index, so the document holds the layer and not the pages.
          *
          * The **caller owns the reader**: it is what the pages read from, so it must outlive the

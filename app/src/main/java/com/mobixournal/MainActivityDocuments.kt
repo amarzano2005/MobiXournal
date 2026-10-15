@@ -444,7 +444,8 @@ internal fun MainActivity.saveDocument(uri: Uri) {
         work = {
             // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
             // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
-            val encoded = io.encode(document, pdf, saveFormat, uri, images)
+            // The recordings travel inside a `.mobix` the way its backgrounds do ([AudioSession.recording]).
+            val encoded = io.encode(document, pdf, saveFormat, uri, images, audio::recording)
             try {
                 io.stageOut(encoded.file, uri)
             } finally {
@@ -456,14 +457,14 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     ) { result ->
         result.onFailure { toast("Save failed: ${it.message}") }
             .onSuccess { uncompiled ->
-                afterSaved(view, uri)
+                afterSaved(view, uri, saveFormat)
                 if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
             }
     }
 }
 
 /** Book-keeping for a document that has just landed on disk at [uri]. */
-internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri) {
+internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri, format: SaveFormat = saveFormat) {
     // Hold the grant so the next plain Save can write back here without asking again.
     io.persist(uri)
     // The tab now belongs to the file it was just written to: relabel it and remember where it
@@ -473,12 +474,18 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri) {
     snapshotActiveTab()
     tabsTick.value++
     persistTabs()
-    // A .xopp never carries its audio — the sidecars have to land beside it or playback breaks.
-    pushAudioSidecars()
-    if (audioFolder == null && audio.missingFor(view.toDocument()).isEmpty() &&
-        documentHasAudio(view)
-    ) {
-        toast("Choose an audio folder so recordings are saved beside this file")
+    // A .xopp never carries its audio — the sidecars have to land beside it or playback breaks. A
+    // .mobix carries the recording inside itself, so there is nothing to push out and no folder to ask
+    // for: the whole point of the format is that the file is self-contained
+    // (`docs/audio-inking-sync.md`). Reading the document for the check is also a walk of every page,
+    // which a save no longer owes.
+    if (format != SaveFormat.MOBIX) {
+        pushAudioSidecars()
+        if (audioFolder == null && audio.missingFor(view.toDocument()).isEmpty() &&
+            documentHasAudio(view)
+        ) {
+            toast("Choose an audio folder so recordings are saved beside this file")
+        }
     }
 }
 

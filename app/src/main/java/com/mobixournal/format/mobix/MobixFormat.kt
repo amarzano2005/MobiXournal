@@ -91,7 +91,7 @@ object MobixFormat {
      * audio is always Opus (one codec means one decoder, on Android and on desktop alike).
      */
     fun assetEntry(sha256: String, kind: AssetKind, suffix: String = kind.defaultSuffix): String {
-        require(sha256.length == 64 && sha256.all { it in "0123456789abcdef" }) {
+        require(sha256.length == SHA256_LENGTH && sha256.all { it in "0123456789abcdef" }) {
             "an asset name is the lowercase hex sha256 of its bytes, got \"$sha256\""
         }
         require(suffix.isNotEmpty() && suffix.all { it.isLetterOrDigit() }) {
@@ -100,11 +100,30 @@ object MobixFormat {
         return "$ASSETS_DIR${kind.prefix}_$sha256.$suffix"
     }
 
+    /**
+     * Whether [name] is a bundled payload of [kind] — an `img_<sha256>.<ext>` / `aud_<sha256>.<ext>`
+     * entry, with or without the `assets/` prefix. Content addressing is the test: a name in this shape
+     * claims the bytes are its own hash, which is what tells a document's bundled recording from a
+     * sidecar file name that merely looks similar.
+     */
+    fun isAssetEntry(name: String, kind: AssetKind): Boolean {
+        val bare = name.removePrefix(ASSETS_DIR)
+        val prefix = "${kind.prefix}_"
+        if (!bare.startsWith(prefix)) return false
+        val rest = bare.removePrefix(prefix)
+        val hash = rest.substringBefore('.')
+        return hash.length == SHA256_LENGTH && hash.all { it in "0123456789abcdef" } &&
+            rest.length > hash.length
+    }
+
     /** Whether [name] is a page entry this build would read. */
     fun isPageEntry(name: String): Boolean = name.startsWith(PAGES_DIR) && name.endsWith(".json")
 
     /** Whether [name] is a chunk entry this build would read. */
     fun isChunkEntry(name: String): Boolean = name.startsWith(CHUNKS_DIR) && name.endsWith(".json")
+
+    /** The length of the hex sha256 every asset entry name carries. */
+    private const val SHA256_LENGTH = 64
 
     /**
      * An asset's kind: the prefix its entry name carries, so an asset is recognisable — and

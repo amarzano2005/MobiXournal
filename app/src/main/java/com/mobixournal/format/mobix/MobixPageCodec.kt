@@ -35,16 +35,20 @@ internal object MobixPageCodec {
 
     private const val ATTRS = "attrs"
 
-    /** [page] as JSON, registering bundled payloads in [assets]. */
+    /**
+     * [page] as JSON, registering bundled payloads in [assets] — a picture or PDF through
+     * [backgroundBytes], a stroke's recording through [audioBytes].
+     */
     fun encode(
         page: Page,
         assets: MobixAssetSink,
         backgroundBytes: (Background) -> ByteArray? = { null },
+        audioBytes: (String) -> ByteArray? = { null },
     ): JsonNode.Obj = MobixJson.obj { out ->
         out["widthPt"] = JsonNode.of(page.width)
         out["heightPt"] = JsonNode.of(page.height)
         out["background"] = encodeBackground(page.background, assets, backgroundBytes)
-        out["layers"] = JsonNode.arr(page.layers.map { encodeLayer(it, assets) })
+        out["layers"] = JsonNode.arr(page.layers.map { encodeLayer(it, assets, audioBytes) })
         if (page.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(page.extraAttrs)
     }
 
@@ -61,9 +65,13 @@ internal object MobixPageCodec {
 
     // ---- layers ---------------------------------------------------------------------------------
  
-    internal fun encodeLayer(layer: Layer, assets: MobixAssetSink): JsonNode.Obj = MobixJson.obj { out ->
+    internal fun encodeLayer(
+        layer: Layer,
+        assets: MobixAssetSink,
+        audioBytes: (String) -> ByteArray? = { null },
+    ): JsonNode.Obj = MobixJson.obj { out ->
         layer.name?.let { out["name"] = JsonNode.of(it) }
-        out["elements"] = JsonNode.arr(layer.elements.map { MobixElementCodec.encode(it, assets) })
+        out["elements"] = JsonNode.arr(layer.elements.map { MobixElementCodec.encode(it, assets, audioBytes) })
         if (layer.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(layer.extraAttrs)
     }
 

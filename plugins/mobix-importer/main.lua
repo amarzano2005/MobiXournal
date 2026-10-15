@@ -89,11 +89,19 @@ function mobix.elementToXml(elem)
         end
         local extra = ""
         if elem.audioRef then
-            local fn = elem.audioRef.assetId or elem.audioRef.filename or ""
-            fn = fn:gsub("%.opus$", ".wav"):gsub("^assets/", "")
+            -- `filename` is the sidecar the stroke replayed from, and it is the name the desktop
+            -- document must reference; `assetId` is the entry the recording is bundled in, which is
+            -- only a fallback for a file that names no sidecar. Neither extension is rewritten:
+            -- the app bundles a recording in the container it was recorded in (`.wav` for its own
+            -- recorder), so the entry is `aud_<sha>.wav` and no `.opus` guess is needed.
+            local fn = elem.audioRef.filename or ""
+            if fn == "" then
+                fn = elem.audioRef.assetId or ""
+            end
+            fn = fn:gsub("^assets/", "")
             extra = string.format(" fn=\"%s\" ts=\"%d\"", fn, elem.audioRef.startMs or 0)
         elseif elem.attrs and elem.attrs.fn then
-            local fn = elem.attrs.fn:gsub("%.opus$", ".wav"):gsub("^assets/", "")
+            local fn = elem.attrs.fn:gsub("^assets/", "")
             extra = string.format(" fn=\"%s\" ts=\"%s\"", fn, elem.attrs.ts or "0")
         end
         return string.format("<stroke tool=\"%s\" color=\"%s\" width=\"%.2f\"%s>\n%s\n</stroke>",
