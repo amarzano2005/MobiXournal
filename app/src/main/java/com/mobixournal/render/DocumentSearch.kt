@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
@@ -27,15 +28,33 @@ object DocumentSearch {
     private const val TEXT_CHAR_W = 0.62
     private const val TEXT_LINE_H = 1.3
 
-    fun totalStrokeCount(doc: Document): Int =
-        doc.pages.sumOf { page ->
-            page.layers.sumOf { layer ->
-                layer.elements.count { it is Stroke }
-            }
+    /** How many strokes [doc] holds — walked through its page surface, a page at a time. */
+    fun totalStrokeCount(doc: Document): Int = totalStrokeCount(PageSource.of(doc.pages))
+
+    /** How many strokes a document behind [source] holds, counting one page at a time. */
+    internal fun totalStrokeCount(source: PageSource): Int {
+        var total = 0
+        for (pageIndex in 0 until source.pageCount) {
+            val page = source.page(pageIndex)
+            total += page.layers.sumOf { layer -> layer.elements.count { it is Stroke } }
         }
+        return total
+    }
 
     fun find(
         doc: Document,
+        pdfTextIndex: PdfTextIndex?,
+        rawQuery: String,
+        handwritingIndex: HandwritingIndex? = null,
+    ): List<SearchHit> = find(PageSource.of(doc.pages), pdfTextIndex, rawQuery, handwritingIndex)
+
+    /**
+     * The same search over a document's **page surface** (`PageSource`): pages are read one at a
+     * time, so a `.mobix` opened page by page is searched without being materialised whole — the
+     * source's window holds the pages being looked at and releases them behind the walk.
+     */
+    internal fun find(
+        source: PageSource,
         pdfTextIndex: PdfTextIndex?,
         rawQuery: String,
         handwritingIndex: HandwritingIndex? = null,
@@ -45,7 +64,8 @@ object DocumentSearch {
         val needle = query.lowercase(Locale.ROOT)
         val hwIndex = handwritingIndex
         return buildList {
-            for ((pageIndex, page) in doc.pages.withIndex()) {
+            for (pageIndex in 0 until source.pageCount) {
+                val page = source.page(pageIndex)
                 pdfTextIndex?.let { addAll(pdfHits(it, pageIndex, needle)) }
                 hwIndex?.let { addAll(handwritingHits(it, pageIndex, needle)) }
                 for (layer in page.layers) {

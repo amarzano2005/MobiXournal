@@ -1,12 +1,14 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.mobix.MobixMetaBlock
+import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.MobixMetaClaim
 import com.mobixournal.format.mobix.MobixMetaDigest
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
@@ -67,18 +69,23 @@ object XoppSynthesis {
      *   block for the sake of a later "which export was this?", and nothing the import decides on.
      */
     fun synthesize(document: Document, documentId: String? = null): SynthesisResult {
-        val preparedDoc = com.mobixournal.audio.WavAudioSynthesizer.prepareDocumentForXoppExport(document)
         val gaps = mutableListOf<Uncompilable>()
         val claims = mutableListOf<MobixMetaClaim>()
-        val pages = preparedDoc.pages.mapIndexed { pageIndex, page ->
-            page.copy(
+        // A page at a time, through the document's **page surface**: a document opened page by page
+        // (`.mobix`) is read one page per pass and the reader's window releases it again, so the
+        // export's working set is the output it is building rather than the source plus a copy.
+        val source = PageSource.of(document.pages)
+        val pages = ArrayList<Page>(source.pageCount)
+        for (pageIndex in 0 until source.pageCount) {
+            val page = com.mobixournal.audio.WavAudioSynthesizer.preparePageForXoppExport(source.page(pageIndex))
+            pages += page.copy(
                 layers = page.layers.mapIndexed { layerIndex, layer ->
                     layer.copy(elements = compileLayer(layer.elements, pageIndex, layerIndex, claims, gaps))
                 },
             )
         }
         return SynthesisResult(
-            document = preparedDoc.copy(pages = pages, bridge = block(preparedDoc, claims, documentId)),
+            document = document.copy(pages = pages, bridge = block(document, claims, documentId)),
             uncompiled = gaps,
         )
     }

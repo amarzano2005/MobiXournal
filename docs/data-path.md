@@ -61,8 +61,10 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   (`pageCount`, `pageId(i)`, `pageSize(i)`, `page(i)`, `idIndex()`), backed by `MobixPagedReader` for a
   `.mobix`, where counting, id'ing and the **page size** inflate no page (`canvas.json` declares the
   paginated page size), and by the in-memory page list for a `.xopp` or a new document. Its callers are
-  the merge engine — which reads each side through it and materialises only the page the branch it takes
-  answers with — and **the canvas** (`materialise-only-the-visible-pages-in-the-canvas`): a
+  the merge engine — which plans each page from the manifest's `sha256` and adopts a page only one side
+  changed **by part**, decoding only the pages both sides changed — the `.xopp` export and find, which
+  walk the document a page at a time, and **the canvas**
+  (`materialise-only-the-visible-pages-in-the-canvas`): a
   `StackedLayout` places every page from `pageSize(i)` and its `PageBox` resolves its page through the
   source only when the box is drawn, so a 200-page `.mobix` is laid out without opening a page and
   materialises exactly the pages in the viewport.

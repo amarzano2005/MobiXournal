@@ -2,6 +2,7 @@ package com.mobixournal.audio
 
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import java.io.File
 
@@ -34,16 +35,18 @@ object WavAudioSynthesizer {
      * Rewrite strokes in [document] that reference bundled Opus audio so they point to
      * companion `.wav` sidecars with explicit `fn` and `ts` attributes for desktop Xournal++.
      */
-    fun prepareDocumentForXoppExport(document: Document): Document {
-        val updatedPages = document.pages.map { page ->
-            val updatedLayers = page.layers.map { layer ->
-                val updatedElements = layer.elements.map(::adaptElement)
-                layer.copy(elements = updatedElements)
-            }
-            page.copy(layers = updatedLayers)
-        }
-        return document.copy(pages = updatedPages)
-    }
+    fun prepareDocumentForXoppExport(document: Document): Document =
+        document.copy(pages = document.pages.map(::preparePageForXoppExport))
+
+    /**
+     * The same rewrite for one [page] — the form an export uses when it walks a document a page at a
+     * time (`XoppSynthesis`), so adapting the audio never costs a second pass over every page.
+     */
+    fun preparePageForXoppExport(page: Page): Page = page.copy(
+        layers = page.layers.map { layer ->
+            layer.copy(elements = layer.elements.map(::adaptElement))
+        },
+    )
 
     private fun adaptElement(element: Element): Element {
         if (element !is Stroke) return element
