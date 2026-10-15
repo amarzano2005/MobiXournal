@@ -442,20 +442,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "carry-the-audio-recording-inside-the-document"
-title = "Carry the audio recording inside the .mobix container"
-description = "A stroke already records its audio in a .mobix - format/mobix/MobixElementCodec.kt writes audioRef.assetId from the .xopp fn and audioRef.startMs from ts - but the sound itself never enters the archive: MobixDocument.of is handed only backgroundBytes (PDF and pixmap) and io/DocumentIo.kt supplies nothing else, so audio/AudioStore.kt .wav stays a sidecar beside the document. The file is therefore not self-contained, which is the one promise a native container makes: move the .mobix to another folder, or hand it to another device, and the recording is gone while the strokes still point at it. The desktop plugin already expects better (plugins/mobix-importer/README.md speaks of bundled audio entries mapped to companion .wav sidecars). Add an audio kind to MobixFormat.AssetKind and feed the recording through the same MobixAssetSink the pictures use, named by the hash of its bytes, so the archive holds one entry per distinct recording however many strokes reference it; on open, adopt bundled audio into the local audio store the way adoptBundledBackgrounds already adopts bundled backgrounds, and keep the sidecar path working for .xopp and for a document whose audio is external. Verify: record audio into a .mobix, move that file to an empty folder with no .wav beside it, and playback still works with fn and ts intact; a .xopp exported from it still names its sidecar reference; the container holds exactly one entry for one recording. Reconcile the plugin expected entry name with the name the app actually writes (it says .opus, the app records WAV) in the same commit, or record the mismatch as a known gap."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 490
-created = 2026-10-14
-tags = ["mobix", "audio"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "replay-the-writing-in-time-with-its-recording"
 title = "Replay the writing in time with its recording"
 description = "render/KaraokeStrokeAnimator.kt computes what a stroke should look like at an audio playhead - it reads StrokePoint.dtMs, which only a .mobix carries - and DrawingSurfaceView.karaokeState exists on the view, but nothing sets it and DrawingSurfacePaint.kt never reads it: the animator is dead code. So every timing the app is at pains to capture and store is shown to nobody, and audio playback (audio/AudioPlayer.kt, audio/AudioSession.kt) is play and stop while the page stays still. Working this is an investigation first: what clock the playback can publish into the view (the player owns a MediaPlayer, so the playhead has to come from it rather than from a second timer that would drift), how the paint loop draws a stroke visible prefix without re-tessellating the page each frame, what happens to strokes whose dtMs are null (a .xopp load or an older .mobix - the honest answer is that such a stroke is simply already complete), and whether the first cut is playback only or includes scrubbing. Add the atomic tasks that come out of it."
@@ -542,7 +528,7 @@ emulator_debug = true
 [[task]]
 id = "verify-the-paged-mobix-open-and-canvas-on-the-emulator"
 title = "Verify the paged .mobix open and canvas on the emulator"
-description = "carry-the-page-source-into-the-editor and materialise-only-the-visible-pages-in-the-canvas shipped JVM-verified only: both carry emulator_debug=yes, and this host has no /data/android toolchain (no adb, no AVD), so the runtime behaviour they exist for has never been seen. Install the APK and make a 200-page .mobix (the synthetic writer in MobixPagedOpenBenchmarkTest can produce one) reachable to the app, open it through the system picker, and check: (1) the tab counter and the pages menu show 200 rows with the manifest's page names on open, before any page is drawn - logcat clean, no per-page parse at open; (2) scroll from page 1 to page 200 and screenshot both ends, confirming pages render with their backgrounds (a bundled PDF page and a picture page drawn later than the open, which is what the BackgroundResolver adoption is for); (3) open a .mobix whose page names a bundled picture, draw one stroke on it, save, close, reopen: the background is still there and the stroke survived; (4) switch to another tab and back, and mirror the tab in the second pane, confirming the adopted backgrounds survive the switch; (5) edit a page the window has evicted (jump to page 150, then edit) and confirm no stale page comes back. Record failures with the screenshot and the log line, and if the lazy path misbehaves only on device, fix it there and note what the JVM tests could not see."
+description = "carry-the-page-source-into-the-editor and materialise-only-the-visible-pages-in-the-canvas shipped JVM-verified only: both carry emulator_debug=yes, and this host has no /data/android toolchain (no adb, no AVD), so the runtime behaviour they exist for has never been seen. Install the APK and make a 200-page .mobix (the synthetic writer in MobixPagedOpenBenchmarkTest can produce one) reachable to the app, open it through the system picker, and check: (1) the tab counter and the pages menu show 200 rows with the manifest's page names on open, before any page is drawn - logcat clean, no per-page parse at open; (2) scroll from page 1 to page 200 and screenshot both ends, confirming pages render with their backgrounds (a bundled PDF page and a picture page drawn later than the open, which is what the BackgroundResolver adoption is for); (3) open a .mobix whose page names a bundled picture, draw one stroke on it, save, close, reopen: the background is still there and the stroke survived; (4) switch to another tab and back, and mirror the tab in the second pane, confirming the adopted backgrounds survive the switch; (5) edit a page the window has evicted (jump to page 150, then edit) and confirm no stale page comes back. Record failures with the screenshot and the log line, and if the lazy path misbehaves only on device, fix it there and note what the JVM tests could not see. (6) A bundled recording plays from the .mobix alone: record audio while writing a stroke, save as .mobix, copy the file to an empty folder with no .wav beside it, reopen it there and tap the stroke with the Play Object tool — the recording must sound from the right offset, with the page that names it drawn at least once first (adoption happens on that page's read)."
 status = "active"
 level = "task"
 category = "test"
@@ -552,3 +538,31 @@ created = 2026-10-15
 tags = ["mobix", "ui", "emulator"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "supply-a-deferred-payload-on-a-save-that-has-no-source"
+title = "Supply a deferred payload on a .mobix save that has no source"
+description = "Found while landing carry-the-audio-recording-inside-the-document, and it is not about audio: a .mobix opened page by page adopts a page's bundled picture, PDF or recording when that page is read (io/BundledPageAssets.kt), so a page nothing has drawn yet has no local copy. MobixDocument.of() builds the document to write from the model with NO payloads, and io/DocumentIo.encode supplies bytes only from the app's stores (backgroundBytesOf, the audio lookup) - so a save with no source to repack over (Save As to another name, or a first save of a document whose staged copy is gone) writes a page that names assets/... while the entry is not in the archive: the picture or the recording is silently gone from the new file. A save that lands back on the URI it was opened from is safe, because MobixIncrementalSave copies an unchanged entry verbatim. Fix it from the archive the document still has: DocumentIo keeps each open .mobix's staged copy by document id (MobixSource, and the reader in pagedOpens), so on a source-less MOBIX write it can read the assets/ entries the document still references - Background.bundledAsset and Stroke.bundledAudio are the references, both in the model - and carry their bytes into the encode/MobixDocument.of payloads instead of dropping them. Verify with a JVM test: open a .mobix with a bundled picture and a bundled recording on pages nobody reads, save it to a SECOND file (no source match), and reopen it - both payloads are still there and their pages still name them; and a page neither side can supply is reported rather than silently blank (see report-a-mobix-page-whose-background-is-missing)."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 870
+created = 2026-10-15
+tags = ["mobix", "audio", "data-loss"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "record-and-bundle-opus-audio"
+title = "Record and bundle Opus audio instead of WAV"
+description = "A .mobix now bundles the recording it references (carry-the-audio-recording-inside-the-document), but in the container the app's recorder produces: 16-bit mono WAV, so an hour of notes is about 300 MB, where the format's own spoke says Opus at 32-64 kbps mono would be about 15 MB (docs/audio-inking-sync.md, Bundled compressed audio). audio/OpusAudioRecorder.kt and audio/OpusAssetBundler.kt already exist with unit tests and no caller in app/src/main. Wire the recorder in behind AudioSession.startRecording (keeping the WAV path as the fallback when the encoder is unavailable), bundle through OpusAssetBundler-style content addressing so the entry becomes assets/aud_<sha256>.ogg, and let the player decode it (android.media.MediaPlayer takes an .ogg file the same way). Keep the .xopp side of the contract honest: a .xopp names a sidecar the desktop can play, so an exported document still needs a WAV beside it - either transcode on export with android.media.MediaCodec, or report the gap the way WavAudioSynthesizer's silence framing does today (which is a stub, not a conversion). Verify with a JVM test that one recording is one entry and that an opened document adopts it under its sidecar name, plus the on-device pass: record a minute of speech and compare the saved .mobix's size against the WAV build."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 880
+created = 2026-10-15
+tags = ["mobix", "audio"]
+rebuild = true
+emulator_debug = false
