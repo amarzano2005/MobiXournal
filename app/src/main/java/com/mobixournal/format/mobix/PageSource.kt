@@ -5,6 +5,35 @@ import com.mobixournal.format.model.Page
 import java.io.File
 
 /**
+ * A read-only [List] view of a [PageSource]'s pages: `size` is the source's count and `get(i)` the
+ * source's own read, so a caller that holds every page as a `List<Page>` — the document model —
+ * materialises one only when it indexes it.
+ *
+ * It is what lets a document opened from a `.mobix` be handed to code written against
+ * `Document.pages` unchanged: `pages.size` answers the manifest's count, `pages[12]` opens page 12,
+ * and `PageSource.of(pages)` finds its way back to the source ([backing]) so nothing has to carry
+ * the two separately.
+ */
+internal class LazyPages(private val source: PageSource) : AbstractList<Page>() {
+
+    override val size: Int get() = source.pageCount
+
+    override fun get(index: Int): Page {
+        // `List.get` owes an index error, not the source's own argument error.
+        if (index !in 0 until size) {
+            throw IndexOutOfBoundsException("page index $index out of bounds (0..${size - 1})")
+        }
+        return source.page(index)
+    }
+
+    /** The source these pages come from — what [PageSource.of] hands back unchanged. */
+    val backing: PageSource get() = source
+
+    /** A page list's own summary: a document of two hundred pages must not print two hundred of them. */
+    override fun toString(): String = "LazyPages($size pages)"
+}
+
+/**
  * A page's size in pt, and nothing else — what a layout needs of a page to place it *before* anyone
  * draws it. Kept apart from [Page] on purpose: a canvas can then be laid out from the sizes alone,
  * and the page models are read only for the boxes it actually shows.
@@ -71,12 +100,22 @@ internal interface PageSource : AutoCloseable {
     /** Release what this source opened itself. The in-memory one opened nothing. */
     override fun close() = Unit
 
+    /**
+     * The pages of this source as a `List<Page>` — the shape the document model holds. The list is a
+     * view, not a copy: nothing is materialised until an index is read ([LazyPages]).
+     */
+    fun asPageList(): List<Page> = LazyPages(this)
+
     companion object {
         /** A view over the pages a [document] already holds in memory. */
         fun of(document: Document): PageSource = of(document.pages)
 
-        /** A view over [pages] that are already in memory. */
-        fun of(pages: List<Page>): PageSource = MaterializedPages(pages)
+        /**
+         * A view over [pages]: the list itself when it is a source's own view ([LazyPages], so a
+         * document opened page by page keeps reading through its reader), a plain view of the list
+         * otherwise.
+         */
+        fun of(pages: List<Page>): PageSource = (pages as? LazyPages)?.backing ?: MaterializedPages(pages)
 
         /** The pages of an already-open `.mobix` [reader], counted and id'd from its manifest. */
         fun of(reader: MobixPagedReader): PageSource = PagedMobix(reader)

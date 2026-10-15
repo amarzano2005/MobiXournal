@@ -376,6 +376,41 @@ internal class MobixDocument(
         }
 
         /**
+         * Read a paged `.mobix` **page by page**: the same envelope and the same document as
+         * [open], whose pages are a lazy view of the reader instead of a decoded list.
+         *
+         * This is the open a 200-page notebook gets: the manifest answers the document's title,
+         * identity, page count and page ids, a page is inflated when someone indexes it, and the
+         * `assets/` payloads stay in the archive as they do on the [readBytes][open] path. The
+         * reader's cache window decides how many pages are resident (see [MobixPagedReader]).
+         *
+         * The **caller owns the reader**: it is what the pages read from, so it must outlive the
+         * document and be closed by whoever opened it.
+         */
+        fun openPaged(reader: MobixPagedReader): MobixDocument {
+            val source = reader.source
+            // The reader settles the mimetype, the schema version and the canvas mode; a paginated
+            // document carrying `chunks/` is the one corruption it does not look for, and a file
+            // that carries both is invalid (the same rule [open] enforces).
+            if (reader.manifest.chunks.isNotEmpty()) {
+                throw MobixContainer.MalformedMobixException(
+                    "PAGINATED document carries chunks/ entries; a file that carries both is invalid",
+                )
+            }
+            return MobixDocument(
+                manifest = reader.manifest,
+                canvas = reader.canvas,
+                pages = PageSource.of(reader).asPageList(),
+                bridge = source.readBytes(MobixFormat.BRIDGE_ENTRY)?.toString(Charsets.UTF_8)
+                    ?.let(MobixBridgeFile::decode),
+                // Every asset is left in the archive, addressed by name; nothing is read yet.
+                payloads = emptyMap(),
+                assetEntries = source,
+                preserved = preservedEntries(source, reader.manifest),
+            )
+        }
+
+        /**
          * Build a document from the app's model: the `.xopp` → `.mobix` half of the bridge.
          *
          * A `.xopp` has no page ids, so every page gets one here — exactly once — and from then on the
@@ -539,8 +574,9 @@ internal class MobixDocument(
             val consumed = (manifest.pages + manifest.chunks).map { it.entry }.toSet()
             return source.entryNames
                 .filterNot { name ->
-                    name == MobixFormat.MANIFEST_ENTRY || name == MobixFormat.CANVAS_ENTRY ||
-                        name == MobixFormat.BRIDGE_ENTRY || name.startsWith(MobixFormat.ASSETS_DIR) || name in consumed
+                    name == MobixFormat.MIMETYPE_ENTRY || name == MobixFormat.MANIFEST_ENTRY ||
+                        name == MobixFormat.CANVAS_ENTRY || name == MobixFormat.BRIDGE_ENTRY ||
+                        name.startsWith(MobixFormat.ASSETS_DIR) || name in consumed
                 }
                 .mapNotNull { name -> source.readBytes(name)?.let { MobixContainer.Entry(name, it) } }
         }
@@ -607,7 +643,8 @@ internal class MobixDocument(
         ): List<MobixContainer.Entry> {
             val consumed = (manifest.pages + manifest.chunks).map { it.entry }.toSet()
             return archive.entries.filterNot { entry ->
-                entry.name == MobixFormat.MANIFEST_ENTRY ||
+                entry.name == MobixFormat.MIMETYPE_ENTRY ||
+                    entry.name == MobixFormat.MANIFEST_ENTRY ||
                     entry.name == MobixFormat.CANVAS_ENTRY ||
                     entry.name == MobixFormat.BRIDGE_ENTRY ||
                     entry.name.startsWith(MobixFormat.ASSETS_DIR) ||

@@ -145,6 +145,30 @@ class PageSourceTest {
         assertSame(pages[1], source.page(1))
     }
 
+    /**
+     * The `List<Page>` a document model holds can be a source's own view: `size` is the manifest's
+     * count and `get(i)` inflates page `i`, so a document opened page by page can be handed to code
+     * written against `Document.pages` without a page being decoded up front.
+     */
+    @Test
+    fun aSourcePagesAsAListStayLazyAndFindTheirWayBack() {
+        val pages = listOf(samplePage("pg_001"), samplePage("pg_002", 5.0))
+        val source = PageSource.of(Document(pages = pages))
+
+        val list = source.asPageList()
+        assertEquals(2, list.size)
+        assertSame(pages[0], list[0])
+        assertSame(pages[1], list[1])
+        assertThrows(IndexOutOfBoundsException::class.java) { list[2] }
+
+        // A list that is a source's view resolves back to the source it came from …
+        assertSame(source, PageSource.of(list))
+        // … while a plain list is a view of the pages the caller holds.
+        val materialised = PageSource.of(pages)
+        assertSame(pages[0], materialised.page(0))
+        assertSame(pages[1], materialised.page(1))
+    }
+
     @Test
     fun aFileSourceOwnsTheArchiveItOpened() {
         val tempFile = File.createTempFile("mobix_page_source_file_", ".mobix")
