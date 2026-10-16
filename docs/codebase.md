@@ -73,9 +73,8 @@ app/
     MainActivityAudio.kt     # its audio half: canvas wiring, record/playback state, sidecar pull/push
     format/                  # THE CORE — lossless .xopp read/write (pure Kotlin, no device deps)
       model/                 # Document, Page, Layer, Background, Element/Stroke/Text/Image/TexImage
-                             #   Living.kt adds the four living entities (.xopp can only bake them
-                             #   into ink): Table, Plot, ParametricShape, Circuit and their cell /
-                             #   curve / vertex / pin value types
+                             #   Living.kt adds the four living entities (.xopp can only bake them into
+                             #   ink): Table, Plot, ParametricShape, Circuit and their value types
       xml/                   # XmlPullReader, XmlWriter, XmlComment — the dependency-free XML layer
                              #   malformed entities decode to raw text; truncated input throws
                              #   XmlPullReader.TruncatedXmlException instead of hanging/crashing
@@ -102,7 +101,8 @@ app/
         MobixShapeCodec.kt   # a parametric shape: authored vertices, derived box, an open kind name
         MobixCircuitCodec.kt # a circuit component: placement, rotation, magnetic pins and their nets
         MobixJson.kt         # the JSON building blocks every codec shares: ordered objects, boxes, attrs (pure)
-        MobixDocument.kt     # THE DOCUMENT: ingest a .xopp, open and encode the archive, page parts, refusals
+        MobixDocument.kt     # THE DOCUMENT: ingest a .xopp, open/encode the archive, refusals; the chunk
+                             #   half is MobixChunkWriting.kt (tile coords, the lazy tile list, encode/read)
         MobixMeta.kt         # the bridge block: what an exported .xopp claims about the entities it was flattened from
         MobixMetaDigest.kt   # the digest a claim records: the ink in the .xopp writer's own spelling, both sides (pure)
         MobixMetaRevival.kt  # the import rule: revive a claimed entity only where the ink still proves it
@@ -256,9 +256,9 @@ app/
       PageOps.kt             # insert / copy / move / delete pages in a page list (pure)
       PageThumbnail.kt       # rasterises one page into a small preview bitmap for the tab overview
     audio/                   # audio-annotated strokes: record, replay, sidecar transfer
-      AudioAnnotation.kt     # AudioRef <-> a stroke's fn/ts attrs; document sidecar set (pure)
+      AudioAnnotation.kt     # AudioRef <-> a stroke's fn/ts attrs; document sidecar set; recording names (pure)
       WavWriter.kt           # streaming 16-bit PCM RIFF/WAVE writer, header patched on close (pure)
-      AudioRecorder.kt       # AudioRecord capture thread -> WavWriter; byte-accurate elapsed clock
+      AudioRecorder.kt       # AudioRecord -> WavWriter (the .xopp codec); OpusAudioRecorder.kt = Opus/Ogg (.mobix)
       AudioPlayer.kt         # MediaPlayer wrapper: play one clip from an offset
       AudioStore.kt          # app-private recordings dir + SAF tree import/export of sidecars
       AudioSession.kt        # the editor's single audio facade (record / stamp / play / sync)
