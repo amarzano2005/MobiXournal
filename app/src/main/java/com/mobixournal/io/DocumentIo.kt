@@ -124,7 +124,12 @@ class DocumentIo(
      * edit of the file it came from rather than a fresh archive, and it is released by the same sweep
      * that prunes the stores below ([prunePagedOpens]).
      */
-    private val openSessions = MobixOpenSessions()
+    /**
+     * What this session knows about the `.mobix` files it opened — its own record of opens, read by a
+     * save ([canvasGeometryOf][com.mobixournal.io.canvasGeometryOf] answers the *canvas* from it, which
+     * is why it is reachable from outside this class).
+     */
+    internal val openSessions = MobixOpenSessions()
 
     /**
      * Close the page readers behind documents the session no longer holds. Called with the ids every

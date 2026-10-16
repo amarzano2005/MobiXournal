@@ -74,7 +74,7 @@ private class LazyChunks(
  * coordinates in the file, and a caller that knows them passes `chunkCoords` rather than letting this
  * guess.
  */
-private fun stripCoords(index: Int, canvasMode: CanvasMode): Pair<Int, Int> = when (canvasMode) {
+internal fun stripCoords(index: Int, canvasMode: CanvasMode): Pair<Int, Int> = when (canvasMode) {
     CanvasMode.INFINITE_HORIZONTAL -> index to 0
     else -> 0 to index
 }

@@ -70,7 +70,11 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   `TabIndex`), so its first save already writes `chunks/` rather than converting a paginated file later.
   A `.xopp` has no chunk container and is always paged. The session's own record of the mode wins for a
   document it opened, the tab's for one it did not — so neither a stale tab nor a stale session can turn
-  a chunked document into a paginated rewrite.
+  a chunked document into a paginated rewrite. The same answer goes to the **canvas**, as a
+  `CanvasGeometry` (`io/CanvasGeometry.kt`, resolved by `DocumentIo.canvasGeometryOf` and adopted with
+  `setInfiniteCanvas`): the renderer cannot derive a board from its pages — a page does not know which
+  cell it sits in — so the layer that read the file is the only one that can say, and a board is then
+  drawn as one sheet with its tiles on it ([infinite-canvas.md](infinite-canvas.md)).
 - **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
   `canvas.json` disagrees with the manifest, or that carries `pages/` and `chunks/` both fails the open
   with the reason, rather than being opened as something it is not.

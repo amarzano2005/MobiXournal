@@ -6,6 +6,7 @@ import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.io.LoadedFile
+import com.mobixournal.io.canvasGeometryOf
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
 import com.mobixournal.io.mobixNameFor
@@ -23,6 +24,7 @@ import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.PdfTextExtractor
 import com.mobixournal.render.PdfTextIndexCache
 import com.mobixournal.render.setBackgroundResolver
+import com.mobixournal.render.setInfiniteCanvas
 import com.mobixournal.render.setDefaultPageSize
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
@@ -198,6 +200,12 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
         )
     }
     surface?.load(loaded.document)
+    // A chunked `.mobix` is not a page stack: hand the canvas its **board** — the mode, the paper's own
+    // dimensions, the tile grid its chunk names were computed against and the coordinates those parts
+    // sit at — so it draws one continuous sheet with the tiles the viewport shows instead of one page
+    // box per chunk. Null for everything else, which is also what clears a board the *previous*
+    // document had.
+    surface?.setInfiniteCanvas(io.canvasGeometryOf(loaded.document, loaded.canvasMode))
     if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
     else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
     else if (loaded.missingImage) toast("Background image not found; those pages will be blank")

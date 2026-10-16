@@ -94,8 +94,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
-    /** Active spatial chunk manager for infinite canvas modes, or null in paginated mode. */
-    internal var chunkTileManager: ChunkTileManager? = null
+    /**
+     * The **board** this canvas draws — its geometry, the materialised tiles and the paper the sheet is
+     * ruled with — or null in paginated mode, which is every `.xopp`, every paginated `.mobix` and
+     * every imported PDF or image ([setInfiniteCanvas]). One field holds the whole board state, so a
+     * paginated canvas carries none of it and every board path is one null check away.
+     */
+    internal var board: BoardCanvas? = null
 
     @VisibleForTesting
     internal var scrollY: Float
@@ -741,6 +746,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onSelectionChanged?.invoke(false)
         hiddenLayers.clear()
         activeLayerIndex = -1
+        // A wholesale document swap ends any board: the caller that knows the incoming document's
+        // geometry adopts it right after this ([setInfiniteCanvas]), and one that does not (a PDF or an
+        // image import) leaves the canvas paginated rather than drawing the previous board's sheet
+        // under the new document.
+        clearInfiniteCanvas()
         history.clear()
         notifyHistory()
         resetPageWindow()
@@ -1679,7 +1689,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal fun scrollViewportBy(dx: Float, dy: Float): Boolean {
         val moved = viewport.scrollBy(dx, dy)
         if (moved) {
-            chunkTileManager?.evictOffscreen(viewport.visibleChunkRange())
+            // A board drops the tiles it has scrolled away from, on the document's own grid rather
+            // than this build's default ([ChunkTileManager.evictOffscreen]).
+            board?.let { it.tiles.evictOffscreen(viewport.visibleChunkRange(it.geometry.chunkSizePt)) }
         }
         return moved
     }

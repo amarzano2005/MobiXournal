@@ -37,7 +37,10 @@ class SourceStructureTest {
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
         // +7 deliberate: the lazy "this page's background is missing" report the resolver drains.
-        "render/DrawingSurfaceView.kt" to 1714,
+        // +12 deliberate: the board the canvas draws is one field (`board`, a whole geometry + tiles +
+        // paper in `render/DrawingSurfaceInfinite.kt`), the eviction it drives, and the wholesale-swap
+        // reset that keeps a board from surviving the document it belonged to.
+        "render/DrawingSurfaceView.kt" to 1726,
         // The canvas geometry a write has to keep lives in the writer (chunkCoords / canvas / stripCoords
         // and the reuse guard), which put it past the budget: the chunk half is meant to move out the way
         // io/DocumentIo.kt was split into LoadedFile.kt and MobixOpenSessions.kt

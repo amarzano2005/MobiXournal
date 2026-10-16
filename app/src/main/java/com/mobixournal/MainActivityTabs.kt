@@ -2,11 +2,13 @@ package com.mobixournal
 
 import android.graphics.Bitmap
 import android.net.Uri
+import com.mobixournal.io.canvasGeometryOf
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
 import com.mobixournal.render.setBackgroundResolver
+import com.mobixournal.render.setInfiniteCanvas
 import com.mobixournal.tabs.DocColors
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
@@ -158,6 +160,12 @@ internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     view.setPdfSource(pdf?.let(PdfPageCache::shared))
     view.clearPdfAnalysis() // cleared until extraction below finishes
     view.load(tab.document)
+    // …and whether it is a **board**: the tab carries the mode it was born on or opened with, and the
+    // rest of the geometry comes from the file's own `canvas.json` (a document this session opened) or
+    // from the strip its mode runs in (one created here). Without this, switching away from a chunked
+    // document and back would draw it as a page stack — the rewrite `docs/mobix-format.md` refuses the
+    // *save* over, showing up in the *view*.
+    view.setInfiniteCanvas(io.canvasGeometryOf(tab.document, tab.canvasMode))
     if (tab.page > 0) view.goToPage(tab.page)
     if (pdf != null) analyzePdfInBackground(pdf, view)
 }

@@ -484,20 +484,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "render-a-chunked-document-as-an-unbounded-canvas"
-title = "Render a chunked document as an unbounded canvas"
-description = "render-and-edit-an-infinite-canvas-document, the shown half. The rendering side exists and has no caller: render/DrawingSurfaceInfinite.kt setInfiniteCanvas(mode, chunkSizePt, chunks) sets viewport.canvasMode and builds a render/ChunkTileManager.kt, and nothing calls it, while render/DrawingSurfacePaint.kt paint() lays out and draws a PageBox stack from render/PageStacker.kt (layout.visible(scrollY, height)), page outlines, the bookmark flag, the overview grid and the page counter. Wire the open path so a chunked document reaches the surface: call setInfiniteCanvas with the document canvas mode, the chunkSizePt from format/mobix/MobixCanvasFile.kt, and its chunks, and make paint() take the chunk path when chunkTileManager is not null - draw the unbounded sheet for the mode (the locked width or height from canvas.json, the default paper otherwise) plus the chunks the viewport intersects (ViewportState.visibleChunkRange, ChunkTileManager.visibleChunks), and skip the page-stack pass instead of drawing one page box per chunk. Document coordinates: the sheet origin for the two strip modes, a free plane for INFINITE_2D, so a view point maps to a document point without a PageBox. Eviction stays the tile manager concern (the next task). Verify with JVM tests that ViewportState.visibleChunkRange and ChunkTileManager.visibleChunks agree for a known viewport and zoom, plus an emulator pass on a chunked document: the sheet scrolls past the first chunk instead of ending, no page outline or counter is drawn, and logcat is clean."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 483
-created = 2026-10-15
-tags = ["canvas", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "write-strokes-into-a-chunk-and-keep-them-across-eviction"
 title = "Write strokes into a chunk and keep them across eviction"
 description = "render-and-edit-an-infinite-canvas-document, the written-on half. Every edit path today is keyed by page index: render/DrawingSurfaceStrokes.kt commits into layout.boxes.getOrNull(currentPage) through a PageBox, and render/PageEraser.kt, render/Selection.kt, render/EditHistory.kt and the page window (render/PageWindow.kt) all speak pages. For a chunked document a stroke has to land in the chunk under the pen: derive cx/cy from the document point and canvas.json chunkSizePt, take the chunk from ChunkTileManager.getOrCreateChunk(cx, cy), append the stroke to its top layer and markDirty(cx, cy). Load the chunk first when it is not resident (returning to a chunk the viewport evicted must read it back, the trap edit-a-page-the-lru-window-has-evicted fixed for pages), and let eviction write a dirty chunk back into a store the document owns (ChunkTileManager.onEvict, or a chunk store beside it in render/DrawingSurfaceInfinite.kt) instead of dropping it - an evicted stroke is a lost stroke. Keep the path honest where the rest of the app cannot follow: eraser, selection and undo either work in chunk space or are refused for a chunked document, and whichever is true is written in docs/infinite-canvas.md. Verify with JVM tests: a stroke committed at a document point in chunk (1, 0) is found through the store, a chunk evicted and re-read keeps its stroke, and an erase on an evicted chunk loads it first; plus an emulator pass writing across a chunk boundary, panning away and back, with the ink still there and logcat clean."

@@ -88,19 +88,27 @@ internal fun DrawingSurfaceView.paint() {
     val canvas = lockCanvasForFrame() ?: return
     try {
         canvas.drawColor(chrome.backdropColor)
-        val visible = layout.visible(scrollY, height.toFloat())
-        for (box in visible) {
-            BackgroundRenderer.draw(
-                canvas, box, scrollX, scrollY, pageBitmapFor(box), pdfTilesFor(box),
-                width.toFloat(), height.toFloat(),
-            )
-            drawPageElements(canvas, box)
-            drawPageOutline(canvas, box)
-            drawBookmarkFlag(canvas, box)
+        // Two passes, never both: a chunked `.mobix` is drawn as an unbounded sheet with its tiles on
+        // it, and everything else as the page stack it is. A board is not a page list that happens to
+        // be long — see [paintBoard].
+        val board = board
+        if (board != null) {
+            paintBoard(canvas, board)
+        } else {
+            val visible = layout.visible(scrollY, height.toFloat())
+            for (box in visible) {
+                BackgroundRenderer.draw(
+                    canvas, box, scrollX, scrollY, pageBitmapFor(box), pdfTilesFor(box),
+                    width.toFloat(), height.toFloat(),
+                )
+                drawPageElements(canvas, box)
+                drawPageOutline(canvas, box)
+                drawBookmarkFlag(canvas, box)
+            }
+            inkCache.retain(visible.mapTo(HashSet()) { it.index })
+            retainPdfPins(visible)
+            prefetchAround(visible)
         }
-        inkCache.retain(visible.mapTo(HashSet()) { it.index })
-        retainPdfPins(visible)
-        prefetchAround(visible)
         drawSearchHighlights(canvas)
         drawCurrent(canvas)
         if (splineNodes.isNotEmpty()) drawSplineOverlay(canvas)

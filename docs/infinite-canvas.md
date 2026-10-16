@@ -144,11 +144,20 @@ What the app does with this geometry today, so the mode is not a format the edit
   of a paginated file — and it survives a tab switch and a restart. A `.xopp` has no chunk container, so
   a document created in one is paged whatever the setting says (`NewDocumentCanvas.modeFor`): the
   geometry is *not applicable* there, not silently ignored.
-- **What is still missing** is the *canvas engine*: the surface still lays out pages of a fixed size, so a
-  board scrolls past its first chunk only once the chunk geometry reaches the renderer
-  (`render-a-chunked-document-as-an-unbounded-canvas`), strokes have nowhere to be written yet
-  (`write-strokes-into-a-chunk-and-keep-them-across-eviction`), the chrome still counts pages
-  (`make-the-chrome-tell-the-truth-for-a-document-with-no-pages`), and export still slices nothing
+- **It is drawn as a board.** The canvas is handed the document's geometry (`io/CanvasGeometry.kt`: the
+  mode, the paper's own dimensions, the tile grid and the occupied cells in document order) by the layer
+  that read the file, and paints it in **one pass instead of the page stack**: one *sheet* — the paper,
+  ruled across the whole board from a band aligned to the ruling grid, so the ruling does not restart at a
+  tile boundary — and one box per occupied cell the viewport intersects, each placed by its own
+  coordinate (`render/DrawingSurfaceBoard.kt`, `render/BoardViewport.kt`). Nothing is read ahead: a tile
+  is materialised through the page source only when its cell is on screen
+  (`ChunkTileManager.getOrCreateChunk`), and the tiles scrolled away are evicted on the **document's own**
+  grid. No page outline, bookmark flag or page counter is drawn for a board: it has no page 1 of N.
+- **What is still missing** is the *editing* half of the canvas engine: strokes have nowhere to be
+  written yet (`write-strokes-into-a-chunk-and-keep-them-across-eviction`), so a board can be opened,
+  panned and read but not written on; the chrome outside the canvas still counts pages, and the overview
+  grid, bookmarks and find still assume them
+  (`make-the-chrome-tell-the-truth-for-a-document-with-no-pages`); and export still slices nothing
   (`export-an-infinite-document-through-the-auto-slicer`).
 
 ### Spatial query and culling
