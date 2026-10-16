@@ -65,6 +65,7 @@ mobile and desktop.
 - Hairline borders use neutral dividers (`#383838`, `#262626`) for clean layer separation without visual clutter.
 - Accents use vibrant, luminescent micro-highlights (`PurpleDark = #C084FC`) rather than pervasive pastel color washes.
 - On Android 12+ with dynamic color active, `dynamicDarkColorScheme` overrides surface and background tokens with true OLED black and neutral charcoal, preserving dynamic primary accents while eliminating muddy wallpaper tints on app chrome.
+- **Chromatic consistency across toolbars**: the background under the main toolbar rail and the secondary toolbar top bar must not disagree. The outer surround reads the unified true OLED black backdrop (`rememberChromeColor()`), while the floating toolbars share identical frosted glass fills (`rgba(22, 22, 24, 0.85)` in dark mode) without conflicting backing layers (`unify-ui-color-palette-and-semantic-theme-contract`).
 - Paper, ruling, and imported PDF backgrounds retain their authentic document data colors (`docs/pages-and-paper.md`), surrounded cleanly by the OLED void.
 
 ---
