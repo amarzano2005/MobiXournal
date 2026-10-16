@@ -85,8 +85,9 @@ Lua companion plugin ([mobix-format.md](mobix-format.md)) have shipped. What is 
 claims the emulator passes named and could not reach — a `.mobix` tab losing its bundled picture to the
 session snapshot, find and split view on a board, the plot analysis text over a shaded range, a bundled
 recording playing from the file alone with its codec's size, and a round trip through a SAF
-`content://` URI — five children of that epic, each with the pass that would close it
-([data-path.md](data-path.md), [infinite-canvas.md](infinite-canvas.md)).
+`content://` URI — seven children of that epic in all (the other two are passes its own children were
+closed without: the replay and the scrubber, and the two strip canvas modes), each naming the device pass
+that would close it ([data-path.md](data-path.md), [infinite-canvas.md](infinite-canvas.md)).
 
 ### Advanced domain engine specifications
 
@@ -97,7 +98,7 @@ recording playing from the file alone with its codec's size, and a round trip th
 | [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric recognition, parametric handles | you work on shape recognition, gesture dwell detection or handles | **Planned Spec** |
 | [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, offline math rendering | you work on mathematical typography, LaTeX, or Typst features | **Planned Spec** |
 | [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, native ISO PDF/A annotations | you work on PDF text snapping, search indexing or native annotation export | **Planned Spec** |
-| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Partly implemented** — playback and the scrubber run; point-precise seeking and velocity-driven smoothing do not |
+| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Partly implemented** — the playhead, the replay painting, the scrubber and point-precise tap seeking are wired; velocity-driven smoothing is not, and the replay path's device pass is unrun |
 | [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters | you add extensibility hooks, scripting or third-party integrations | **Planned Spec** |
 | [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution | **Planned Spec** |
 | [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, drag and drop | you work on multi-window coordination, split view or drag and drop | **Planned Spec** |
