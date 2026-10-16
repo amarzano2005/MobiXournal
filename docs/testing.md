@@ -64,11 +64,17 @@ change can see what will fail it:
   test rewards; the remedy for a failure is a split, or a deliberate bump of a recorded number.
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
+- **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both
+  must draw it at the one glyph size (`ToolIconSize`, half a rail slot): these vectors scale their
+  stroke with the icon, and a smaller glyph in the Secondary Toolbar read as *thinner ink* than the rail
+  beside it. The compact top-bar buttons, the guides button and the dock's indicator face are read out
+  of the source tree, since a `Modifier.size(...)` argument is invisible to any behavioural assertion.
 - **`ColorContractGuardTest`** (`guards/`) — the palette's own contract, asserted by **sweep** rather
   than by spot-check: every container and outline role of both schemes is measured for a violet wash
   ("green deficit"), the light ramp is pinned role by role, the one menu material must read
-  `rememberGlassSurfaceColor` rather than a container role of its own, and the metric itself is
-  pinned against Material 3's baseline neutrals so it cannot be loosened into passing on lavender.
+  `rememberMenuSurfaceColor` rather than a container role of its own, its ink must clear 4.5:1 over
+  both extremes of backdrop, and the metric itself is pinned against Material 3's baseline neutrals so
+  it cannot be loosened into passing on lavender.
 - **`FormatDriftTest`** (`format/`) — the `.xopp` mapping the docs describe against what the writers
   emit, so the format documentation cannot drift from the code.
 - **`DesktopColorParityTest`**, **`RealFileRoundTripTest`**, **`SelectionHandleRadiusTest`** and

@@ -873,7 +873,7 @@ fun TopBarToolsRow(
                                 Icons.AutoMirrored.Outlined.ShowChart,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(ToolIconSize),
                             )
                         }
                     } else if (item.id == "guides") {
@@ -963,7 +963,9 @@ private fun CompactSingleToolButton(
             tool.icon,
             contentDescription = "Tool: ${tool.label}",
             tint = tint,
-            modifier = Modifier.size(18.dp),
+            // The rail's own glyph size ([ToolIconSize]): one set of vectors, one weight, so the
+            // figures dock cannot read as thinner than the rail beside it.
+            modifier = Modifier.size(ToolIconSize),
         )
     }
 }
@@ -1013,7 +1015,7 @@ private fun CompactShapeKindButton(
                     tool.icon,
                     contentDescription = "Tool: ${tool.label}",
                     tint = tint,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(ToolIconSize),
                 )
             }
             Icon(
@@ -1096,7 +1098,7 @@ private fun CompactTopBarToolButton(
                 selected.icon,
                 contentDescription = "Tool: ${selected.label}",
                 tint = tint,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(ToolIconSize),
             )
         }
         if (members.size > 1) {

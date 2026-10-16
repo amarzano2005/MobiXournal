@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
@@ -158,6 +159,16 @@ val SideToolbarModernTotalWidth = SideToolbarModernWidth + (SideToolbarModernPad
 
 /** One slot at full scale in modern design: 40dp compact buttons from ModernTheme. */
 internal val SideToolbarModernSlot = ModernTheme.compactButtonSizeDp
+
+/**
+ * The glyph a tool button draws inside its slot: **half** the slot, in **both** toolbars.
+ *
+ * One constant because the two bars draw the same `Icons.Outlined` tool set — these vectors scale
+ * their stroke with the icon, so a smaller glyph in one bar is *thinner ink* there, not a lighter
+ * style. The Secondary Toolbar's compact slots used to draw 18dp against the rail's 20dp, which read
+ * as exactly that beside the rail, so they take this instead (`ToolGlyphWeightTest` pins it).
+ */
+internal val ToolIconSize: Dp = SideToolbarModernSlot / 2
 
 /**
  * The rail's shell: a column or row of slots, sized so that it never shows half a button.
@@ -320,6 +331,8 @@ private fun ToolGroupButton(
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            // Half the slot — [ToolIconSize] at scale 1, and a little more when the rail's adaptive
+            // pitch grows the whole slot to swallow the strip it could not fit.
             Icon(
                 selected.icon,
                 contentDescription = "Tool: ${selected.label}",

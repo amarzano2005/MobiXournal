@@ -219,7 +219,8 @@ private fun ToolIndicatorFace(
                     imageVector = ui.tool.icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(18.dp),
+                    // The dock's own glyph size, shared with the rail ([ToolIconSize]).
+                    modifier = Modifier.size(ToolIconSize),
                 )
                 if (hasColorAndSize) {
                     Box(

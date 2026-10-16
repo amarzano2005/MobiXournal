@@ -246,7 +246,8 @@ internal fun CompactGuidePopupButton(
                 guideButtonIcon(kind),
                 contentDescription = "Drawing guides",
                 tint = tint,
-                modifier = Modifier.size(18.dp),
+                // The rail's glyph size, so the guides slot weighs the same as the figures beside it.
+                modifier = Modifier.size(ToolIconSize),
             )
         }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
