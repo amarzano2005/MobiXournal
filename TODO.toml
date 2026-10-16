@@ -485,3 +485,17 @@ created = 2026-10-16
 tags = ["audio", "emulator"]
 rebuild = false
 emulator_debug = true
+
+[[task]]
+id = "open-and-save-a-mobix-through-a-content-uri"
+title = "Open and save a .mobix through a content:// URI"
+description = "The emulator passes so far reached their fixtures as file:// paths in the app's own sandbox (docs/tools.md, *Hand a document to the app without driving the picker*). The shape a document picked from Downloads actually arrives as is a content:// URI served by a DocumentsProvider, and that is the one the save's identity adoption has to compare: io/DocumentIo.identifyForSave decides what the write will build and render/DrawingSurfaceView.adoptIdentity applies it, io/UriStaging moves bytes between a content:// URI and a staging file, and the open path persists the read grant. No JVM test can build one (Uri.parse is a stub in the mockable android.jar), so this stays a device check. Do it on the Pixel_Tablet AVD: generate the fixtures (./gradlew testDebugUnitTest --tests com.mobixournal.io.DeviceFixturesTest), adb push app/build/device-fixtures/paged-200.mobix /sdcard/Download/, then open it from the app's own Open button through the system picker (Files - Downloads) rather than from a file:// path, and check: (1) the tab opens writable and the counter comes from the manifest (1 / 200 before anything is drawn); (2) edit one page, Save, and confirm the save lands back on the same content:// URI with only what moved repacked - pull the file back with adb shell run-as com.mobixournal.v2 cat files/staging/... or read it through the provider, and count the archive's entries with zipfile (205 for the paged notebook), confirming the picture is still bundled and still named by its page; (3) the restored tab survives a restart, i.e. the persisted read grant is there when the session snapshot reopens the document; (4) Save As still writes a new file elsewhere; (5) logcat clean throughout. A picker-opened document that cannot save back onto its own URI is a defect: record it with the log line rather than working around it."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 840
+created = 2026-10-16
+tags = ["mobix", "ui", "emulator"]
+rebuild = false
+emulator_debug = true

@@ -120,10 +120,11 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   editor remembers its target's page, a plot's slider edits the selected page) never searches the
   document for the element.
 
-  What is **not** live yet: the reader-backed open has had no on-device pass — this host has no emulator
-  or device, so the page counter, the page list and the first frame of a 200-page notebook are covered by
-  unit tests alone, and so is the identity adoption a save needs, whose source-matching branch needs a
-  `content://` URI a JVM test cannot build (`verify-the-paged-mobix-open-and-canvas-on-the-emulator`).
+  The reader-backed open has had its on-device pass: the page counter, the page list and the first frame of
+  a 200-page notebook were seen on the emulator, and the identity adoption a save needs ran with them. What
+  that pass did **not** cover is the `content://` shape — it reached the fixture as a `file://` path in the
+  app's own sandbox, and a SAF URI with a persisted read grant is a different source for the adoption's
+  source-matching branch to compare, and one no JVM test can build (`open-and-save-a-mobix-through-a-content-uri`).
   The save writes the pages that moved, and **the editor's identity adoption is the save's own answer**:
   `MainActivityDocuments` asks what this write will build (`DocumentIo.identifyForSave`) and
   `DrawingSurfaceView.adoptIdentity` applies it, so a two-hundred-page notebook is no longer opened to be

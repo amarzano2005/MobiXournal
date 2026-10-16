@@ -29,8 +29,10 @@ import org.junit.rules.TemporaryFolder
  * another target — reuses nothing, so every page is identified. A narrower adoption there would leave
  * the model without the ids the file was written with, which is the drift identity exists to prevent.
  * The narrowing branch itself needs the open archive's URI to match the target, and a unit test cannot
- * build a `content://` URI (`Uri.parse` is a stub in the mockable android.jar), so it stays an
- * on-device check (`verify-the-paged-mobix-open-and-canvas-on-the-emulator`).
+ * build a `content://` URI (`Uri.parse` is a stub in the mockable android.jar): the emulator pass that
+ * saw the paged open ran over a `file://` path, so the SAF shape — a `DocumentsProvider` URI with a
+ * persisted read grant, which is how a document picked from Downloads arrives — is still an on-device
+ * check (`open-and-save-a-mobix-through-a-content-uri`).
  */
 class SaveIdentityTest {
 

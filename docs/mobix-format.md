@@ -380,8 +380,8 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
    unknown/unmodelled entries survive untouched (container rule 4, [mobix-schema-spec.md](mobix-schema-spec.md)).
    - Measured in `MobixIncrementalSaveBenchmarkTest` (`app/build/reports/mobix-incremental-save.txt`): one
      edited page of a 200-page notebook costs **2 ms and one page opened**, against **13 ms and 399** for
-     the path it replaced — constant, not proportional to the notebook. On-device round trip unrun
-     (`verify-the-paged-mobix-open-and-canvas-on-the-emulator`).
+     the path it replaced — constant, not proportional to the notebook. The on-device round trip is run:
+     the *Document saving* row above holds what the emulator pass measured.
 3. **Zero-Allocation Inking Loop (No GC stutter)** — **not built**:
    - High-rate stylus events (120 Hz–240 Hz on modern tablets and stylus digitizers) can trigger frequent
      JVM Garbage Collection pauses if objects (`StrokePoint`, temporary event wrappers) are allocated per touch.
