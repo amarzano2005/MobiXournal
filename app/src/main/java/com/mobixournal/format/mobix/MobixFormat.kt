@@ -86,9 +86,12 @@ object MobixFormat {
      * from the content cannot go stale the way a counter can.
      *
      * [suffix] is the container the bytes are stored in, and defaults to the kind's canonical one.
-     * It is a parameter because an image is stored **in the container it arrived in** — a PNG stays a
-     * PNG rather than being re-encoded to WebP, which would change the pixels the user pasted — while
-     * audio is always Opus (one codec means one decoder, on Android and on desktop alike).
+     * It is a parameter because **an asset is stored in the container it arrived in**: a PNG stays a PNG
+     * rather than being re-encoded to WebP, which would change the pixels the user pasted, and a
+     * recording keeps the codec it was recorded in — Ogg/Opus for a `.mobix`, whose container bundles it
+     * and can afford ~15 MB an hour, WAV for the sidecar a `.xopp` gives the desktop
+     * (`docs/audio-inking-sync.md`). Nothing is transcoded on the way in, which is what lets the
+     * extension keep telling the truth about the bytes.
      */
     fun assetEntry(sha256: String, kind: AssetKind, suffix: String = kind.defaultSuffix): String {
         require(sha256.length == SHA256_LENGTH && sha256.all { it in "0123456789abcdef" }) {
@@ -133,7 +136,11 @@ object MobixFormat {
         /** A picture: a page background, an embedded image, or a rendered formula. */
         IMAGE("img", "webp"),
 
-        /** Bundled audio, linked to stroke timestamps (`docs/audio-inking-sync.md`). */
-        AUDIO("aud", "opus"),
+        /**
+         * Bundled audio, linked to stroke timestamps (`docs/audio-inking-sync.md`). The default is the
+         * **Ogg** container this app's recorder writes into a `.mobix`; a WAV sidecar a `.xopp` document
+         * records names itself `wav` for as long as it is bundled.
+         */
+        AUDIO("aud", "ogg"),
     }
 }

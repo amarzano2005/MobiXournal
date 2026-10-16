@@ -13,13 +13,18 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Records the microphone directly to an Opus-compressed file (`.opus`) on a background thread
- * using Android's [AudioRecord], [MediaCodec] (Opus encoder), and [MediaMuxer]
- * (`docs/audio-inking-sync.md`).
+ * Records the microphone to an **Ogg/Opus** file on a background thread using Android's [AudioRecord],
+ * [MediaCodec] (Opus encoder) and [MediaMuxer] (`docs/audio-inking-sync.md`).
  *
- * Records at 48 kHz mono speech profile (32 kbps), yielding ~15 MB/hour.
+ * The container is Ogg and the file's extension says so — a stroke's sidecar is named
+ * `2026-08-02T09-14-33.ogg` and the bundled entry `assets/aud_<sha256>.ogg` — because the bytes really
+ * are an Ogg stream (`OggS`), which is what the container name has to keep truthful. It is the codec a
+ * `.mobix` records in: 48 kHz mono speech profile at 32 kbps, ~15 MB an hour against the WAV
+ * recorder's ~300 MB ([OpusAudioRecorder.isAvailable]).
+ *
  * If the device has no microphone, lacks permissions, or cannot initialise the Opus codec,
- * [start] returns false gracefully rather than throwing.
+ * [start] returns false gracefully rather than throwing — the caller falls back to [AudioRecorder],
+ * whose WAV sidecar is the one desktop Xournal++ plays.
  */
 class OpusAudioRecorder {
 
@@ -100,12 +105,13 @@ class OpusAudioRecorder {
         encoder
     }.getOrNull()
 
+    /**
+     * An Ogg muxer, and nothing else: Opus inside an MP4 is not a stream this app ever writes, and
+     * naming a file after a container it is not in is the one thing an asset name must not do.
+     * [isAvailable] is the gate, so a device without the muxer never gets here.
+     */
     private fun initMediaMuxer(target: File): MediaMuxer? = runCatching {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaMuxer(target.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_OGG)
-        } else {
-            MediaMuxer(target.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-        }
+        MediaMuxer(target.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_OGG)
     }.getOrNull()
 
     /** Milliseconds captured so far — the `ts` a stroke started right now carries. */
@@ -198,6 +204,16 @@ class OpusAudioRecorder {
     }
 
     companion object {
+        /**
+         * Whether this device can write an Ogg/Opus stream at all: the **OGG muxer** arrived with
+         * Android 10 (API 29), and below it there is no container for the encoder's output — so an older
+         * device records WAV rather than writing Opus into a file named after the wrong container.
+         */
+        val isAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+
+        /** The extension the container this recorder writes carries — what its file is named after. */
+        const val CONTAINER_SUFFIX = "ogg"
+
         const val SAMPLE_RATE = 48_000
         const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         const val ENCODING = AudioFormat.ENCODING_PCM_16BIT

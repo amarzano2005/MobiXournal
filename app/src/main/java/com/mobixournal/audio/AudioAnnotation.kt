@@ -62,8 +62,15 @@ fun documentAudioFiles(doc: Document): Set<String> =
  * The name a new recording started at [epochMillis] gets: desktop Xournal++'s local-time
  * `yyyy-MM-ddTHH-mm-ss.wav` convention, so recordings made on either side sort together in a folder
  * and never collide within a second.
+ *
+ * [extension] is the container the recorder actually writes — `wav` for the uncompressed sidecar a
+ * `.xopp` needs, `ogg` for the Opus stream a `.mobix` bundles ([OpusAudioRecorder]). The name says which
+ * container the file is in, exactly as an asset entry name does, so nothing has to guess by content.
  */
-fun audioFileName(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
-    FILENAME_FORMAT.withZone(zone).format(Instant.ofEpochMilli(epochMillis)) + ".wav"
+fun audioFileName(
+    epochMillis: Long,
+    zone: ZoneId = ZoneId.systemDefault(),
+    extension: String = "wav",
+): String = FILENAME_FORMAT.withZone(zone).format(Instant.ofEpochMilli(epochMillis)) + "." + extension
 
 private val FILENAME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss")

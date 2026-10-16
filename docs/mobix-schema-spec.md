@@ -28,7 +28,7 @@ document.mobix
 ├── assets/                      # Binary payloads, named by the hash of their own bytes
 │   ├── img_<sha256>.webp        # Embedded images (WebP/PNG/JPEG) and background pictures
 │   ├── img_<sha256>.png         # Rendered LaTeX, and a bundled background PDF as img_<sha256>.pdf
-│   └── aud_<sha256>.opus        # Bundled audio (see audio-inking-sync.md)
+│   └── aud_<sha256>.ogg         # Bundled audio, in the container it was recorded in (audio-inking-sync.md)
 └── xopp-bridge/                 # Interoperability sidecar (see mobix-format.md)
     └── metadata.json            # Bridge bookkeeping: source file, synthesis hashes, timestamps
 ```

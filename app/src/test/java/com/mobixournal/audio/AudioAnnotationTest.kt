@@ -74,4 +74,16 @@ class AudioAnnotationTest {
         // 2026-08-02T09:14:33Z, read in UTC.
         assertEquals("2026-08-02T09-14-33.wav", audioFileName(1_785_662_073_000L, ZoneId.of("UTC")))
     }
+
+    @Test
+    fun `a compressed recording is named after the container it is really in`() {
+        assertEquals(
+            "2026-08-02T09-14-33.ogg",
+            audioFileName(
+                1_785_662_073_000L,
+                ZoneId.of("UTC"),
+                extension = OpusAudioRecorder.CONTAINER_SUFFIX,
+            ),
+        )
+    }
 }

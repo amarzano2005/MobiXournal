@@ -12,6 +12,13 @@ import java.io.File
  * It exists so nothing else has to know how the three parts fit together — the surface asks it for a
  * stamp, the chrome asks it to start/stop, and the host asks it to sync sidecars around open/save.
  *
+ * **Two recorders, and the document decides which.** A recording is captured Opus/Ogg for a `.mobix`
+ * (what its container is for: ~15 MB an hour against ~300 MB of WAV) and 16-bit mono WAV for a `.xopp`,
+ * whose audio leaves as a **sidecar the desktop plays** — a legacy contract that has no Opus in it
+ * (`docs/audio-inking-sync.md`). An Opus recording that does reach a `.xopp` export is pushed out as the
+ * file it really is and reported rather than renamed or faked, because this app has no transcode
+ * ([compressedFor]). WAV is also the fallback whenever the Opus encoder or the Ogg muxer is not there.
+ *
  * @param clock supplies "now" for naming a recording; injected so the naming is testable.
  */
 class AudioSession(
@@ -19,7 +26,8 @@ class AudioSession(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : BundledAudio {
 
-    private val recorder = AudioRecorder()
+    private val wav = AudioRecorder()
+    private val opus = OpusAudioRecorder()
     private val player = AudioPlayer()
     private val store = AudioStore(context)
 
@@ -27,8 +35,8 @@ class AudioSession(
     var currentFile: String? = null
         private set
 
-    /** True while the microphone is being captured. */
-    val isRecording: Boolean get() = recorder.isRecording
+    /** True while the microphone is being captured — whichever of the two encoders took it. */
+    val isRecording: Boolean get() = wav.isRecording || opus.isRecording
 
     /** True while a clip is sounding — false while one is merely held (a pause, or a scrub). */
     val isPlaying: Boolean get() = player.isSounding
@@ -65,11 +73,24 @@ class AudioSession(
     /**
      * Start a new recording. Returns the sidecar's name, or null when the microphone can't be opened
      * (denied permission, no mic, another app holding it) — the caller reports that to the user.
+     *
+     * @param compressed whether the document this recording belongs to is written as a `.mobix`, whose
+     *   container bundles the audio and can afford the Opus codec. A `.xopp` records WAV instead, and
+     *   so does a `.mobix` whose device has no Ogg muxer or no Opus encoder ([OpusAudioRecorder.start]
+     *   refusing is the fallback, not an error).
      */
-    fun startRecording(): String? {
-        if (recorder.isRecording) return currentFile
+    fun startRecording(compressed: Boolean = false): String? {
+        if (isRecording) return currentFile
+        if (compressed) {
+            val name = audioFileName(clock(), extension = OpusAudioRecorder.CONTAINER_SUFFIX)
+            if (opus.start(store.local(name))) {
+                currentFile = name
+                onStateChanged?.invoke()
+                return name
+            }
+        }
         val name = audioFileName(clock())
-        if (!recorder.start(store.local(name))) return null
+        if (!wav.start(store.local(name))) return null
         currentFile = name
         onStateChanged?.invoke()
         return name
@@ -77,7 +98,7 @@ class AudioSession(
 
     /** Finish the recording and return the file written, or null if none was running. */
     fun stopRecording(): File? {
-        val file = recorder.stop() ?: return null
+        val file = (if (opus.isRecording) opus.stop() else wav.stop()) ?: return null
         currentFile = null
         onStateChanged?.invoke()
         return file
@@ -88,8 +109,13 @@ class AudioSession(
      * what [com.mobixournal.render.DrawingSurfaceView.audioStamp] is wired to.
      */
     fun stamp(): AudioRef? {
-        val name = currentFile?.takeIf { recorder.isRecording } ?: return null
-        return AudioRef(name, recorder.elapsedMs())
+        val name = currentFile ?: return null
+        val elapsed = when {
+            opus.isRecording -> opus.elapsedMs()
+            wav.isRecording -> wav.elapsedMs()
+            else -> return null
+        }
+        return AudioRef(name, elapsed)
     }
 
     /**
@@ -158,6 +184,16 @@ class AudioSession(
     }
 
     /**
+     * The sidecars [doc] references that are **compressed** (anything that is not a `.wav`) — the ones
+     * this app can play and bundle but cannot hand to desktop Xournal++, whose legacy playback takes the
+     * uncompressed sidecar. Transcoding them would need the Opus decoder on the export path, so the
+     * export writes the file it really has and says so instead of naming a WAV that does not exist
+     * ([exportSidecars]).
+     */
+    fun compressedFor(doc: Document): Set<String> =
+        documentAudioFiles(doc).filterNotTo(LinkedHashSet()) { it.endsWith(".wav", ignoreCase = true) }
+
+    /**
      * Pull the sidecars [doc] references out of the nominated [folder] into local storage, so a
      * document authored elsewhere replays here. Returns how many arrived.
      */
@@ -166,7 +202,9 @@ class AudioSession(
 
     /**
      * Push the sidecars [doc] references out to the nominated [folder], so the saved `.xopp` has its
-     * audio beside it. Returns how many were written.
+     * audio beside it — under the names the strokes carry, so the `fn` in the file resolves to the file
+     * that is actually there. Returns how many were written; a compressed one is written exactly as
+     * stored (the caller reports what the desktop will not play, [compressedFor]).
      */
     fun exportSidecars(folder: Uri, doc: Document): Int =
         store.exportTo(folder, documentAudioFiles(doc)).size

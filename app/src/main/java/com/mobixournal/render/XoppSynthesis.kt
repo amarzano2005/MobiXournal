@@ -77,7 +77,7 @@ object XoppSynthesis {
         val source = PageSource.of(document.pages)
         val pages = ArrayList<Page>(source.pageCount)
         for (pageIndex in 0 until source.pageCount) {
-            val page = com.mobixournal.audio.WavAudioSynthesizer.preparePageForXoppExport(source.page(pageIndex))
+            val page = source.page(pageIndex)
             pages += page.copy(
                 layers = page.layers.mapIndexed { layerIndex, layer ->
                     layer.copy(elements = compileLayer(layer.elements, pageIndex, layerIndex, claims, gaps))

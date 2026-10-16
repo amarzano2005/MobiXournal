@@ -240,7 +240,7 @@ class MobixContainerTest {
             "assets/img_${"ab".repeat(32)}.png",
             MobixFormat.assetEntry("ab".repeat(32), MobixFormat.AssetKind.IMAGE, suffix = "png"),
         )
-        assertEquals("assets/aud_${"cd".repeat(32)}.opus", MobixFormat.assetEntry("cd".repeat(32), MobixFormat.AssetKind.AUDIO))
+        assertEquals("assets/aud_${"cd".repeat(32)}.ogg", MobixFormat.assetEntry("cd".repeat(32), MobixFormat.AssetKind.AUDIO))
         assertThrows(IllegalArgumentException::class.java) { MobixFormat.pageEntry(0) }
         assertThrows(IllegalArgumentException::class.java) { MobixFormat.assetEntry("not-a-hash", MobixFormat.AssetKind.IMAGE) }
         assertTrue(MobixFormat.isPageEntry(MobixFormat.pageEntry(7)))

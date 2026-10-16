@@ -107,18 +107,29 @@ class AudioStore(context: Context) {
         out
     }.getOrDefault(emptyMap())
 
-    /** Create an empty WAV document called [name] inside the tree, or null if the provider refuses. */
+    /** Create an empty audio document called [name] inside the tree, or null if the provider refuses. */
     private fun createChild(folder: Uri, name: String): Uri? = runCatching {
         val parent = DocumentsContract.buildDocumentUriUsingTree(
             folder,
             DocumentsContract.getTreeDocumentId(folder),
         )
-        DocumentsContract.createDocument(resolver, parent, WAV_MIME, name)
+        DocumentsContract.createDocument(resolver, parent, mimeFor(name), name)
     }.getOrNull()
 
     private companion object {
+        /**
+         * The type of the sidecar document about to be created, by the container its name declares — a
+         * provider stores, previews and lists a file by the type it was told, and telling it `audio/x-wav`
+         * about an Ogg stream would be the same lie as naming the file `.wav`.
+         */
+        fun mimeFor(name: String): String =
+            if (name.endsWith(".ogg", ignoreCase = true)) OGG_MIME else WAV_MIME
+
         /** MIME type for a WAV file, used when creating sidecar documents in the SAF tree. */
         const val WAV_MIME = "audio/x-wav"
+
+        /** MIME type for an Ogg/Opus recording (`docs/audio-inking-sync.md`). */
+        const val OGG_MIME = "audio/ogg"
 
         /**
          * Reduce a `fn` to a bare file name. Desktop Xournal++ writes a plain name, but a

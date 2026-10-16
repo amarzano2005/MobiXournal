@@ -32,12 +32,14 @@ Rather than relying on vulnerable loose sidecars in user folders:
   (`assets/aud_<sha256>.<ext>`, [mobix-schema-spec.md](mobix-schema-spec.md)), so the same recording
   referenced twice is stored once: a save and an open go through
   `MobixAssetSink.add(bytes, AssetKind.AUDIO)` and `io/BundledPageAssets.kt` respectively.
-- **The container is the one the bytes are in**, and the extension says which — the app's own recorder
-  writes 16-bit mono RIFF/WAVE, so its recordings are `aud_<sha256>.wav`; an `.ogg`/Opus stream from
-  another writer keeps `.ogg` rather than being renamed. Opus at $32\text{--}64\text{ kbps}$ mono is the
-  *intended* recorder codec ($\approx 15\text{ MB}$ an hour against $> 300\text{ MB}$ of WAV) and
-  `audio/OpusAudioRecorder.kt` exists for it, but nothing calls it yet: there is no transcode on the
-  save path, and pretending one had happened would put Opus bytes under a `.wav` name.
+- **The container is the one the bytes are in**, and the extension says which. A `.mobix` document
+  records **Ogg/Opus** (`audio/OpusAudioRecorder.kt`: 48 kHz mono, 32 kbps, `MediaCodec`'s `audio/opus`
+  into the platform's Ogg muxer), so its recordings are `aud_<sha256>.ogg` — $\approx 15\text{ MB}$ an
+  hour against $> 300\text{ MB}$ of WAV. A `.xopp` document records 16-bit mono RIFF/WAVE, because its
+  audio leaves as a sidecar desktop Xournal++ plays, and a `.mobix` on a device without the Ogg muxer or
+  the Opus encoder falls back to that same WAV path. Nothing is ever transcoded or renamed: an `.ogg`
+  stream from another writer keeps `.ogg`, and the sniffed container is what an entry is named after
+  (`MobixAssetSink.suffixFor` — `RIFF`/`WAVE` -> `wav`, `OggS` -> `ogg`).
 - On open, the recording is adopted into the app's audio store when **the page that names it is read**
   (`io/BundledPageAssets.kt`), under the sidecar name the stroke carries — so playback needs nothing
   beside the file, and the `.xopp` export still names that sidecar and pushes a copy out for it.
@@ -120,8 +122,13 @@ During playback of a lecture or meeting:
 
 ## Exporting back to `.xopp` and PDF
 
-- **To `.xopp`**: The export compiler synthesizes a companion `.wav` file into the nominated audio directory
-  and sets the stroke-level `<stroke ts="...">` tag to the start timestamp, ensuring compatibility with
-  desktop Xournal++'s legacy playback.
+- **To `.xopp`**: the stroke-level `<stroke fn="..." ts="...">` pair is written exactly as the stroke
+  carries it, so `fn` names the file that is really beside the document, and the sidecar is pushed out
+  to the nominated audio directory on save. This app has **no transcode** — the Opus decoder is not on
+  the export path — so a recording captured for a `.mobix` and exported inside a `.xopp` (a board handed
+  to a machine that only knows pages) travels as the Ogg/Opus file it is, and the editor **reports** the
+  gap instead of naming a `.wav` that does not exist or writing silence under a `.wav` name: "N
+  recording(s) here are compressed — desktop Xournal++ plays WAV only". A `.xopp` document records WAV
+  from the start, so a `.xopp` authored here never hits it ([audio.md](audio.md)).
 - **To PDF**: The document exporter generates standard PDF annotations with embedded hyperlink actions or
   multimedia stream clips where supported.

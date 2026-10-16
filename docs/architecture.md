@@ -35,7 +35,7 @@ The following spokes describe the **active Android codebase** (`com.mobixournal.
 | [`images.md`](images.md) | image import, pixmap background, path resolution | you change image handling or background pixmaps | **Implemented** |
 | [`pdf.md`](pdf.md) | PDF backgrounds, font caches, text selection, bookmarks outline | you change PDF rendering, text selection or export | **Implemented** |
 | [`text-and-markdown.md`](text-and-markdown.md) | text/markdown import, paginator, layout engine | you change text or markdown import | **Implemented** |
-| [`audio.md`](audio.md) | audio recording, replay, `.wav` sidecars linked to strokes | you touch audio annotation features | **Implemented** |
+| [`audio.md`](audio.md) | audio recording (Opus in a `.mobix`, WAV for a `.xopp`), replay, sidecars linked to strokes | you touch audio annotation features | **Implemented** |
 | [`search.md`](search.md) | document search, handwriting index, recognition engines | you change search or recognition | **Implemented** |
 | [`testing.md`](testing.md) | unit test coverage, architectural guards, mechanical rules | you want to know what protects a change | **Implemented** |
 

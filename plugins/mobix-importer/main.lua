@@ -92,8 +92,9 @@ function mobix.elementToXml(elem)
             -- `filename` is the sidecar the stroke replayed from, and it is the name the desktop
             -- document must reference; `assetId` is the entry the recording is bundled in, which is
             -- only a fallback for a file that names no sidecar. Neither extension is rewritten:
-            -- the app bundles a recording in the container it was recorded in (`.wav` for its own
-            -- recorder), so the entry is `aud_<sha>.wav` and no `.opus` guess is needed.
+            -- the app bundles a recording in the container it was recorded in (Ogg/Opus for a
+            -- `.mobix` document, WAV for a `.xopp` one), so the entry is `aud_<sha>.ogg` or
+            -- `aud_<sha>.wav` and no guess is needed.
             local fn = elem.audioRef.filename or ""
             if fn == "" then
                 fn = elem.audioRef.assetId or ""

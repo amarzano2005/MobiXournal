@@ -7,6 +7,7 @@ import android.net.Uri
 import android.view.Choreographer
 import androidx.core.content.ContextCompat
 import com.mobixournal.audio.AudioSession
+import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.KaraokeFrames
@@ -122,7 +123,10 @@ internal fun MainActivity.toggleRecording() {
 
 /** Start recording, reporting either the file we opened or the microphone we could not. */
 internal fun MainActivity.beginRecording() {
-    val name = audio.startRecording()
+    // The document's own format decides the codec: a `.mobix` bundles its audio, so it records the
+    // compressed stream, while a `.xopp` records the WAV sidecar the desktop plays
+    // (`docs/audio-inking-sync.md`). A `.mobix` whose device cannot encode Opus records WAV too.
+    val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
     toast(if (name != null) "Recording — strokes will replay from here" else "Could not open the microphone")
 }
 
@@ -154,4 +158,11 @@ internal fun MainActivity.pushAudioSidecars() {
     val folder = audioFolder ?: return
     val doc = surface?.toDocument() ?: return
     audio.exportSidecars(folder, doc)
+    // The contract an export cannot keep on its own: a `.xopp` names a sidecar the desktop plays, and
+    // nothing here transcodes, so a compressed recording travels as itself and is reported rather than
+    // renamed to a `.wav` that would hold Opus bytes.
+    val compressed = audio.compressedFor(doc)
+    if (compressed.isNotEmpty()) {
+        toast("${compressed.size} recording(s) here are compressed — desktop Xournal++ plays WAV only")
+    }
 }
