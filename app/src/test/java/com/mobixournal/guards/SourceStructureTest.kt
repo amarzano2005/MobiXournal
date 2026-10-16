@@ -40,7 +40,12 @@ class SourceStructureTest {
         // +12 deliberate: the board the canvas draws is one field (`board`, a whole geometry + tiles +
         // paper in `render/DrawingSurfaceInfinite.kt`), the eviction it drives, and the wholesale-swap
         // reset that keeps a board from surviving the document it belonged to.
-        "render/DrawingSurfaceView.kt" to 1726,
+        // +48 deliberate: a board is written into, so the view gained the cell the gesture is writing in
+        // (`gestureCell`, the one thing the page index cannot say for a cell with no page yet), the
+        // grid reconciliation in the `doc` setter that keeps the cells in step with an undo, the shape a
+        // save reads back (`canvasGeometry`), and the refusal a page-shaped gesture gets on a board. The
+        // coordinate and commit arithmetic itself lives in BoardGrid / BoardInk / DrawingSurfaceBoardInk.
+        "render/DrawingSurfaceView.kt" to 1774,
         // The canvas geometry a write has to keep lives in the writer (chunkCoords / canvas / stripCoords
         // and the reuse guard), which put it past the budget: the chunk half is meant to move out the way
         // io/DocumentIo.kt was split into LoadedFile.kt and MobixOpenSessions.kt

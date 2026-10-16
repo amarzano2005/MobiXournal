@@ -40,6 +40,16 @@ internal class ChunkTileManager(
         dirtyTiles.add(coord)
     }
 
+    /**
+     * Remember [chunk] as materialised **without** marking it dirty: it was read back from the
+     * document ([BoardInk.chunkAt]), and a read is not an edit. [putChunk] is the write half, and the
+     * one that says a tile moved.
+     */
+    @Synchronized
+    fun putLoaded(chunk: MobixChunk) {
+        loadedChunks[chunk.cx to chunk.cy] = chunk
+    }
+
     /** Retrieve existing chunk or create a new empty one if not present. */
     @Synchronized
     fun getOrCreateChunk(

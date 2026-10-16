@@ -12,4 +12,7 @@
          untouched so it can still be recovered, rather than silently blanking the tab. -->
     <string name="restore_failed">Couldn\'t restore %1$s — its cached copy is unreadable. The file was left untouched.</string>
     <string name="document_read_only">Document is read-only</string>
+    <!-- A gesture that needs pages (selection, the clipboard, vertical space) was tried on an
+         infinite canvas, which has none: it is drawing and erasing only (docs/infinite-canvas.md). -->
+    <string name="infinite_canvas_only_drawing">Infinite canvases are drawing only for now</string>
 </resources>

@@ -57,6 +57,25 @@ internal data class CanvasGeometry(
  * already at its size budget, and a reader of this file should find the whole of what a board *is* — the
  * value's meaning and its one source — in one place.
  */
+/**
+ * Hand the session the shape [document] was **edited into**, before the write that has to keep it: the
+ * cells the board holds now, in the document's own order.
+ *
+ * A board's coordinates are a fact of the **board** — the chunk names are computed from them, and
+ * neither the pages nor the mode can say where a cell sits — so a write that read only what the opened
+ * file declared would drop every cell created since and move the ink written into it
+ * (`docs/infinite-canvas.md` → *A chunked document opens, is edited and saves as chunks*). The canvas is
+ * the layer that owns the live grid ([BoardGrid]), so the save asks it for the shape rather than
+ * deriving one ([MobixOpenSessions.rememberGrid]).
+ *
+ * A paginated document, a `.xopp`, a PDF or an image has no board and is left alone: there is nothing
+ * to record, and nothing that could go stale.
+ */
+internal fun DocumentIo.rememberBoardShape(document: Document, geometry: CanvasGeometry?) {
+    val board = geometry?.takeIf { it.isBoard } ?: return
+    openSessions.rememberGrid(document, board.chunkCoords)
+}
+
 internal fun DocumentIo.canvasGeometryOf(
     document: Document,
     bornAs: CanvasMode = CanvasMode.PAGINATED,

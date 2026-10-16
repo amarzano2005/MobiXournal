@@ -183,6 +183,22 @@ enum class GestureIntent {
     PLACE,
     VERTICAL_SPACE,
     IGNORE,
+
+    ;
+
+    /**
+     * True for the gestures that speak **pages**: the rubber band and everything it feeds (the element
+     * clipboard, moving and resizing), the background-region copy, PDF text selection, and the
+     * vertical-space drag. None of them can act on a board, whose content is chunks rather than a page
+     * list — so they are refused there, in one place
+     * (`docs/infinite-canvas.md` → *What a board can be edited with*).
+     *
+     * Drawing, erasing and panning are not among them: ink and the eraser work in **cell space** and the
+     * pen can write anywhere on a board.
+     */
+    val isPageShaped: Boolean
+        get() = this == SELECT || this == BACKGROUND_SELECT || this == SELECT_TEXT ||
+            this == VERTICAL_SPACE
 }
 
 /** Input-layer preferences the classifier consults (owned by the app's settings). */

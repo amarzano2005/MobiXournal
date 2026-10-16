@@ -363,6 +363,10 @@ class MainActivity : ComponentActivity() {
                         val p = panes[index]
                         p.surface = view
                         view.onReadOnlyBlocked = { toast(getString(R.string.document_read_only)) }
+                        // A board has no pages, so the page-shaped gestures are refused on the canvas
+                        // itself ([DrawingSurfaceView.onBoardBlocked]): say so rather than letting the
+                        // gesture look broken.
+                        view.onBoardBlocked = { toast(getString(R.string.infinite_canvas_only_drawing)) }
                         view.onDocumentEdited = { doc -> mirrors.propagate(p, doc) }
                         attachAudio(view)
                         // Restore is asynchronous now, so a file handed to us by another app is opened

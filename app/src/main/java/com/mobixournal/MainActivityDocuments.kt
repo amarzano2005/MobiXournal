@@ -7,6 +7,7 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.io.LoadedFile
 import com.mobixournal.io.canvasGeometryOf
+import com.mobixournal.io.rememberBoardShape
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
 import com.mobixournal.io.mobixNameFor
@@ -498,6 +499,11 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     } else {
         snapshot
     }
+    // A board's cells are a fact of the board and not of its pages: a chunk is named after the cell it
+    // sits in, so a cell written past the last chunk of the opened file has to be handed to the write or
+    // it would be laid out on the mode's strip and its ink would move
+    // (`docs/infinite-canvas.md` → *A chunked document opens, is edited and saves as chunks*).
+    if (saveFormat == SaveFormat.MOBIX) io.rememberBoardShape(document, view.canvasGeometry())
     val pdf = view.pdfSourceFile()
     val images = view.imageSources()
     inBackground(

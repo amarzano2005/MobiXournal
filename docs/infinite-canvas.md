@@ -153,20 +153,69 @@ What the app does with this geometry today, so the mode is not a format the edit
   is materialised through the page source only when its cell is on screen
   (`ChunkTileManager.getOrCreateChunk`), and the tiles scrolled away are evicted on the **document's own**
   grid. No page outline, bookmark flag or page counter is drawn for a board: it has no page 1 of N.
-- **What is still missing** is the *editing* half of the canvas engine: strokes have nowhere to be
-  written yet (`write-strokes-into-a-chunk-and-keep-them-across-eviction`), so a board can be opened,
-  panned and read but not written on; the chrome outside the canvas still counts pages, and the overview
+- **It can be written on.** Ink lands in the chunk under the pen, and the eraser loads a chunk the
+  viewport evicted before it rubs ([Writing on a board](#writing-on-a-board)). Two things are still
+  missing, and both are deliberate: the chrome outside the canvas still counts pages, and its overview
   grid, bookmarks and find still assume them
   (`make-the-chrome-tell-the-truth-for-a-document-with-no-pages`); and export still slices nothing
   (`export-an-infinite-document-through-the-auto-slicer`).
+
+### Writing on a board
+
+The canvas engine's editing half, and the decisions it had to make — because a board is not a page
+stack, and every one of them is a place where "almost a page" would have been wrong.
+
+- **The chunk under the pen.** A gesture converts its view point to a **document** point (un-scroll,
+  un-zoom) and that point names the cell: `floor(pt / chunkSizePt)` per axis, on the tile size the file
+  itself declares. The page the stroke is written to is the page that cell stands for — `grid[i]` is
+  `pages[i]` — and the chunk is created when the board has no chunk there yet, so an infinite canvas is
+  writable past its last tile rather than only drawable inside it (`render/BoardInk.kt`).
+- **Ink is stored cell-local, like every element of a chunk**: `x = 0` is the left edge of the tile it
+  lives in. That is what the chunk files hold and what the drawing pass reads back, so the box a
+  gesture converts through is the *cell's own* box (`render/DrawingSurfaceBoardInk.kt`) and the two can
+  never disagree about where the ink is. A stroke belongs to the chunk the pen went **down** in, even
+  when it runs past the cell's edge — a chunk is a storage unit, and the format has no way to split one
+  stroke across two.
+- **The document is the store, so an eviction cannot lose ink.** A write lands on the cell's page
+  *through the page window*, which holds every edit in an overlay eviction never touches
+  ([data-path.md](data-path.md) → *The page window*), and the tile cache is only a copy of that page.
+  A chunk the viewport drops (`ChunkTileManager.evictOffscreen`, on the document's own grid) is read
+  back **through the document** rather than out of the file the document came from, so the ink that was
+  written into it is still there — the same trap `edit-a-page-the-lru-window-has-evicted` closed for
+  pages. Nothing needs to be written out on eviction: by the time a chunk is evicted, its stroke is
+  already in the document that will be saved.
+- **The cells follow the page list, through the one place an edit lands.** A cell this session created
+  is appended where the document's next page goes, and the `doc` setter reconciles the two after every
+  change (`BoardGrid.fit`): an undo trims the tail, and a **redo hands the same coordinate back**
+  (kept in the order it was removed, exactly as the document history keeps its own branch). Undo and
+  redo therefore work on a board unchanged — they snapshot the document, and the grid is put back in
+  step with it.
+- **What a board can be edited with.** Drawing, highlighter, shapes, splines, the text/image/LaTeX
+  placement tools and the **eraser** all work, in cell space. The eraser loads the chunk first, so
+  rubbing into a chunk the viewport evicted erases the ink that is really there. Refused, with one
+  message and one gate (`GestureIntent.isPageShaped`), are the gestures that *are* page-shaped: the
+  rubber band and everything it feeds (the element clipboard, move, resize, rotate), the
+  background-region copy, PDF text selection and the vertical-space drag. They speak page indices and
+  page *bounds*, and half-working on a grid of chunks would be worse than not working.
+- **A save writes the cells the board holds now.** The coordinates are a fact of the board, not of the
+  pages, so the canvas hands its live grid to the session on the way into the writer
+  (`rememberBoardShape`): a cell created since the open keeps its own name, and a save cannot fall back
+  to the mode's strip and move the ink that was written into it.
+- **A placement gives an empty cell its page.** A tap with the text, image or LaTeX tool in a cell the
+  board has no chunk for creates the chunk, because the element it is about to insert needs a page to
+  live on. Every other path leaves an empty cell empty: drawing, erasing and panning create nothing.
 
 ### Spatial query and culling
 1. **Viewport intersection**: At each frame, the active viewport bounds $[x_{\min}, y_{\min}, x_{\max}, y_{\max}]$
    are converted to the integer range of visible chunk coordinates:
    $$\text{cx} \in \left[\lfloor x_{\min}/S \rfloor, \lfloor x_{\max}/S \rfloor\right], \quad \text{cy} \in \left[\lfloor y_{\min}/S \rfloor, \lfloor y_{\max}/S \rfloor\right]$$
 2. **Bounding-box hierarchy**: Each chunk maintains an `R-Tree` or spatial bounding box list of its elements.
-3. **Offscreen eviction**: Chunks outside the visible viewport plus a 1-chunk margin are dropped from active
-   GPU memory and cached to disk.
+3. **Offscreen eviction**: Chunks outside the visible viewport plus a 1-chunk margin are dropped from the
+   tile cache, on the **document's own** grid (the tile size its chunk names were computed against). An
+   evicted chunk is not written anywhere special: its page — the document's own, edits and all — is what
+   the cache was a copy of, and reading the chunk back reads it through the page window rather than out
+   of the source file, so nothing is lost and nothing needs flushing
+   ([Writing on a board](#writing-on-a-board)).
 
 ---
 

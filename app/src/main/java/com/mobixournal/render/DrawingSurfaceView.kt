@@ -28,6 +28,7 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
+import com.mobixournal.io.CanvasGeometry
 import com.mobixournal.ui.keyStringFromKeyEvent
 import kotlin.math.hypot
 
@@ -77,6 +78,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
         set(value) {
             if (value === docValue) return
             docValue = value
+            // A board's cells follow its page list, and this is the one place every edit lands: an
+            // undo or a redo moves the pages, so the grid has to move with them or a chunk would keep a
+            // coordinate its page no longer sits at ([BoardGrid.fit]).
+            board?.grid?.fit(value.pages.size)
             indexingGeneration++
             handwritingIndex = null
             indexingDoc = null
@@ -144,6 +149,17 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** In-progress multi-stroke shape (e.g. capacitor with an open gap). */
     internal var currentStrokes: List<List<StrokePoint>>? = null
     internal var currentPage = 0
+    /**
+     * The **cell** the current gesture is writing in, when this canvas is drawing a board: the tile the
+     * ink belongs to, fixed at pointer-down (a stroke is stored under the chunk the pen went down in,
+     * like every element the format holds).
+     *
+     * It says the one thing [currentPage] cannot: which cell a gesture that landed in a cell the
+     * document has no page for yet is going to be written into — the page for it only exists once the
+     * stroke is committed ([BoardInk.writeAt]). Null on every document that is not a board, and between
+     * gestures.
+     */
+    internal var gestureCell: Pair<Int, Int>? = null
     /** While drawing a shape ([shapeKind] set), the drag anchor in page-local pt and the live flag. */
     internal var shaping = false
     internal var shapeStartX = 0.0
@@ -359,6 +375,26 @@ class DrawingSurfaceView @JvmOverloads constructor(
         }
     var onReadOnlyChanged: ((Boolean) -> Unit)? = null
     var onReadOnlyBlocked: (() -> Unit)? = null
+
+    /**
+     * Told when a gesture was refused because the document is a **board** and the gesture is
+     * page-shaped. Set by the host, which is the only layer that can speak to the user.
+     */
+    var onBoardBlocked: (() -> Unit)? = null
+
+    /** Report a gesture a board cannot carry out — selection, the element clipboard, the vertical-space
+     * drag — once per attempt, in the same shape as [notifyReadOnlyBlocked]. */
+    fun notifyBoardBlocked() {
+        onBoardBlocked?.invoke() ?: run {
+            post {
+                android.widget.Toast.makeText(
+                    context,
+                    "Infinite canvases are drawing only for now",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
 
     fun notifyReadOnlyBlocked() {
         onReadOnlyBlocked?.invoke() ?: run {
@@ -808,6 +844,18 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** The current working document — every page, layer, and preserved element, ready to save. */
     fun toDocument(): Document = doc
+
+    /**
+     * The board this canvas draws, as it stands **now** — its geometry with the cells this session grew
+     * ([BoardGrid]) — or null when the document is not a board.
+     *
+     * A save asks for it because the coordinates are not derivable from the pages: a chunk is named after
+     * its cell, so a board written from the grid the *file* declared would drop every cell created since
+     * the open and leave the ink that was written into it unnamable
+     * (`docs/infinite-canvas.md` → *A chunked document opens, is edited and saves as chunks*).
+     */
+    internal fun canvasGeometry(): CanvasGeometry? =
+        board?.let { it.geometry.copy(chunkCoords = it.grid.toList()) }
 
     /**
      * Adopt the identity a `.mobix` write needs — an id on every page and element, and a document id —

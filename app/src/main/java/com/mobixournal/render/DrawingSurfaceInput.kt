@@ -156,6 +156,15 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // gesture machinery rather than earning a GestureIntent of its own.
     if (audioPlayMode) { audioTap(event, pointerIndex); return }
     val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
+    // A board is not a page list, so the page-shaped gestures are refused here, in one place, rather
+    // than half-working on a grid of chunks: the rubber band and its clipboard, the background-region
+    // copy, PDF text selection and the vertical-space drag all speak page indices and page bounds
+    // (`docs/infinite-canvas.md` → *What a board can be edited with*). Inke works in cell space and is
+    // untouched by this.
+    if (board != null && intent.isPageShaped) {
+        notifyBoardBlocked()
+        return
+    }
     stylusOwner = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&
         (intent == GestureIntent.DRAW || intent == GestureIntent.ERASE)
     when (intent) {
@@ -220,6 +229,7 @@ internal fun DrawingSurfaceView.abandonInProgress() {
     holdSnapped = false
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
+    gestureCell = null
     gestures.reset()
 }
 
@@ -232,7 +242,7 @@ internal fun DrawingSurfaceView.cancelGesture() {
     clearSpline()
     current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
-    textSelecting = false; vspace.reset()
+    textSelecting = false; vspace.reset(); gestureCell = null
     gesturePointerId = -1; stylusOwner = false
 }
 
@@ -550,6 +560,7 @@ internal fun DrawingSurfaceView.endGesture() {
 
 /** Record one undo step if this gesture actually changed the document. */
 internal fun DrawingSurfaceView.finishGesture() {
+    gestureCell = null
     val start = gestureStartDoc ?: return
     gestureStartDoc = null
     if (doc !== start) {

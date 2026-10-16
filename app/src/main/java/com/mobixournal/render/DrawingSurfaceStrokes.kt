@@ -29,7 +29,7 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
     holdSnapped = false
     gestureStartDoc = doc
     gesturePointerId = event.getPointerId(pointerIndex)
-    val box = layout.pageAt(event.getX(pointerIndex) + scrollX, event.getY(pointerIndex) + scrollY)
+    val box = gestureBoxAt(event.getX(pointerIndex), event.getY(pointerIndex))
         ?: run { current = null; return }
     currentPage = box.index
     if (shaping) {
@@ -62,7 +62,7 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
 internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
     val pointerIndex = event.findPointerIndex(gesturePointerId)
     if (pointerIndex < 0) return
-    val box = layout.boxes.getOrNull(currentPage) ?: return
+    val box = gestureBox() ?: return
     if (shaping) {
         val (gx, gy) = snappedPoint(
             box,
@@ -114,7 +114,7 @@ internal fun DrawingSurfaceView.splineDown(event: MotionEvent, pointerIndex: Int
     }
     scrolling = false
     // The first node fixes the page for the whole curve, so later taps stay in one stroke.
-    val box = if (splineNodes.isEmpty()) layout.pageAt(x + scrollX, y + scrollY) else layout.boxes.getOrNull(currentPage)
+    val box = if (splineNodes.isEmpty()) gestureBoxAt(x, y) else gestureBox()
     if (box == null) return
     if (splineNodes.isEmpty()) {
         currentPage = box.index
@@ -277,7 +277,7 @@ internal fun DrawingSurfaceView.startErase(event: MotionEvent, pointerIndex: Int
     erasing = true
     gestureStartDoc = doc
     gesturePointerId = event.getPointerId(pointerIndex)
-    val box = layout.pageAt(event.getX(pointerIndex) + scrollX, event.getY(pointerIndex) + scrollY) ?: return
+    val box = gestureBoxAt(event.getX(pointerIndex), event.getY(pointerIndex)) ?: return
     currentPage = box.index
     // Eraser tip and barrel button both use WHOLE_STROKE mode to delete entire strokes.
     val isEraserTip = event.getToolType(pointerIndex) == android.view.MotionEvent.TOOL_TYPE_ERASER
@@ -306,7 +306,7 @@ internal fun DrawingSurfaceView.switchStrokeToErase(event: MotionEvent) {
 internal fun DrawingSurfaceView.eraseMove(event: MotionEvent) {
     val pointerIndex = event.findPointerIndex(gesturePointerId)
     if (pointerIndex < 0) return
-    val box = layout.boxes.getOrNull(currentPage) ?: return
+    val box = gestureBox() ?: return
     // Eraser tip and barrel button both use WHOLE_STROKE mode to delete entire strokes.
     val isEraserTip = event.getToolType(pointerIndex) == android.view.MotionEvent.TOOL_TYPE_ERASER
     val mode = if (isEraserTip || barrelButton.held) EraserMode.WHOLE_STROKE else eraserMode
@@ -336,9 +336,21 @@ internal fun DrawingSurfaceView.placeMove(event: MotionEvent) {
     if (hypot(event.x - placeDownX, event.y - placeDownY) > DrawingSurfaceDefaults.TAP_SLOP_PX) placing = false
 }
 
-/** Fire [onPlace] for the page/point the tap landed on, hitting an existing text box if any. */
+/**
+ * Fire [onPlace] for the page/point the tap landed on, hitting an existing text box if any.
+ *
+ * On a board a tap in a cell the document has no chunk for **creates** that chunk: a placement is a
+ * deliberate tap, and the text box, image or formula it is about to insert needs a page to live on. The
+ * cell is the one the tap landed in, so the element arrives where it was placed.
+ */
 internal fun DrawingSurfaceView.commitPlace() {
     val kind = placeKind ?: return
+    // A board places into the cell under the tap, creating it when the board has no chunk there
+    // (DrawingSurfaceBoardInk).
+    if (board != null) {
+        commitChunkPlace(kind)
+        return
+    }
     val box = layout.pageAt(placeDownX + scrollX, placeDownY + scrollY) ?: return
     val xPt = box.toPtX(placeDownX, scrollX)
     val yPt = box.toPtY(placeDownY, scrollY)
@@ -558,16 +570,35 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
 internal fun DrawingSurfaceView.withAudioStamp(stroke: Stroke): Stroke =
     audioStamp?.invoke()?.let(stroke::withAudio) ?: stroke
 
-/** Append [stroke] to the active (or top) layer of page [pageIndex], rebuilding the model. */
+/**
+ * Append [stroke] to the active (or top) layer of page [pageIndex], rebuilding the model.
+ *
+ * On a board [pageIndex] is the document page a **chunk** stands for, and the stroke goes into the cell
+ * the gesture began in — creating the board's chunk when the pen went down in a cell it had none for
+ * ([BoardInk.writeAt]), which is what makes an infinite canvas writable rather than only drawable. The
+ * cell's own page is the store, so nothing is staged in the tile cache: eviction cannot lose the ink.
+ */
 internal fun DrawingSurfaceView.appendStroke(pageIndex: Int, stroke: Stroke) {
-    val edited = windowEditPage(pageIndex) { page ->
-        val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
-        val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
-        // Stamping here rather than at each commit site covers freehand, shapes and splines alike.
-        layers[target] = Layer(layers[target].elements + withAudioStamp(stroke), layers[target].name)
-        page.copy(layers = layers)
-    } ?: return
+    // On a board the stroke goes into the chunk under the pen rather than onto a page of the stack
+    // (DrawingSurfaceBoardInk).
+    if (board != null) {
+        appendChunkStroke(pageIndex, stroke)
+        return
+    }
+    val edited = windowEditPage(pageIndex) { page -> withStroke(page, stroke) } ?: return
     relayout() // rebuild boxes so they reference the updated pages, not stale ones
+}
+
+/**
+ * [page] with [stroke] appended to its active (or top) layer — the one commit shape ink has, shared by
+ * a page stack's ink and a board's (`DrawingSurfaceBoardInk`).
+ */
+internal fun DrawingSurfaceView.withStroke(page: Page, stroke: Stroke): Page {
+    val layers = page.layers.ifEmpty { listOf(Layer(emptyList())) }.toMutableList()
+    val target = resolvedActiveLayer(page).coerceIn(0, layers.lastIndex)
+    // Stamping here rather than at each commit site covers freehand, shapes and splines alike.
+    layers[target] = Layer(layers[target].elements + withAudioStamp(stroke), layers[target].name)
+    return page.copy(layers = layers)
 }
 
 /**
@@ -590,6 +621,7 @@ internal fun DrawingSurfaceView.resolvedActiveLayer(page: Page): Int =
  * only and skipping hidden layers ([PageEraser]). Returns true if anything on the page changed.
  */
 internal fun DrawingSurfaceView.eraseOnPage(pageIndex: Int, px: Double, py: Double, radius: Double, mode: EraserMode = eraserMode): Boolean {
+    if (board != null) return eraseFromChunk(pageIndex, px, py, radius, mode)
     val page = pageAt(pageIndex) ?: return false
     val hidden = page.layers.indices.filter { isLayerHidden(pageIndex, it) }.toSet()
     val target = resolvedActiveLayer(page)
