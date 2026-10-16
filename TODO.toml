@@ -445,57 +445,43 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "verify-the-paged-mobix-open-and-canvas-on-the-emulator"
-title = "Verify the paged .mobix open and canvas on the emulator"
-description = "carry-the-page-source-into-the-editor and materialise-only-the-visible-pages-in-the-canvas shipped JVM-verified only: both carry emulator_debug=yes, and this host has no /data/android toolchain (no adb, no AVD), so the runtime behaviour they exist for has never been seen. Install the APK and make a 200-page .mobix (the synthetic writer in MobixPagedOpenBenchmarkTest can produce one) reachable to the app, open it through the system picker, and check: (1) the tab counter and the pages menu show 200 rows with the manifest's page names on open, before any page is drawn - logcat clean, no per-page parse at open; (2) scroll from page 1 to page 200 and screenshot both ends, confirming pages render with their backgrounds (a bundled PDF page and a picture page drawn later than the open, which is what the BackgroundResolver adoption is for); (3) open a .mobix whose page names a bundled picture, draw one stroke on it, save, close, reopen: the background is still there and the stroke survived; (4) switch to another tab and back, and mirror the tab in the second pane, confirming the adopted backgrounds survive the switch; (5) edit a page the window has evicted (jump to page 150, then edit) and confirm no stale page comes back. Record failures with the screenshot and the log line, and if the lazy path misbehaves only on device, fix it there and note what the JVM tests could not see. (6) A bundled recording plays from the .mobix alone: record audio while writing a stroke, save as .mobix, copy the file to an empty folder with no .wav beside it, reopen it there and tap the stroke with the Play Object tool — the recording must sound from the right offset, with the page that names it drawn at least once first (adoption happens on that page's read). (7) Record a minute of speech with the pen in a `.mobix` document, save it, and compare the file's size against the same minute recorded into a `.xopp`: the container should carry Ogg/Opus (~1 MB a minute) rather than WAV (~5 MB a minute), and a tap on a stroke should play it. If the device has no Opus encoder or no Ogg muxer the recording is WAV and the size is the old one, which is the documented fallback rather than a failure (record-and-bundle-opus-audio)."
+id = "check-find-and-split-view-on-a-board"
+title = "Check find and split view on a board"
+description = "The emulator pass behind make-the-chrome-tell-the-truth-for-a-document-with-no-pages and verify-the-paged-mobix-open-and-canvas-on-the-emulator covered the position badge, the Pages rail turning into Tiles, the tiles menu and the absence of page rows, bookmarks and the overview grid on a chunked document. Two surfaces of that pass were never exercised: **find** and **split view**. Open a board (the device-fixture generator writes board-2d.mobix; docs/tools.md has the recipe), then (1) run a search and confirm the results and the jump land in tile space rather than on a page index, that a hit found on a tile jumps the viewport to that tile, and that the hits carry no page number; (2) split the view and confirm the board mirrors into the second pane as a second view of the same grid - the same chunks, its own scroll and zoom - and that a stroke drawn in one pane appears in the other. Screenshot both, read logcat for errors, and record any surface that lies about a page that does not exist as a failure with the screenshot and the log line."
 status = "active"
 level = "task"
 category = "test"
 urgency = "normal"
-order = 860
-created = 2026-10-15
-tags = ["mobix", "ui", "emulator"]
-rebuild = true
+order = 810
+created = 2026-10-16
+tags = ["canvas", "ui", "emulator"]
+rebuild = false
 emulator_debug = true
 
 [[task]]
-id = "write-strokes-into-a-chunk-and-keep-them-across-eviction"
-title = "Write strokes into a chunk and keep them across eviction"
-description = "render-and-edit-an-infinite-canvas-document, the written-on half. Every edit path today is keyed by page index: render/DrawingSurfaceStrokes.kt commits into layout.boxes.getOrNull(currentPage) through a PageBox, and render/PageEraser.kt, render/Selection.kt, render/EditHistory.kt and the page window (render/PageWindow.kt) all speak pages. For a chunked document a stroke has to land in the chunk under the pen: derive cx/cy from the document point and canvas.json chunkSizePt, take the chunk from ChunkTileManager.getOrCreateChunk(cx, cy), append the stroke to its top layer and markDirty(cx, cy). Load the chunk first when it is not resident (returning to a chunk the viewport evicted must read it back, the trap edit-a-page-the-lru-window-has-evicted fixed for pages), and let eviction write a dirty chunk back into a store the document owns (ChunkTileManager.onEvict, or a chunk store beside it in render/DrawingSurfaceInfinite.kt) instead of dropping it - an evicted stroke is a lost stroke. Keep the path honest where the rest of the app cannot follow: eraser, selection and undo either work in chunk space or are refused for a chunked document, and whichever is true is written in docs/infinite-canvas.md. Verify with JVM tests: a stroke committed at a document point in chunk (1, 0) is found through the store, a chunk evicted and re-read keeps its stroke, and an erase on an evicted chunk loads it first; plus an emulator pass writing across a chunk boundary, panning away and back, with the ink still there and logcat clean."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 484
-created = 2026-10-15
-tags = ["canvas", "mobix"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "make-the-chrome-tell-the-truth-for-a-document-with-no-pages"
-title = "Make the chrome tell the truth for a document with no pages"
-description = "render-and-edit-an-infinite-canvas-document. Everything the chrome reports assumes a page list: the page counter, the rail pages button and the overview grid (ui/EditorRegions.kt, render/PageOverview.kt), bookmarks (DrawingSurfaceView.bookmarkedPages, MainActivity.kt bookmarkKey), the zoom badge, split view (panes/, docs/data-path.md), find results (render/DocumentSearch.kt hits carry a pageIndex) and the text-selection and vertical-space affordances. A chunked document has no page 1 of N, so decide per surface and implement it in one place: what the counter reads, whether the overview shows chunk tiles instead of pages, whether a bookmark is kept per chunk coordinate or the feature is hidden, what find ranges over, and whether split view still mirrors the pane. The rule to keep is that no surface may claim a page that does not exist - the same discipline as the missing-background report in this epic. Record the answer in docs/chrome.md and docs/infinite-canvas.md, which owns the mode. Verify with an emulator pass over each surface on a chunked document and a JVM test over the pure part (whatever index or text the counter and the find hit mapping format)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 486
-created = 2026-10-15
-tags = ["canvas", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "drag-the-plot-shade-bounds-on-the-emulator"
-title = "Drag the plot shade bounds on the emulator"
-description = "The shaded integral area got its control (give-the-shaded-area-a-control-that-sets-its-bounds, commit a3c8b56) JVM-verified only: this host has no adb and no AVD, so no one has seen the wash appear. Install the APK, open a .mobix holding a plot (or insert one), select it, choose Edit plot, switch Shade integral area on and drag the from/to bounds: the wash must grow and shrink with the bounds, the summary must state the same range, an export to .xopp must carry the filled polygon, and logcat must stay clean. Record a screenshot of the shaded area over the selected plot at two different bounds, and if the wash is missing or misshapen on the device, fix it there and note what the JVM test could not see."
+id = "verify-the-plot-analysis-summary-on-the-emulator"
+title = "Verify the plot analysis summary on the emulator"
+description = "The emulator pass behind drag-the-plot-shade-bounds-on-the-emulator saw the wash grow and shrink with the bounds (two screenshots at different from/to pairs) and confirmed a Save As .xopp carries the shaded area as a filled polygon inside the exported XML (one stroke with fill set, over a plot whose file-held shadeIntegral was 2 to 8). What it did not observe is the **summary** claim: that the analysis a shaded plot reports states the same range it is shaded over (FunctionAnalysis.buildSummaryReport(integralFrom, integralTo), which PlotElementFactory.applyPlotEdit feeds the same bounds). Open a .mobix holding a shaded plot (plot1.mobix in the device fixtures is one), select the plot, open the plot editor and read the analysis section: the integral must be taken over the shaded range and the text must name it, and turning the shade off must return both to the element own domain. Record the dialog text (uiautomator dump) and a screenshot. Note for whoever runs it: the plot is selected by tapping it on the canvas, and an exported .xopp holds compiled ink with nothing left to select - run it against the .mobix, not an export."
 status = "active"
 level = "task"
 category = "test"
 urgency = "normal"
-order = 821
+order = 820
 created = 2026-10-16
 tags = ["plot", "emulator"]
-rebuild = true
+rebuild = false
+emulator_debug = true
+
+[[task]]
+id = "verify-the-bundled-recording-plays-and-its-codec"
+title = "Verify the bundled recording plays and its codec"
+description = "Sub-checks 6 and 7 of verify-the-paged-mobix-open-and-canvas-on-the-emulator, the audio half neither that pass nor the JVM tests could settle. (1) A recording bundled in a .mobix plays from the file alone: record audio while writing a stroke in a .mobix document, save, copy the file into an empty folder with no .wav beside it, reopen it there and tap the stroke with the Play object tool - the recording must sound from the stroke own offset, and the page that names it must have been drawn at least once first, because adoption happens on that page read (BundledPageAssets.adoptRecordings). (2) The container carries Ogg/Opus rather than WAV: record a minute of speech with the pen in a .mobix document and compare the saved file size against the same minute recorded into a .xopp - about 1 MB a minute against about 5 MB (record-and-bundle-opus-audio, docs/audio-inking-sync.md). A device with no Opus encoder or no Ogg muxer records WAV and the size is the old one, which is the documented fallback rather than a failure. The emulator virtual microphone is enough for (1); if it yields no audio, say so and record the check as not run rather than as passing."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 830
+created = 2026-10-16
+tags = ["audio", "emulator"]
+rebuild = false
 emulator_debug = true
