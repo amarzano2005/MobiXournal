@@ -292,11 +292,21 @@ told, and never let work pile up uncommitted.
   short run of related commits); keeping the remote current is part of "done."
 - Never commit secrets, databases, or build artifacts — `.gitignore` covers the routine ones.
 
-### A feature isn't done until it's documented
+### A feature isn't done until it's documented — and `README.md` must stay readable for a human
 
 **Documentation is part of the feature, not a follow-up.** Write it *during* the feature
 work, or immediately after — never defer it to "later," and never ship code without it.
 
+- **Keep `README.md` readable for a human.** `README.md` is the front door for a human user or
+  operator, **not** an architectural spoke or a commit log:
+  - Write from the **user's perspective** (what a feature does and how to use it in the UI), in
+    clear, concise prose.
+  - **Never dump implementation internals** into `README.md` — no Kotlin class/function names,
+    file paths (`render/...`, `format/...`), wire-format rules, or commit-by-commit rationale.
+    Those belong in the owning `docs/` spoke.
+  - **Integrate, don't just append.** When updating `README.md` for a change, fold the new
+    behaviour naturally into the existing bullet or section (and trim superseded phrasing) so the
+    document stays scannable and well-proportioned instead of turning into a wall of micro-notes.
 - Every new user-facing feature gets documented in `README.md` as part of the same work.
 - Keep the single-source-of-truth spoke docs in sync in the same pass (per `docs/architecture.md`),
   respecting the **400-line spoke budget** verified by `DocsGuardTest`.
