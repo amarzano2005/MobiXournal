@@ -30,14 +30,17 @@ class AudioSession(
     /** True while the microphone is being captured. */
     val isRecording: Boolean get() = recorder.isRecording
 
-    /** True while a clip is sounding. */
-    val isPlaying: Boolean get() = player.isPlaying
+    /** True while a clip is sounding — false while one is merely held (a pause, or a scrub). */
+    val isPlaying: Boolean get() = player.isSounding
 
     /**
      * Where in the clip playback is, in ms — null while nothing is sounding — so the activity and the
      * chrome read one place rather than each asking the player ([AudioPlayer.currentPositionMs]).
      */
     val playheadMs: Int? get() = player.currentPositionMs
+
+    /** How long the clip that is on runs, in ms — null while none is (a scrubber's own range). */
+    val clipDurationMs: Int? get() = player.durationMs
 
     /** Notified whenever recording starts or stops, so the chrome can re-render its state. */
     var onStateChanged: (() -> Unit)? = null
@@ -101,14 +104,42 @@ class AudioSession(
      */
     fun recording(name: String): ByteArray? = store.local(name).takeIf(File::isFile)?.readBytes()
 
-    /** Play [ref]'s recording from its offset; false when the sidecar isn't available locally. */
+    /**
+     * Play [ref]'s recording **from the stroke's own offset** — what the Play object tool promises when
+     * a stroke is tapped, and the one thing a tap must not be talked out of by where a scrub happened to
+     * leave things. To carry on from a held position instead, [resume].
+     */
     fun play(ref: AudioRef): Boolean {
         val playing = player.play(store.local(ref.filename), ref.startMs)
         nowPlaying = ref.filename.takeIf { playing }
         return playing
     }
 
-    /** Stop whatever is playing. */
+    /**
+     * Hold the clip that is on where it is, so nothing sounds and the canvas still shows the writing as
+     * it stood at that moment — a pause, and the state a scrub starts from. False when none is on.
+     */
+    fun pausePlayback(): Boolean {
+        val name = nowPlaying ?: return false
+        val at = player.currentPositionMs ?: return false
+        if (!player.hold(store.local(name), at)) return false
+        // Still the same clip, just not sounding — the one-clip rule holds, and the position survives.
+        nowPlaying = name
+        onStateChanged?.invoke()
+        return true
+    }
+
+    /** Sound the clip that is on again from where it is held; false when none is on. */
+    fun resume(): Boolean {
+        val name = nowPlaying ?: return false
+        val at = player.currentPositionMs ?: return false
+        val playing = player.play(store.local(name), at)
+        nowPlaying = name.takeIf { playing }
+        onStateChanged?.invoke()
+        return playing
+    }
+
+    /** Let go of the clip that is on — nothing sounds and nothing is held; a no-op when none is. */
     fun stopPlayback() {
         player.stop()
         nowPlaying = null

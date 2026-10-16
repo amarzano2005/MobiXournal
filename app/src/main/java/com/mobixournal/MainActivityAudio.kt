@@ -38,6 +38,20 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
 }
 
 /**
+ * Move the playhead to [ms] and repaint where it landed — the pop-up's scrubber, one step of a drag.
+ *
+ * A drag on a sounding clip seeks it; on a held one it moves the held position, which is the same call
+ * ([AudioSession.seek]). Either way the state is published once rather than by a frame loop: nothing is
+ * moving between the drag's own events, so a frame per vsync would repaint a page that has not changed
+ * ([KaraokeFrameDriver.publishOnce]).
+ */
+internal fun MainActivity.scrubTo(ms: Int) {
+    audio.seek(ms)
+    karaokeDriver?.publishOnce()
+    audioTick.value++
+}
+
+/**
  * Follow the clip that just started with the page it was tapped on, so the writing animates to the
  * playhead until it stops ([KaraokeFrameDriver]).
  *
@@ -50,7 +64,7 @@ internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
     karaokeDriver?.stop()
     val driver = KaraokeFrameDriver(
         choreographer = Choreographer.getInstance(),
-        clip = { KaraokeFrames.Clip(audio.nowPlaying, audio.playheadMs) },
+        clip = { KaraokeFrames.Clip(audio.nowPlaying, audio.playheadMs, audio.isPlaying) },
         publish = { state -> view.karaokeState = state },
     )
     karaokeDriver = driver
@@ -69,9 +83,26 @@ internal fun MainActivity.audioUiState(): AudioUiState {
     return AudioUiState(
         recording = audio.isRecording,
         playing = audio.isPlaying,
+        clipOn = audio.nowPlaying != null,
+        playheadMs = audio.playheadMs,
+        durationMs = audio.clipDurationMs,
         folderChosen = audioFolder != null,
         onToggleRecord = ::toggleRecording,
-        onStopPlayback = { audio.stopPlayback() },
+        onResume = {
+            audio.resume()
+            karaokeDriver?.publishOnce()
+            audioTick.value++
+        },
+        onPause = {
+            audio.pausePlayback()
+            audioTick.value++
+        },
+        onStopPlayback = {
+            audio.stopPlayback()
+            karaokeDriver?.stop()
+            audioTick.value++
+        },
+        onScrub = ::scrubTo,
         onChooseFolder = { audioFolderLauncher.launch(null) },
     )
 }

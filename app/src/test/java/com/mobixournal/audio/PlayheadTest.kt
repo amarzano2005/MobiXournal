@@ -96,6 +96,29 @@ class PlayheadTest {
         assertEquals(5_000, playhead.positionMs())
     }
 
+    /**
+     * A **held** clip: nothing is sounding, so the position is ours — it moves only when it is sought,
+     * which is what a scrubber does to the page while the sound is stopped.
+     */
+    @Test
+    fun `a held clip reports the position it is held at`() {
+        playhead.hold(durationMs = 90_000, atMs = 30_000)
+
+        assertEquals(30_000, playhead.positionMs())
+        assertEquals("nothing advances a held clip", 30_000, playhead.positionMs())
+        assertEquals(45_000, playhead.seekTo(45_000))
+        assertEquals(45_000, playhead.positionMs())
+    }
+
+    @Test
+    fun `a held clip is clamped to its own length like a sounding one`() {
+        playhead.hold(durationMs = 20_000, atMs = 25_000)
+        assertEquals("held past the end is the end", 20_000, playhead.positionMs())
+
+        assertEquals(0, playhead.seekTo(-1))
+        assertEquals(20_000, playhead.seekTo(999_000))
+    }
+
     @Test
     fun `a clip that finished reports nothing`() {
         val clip = FakeClip(position = 59_000)

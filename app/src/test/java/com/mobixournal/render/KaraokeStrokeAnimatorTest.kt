@@ -25,20 +25,46 @@ class KaraokeStrokeAnimatorTest {
     }
 
     @Test
-    fun returnsNormalWhenPlaybackInactiveOrDifferentAudio() {
+    fun returnsNormalWithNothingOnOrADifferentRecording() {
         val stroke = testStroke(startMs = 5000, pointDts = listOf(0, 100, 200))
 
-        val inactive = KaraokeStrokeAnimator.resolve(
-            stroke,
-            KaraokeStrokeAnimator.State("aud_lecture1.opus", playheadMs = 5100, isPlaying = false),
-        )
-        assertTrue(inactive is KaraokeStrokeAnimator.RenderDirective.Normal)
+        val nothingOn = KaraokeStrokeAnimator.resolve(stroke, state = null)
+        assertTrue("no state at all is a page painting itself", nothingOn is KaraokeStrokeAnimator.RenderDirective.Normal)
 
         val differentAudio = KaraokeStrokeAnimator.resolve(
             stroke,
             KaraokeStrokeAnimator.State("aud_other.opus", playheadMs = 5100, isPlaying = true),
         )
         assertTrue(differentAudio is KaraokeStrokeAnimator.RenderDirective.Normal)
+    }
+
+    /**
+     * A **held** playhead — a pause, or a position dragged out with the scrubber — resolves the writing
+     * exactly as a sounding one does. That is what lets the scrubber walk the page with the sound off;
+     * `isPlaying` is only what the chrome labels its button with.
+     */
+    @Test
+    fun aHeldPlayheadResolvesTheWritingAtItsPosition() {
+        val stroke = testStroke(startMs = 5000, pointDts = listOf(0, 100, 250, 400))
+
+        val beforeIt = KaraokeStrokeAnimator.resolve(
+            stroke,
+            KaraokeStrokeAnimator.State("aud_lecture1.opus", playheadMs = 4500, isPlaying = false),
+        )
+        assertTrue("held before the stroke, it is not on the page yet", beforeIt is KaraokeStrokeAnimator.RenderDirective.Dimmed)
+
+        val duringIt = KaraokeStrokeAnimator.resolve(
+            stroke,
+            KaraokeStrokeAnimator.State("aud_lecture1.opus", playheadMs = 5150, isPlaying = false),
+        )
+        val animating = duringIt as KaraokeStrokeAnimator.RenderDirective.Animating
+        assertEquals("held mid-stroke, the writing stands where the playhead is", 2, animating.visiblePoints.size)
+
+        val afterIt = KaraokeStrokeAnimator.resolve(
+            stroke,
+            KaraokeStrokeAnimator.State("aud_lecture1.opus", playheadMs = 5400, isPlaying = false),
+        )
+        assertTrue("held at its last point, the stroke is whole", afterIt is KaraokeStrokeAnimator.RenderDirective.Normal)
     }
 
     @Test

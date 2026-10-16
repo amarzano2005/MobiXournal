@@ -29,14 +29,18 @@ the gesture classifier — it is a pure query that never edits the document, so 
 and `AudioPlayer` seeks a `MediaPlayer` to that offset. A tap that misses, or lands on a stroke with
 no recording, says so rather than failing silently.
 
-*The playhead.* Playback publishes **where it is**: `AudioSession.playheadMs` (null while nothing
-sounds) and `AudioSession.seek(ms)`, both reading the one `Playhead` beside the player. It is a class
-of its own because every rule it enforces is ours, not the platform's — an idle clip answers nothing
-rather than a stale zero, a seek is clamped to the clip's own length so a scrubber dragged past the
-end lands on it, and a seek reads as the position it asked for until the media stack gets there,
-since `MediaPlayer.seekTo` is asynchronous and `currentPosition` reports where playback *was* for a
-moment after it. None of that needs a device to exercise, which is the point of the seam
-(`audio/Playhead.kt`, JVM-tested). What draws from it — the karaoke replay and the scrubber — is
+*The playhead, and holding it.* Playback publishes **where it is**: `AudioSession.playheadMs` (null
+while no clip is on), `clipDurationMs`, `nowPlaying` and `seek(ms)`, all reading the one `Playhead`
+beside the player. A clip is on in one of two ways, and the difference is the reason the playhead is a
+class of its own — every rule it enforces is ours, not the platform's. **Sounding:** the position is
+the media stack's, a seek is clamped to the clip's own length so a drag past the end lands on it, and a
+seek reads as the position it asked for until the stack gets there, since `MediaPlayer.seekTo` is
+asynchronous and `currentPosition` reports where playback *was* for a moment after it. **Held:**
+nothing is sounding — a pause, or a position scrubbed with the sound off — so the position is ours and
+moves only when we seek it, over the same one player (a scrub never opens a second). Pausing therefore
+keeps the clip *on* and shows the writing where it stopped, while **Stop** lets it go and lets the page
+paint itself again. None of that needs a device to exercise, which is the point of the seam
+(`audio/Playhead.kt`, JVM-tested); what draws from it — the karaoke replay, the scrubber — is
 `docs/audio-inking-sync.md`'s subject.
 
 *Sidecars.* A `.xopp` never carries its audio, and SAF grants access to the single document the user

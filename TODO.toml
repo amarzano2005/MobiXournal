@@ -512,20 +512,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "scrub-the-recording-and-the-ink-together"
-title = "Scrub the recording and the ink together"
-description = "replay-the-writing-in-time-with-its-recording, the interactive half (mode 2 of docs/audio-inking-sync.md). KaraokeStrokeAnimator.resolve returns Normal whenever State.isPlaying is false, so a held or paused playhead draws nothing special, and the Audio pop-up (ui/ToolbarViewPopups.kt, wired in MainActivityAudio.kt audioUiState) offers play and stop with no position at all. Add the paused frame: a state that still resolves the karaoke directive at a held playhead, so the canvas shows the writing as it stood at that moment while nothing is sounding. Then give the pop-up a scrubber that reads AudioSession.playheadMs, seeks on drag (AudioSession.seek from the clock task), and repaints - the audio-to-ink direction - while the ink-to-audio direction already exists as the Play object tap. Keep the one-clip rule: a seek stops and restarts cleanly rather than opening a second player. Verify on the emulator: record a sentence, drag the scrubber and watch the writing fill and empty as the playhead moves, confirm no stroke reaches the document, and check logcat."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 504
-created = 2026-10-15
-tags = ["audio", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "seek-to-the-point-not-the-stroke"
 title = "Seek to the point, not the stroke"
 description = "replay-the-writing-in-time-with-its-recording. A tap with the Play object tool seeks to the stroke AudioRef.startMs, stroke granularity, where docs/audio-inking-sync.md asks for the nearest StrokePoint - the point telemetry only a .mobix carries. Add the lookup as a pure function in render/KaraokeStrokeAnimator.kt beside resolve: the absolute time of a point (strokeStart plus dtMs) and the point nearest a document coordinate together with the time it names, both over List<StrokePoint> so they are JVM-testable. Use it when the tapped stroke carries dtMs so a tap on the fifth word starts there rather than at the stroke head, and fall back to AudioRef.startMs when the stroke has none (a .xopp import or an older .mobix), which keeps the promise exactly where the data exists. Verify with JVM tests over the lookup (nearest point on a sparse stroke, a coordinate past both ends, the fallback when dtMs is null, a stroke with mixed null and present deltas) plus an emulator tap on a long recorded stroke to hear it start from the point tapped."

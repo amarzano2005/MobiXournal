@@ -84,9 +84,18 @@ is drawn directly for as long as a clip sounds.
 
 The driver owns its frames rather than asking for a repaint per tick, because the surface's own
 `render()` no-ops while a fling is running; it publishes `null` on completion, on a stop and when the
-editor goes away, so a page never freezes at its last dimmed frame. What is **not** built is mode 2: a
-held playhead (a pause or a scrub) still resolves every stroke normally, and the Audio pop-up has play
-and stop with no position on it (`scrub-the-recording-and-the-ink-together`).
+editor goes away, so a page never freezes at its last dimmed frame. A **pause** is the one stop that
+clears nothing: the clip is *held* where it was, the state stays published and the loop ends, so the
+page keeps showing the writing as it stood at that moment.
+
+**What runs today — mode 2, the interactive half.** The Audio pop-up plays, pauses and stops the clip
+that is on, and carries a **scrubber** over the clip's own length. Dragging it moves the playhead
+(`AudioSession.seek`, which walks a held clip and seeks a sounding one, reusing the one player so a
+scrub never opens a second), and the canvas repaints where it landed — one publish per drag step rather
+than a frame per vsync, since nothing is moving between the drag's own events. So the page is filled and
+unfilled by the drag, and **the ink-to-audio direction already exists** as a tap: the Play object tool
+seeks to the tapped stroke's offset (point-precise seeking with the `dtMs` telemetry is
+`seek-to-the-point-not-the-stroke`).
 
 ### 1. Inking Karaoke (Stroke Playback Animation)
 During playback of a lecture or meeting:

@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,8 @@ import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.ZoomIn
 import androidx.compose.material.icons.outlined.ZoomOut
@@ -27,6 +30,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -254,10 +258,15 @@ private fun PopupChipRow(content: @Composable RowScope.() -> Unit) {
 }
 
 /**
- * The audio slot: start/stop the recording that new strokes are stamped against, stop playback, and
- * nominate the folder sidecar `.wav` files are kept in. The button turns primary-coloured while the
- * microphone is live, because a forgotten recording is the one mistake here that costs the user
- * something (battery, privacy, a pile of stamped strokes).
+ * The audio slot: start/stop the recording that new strokes are stamped against, play/pause/stop the clip
+ * that is on, scrub it, and nominate the folder sidecar `.wav` files are kept in. The button turns
+ * primary-coloured while the microphone is live, because a forgotten recording is the one mistake here
+ * that costs the user something (battery, privacy, a pile of stamped strokes).
+ *
+ * The **scrubber** is the audio-to-ink direction of mode 2 (`docs/audio-inking-sync.md`): dragging it
+ * moves the playhead, and the canvas shows the writing as it stood at that moment — through the still
+ * page while a clip is held, and live while one sounds. It is only offered while a clip is on, because
+ * a position with no recording behind it is a position in nothing.
  */
 @Composable
 internal fun AudioPopupButton(state: AudioUiState) {
@@ -279,11 +288,26 @@ internal fun AudioPopupButton(state: AudioUiState) {
             onClick = { state.onToggleRecord(); dismiss() },
         )
         DropdownMenuItem(
-            text = { Text("Stop playback") },
+            text = { Text("Play") },
+            enabled = state.clipOn && !state.playing,
+            leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null) },
+            onClick = { state.onResume(); dismiss() },
+        )
+        DropdownMenuItem(
+            text = { Text("Pause") },
             enabled = state.playing,
+            leadingIcon = { Icon(Icons.Outlined.Pause, contentDescription = null) },
+            onClick = { state.onPause(); dismiss() },
+        )
+        DropdownMenuItem(
+            text = { Text(if (state.clipOn) "Stop playing" else "Stop playback") },
+            enabled = state.clipOn,
             leadingIcon = { Icon(Icons.Outlined.Stop, contentDescription = null) },
             onClick = { state.onStopPlayback(); dismiss() },
         )
+        if (state.clipOn && state.durationMs != null && state.playheadMs != null) {
+            AudioScrubber(state)
+        }
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text(if (state.folderChosen) "Change audio folder…" else "Choose audio folder…") },
@@ -302,6 +326,38 @@ internal fun AudioPopupButton(state: AudioUiState) {
 }
 
 /**
+ * Where in the clip we are, and a way to move it: the position in `m:ss`, a slider over the clip's own
+ * length, and the same reading again in milliseconds so a drag is exact rather than a guess at a pixel.
+ *
+ * The slider is **stateless in the app's terms** — it reads [AudioUiState.playheadMs] and reports every
+ * drag through [AudioUiState.onScrub] — so the picture on the canvas and the knob cannot disagree: both
+ * are the session's own playhead, which is also what the frame loop paints with.
+ */
+@Composable
+private fun AudioScrubber(state: AudioUiState) {
+    val duration = state.durationMs ?: return
+    val position = state.playheadMs ?: return
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).width(240.dp)) {
+        Text(
+            text = "${timeLabel(position)} / ${timeLabel(duration)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Slider(
+            value = position.toFloat(),
+            onValueChange = { state.onScrub(it.toInt()) },
+            valueRange = 0f..duration.coerceAtLeast(1).toFloat(),
+        )
+    }
+}
+
+/** [ms] as `m:ss`, the way a player shows a position — the recording's length is never an hour here. */
+private fun timeLabel(ms: Int): String {
+    val totalSeconds = (ms.coerceAtLeast(0) / 1000)
+    return "%d:%02d".format(totalSeconds / 60, totalSeconds % 60)
+}
+
+/**
  * Everything the [AudioPopupButton] needs, bundled so the rail's parameter list stays readable.
  *
  * @property recording Whether the microphone is currently recording.
@@ -316,12 +372,24 @@ data class AudioUiState(
     val recording: Boolean = false,
     /** Whether audio playback is in progress. */
     val playing: Boolean = false,
+    /** Whether a clip is on at all — sounding, or held at a position ([playheadMs]). */
+    val clipOn: Boolean = false,
+    /** Where the clip that is on is, in ms — null while none is. */
+    val playheadMs: Int? = null,
+    /** How long the clip that is on runs, in ms — the scrubber's range, and null while none is. */
+    val durationMs: Int? = null,
     /** Whether the user has nominated a folder for audio sidecars. */
     val folderChosen: Boolean = false,
     /** Callback to start or stop recording. */
     val onToggleRecord: () -> Unit = {},
-    /** Callback to stop playback. */
+    /** Callback to sound the held clip again from where it is. */
+    val onResume: () -> Unit = {},
+    /** Callback to hold the clip that is sounding where it is. */
+    val onPause: () -> Unit = {},
+    /** Callback to let the clip go: nothing sounds and the page paints itself again. */
     val onStopPlayback: () -> Unit = {},
+    /** Callback to move the playhead to the dragged position, in ms. */
+    val onScrub: (Int) -> Unit = {},
     /** Callback to open the folder picker. */
     val onChooseFolder: () -> Unit = {},
 )

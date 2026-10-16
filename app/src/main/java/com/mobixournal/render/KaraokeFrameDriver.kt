@@ -15,7 +15,9 @@ import android.view.Choreographer
  * Where it **stops** matters as much as where it runs: a clip finishing, a stop, and the editor going
  * away all publish `null`, so the page paints itself normally again instead of freezing at the last
  * frame's dimming. Completion is not a case of its own — the session clears the clip it was on and this
- * loop ends with it on the next frame.
+ * loop ends with it on the next frame. A **pause** is the one stop that does not clear anything: the
+ * loop ends, the state stays published at the held position, and [publishOnce] moves it as the scrubber
+ * drags (`docs/audio-inking-sync.md`, mode 2).
  */
 internal class KaraokeFrameDriver(
     private val choreographer: Choreographer,
@@ -35,6 +37,15 @@ internal class KaraokeFrameDriver(
         choreographer.postFrameCallback(frameCallback)
     }
 
+    /**
+     * Publish where the clip is **once**, without following it: what a held playhead needs — a pause, and
+     * every step of a scrub — since nothing is moving there and a frame per vsync would repaint a page
+     * that has not changed.
+     */
+    fun publishOnce() {
+        publish(KaraokeFrames.stateOf(clip()))
+    }
+
     /** Stop following and hand the page back its own painting. */
     fun stop() {
         if (following) {
@@ -46,9 +57,12 @@ internal class KaraokeFrameDriver(
 
     private fun onFrame() {
         if (!following) return
-        val state = KaraokeFrames.stateOf(clip())
+        val clip = clip()
+        val state = KaraokeFrames.stateOf(clip)
         publish(state)
-        if (state == null) {
+        // The loop lives exactly as long as the clip is *sounding*: a pause leaves the state published
+        // (the page keeps showing the writing where it stopped) and the frames stopped.
+        if (state == null || !clip.isPlaying) {
             following = false
             return
         }
@@ -66,12 +80,12 @@ internal class KaraokeFrameDriver(
  */
 internal object KaraokeFrames {
 
-    /** The clip as the session sees it — null readings when nothing is sounding. */
-    data class Clip(val recording: String?, val playheadMs: Int?)
+    /** The clip as the session sees it — null readings when nothing is on, sounded or held. */
+    data class Clip(val recording: String?, val playheadMs: Int?, val isPlaying: Boolean)
 
     fun stateOf(clip: Clip): KaraokeStrokeAnimator.State? {
         val file = clip.recording ?: return null
         val ms = clip.playheadMs ?: return null
-        return KaraokeStrokeAnimator.State(audioFile = file, playheadMs = ms)
+        return KaraokeStrokeAnimator.State(audioFile = file, playheadMs = ms, isPlaying = clip.isPlaying)
     }
 }

@@ -45,9 +45,15 @@ object KaraokeStrokeAnimator {
 
     /**
      * Determine how [stroke] should be rendered given the current karaoke playback [state].
+     *
+     * A **held** playhead — a pause, or a position dragged out with the scrubber — resolves exactly as a
+     * sounding one does, because the writing at a position is the same writing whether or not sound is
+     * coming out of the speaker; that is what lets a scrub walk the page back and forth. "Nothing is on"
+     * is said by [state] being null, not by [State.isPlaying], which is informational (the chrome reads
+     * it to label its own button).
      */
     fun resolve(stroke: Stroke, state: State?): RenderDirective {
-        if (state == null || !state.isPlaying) return RenderDirective.Normal
+        if (state == null) return RenderDirective.Normal
         val ref = stroke.audioRef() ?: return RenderDirective.Normal
         if (!isMatchingRecording(ref.filename, state.audioFile)) return RenderDirective.Normal
 

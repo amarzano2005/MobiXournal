@@ -30,7 +30,7 @@ class KaraokeFramesTest {
 
     @Test
     fun `a sounding clip publishes the playhead it is at`() {
-        val state = KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 12_345))
+        val state = KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 12_345, isPlaying = true))
 
         assertEquals(
             KaraokeStrokeAnimator.State(audioFile = "lesson.wav", playheadMs = 12_345, isPlaying = true),
@@ -39,39 +39,65 @@ class KaraokeFramesTest {
     }
 
     @Test
+    fun `a held clip publishes the position it is held at`() {
+        val state = KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 8_000, isPlaying = false))
+
+        assertEquals(
+            "paused is a position, and the page keeps showing the writing there",
+            KaraokeStrokeAnimator.State(audioFile = "lesson.wav", playheadMs = 8_000, isPlaying = false),
+            state,
+        )
+    }
+
+    @Test
     fun `a clip that stopped or finished publishes nothing`() {
-        assertNull("the session holds no clip", KaraokeFrames.stateOf(KaraokeFrames.Clip(null, null)))
+        assertNull(
+            "the session holds no clip",
+            KaraokeFrames.stateOf(KaraokeFrames.Clip(null, null, isPlaying = false)),
+        )
     }
 
     @Test
     fun `a session that cannot name the clip or place it publishes nothing`() {
-        assertNull(KaraokeFrames.stateOf(KaraokeFrames.Clip(null, 4_000)))
-        assertNull(KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", null)))
+        assertNull(KaraokeFrames.stateOf(KaraokeFrames.Clip(null, 4_000, isPlaying = true)))
+        assertNull(KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", null, isPlaying = true)))
     }
 
     @Test
     fun `the published state is what dims unwritten strokes and animates the one being written`() {
         val stroke = strokeAt(startMs = 1_000, 0, 200, 400)
 
-        val before = KaraokeStrokeAnimator.resolve(stroke, KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 500)))
+        val before = KaraokeStrokeAnimator.resolve(
+            stroke,
+            KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 500, isPlaying = true)),
+        )
         assertTrue("a stroke the recording has not reached is dimmed", before is KaraokeStrokeAnimator.RenderDirective.Dimmed)
 
-        val during = KaraokeStrokeAnimator.resolve(stroke, KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 1_250)))
+        val during = KaraokeStrokeAnimator.resolve(
+            stroke,
+            KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 1_250, isPlaying = true)),
+        )
         val animating = during as KaraokeStrokeAnimator.RenderDirective.Animating
         assertEquals("two of the three points are written by then", 2, animating.visiblePoints.size)
         assertEquals(1, animating.futurePoints?.size)
 
-        val after = KaraokeStrokeAnimator.resolve(stroke, KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 9_000)))
+        val after = KaraokeStrokeAnimator.resolve(
+            stroke,
+            KaraokeFrames.stateOf(KaraokeFrames.Clip("lesson.wav", 9_000, isPlaying = true)),
+        )
         assertEquals("and once the recording is past it, it is simply a stroke", KaraokeStrokeAnimator.RenderDirective.Normal, after)
     }
 
     @Test
-    fun `a page with nothing playing resolves every stroke normally`() {
+    fun `a page with nothing on resolves every stroke normally`() {
         val stroke = strokeAt(startMs = 1_000, 0, 200)
 
         assertEquals(
             KaraokeStrokeAnimator.RenderDirective.Normal,
-            KaraokeStrokeAnimator.resolve(stroke, KaraokeFrames.stateOf(KaraokeFrames.Clip(null, null))),
+            KaraokeStrokeAnimator.resolve(
+                stroke,
+                KaraokeFrames.stateOf(KaraokeFrames.Clip(null, null, isPlaying = false)),
+            ),
         )
     }
 }

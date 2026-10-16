@@ -18,64 +18,84 @@ interface ClipClock {
 }
 
 /**
- * **Where in the recording playback is** — the clock `AudioSession.playheadMs` publishes and the replay
- * path reads (`docs/audio-inking-sync.md`).
+ * **Where in the recording we are** — the clock `AudioSession.playheadMs` publishes and the replay path
+ * draws the writing with (`docs/audio-inking-sync.md`).
  *
- * It lives here rather than inside the player because every rule it enforces is ours and none of them is
- * Android's:
+ * A clip is **on** in one of two ways, and the difference is the whole reason this is a class rather
+ * than a getter on the player:
  *
- * - **Nothing sounding answers nothing.** A stale zero would draw the writing at the head of a recording
- *   nobody is playing, so an idle playhead is `null` rather than `0`.
- * - **A seek is clamped to the clip's own length**, the same guard the player applies to `ts` on the way
- *   in: a scrubber dragged past the end must land on the end, not past it.
- * - **A seek reads as the position it asked for until the stack gets there.** `MediaPlayer.seekTo` is
- *   asynchronous — for a moment after it, `currentPosition` still reports where playback *was* — and a
- *   replay that read that would draw the writing at the wrong word for a frame or two.
+ * - **Sounding.** The position is the media stack's ([ClipClock]), and a seek reads as the position it
+ *   asked for until the stack gets there: `MediaPlayer.seekTo` is asynchronous, and `currentPosition`
+ *   still reports where playback *was* for a moment after it, which would draw the writing at the wrong
+ *   word. A seek is clamped to the clip's own length.
+ * - **Held.** Nothing is sounding — a pause, or a position scrubbed before play — so the position is
+ *   ours: it moves only when we seek it, and it is clamped to the same length. This is what lets a
+ *   scrubber walk the writing back and forth with the sound stopped.
  *
- * The whole of that is testable with no device, which is the point of the seam: the player's own
- * behaviour is the platform's business, the arithmetic around it is this class's.
+ * Nothing on at all is `null` rather than a stale zero: a stale zero would draw the writing at the head
+ * of a recording nobody is on. The whole of that is testable with no device, which is the point of the
+ * seam: the media stack's behaviour is the platform's business, the arithmetic around it is this class's.
  */
 class Playhead {
 
-    /** The clip that is sounding, or null while nothing is. */
-    private var clock: ClipClock? = null
+    /** The clip that is on, or null while none is. */
+    private var on: OnClip? = null
 
-    /** A seek the clip has not visibly carried out yet: what to report until it has. */
+    /** A seek the sounding clip has not visibly carried out yet: what to report until it has. */
     private var pending: PendingSeek? = null
 
-    /** Begin reading [clock] — a clip has just started. */
+    /** Begin reading [clock]: a clip has just started sounding. */
     fun attach(clock: ClipClock) {
-        this.clock = clock
+        on = OnClip(durationMs = clock.durationMs().coerceAtLeast(0), clock = clock, heldMs = 0)
         pending = null
     }
 
-    /** Nothing is sounding any more: the playhead answers nothing until the next [attach]. */
+    /**
+     * Hold a clip of [durationMs] at [atMs] with nothing sounding — a pause, or the position a scrub
+     * left it at. The playhead then answers that position until it is sought again.
+     */
+    fun hold(durationMs: Int, atMs: Int) {
+        val duration = durationMs.coerceAtLeast(0)
+        on = OnClip(durationMs = duration, clock = null, heldMs = atMs.coerceIn(0, duration))
+        pending = null
+    }
+
+    /** No clip is on any more: the playhead answers nothing until the next [attach] or [hold]. */
     fun detach() {
-        clock = null
+        on = null
         pending = null
     }
 
-    /** Where playback is, in ms — null when nothing is sounding. */
+    /** Where playback is, in ms — null while no clip is on. */
     fun positionMs(): Int? {
-        val clip = clock ?: return null
-        val now = clip.positionMs()
+        val clip = on ?: return null
+        val clock = clip.clock ?: return clip.heldMs
+        val now = clock.positionMs()
         val seek = pending
         if (seek != null && !seek.carriedOutBy(now)) return seek.targetMs
         pending = null
-        return now.coerceIn(0, clip.durationMs().coerceAtLeast(0))
+        return now.coerceIn(0, clip.durationMs)
     }
 
     /**
      * Move playback to [ms] and answer the position it will be at — clamped to the clip's own length, or
-     * null when nothing is sounding.
+     * null while no clip is on. A held clip moves there at once; a sounding one is asked to seek.
      */
     fun seekTo(ms: Int): Int? {
-        val clip = clock ?: return null
-        val target = ms.coerceIn(0, clip.durationMs().coerceAtLeast(0))
-        pending = PendingSeek(target, clip.positionMs())
-        clip.seekTo(target)
+        val clip = on ?: return null
+        val target = ms.coerceIn(0, clip.durationMs)
+        val clock = clip.clock
+        if (clock == null) {
+            clip.heldMs = target
+            return target
+        }
+        pending = PendingSeek(target, clock.positionMs())
+        clock.seekTo(target)
         return target
     }
+
+    /** The clip that is on: its length, the stack behind it when it sounds, and where it is held. */
+    private class OnClip(val durationMs: Int, val clock: ClipClock?, var heldMs: Int)
 
     /** A seek in flight: what it asked for, and where playback was when it asked. */
     private data class PendingSeek(val targetMs: Int, val wasMs: Int) {
