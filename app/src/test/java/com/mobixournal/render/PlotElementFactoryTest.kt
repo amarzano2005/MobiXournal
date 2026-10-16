@@ -6,6 +6,7 @@ import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.mobix.MobixAssetSink
@@ -337,6 +338,61 @@ class PlotElementFactoryTest {
         assertEquals(initialPlot.summaryText, updated.summaryText)
         assertEquals(initialPlot.extraAttrs, updated.extraAttrs)
         assertEquals("plt_custom_123", updated.id)
+    }
+
+    /** The filled polygons a plot compiles to — the shaded integral area is drawn as one wash. */
+    private fun washes(element: PlotElement): List<Stroke> =
+        PlotInk.ink(element).elements.filterIsInstance<Stroke>().filter { it.fill != null }
+
+    @Test
+    fun `an edit through the shade control moves the wash and the reported integral together`() {
+        // The plot the dialog opens on: no area, and a summary whose integral is over the domain.
+        val original = PlotElementFactory.plotElementFor(
+            curves = curves(),
+            xMin = -2.0,
+            xMax = 2.0,
+            centreX = 400.0,
+            centreY = 500.0,
+            page = page(),
+            strokeWidthPt = 2.0,
+            includeSummary = true,
+        )
+        assertTrue("an unshaded plot draws no wash", washes(original).isEmpty())
+        assertTrue("and reports the integral over its own domain", original.summaryText!!.contains("[-2, 2]"))
+
+        // The same edit, with the shade bounds the control would hand over.
+        val shaded = PlotElementFactory.applyPlotEdit(
+            original = original,
+            editedCurves = listOf(PlotCurve("sin(x)", red)),
+            xMin = -2.0,
+            xMax = 2.0,
+            showCriticalPoints = true,
+            includeDerivative = false,
+            includeSummary = true,
+            shadeIntegral = PlotShading(0.0, 2.0),
+        )
+
+        assertEquals("the bounds the control set are the element's own", PlotShading(0.0, 2.0), shaded.shadeIntegral)
+        assertEquals("the compiled ink gains the wash", 1, washes(shaded).size)
+        assertTrue(
+            "and the integral is reported over the shaded area: ${shaded.summaryText}",
+            shaded.summaryText!!.contains("[0, 2]"),
+        )
+
+        // Switched off again: the wash goes and the integral returns to the domain.
+        val unshaded = PlotElementFactory.applyPlotEdit(
+            original = shaded,
+            editedCurves = shaded.curves.map { PlotCurve(it.source, it.color, it.lineStyle) },
+            xMin = -2.0,
+            xMax = 2.0,
+            showCriticalPoints = true,
+            includeDerivative = false,
+            includeSummary = true,
+            shadeIntegral = null,
+        )
+        assertNull(unshaded.shadeIntegral)
+        assertTrue(washes(unshaded).isEmpty())
+        assertTrue(unshaded.summaryText!!.contains("[-2, 2]"))
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.PlotCurve as ElementPlotCurve
 
 /**
@@ -97,6 +98,7 @@ internal object PlotElementFactory {
      * @param strokeWidthPt The width the plot is drawn at, in points.
      * @param axisColor The frame, axes and label colour as an ARGB int.
      * @param includeSummary Whether the analysis summary is computed and stored in [PlotElement.summaryText].
+     * @param shadeIntegral The area the plot stands for, or null for none (`docs/math-engine.md`, 3).
      */
     fun plotElementFor(
         curves: List<PlotCurve>,
@@ -110,6 +112,7 @@ internal object PlotElementFactory {
         strokeWidthPt: Double = 1.0,
         axisColor: Int = PlotElement.DEFAULT_AXIS,
         includeSummary: Boolean = false,
+        shadeIntegral: PlotShading? = null,
     ): PlotElement = plotElementIn(
         box = boxFor(page, centreX, centreY),
         curves = curves,
@@ -120,6 +123,7 @@ internal object PlotElementFactory {
         strokeWidthPt = strokeWidthPt,
         axisColor = axisColor,
         includeSummary = includeSummary,
+        shadeIntegral = shadeIntegral,
     )
 
     /**
@@ -137,6 +141,7 @@ internal object PlotElementFactory {
         strokeWidthPt: Double = 1.0,
         axisColor: Int = PlotElement.DEFAULT_AXIS,
         includeSummary: Boolean = false,
+        shadeIntegral: PlotShading? = null,
     ): PlotElement {
         val elementCurves = curves.map { curve ->
             ElementPlotCurve(
@@ -176,7 +181,12 @@ internal object PlotElementFactory {
                 includeDerivative = includeDerivative,
                 includeSummary = includeSummary,
                 axisColor = axisColor,
+                // A shaded plot's integral is over the area it shades: the number the summary prints is
+                // the number the wash stands for, so the two cannot disagree.
+                integralFrom = shadeIntegral?.from ?: xMin,
+                integralTo = shadeIntegral?.to ?: xMax,
             ),
+            shadeIntegral = shadeIntegral,
             id = null,
         )
     }
@@ -199,6 +209,8 @@ internal object PlotElementFactory {
         includeSummary: Boolean,
         axisColor: Int,
         parameters: Map<String, Double> = emptyMap(),
+        integralFrom: Double = xMin,
+        integralTo: Double = xMax,
     ): String? {
         if (!includeSummary) return null
         val plotted = MultiFunctionPlotter.plot(
@@ -215,6 +227,8 @@ internal object PlotElementFactory {
             includeSummary = true,
             axisColor = axisColor,
             parameters = parameters,
+            integralFrom = integralFrom,
+            integralTo = integralTo,
         )
         return plotted.summaryText.ifEmpty { null }
     }
@@ -275,10 +289,16 @@ internal object PlotElementFactory {
      * Applies edited curves, domain range, and analysis flags back to an existing [PlotElement].
      *
      * **Preserved fields**: Any fields the graph dialog has no UI input for —
-     * [PlotElement.samples], [PlotElement.parameters], [PlotElement.shadeIntegral],
-     * [PlotElement.axisColor], [PlotElement.extraAttrs], and [PlotElement.id] — **survive the edit**
+     * [PlotElement.samples], [PlotElement.parameters], [PlotElement.axisColor],
+     * [PlotElement.extraAttrs], and [PlotElement.id] — **survive the edit**
      * via [PlotElement.copy] rather than being reset to factory defaults. [PlotElement.summaryText] is
      * recomputed if [includeSummary] is true, or preserved from [original] otherwise.
+     *
+     * [shadeIntegral] is the one field the dialog **does** own now (the Shade integral area control): it
+     * is written through here so the wash the canvas draws, the integral the summary reports and the ink
+     * the `.xopp` export compiles all move from the same value — and so undo, which snapshots the
+     * element, covers the change. Its default is the element's own area, which is what an edit through a
+     * dialog that was not asked about shading leaves alone.
      *
      * An edited formula that fails to parse is still written to the curve record rather than
      * silently dropped, and will be rendered/reported by [LivingInk] the same way as an export.
@@ -291,6 +311,7 @@ internal object PlotElementFactory {
         showCriticalPoints: Boolean,
         includeDerivative: Boolean,
         includeSummary: Boolean = false,
+        shadeIntegral: PlotShading? = original.shadeIntegral,
     ): PlotElement {
         val elementCurves = editedCurves.mapIndexed { index, curve ->
             val origCurve = original.curves.getOrNull(index)
@@ -319,6 +340,8 @@ internal object PlotElementFactory {
                 includeDerivative = includeDerivative,
                 includeSummary = true,
                 axisColor = original.axisColor,
+                integralFrom = shadeIntegral?.from ?: xMin,
+                integralTo = shadeIntegral?.to ?: xMax,
             )
         } else {
             original.summaryText
@@ -330,6 +353,7 @@ internal object PlotElementFactory {
             showCriticalPoints = showCriticalPoints,
             includeDerivative = includeDerivative,
             summaryText = summary,
+            shadeIntegral = shadeIntegral,
         )
     }
 }

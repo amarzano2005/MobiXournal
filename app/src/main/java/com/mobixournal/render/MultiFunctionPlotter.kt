@@ -15,6 +15,12 @@ object MultiFunctionPlotter {
      * Plots multiple curves [curves] over [xMin]..[xMax] within the given box.
      * Computes the bounding y range across all curves, axes, ticks, critical points, and returns
      * a [MultiPlotResult] ready to be converted into .xopp elements.
+     *
+     * [integralFrom]..[integralTo] is the range the summary's **definite integrals** are taken over, and
+     * both the values and the header line they sit under are stated for it. It defaults to the frame,
+     * and a caller that knows the plot stands for a smaller area — a shaded integral
+     * (`PlotElement.shadeIntegral`) — passes that area, so the number reported is the number the wash
+     * covers.
      */
     fun plot(
         curves: List<PlotCurve>,
@@ -31,6 +37,8 @@ object MultiFunctionPlotter {
         includeSummary: Boolean = false,
         axisColor: Int = 0xFF000000.toInt(),
         parameters: Map<String, Double> = emptyMap(),
+        integralFrom: Double = xMin,
+        integralTo: Double = xMax,
     ): MultiPlotResult {
         if (curves.isEmpty() || xMax <= xMin || widthPt <= 0.0 || heightPt <= 0.0) {
             return MultiPlotResult(emptyList(), emptyList(), emptyList())
@@ -65,15 +73,24 @@ object MultiFunctionPlotter {
         } else emptyList()
 
         val summary = if (includeSummary) {
-            FunctionAnalysis.buildSummaryReport(curves, criticalPoints, xMin, xMax, buildIntegrals(compiledCurves, curves, xMin, xMax))
+            FunctionAnalysis.buildSummaryReport(
+                curves = curves,
+                points = criticalPoints,
+                xMin = xMin,
+                xMax = xMax,
+                integrals = buildIntegrals(compiledCurves, curves, integralFrom, integralTo),
+                integralFrom = integralFrom,
+                integralTo = integralTo,
+            )
         } else ""
         return MultiPlotResult(pathGroups, labels, criticalPoints, summary, PlotFrame(xMin, xMax, yMin, yMax, leftPt, topPt, widthPt, heightPt))
     }
 
     /**
-     * The definite integral of each of the caller's own Cartesian curves over the frame, paired with the
-     * label the summary names it by. The derivative copies [compileCurves] appends are skipped — they are
-     * not the caller's curves — so the report shows one line per plotted function.
+     * The definite integral of each of the caller's own Cartesian curves over [xMin]..[xMax], paired with
+     * the label the summary names it by — the frame by default, or the shaded area a plot stands for. The
+     * derivative copies [compileCurves] appends are skipped — they are not the caller's curves — so the
+     * report shows one line per plotted function.
      */
     private fun buildIntegrals(
         compiledCurves: List<Pair<PlotCurve, Formula>>,

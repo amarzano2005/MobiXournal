@@ -270,6 +270,10 @@ object FunctionAnalysis {
      *
      * [integrals] are the definite integrals to report, one `label to value` per curve — a null value
      * marks one that could not be evaluated, so the summary says so instead of printing a number.
+     *
+     * [integralFrom]..[integralTo] is the range they were taken over, stated in the line above them. It is
+     * the frame by default and the shaded area when the plot stands for one, so the number and the range
+     * it is printed under are the same claim.
      */
     fun buildSummaryReport(
         curves: List<PlotCurve>,
@@ -277,6 +281,8 @@ object FunctionAnalysis {
         xMin: Double,
         xMax: Double,
         integrals: List<Pair<String, Double?>> = emptyList(),
+        integralFrom: Double = xMin,
+        integralTo: Double = xMax,
     ): String {
         val sb = StringBuilder()
         sb.append("Function Study (x in [${fmt(xMin)}, ${fmt(xMax)}])\n")
@@ -285,7 +291,7 @@ object FunctionAnalysis {
             sb.append("• $label = ${c.source}\n")
         }
         if (integrals.isNotEmpty()) {
-            sb.append("Definite integrals over [${fmt(xMin)}, ${fmt(xMax)}]:\n")
+            sb.append("Definite integrals over [${fmt(integralFrom)}, ${fmt(integralTo)}]:\n")
             integrals.forEach { (label, value) ->
                 sb.append(
                     if (value == null) "• ∫ $label dx: not finite over the range\n"

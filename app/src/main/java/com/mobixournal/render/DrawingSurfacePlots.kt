@@ -11,6 +11,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
 
@@ -129,6 +130,8 @@ fun DrawingSurfaceView.insertMultiPlot(
  * @param showCriticalPoints Whether roots, extrema and inflections are marked.
  * @param includeDerivative Whether the first derivative is drawn alongside.
  * @param includeSummary Whether the analysis summary is computed and kept with the element.
+ * @param shadeIntegral The area the plot stands for, or null for none — the wash `PlotInk` draws and
+ *   the range the summary's integral is taken over (`docs/math-engine.md`, section 3).
  */
 fun DrawingSurfaceView.insertPlotElement(
     curves: List<PlotCurve>,
@@ -137,6 +140,7 @@ fun DrawingSurfaceView.insertPlotElement(
     showCriticalPoints: Boolean = false,
     includeDerivative: Boolean = false,
     includeSummary: Boolean = false,
+    shadeIntegral: PlotShading? = null,
 ) {
     if (curves.isEmpty()) return
     val index = visiblePageIndex()
@@ -155,6 +159,7 @@ fun DrawingSurfaceView.insertPlotElement(
         strokeWidthPt = baseWidthPt.toDouble().coerceAtLeast(0.5),
         axisColor = strokeColor(),
         includeSummary = includeSummary,
+        shadeIntegral = shadeIntegral,
     )
     ElementEdits.addElement(doc, index, element) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }

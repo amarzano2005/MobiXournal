@@ -180,9 +180,11 @@ bounding box and marks it hit-testable: marquee, lasso and tap gestures pick it 
 (translating its page-local frame while preserving mathematical ranges), handles resize it, and delete
 removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). When a single plot is selected,
 the selection action bar offers **Edit plot**, which reopens `AdvancedFunctionGraphDialog` pre-filled with the
-element's curves, range and flags; confirming applies the edits in place (`PlotElementFactory.applyPlotEdit`)
-preserving the fields the dialog has no input for (`samples`, `parameters`, `shadeIntegral`, `axisColor`, `id`),
-with full undo support and instant re-rendering.
+element's curves, range, flags and shaded area; confirming applies the edits in place
+(`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog has no input for (`samples`,
+`parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. The dialog owns the
+shaded integral area (`shadeIntegral`), whose from/to pair drives the wash, the integral the summary
+reports and the ink an export compiles ([math-engine.md](math-engine.md), section 3).
 The other three families follow one at a time, each when its own editor lands ([future-roadmap.md](future-roadmap.md), Step 2).
 
 Until their respective editors land, the remaining three living entities (table, shape, circuit) are

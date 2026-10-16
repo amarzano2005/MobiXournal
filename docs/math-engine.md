@@ -67,7 +67,12 @@ is **refused**, not returned as NaN: `sqrt(x)` over $[-1,1]$ and `1/x` over $[-1
 
 A plot whose `shadeIntegral` is set is drawn with the area filled, compiled **once** by `PlotInk` into one
 closed polygon in the frame the plotter fitted, so the canvas, SVG, PDF and the `.xopp` synthesis cannot
-disagree about the region a shaded plot stands for. The fill is the curve's own colour at the canvas'
+disagree about the region a shaded plot stands for. The area is **set in the plot editor**
+(`AdvancedFunctionGraphDialog`'s *Shade integral area* switch with its from/to pair, defaulting to the
+element's own `xMin`..`xMax`) and written through `PlotElementFactory.applyPlotEdit`, which is what keeps
+the wash, the summary's integral and the exported ink moving from one value — and what puts the change
+under undo with every other plot edit. A shaded plot's summary reports its integrals **over the shaded
+area** and says so in the line above them. The fill is the curve's own colour at the canvas'
 translucent-fill alpha (`CanvasChrome.BAND_FILL_ALPHA`), carried on the stroke's `fill` — the desktop's own
 way of saying a fill. The bounds are clipped to the element's `xMin`..`xMax`.
 

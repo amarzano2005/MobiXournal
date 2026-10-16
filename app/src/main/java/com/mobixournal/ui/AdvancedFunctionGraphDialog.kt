@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.CriticalPoint
 import com.mobixournal.ui.theme.rememberToolbarColor
 import com.mobixournal.render.FunctionAnalysis
@@ -61,7 +62,7 @@ import com.mobixournal.render.PlotCurve
  * A parametric curve needs *both* of its expressions: `x(t)` alone is half a curve, and the plot the
  * element compiler would produce from it is nothing (it reports the pair as unparsed).
  */
-private fun PlotCurve.isDrawable(): Boolean =
+internal fun PlotCurve.isDrawable(): Boolean =
     FunctionPlot.compile(source) != null &&
         (kind != PlotKind.PARAMETRIC || sourceY?.let { FunctionPlot.compile(it) != null } == true)
 
@@ -101,8 +102,13 @@ internal fun formatRangeNumber(v: Double): String =
  * - Live real-time Canvas preview
  *
  * Can be invoked to create a new plot or to edit an existing one via the optional [initialCurves],
- * [initialXMin], [initialXMax], [initialShowCriticalPoints], [initialIncludeDerivative], and
- * [initialIncludeSummary] parameters.
+ * [initialXMin], [initialXMax], [initialShowCriticalPoints], [initialIncludeDerivative],
+ * [initialIncludeSummary] and [initialShade] parameters.
+ *
+ * The **shaded integral area** is the one thing here that is not a field of the curve editor: a plot
+ * either stands for an area or it does not, and the bounds decide both the wash `PlotInk` draws and the
+ * range the summary's definite integral is taken over (`docs/math-engine.md`, section 3). It defaults to
+ * the element's own domain when switched on, which is the largest area the plot has.
  */
 @Composable
 fun AdvancedFunctionGraphDialog(
@@ -112,6 +118,7 @@ fun AdvancedFunctionGraphDialog(
     initialShowCriticalPoints: Boolean? = null,
     initialIncludeDerivative: Boolean? = null,
     initialIncludeSummary: Boolean? = null,
+    initialShade: PlotShading? = null,
     onConfirm: (
         curves: List<PlotCurve>,
         xMin: Double,
@@ -119,6 +126,7 @@ fun AdvancedFunctionGraphDialog(
         showCriticalPoints: Boolean,
         includeDerivative: Boolean,
         includeSummary: Boolean,
+        shadeIntegral: PlotShading?,
     ) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -141,6 +149,12 @@ fun AdvancedFunctionGraphDialog(
     var includeDerivative by remember { mutableStateOf(initialIncludeDerivative ?: false) }
     var includeSummary by remember { mutableStateOf(initialIncludeSummary ?: false) }
 
+    // The shaded area, in its own holder (PlotShadeEditor.kt): a plot opens with the bounds it carries,
+    // or with its own domain once the switch is turned on.
+    val shade = remember(initialShade) {
+        PlotShadeState(initialShade, initialXMin ?: -10.0, initialXMax ?: 10.0)
+    }
+
     val xMin = xMinText.toDoubleOrNull()
     val xMax = xMaxText.toDoubleOrNull()
     val rangeOk = xMin != null && xMax != null && xMax > xMin
@@ -149,50 +163,32 @@ fun AdvancedFunctionGraphDialog(
         resolveActiveCurves(modeTab, curves, paramX, paramY)
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier
-            .fillMaxWidth(0.82f)
-            .widthIn(max = 1000.dp)
-            .padding(horizontal = 16.dp),
-        containerColor = MaterialTheme.colorScheme.background,
-        tonalElevation = 0.dp,
-        title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
-        text = {
-            DialogBodyContent(
-                modeTab = modeTab,
-                onModeTabChange = { modeTab = it },
-                curves = curves,
-                paramX = paramX,
-                paramY = paramY,
-                onParamXChange = { paramX = it },
-                onParamYChange = { paramY = it },
-                xMinText = xMinText,
-                onXMinChange = { xMinText = it },
-                xMaxText = xMaxText,
-                onXMaxChange = { xMaxText = it },
-                rangeOk = rangeOk,
-                showCriticalPoints = showCriticalPoints,
-                onShowCriticalPointsChange = { showCriticalPoints = it },
-                includeDerivative = includeDerivative,
-                onIncludeDerivativeChange = { includeDerivative = it },
-                includeSummary = includeSummary,
-                onIncludeSummaryChange = { includeSummary = it },
-                activeCurves = activeCurves,
-                xMin = xMin,
-                xMax = xMax,
-            )
-        },
-        confirmButton = {
-            TextButton(
-                enabled = rangeOk && activeCurves.any { it.isDrawable() },
-                onClick = {
-                    onConfirm(activeCurves, xMin!!, xMax!!, showCriticalPoints, includeDerivative, includeSummary)
-                },
-            ) { Text(if (initialCurves != null) "Apply" else "Insert") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    PlotGraphDialog(
+        isEditing = initialCurves != null,
+        modeTab = modeTab,
+        onModeTabChange = { modeTab = it },
+        curves = curves,
+        paramX = paramX,
+        onParamXChange = { paramX = it },
+        paramY = paramY,
+        onParamYChange = { paramY = it },
+        xMinText = xMinText,
+        onXMinChange = { xMinText = it },
+        xMaxText = xMaxText,
+        onXMaxChange = { xMaxText = it },
+        rangeOk = rangeOk,
+        shade = shade,
+        showCriticalPoints = showCriticalPoints,
+        onShowCriticalPointsChange = { showCriticalPoints = it },
+        includeDerivative = includeDerivative,
+        onIncludeDerivativeChange = { includeDerivative = it },
+        includeSummary = includeSummary,
+        onIncludeSummaryChange = { includeSummary = it },
+        activeCurves = activeCurves,
+        xMin = xMin,
+        xMax = xMax,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 
@@ -228,7 +224,7 @@ private fun resolveActiveCurves(
     }
 
 @Composable
-private fun DialogBodyContent(
+internal fun DialogBodyContent(
     modeTab: Int,
     onModeTabChange: (Int) -> Unit,
     curves: MutableList<CurveEditorState>,
@@ -241,6 +237,7 @@ private fun DialogBodyContent(
     xMaxText: String,
     onXMaxChange: (String) -> Unit,
     rangeOk: Boolean,
+    shade: PlotShadeState,
     showCriticalPoints: Boolean,
     onShowCriticalPointsChange: (Boolean) -> Unit,
     includeDerivative: Boolean,
@@ -271,6 +268,7 @@ private fun DialogBodyContent(
             xMaxText = xMaxText,
             onXMaxChange = onXMaxChange,
             rangeOk = rangeOk,
+            shade = shade,
         )
 
         Box(
@@ -311,6 +309,7 @@ private fun DialogInputsColumn(
     xMaxText: String,
     onXMaxChange: (String) -> Unit,
     rangeOk: Boolean,
+    shade: PlotShadeState,
 ) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -337,6 +336,8 @@ private fun DialogInputsColumn(
             onXMaxChange = onXMaxChange,
             rangeOk = rangeOk,
         )
+
+        PlotShadeInputs(shade)
     }
 }
 
