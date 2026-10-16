@@ -18,7 +18,7 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         SettingsDivider()
         SwitchRow(
             title = "Use system colours",
-            subtitle = "On Android 12+ takes colours from your wallpaper. Off uses the app's fixed purple.",
+            subtitle = "On Android 12+ takes colours from your wallpaper. Off uses the app's fixed blue.",
             checked = settings.dynamicColor,
             onCheckedChange = { onChange(settings.copy(dynamicColor = it)) },
         )

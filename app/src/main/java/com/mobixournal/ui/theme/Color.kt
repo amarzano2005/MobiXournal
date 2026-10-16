@@ -15,13 +15,17 @@ import androidx.compose.ui.graphics.Color
  * the `.xopp` file, and are deliberately not defined here.
  */
 
-/** Brand primary under a light scheme — deep violet, dark enough to carry white text. */
-val Purple = Color(0xFF4A2C7A)
+/** Brand primary under a light scheme — rich modern royal blue (#2563EB). */
+val Blue = Color(0xFF2563EB)
 
-/** Brand primary under a dark scheme — luminescent violet micro-highlight (`#C084FC`). */
+/** Brand primary & accent under a dark scheme — luminous modern accent blue (#60A5FA). */
+val BlueDark = Color(0xFF60A5FA)
+
+/** Legacy purple palette references. */
+val Purple = Color(0xFF4A2C7A)
 val PurpleDark = Color(0xFFC084FC)
 
-/** Brand secondary in both schemes; the accent behind guide overlays on the canvas. */
+/** Brand secondary / guide accent; default Amber (#FFFFB300). */
 val Amber = Color(0xFFFFB300)
 
 // --- Formal Semantic Chrome Palette (docs/ui-modernization.md) ---

@@ -19,8 +19,8 @@ import androidx.core.view.WindowCompat
 import com.mobixournal.ui.ThemeMode
 
 internal val LightColors = lightColorScheme(
-    primary = Purple,
-    secondary = Amber,
+    primary = Blue,
+    secondary = Blue,
     surface = Color.White,
     onSurface = TextDarkOnLight,
     surfaceVariant = Color(0xFFF3F6FC),
@@ -29,10 +29,10 @@ internal val LightColors = lightColorScheme(
     onBackground = TextDarkOnLight,
 )
 internal val DarkColors = darkColorScheme(
-    primary = PurpleDark,
+    primary = BlueDark,
     primaryContainer = ActiveSlotDark,
     onPrimaryContainer = TextLightOnDark,
-    secondary = Amber,
+    secondary = BlueDark,
     surface = Color(0xFF161618),
     onSurface = TextLightOnDark,
     surfaceVariant = NeutralContainerDark,
@@ -80,10 +80,10 @@ fun XoppTheme(
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) {
                 dynamicDarkColorScheme(context).copy(
-                    primary = PurpleDark,
+                    primary = BlueDark,
                     primaryContainer = ActiveSlotDark,
                     onPrimaryContainer = TextLightOnDark,
-                    secondary = Amber,
+                    secondary = BlueDark,
                     surface = Color(0xFF161618),
                     surfaceVariant = NeutralContainerDark,
                     surfaceContainer = NeutralContainerDark,
@@ -100,7 +100,10 @@ fun XoppTheme(
                     outlineVariant = OutlineVariantDark,
                 )
             } else {
-                dynamicLightColorScheme(context)
+                dynamicLightColorScheme(context).copy(
+                    primary = Blue,
+                    secondary = Blue,
+                )
             }
         }
         darkTheme -> DarkColors

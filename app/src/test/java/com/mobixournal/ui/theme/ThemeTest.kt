@@ -35,15 +35,15 @@ class ThemeTest {
         assertEquals(Color(0xFF262626), DarkColors.outlineVariant)
 
         // Luminescent micro-highlight primary accent
-        assertEquals(Color(0xFFC084FC), DarkColors.primary)
-        assertEquals(Color(0xFFFFB300), DarkColors.secondary)
+        assertEquals(BlueDark, DarkColors.primary)
+        assertEquals(BlueDark, DarkColors.secondary)
     }
 
     @Test
     fun lightColorsPreserveExpectedBaselines() {
         assertEquals(Color(0xFFF8F9FA), LightColors.background)
         assertEquals(Color.White, LightColors.surface)
-        assertEquals(Purple, LightColors.primary)
-        assertEquals(Amber, LightColors.secondary)
+        assertEquals(Blue, LightColors.primary)
+        assertEquals(Blue, LightColors.secondary)
     }
 }

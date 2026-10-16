@@ -58,8 +58,8 @@ The UI chrome follows a strict semantic colour contract pinned by `ColorContract
 - **Unified toolbar band surfaces**: Both the top bar (`EditorTopBar`) and the side rail lane (`RailLane`) wrap in an identical full-span `Surface(color = glassColor, shadowElevation = 4.dp)`, ensuring that both horizontal and vertical chrome bands share the exact same frosted glass surface and shadow elevation without naked black cutouts.
 - **`TextLightOnDark` (`#EDEDED`)** & **`TextDarkOnLight` (`#1B212F`)**: High-legibility neutral text.
 - **`TextSecondaryOnDark` (`#A0A0A0`)** & **`TextSecondaryOnLight` (`#596579`)**: Secondary caption text.
-- **`OutlineDark` (`#383838`)** & **`OutlineVariantDark` (`#262626`)**: Subtle neutral dividers.
-- **`PurpleDark` (`#C084FC`)** & **`Amber` (`#FFFFB300`)**: Luminescent primary brand and guide accents.
+- **`BlueDark` (`#60A5FA`)** & **`Blue` (`#2563EB`)**: Modern crisp royal blue primary and secondary accents, replacing legacy purple across active tools, tabs, selection indicators, and chrome icons.
+- **`Amber` (`#FFFFB300`)**: Canvas guide overlay accent.
 
 The chrome's own colour roles — the bars' `rememberChromeColor()` and the implement colour
 `rememberToolbarColor()` — are recorded where the rest of the pinned stack is: [`stack.md`](stack.md).

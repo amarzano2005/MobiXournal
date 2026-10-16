@@ -2,6 +2,8 @@ package com.mobixournal.guards
 
 import androidx.compose.ui.graphics.toArgb
 import com.mobixournal.ui.theme.Amber
+import com.mobixournal.ui.theme.Blue
+import com.mobixournal.ui.theme.BlueDark
 import com.mobixournal.ui.theme.DarkColors
 import com.mobixournal.ui.theme.DeskDark
 import com.mobixournal.ui.theme.DeskLight
@@ -38,8 +40,8 @@ class ColorContractGuardTest {
     fun semanticDeskTokensMatchSpecification() {
         assertEquals("DeskDark must be pure OLED black #000000", 0xFF000000.toInt(), DeskDark.toArgb())
         assertEquals("DeskLight must be paper neutral #F8F9FA", 0xFFF8F9FA.toInt(), DeskLight.toArgb())
-        assertEquals("Purple brand accent", 0xFF4A2C7A.toInt(), Purple.toArgb())
-        assertEquals("PurpleDark luminescent accent", 0xFFC084FC.toInt(), PurpleDark.toArgb())
+        assertEquals("Blue brand accent", 0xFF2563EB.toInt(), Blue.toArgb())
+        assertEquals("BlueDark luminescent accent", 0xFF60A5FA.toInt(), BlueDark.toArgb())
         assertEquals("Amber guide accent", 0xFFFFB300.toInt(), Amber.toArgb())
     }
 
@@ -52,10 +54,10 @@ class ColorContractGuardTest {
         assertEquals("DarkColors.onSurfaceVariant must be TextSecondaryOnDark", TextSecondaryOnDark, DarkColors.onSurfaceVariant)
         assertEquals("DarkColors.outline must be OutlineDark", OutlineDark, DarkColors.outline)
         assertEquals("DarkColors.outlineVariant must be OutlineVariantDark", OutlineVariantDark, DarkColors.outlineVariant)
-        assertEquals("DarkColors.primary must be PurpleDark", PurpleDark, DarkColors.primary)
+        assertEquals("DarkColors.primary must be BlueDark", BlueDark, DarkColors.primary)
         assertEquals("DarkColors.primaryContainer must be ActiveSlotDark", com.mobixournal.ui.theme.ActiveSlotDark, DarkColors.primaryContainer)
         assertEquals("DarkColors.surfaceContainer must be NeutralContainerDark", com.mobixournal.ui.theme.NeutralContainerDark, DarkColors.surfaceContainer)
-        assertEquals("DarkColors.secondary must be Amber", Amber, DarkColors.secondary)
+        assertEquals("DarkColors.secondary must be BlueDark", BlueDark, DarkColors.secondary)
     }
 
     @Test
@@ -64,8 +66,8 @@ class ColorContractGuardTest {
         assertEquals("LightColors.onBackground must be TextDarkOnLight", TextDarkOnLight, LightColors.onBackground)
         assertEquals("LightColors.onSurface must be TextDarkOnLight", TextDarkOnLight, LightColors.onSurface)
         assertEquals("LightColors.onSurfaceVariant must be TextSecondaryOnLight", TextSecondaryOnLight, LightColors.onSurfaceVariant)
-        assertEquals("LightColors.primary must be Purple", Purple, LightColors.primary)
-        assertEquals("LightColors.secondary must be Amber", Amber, LightColors.secondary)
+        assertEquals("LightColors.primary must be Blue", Blue, LightColors.primary)
+        assertEquals("LightColors.secondary must be Blue", Blue, LightColors.secondary)
     }
 
     @Test
