@@ -160,9 +160,15 @@ What the app does with this geometry today, so the mode is not a format the edit
   thumb is gone, find still works in tile space, and split view mirrors a board as a second view of the
   same grid — the decisions per surface, and why each is what it is, are
   [chrome.md](chrome.md#a-document-with-no-pages)'s (one home per fact).
-- **What is still missing** is the way *out*: export still slices nothing
-  (`export-an-infinite-document-through-the-auto-slicer`), so a board can be read, written and navigated
-  but not yet turned into a paginated `.xopp` or PDF.
+- **It can leave the app as pages.** Save As `.xopp` and Export PDF run a board through the auto-slicer,
+  so a board can also be read, written and navigated *and* handed to a machine that only knows pages
+  ([Auto-pagination and export slicing](#auto-pagination-and-export-slicing)).
+- **What is unverified is the device.** Every one of these is pinned by JVM tests and none of them has
+  been seen on a screen: this host has no AVD, so the chunked open, the canvas, the ink written into a
+  chunk and the chrome that reads tiles are queued for
+  `verify-the-paged-mobix-open-and-canvas-on-the-emulator` and the emulator passes of
+  `write-strokes-into-a-chunk-and-keep-them-across-eviction` and
+  `make-the-chrome-tell-the-truth-for-a-document-with-no-pages`.
 
 ### Writing on a board
 

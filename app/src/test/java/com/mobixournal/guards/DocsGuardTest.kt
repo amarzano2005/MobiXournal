@@ -122,6 +122,60 @@ class DocsGuardTest {
         return out
     }
 
+    /**
+     * A doc that names a task names a task that **exists**.
+     *
+     * The spoke docs are where a fact's owner and its unfinished work are recorded together — the native
+     * format's capability table marks a row "live only where the open/save path actually runs it, and
+     * otherwise names the task that will make it live" — so an id that has since been archived, renamed
+     * or never added reads as pending work that is not there. That is a drift no reader can see: the doc
+     * is prose and the id is a string in another file. This is the something that catches it.
+     */
+    @Test
+    fun everyTaskIdADocNamesExists() {
+        val ids = taskIds()
+        val unknown = mutableListOf<String>()
+        for (file in checkable()) {
+            file.readLines().forEachIndexed { i, raw ->
+                for (match in taskIdLike.findAll(raw)) {
+                    val slug = match.groupValues[1]
+                    if (slug in ids || slug in proseThatLooksLikeATaskId) continue
+                    unknown += "${file.name}:${i + 1} -> `$slug`"
+                }
+            }
+        }
+        assertTrue(
+            "these read as task ids but no task has them — fix the reference, or add the phrase to " +
+                "proseThatLooksLikeATaskId deliberately:\n  " + unknown.joinToString("\n  "),
+            unknown.isEmpty(),
+        )
+    }
+
+    /** A backticked slug of three or more words — the shape of a task id, and of little else. */
+    private val taskIdLike = Regex("""`([a-z0-9]+(?:-[a-z0-9]+){2,})`""")
+
+    /**
+     * Backticked prose that has a task id's shape without being one. Deliberate, the way the source-size
+     * ceilings are: adding a line here is a decision to state, not a way round the check.
+     */
+    private val proseThatLooksLikeATaskId = setOf(
+        // The desktop companion plugin's own name (docs/mobix-format.md), not a task in either file.
+        "xournalpp-mobix-plugin",
+    )
+
+    /** Every task id in `TODO.toml` and `FINISHED.toml`: the two files a doc may reference. */
+    private fun taskIds(): Set<String> {
+        val ids = mutableSetOf<String>()
+        for (name in listOf("TODO.toml", "FINISHED.toml")) {
+            val file = File(repoRoot(), name)
+            if (!file.isFile) continue
+            for (line in file.readLines()) {
+                Regex("""^\s*id\s*=\s*"([^"]+)"""").find(line)?.let { ids += it.groupValues[1] }
+            }
+        }
+        return ids
+    }
+
     /** The docs under budget and link rules: everything in `docs/`, minus the release archive. */
     private fun checkable(): List<File> =
         (spokes() + listOf(docs.resolve("tools.md"), docs.resolve(index))).distinct().sorted()
