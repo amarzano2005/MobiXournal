@@ -76,21 +76,28 @@ read-only rather than risk newer data), and the export needs no entry point of i
 is the single dispatch the canvas rasteriser (`PageRenderer`), the PDF painter (`PdfVectorPainter`) and the
 SVG writer (`PageSvgWriter`) all compile an entity through, so a `.mobix` holding a table shows the table
 on screen and in an export, and the plot is editable in place ([mobix-elements.md](mobix-elements.md) owns
-that one-family-at-a-time sequence). What Step 1 still owes is the *Step 1 remainder* epic in `TODO.toml`:
-the infinite canvas ([infinite-canvas.md](infinite-canvas.md)), continuous audio-inking sync
-([audio-inking-sync.md](audio-inking-sync.md)), the math engine's parameter sliders
-([math-engine.md](math-engine.md)) and the desktop Lua companion plugin ([mobix-format.md](mobix-format.md)).
+that one-family-at-a-time sequence). What Step 1 owes is the epic `step-1-mobix-format-engines` in `TODO.toml`, and **none of it is unbuilt
+code**. The engines that epic was carried for run in the editor: the infinite canvas
+([infinite-canvas.md](infinite-canvas.md)) opens a chunked document, draws it as one sheet and takes ink
+into the chunk under the pen, continuous audio-inking sync ([audio-inking-sync.md](audio-inking-sync.md))
+publishes a playhead and paints the writing at it, the math engine's parameter sliders and the desktop
+Lua companion plugin ([mobix-format.md](mobix-format.md)) have shipped. What is left is the runtime
+claims the emulator passes named and could not reach — a `.mobix` tab losing its bundled picture to the
+session snapshot, find and split view on a board, the plot analysis text over a shaded range, a bundled
+recording playing from the file alone with its codec's size, and a round trip through a SAF
+`content://` URI — five children of that epic, each with the pass that would close it
+([data-path.md](data-path.md), [infinite-canvas.md](infinite-canvas.md)).
 
 ### Advanced domain engine specifications
 
 | Spoke | What it owns | Read when | Status |
 |---|---|---|---|
-| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, auto-pagination | you work on canvas scrolling, pagination boundaries or pageless modes | **Planned Spec** |
+| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, auto-pagination | you work on canvas scrolling, pagination boundaries or pageless modes | **Partly implemented** — the 2D board opens, draws and takes ink on a device; the two strip modes are written and unexercised there |
 | [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus (roots, extrema, derivatives), parametric curves | you work on mathematical plotting, formula parsing or calculus features | **Planned Spec** |
 | [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric recognition, parametric handles | you work on shape recognition, gesture dwell detection or handles | **Planned Spec** |
 | [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, offline math rendering | you work on mathematical typography, LaTeX, or Typst features | **Planned Spec** |
 | [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, native ISO PDF/A annotations | you work on PDF text snapping, search indexing or native annotation export | **Planned Spec** |
-| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Planned Spec** |
+| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Partly implemented** — playback and the scrubber run; point-precise seeking and velocity-driven smoothing do not |
 | [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters | you add extensibility hooks, scripting or third-party integrations | **Planned Spec** |
 | [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution | **Planned Spec** |
 | [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, drag and drop | you work on multi-window coordination, split view or drag and drop | **Planned Spec** |
