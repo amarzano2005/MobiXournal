@@ -176,7 +176,11 @@ When the session is running on this Windows 11 workstation (`10.0.26300`, `pwsh`
     **Git Bash**: `& "C:\Program Files\Git\bin\bash.exe" scripts/host-build.sh ...` — or bypass bash
     overhead entirely in `pwsh` by calling `.\gradlew.bat` and `python scripts/todo/todo.py <cmd>` directly.
   - **JDK**: JetBrains Runtime **JDK 21** at `C:\Users\amarz\.jdks\jbr-21.0.11` (picked automatically by
-    `scripts/host-build.sh`), plus Eclipse Temurin OpenJDK 17 (`17.0.20.1`) on `PATH`.
+    `scripts/host-build.sh`), plus Eclipse Temurin OpenJDK 17 (`17.0.20.1`) on `PATH`. **A JDK 27 does
+    not work for Gradle here:** the machine's default JVM (e.g. `C:\Program Files\Java\jdk-27`) makes the
+    Kotlin DSL fail at configuration with a bare `IllegalArgumentException: 27` from
+    `JavaVersion.parse`, so export `JAVA_HOME='C:\Users\amarz\.jdks\jbr-21.0.11'` before any
+    `./gradlew.bat` or `scripts/host-build.sh` run.
   - **Android SDK & AVD**: SDK at `C:\Users\amarz\AppData\Local\Android\Sdk` (`local.properties`),
     `adb.exe` in `platform-tools\`, `emulator.exe` in `emulator\` with AVD **`Pixel_Tablet`**.
   - **Emulator & `androidTest` on this host**: Use `.\gradlew.bat connectedDebugAndroidTest` (with
