@@ -4,9 +4,13 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.view.Choreographer
 import androidx.core.content.ContextCompat
 import com.mobixournal.audio.AudioSession
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.KaraokeFrameDriver
+import com.mobixournal.render.KaraokeFrames
+import com.mobixournal.render.karaokeState
 import com.mobixournal.ui.AudioUiState
 
 // --- audio: record onto strokes, replay from them, keep sidecars beside the .xopp -----------
@@ -28,9 +32,35 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
         when {
             ref == null -> toast("That stroke has no recording")
             !audio.play(ref) -> toast("Recording not found: ${ref.filename}")
-            else -> Unit
+            else -> followRecording(view)
         }
     }
+}
+
+/**
+ * Follow the clip that just started with the page it was tapped on, so the writing animates to the
+ * playhead until it stops ([KaraokeFrameDriver]).
+ *
+ * One driver at a time — one clip plays at a time, so a second tap replaces the first — and it targets
+ * the pane the tap was made in, which is also the pane the recording belongs to in split view. The
+ * driver ends itself on completion or a stop; [MainActivity.detachAudio] ends it when the editor goes
+ * away, so no frame is posted at a surface that is gone.
+ */
+internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
+    karaokeDriver?.stop()
+    val driver = KaraokeFrameDriver(
+        choreographer = Choreographer.getInstance(),
+        clip = { KaraokeFrames.Clip(audio.nowPlaying, audio.playheadMs) },
+        publish = { state -> view.karaokeState = state },
+    )
+    karaokeDriver = driver
+    driver.follow()
+}
+
+/** Stop following any recording and let every page paint itself again (the host's teardown). */
+internal fun MainActivity.detachAudio() {
+    karaokeDriver?.stop()
+    karaokeDriver = null
 }
 
 /** The audio slot's current state, read fresh on every recomposition [MainActivity.audioTick] triggers. */

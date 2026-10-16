@@ -32,6 +32,7 @@ import com.mobixournal.render.BitmapBudget
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.PdfFonts
 import com.mobixournal.render.Placement
 import com.mobixournal.render.TextPdfGenerator
@@ -113,6 +114,13 @@ class MainActivity : ComponentActivity() {
 
     /** Bumped whenever recording/playback state changes, so the Compose chrome re-reads it. */
     internal var audioTick = mutableStateOf(0)
+
+    /**
+     * The frame loop following the clip that is playing ([KaraokeFrameDriver]), or null when none is: it
+     * publishes the playhead onto the surface the recording was started from, and stops when the clip
+     * ends or the editor goes away (`MainActivityAudio.detachAudio`).
+     */
+    internal var karaokeDriver: KaraokeFrameDriver? = null
 
     /** The active pane's open documents and which one is showing (see `com.mobixournal.tabs`). */
     internal val tabs: TabManager get() = pane.tabs
@@ -470,6 +478,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        detachAudio()
         audio.release()
         super.onDestroy()
     }

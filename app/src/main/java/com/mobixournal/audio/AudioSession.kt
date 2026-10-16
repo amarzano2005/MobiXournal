@@ -42,8 +42,21 @@ class AudioSession(
     /** Notified whenever recording starts or stops, so the chrome can re-render its state. */
     var onStateChanged: (() -> Unit)? = null
 
+    /**
+     * The sidecar name of the clip that is **on** — sounding, or paused at a position — or null when
+     * none is. What tells the replay path *which* recording its playhead belongs to, since the player
+     * itself is handed a file and not a document's `fn` ([AudioRef]).
+     */
+    var nowPlaying: String? = null
+        private set
+
     init {
-        player.onPlayingChanged = { onStateChanged?.invoke() }
+        // A clip that finished is a clip no longer on, exactly as a stop is: the player reports both
+        // through this one hook, so the two cannot disagree. Everything else the hook does is re-render.
+        player.onPlayingChanged = { playing ->
+            if (!playing) nowPlaying = null
+            onStateChanged?.invoke()
+        }
     }
 
     /**
@@ -89,10 +102,17 @@ class AudioSession(
     fun recording(name: String): ByteArray? = store.local(name).takeIf(File::isFile)?.readBytes()
 
     /** Play [ref]'s recording from its offset; false when the sidecar isn't available locally. */
-    fun play(ref: AudioRef): Boolean = player.play(store.local(ref.filename), ref.startMs)
+    fun play(ref: AudioRef): Boolean {
+        val playing = player.play(store.local(ref.filename), ref.startMs)
+        nowPlaying = ref.filename.takeIf { playing }
+        return playing
+    }
 
     /** Stop whatever is playing. */
-    fun stopPlayback() = player.stop()
+    fun stopPlayback() {
+        player.stop()
+        nowPlaying = null
+    }
 
     /**
      * Move playback to [ms], clamped to the clip's length, and answer the position it will be at — null

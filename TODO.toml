@@ -512,20 +512,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "drive-the-surface-karaoke-state-from-the-playhead"
-title = "Drive the surface karaoke state from the playhead"
-description = "replay-the-writing-in-time-with-its-recording. render/KaraokeStrokeAnimator.kt owns the playback state (State(audioFile, playheadMs, isPlaying)) and its resolve function, and DrawingSurfaceView.karaokeState exists as an extension property (KaraokeStrokeAnimator.kt, around line 125) that nothing sets, so a recording plays while the page stays still. Set it while a clip sounds: add a small frame driver beside render/MomentumDriver.kt that posts Choreographer frames while playback is live and stops on completion, on stop, and when the editor goes away, publishing State(audioFile = the playing sidecar name, playheadMs = AudioSession.playheadMs, isPlaying = true) onto the surface each frame; stop and completion set null so the page paints normally again. Note that DrawingSurfaceView.render() no-ops while a fling runs, so the driver has to be the one posting frames rather than leaning on requestRender per tick. MainActivityAudio.kt attachAudio owns the wiring, next to audioStamp and onAudioTap. Verify with a JVM test over the pure frame-to-State mapping (a tick at a given position yields the expected State, a completion yields null) plus an emulator pass: play a stroke recording and the canvas repaints as it sounds, with logcat clean and no frames posted once it stops."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 502
-created = 2026-10-15
-tags = ["audio", "mobix"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "draw-the-karaoke-directive-on-the-canvas"
 title = "Draw the karaoke directive on the canvas"
 description = "replay-the-writing-in-time-with-its-recording. The animator already computes, per stroke, a RenderDirective - Normal, Dimmed(colour) or Animating(visiblePoints, activeTip, futurePoints) - from KaraokeStrokeAnimator.resolve, and the paint loop never reads it. In render/DrawingSurfacePaint.kt drawPageElements, resolve each stroke of the page shown while karaokeState is not null (render/StrokePainter.kt draws it): a Dimmed stroke draws in its dimmed colour, an Animating stroke draws only its visible points and then KaraokeStrokeAnimator.drawTipIndicator at the active tip, and a Normal stroke draws exactly as today. The animating stroke must not come out of render/InkCache.kt, whose cached bitmap holds the finished stroke - key the cache with the animating state or draw that one stroke directly. Pin the no-telemetry rule with a test rather than leaving it implied: a stroke whose points carry no dtMs (a .xopp import, an older .mobix) is simply complete - never dimmed once the playhead is past its start and never animating (KaraokeStrokeAnimatorTest). Verify with those JVM tests plus an emulator screenshot of a half-drawn stroke with its tip indicator over a page, and one of the same page after the clip ends."

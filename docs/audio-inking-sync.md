@@ -71,6 +71,16 @@ $$t_{\text{abs}}(P_i) = T_{\text{stroke\_start}} + \sum_{k=0}^{i} \Delta t_k$$
 
 ## Interactive replay modes
 
+**What runs today.** The clock and the loop are live: `AudioSession.playheadMs`/
+`seek`/`nowPlaying` publish where a clip is, and `render/KaraokeFrameDriver.kt` posts a
+`Choreographer` frame per vsync while one sounds, putting the state the canvas paints from onto the
+surface (`KaraokeStrokeAnimator.State`, read as `DrawingSurfaceView.karaokeState`). It owns its frames
+rather than asking for a repaint per tick, because the surface's own `render()` no-ops while a fling is
+running; it publishes `null` on completion, on a stop and when the editor goes away, so a page never
+freezes at its last dimmed frame. The *drawing* of `resolve`'s directive is the paint loop's own half
+(`draw-the-karaoke-directive-on-the-canvas`), so today the canvas repaints at the playhead and paints
+the page as it always did.
+
 ### 1. Inking Karaoke (Stroke Playback Animation)
 During playback of a lecture or meeting:
 - As the audio playhead advances to time $t$, strokes written after $t$ are rendered with lowered opacity
