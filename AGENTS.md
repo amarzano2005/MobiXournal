@@ -134,74 +134,55 @@ Two JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce stru
 
 ---
 
-## Local workstation profile & fast-path commands (Windows 11 host)
+## Multi-machine workflow: detect the active host profile
 
-When running directly on the owner's Windows workstation (rather than a Linux container host with
-`/data/android`), optimize commands and resource usage around these hardware and environment facts:
+The owner works across **multiple machines** (including a Linux container host equipped with
+`/data/android` and a Windows 11 laptop). **Never assume which machine a session is running on** —
+check the OS/shell and whether `/data/android` exists at the start of a task, then follow the
+matching profile below:
 
-### Hardware & OS specifications
-- **CPU**: 12th Gen Intel Core i7-12650H (10 cores: 6P + 4E, **16 logical processors**).
-- **RAM**: **16 GB physical RAM** (~15.7 GB usable; ~8–9 GB typically free alongside OS/IDE).
-- **GPU & Virtualization**: Intel UHD Graphics (integrated, shared system RAM); **Windows Hypervisor
-  Platform (WHPX `10.0.26300`)** active and verified for x86_64 Android emulation.
-- **OS & Default Shell**: Windows 11 Home (`10.0.26300`); agent commands execute in **PowerShell (`pwsh`)**.
+| Profile | How to recognise it | Build & test front door | Emulator & `androidTest` |
+|---|---|---|---|
+| **A. Linux `/data/android` container host** (Primary standard when present) | Linux shell (`bash`/`sh`) and `/data/android/build.sh` exists | `scripts/build.sh` (runs inside `android-builder:local` via Docker, Podman fallback) | `/data/android` headless Android 14 container via `emulator.sh`; run `androidTest` via `scripts/connected-test.sh` |
+| **B. Windows 11 laptop (`i7-12650H`)** | Windows (`pwsh`), user `amarz`, no `/data/android` | `.\gradlew.bat` directly in `pwsh`, or `& "C:\Program Files\Git\bin\bash.exe" scripts/host-build.sh` | Local SDK `Pixel_Tablet` AVD (WHPX); run `androidTest` via `.\gradlew.bat connectedDebugAndroidTest` |
+| **C. Other Linux / macOS / Windows hosts** (without `/data/android`) | `/data/android` absent | `scripts/host-build.sh` (auto-discovers JDK 17–24 preferring 21 + Android SDK) or `./gradlew` | Host SDK `emulator` + `adb`; run `androidTest` via `scripts/host-build.sh connectedDebugAndroidTest` |
 
-### Local toolchain paths & Windows shell gotchas
-- **No `/data/android` or Docker/Podman on this host**: `/data/android`, `docker`, and `podman` are
-  not installed locally. Always use the **host toolchain** path (`.\gradlew.bat` or `scripts/host-build.sh`).
-- **Bash stub trap (`WindowsApps\bash.exe`)**: On this machine, plain `bash` in `PATH` resolves to the
-  non-functional WSL stub (`C:\Users\amarz\AppData\Local\Microsoft\WindowsApps\bash.exe`).
-  - To run `.sh` scripts (`scripts/host-build.sh`, `scripts/todo.sh`), explicitly invoke **Git Bash**:
-    `& "C:\Program Files\Git\bin\bash.exe" scripts/host-build.sh ...`
-  - **Preferred fast path in `pwsh`**: bypass bash overhead completely by calling `.\gradlew.bat` and
-    `python scripts/todo/todo.py` directly from PowerShell.
-- **JDK**:
-  - **JetBrains Runtime JDK 21**: `C:\Users\amarz\.jdks\jbr-21.0.11` (preferred; automatically picked
-    by `scripts/host-build.sh`).
-  - **System `PATH` JDK**: Eclipse Temurin OpenJDK 17 (`17.0.20.1`), also supported by the Gradle wrapper.
-- **Android SDK & Emulator**:
-  - **SDK Root**: `C:\Users\amarz\AppData\Local\Android\Sdk` (configured in `local.properties`).
-  - **ADB**: `C:\Users\amarz\AppData\Local\Android\Sdk\platform-tools\adb.exe`
-  - **Emulator**: `C:\Users\amarz\AppData\Local\Android\Sdk\emulator\emulator.exe` with AVD **`Pixel_Tablet`**.
-- **Python**: Python 3.14 (`python` in `pwsh`).
-- **No local Linux `xournalpp` binary**: Desktop Xournal++ is not installed on this Windows host;
-  verify `.xopp` interoperability via JVM round-trip, `XoppSynthesis`, and `MobixMetaRevival` tests.
+### Profile A — Linux `/data/android` container host
+- **Containerized build & test**: Always use `scripts/build.sh` (`testDebugUnitTest assembleDebug` by
+  default) and `scripts/todo.sh <command>`. Do not rely on host-installed JDK/SDK when `/data/android`
+  is available.
+- **Containerized emulator**: Drive the emulator via `emulator.sh` (`up`, `install`, `launch
+  com.mobixournal.v2`, `screenshot`, `ui`, `logcat`) and run instrumented tests via
+  `scripts/connected-test.sh` (never plain `connectedDebugAndroidTest` inside the throwaway builder
+  container, which lives in a separate `adb` world).
+- Full contract and gotchas live in `docs/tools.md`.
 
-### Memory & build optimization rules for this machine
-1. **Protect the 16 GB RAM budget**: `gradle.properties` pins `-Xmx2048m` and `org.gradle.caching=true`.
-   **Never launch concurrent Gradle commands in parallel tool calls** — a second Gradle daemon + Kotlin
-   compiler daemon alongside a running `Pixel_Tablet` AVD (which uses shared RAM via Intel UHD Graphics)
-   will cause memory pressure and swap thrashing.
-2. **Run targeted JVM tests first during iteration**:
-   ```powershell
-   # Fast single-class or guard test in PowerShell (~2-5s on warm daemon):
-   .\gradlew.bat testDebugUnitTest --tests com.mobixournal.guards.DocsGuardTest
-   .\gradlew.bat testDebugUnitTest --tests com.mobixournal.guards.SourceStructureTest
-
-   # Full JVM unit test suite + debug APK:
-   .\gradlew.bat testDebugUnitTest assembleDebug
-   ```
-3. **Todo CLI directly in PowerShell**:
-   ```powershell
-   python scripts/todo/todo.py list
-   python scripts/todo/todo.py stats
-   python scripts/todo/todo.py validate
-   ```
-4. **Emulator & instrumented (`androidTest`) workflow on this host**:
-   On this host, the SDK's `adb` is the emulator's `adb`, so standard Gradle `connectedDebugAndroidTest`
-   is canonical (do **not** use `scripts/connected-test.sh`, which is only for `/data/android` containers):
-   ```powershell
-   $sdk = "C:\Users\amarz\AppData\Local\Android\Sdk"
-   # Install & launch v2 debug build on running Pixel_Tablet:
-   & "$sdk\platform-tools\adb.exe" install -r app/build/outputs/apk/debug/app-debug.apk
-   & "$sdk\platform-tools\adb.exe" shell am start -n com.mobixournal.v2/com.mobixournal.MainActivity
-
-   # Run a specific instrumented test class on Pixel_Tablet:
-   .\gradlew.bat -Pandroid.testInstrumentationRunnerArguments.class=com.mobixournal.StylusInputTest connectedDebugAndroidTest
-   ```
-   *(See `docs/tools.md` → **Host fallback — Android Studio's own emulator** for cold-booting
-   `-no-snapshot-load` if `adb devices` shows `unauthorized`, waking the screen with `KEYCODE_WAKEUP`,
-   and staging `.mobix` files via `run-as com.mobixournal.v2`.)*
+### Profile B — Windows 11 laptop (`i7-12650H` / 16 GB RAM)
+When the session is running on this Windows 11 workstation (`10.0.26300`, `pwsh`):
+- **Hardware & resource budget**:
+  - **CPU**: 12th Gen Intel Core i7-12650H (10 cores: 6P + 4E, **16 logical processors**).
+  - **RAM**: **16 GB physical RAM** (~15.7 GB usable; ~8–9 GB typically free alongside OS/IDE).
+  - **GPU & Virtualization**: Intel UHD Graphics (integrated, shared system RAM); **WHPX (`10.0.26300`)**
+    active for x86_64 Android emulation.
+  - **RAM protection rule**: `gradle.properties` pins `-Xmx2048m` and `org.gradle.caching=true`.
+    **Never launch concurrent Gradle commands in parallel tool calls** — a second Gradle + Kotlin daemon
+    alongside a running `Pixel_Tablet` AVD (which shares system RAM via Intel UHD Graphics) will cause
+    swap thrashing. Run targeted JVM tests (`--tests <Class>`) during iteration before the full suite.
+- **Toolchain paths & Windows shell gotchas**:
+  - **No `/data/android`, Docker, Podman, or local `xournalpp` binary** on this machine (verify `.xopp`
+    desktop compatibility via JVM round-trip, `XoppSynthesis`, and `MobixMetaRevival` tests).
+  - **Bash stub trap (`WindowsApps\bash.exe`)**: Plain `bash` in `PATH` resolves to the non-functional
+    WSL stub. To run `.sh` scripts (`scripts/host-build.sh`, `scripts/todo.sh`), explicitly call
+    **Git Bash**: `& "C:\Program Files\Git\bin\bash.exe" scripts/host-build.sh ...` — or bypass bash
+    overhead entirely in `pwsh` by calling `.\gradlew.bat` and `python scripts/todo/todo.py <cmd>` directly.
+  - **JDK**: JetBrains Runtime **JDK 21** at `C:\Users\amarz\.jdks\jbr-21.0.11` (picked automatically by
+    `scripts/host-build.sh`), plus Eclipse Temurin OpenJDK 17 (`17.0.20.1`) on `PATH`.
+  - **Android SDK & AVD**: SDK at `C:\Users\amarz\AppData\Local\Android\Sdk` (`local.properties`),
+    `adb.exe` in `platform-tools\`, `emulator.exe` in `emulator\` with AVD **`Pixel_Tablet`**.
+  - **Emulator & `androidTest` on this host**: Use `.\gradlew.bat connectedDebugAndroidTest` (with
+    `-Pandroid.testInstrumentationRunnerArguments.class=...` for single classes) — do **not** use
+    `scripts/connected-test.sh` here. See `docs/tools.md` (*Host fallback — Android Studio's own
+    emulator*) for `-no-snapshot-load`, `KEYCODE_WAKEUP`, and `run-as com.mobixournal.v2`.
 
 ---
 
@@ -212,16 +193,16 @@ The **repository layout** (every package/module and what it does) lives in
 `docs/tools.md`.
 
 ```sh
-# Canonical build + check loop:
-# 1. On Windows PowerShell (this workstation):
+# 1. On Linux container hosts with /data/android (Profile A):
+scripts/build.sh                           # unit tests + debug APK inside container
+scripts/build.sh testDebugUnitTest         # unit tests only
+
+# 2. On hosts without /data/android via Git Bash / POSIX shell (Profiles B & C):
+scripts/host-build.sh                      # auto-discovers JDK 21 + SDK, runs unit tests + debug APK
+
+# 3. Direct PowerShell fast path on Windows host (Profile B):
 .\gradlew.bat testDebugUnitTest            # unit tests (JVM; no device needed)
 .\gradlew.bat assembleDebug                # build debug APK (com.mobixournal.v2)
-
-# 2. Via Git Bash host wrapper (auto-discovers JDK 21 + Android SDK):
-"C:/Program Files/Git/bin/bash.exe" scripts/host-build.sh
-
-# 3. On Linux environments with the shared container toolchain in /data/android:
-scripts/build.sh                           # unit tests + debug APK inside container
 ```
 
 **The task's `rebuild` and `emulator_debug` flags decide how far to go — they are load-bearing,
@@ -230,11 +211,11 @@ not advisory.** Every `TODO.toml` task carries these two flags (owned by the `to
 - **`rebuild`** — whether to build the APK **at all** for this task. `false` means the change
   doesn't warrant a fresh APK build (e.g. docs, guards, or `scope`/`epic` breakdowns); `true` (the
   default) means build it.
-- **`emulator_debug`** — whether to **install and exercise on the emulator** (`Pixel_Tablet` on this
-  host, or `/data/android` where present). `false` (the default) means **skip the emulator pass
-  entirely** for this task; a clean build + unit tests is sufficient. `true` is the full pass:
-  install the APK (`com.mobixournal.v2`) and actually drive it — screenshots to *see* the UI,
-  `adb logcat` for error logs, and simulated finger/stylus presses.
+- **`emulator_debug`** — whether to **install and exercise on the emulator** (`/data/android`
+  `emulator.sh` on Profile A, or the host SDK `Pixel_Tablet` AVD on Profiles B/C). `false` (the
+  default) means **skip the emulator pass entirely** for this task; a clean build + unit tests is
+  sufficient. `true` is the full pass: install the APK (`com.mobixournal.v2`) and actually drive
+  it — screenshots to *see* the UI, `adb logcat` for error logs, and simulated finger/stylus presses.
 
 **Honor these per-task flags over any general "always test the running app" instinct** — when a
 task says `emulator_debug = false`, do **not** boot or install on the emulator, even for a
@@ -251,16 +232,18 @@ These are the owner's standing defaults for *how* things get built. They apply t
 project regardless of domain; deviate only when a project has a concrete, written reason to,
 and record that reason in this file.
 
-### Container-first where available; `host-build.sh` / `.\gradlew.bat` on Windows host
+### Develop inside containers — Docker first, Podman fallback (with `host-build.sh` fallback when no container toolchain is present)
 
-**Prefer containerized builds (`/data/android` via Docker, Podman fallback) when running on a
-container-equipped host; use the pinned local JDK 21 + SDK toolchain on this Windows workstation.**
+**Do development, builds, and runs inside containers whenever the container toolchain is available,
+so the environment is reproducible and the host stays clean.**
 
-- On Linux boxes with `/data/android`, run `scripts/build.sh` so builds execute inside the
-  reproducible `android-builder:local` container image (Docker first, Podman fallback).
-- **Recorded host exception**: On the owner's Windows 11 laptop (no `/data/android` or Docker),
-  run `.\gradlew.bat` (or `scripts/host-build.sh` via Git Bash) against JBR 21 and the local
-  Android SDK as documented in `docs/tools.md`.
+- **Prefer Docker** (`scripts/build.sh` → `/data/android/build.sh` on Profile A), and **fall back to
+  Podman** where Docker isn't available or appropriate (keep scripts and Compose files rootless- and
+  Podman-compatible).
+- **Recorded multi-machine exception**: When working on a secondary workstation that does not carry
+  `/data/android` or a container runtime (such as the Profile B Windows 11 laptop), use
+  `scripts/host-build.sh` or `.\gradlew.bat` against JDK 21 and the local Android SDK as documented
+  in `docs/tools.md` (*Host fallback*).
 
 ### Web servers are written in Rust
 
