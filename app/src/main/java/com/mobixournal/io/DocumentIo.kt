@@ -33,6 +33,7 @@ import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.XoppSynthesis
 import com.mobixournal.render.documentWithPdfDomain
 import com.mobixournal.render.documentWithPixmapAttachments
+import com.mobixournal.render.sheetDocument
 import java.io.File
 
 
@@ -490,7 +491,7 @@ class DocumentIo(
         out.outputStream().use { output ->
             when (format) {
                 SaveFormat.ORIGINAL -> {
-                    val ink = ink(document)
+                    val ink = ink(exportDocument(document, canvasMode))
                     uncompiled = ink.uncompiled
                     Xopp.save(refs.portableReference(ink.document, target), output)
                 }
@@ -547,7 +548,7 @@ class DocumentIo(
                     }
                 }
                 SaveFormat.ZIPPED -> {
-                    val ink = ink(document)
+                    val ink = ink(exportDocument(document, canvasMode))
                     uncompiled = ink.uncompiled
                     // Pictures ride inside the package as numbered entries, so a ZIP save is
                     // self-contained for pixmap backgrounds exactly as it already is for the PDF.
@@ -577,6 +578,22 @@ class DocumentIo(
      */
     private fun ink(document: Document): SynthesisResult =
         XoppSynthesis.synthesize(document, documentId = document.documentId)
+
+    /**
+     * The document a `.xopp` write encodes: a **board** is sliced into the pages its tiles add up to
+     * ([BoardSlicer][com.mobixournal.render.BoardSlicer]), and everything else is handed over as it is.
+     *
+     * It is the export's own conversion, not the document's: a chunked `.mobix` keeps its chunks
+     * wherever it is saved, and the pages exist only in the `.xopp` being written — which is the way a
+     * board leaves this app for desktop Xournal++, a PDF reader or a printer
+     * (`docs/infinite-canvas.md` → *Auto-pagination and export slicing*).
+     *
+     * The geometry is asked for **here** rather than handed in, so the two writers (a whole-archive save
+     * and a repack) cannot disagree about it, and a document that is not a board answers null and passes
+     * through untouched.
+     */
+    private fun exportDocument(document: Document, canvasMode: CanvasMode): Document =
+        sheetDocument(document, canvasGeometryOf(document, canvasMode))
 
     /**
      * What a write produced: the staged file to push across, and — for a `.xopp` — what the synthesis

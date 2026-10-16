@@ -1166,7 +1166,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun pdfSourcePageCount(): Int = pdfSource?.pageCount ?: 0
 
     /** Flatten the current document (backgrounds, PDF pages, and all annotations) to a PDF. */
-    fun exportPdf(out: java.io.OutputStream) = PdfExporter(pdfSource, imageSource).export(doc, out)
+    fun exportPdf(out: java.io.OutputStream) = PdfExporter(pdfSource, imageSource, canvasGeometry()).export(doc, out)
 
     /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
     fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)

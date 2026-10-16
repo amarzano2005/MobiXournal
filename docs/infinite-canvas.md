@@ -240,4 +240,42 @@ Slicing:       [--- Page 1 ---] [--- Page 2 ---] [--- Page 3 ---]
 2. **Stroke splitting avoidance**: If a bounding box of a `Stroke`, `TableElement`, or `PlotElement` spans the cut line,
    the seam is shifted above or below the element to keep it intact on a single page.
 3. **PDF & `.xopp` generation**: Exporting produces a standard multi-page document that opens cleanly in desktop
-   Xournal++ or PDF viewers.
+   Xournal++ or PDF viewers — see *What an export does with a board* below.
+
+### What an export does with a board
+
+The slicer decides only **where the cuts go** (`CanvasAutoSlicer`, pure and JVM-tested). Everything around
+it is `BoardSlicer` — a board's tiles as the pages a reader opens:
+
+- **Where the ink is.** A chunk stores its elements **cell-local** (`x = 0` is the tile's left edge) and
+  which cell that is is a fact of the *board*, so an element is moved onto the board first: cell
+  `(cx, cy)` × `canvas.json`'s `chunkSizePt`, the document's own tile size rather than this build's
+  default.
+- **Which paper the sheets are.** The board's own, taken from the chunks that carry it — not a tile's. A
+  board ruled across its tiles would otherwise come back with a seam at every tile edge.
+- **A sheet carries one layer.** On a board a layer belongs to a *tile* (a chunk is an independent page,
+  and its layer 1 has nothing to do with its neighbour's), so there is no document-wide layer structure
+  for a sheet to keep. The ink is never dropped: every element of every chunk lands on exactly one sheet.
+- **The origin is the first sheet's margin.** `origin.offsetPt` is where document `(0, 0)` sits on the
+  printed sheet, so the first sheet begins `offsetPt` before the origin; `origin.pageNo` numbers a sheet
+  inside a bigger print job and a standalone export has nothing before its page 1 to number against.
+- **A 2D board is cut into a grid**: columns of the paper's width first (the same seam search, on the x
+  axis), then each column into sheets of the paper's height.
+
+**Where it is wired in — and where it is not.** Both ways out of the app go through it: Save As `.xopp`
+(`DocumentIo.encode`, for the plain container and the ZIP one) and Export PDF
+(`DrawingSurfaceView.exportPdf`). A `.mobix` **save** does not: the file *is* the board, and slicing it
+into pages would be the rewrite `docs/mobix-format.md` refuses a document over. Neither does the model:
+`sheetDocument` builds the pages for the file being written and leaves the document — its chunks, its
+cells and its origin — exactly as they were.
+
+**Where the geometry comes from.** A save asks the session that opened the file
+(`DocumentIo.canvasGeometryOf`), because a board's shape is not derivable from its pages: the locked
+paper dimensions, the tile grid and the origin are `canvas.json`'s, and the cells are the coordinates the
+manifest's entry names carry. A board this session never opened — one created here — is laid out as the
+writer lays it out: the strip its mode runs in, by page index, on the pages it was born with. A `.xopp`
+and every paginated document have no board at all and are written exactly as they are.
+
+Pinned by JVM tests: `BoardSlicerTest` (the coordinate decides the sheet, the paper, the origin margin, a
+single long stroke leaving whole) and `InfiniteExportTest` (the written `.xopp` is gzip + XML, re-parses
+through `Xopp.parseXml` with the expected page count, and the `.mobix` it came from keeps its chunks).

@@ -21,15 +21,22 @@ import com.mobixournal.format.model.Document
  * out from its pages ([PageStacker][com.mobixournal.render.PageStacker]) and needs nothing here.
  *
  * @property mode The board's geometry mode; never [CanvasMode.PAGINATED] (that is the null case).
- * @property widthPt The **locked** width in [CanvasMode.INFINITE_VERTICAL], the paper height in
- *   [CanvasMode.INFINITE_HORIZONTAL], and the printed sheet's own size in [CanvasMode.INFINITE_2D];
- *   `0.0` when the file declares none, and the renderer then falls back to the default paper.
- * @property heightPt The other locked dimension, with the same reading.
+ * @property widthPt The board's own **paper width**, in pt: the locked dimension of
+ *   [CanvasMode.INFINITE_VERTICAL] (a strip that wide running down), the sheet's width in
+ *   [CanvasMode.INFINITE_2D], and the width an export cuts a horizontal strip's sheets at. `0.0` when
+ *   the file declares none, and the renderer then falls back to the default paper.
+ * @property heightPt The board's **paper height**, the locked dimension of
+ *   [CanvasMode.INFINITE_HORIZONTAL] and a vertical strip's cut height, read the same way.
  * @property chunkSizePt The spatial tile size, in pt, the document's `chunk_<cx>_<cy>` names were
  *   computed against (`docs/infinite-canvas.md` → *`canvas.json`*).
  * @property chunkCoords The occupied cells, **in the document's order** — index `i` here is page `i`
  *   of the document (`docs/infinite-canvas.md` → *A chunk is a part*), which is what lets the renderer
  *   materialise the tile under the pen without opening the board.
+ * @property originOffsetPt Where document `(0, 0)` sits on the **printed sheet**, in pt — the vertical
+ *   (or, for a horizontal strip, horizontal) margin page 1 begins with. It is the one half of
+ *   `canvas.json`'s `origin` an export can use: the other, its 1-based `pageNo`, numbers the sheet a
+ *   document lands on inside a bigger job, and a standalone export has nothing before its page 1 to
+ *   number against (`docs/infinite-canvas.md` → *Auto-pagination and export slicing*).
  */
 internal data class CanvasGeometry(
     val mode: CanvasMode,
@@ -37,6 +44,7 @@ internal data class CanvasGeometry(
     val heightPt: Double,
     val chunkSizePt: Double,
     val chunkCoords: List<Pair<Int, Int>>,
+    val originOffsetPt: Double = 0.0,
 ) {
     /** True for the three modes whose content is spatial tiles rather than a page list. */
     val isBoard: Boolean get() = mode != CanvasMode.PAGINATED
@@ -93,5 +101,6 @@ internal fun DocumentIo.canvasGeometryOf(
         chunkSizePt = canvas?.chunkSizePt ?: MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT,
         chunkCoords = openSessions.chunkCoordsOf(document)
             ?: List(document.pages.size) { stripCoords(it, mode) },
+        originOffsetPt = canvas?.origin?.offsetPt ?: 0.0,
     )
 }

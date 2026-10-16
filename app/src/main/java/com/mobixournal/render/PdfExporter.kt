@@ -9,6 +9,7 @@ import com.tom_roush.pdfbox.util.Matrix
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
+import com.mobixournal.io.CanvasGeometry
 import java.io.OutputStream
 
 /**
@@ -24,9 +25,17 @@ import java.io.OutputStream
  * visual space, so a [PdfOverlayMatrix] pre-transforms the content stream into the page's unrotated
  * space and the viewer's `/Rotate` cancels back to the drawn position (see [preservedPage]).
  */
-class PdfExporter(
+internal class PdfExporter(
     private val pdfSource: PdfPageCache?,
     private val imageSource: ImageBackgroundCache? = null,
+    /**
+     * The board geometry [doc] is laid out in, when it is a board: a PDF reader can only open pages, so
+     * a chunked document is sliced into the sheets its tiles add up to before a page is written
+     * ([sheetDocument], `docs/infinite-canvas.md` → *Auto-pagination and export slicing*). Null for a
+     * paginated document — a `.xopp`, or a `.mobix` opened paged — which needs no slicing at all, and
+     * for a `.mobix` save, which is not this exporter's business.
+     */
+    private val geometry: CanvasGeometry? = null,
 ) {
 
     private val painter = PdfVectorPainter()
@@ -35,7 +44,7 @@ class PdfExporter(
         val source = pdfSource?.source?.let { runCatching { PDDocument.load(it) }.getOrNull() }
         val outDoc = PDDocument()
         try {
-            doc.pages.forEach { page -> writePage(outDoc, source, page) }
+            sheetDocument(doc, geometry).pages.forEach { page -> writePage(outDoc, source, page) }
             outDoc.save(out)
         } finally {
             outDoc.close()
