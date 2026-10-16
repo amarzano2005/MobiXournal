@@ -51,57 +51,43 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 | Step | Spoke | What it owns | Read when | Status |
 |---|---|---|---|---|
 | **Master** | [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap coordinating data, mobile, and desktop | you plan or review the next-generation architecture hierarchy | **Roadmap** |
-| **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Partly implemented** |
-| **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container and document envelope (mimetype, manifest, canvas, pages) | you read or write the container, the envelope, or the page/background shape | **Partly implemented** |
-| **Step 1** | [`mobix-elements.md`](mobix-elements.md) | the element schema: strokes, text, images, living entities, preservation rules | you add or change an element type inside a `.mobix` document | **Partly implemented** |
-| **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Planned Spec** |
+| **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Implemented** |
+| **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container and document envelope (mimetype, manifest, canvas, pages) | you read or write the container, the envelope, or the page/background shape | **Implemented** |
+| **Step 1** | [`mobix-elements.md`](mobix-elements.md) | the element schema: strokes, text, images, living entities, preservation rules | you add or change an element type inside a `.mobix` document | **Implemented** (Codecs & Synthesis live; living editors landing in Step 2) |
+| **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Partly implemented** (Tokens, theme & layout bands live; Radial HUD & micro-inspectors active in Step 2) |
 | **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Planned Spec** |
 
 The statuses above are per **spoke**, not per feature: they say whether a doc describes shipped
-behaviour or a specification. Step 1 is the one with code behind it so far: in `format/mobix/`, the
-container (`MobixContainer`), the shared JSON layer (`format/json/`), the manifest and `canvas.json`
-codecs, the element codecs for every element the format can hold — the four `.xopp`-shaped ones in
-`MobixElementCodec`, the four living families (tables, plots, parametric shapes, circuits) in their own
-codecs — and the document layer on top (`MobixDocument`: a `.xopp` ingested as a `.mobix` document and
-read back, [mobix-format.md](mobix-format.md)) exist and are tested, and so does the other half of the
-compiler: `render/XoppSynthesis.kt` flattens a document holding living entities into ink the ordinary
-`.xopp` writer emits, one compiler per family. The app-level open/save path has since landed — the type
-is registered, a `.mobix` is dispatched by its own `mimetype` and saved back in its own format
-([data-path.md](data-path.md)) — and the export already carries the verified `mobix:meta` block, which is
-what lets an exported `.xopp` come back as living entities ([mobix-format.md](mobix-format.md)). That whole
-list has since closed: a `.mobix` whose `minAppVersion` is above ours offers a **read-only open**
-(`MobixManifest.requiresAppNewerThan` is asked by `DocumentIo`, and `MainActivityDocuments` opens the tab
-read-only rather than risk newer data), and the export needs no entry point of its own because every
-`.xopp` write already goes through the synthesis. The living entities **are drawn**: `render/LivingInk.kt`
-is the single dispatch the canvas rasteriser (`PageRenderer`), the PDF painter (`PdfVectorPainter`) and the
-SVG writer (`PageSvgWriter`) all compile an entity through, so a `.mobix` holding a table shows the table
-on screen and in an export, and the plot is editable in place ([mobix-elements.md](mobix-elements.md) owns
-that one-family-at-a-time sequence). What Step 1 owes is the epic `step-1-mobix-format-engines` in `TODO.toml`, and **none of it is unbuilt
-code**. The engines that epic was carried for run in the editor: the infinite canvas
-([infinite-canvas.md](infinite-canvas.md)) opens a chunked document, draws it as one sheet and takes ink
-into the chunk under the pen, continuous audio-inking sync ([audio-inking-sync.md](audio-inking-sync.md))
-publishes a playhead and paints the writing at it, the math engine's parameter sliders and the desktop
-Lua companion plugin ([mobix-format.md](mobix-format.md)) have shipped. What is left is the runtime
-claims the emulator passes named and could not reach — a `.mobix` tab losing its bundled picture to the
-session snapshot, find and split view on a board, the plot analysis text over a shaded range, a bundled
-recording playing from the file alone with its codec's size, and a round trip through a SAF
-`content://` URI — seven children of that epic in all (the other two are passes its own children were
-closed without: the replay and the scrubber, and the two strip canvas modes), each naming the device pass
-that would close it ([data-path.md](data-path.md), [infinite-canvas.md](infinite-canvas.md)).
+behaviour or a specification. Step 1's data model, engines and runtime validations are now fully closed
+(archived in `FINISHED.toml` under `step-1-mobix-format-engines`). In `format/mobix/`, the container
+(`MobixContainer`), the shared JSON layer (`format/json/`), the manifest and `canvas.json` codecs, the element
+codecs for all geometry elements and living families (tables, plots, parametric shapes, circuits), and the
+document layer on top (`MobixDocument`: `.xopp` ingested as `.mobix` and read back, [mobix-format.md](mobix-format.md))
+are live and tested. Bidirectional compilation via `render/XoppSynthesis.kt` and `render/LivingInk.kt` serves as
+the single dispatch across canvas (`PageRenderer`), vector PDF (`PdfVectorPainter`), and SVG (`PageSvgWriter`),
+with verified round-trip preservation (`MobixMetaRevival`).
+
+All runtime engines delivered in Step 1 are live and verified:
+- **Streaming & incremental I/O**: `PageSource` and `MobixPagedReader` stream large multi-page notebooks via LRU cache, while `MobixIncrementalSaver` performs constant-time delta writes.
+- **Infinite canvas**: vertical strip, horizontal strip, and 2D freeform whiteboard modes open, draw, and slice to pages on export ([infinite-canvas.md](infinite-canvas.md)).
+- **Synchronized audio-inking**: Opus bundled recording, continuous playhead synchronization, interactive karaoke playback animation, and point-precise audio scrub/tap ([audio-inking-sync.md](audio-inking-sync.md)).
+- **Reactive math & plots**: parameter sliders, definite integrals, and analytical summaries with shaded area fills ([math-engine.md](math-engine.md)).
+
+Work is now focused on **Step 2 (`step-2-modern-mobile-ui`)** in `TODO.toml`: modern mobile UI (design system, pen-tip radial HUD, edge-to-edge geometry contracts), living in-place entity editors (plot flyout, table grid, circuits, parametric shapes), 300 ms pen-dwell shape perfection ([shape-perfection-engine.md](shape-perfection-engine.md)), on-device LaTeX/Typst typesetting ([latex-typst-rendering.md](latex-typst-rendering.md)), snap-to-text magnetic PDF highlighting ([pdf-annotation-engine.md](pdf-annotation-engine.md)), and multi-window/DeX document state sync ([multi-window-workspace.md](multi-window-workspace.md)).
 
 ### Advanced domain engine specifications
 
 | Spoke | What it owns | Read when | Status |
 |---|---|---|---|
-| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, auto-pagination | you work on canvas scrolling, pagination boundaries or pageless modes | **Partly implemented** — the 2D board opens, draws and takes ink on a device; the two strip modes are written and unexercised there |
-| [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus (roots, extrema, derivatives), parametric curves | you work on mathematical plotting, formula parsing or calculus features | **Planned Spec** |
-| [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric recognition, parametric handles | you work on shape recognition, gesture dwell detection or handles | **Planned Spec** |
-| [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, offline math rendering | you work on mathematical typography, LaTeX, or Typst features | **Planned Spec** |
-| [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, native ISO PDF/A annotations | you work on PDF text snapping, search indexing or native annotation export | **Planned Spec** |
-| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Partly implemented** — the playhead, the replay painting, the scrubber and point-precise tap seeking are wired; velocity-driven smoothing is not, and the replay path's device pass is unrun |
+| [`infinite-canvas.md`](infinite-canvas.md) | infinite canvas modes (vertical, horizontal, 2D), spatial chunking, auto-pagination | you work on canvas scrolling, pagination boundaries or pageless modes | **Implemented** — vertical, horizontal, and 2D board modes open, render, take ink, and auto-slice on export |
+| [`math-engine.md`](math-engine.md) | expression evaluation, numerical calculus (roots, extrema, derivatives), parametric curves | you work on mathematical plotting, formula parsing or calculus features | **Implemented** — AST evaluation, calculus algorithms, shaded area wash, and interactive parameter sliders |
+| [`shape-perfection-engine.md`](shape-perfection-engine.md) | hold-to-straighten pen dwell gestures, geometric recognition, parametric handles | you work on shape recognition, gesture dwell detection or handles | **Planned Spec** (Active in Step 2 TODO) |
+| [`latex-typst-rendering.md`](latex-typst-rendering.md) | on-device LaTeX and Typst typesetting engines, living formula blocks, offline math rendering | you work on mathematical typography, LaTeX, or Typst features | **Planned Spec** (Active in Step 2 TODO) |
+| [`pdf-annotation-engine.md`](pdf-annotation-engine.md) | advanced PDF annotations: snap-to-text highlighter, native ISO PDF/A annotations | you work on PDF text snapping, search indexing or native annotation export | **Planned Spec** (Active in Step 2 TODO) |
+| [`audio-inking-sync.md`](audio-inking-sync.md) | continuous audio-inking sync, point-level timestamps, inking karaoke scrubbing | you work on synchronized audio playback or speech-to-stroke features | **Implemented** — bundled Opus/WAV recording, karaoke replay, playhead scrubbing, and audio-tap seeking |
 | [`plugin-system.md`](plugin-system.md) | plugin runtime architecture (Lua, WASM, Kotlin), extension APIs, custom exporters | you add extensibility hooks, scripting or third-party integrations | **Planned Spec** |
 | [`sync-and-storage.md`](sync-and-storage.md) | conflict-free multi-device synchronization, granular page merges, cloud-agnostic storage | you work on file synchronization (Nextcloud, Syncthing) or conflict resolution | **Planned Spec** |
-| [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, drag and drop | you work on multi-window coordination, split view or drag and drop | **Planned Spec** |
+| [`multi-window-workspace.md`](multi-window-workspace.md) | multi-window workspaces, side-by-side split view, DeX/multi-monitor support, drag and drop | you work on multi-window coordination, split view or drag and drop | **Planned Spec** (Active in Step 2 TODO) |
 
 ---
 

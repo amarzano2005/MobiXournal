@@ -296,3 +296,19 @@ drawing is what leaves this app for a desktop, so an export that assumed an ink 
 resistor black. `symbol` names a key in that library (and, like a shape's `shape`, the key set is open):
 a build that does not know a symbol cannot draw it, and says so rather than inventing ink for it
 (`docs/mobix-format.md`, the lossy-field rule).
+
+### Math block (`mathBlock`)
+
+Defined in [latex-typst-rendering.md](latex-typst-rendering.md) and tracked in `TODO.toml` (tasks 720, 730, 740):
+
+```json
+{
+  "type": "mathBlock", "id": "mth_01",
+  "engine": "TYPST",
+  "source": "integral_(-oo)^(+oo) e^(-x^2) dif x = sqrt(pi)",
+  "bounds": { "left": 140.0, "top": 220.0, "scale": 1.2 },
+  "color": "#212121ff", "fontSizePt": 16.0
+}
+```
+
+A living math block element preserving raw formula markup (`LaTeX` or `Typst`), rendered as resolution-independent vector outlines, re-editable via double-tap, and exported as vector glyphs to PDF and `.xopp` `TexImage` with metadata fallback.

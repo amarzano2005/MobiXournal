@@ -265,7 +265,9 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
    - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width), standing in a lane exactly that wide whose height begins below the **whole** header; its gap and padding budget (`RailSizing.kt`) is what keeps every slot whole and on screen without a scroll.
    - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge, the header band above, the dock's band at the bottom in Compact — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
    - **1-tap STEM rail section**: Direct 1-tap buttons for Plot (`f(x)`), Geometry/Shapes, Table, and Audio with dedicated hairline dividers.
-3. **Phase 3: Contextual Micro-Inspectors**:
-   - Transition living entity editing dialogs (Function Plot, Table editor) into anchor-positioned micro-inspectors.
-4. **Phase 4: Desktop Shell Integration**:
+3. **Phase 3: Contextual Micro-Inspectors & Pen-Tip Radial HUD** (active in Step 2 `TODO.toml`):
+   - **Chrome & system bar guards** (`guard-the-system-bars-as-one-transparent-contract`, `guard-the-chrome-bands-as-one-geometry-contract`): mechanical test suites pinning edge-to-edge transparency and layout band partitioning.
+   - **Pen-Tip Radial HUD** (`summon-and-anchor-the-pen-tip-radial-hud`, `draw-the-radial-hud-as-glass-chrome`, `track-the-flick-and-commit-a-colour-width-or-tool`): barrel-button summoned pie menu rendered as frosted glass at the nib with flick-and-commit presets.
+   - **Anchored micro-inspectors** (`anchored-flyout-inspector-for-the-function-plot-editor`): living entity editing dialogs (Function Plot, Table editor, Circuits, Parametric Shapes) transitioning into anchor-positioned micro-inspectors adjacent to the selection on canvas.
+4. **Phase 4: Desktop Shell Integration** (Step 3 roadmap):
    - Apply platform-native window styling (Mica / Vibrancy) in Compose Desktop.
