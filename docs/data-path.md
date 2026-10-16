@@ -64,7 +64,13 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   manifest's entry names, and hands both to the write): a chunk is named after where it sits, so a write
   deriving coordinates from the page index would move every chunk of a 2D board to the first column. An
   untouched chunk is copied out of the source archive rather than rebuilt, the chunk half of the reuse
-  plan ([mobix-format.md](mobix-format.md), [infinite-canvas.md](infinite-canvas.md)).
+  plan ([mobix-format.md](mobix-format.md), [infinite-canvas.md](infinite-canvas.md)). A document the
+  app **creates** is born on the geometry Settings chooses for new documents (paged, or one of the three
+  infinite modes), and the mode rides on the tab with the format (`OpenTab.canvasMode`, persisted in
+  `TabIndex`), so its first save already writes `chunks/` rather than converting a paginated file later.
+  A `.xopp` has no chunk container and is always paged. The session's own record of the mode wins for a
+  document it opened, the tab's for one it did not — so neither a stale tab nor a stale session can turn
+  a chunked document into a paginated rewrite.
 - **What it refuses, it refuses loudly.** A `.mobix` whose `formatVersion` is newer, whose
   `canvas.json` disagrees with the manifest, or that carries `pages/` and `chunks/` both fails the open
   with the reason, rather than being opened as something it is not.
@@ -218,7 +224,7 @@ Several documents can be open at once, but there is only **one** `DrawingSurface
 is therefore a swap, driven by `MainActivity`:
 
 ```
-snapshot the surface into the outgoing OpenTab (document, save format, PDF path, page)
+snapshot the surface into the outgoing OpenTab (document, save format, canvas geometry, PDF path, page)
   → TabManager.select(index)
   → load the incoming OpenTab into the surface (setPdfSource → load → goToPage)
 ```

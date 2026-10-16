@@ -1,6 +1,7 @@
 package com.mobixournal.tabs
 
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.BackgroundResolver
 
@@ -66,6 +67,23 @@ data class OpenTab(
      * a snapshot whose pages are already in memory.
      */
     val backgrounds: BackgroundResolver? = null,
+    /**
+     * The canvas geometry this document is written in ([CanvasMode]): the mode its `.mobix` declared
+     * when it was opened, the one Settings chose when it was created, and `PAGINATED` for every
+     * `.xopp` — which has no chunk container to hold a board.
+     *
+     * It rides on the **tab**, with [format], because it is the same kind of fact: what the next save
+     * of this document has to claim. A chunked document written back as a paginated one is the rewrite
+     * `docs/mobix-format.md` refuses a document to avoid, so the mode has to survive everything a
+     * document does — a tab switch, `sendTabToOtherPane`, and a cold start (it is persisted with the
+     * rest of the record, [TabIndex]) — and the session's own record of it is memory of an *open*, not
+     * of a document ([MobixOpenSessions.canvasModeOf], which is consulted first for a document this
+     * session opened and falls back to this for one it has not).
+     *
+     * The renderer does not read it yet: the canvas engine that draws an unbounded sheet is a later
+     * step (`docs/infinite-canvas.md`). What it drives today is the **write**.
+     */
+    val canvasMode: CanvasMode = CanvasMode.PAGINATED,
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

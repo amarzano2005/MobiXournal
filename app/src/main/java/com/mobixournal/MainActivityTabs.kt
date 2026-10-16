@@ -236,16 +236,28 @@ internal fun MainActivity.newTab(p: EditorPane = pane) {
 }
 
 /**
- * A fresh blank document in the format **new documents are born in** — the choice made on first
- * launch and in Settings → App & data ([newDocumentFormat], pushed down by
- * [applyNewDocumentFormat]).
+ * A fresh blank document in the format **new documents are born in**, on the canvas geometry they are
+ * born **on** — the two choices made in Settings → App & data ([newDocumentFormat] and
+ * [newDocumentCanvas], pushed down by [applyNewDocumentFormat] and [applyNewDocumentCanvas]).
  *
- * It is set on the tab rather than left to the pane's default because the tab's format *is* the sticky
- * one ([OpenTab.format], restored with the tab): a new document started as `.mobix` stays one, and one
- * started as `.xopp` is what plain Save offers to write.
+ * Both are set on the tab rather than left to the pane's defaults because the tab's values *are* the
+ * sticky ones ([OpenTab.format], [OpenTab.canvasMode], restored with the tab): a new document started
+ * as `.mobix` stays one, one started as `.xopp` is what plain Save offers to write, and a document
+ * started on an infinite canvas is **written as chunks from its first save** rather than converted
+ * later — which is the whole point of creating it in the mode (`docs/infinite-canvas.md`).
+ *
+ * The document itself is still one blank page: on a board that page *is* the first chunk (the strip
+ * coordinates come from the page index, `MobixDocument.of`), so the same blank sheet is a page in one
+ * geometry and chunk `(0, 0)` in another.
  */
 internal fun blankTab() =
-    OpenTab(TabStore.newId(), MainActivity.UNTITLED, blankDocument(), format = newDocumentFormat)
+    OpenTab(
+        TabStore.newId(),
+        MainActivity.UNTITLED,
+        blankDocument(),
+        format = newDocumentFormat,
+        canvasMode = newDocumentCanvas,
+    )
 
 /**
  * Bring back the tabs [p] was last closed with, or start it on a single blank one. Called once

@@ -8,6 +8,7 @@ import com.mobixournal.format.FileKind
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.mobix.MobixConflictDetector
 import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
@@ -432,12 +433,18 @@ class DocumentIo(
      * so does a caller whose source will not open, since the encode that follows reports that failure
      * where a save can show it (and identity is the one thing here that must not fail the save).
      */
-    fun identifyForSave(document: Document, target: Uri?): Document {
+    fun identifyForSave(
+        document: Document,
+        target: Uri?,
+        /** See [encode]: the geometry a document this session never opened is written in. */
+        canvasMode: CanvasMode = CanvasMode.PAGINATED,
+    ): Document {
         val source = openSessions.sourceFor(document, target)
             ?: return document.withIdentity()
         return runCatching {
             entrySources(source.staged).use { from ->
-                MobixPageReuse.of(document.pages, from, openSessions.canvasModeOf(document)).identified(document)
+                MobixPageReuse.of(document.pages, from, openSessions.canvasModeOf(document, canvasMode))
+                    .identified(document)
             }
         }.getOrElse { document.withIdentity() }
     }
@@ -454,6 +461,14 @@ class DocumentIo(
      *   [audio] supplies are **bundled** into it: the format is self-contained by design, so a
      *   background or a recording the stores hold a copy of travels with the file instead of being
      *   linked (see [backgroundBytesOf]).
+     *
+     * @param canvasMode The canvas geometry [document] is written in **when this session never opened
+     *   it** — a document created in the editor, whose mode the tab carries ([OpenTab.canvasMode], from
+     *   `AppSettings.newDocumentCanvas`), or one that came in as a `.xopp`. A document this session *did*
+     *   open keeps the mode its own file declares, because a chunked `.mobix` written back as a
+     *   paginated one is the rewrite `docs/mobix-format.md` refuses a document to avoid
+     *   ([MobixOpenSessions.canvasModeOf]). Ignored by every format but [SaveFormat.MOBIX], which is the
+     *   only one with a chunk container.
      */
     fun encode(
         document: Document,
@@ -463,6 +478,7 @@ class DocumentIo(
         images: Map<String, File> = emptyMap(),
         /** The bytes of the recording a stroke's `fn` names, or null when the store has none. */
         audio: (String) -> ByteArray? = { null },
+        canvasMode: CanvasMode = CanvasMode.PAGINATED,
     ): Encoded {
         val out = staging.newFile("save")
         var uncompiled: List<Uncompilable> = emptyList()
@@ -485,7 +501,7 @@ class DocumentIo(
                     val backgroundBytes = backgroundBytesOf(pdf, images)
                     // The shape this write has to keep: a chunked document stays chunked, at its own
                     // coordinates, whether the save repacks over its file or builds a new archive.
-                    val canvasMode = openSessions.canvasModeOf(document)
+                    val mode = openSessions.canvasModeOf(document, canvasMode)
                     val chunkCoords = openSessions.chunkCoordsOf(document)
                     // …and the board geometry the file declared, which no page carries.
                     val canvas = openSessions.canvasOf(document)
@@ -502,7 +518,7 @@ class DocumentIo(
                             // at out of the archive this document was opened from, or the new file
                             // names an entry it does not have ([carriedAssets]).
                             payloads = carriedAssets(document),
-                            canvasMode = canvasMode,
+                            canvasMode = mode,
                             chunkCoords = chunkCoords,
                             canvas = canvas,
                         )
@@ -518,7 +534,7 @@ class DocumentIo(
                                 backgroundBytes = backgroundBytes,
                                 audioBytes = audio,
                                 bridgeSource = target?.let { displayName(it, "document") },
-                                canvasMode = canvasMode,
+                                canvasMode = mode,
                                 chunkCoords = chunkCoords,
                                 canvas = canvas,
                             )

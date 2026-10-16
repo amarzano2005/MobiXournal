@@ -117,11 +117,13 @@ internal class MobixOpenSessions {
 
     /**
      * The canvas mode a write of [document] must claim: the one the file it was opened from declares,
-     * and `PAGINATED` for a document that never was a `.mobix` (a `.xopp`, a new document). Writing a
-     * chunked document as paginated is the rewrite `docs/mobix-format.md` refuses a document to avoid.
+     * and [bornAs] for a document this session never opened — a `.xopp`, or a document created here,
+     * whose geometry the caller knows from the tab it was born on ([OpenTab.canvasMode]). Writing a
+     * chunked document as paginated is the rewrite `docs/mobix-format.md` refuses a document to avoid,
+     * so a file the session *did* open wins over anything the caller believes about it.
      */
-    fun canvasModeOf(document: Document): CanvasMode =
-        document.documentId?.let { canvasModes[it] } ?: CanvasMode.PAGINATED
+    fun canvasModeOf(document: Document, bornAs: CanvasMode = CanvasMode.PAGINATED): CanvasMode =
+        document.documentId?.let { canvasModes[it] } ?: bornAs
 
     /**
      * Where [document]'s parts sit on an infinite canvas, when this session opened it: the source

@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "create-a-new-document-in-an-infinite-canvas-mode"
+title = "Create a new document in an infinite canvas mode"
+description = "render-and-edit-an-infinite-canvas-document, the created half. Nothing in the app can make a chunked document: ui/AppSettings.kt carries only newDocumentFormat (NewDocumentFormat.MOBIX or XOPP), MainActivityTabs.kt newTab builds blankDocument() (render/DrawingSurfaceConstants.kt, one ruled page), and io/DocumentIo.encode writes PAGINATED unless the caller passes a mode. Add a canvas-mode setting beside the format one - PAGINATED, INFINITE_VERTICAL, INFINITE_HORIZONTAL, INFINITE_2D, with the locked width or height taken from the default page size when the mode is a strip - offered in Settings -> Documents (ui/DocumentsSection.kt, AppSettings.kt with its prefs and backup round trip) and only meaningful while the document format is .mobix, since a .xopp has no chunk container. MainActivityTabs.newTab then creates the document with that mode (Document.canvasMode, from the open/save task), so a new notebook is written as chunks from its first save rather than converted later. Verify with JVM tests: MainActivityTabs-level creation is not testable, so pin the pure part - a Document with INFINITE_VERTICAL survives DocumentIo.encode then DocumentIo.read with its mode and its chunk entries, and a NewDocumentFormat.XOPP target ignores the mode. Add an emulator pass: choose Infinite vertical in Settings, create a tab, save it, reopen it, and confirm canvas.json still says INFINITE_VERTICAL."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-15
+completed = 2026-10-16
+tags = ["canvas", "ui"]
+
+[[task]]
 id = "save-only-the-chunks-a-session-changed"
 title = "Save only the chunks a session changed"
 description = "render-and-edit-an-infinite-canvas-document, the saved half. format/mobix/MobixIncrementalSaver.kt repacks only the pages that moved for a paginated document (MobixIncrementalSave.kt, MobixSavePlan.kt, MobixPageReuse.kt), and a chunked document needs the same trade by chunk: chunks/chunk_<cx>_<cy>.json through MobixChunkCodec.kt, named by MobixFormat.chunkEntry. Extend the save plan with a dirty-chunk set taken from the tile manager or the chunk store at save time (ChunkTileManager.dirtyCoords), encode exactly those chunks, copy every other entry verbatim from the archive the document was opened from, and keep an unchanged chunk manifest part (id, sha256, modified) exactly as the archive recorded it, because that is what a merge and a sync client read (docs/sync-and-storage.md). Clear the dirty set only after the bytes are pushed, never before. A save that lands back on the same URI must repack; a Save As to another name builds every chunk, as the page path does. Verify with JVM tests: save a document with two of five chunks dirty and assert the untouched three are byte-identical to the source archive and their manifest parts unchanged; save with nothing dirty and assert nothing was recompressed; and reopen the file to confirm the mode is still the infinite one."

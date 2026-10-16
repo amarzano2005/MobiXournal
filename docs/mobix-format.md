@@ -104,9 +104,9 @@ desktop round trip safe:
    the bridge below has to be lossless in *both* directions: a `.xopp` that went through a phone is
    still a `.xopp`.
 2. **New documents are born in the default format**, which the user picks **on first launch** (the
-   onboarding flow, [chrome.md](chrome.md)) and can change at any time under Settings → App & data.
-   The default offered first — and the recommended one — is **`.mobix`**, because living elements,
-   telemetry and page streaming only exist there.
+   onboarding flow, [chrome.md](chrome.md)) and can change under Settings → App & data; a `.mobix` is
+   born on a default **canvas geometry** too ([infinite-canvas.md](infinite-canvas.md)), a `.xopp`
+   always paged. The recommended format — **`.mobix`** — keeps living elements, telemetry, streaming.
 3. **"Save As" switches the format in either direction**, and that switch is the documented way to
    convert: a `.xopp` opened from a colleague's desktop can become the user's own `.mobix`, and a
    `.mobix` can be flattened out to `.xopp` to hand back to Xournal++.

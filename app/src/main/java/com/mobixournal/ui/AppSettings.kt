@@ -161,6 +161,13 @@ data class AppSettings(
      */
     val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
     /**
+     * The canvas geometry a **new** document is born in ([NewDocumentCanvas]): fixed pages, or one of
+     * the three infinite modes. It pairs with [newDocumentFormat] and is pushed down with it, so a new
+     * document written as a `.xopp` is paged whatever this says — a `.xopp` has no chunks to hold a
+     * board ([NewDocumentCanvas.modeFor]).
+     */
+    val newDocumentCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,
+    /**
      * When false, fingers only pan/zoom — never draw (palm-safe for stylus users). Off by default
      * on a first launch, so a hand resting on the glass never inks a page written on with a stylus.
      */
@@ -580,6 +587,7 @@ class SettingsStore(context: Context) {
             defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
             defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
+            newDocumentCanvas = enumOr(prefs.getString(KEY_NEW_DOCUMENT_CANVAS, null), d.newDocumentCanvas),
             penEraserToggleKey = prefs.getString(KEY_PEN_ERASER_TOGGLE, d.penEraserToggleKey) ?: d.penEraserToggleKey,
             handToggleKey = prefs.getString(KEY_HAND_TOGGLE, d.handToggleKey) ?: d.handToggleKey,
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
@@ -727,6 +735,7 @@ class SettingsStore(context: Context) {
             .putFloat(KEY_DEFAULT_PAGE_WIDTH, s.defaultPageWidthPt.toFloat())
             .putFloat(KEY_DEFAULT_PAGE_HEIGHT, s.defaultPageHeightPt.toFloat())
             .putString(KEY_NEW_DOCUMENT_FORMAT, s.newDocumentFormat.name)
+            .putString(KEY_NEW_DOCUMENT_CANVAS, s.newDocumentCanvas.name)
             .putString(KEY_PEN_ERASER_TOGGLE, s.penEraserToggleKey)
             .putString(KEY_HAND_TOGGLE, s.handToggleKey)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)
@@ -857,6 +866,7 @@ class SettingsStore(context: Context) {
         const val KEY_STEM_SATELLITE_OFFSET_X = "stem_satellite_offset_x"
         const val KEY_STEM_SATELLITE_OFFSET_Y = "stem_satellite_offset_y"
         const val KEY_NEW_DOCUMENT_FORMAT = "new_document_format"
+        const val KEY_NEW_DOCUMENT_CANVAS = "new_document_canvas"
         const val KEY_PEN_COLORS = "pen_colors"
         const val KEY_PEN_FAVORITES = "pen_favorites"
         const val KEY_HIGHLIGHTER_FAVORITES = "highlighter_favorites"

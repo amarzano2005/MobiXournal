@@ -134,6 +134,16 @@ What the app does with this geometry today, so the mode is not a format the edit
   ([sync-and-storage.md](sync-and-storage.md)). A chunk the write does *not* build is never even converted
   from its page (`LazyChunks`), so the only page such a save reads is the board's first, which carries
   `defaultPaper` into the new manifest.
+- **A new document can be born on one.** The geometry is the second half of the one question Settings
+  asks about a new document, beside its format ([mobix-format.md](mobix-format.md) → *Which format a
+  document is written in*): **Settings → App & data → Documents → Canvas geometry** picks the mode, it
+  is pushed down with the format (`MainActivity.applyNewDocumentCanvas`, `ui/NewDocumentCanvas.kt`), and
+  the blank document a new tab opens with is created **on** it. The mode rides on the **tab**
+  (`OpenTab.canvasMode`, persisted with the rest of the tab record in `TabIndex`) rather than being
+  re-derived per document, so the first save already writes `chunks/` — a board is never converted out
+  of a paginated file — and it survives a tab switch and a restart. A `.xopp` has no chunk container, so
+  a document created in one is paged whatever the setting says (`NewDocumentCanvas.modeFor`): the
+  geometry is *not applicable* there, not silently ignored.
 - **What is still missing** is the *canvas engine*: the surface still lays out pages of a fixed size, so a
   board scrolls past its first chunk only once the chunk geometry reaches the renderer
   (`render-a-chunked-document-as-an-unbounded-canvas`), strokes have nowhere to be written yet

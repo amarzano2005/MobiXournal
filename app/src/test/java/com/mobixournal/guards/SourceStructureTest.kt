@@ -44,7 +44,9 @@ class SourceStructureTest {
         // (`split-the-chunk-half-out-of-mobixdocument-kt`).
         "format/mobix/MobixDocument.kt" to 771,
         "render/CircuitShapes.kt" to 1180,
-        "ui/AppSettings.kt" to 1010,
+        // +6 deliberate: the new-document canvas geometry (NewDocumentCanvas), beside the format it
+        // pairs with, and its pref key on both sides of SettingsStore.
+        "ui/AppSettings.kt" to 1016,
         "ui/EditorDialogs.kt" to 920,
     )
 

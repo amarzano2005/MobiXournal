@@ -68,6 +68,7 @@ object AppSettingsBackup {
         b.append("  \"stemSatelliteOffsetX\": ").append(settings.stemSatelliteOffsetX).append(",\n")
         b.append("  \"stemSatelliteOffsetY\": ").append(settings.stemSatelliteOffsetY).append(",\n")
         b.append("  \"newDocumentFormat\": \"").append(settings.newDocumentFormat.name).append("\",\n")
+        b.append("  \"newDocumentCanvas\": \"").append(settings.newDocumentCanvas.name).append("\",\n")
         b.append("  \"penColors\": [")
             .append(settings.penColors.joinToString(", "))
             .append("],\n")
@@ -292,6 +293,7 @@ object AppSettingsBackup {
             stemSatelliteOffsetX = root.getFloat("stemSatelliteOffsetX", fallback.stemSatelliteOffsetX),
             stemSatelliteOffsetY = root.getFloat("stemSatelliteOffsetY", fallback.stemSatelliteOffsetY),
             newDocumentFormat = readEnum("newDocumentFormat", NewDocumentFormat.values(), fallback.newDocumentFormat),
+            newDocumentCanvas = readEnum("newDocumentCanvas", NewDocumentCanvas.values(), fallback.newDocumentCanvas),
             penColors = root.getIntList("penColors") ?: fallback.penColors,
             penFavorites = root.getIntList("penFavorites") ?: fallback.penFavorites,
             highlighterFavorites = root.getIntList("highlighterFavorites") ?: fallback.highlighterFavorites,

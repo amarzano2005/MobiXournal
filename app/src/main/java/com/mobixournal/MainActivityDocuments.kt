@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.io.LoadedFile
 import com.mobixournal.io.StorageLimits
 import com.mobixournal.io.UriStaging
@@ -128,19 +129,41 @@ internal fun MainActivity.applyNewDocumentFormat(settings: AppSettings) {
 }
 
 /**
+ * The **canvas geometry** a brand-new document is born in — the other half of the same Settings choice
+ * ([NewDocumentCanvas]), and process state for the same reason [newDocumentFormat] is: the one place it
+ * is read ([blankTab]) is a plain function with no settings in hand.
+ *
+ * It is *derived*, not copied: a `.xopp` has no chunk container, so a new document written in one is
+ * paged whatever the geometry setting says ([NewDocumentCanvas.modeFor]). Deriving it here rather than
+ * consulting the format at [blankTab] keeps the two process values — format and geometry — always
+ * describing the same birth.
+ *
+ * Like the format, it decides only what a *new* document starts as: a document that was opened carries
+ * its own geometry on its tab ([OpenTab.canvasMode]), which is what keeps a chunked `.mobix` chunked.
+ */
+internal var newDocumentCanvas: CanvasMode = CanvasMode.PAGINATED
+
+/** Push the **new-document canvas geometry** down into [blankTab], the way [applyNewDocumentFormat] is. */
+internal fun MainActivity.applyNewDocumentCanvas(settings: AppSettings) {
+    newDocumentCanvas = settings.newDocumentCanvas.modeFor(settings.newDocumentFormat.format)
+}
+
+/**
  * Push every settings value the **non-Compose layers** hold: the storage budgets, the default page
- * size, and the format new documents are born in.
+ * size, and the format and canvas geometry new documents are born in.
  *
  * They travel together because they are pushed at the same two moments — the settings that come off
  * disk at startup, and every later change made in Settings or in the onboarding tour — and because
  * missing one is invisible until the feature it drives misbehaves: a forgotten page size shows up as
- * an A4 sheet, a forgotten format as a document saved in the wrong one. One call site means adding a
- * fourth is one line, in one place.
+ * an A4 sheet, a forgotten format as a document saved in the wrong one, a forgotten geometry as a
+ * notebook that was meant to keep scrolling. One call site means adding a fifth is one line, in one
+ * place.
  */
 internal fun MainActivity.applySettingsToLayers(settings: AppSettings) {
     applyStorageLimits(settings)
     applyDefaultPageSize(settings)
     applyNewDocumentFormat(settings)
+    applyNewDocumentCanvas(settings)
 }
 
 /**
@@ -148,6 +171,11 @@ internal fun MainActivity.applySettingsToLayers(settings: AppSettings) {
  */
 private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isReadOnly: Boolean) {
     saveFormat = loaded.format
+    // …and the canvas geometry it came in, because the tab is what carries a document's shape into its
+    // next save: a chunked `.mobix` written back as a paginated one is the rewrite
+    // `docs/mobix-format.md` refuses a document to avoid, and the tab is the record of it that
+    // survives the app being closed (`OpenTab.canvasMode`).
+    tabs.updateActive { it.copy(canvasMode = loaded.canvasMode) }
     surface?.isReadOnly = isReadOnly
     surface?.setPdfSource(loaded.pdf?.let(PdfPageCache::shared))
     surface?.clearPdfAnalysis() // cleared until extraction below finishes
@@ -452,8 +480,13 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     // pages this write will build, not every page of the document — a page the archive already holds
     // needs no id minted into it, and asking it for one would inflate it here, on the UI thread.
     val snapshot = view.toDocument()
+    // The geometry this write claims: the tab's, set by the open from the file it read and by [blankTab]
+    // from Settings. A document this session opened keeps the mode its own file declares whatever this
+    // says ([MobixOpenSessions.canvasModeOf]) — the two agree for anything the app itself opened, and
+    // the file is the one to trust if they ever disagree.
+    val canvasMode = tabs.active?.canvasMode ?: CanvasMode.PAGINATED
     val document = if (saveFormat == SaveFormat.MOBIX) {
-        view.adoptIdentity(io.identifyForSave(snapshot, uri))
+        view.adoptIdentity(io.identifyForSave(snapshot, uri, canvasMode))
     } else {
         snapshot
     }
@@ -465,7 +498,7 @@ internal fun MainActivity.saveDocument(uri: Uri) {
             // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
             // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
             // The recordings travel inside a `.mobix` the way its backgrounds do ([AudioSession.recording]).
-            val encoded = io.encode(document, pdf, saveFormat, uri, images, audio::recording)
+            val encoded = io.encode(document, pdf, saveFormat, uri, images, audio::recording, canvasMode)
             try {
                 io.stageOut(encoded.file, uri)
             } finally {

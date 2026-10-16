@@ -1,6 +1,7 @@
 package com.mobixournal.tabs
 
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.format.mobix.CanvasMode
 
 /**
  * The session index — the small text file that says which tabs were open, in what order, and which
@@ -13,10 +14,10 @@ import com.mobixournal.format.SaveFormat
  * Layout — the first line is the selection, then one tab per line, tab-separated:
  * ```
  * active<TAB>1
- * <id><TAB><title><TAB><uri><TAB><format><TAB><pdfPath><TAB><page><TAB><docKey><TAB><isReadOnly>
+ * <id><TAB><title><TAB><uri><TAB><format><TAB><pdfPath><TAB><page><TAB><docKey><TAB><isReadOnly><TAB><canvasMode>
  * ```
- * Trailing fields (`docKey`, `isReadOnly`) were added after the format shipped, so records without
- * them are still read with defaults.
+ * Trailing fields (`docKey`, `isReadOnly`, `canvasMode`) were added after the format shipped, so
+ * records without them are still read with defaults.
  * Empty fields mean null. Field values are escaped ([escape]) so a title containing a tab or a
  * newline can never break the record structure.
  */
@@ -38,7 +39,8 @@ object TabIndex {
             append(escape(tab.pdfPath.orEmpty())).append(SEP)
             append(tab.page).append(SEP)
             append(escape(tab.docKey)).append(SEP)
-            append(tab.isReadOnly).append('\n')
+            append(tab.isReadOnly).append(SEP)
+            append(tab.canvasMode.name).append('\n')
         }
     }
 
@@ -71,6 +73,10 @@ object TabIndex {
                 page = f[5].toIntOrNull() ?: 0,
                 docKey = f.getOrNull(6)?.let(::unescape)?.ifEmpty { null } ?: id,
                 isReadOnly = f.getOrNull(7)?.toBooleanStrictOrNull() ?: false,
+                // A record written before the geometry existed says nothing about it, and neither does
+                // one naming a mode this build does not know: both are a paged document, which is what
+                // every document was before the infinite canvas landed.
+                canvasMode = CanvasMode.parse(f.getOrNull(8)) ?: CanvasMode.PAGINATED,
                 hydrated = false,
             )
         }
