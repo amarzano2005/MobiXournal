@@ -50,11 +50,6 @@ class SourceStructureTest {
         // (currentPageIndex / visiblePageIndex over the grid), the search jump through the chrome box,
         // and the mirrored pane being handed the board's grid along with the document.
         "render/DrawingSurfaceView.kt" to 1857,
-        // The canvas geometry a write has to keep lives in the writer (chunkCoords / canvas / stripCoords
-        // and the reuse guard), which put it past the budget: the chunk half is meant to move out the way
-        // io/DocumentIo.kt was split into LoadedFile.kt and MobixOpenSessions.kt
-        // (`split-the-chunk-half-out-of-mobixdocument-kt`).
-        "format/mobix/MobixDocument.kt" to 771,
         "render/CircuitShapes.kt" to 1180,
         // +6 deliberate: the new-document canvas geometry (NewDocumentCanvas), beside the format it
         // pairs with, and its pref key on both sides of SettingsStore.
