@@ -33,6 +33,12 @@ class AudioSession(
     /** True while a clip is sounding. */
     val isPlaying: Boolean get() = player.isPlaying
 
+    /**
+     * Where in the clip playback is, in ms — null while nothing is sounding — so the activity and the
+     * chrome read one place rather than each asking the player ([AudioPlayer.currentPositionMs]).
+     */
+    val playheadMs: Int? get() = player.currentPositionMs
+
     /** Notified whenever recording starts or stops, so the chrome can re-render its state. */
     var onStateChanged: (() -> Unit)? = null
 
@@ -87,6 +93,12 @@ class AudioSession(
 
     /** Stop whatever is playing. */
     fun stopPlayback() = player.stop()
+
+    /**
+     * Move playback to [ms], clamped to the clip's length, and answer the position it will be at — null
+     * while nothing is sounding. What an audio-tap and the scrubber both end up calling.
+     */
+    fun seek(ms: Int): Int? = player.seekTo(ms)
 
     /** The sidecar names [doc] references that are **not** available locally (so won't replay). */
     fun missingFor(doc: Document): Set<String> {
