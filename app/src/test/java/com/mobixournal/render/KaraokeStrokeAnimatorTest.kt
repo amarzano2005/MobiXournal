@@ -5,6 +5,7 @@ import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -139,6 +140,68 @@ class KaraokeStrokeAnimatorTest {
         val dimmedRed = KaraokeStrokeAnimator.dimmedColor(opaqueRed, 0.25f)
         assertEquals(63, (dimmedRed ushr 24) and 0xFF)
         assertEquals(0x00FF0000, dimmedRed and 0x00FFFFFF)
+    }
+
+    /**
+     * The point-precise seek: a tap starts the recording where the **point under it** was drawn, which is
+     * the timing only a `.mobix` carries (`docs/audio-inking-sync.md`). The lookup is pure, so what a tap
+     * would seek to is checked here rather than on a device.
+     */
+    @Test
+    fun seekingFindsTheNearestPointAndTheTimeItNames() {
+        // A sparse stroke: three points a word apart, 0 / 1000 / 2000 ms into a stroke that started at 5 s.
+        val points = listOf(
+            StrokePoint(0.0, 0.0, 1.0, dtMs = 0),
+            StrokePoint(100.0, 0.0, 1.0, dtMs = 1_000),
+            StrokePoint(200.0, 0.0, 1.0, dtMs = 1_000),
+        )
+
+        assertEquals(5_000, KaraokeStrokeAnimator.seekTimeMs(5_000, points, x = 4.0, y = 2.0))
+        assertEquals(6_000, KaraokeStrokeAnimator.seekTimeMs(5_000, points, x = 92.0, y = 0.0))
+        assertEquals("a tap on the fifth word starts there, not at the head", 7_000, KaraokeStrokeAnimator.seekTimeMs(5_000, points, x = 196.0, y = 0.0))
+    }
+
+    @Test
+    fun seekingPastEitherEndLandsOnTheEndItIsPast() {
+        val points = listOf(
+            StrokePoint(0.0, 0.0, 1.0, dtMs = 0),
+            StrokePoint(100.0, 0.0, 1.0, dtMs = 1_000),
+        )
+
+        assertEquals(5_000, KaraokeStrokeAnimator.seekTimeMs(5_000, points, x = -900.0, y = -900.0))
+        assertEquals(6_000, KaraokeStrokeAnimator.seekTimeMs(5_000, points, x = 900.0, y = 900.0))
+    }
+
+    @Test
+    fun seekingAnswersNothingWithoutATimeline() {
+        val untimed = listOf(
+            StrokePoint(0.0, 0.0, 1.0),
+            StrokePoint(100.0, 0.0, 1.0),
+        )
+        assertNull(
+            "a .xopp import has no deltas, so the caller falls back to the stroke's offset",
+            KaraokeStrokeAnimator.seekTimeMs(5_000, untimed, x = 100.0, y = 0.0),
+        )
+        assertNull(KaraokeStrokeAnimator.seekTimeMs(5_000, emptyList(), x = 0.0, y = 0.0))
+    }
+
+    /**
+     * A timeline with a hole in it: the points *before* the hole are as well timed as they ever were, and
+     * the ones after it are short by the delta nobody recorded — so the hole is a fact about each point,
+     * not about the stroke.
+     */
+    @Test
+    fun seekingAcrossAMissingDeltaOnlyTrustsThePointsBeforeIt() {
+        val mixed = listOf(
+            StrokePoint(0.0, 0.0, 1.0, dtMs = 0),
+            StrokePoint(100.0, 0.0, 1.0, dtMs = 500),
+            StrokePoint(200.0, 0.0, 1.0, dtMs = null),
+            StrokePoint(300.0, 0.0, 1.0, dtMs = 200),
+        )
+
+        assertEquals(5_500, KaraokeStrokeAnimator.seekTimeMs(5_000, mixed, x = 100.0, y = 0.0))
+        assertNull("the gap makes its own time unknown", KaraokeStrokeAnimator.pointTimeMs(5_000, mixed, 2))
+        assertNull("and every point after it", KaraokeStrokeAnimator.seekTimeMs(5_000, mixed, x = 300.0, y = 0.0))
     }
 
     @Test

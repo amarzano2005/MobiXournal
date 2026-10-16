@@ -556,14 +556,12 @@ internal fun DrawingSurfaceView.audioTap(event: MotionEvent, pointerIndex: Int) 
         ?.let { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
         ?.let { it as? Stroke }
     val baseRef = stroke?.audioRef()
-    val resolvedRef = if (baseRef != null && stroke.points.isNotEmpty()) {
-        val nearest = stroke.points.minByOrNull { hypot(it.x - xPt, it.y - yPt) }
-        val pointDt = nearest?.dtMs ?: 0
-        com.mobixournal.audio.AudioRef(baseRef.filename, baseRef.startMs + pointDt)
-    } else {
-        baseRef
-    }
-    onAudioTap?.invoke(resolvedRef)
+    // Point-precise where the stroke carries the telemetry a `.mobix` stores: the tap starts the
+    // recording at the **point** under it, so a tap on the fifth word starts there rather than at the
+    // stroke's head. A stroke with no deltas (a `.xopp` import, an older `.mobix`) has no timeline to
+    // be precise with, and the stroke's own offset is the honest answer.
+    val at = baseRef?.let { ref -> KaraokeStrokeAnimator.seekTimeMs(ref.startMs, stroke.points, xPt, yPt) }
+    onAudioTap?.invoke(baseRef?.copy(startMs = at ?: baseRef.startMs))
 }
 
 /** [stroke] with the live recording position stamped on, or unchanged when nothing is recording. */

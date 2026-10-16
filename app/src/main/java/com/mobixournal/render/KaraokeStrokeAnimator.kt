@@ -5,6 +5,7 @@ import android.graphics.Paint
 import com.mobixournal.audio.audioRef
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import kotlin.math.hypot
 
 /**
  * Coordinates inking karaoke animation and sub-stroke scrubbing during audio replay
@@ -80,6 +81,37 @@ object KaraokeStrokeAnimator {
             futurePoints = future,
             dimmedColorArgb = dimmedColor,
         )
+    }
+
+    /**
+     * The **absolute time** point [index] of [points] names, or null when the stroke has no timeline up
+     * to it: `T_start` plus the deltas of every point before it, which is the formula
+     * `docs/audio-inking-sync.md` writes (`t_abs(P_i) = T_stroke_start + Σ dt_k`).
+     *
+     * A missing delta is **not** zero: it is a point whose time was never reported (a `.xopp` import, a
+     * `.mobix` written before the telemetry landed), and summing it as nothing would put every later
+     * point too early. So a hole anywhere up to [index] makes the time unknown — null — and a hole
+     * *after* it does not, because the points before the hole are as well timed as they ever were.
+     */
+    fun pointTimeMs(strokeStartMs: Int, points: List<StrokePoint>, index: Int): Int? {
+        if (index !in points.indices) return null
+        var elapsed = 0
+        for (i in 0..index) {
+            val dt = points[i].dtMs ?: return null
+            elapsed += dt.coerceAtLeast(0)
+        }
+        return strokeStartMs + elapsed
+    }
+
+    /**
+     * Where a tap at the document point ([x], [y]) lands in the recording: the time of the point of
+     * [points] nearest it, or null when that point has no time of its own — in which case the caller
+     * falls back to the stroke's own start offset, which is what a stroke with no telemetry can promise.
+     */
+    fun seekTimeMs(strokeStartMs: Int, points: List<StrokePoint>, x: Double, y: Double): Int? {
+        val nearest = points.indices.minByOrNull { hypot(points[it].x - x, points[it].y - y) }
+            ?: return null
+        return pointTimeMs(strokeStartMs, points, nearest)
     }
 
     /**

@@ -93,9 +93,14 @@ that is on, and carries a **scrubber** over the clip's own length. Dragging it m
 (`AudioSession.seek`, which walks a held clip and seeks a sounding one, reusing the one player so a
 scrub never opens a second), and the canvas repaints where it landed — one publish per drag step rather
 than a frame per vsync, since nothing is moving between the drag's own events. So the page is filled and
-unfilled by the drag, and **the ink-to-audio direction already exists** as a tap: the Play object tool
-seeks to the tapped stroke's offset (point-precise seeking with the `dtMs` telemetry is
-`seek-to-the-point-not-the-stroke`).
+unfilled by the drag. The **ink-to-audio** direction is the Play object tap, and it is **point-precise
+where the data is**: the tap seeks to the time of the point nearest it (`KaraokeStrokeAnimator.seekTimeMs`
+— `T_start` plus the deltas up to that point), so a tap on the fifth word starts there rather than at
+the stroke's head. A stroke whose points carry no deltas — a `.xopp` import, a `.mobix` written before
+the telemetry landed — has no timeline to be precise with, and the tap falls back to the stroke's own
+offset. A gap *inside* a stroke's deltas is read the same way, point by point: the times before the gap
+are trusted and the ones after it are not, because summing a missing delta as zero would start the
+recording too early rather than say it does not know.
 
 ### 1. Inking Karaoke (Stroke Playback Animation)
 During playback of a lecture or meeting:
