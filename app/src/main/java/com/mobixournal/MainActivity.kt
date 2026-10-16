@@ -28,6 +28,9 @@ import com.mobixournal.io.UriStaging
 import com.mobixournal.io.XOPP_MIME
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.panes.MirrorSync
+import com.mobixournal.io.rememberBoardShape
+import com.mobixournal.tabs.MobixTabSnapshots
+import com.mobixournal.tabs.SnapshotSources
 import com.mobixournal.render.BitmapBudget
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.Uncompilable
@@ -63,7 +66,24 @@ class MainActivity : ComponentActivity() {
      * point the second gets its own canvas and its own restored tab session (see [EditorPane]).
      */
     internal val panes: List<EditorPane> by lazy {
-        TABS_DIRS.map { EditorPane(TabStore(File(filesDir, it))) }
+        TABS_DIRS.map {
+            // Each pane's session cache is written in the shape of the document it holds: a `.mobix`
+            // tab snapshots into its own container, which is the only shape that can carry the bundled
+            // picture or recording its pages name ([MobixTabSnapshots]).
+            EditorPane(
+                store = TabStore(File(filesDir, it), MobixTabSnapshots(io, audio::recording)),
+                // The canvas holds an imported picture or an edited board's grid; the document I/O
+                // layer knows what to do with them. Both are asked at snapshot time, for the document
+                // that is actually on the canvas.
+                sourcesOf = { view ->
+                    SnapshotSources(
+                        pdf = view.pdfSourceFile(),
+                        images = view.imageSources(),
+                        rememberBoardShape = { doc -> io.rememberBoardShape(doc, view.canvasGeometry()) },
+                    )
+                },
+            )
+        }
     }
 
     /** Keeps two views of one mirrored document in step across the panes. */

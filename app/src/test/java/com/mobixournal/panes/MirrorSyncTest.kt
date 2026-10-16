@@ -6,6 +6,7 @@ import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
+import com.mobixournal.tabs.XoppSnapshots
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Rule
@@ -17,7 +18,7 @@ class MirrorSyncTest {
 
     @get:Rule val temp = TemporaryFolder()
 
-    private fun pane() = EditorPane(TabStore(temp.newFolder()))
+    private fun pane() = EditorPane(TabStore(temp.newFolder(), XoppSnapshots))
 
     /** A one-page document whose page width doubles as an identity marker in the assertions. */
     private fun doc(width: Double) =

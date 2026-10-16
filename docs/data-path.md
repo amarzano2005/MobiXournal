@@ -241,20 +241,23 @@ Consequences worth knowing:
 - **Only the active tab's document is live**; every other tab holds the snapshot taken when it was
   last showing. That is also what gets written to disk.
 - **The session is cached, not saved.** `TabStore` writes `filesDir/tabs/`: a `session.index` line
-  file (`TabIndex`) plus one `<id>.xopp` gzip snapshot per tab, rewritten on every tab change and in
-  `onPause`. On launch it is read back, so the app reopens on the same tabs with the same unsaved
-  edits. It is a restart cache keyed by tab id — the user's own file (the tab's `uri`) is still the
-  only thing the desktop ever sees, and a snapshot never stands in for saving.
-- **A `.xopp` snapshot cannot carry a bundled payload, and that costs a document one.** The snapshot is
-  gzip XML whatever the tab's format is, so a `.mobix`-backed tab's `Background.bundledAsset` (a page's
-  picture) and `Stroke.bundledAudio` (its recording) have nowhere to go: `TabStore.writeSnapshotAtomically`
-  writes through `Xopp.save`, hydrate rebuilds the model without those references, and a save from the
-  restored tab then writes an archive with no `assets/` entry — the bytes are the user's, and they are
-  gone. Nothing downstream can recover them, because the reference that named them died at the snapshot;
-  the emulator pass over a paged `.mobix` saw exactly that (a bare page 2 and
-  `ImageBackgroundCache: cannot decode pixmap background` in logcat).
-  `keep-a-tabs-bundled-payload-through-the-session-snapshot` is where this is fixed, in the snapshot
-  rather than the save.
+  file (`TabIndex`) plus one snapshot per tab, rewritten on every tab change and in `onPause`. On
+  launch it is read back, so the app reopens on the same tabs with the same unsaved edits. It is a
+  restart cache keyed by tab id — the user's own file (the tab's `uri`) is still the only thing the
+  desktop ever sees, and a snapshot never stands in for saving.
+- **A snapshot is written in the tab's own container.** `<id>.mobix` for a document whose format is
+  the native one, `<id>.xopp` (gzip XML) for every other tab, which is what `TabSnapshots` decides and
+  `TabStore` names files by. It has to be that way round: a `.xopp` has nowhere to put a bundled
+  asset, so writing one for a `.mobix` document drops a page's `Background.bundledAsset` and a
+  stroke's `bundledAudio` at the snapshot — `hydrate` then rebuilds the model without those
+  references, and a save from the restored tab writes the user's own file with no `assets/` entry. The
+  reference dies at the snapshot, so nothing downstream can recover the bytes; the emulator pass that
+  found it saw a bare page 2 and `ImageBackgroundCache: cannot decode pixmap background` in logcat.
+  The native write is the save's own, minus the target (`MobixTabSnapshots` → `DocumentIo.encode`), so
+  a snapshot carries what a Save As would and a restored document even remembers its snapshot as the
+  archive to carry payloads *out of* on the next save. An install that upgraded still reads the
+  `.xopp` its `.mobix` tab was left with, and the next write gives it the native shape — the sweep
+  keys on the tab id, not the suffix, precisely so the two can never both be left behind.
 - **Nothing is parsed or written on the main thread.** Gzip XML over a whole document takes long
   enough to trip Android's ANR watchdog, so the session is restored **lazily and off-thread**:
   `TabStore.load` reads only the small index and returns every tab as a placeholder

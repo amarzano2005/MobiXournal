@@ -21,12 +21,15 @@ class TabStoreTest {
 
     @get:Rule val tmp = TemporaryFolder()
 
+    /** The gzip shape, which is what the rest of this file is about; `TabSnapshotsTest` owns the native one. */
+    private fun xoppStore(dir: java.io.File) = TabStore(dir, XoppSnapshots)
+
     private fun doc(width: Double) = Document(
         pages = listOf(Page(width, 100.0, Background.Solid(-1, "plain"), listOf(Layer(emptyList())))),
     )
 
     @Test fun aTwoTabSessionRoundTripsWithItsOwnPdfPathPerTab() {
-        val store = TabStore(tmp.newFolder())
+        val store = xoppStore(tmp.newFolder())
         val session = TabSession(
             tabs = listOf(
                 OpenTab("t1", "first.xopp", doc(111.0), "content://docs/1", SaveFormat.ZIPPED, "/cache/pdf-1.pdf", 2),
@@ -51,14 +54,14 @@ class TabStoreTest {
     }
 
     @Test fun aTabWithNoPdfBackgroundRestoresWithoutOne() {
-        val store = TabStore(tmp.newFolder())
+        val store = xoppStore(tmp.newFolder())
         store.save(TabSession(listOf(OpenTab("t1", "plain.xopp", doc(100.0))), 0))
         assertNull(store.load()!!.tabs[0].pdfPath)
     }
 
     @Test fun aTabWhoseSnapshotVanishedIsDroppedRatherThanRestoredEmpty() {
         val dir = tmp.newFolder()
-        val store = TabStore(dir)
+        val store = xoppStore(dir)
         store.save(
             TabSession(
                 listOf(OpenTab("t1", "a", doc(111.0), pdfPath = "/cache/pdf-1.pdf"), OpenTab("t2", "b", doc(222.0))),
@@ -75,7 +78,7 @@ class TabStoreTest {
 
     @Test fun closingATabDeletesItsSnapshot() {
         val dir = tmp.newFolder()
-        val store = TabStore(dir)
+        val store = xoppStore(dir)
         store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0)), OpenTab("t2", "b", doc(222.0))), 0))
         store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0))), 0))
 
@@ -86,7 +89,7 @@ class TabStoreTest {
     /** The lazy-restore hazard: persisting a session must not write placeholders over real snapshots. */
     @Test fun savingAnUnhydratedTabLeavesItsSnapshotAlone() {
         val dir = tmp.newFolder()
-        val store = TabStore(dir)
+        val store = xoppStore(dir)
         store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0)), OpenTab("t2", "b", doc(222.0))), 1))
 
         // Restore (t1 comes back unhydrated) and persist again, as a tab switch would.
@@ -98,8 +101,8 @@ class TabStoreTest {
 
     /** Handing a not-yet-parsed tab to the other pane copies its snapshot under the copy's new id. */
     @Test fun adoptingATabCarriesItsSnapshotToTheOtherStore() {
-        val left = TabStore(tmp.newFolder())
-        val right = TabStore(tmp.newFolder())
+        val left = xoppStore(tmp.newFolder())
+        val right = xoppStore(tmp.newFolder())
         left.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0))), 0))
 
         assertEquals(true, right.adopt(left, "t1", "t9"))
@@ -110,11 +113,11 @@ class TabStoreTest {
 
     @Test fun hydratingAnAlreadyLoadedTabIsANoOp() {
         val tab = OpenTab("t1", "a", doc(111.0))
-        assertEquals(tab, TabStore(tmp.newFolder()).hydrate(tab))
+        assertEquals(tab, xoppStore(tmp.newFolder()).hydrate(tab))
     }
 
     @Test fun noSessionOnDiskLoadsAsNull() {
-        assertNull(TabStore(tmp.newFolder()).load())
+        assertNull(xoppStore(tmp.newFolder()).load())
     }
 
     /**
@@ -124,7 +127,7 @@ class TabStoreTest {
      */
     @Test fun anUnreadableSnapshotIsNotOverwrittenByABlankPlaceholder() {
         val dir = tmp.newFolder()
-        val store = TabStore(dir)
+        val store = xoppStore(dir)
         store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0))), 0))
         // Truncate the snapshot so it exists but no longer parses.
         java.io.File(dir, "t1.xopp").writeText("not gzip")
@@ -145,7 +148,7 @@ class TabStoreTest {
      */
     @Test fun aTabStillOpeningKeepsItsPreviousSnapshot() {
         val dir = tmp.newFolder()
-        val store = TabStore(dir)
+        val store = xoppStore(dir)
         store.save(TabSession(listOf(OpenTab("t1", "a", doc(111.0))), 0))
 
         // Re-save the same id as an in-flight fetch: placeholder document, opening = true.
@@ -156,7 +159,7 @@ class TabStoreTest {
 
     /** A tab with no snapshot at all is an honest blank, not a permanently stuck placeholder. */
     @Test fun aMissingSnapshotHydratesToABlankDocument() {
-        val store = TabStore(tmp.newFolder())
+        val store = xoppStore(tmp.newFolder())
         val tab = OpenTab("gone", "x", doc(1.0), hydrated = false)
         assertEquals(true, store.hydrate(tab).hydrated)
     }

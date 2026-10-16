@@ -2,6 +2,7 @@ package com.mobixournal.panes
 
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.tabs.SnapshotSources
 import com.mobixournal.tabs.TabManager
 import com.mobixournal.tabs.TabStore
 
@@ -20,6 +21,12 @@ import com.mobixournal.tabs.TabStore
 class EditorPane(
     /** Where this pane's open tabs (unsaved edits included) are cached across restarts. */
     val store: TabStore,
+    /**
+     * What the live canvas can hand a snapshot for the document on it ([SnapshotSources]) — the app
+     * wires this because the answer comes from two layers this pane does not know: the document I/O
+     * that owns a board's shape, and the canvas that holds the imported sources.
+     */
+    private val sourcesOf: (DrawingSurfaceView) -> SnapshotSources = { SnapshotSources() },
 ) {
     /** The live canvas, once Compose has created it. Null before the first composition. */
     var surface: DrawingSurfaceView? = null
@@ -46,8 +53,15 @@ class EditorPane(
      */
     fun persist() {
         val session = tabs.session()
-        writer.execute { store.save(session) }
+        // The app's stores hold this document's sources only while it is on the canvas, so they are read
+        // here, with the session: a `.mobix` snapshot has to carry a picture or a recording that was
+        // imported this session ([SnapshotSources]), and this is the moment it can be asked.
+        val sources = liveSources()
+        writer.execute { store.save(session, sources) }
     }
+
+    /** What the canvas can supply for the active tab's document — nothing before it exists. */
+    private fun liveSources(): SnapshotSources = surface?.let(sourcesOf) ?: SnapshotSources()
 
     /**
      * Block until the queued session writes have finished — used when the app is going away and the
