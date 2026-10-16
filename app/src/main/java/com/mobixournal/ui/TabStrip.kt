@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.rememberChromeColor
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * Everything the [TabStrip] needs, bundled so [EditorScreen]'s parameter list stays readable.
@@ -254,7 +255,7 @@ private fun Modifier.tabChipInteractions(
 ): Modifier {
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val shape = RoundedCornerShape(TAB_CHIP_CORNER)
-    val glassColor = com.mobixournal.ui.theme.ModernTheme.glassSurface(isDark)
+    val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = com.mobixournal.ui.theme.ModernTheme.hairlineBorder(isDark)
     val background = if (selected) {
         glassColor

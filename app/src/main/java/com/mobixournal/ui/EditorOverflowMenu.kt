@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * The top-bar overflow ("hamburger") menu: the glass button that opens it and the panel itself —
@@ -81,8 +82,8 @@ internal fun OverflowMenu(
 ) {
     var open by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
-    val glassColor = ModernTheme.glassSurface(isDark)
-    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    val glassColor = rememberGlassSurfaceColor()
+    val hairlineColor = ModernTheme.hairlineBorder(isDark)
     Box {
         Surface(
             shape = CircleShape,

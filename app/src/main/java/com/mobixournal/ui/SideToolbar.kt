@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Stationery
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
@@ -175,7 +176,7 @@ private fun ToolbarShell(
 ) {
     val baseSlot = SideToolbarModernSlot
     val isDark = isSystemInDarkTheme()
-    val glassColor = ModernTheme.glassSurface(isDark)
+    val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
     if (horizontal) {

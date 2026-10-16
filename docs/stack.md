@@ -27,15 +27,21 @@ native for stylus latency and platform fit).
     transparent top bar, the tab strip, and both Android system bars (`Theme.kt` sets
     `statusBarColor`/`navigationBarColor` from it). Three dark greys stacked down the screen read as
     three unrelated surfaces, so all of them take this one.
-  - **`rememberToolbarColor()` — the implement colour** (`surfaceContainer`): the Main Toolbar rail
-    (`SideToolbar.kt`) and the Secondary Toolbar's floating dock (`EditorRegions.kt`) are filled with
-    it, and **the canvas backdrop takes the same value**, so the desk around the page stack is literally
-    the material the tools are made of rather than a darker void behind them. The docks keep their one
-    tonal step over the bars, which is what makes a floating dock read as floating instead of dissolving
-    into the bar it hangs from. Rail, dock and surround all read this, so they cannot drift apart.
+  - **`rememberGlassSurfaceColor()` — the one frosted-glass filler** (`ModernTheme.glassSurface`, so
+    `rgba(22, 22, 24, 0.85)` in dark / `rgba(255, 255, 255, 0.88)` in light): the Main Toolbar rail
+    (`SideToolbar.kt`), the header slab (`EditorRegions.kt` / `EditorScreen.kt`'s `RailLane`), the
+    Secondary Toolbar's floating dock, the tab chips — **and every pop-up the chrome opens**
+    (`ToolbarMenu`). Bars and menus read this one function, so a pop-up reads as the bar's own material
+    and cannot be a different one from the bar it hangs from; the canvas
+    backdrop is the exception, on `rememberChromeColor()` (`background`), since the desk is the bars'
+    colour and the frosted implements stand on it.
+  - **`rememberToolbarColor()` — the raised panels** (`surfaceContainer`): dialog and picker chrome
+    (`AdvancedFunctionGraphDialog`, section plates). It is *not* what the bars paint, whatever the
+    name suggests; it is the neutral container role [colours.md](colours.md) pins per theme (`NeutralContainerDark` `#252528`, `NeutralContainerLight` `#EAEDF0`).
 
-  A new *bar* surface takes `rememberChromeColor`, a new *tool* surface takes `rememberToolbarColor`;
-  neither is a `surfaceContainer*` role spelled out by hand. `pageOutline` (the scheme's
+  A new *bar* or *pop-up* surface takes `rememberGlassSurfaceColor`, a new *raised panel* takes
+  `rememberToolbarColor`, and the desk takes `rememberChromeColor`; none of them is a
+  `surfaceContainer*` role spelled out by hand, in either theme. `pageOutline` (the scheme's
   `outlineVariant` hairline around each sheet, drawn in `DrawingSurfacePaint.drawPageOutline` — **not**
   in `BackgroundRenderer`, which the PDF exporter also calls) is what keeps a near-white page findable
   against a light-themed surround. **Ink, pen palette and page backgrounds are document data, not

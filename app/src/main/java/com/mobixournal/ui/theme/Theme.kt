@@ -3,6 +3,7 @@ package com.mobixournal.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -18,37 +19,102 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.mobixournal.ui.ThemeMode
 
-internal val LightColors = lightColorScheme(
+/**
+ * Re-pins every chrome role of a light scheme, in one place.
+ *
+ * `lightColorScheme()` fills whatever it is not told with Material 3's **baseline** palette, whose
+ * neutrals are violet-tinted: `surfaceContainer` `#F3EDF7`, `primaryContainer` `#EADDFF`,
+ * `secondaryContainer` `#E8DEF8`, `surfaceVariant` `#E7E0EC`. This app's palette is black, grey and one
+ * blue accent, so a role left at the baseline is a role that can show a lavender panel, a periwinkle
+ * chip or a violet selected cell — which is exactly what a light-theme pop-up and its selected rows
+ * were doing, since only a handful of roles had ever been named here.
+ *
+ * So the light scheme is not built by naming a few roles and inheriting the rest: the whole chrome is
+ * pinned, and **both** [LightColors] and the Android 12+ dynamic light scheme pass through this, so a
+ * wallpaper palette cannot tint a container either. Error reds are deliberately *not* pinned: they are
+ * semantic, not chrome. Pinned role by role by `ColorContractGuardTest`.
+ */
+private fun ColorScheme.pinnedLightChrome(): ColorScheme = copy(
     primary = Blue,
+    onPrimary = Color.White,
+    primaryContainer = ActiveSlotLight,
+    onPrimaryContainer = TextDarkOnLight,
     secondary = Blue,
-    surface = Color.White,
-    onSurface = TextDarkOnLight,
-    surfaceVariant = Color(0xFFF3F6FC),
-    onSurfaceVariant = TextSecondaryOnLight,
+    onSecondary = Color.White,
+    secondaryContainer = ActiveSlotLight,
+    onSecondaryContainer = TextDarkOnLight,
+    tertiary = TextSecondaryOnLight,
+    onTertiary = Color.White,
+    tertiaryContainer = NeutralContainerLightHigh,
+    onTertiaryContainer = TextDarkOnLight,
     background = DeskLight,
     onBackground = TextDarkOnLight,
+    surface = Color.White,
+    onSurface = TextDarkOnLight,
+    surfaceVariant = NeutralContainerLightHigh,
+    onSurfaceVariant = TextSecondaryOnLight,
+    surfaceTint = NeutralContainerLight,
+    surfaceBright = Color.White,
+    surfaceDim = NeutralContainerLightHighest,
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = NeutralContainerLightLow,
+    surfaceContainer = NeutralContainerLight,
+    surfaceContainerHigh = NeutralContainerLightHigh,
+    surfaceContainerHighest = NeutralContainerLightHighest,
+    outline = OutlineLight,
+    outlineVariant = OutlineVariantLight,
+    inverseSurface = NeutralContainerDark,
+    inverseOnSurface = TextLightOnDark,
+    inversePrimary = BlueDark,
+    scrim = Color.Black,
 )
-internal val DarkColors = darkColorScheme(
+
+/**
+ * The dark theme's own half of the pin: the true-OLED black desk with sleek **neutral charcoal**
+ * layers, shared by [DarkColors] and the dynamic dark scheme (a wallpaper palette used to be free to
+ * tint the containers the copy here does not name).
+ *
+ * Note `primaryContainer`/`secondaryContainer` are the neutral steel greys ([ActiveSlotDark]) rather
+ * than the baseline's violet, so "picked" and "selected" wear grey here and in the light theme, never
+ * a pastel.
+ */
+private fun ColorScheme.pinnedDarkChrome(): ColorScheme = copy(
     primary = BlueDark,
+    onPrimary = OnAccentDark,
     primaryContainer = ActiveSlotDark,
     onPrimaryContainer = TextLightOnDark,
     secondary = BlueDark,
+    onSecondary = OnAccentDark,
+    secondaryContainer = ActiveSlotDark,
+    onSecondaryContainer = TextLightOnDark,
+    tertiary = TextSecondaryOnDark,
+    onTertiary = OnAccentDark,
+    tertiaryContainer = NeutralContainerDark,
+    onTertiaryContainer = TextLightOnDark,
+    background = DeskDark,
+    onBackground = TextLightOnDark,
     surface = Color(0xFF161618),
     onSurface = TextLightOnDark,
     surfaceVariant = NeutralContainerDark,
     onSurfaceVariant = TextSecondaryOnDark,
-    surfaceContainer = NeutralContainerDark,
-    surfaceContainerLow = Color(0xFF18181A),
-    surfaceContainerHigh = Color(0xFF2C2C30),
-    surfaceContainerHighest = Color(0xFF38383E),
-    surfaceContainerLowest = DeskDark,
+    surfaceTint = NeutralContainerDark,
     surfaceBright = Color(0xFF424248),
     surfaceDim = Color(0xFF141416),
-    background = DeskDark,
-    onBackground = TextLightOnDark,
+    surfaceContainerLowest = DeskDark,
+    surfaceContainerLow = Color(0xFF18181A),
+    surfaceContainer = NeutralContainerDark,
+    surfaceContainerHigh = Color(0xFF2C2C30),
+    surfaceContainerHighest = Color(0xFF38383E),
     outline = OutlineDark,
     outlineVariant = OutlineVariantDark,
+    inverseSurface = TextLightOnDark,
+    inverseOnSurface = TextDarkOnLight,
+    inversePrimary = Blue,
+    scrim = Color.Black,
 )
+
+internal val LightColors: ColorScheme = lightColorScheme().pinnedLightChrome()
+internal val DarkColors: ColorScheme = darkColorScheme().pinnedDarkChrome()
 
 /**
  * Whether [mode] means "paint dark" right now — SYSTEM defers to the OS setting.
@@ -78,32 +144,14 @@ fun XoppTheme(
     val context = LocalContext.current
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            // A wallpaper palette may only reach the roles the pin does not name (the error colours).
+            // The two dynamic schemes used to be copied by hand, and the *light* one only had primary
+            // and secondary re-pinned — so enabling dynamic colour turned every light container violet
+            // again. Both halves now go through the same pin as the static schemes.
             if (darkTheme) {
-                dynamicDarkColorScheme(context).copy(
-                    primary = BlueDark,
-                    primaryContainer = ActiveSlotDark,
-                    onPrimaryContainer = TextLightOnDark,
-                    secondary = BlueDark,
-                    surface = Color(0xFF161618),
-                    surfaceVariant = NeutralContainerDark,
-                    surfaceContainer = NeutralContainerDark,
-                    surfaceContainerLow = Color(0xFF18181A),
-                    surfaceContainerHigh = Color(0xFF2C2C30),
-                    surfaceContainerHighest = Color(0xFF38383E),
-                    surfaceContainerLowest = DeskDark,
-                    surfaceBright = Color(0xFF424248),
-                    surfaceDim = Color(0xFF141416),
-                    background = DeskDark,
-                    onBackground = TextLightOnDark,
-                    onSurface = TextLightOnDark,
-                    outline = OutlineDark,
-                    outlineVariant = OutlineVariantDark,
-                )
+                dynamicDarkColorScheme(context).pinnedDarkChrome()
             } else {
-                dynamicLightColorScheme(context).copy(
-                    primary = Blue,
-                    secondary = Blue,
-                )
+                dynamicLightColorScheme(context).pinnedLightChrome()
             }
         }
         darkTheme -> DarkColors

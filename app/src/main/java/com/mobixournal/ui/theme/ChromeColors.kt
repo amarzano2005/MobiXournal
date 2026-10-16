@@ -1,5 +1,6 @@
 package com.mobixournal.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -48,12 +49,30 @@ data class CanvasChromeColors(
 fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
 
 /**
- * The toolbars' colour: the fill of the Main Toolbar rail and of the Secondary Toolbar's floating dock.
+ * The fill of every **chrome surface**: the rail, the header slab, the figures' dock — and every
+ * pop-up the chrome opens.
  *
- * This is the app's *implement* colour — the material the tools are made of: neutral charcoal layers
- * in dark mode and light container in light mode.
+ * This is the app's frosted glass ([ModernTheme.glassSurface]), and it is deliberately *one* function
+ * rather than one call to the token per surface: a pop-up that reads this and a bar that reads this
+ * cannot be two different materials. That is the whole point — the pop-ups used to paint
+ * [rememberToolbarColor] (`surfaceContainer`) while the bars painted the glass, so in the light theme
+ * the bar was near-white and the menu that hung from it was the baseline lavender `#F3EDF7`: a blue-grey
+ * panel beside a grey bar, in a palette with no violet in it.
  *
- * Rail, dock and popup menus all read this, so they cannot drift apart.
+ * Both also read the *same* dark/light answer, so the pair cannot disagree when a device's system
+ * setting and the app's own `ThemeMode` differ either.
+ */
+@Composable
+fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(isSystemInDarkTheme())
+
+/**
+ * The raised **panels'** colour: dialog and picker chrome (the function-plot chrome, the share and
+ * page dialogs), i.e. `surfaceContainer` — [NeutralContainerLight] in the light theme,
+ * [NeutralContainerDark] in the dark one.
+ *
+ * It is *not* the toolbars' colour even though the role was named for them: the rail, the header slab
+ * and the dock are frosted glass ([rememberGlassSurfaceColor]) and have been since the chrome was
+ * banded. A new panel takes this; a new *bar* or pop-up takes the glass.
  */
 @Composable
 fun rememberToolbarColor(): Color = MaterialTheme.colorScheme.surfaceContainer

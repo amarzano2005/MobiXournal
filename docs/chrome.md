@@ -97,7 +97,8 @@ Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. Every
 one of those menus — the rail's, the dock's, the views'/pages'/layers' panels, the ☰ overflow and
 the settings drop-downs — is built by `ToolbarMenu` (`ToolbarPopup.kt`), the app's **one menu
-material**: the toolbars' own `surfaceContainer` fill with `surfaceTint` pinned to it (M3 paints the
+material**: the frosted glass the bars paint (`rememberGlassSurfaceColor()`) with `surfaceTint` pinned
+to it (M3 paints the
 menu's 3dp `ContainerElevation` as a tint wash, which otherwise lands it a step off the bar) and the
 dock's 20dp corner in place of M3's 4dp `Shapes.extraSmall`, since neither the fill nor the corner is
 a parameter `DropdownMenu` exposes in 1.2.1 — the ambient theme is the only lever, and the override

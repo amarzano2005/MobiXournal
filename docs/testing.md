@@ -64,6 +64,11 @@ change can see what will fail it:
   test rewards; the remedy for a failure is a split, or a deliberate bump of a recorded number.
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
+- **`ColorContractGuardTest`** (`guards/`) — the palette's own contract, asserted by **sweep** rather
+  than by spot-check: every container and outline role of both schemes is measured for a violet wash
+  ("green deficit"), the light ramp is pinned role by role, the one menu material must read
+  `rememberGlassSurfaceColor` rather than a container role of its own, and the metric itself is
+  pinned against Material 3's baseline neutrals so it cannot be loosened into passing on lavender.
 - **`FormatDriftTest`** (`format/`) — the `.xopp` mapping the docs describe against what the writers
   emit, so the format documentation cannot drift from the code.
 - **`DesktopColorParityTest`**, **`RealFileRoundTripTest`**, **`SelectionHandleRadiusTest`** and

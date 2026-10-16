@@ -31,6 +31,7 @@ import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.tracePenParameters
 import com.mobixournal.ui.theme.rememberChromeColor
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
@@ -492,8 +493,7 @@ private fun EditorBody(
 /** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
 @Composable
 private fun RailLane(toolbar: @Composable () -> Unit) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-    val glassColor = com.mobixournal.ui.theme.ModernTheme.glassSurface(isDark)
+    val glassColor = rememberGlassSurfaceColor()
     Surface(
         color = glassColor,
         shadowElevation = 4.dp,

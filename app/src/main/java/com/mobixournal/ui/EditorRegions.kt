@@ -99,6 +99,7 @@ import com.mobixournal.render.SearchStatus
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
@@ -132,7 +133,7 @@ fun EditorTopBar(
     // content clear of it is simply needed whenever that edge is the left one.
     val railOnLeft = (settings?.toolbarPosition ?: ToolbarPosition.LEFT) == ToolbarPosition.LEFT
     val isDark = isSystemInDarkTheme()
-    val glassColor = ModernTheme.glassSurface(isDark)
+    val glassColor = rememberGlassSurfaceColor()
 
     // **One header, one slab — and no line across it.** In the Standard layout the document tabs are this
     // bar's *second row*, inside the same `Surface`, and neither the slab nor the seam between its rows is
@@ -212,7 +213,7 @@ fun EditorTopBar(
                     containerColor = Color.Transparent,
                 ),
                 actions = {
-                val glassColor = ModernTheme.glassSurface(isDark)
+                val glassColor = rememberGlassSurfaceColor()
                 val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
                 // Order is deliberate: split view sits directly right of the search button, then the
@@ -398,7 +399,7 @@ private fun SearchControls(pane: PaneState) {
     }
     if (!pane.searchOpen) {
         val isDark = isSystemInDarkTheme()
-        val glassColor = ModernTheme.glassSurface(isDark)
+        val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
         Surface(
             shape = CircleShape,
@@ -890,7 +891,7 @@ fun TopBarToolsRow(
     }
 
     val isDark = isSystemInDarkTheme()
-    val glassColor = ModernTheme.glassSurface(isDark)
+    val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
     val dock = @Composable {

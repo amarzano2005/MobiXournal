@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.MENU_RIM_ALPHA_BOTTOM
 import com.mobixournal.ui.theme.MENU_RIM_ALPHA_TOP
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberMenuRimColor
-import com.mobixournal.ui.theme.rememberToolbarColor
 
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
@@ -104,9 +104,15 @@ internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurf
 
 /**
  * The toolbar's own [DropdownMenu] — every pop-up the toolbars open is cut from the **same material
- * as the bars themselves**: the toolbars' [rememberToolbarColor] (`surfaceContainer`) for its fill,
- * and their own [TOP_BAR_DOCK_CORNER] for its corners, so a menu reads as part of the bar it hangs
- * from instead of a paler, squarer panel floating over it.
+ * as the bars themselves**: [rememberGlassSurfaceColor], the frosted glass the rail, the header slab
+ * and the dock paint, for its fill, and their own [TOP_BAR_DOCK_CORNER] for its corners,
+ * so a menu reads as part of the bar it hangs from instead of a paler, squarer panel floating over it.
+ *
+ * That fill used to be [rememberToolbarColor] (`surfaceContainer`) while the bars painted the glass,
+ * which is what left every light-theme pop-up the *baseline lavender* `#F3EDF7` — a violet-tinted
+ * panel beside a near-white bar, and the one place a colour outside the black/grey/blue palette could
+ * still reach the screen. One function for both is what makes "the menu is the bar's material" a
+ * property of the code instead of a claim in a comment.
  *
  * Neither the fill nor the corner is a parameter this Material3 version exposes — both overloads of
  * [DropdownMenu] in 1.2.1 stop at the offset, the scroll state and `PopupProperties` — so this takes
@@ -146,7 +152,7 @@ internal fun ToolbarMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val toolbar = rememberToolbarColor()
+    val toolbar = rememberGlassSurfaceColor()
     val scheme = MaterialTheme.colorScheme
     val shapes = MaterialTheme.shapes
     val rim = rememberMenuRimColor()
