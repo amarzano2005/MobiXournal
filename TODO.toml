@@ -512,20 +512,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "export-an-infinite-document-through-the-auto-slicer"
-title = "Export an infinite document through the auto-slicer"
-description = "render-and-edit-an-infinite-canvas-document, the way out. render/CanvasAutoSlicer.kt is complete and has no caller at all: findVerticalCuts, findBestSeam, sliceVerticalStripToPages and sliceHorizontalStripToPages already cut a continuous strip at a whitespace seam within 40 pt of each target cut and never split a stroke, a table or a plot (docs/infinite-canvas.md). Wire it into the export path so a chunked document can leave the app: Save As .xopp and PDF (io/DocumentIo.kt encode, render/XoppSynthesis.kt, render/PdfExporter.kt) slices the document content using canvas.json origin, widthPt and heightPt, where origin records where page 1 begins, and the result is an ordinary paginated document that desktop Xournal++ and any PDF reader open. Nothing about the source document changes: the .mobix keeps its chunks. Verify with JVM tests: a vertical strip whose strokes leave a clear gap yields whole pages with no stroke split across a seam, a horizontal strip slices the same way, a document whose content is one long stroke produces a page holding it whole rather than two halves, and the exported .xopp re-parses through Xopp.parseXml with the expected page count."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 487
-created = 2026-10-15
-tags = ["canvas", "export"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "publish-the-audio-playhead-from-the-player"
 title = "Publish the audio playhead from the player"
 description = "replay-the-writing-in-time-with-its-recording, the clock first. audio/AudioPlayer.kt wraps a MediaPlayer but exposes only isPlaying, and audio/AudioSession.kt only play, stopPlayback and isPlaying, so nothing downstream can know where in the recording playback is - which is why render/KaraokeStrokeAnimator.kt, whose State wants a playheadMs, has no caller. Add the playhead to the player: currentPositionMs (null when nothing is sounding), seekTo(ms) clamped to the clip duration, and completion reported through the existing onPlayingChanged callback. Put the MediaPlayer reading behind a small seam - a position supplier that defaults to the player and is injectable - so the arithmetic around it (clamp, null-when-idle, position after a seek) is JVM-testable with no Android. AudioSession exposes the same surface (playheadMs, seek) so the activity and the chrome read one place, and keeps its one-clip-at-a-time and release semantics untouched. Nothing draws yet: this task is only the clock. Verify with JVM tests over the seam for a playing clip, an idle player, a seek past the end and a completed clip."

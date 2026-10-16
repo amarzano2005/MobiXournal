@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "export-an-infinite-document-through-the-auto-slicer"
+title = "Export an infinite document through the auto-slicer"
+description = "render-and-edit-an-infinite-canvas-document, the way out. render/CanvasAutoSlicer.kt is complete and has no caller at all: findVerticalCuts, findBestSeam, sliceVerticalStripToPages and sliceHorizontalStripToPages already cut a continuous strip at a whitespace seam within 40 pt of each target cut and never split a stroke, a table or a plot (docs/infinite-canvas.md). Wire it into the export path so a chunked document can leave the app: Save As .xopp and PDF (io/DocumentIo.kt encode, render/XoppSynthesis.kt, render/PdfExporter.kt) slices the document content using canvas.json origin, widthPt and heightPt, where origin records where page 1 begins, and the result is an ordinary paginated document that desktop Xournal++ and any PDF reader open. Nothing about the source document changes: the .mobix keeps its chunks. Verify with JVM tests: a vertical strip whose strokes leave a clear gap yields whole pages with no stroke split across a seam, a horizontal strip slices the same way, a document whose content is one long stroke produces a page holding it whole rather than two halves, and the exported .xopp re-parses through Xopp.parseXml with the expected page count."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-15
+completed = 2026-10-16
+tags = ["canvas", "export"]
+
+[[task]]
 id = "render-a-chunked-document-as-an-unbounded-canvas"
 title = "Render a chunked document as an unbounded canvas"
 description = "render-and-edit-an-infinite-canvas-document, the shown half. The rendering side exists and has no caller: render/DrawingSurfaceInfinite.kt setInfiniteCanvas(mode, chunkSizePt, chunks) sets viewport.canvasMode and builds a render/ChunkTileManager.kt, and nothing calls it, while render/DrawingSurfacePaint.kt paint() lays out and draws a PageBox stack from render/PageStacker.kt (layout.visible(scrollY, height)), page outlines, the bookmark flag, the overview grid and the page counter. Wire the open path so a chunked document reaches the surface: call setInfiniteCanvas with the document canvas mode, the chunkSizePt from format/mobix/MobixCanvasFile.kt, and its chunks, and make paint() take the chunk path when chunkTileManager is not null - draw the unbounded sheet for the mode (the locked width or height from canvas.json, the default paper otherwise) plus the chunks the viewport intersects (ViewportState.visibleChunkRange, ChunkTileManager.visibleChunks), and skip the page-stack pass instead of drawing one page box per chunk. Document coordinates: the sheet origin for the two strip modes, a free plane for INFINITE_2D, so a view point maps to a document point without a PageBox. Eviction stays the tile manager concern (the next task). Verify with JVM tests that ViewportState.visibleChunkRange and ChunkTileManager.visibleChunks agree for a known viewport and zoom, plus an emulator pass on a chunked document: the sheet scrolls past the first chunk instead of ending, no page outline or counter is drawn, and logcat is clean."
