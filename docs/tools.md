@@ -203,8 +203,10 @@ reaches the device. Keep it for the `/data/android` pipeline, where that mismatc
   taken then are black: `adb shell input keyevent KEYCODE_WAKEUP` (and `82` to dismiss the lock
   screen) first, then confirm with `adb shell dumpsys window | grep mCurrentFocus`.
 - **A finger only draws when the app's *Finger draws* setting is on** — otherwise it pans, which
-  looks exactly like "my input did nothing". `adb shell input` cannot send stylus events, so either
-  turn that setting on or exercise pen-only paths another way.
+  looks exactly like "my input did nothing". To draw as a **pen**, name the source:
+  `adb shell input stylus swipe 500 450 2100 1250 700` delivers `TOOL_TYPE_STYLUS`, which the canvas
+  inks whatever the finger setting says (`input` lists `stylus` among its sources; check
+  `adb shell input` for the list this image has).
 - **Find a control's coordinates instead of guessing them:** `adb shell uiautomator dump` then
   `adb pull` gives every button's `content-desc` and bounds (`Tool: Pen`, `Drawing guides`, …).
 - **Hand a document to the app without driving the picker:** `adb shell am start -a
@@ -214,8 +216,18 @@ reaches the device. Keep it for the `/data/android` pipeline, where that mismatc
   a toast, no tab. `adb push x.mobix /data/local/tmp/` then
   `adb shell run-as com.mobixournal.v2 cp /data/local/tmp/x.mobix files/x.mobix` puts it in the app's
   own sandbox, and `file:///data/data/com.mobixournal.v2/files/x.mobix` opens every time.
+- **Fixtures for an emulator pass:** the documents a runtime pass needs are written by a JVM test
+  rather than by hand, so the device fixture and the unit-test fixture cannot drift apart:
+  `./gradlew testDebugUnitTest --tests com.mobixournal.io.DeviceFixturesTest` writes
+  `app/build/device-fixtures/paged-200.mobix` (200 pages, a **bundled picture** on page 2, a graph page
+  3) and `board-2d.mobix` (an `INFINITE_2D` board at cells `(0, 0)`, `(1, 0)` and `(-1, 0)`, so a
+  signed chunk name is exercised). Push them into `/sdcard/Download/` and open them from the picker;
+  a fixture whose `minAppVersion` is newer than the installed build opens **read-only**, so the writer
+  pins it to the app's own version.
 - **Verify colours and geometry from the screenshot, not by eye:** crop and sample it (PIL/`magick`),
   e.g. compare a pop-up's fill with the toolbar's. Two pixels that look alike are one `assert` apart.
+  A wrapped `.mobix` is a ZIP: `zipfile` plus the JSON inside confirms what a save actually wrote —
+  which chunk gained a stroke, whether an `assets/` entry survived, whether `pages/` is still empty.
 - **Windows/Git Bash mangles `/sdcard/…` paths** into `C:/Program Files/Git/sdcard/…`: prefix the
   command with `MSYS_NO_PATHCONV=1`, or write the remote path as `//sdcard/…`.
 - **`adb devices` showing `unauthorized` usually means the AVD resumed from a snapshot**, not a bad
