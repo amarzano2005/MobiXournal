@@ -2,6 +2,8 @@ package com.mobixournal.guards
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import com.mobixournal.ui.theme.ActiveSlotDark
 import com.mobixournal.ui.theme.ActiveSlotLight
@@ -156,13 +158,83 @@ class ColorContractGuardTest {
         assertTrue("File must exist: ${file.path}", file.isFile)
         val text = file.readText()
         assertTrue(
-            "the pop-up's fill must be the bars' own glass: `val toolbar = rememberGlassSurfaceColor()`",
-            text.contains("val toolbar = rememberGlassSurfaceColor()"),
+            "the pop-up's fill must be the bars' own glass, with the panel's less see-through alpha: " +
+                "`val toolbar = rememberMenuSurfaceColor()`",
+            text.contains("val toolbar = rememberMenuSurfaceColor()"),
         )
         assertFalse(
             "…and must not fall back to the surfaceContainer role it used to read",
             text.contains("import com.mobixournal.ui.theme.rememberToolbarColor"),
         )
+    }
+
+    /**
+     * The panel is the **bar's colour** at a **higher** opacity — one material, read at two fade
+     * levels — rather than a colour of its own.
+     *
+     * Both halves matter. Sharing the RGB is what makes a menu read as part of the bar it hangs from
+     * (the lavender `surfaceContainer` failure); the higher alpha is what makes the rows on it
+     * readable (see [thePopUpPanelKeepsItsInkLegibleOverAnyBackdrop]). A future "let me just make the
+     * panel a bit lighter" edit has to break one of these two assertions first.
+     */
+    @Test
+    fun thePanelIsTheBarsColourWithLessSeeThrough() {
+        for (isDark in listOf(false, true)) {
+            val where = if (isDark) "dark" else "light"
+            val bar = ModernTheme.glassSurface(isDark)
+            val panel = ModernTheme.menuPanelSurface(isDark)
+            assertEquals("the $where panel must be the bar's colour (red)", bar.red, panel.red)
+            assertEquals("the $where panel must be the bar's colour (green)", bar.green, panel.green)
+            assertEquals("the $where panel must be the bar's colour (blue)", bar.blue, panel.blue)
+            assertTrue(
+                "the $where panel must be *less* transparent than the bar it hangs from",
+                panel.alpha > bar.alpha,
+            )
+            assertTrue(
+                "…but not opaque: the little that still comes through is what ties it to the bar",
+                panel.alpha < 1f,
+            )
+        }
+    }
+
+    /**
+     * A translucent panel is only usable if its own ink still reads over whatever is behind it.
+     *
+     * The pop-up hangs over the page, so the panel is composited over the two extremes that can sit
+     * under it — a white sheet and heavy black ink — and both of its ink roles must clear 4.5:1, the
+     * WCAG AA floor for body text. This is the measurement behind `ModernTheme.menuPanelAlpha`: at
+     * the bars' own 0.85 the dark theme's secondary ink comes out at 4.41:1 over a white page, i.e.
+     * below the floor — "a bit too see-through" as a number instead of an impression.
+     */
+    @Test
+    fun thePopUpPanelKeepsItsInkLegibleOverAnyBackdrop() {
+        for (isDark in listOf(false, true)) {
+            val where = if (isDark) "dark" else "light"
+            val scheme = if (isDark) DarkColors else LightColors
+            val panel = ModernTheme.menuPanelSurface(isDark)
+            for ((backdropName, backdrop) in listOf("a white sheet" to Color.White, "black ink" to Color.Black)) {
+                val composited = panel.compositeOver(backdrop)
+                val inks = listOf(
+                    "onSurface" to scheme.onSurface,
+                    "onSurfaceVariant" to scheme.onSurfaceVariant,
+                )
+                for ((role, ink) in inks) {
+                    val ratio = contrastRatio(ink, composited)
+                    assertTrue(
+                        "the $where menu's $role over $backdropName is %.2f:1 — below the 4.5:1 "
+                            .format(ratio) + "body-text floor, so the panel is too see-through",
+                        ratio >= 4.5,
+                    )
+                }
+            }
+        }
+    }
+
+    /** WCAG 2.1 relative-luminance contrast ratio. */
+    private fun contrastRatio(a: Color, b: Color): Double {
+        val first = a.luminance().toDouble()
+        val second = b.luminance().toDouble()
+        return (maxOf(first, second) + 0.05) / (minOf(first, second) + 0.05)
     }
 
     @Test

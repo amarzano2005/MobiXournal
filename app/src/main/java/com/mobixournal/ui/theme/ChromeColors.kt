@@ -49,21 +49,31 @@ data class CanvasChromeColors(
 fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
 
 /**
- * The fill of every **chrome surface**: the rail, the header slab, the figures' dock — and every
- * pop-up the chrome opens.
+ * The fill of every chrome **bar**: the rail, the header slab, the figures' dock and their buttons.
  *
  * This is the app's frosted glass ([ModernTheme.glassSurface]), and it is deliberately *one* function
- * rather than one call to the token per surface: a pop-up that reads this and a bar that reads this
- * cannot be two different materials. That is the whole point — the pop-ups used to paint
- * [rememberToolbarColor] (`surfaceContainer`) while the bars painted the glass, so in the light theme
- * the bar was near-white and the menu that hung from it was the baseline lavender `#F3EDF7`: a blue-grey
- * panel beside a grey bar, in a palette with no violet in it.
+ * rather than one call to the token per surface, so no two bands can end up different materials.
+ * A **pop-up** takes [rememberMenuSurfaceColor] instead — the same colour, less see-through — rather
+ * than this, because a panel is what text is read on (it used to paint [rememberToolbarColor],
+ * `surfaceContainer`, which in the light theme was the baseline lavender `#F3EDF7`: a blue-grey panel
+ * hanging from a near-white bar, in a palette with no violet in it).
  *
- * Both also read the *same* dark/light answer, so the pair cannot disagree when a device's system
+ * Bar and panel read the *same* dark/light answer, so the pair cannot disagree when a device's system
  * setting and the app's own `ThemeMode` differ either.
  */
 @Composable
 fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(isSystemInDarkTheme())
+
+/**
+ * The fill of the **pop-ups** the chrome opens: the bars' glass with the see-through turned down
+ * ([ModernTheme.menuPanelSurface]).
+ *
+ * One function for the same reason its bar-side twin is one: every pop-up in the app is built by
+ * `ToolbarMenu`, and this is what that one material paints — so the menu reads as the bar's own colour
+ * while staying readable over the page behind it.
+ */
+@Composable
+fun rememberMenuSurfaceColor(): Color = ModernTheme.menuPanelSurface(isSystemInDarkTheme())
 
 /**
  * The raised **panels'** colour: dialog and picker chrome (the function-plot chrome, the share and

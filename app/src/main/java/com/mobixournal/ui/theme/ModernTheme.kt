@@ -44,6 +44,25 @@ object ModernTheme {
     /** Subtle hairline rim stroke in light mode: `rgba(0, 0, 0, 0.12)`. */
     val hairlineBorderLight: Color = Color(red = 0f, green = 0f, blue = 0f, alpha = 0.12f)
 
+    /** Raw string definition of [menuPanelAlpha] from `docs/ui-modernization.md`. */
+    const val MENU_PANEL_ALPHA_RAW: String = "0.93"
+
+    /** Pop-up panel opacity, as documented: **0.93**. */
+    const val MENU_PANEL_ALPHA_VAL: Double = 0.93
+
+    /**
+     * How opaque a **pop-up panel** is — the bars' glass with the see-through turned down
+     * ([menuPanelAlpha]).
+     *
+     * A bar carries one glyph; a panel carries rows, headings and hints, and it can land over the
+     * sheet's own ink. At the bars' 0.85 the panel's secondary ink measured **4.41:1** against a paper
+     * page in the dark theme — below the 4.5:1 floor for body text — and the page's strokes showed
+     * through the rows while they were being read. 0.93 keeps the frost (about 7% still comes through,
+     * which is what ties the panel to the bar under it) and puts the ink back above the floor
+     * (`ColorContractGuardTest` computes it, over both extremes of backdrop, in both themes).
+     */
+    val menuPanelAlpha: Float = MENU_PANEL_ALPHA_VAL.toFloat()
+
     /** Backdrop blur radius: 24 dp. */
     const val BLUR_RADIUS_DP_VAL: Int = 24
     val blurRadiusDp: Dp = 24.dp
@@ -106,4 +125,13 @@ object ModernTheme {
      * Resolves the hairline border stroke colour depending on dark mode state.
      */
     fun hairlineBorder(isDark: Boolean): Color = if (isDark) hairlineBorder else hairlineBorderLight
+
+    /**
+     * Resolves a **pop-up panel's** fill: the bars' own glass ([glassSurface]), RGB untouched, with the
+     * see-through turned down to [menuPanelAlpha].
+     *
+     * Same colour as the bar it hangs from — a menu is that material, not a container role of its own —
+     * but *less transparent*, because a panel is what text is read on (see [menuPanelAlpha]).
+     */
+    fun menuPanelSurface(isDark: Boolean): Color = glassSurface(isDark).copy(alpha = menuPanelAlpha)
 }

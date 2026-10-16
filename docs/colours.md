@@ -53,10 +53,17 @@ fills in for any role a scheme does not name. See _The violet trap_ below for wh
   between the main toolbar rail and secondary toolbar top bar without mismatched tones.
 - **Glass surfaces — the bars *and* the pop-ups**: one filler, `rememberGlassSurfaceColor()`, wraps
   `ModernTheme.glassSurface(isDark)` (`glassDark` `rgba(22, 22, 24, 0.85)` / `glassLight`
-  `rgba(255, 255, 255, 0.88)`) and every chrome surface reads **it** rather than the token: the rail
-  capsule, the header slab, the figures' dock, the tab chips — and `ToolbarMenu`, the app's one menu
-  material. So a menu is the bar's own fill by construction, not by two call sites agreeing. Hairlines
-  are `ModernTheme.hairlineBorder(isDark)` throughout.
+  `rgba(255, 255, 255, 0.88)`) and every chrome **bar** reads **it** rather than the token: the rail
+  capsule, the header slab, the figures' dock, the tab chips. Hairlines are
+  `ModernTheme.hairlineBorder(isDark)` throughout.
+- **The pop-up panel — the same colour, less see-through**: `ToolbarMenu`, the app's one menu material,
+  takes `rememberMenuSurfaceColor()` = `ModernTheme.menuPanelSurface(isDark)`, i.e. the bar's glass
+  **RGB untouched** at the `menuPanelAlpha` token (**0.93**, `ModernTheme.menuPanelAlpha`). So a menu
+  is the bar's own colour by construction rather than by two call sites agreeing, and it is *less*
+  transparent on purpose: a bar carries one glyph and a panel carries rows of text over the page. The
+  floor is measured — at the bars' 0.85 the dark theme's secondary ink came out at 4.41:1 over a white
+  sheet, under the 4.5:1 WCAG AA body-text floor — and `ColorContractGuardTest` recomputes both ink
+  roles over a white sheet and over black ink, in both themes.
 - **`NeutralContainerDark` (`#252528`)** & **`NeutralContainerLight` (`#EAEDF0`)**: the neutral grey of
   `surfaceContainer` — the *raised panels* (dialog and `PlotGraphDialogChrome` chrome, section plates),
   one per theme. Neither theme leaves a container role to Material 3 any more: both schemes are built
