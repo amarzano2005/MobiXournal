@@ -71,15 +71,22 @@ $$t_{\text{abs}}(P_i) = T_{\text{stroke\_start}} + \sum_{k=0}^{i} \Delta t_k$$
 
 ## Interactive replay modes
 
-**What runs today.** The clock and the loop are live: `AudioSession.playheadMs`/
-`seek`/`nowPlaying` publish where a clip is, and `render/KaraokeFrameDriver.kt` posts a
-`Choreographer` frame per vsync while one sounds, putting the state the canvas paints from onto the
-surface (`KaraokeStrokeAnimator.State`, read as `DrawingSurfaceView.karaokeState`). It owns its frames
-rather than asking for a repaint per tick, because the surface's own `render()` no-ops while a fling is
-running; it publishes `null` on completion, on a stop and when the editor goes away, so a page never
-freezes at its last dimmed frame. The *drawing* of `resolve`'s directive is the paint loop's own half
-(`draw-the-karaoke-directive-on-the-canvas`), so today the canvas repaints at the playhead and paints
-the page as it always did.
+**What runs today — mode 1, playback.** The clock, the loop and the painting are live:
+`AudioSession.playheadMs`/`seek`/`nowPlaying` publish where a clip is,
+`render/KaraokeFrameDriver.kt` posts a `Choreographer` frame per vsync while one sounds and puts the
+state onto the surface (`KaraokeStrokeAnimator.State`, read as `DrawingSurfaceView.karaokeState`), and
+the paint loop applies that state's directive per stroke (`render/DrawingSurfaceKaraoke.kt`): a stroke
+the recording has not reached yet is drawn **dimmed**, the one being written is drawn as its visible
+prefix with a glowing tip at the nib, and every other stroke is drawn exactly as it is with nothing
+playing. A page painted at the playhead **cannot come out of the ink cache** — the cached bitmap holds
+the recording's strokes as finished, and no blit can un-draw writing that has not happened — so one page
+is drawn directly for as long as a clip sounds.
+
+The driver owns its frames rather than asking for a repaint per tick, because the surface's own
+`render()` no-ops while a fling is running; it publishes `null` on completion, on a stop and when the
+editor goes away, so a page never freezes at its last dimmed frame. What is **not** built is mode 2: a
+held playhead (a pause or a scrub) still resolves every stroke normally, and the Audio pop-up has play
+and stop with no position on it (`scrub-the-recording-and-the-ink-together`).
 
 ### 1. Inking Karaoke (Stroke Playback Animation)
 During playback of a lecture or meeting:

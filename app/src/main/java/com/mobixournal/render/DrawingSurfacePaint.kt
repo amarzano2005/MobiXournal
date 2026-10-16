@@ -298,6 +298,13 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
     } else {
         box.page.layers.indices.filterTo(HashSet()) { isLayerHidden(box.index, it) }
     }
+    // A recording playing back paints its page at the playhead instead of blitting the cache: the cached
+    // bitmap holds the recording's strokes as finished, and no blit can un-draw one that is still being
+    // written ([DrawingSurfaceKaraoke] — one page drawn directly, and only while a clip sounds).
+    karaokeState?.let { state ->
+        drawKaraokePage(canvas, box, state, hidden)
+        return
+    }
     if (inkCacheUsable &&
         inkCache.draw(canvas, box, scrollX, scrollY, hidden, strokePainter, elementRenderer)
     ) {

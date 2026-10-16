@@ -83,6 +83,30 @@ class KaraokeStrokeAnimatorTest {
         assertTrue("completed stroke is rendered normally", directive is KaraokeStrokeAnimator.RenderDirective.Normal)
     }
 
+    /**
+     * A stroke whose points carry **no** `dtMs` is a stroke with no timeline: a `.xopp` import, or a
+     * `.mobix` written before the telemetry landed. The honest answer is that it is simply *complete* —
+     * the recording has reached it (or not) as a whole, and it never animates, because animating it
+     * would mean inventing a timeline and drawing the writing at a place nothing recorded.
+     */
+    @Test
+    fun aStrokeWithNoPointTimesIsCompleteRatherThanAnimated() {
+        val untimed = testStroke(startMs = 5000, pointDts = listOf(0, 100, 250)).copy(
+            points = testStroke(startMs = 5000, pointDts = listOf(0, 100, 250)).points.map { it.copy(dtMs = null) },
+        )
+        val state = { ms: Int -> KaraokeStrokeAnimator.State("aud_lecture1.opus", playheadMs = ms, isPlaying = true) }
+
+        assertTrue(
+            "the recording has not reached it yet, so it is not on the page",
+            KaraokeStrokeAnimator.resolve(untimed, state(4_000)) is KaraokeStrokeAnimator.RenderDirective.Dimmed,
+        )
+        assertTrue(
+            "once it has, the stroke is whole — never a half-drawn one",
+            KaraokeStrokeAnimator.resolve(untimed, state(5_000)) is KaraokeStrokeAnimator.RenderDirective.Normal,
+        )
+        assertTrue(KaraokeStrokeAnimator.resolve(untimed, state(9_000)) is KaraokeStrokeAnimator.RenderDirective.Normal)
+    }
+
     @Test
     fun dimmedColorMultipliesAlphaChannelByFactor() {
         val opaqueRed = 0xFFFF0000.toInt()

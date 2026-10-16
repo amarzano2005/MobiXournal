@@ -512,20 +512,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "draw-the-karaoke-directive-on-the-canvas"
-title = "Draw the karaoke directive on the canvas"
-description = "replay-the-writing-in-time-with-its-recording. The animator already computes, per stroke, a RenderDirective - Normal, Dimmed(colour) or Animating(visiblePoints, activeTip, futurePoints) - from KaraokeStrokeAnimator.resolve, and the paint loop never reads it. In render/DrawingSurfacePaint.kt drawPageElements, resolve each stroke of the page shown while karaokeState is not null (render/StrokePainter.kt draws it): a Dimmed stroke draws in its dimmed colour, an Animating stroke draws only its visible points and then KaraokeStrokeAnimator.drawTipIndicator at the active tip, and a Normal stroke draws exactly as today. The animating stroke must not come out of render/InkCache.kt, whose cached bitmap holds the finished stroke - key the cache with the animating state or draw that one stroke directly. Pin the no-telemetry rule with a test rather than leaving it implied: a stroke whose points carry no dtMs (a .xopp import, an older .mobix) is simply complete - never dimmed once the playhead is past its start and never animating (KaraokeStrokeAnimatorTest). Verify with those JVM tests plus an emulator screenshot of a half-drawn stroke with its tip indicator over a page, and one of the same page after the clip ends."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 503
-created = 2026-10-15
-tags = ["audio", "ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "scrub-the-recording-and-the-ink-together"
 title = "Scrub the recording and the ink together"
 description = "replay-the-writing-in-time-with-its-recording, the interactive half (mode 2 of docs/audio-inking-sync.md). KaraokeStrokeAnimator.resolve returns Normal whenever State.isPlaying is false, so a held or paused playhead draws nothing special, and the Audio pop-up (ui/ToolbarViewPopups.kt, wired in MainActivityAudio.kt audioUiState) offers play and stop with no position at all. Add the paused frame: a state that still resolves the karaoke directive at a held playhead, so the canvas shows the writing as it stood at that moment while nothing is sounding. Then give the pop-up a scrubber that reads AudioSession.playheadMs, seeks on drag (AudioSession.seek from the clock task), and repaints - the audio-to-ink direction - while the ink-to-audio direction already exists as the Play object tap. Keep the one-clip rule: a seek stops and restarts cleanly rather than opening a second player. Verify on the emulator: record a sentence, drag the scrubber and watch the writing fill and empty as the playhead moves, confirm no stroke reaches the document, and check logcat."

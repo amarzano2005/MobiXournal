@@ -38,6 +38,14 @@ object PageRenderer {
         elements: ElementRenderer,
         hiddenLayers: Set<Int> = emptySet(),
         visible: Bounds? = null,
+        /**
+         * How a **stroke** of this page is drawn, when the caller wants it drawn differently: the replay
+         * path, which dims a stroke the recording has not reached yet and animates the one being written
+         * ([com.mobixournal.render.KaraokeStrokeAnimator]). True means it drew the stroke itself, false
+         * leaves it to the page, and null — every export, and the screen whenever nothing is playing —
+         * draws every stroke the way the element itself says.
+         */
+        strokeOverride: ((Stroke) -> Boolean)? = null,
     ) {
         page.layers.forEachIndexed { li, layer ->
             if (li in hiddenLayers) return@forEachIndexed
@@ -47,12 +55,15 @@ object PageRenderer {
                 // the file cannot disagree about what a table or a plot looks like. It draws as several
                 // pieces, each culled on its own, so a table half off the viewport is not skipped.
                 if (element.isLivingEntity) {
-                    drawPieces(canvas, LivingInk.of(element).elements, scale, offsetX, offsetY, strokes, elements, visible)
+                    drawPieces(
+                        canvas, LivingInk.of(element).elements, scale, offsetX, offsetY,
+                        strokes, elements, visible, strokeOverride,
+                    )
                     continue
                 }
                 // Only the drawing thread passes a viewport, so the identity cache stays single-threaded.
                 if (visible != null && !boundsOf(element).intersects(visible)) continue
-                draw(canvas, element, scale, offsetX, offsetY, strokes, elements)
+                draw(canvas, element, scale, offsetX, offsetY, strokes, elements, strokeOverride)
             }
         }
     }
@@ -66,10 +77,11 @@ object PageRenderer {
         strokes: StrokePainter,
         elements: ElementRenderer,
         visible: Bounds?,
+        strokeOverride: ((Stroke) -> Boolean)?,
     ) {
         for (piece in pieces) {
             if (visible != null && !boundsOf(piece).intersects(visible)) continue
-            draw(canvas, piece, scale, offsetX, offsetY, strokes, elements)
+            draw(canvas, piece, scale, offsetX, offsetY, strokes, elements, strokeOverride)
         }
     }
 
@@ -82,8 +94,10 @@ object PageRenderer {
         offsetY: Float,
         strokes: StrokePainter,
         elements: ElementRenderer,
+        strokeOverride: ((Stroke) -> Boolean)?,
     ) {
         if (element is Stroke) {
+            if (strokeOverride?.invoke(element) == true) return
             strokes.draw(
                 canvas, element.points, element.tool, element.color, scale, offsetX, offsetY,
                 element.lineStyle, element.fill,
