@@ -25,6 +25,48 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "give-the-shaded-area-a-control-that-sets-its-bounds"
+title = "Give the shaded area a control that sets its bounds"
+description = """
+The shaded integral now draws (draw-the-shaded-integral-area-for-a-plotelement) and the value it stands for is computed (compute-the-definite-integral-in-the-plot-analysis), but nothing in the app lets a user choose the area: PlotElement.shadeIntegral has no input anywhere - ui/AdvancedFunctionGraphDialog.kt does not offer it, and the edit path (render/PlotElementFactory.applyPlotEdit) preserves it only because it never touches it. So the feature is reachable only from a file another implementation wrote. Add the control: a Shade Integral Area toggle with a from/to pair in the plot editor, defaulting to the element's own xMin..xMax, written through applyPlotEdit so the shading, the summary's integral value and the exported ink all move together, with undo covering the change. Verify with a JVM test that an edit through it round-trips the bounds and that the compiled ink gains the wash, then an emulator pass with a screenshot of the shaded area appearing as the bounds are dragged.
+
+Landed (commit a3c8b56): `AdvancedFunctionGraphDialog` has a **Shade integral area** switch with its own from/to pair, opened on the element's `shadeIntegral` and defaulting to its domain when first switched on; `ui/PlotShadeEditor.kt` owns that state and the control, `ui/PlotGraphDialogChrome.kt` owns the dialog's chrome. `PlotElementFactory.applyPlotEdit(..., shadeIntegral)` writes it, so the wash, the summary and the exported ink move from one value and undo covers it; `MultiFunctionPlotter.plot(integralFrom, integralTo)` and `FunctionAnalysis.buildSummaryReport(integralFrom, integralTo)` carry the range, so a shaded plot's summary reports its integrals **over the shaded area** and names that range, returning to the domain when the switch is off. `insertPlotElement` passes the bounds too, so a graph can be created shaded. VERIFIED: 1543 unit tests / 0 failures, including a new `PlotElementFactoryTest` case that an edit through the control gains the wash, reports `[0, 2]` instead of the domain, and loses both when switched off. CAVEAT: the emulator pass (drag the bounds and screenshot the wash) could not run — no adb, no AVD — and is tracked as `drag-the-plot-shade-bounds-on-the-emulator`."""
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-14
+completed = 2026-10-16
+tags = ["plot", "ui"]
+
+[[task]]
+id = "split-the-chunk-half-out-of-mobixdocument-kt"
+title = "Split the chunk half out of MobixDocument.kt"
+description = """
+SourceStructureTest now records format/mobix/MobixDocument.kt at 744 lines because the canvas work (chunkCoords, canvas.json pass-through, stripCoords, the reuse guard in of()) put it past the 700-line budget. Move the chunk writers into their own file the way io/DocumentIo.kt was split into io/LoadedFile.kt and io/MobixOpenSessions.kt: encodeChunks, chunkPartFor and the chunk branch of open()/open(source) become format/mobix/MobixChunkWriting.kt (and MobixChunkReading.kt if the read half does not fit), with BuiltPart and the part helpers made internal so the split compiles. Keep the public surface unchanged (MobixDocument.of/forInfinite/open/openPaged stay reachable the same way) and lower the ceiling in app/src/test/java/com/mobixournal/guards/SourceStructureTest.kt to nothing once the file is back under 700, deleting the entry and its comment. Verify with scripts/host-build.sh testDebugUnitTest (the whole suite, especially ChunkedMobixRoundTripTest, PagedMobixOpenTest and the incremental-save tests).
+
+Landed (commit a7f41c5): `format/mobix/MobixChunkWriting.kt` holds the chunk half — `LazyChunks`, `stripCoords`, `chunksOf`, `encodeChunks` and the two `chunkIn` readers over one shared decode (`decodeChunk`, so "the coordinates are in the entry's name" lives once). `MobixDocument.kt` keeps the page half and the public surface (`of`/`forInfinite`/`open`/`openPaged`) unchanged; both `open` paths now call `chunksOf(manifest) { chunkIn(...) }`. The 771-line ceiling is deleted from `SourceStructureTest` and the file is 663 lines, so the guard's own staleness rule is satisfied. VERIFIED: 1543 unit tests / 0 failures (`ChunkedMobixRoundTripTest`, `PagedMobixOpenTest`, the incremental-save and export tests, `SourceStructureTest`, `DocsGuardTest` all green) plus `assembleDebug`."""
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-15
+completed = 2026-10-16
+tags = ["format", "guard"]
+
+[[task]]
+id = "record-and-bundle-opus-audio"
+title = "Record and bundle Opus audio instead of WAV"
+description = """
+A .mobix now bundles the recording it references (carry-the-audio-recording-inside-the-document), but in the container the app's recorder produces: 16-bit mono WAV, so an hour of notes is about 300 MB, where the format's own spoke says Opus at 32-64 kbps mono would be about 15 MB (docs/audio-inking-sync.md, Bundled compressed audio). audio/OpusAudioRecorder.kt and audio/OpusAssetBundler.kt already exist with unit tests and no caller in app/src/main. Wire the recorder in behind AudioSession.startRecording (keeping the WAV path as the fallback when the encoder is unavailable), bundle through OpusAssetBundler-style content addressing so the entry becomes assets/aud_<sha256>.ogg, and let the player decode it (android.media.MediaPlayer takes an .ogg file the same way). Keep the .xopp side of the contract honest: a .xopp names a sidecar the desktop can play, so an exported document still needs a WAV beside it - either transcode on export with android.media.MediaCodec, or report the gap the way WavAudioSynthesizer's silence framing does today (which is a stub, not a conversion). Verify with a JVM test that one recording is one entry and that an opened document adopts it under its sidecar name, plus the on-device pass: record a minute of speech and compare the saved .mobix's size against the WAV build.
+
+Landed (commit 5076db6): a recording's codec is now the document's own format. A `.mobix` captures **Ogg/Opus** through `audio/OpusAudioRecorder.kt` (AudioRecord 48 kHz mono -> MediaCodec `audio/opus` at 32 kbps -> the platform Ogg muxer, which needs API 29), a `.xopp` keeps the WAV sidecar desktop Xournal++ plays, and a `.mobix` on a device with neither the muxer nor the encoder falls back to WAV. `audioFileName` takes the container's extension, `MobixAssetSink.suffixFor` already sniffs `OggS`, so the sidecar is `2026-...ogg` and the bundled entry `assets/aud_<sha256>.ogg`; `AssetKind.AUDIO`'s default suffix follows, and `AudioStore.createChild` creates the SAF document with the type that matches the name. The player needs no change: MediaPlayer decodes an `.ogg` like a `.wav`. On the `.xopp` side nothing transcodes, so `WavAudioSynthesizer`'s silence-framed companion WAV and the rename of a compressed recording's `fn` to a `.wav` nobody writes are gone, together with `OpusAssetBundler` (a second, unused content-addressing layer that named Ogg bytes `.opus`); the export pushes the recording under the name the stroke really carries and the editor reports the gap ("N recording(s) here are compressed — desktop Xournal++ plays WAV only"). VERIFIED: 1543 unit tests / 0 failures and `assembleDebug` green (`scripts/host-build.sh`); `BundledAudioAdoptionTest` (new) proves one Ogg recording is one `assets/aud_<sha256>.ogg` entry and that reading the page that names it adopts it under the `.ogg` sidecar name, `AudioAnnotationTest` pins the name, `OpusAudioRecorderTest` kept the host-without-hardware test the deleted bundler test held. CAVEAT: the on-device size comparison (a minute of speech, `.mobix` against the WAV build) could not run here — no adb, no AVD — and is added as step (7) of `verify-the-paged-mobix-open-and-canvas-on-the-emulator`."""
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-15
+completed = 2026-10-16
+tags = ["mobix", "audio"]
+
+[[task]]
 id = "seek-to-the-point-not-the-stroke"
 title = "Seek to the point, not the stroke"
 description = "replay-the-writing-in-time-with-its-recording. A tap with the Play object tool seeks to the stroke AudioRef.startMs, stroke granularity, where docs/audio-inking-sync.md asks for the nearest StrokePoint - the point telemetry only a .mobix carries. Add the lookup as a pure function in render/KaraokeStrokeAnimator.kt beside resolve: the absolute time of a point (strokeStart plus dtMs) and the point nearest a document coordinate together with the time it names, both over List<StrokePoint> so they are JVM-testable. Use it when the tapped stroke carries dtMs so a tap on the fifth word starts there rather than at the stroke head, and fall back to AudioRef.startMs when the stroke has none (a .xopp import or an older .mobix), which keeps the promise exactly where the data exists. Verify with JVM tests over the lookup (nearest point on a sparse stroke, a coordinate past both ends, the fallback when dtMs is null, a stroke with mixed null and present deltas) plus an emulator tap on a long recorded stroke to hear it start from the point tapped."
