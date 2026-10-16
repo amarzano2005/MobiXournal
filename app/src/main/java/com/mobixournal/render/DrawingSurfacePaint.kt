@@ -374,12 +374,16 @@ internal fun DrawingSurfaceView.drawSplineOverlay(canvas: Canvas) {
     }
 }
 
-/** Highlight every search hit with rounded pill highlights, with a focused outline around the current result. */
+/**
+ * Highlight every search hit with rounded pill highlights, with a focused outline around the current
+ * result. The boxes come from [chromeBoxFor], so a hit found in a board's tile is highlighted where that
+ * tile actually is rather than at the stack position the file's part order would put it in.
+ */
 internal fun DrawingSurfaceView.drawSearchHighlights(canvas: Canvas) {
     val cornerRadius = 6f
     val pad = 2f
     for ((hitIndex, hit) in searchHits.withIndex()) {
-        val box = layout.boxes.getOrNull(hit.pageIndex) ?: continue
+        val box = chromeBoxFor(hit.pageIndex) ?: continue
         for (bounds in hit.boxes) {
             val l = box.toViewX(bounds.left, scrollX) - pad
             val t = box.toViewY(bounds.top, scrollY) - pad

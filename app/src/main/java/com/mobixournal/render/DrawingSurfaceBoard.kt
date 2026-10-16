@@ -124,6 +124,22 @@ internal fun DrawingSurfaceView.boardTileBox(index: Int, cx: Int, cy: Int, board
 }
 
 /**
+ * The box the **chrome** hangs off the document part at [index]: a board's tile ([boardTileBox]), or
+ * the page box of the laid-out stack.
+ *
+ * It is the one seam between the two geometries — the page-shaped chrome (a search highlight, the jump
+ * to a search hit, anything that needs a part's rectangle on screen) asks here rather than reaching into
+ * the stacked layout, which on a board lays the chunks out in the file's own order and nowhere near
+ * where they actually sit. Null when the part is not on this canvas at all (a tile the board does not
+ * have, an index the stack does not reach).
+ */
+internal fun DrawingSurfaceView.chromeBoxFor(index: Int): PageBox? {
+    val board = board ?: return layout.boxes.getOrNull(index)
+    val cell = board.grid.coordAt(index) ?: return null
+    return boardTileBox(index, cell.first, cell.second, board)
+}
+
+/**
  * The box a **gesture** converts through: the cell's own corner, its own scale, and the paper a cell
  * born here would have ([cellPage]).
  *

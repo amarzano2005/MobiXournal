@@ -154,11 +154,15 @@ What the app does with this geometry today, so the mode is not a format the edit
   (`ChunkTileManager.getOrCreateChunk`), and the tiles scrolled away are evicted on the **document's own**
   grid. No page outline, bookmark flag or page counter is drawn for a board: it has no page 1 of N.
 - **It can be written on.** Ink lands in the chunk under the pen, and the eraser loads a chunk the
-  viewport evicted before it rubs ([Writing on a board](#writing-on-a-board)). Two things are still
-  missing, and both are deliberate: the chrome outside the canvas still counts pages, and its overview
-  grid, bookmarks and find still assume them
-  (`make-the-chrome-tell-the-truth-for-a-document-with-no-pages`); and export still slices nothing
-  (`export-an-infinite-document-through-the-auto-slicer`).
+  viewport evicted before it rubs ([Writing on a board](#writing-on-a-board)).
+- **The chrome tells the truth for it.** The position badge reads the tile's coordinate instead of a page
+  count, the Pages menu becomes a tiles reading, bookmarks and the page grid are not offered, the scroll
+  thumb is gone, find still works in tile space, and split view mirrors a board as a second view of the
+  same grid — the decisions per surface, and why each is what it is, are
+  [chrome.md](chrome.md#a-document-with-no-pages)'s (one home per fact).
+- **What is still missing** is the way *out*: export still slices nothing
+  (`export-an-infinite-document-through-the-auto-slicer`), so a board can be read, written and navigated
+  but not yet turned into a paginated `.xopp` or PDF.
 
 ### Writing on a board
 

@@ -26,4 +26,13 @@ class PageCounterTest {
     fun `page label never throws on an empty document`() {
         assertEquals("0 / 0", pageLabel(0, 0))
     }
+
+    @Test
+    fun `a board's badge reads the tile's coordinate`() {
+        assertEquals("0, 0", tileLabel(0 to 0))
+        assertEquals("1, -1", tileLabel(1 to -1))
+        assertEquals("-3, 2", tileLabel(-3 to 2))
+        // Never a page label: a board has no page 1 of N to count up to.
+        assertEquals(false, tileLabel(2 to 5).contains("/"))
+    }
 }

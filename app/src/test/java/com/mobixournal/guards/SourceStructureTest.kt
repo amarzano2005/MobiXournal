@@ -45,7 +45,11 @@ class SourceStructureTest {
         // grid reconciliation in the `doc` setter that keeps the cells in step with an undo, the shape a
         // save reads back (`canvasGeometry`), and the refusal a page-shaped gesture gets on a board. The
         // coordinate and commit arithmetic itself lives in BoardGrid / BoardInk / DrawingSurfaceBoardInk.
-        "render/DrawingSurfaceView.kt" to 1774,
+        // +83 more, the same feature's other half: the board's reading of "where you are" (BoardReading,
+        // reported instead of a page), the part-in-view reads the layer panel and a tab snapshot need
+        // (currentPageIndex / visiblePageIndex over the grid), the search jump through the chrome box,
+        // and the mirrored pane being handed the board's grid along with the document.
+        "render/DrawingSurfaceView.kt" to 1857,
         // The canvas geometry a write has to keep lives in the writer (chunkCoords / canvas / stripCoords
         // and the reuse guard), which put it past the budget: the chunk half is meant to move out the way
         // io/DocumentIo.kt was split into LoadedFile.kt and MobixOpenSessions.kt

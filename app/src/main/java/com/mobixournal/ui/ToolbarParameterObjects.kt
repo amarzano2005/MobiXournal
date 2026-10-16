@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.render.BoardReading
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.LayerInfo
 import com.mobixournal.render.PdfOutline
@@ -27,6 +28,15 @@ data class ToolbarLayerCallbacks(
  * [SideToolbar].
  */
 data class ToolbarPagesCallbacks(
+    /**
+     * Where the view is when the document is an **infinite canvas**, or null when it is a page list
+     * ([BoardReading]).
+     *
+     * Non-null is what turns the menu from a page navigator into a board's own reading: pages cannot be
+     * added, removed, reordered or bookmarked on a board without rewriting the chunk grid, and a menu
+     * offering them would be offering commands that either lie or lose data (`docs/chrome.md`).
+     */
+    val board: BoardReading? = null,
     val pageCount: Int,
     val currentPage: Int,
     val onAddPage: () -> Unit,

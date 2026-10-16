@@ -15,11 +15,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-/**
- * A hazard-free "page X of Y" label. Uses coerceAtMost so it never throws when pageCount == 0.
- */
 internal fun pageLabel(currentPage: Int, pageCount: Int): String =
     "${(currentPage + 1).coerceAtMost(pageCount)} / $pageCount"
+
+/**
+ * What the badge reads on an infinite canvas: the **tile** the view is centred on, as its coordinate.
+ *
+ * There is no "page X of Y" on a board — its parts are ordered by the file rather than by where they
+ * sit, so the only positional fact that is both true and useful is where you are, and a coordinate is
+ * also how you would say it out loud ("I wrote it around tile 1, −1"). The tile is shown whether or not
+ * it has ink yet: on an infinite canvas looking at an empty cell is exactly how you find the next one to
+ * write in (`docs/chrome.md` → *A document with no pages*).
+ */
+internal fun tileLabel(cell: Pair<Int, Int>): String = "${cell.first}, ${cell.second}"
 
 /**
  * [zoom] as a whole percentage — `100%`, `125%`. The same rendering the rail's zoom popup shows,
@@ -52,15 +60,18 @@ fun pageCounterAlignment(
 }
 
 /**
- * The always-visible "page X of Y" badge.
+ * The always-visible position badge: "page X of Y" on a page list, the tile's coordinate on a board.
  *
- * It sits over the canvas rather than in the top bar so it survives full-page mode, where the whole
- * bar is hidden. [currentPage] is 0-based (as [PaneState.currentPage] is); the label adds the 1.
+ * It sits over the canvas rather than in the top bar so it survives full-page mode, where the whole bar
+ * is hidden. [currentPage] is 0-based (as [PaneState.currentPage] is); the label adds the 1. [tile] is
+ * the board's own reading of where the view is, and takes over from the page label when it is non-null:
+ * the two are never shown together, because a document has one geometry or the other.
  */
 @Composable
 fun PageCounter(
     currentPage: Int,
     pageCount: Int,
+    tile: Pair<Int, Int>? = null,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(BADGE_CORNER)
@@ -73,7 +84,7 @@ fun PageCounter(
         shadowElevation = 2.dp,
     ) {
         Text(
-            text = pageLabel(currentPage, pageCount),
+            text = if (tile != null) tileLabel(tile) else pageLabel(currentPage, pageCount),
             style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

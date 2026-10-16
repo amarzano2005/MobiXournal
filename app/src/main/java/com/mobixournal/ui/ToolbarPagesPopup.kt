@@ -34,6 +34,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -109,10 +111,15 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var open by remember { mutableStateOf(false) }
     var sizing by remember { mutableStateOf(false) }
     var contents by remember { mutableStateOf(false) }
+    val board = callbacks.board
     ToolbarPopupButton(
         icon = Icons.Outlined.Description,
-        contentDescription = "Pages",
+        contentDescription = if (board == null) "Pages" else "Tiles",
     ) { dismiss ->
+        if (board != null) {
+            TileItems(board)
+            return@ToolbarPopupButton
+        }
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
         // The PDF's own table of contents sits right above the app-side bookmarks: both are "jump to a
         // page", and the nearer one to the page navigator is the one that came with the document.
@@ -175,6 +182,27 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onDismiss = { sizing = false },
         )
     }
+}
+
+/**
+ * What the pages menu is on an **infinite canvas**: the tile in view and how many there are, and
+ * nothing else.
+ *
+ * Every other row in this menu addresses a page — previous/next, add, remove, the overview grid, page
+ * copy and paste, the page size, the bookmarks — and a board has no page to address. Adding or removing
+ * one would rewrite the chunk grid the file names its parts by, and offering a control that is disabled,
+ * or that quietly does nothing, is the same lie in a smaller font. So the menu says what is true: which
+ * tile you are looking at (the one the badge shows) and how many tiles the document holds. Navigation
+ * on a board is the canvas itself (`docs/chrome.md` → *A document with no pages*).
+ */
+@Composable
+private fun TileItems(board: BoardReading) {
+    ListItem(
+        headlineContent = { Text("Tile ${tileLabel(board.cell)}") },
+        supportingContent = {
+            Text(if (board.tiles == 1) "1 tile" else "${board.tiles} tiles")
+        },
+    )
 }
 
 /** The "‹ Page n / N ›" row at the top of the pages menu. */

@@ -105,6 +105,24 @@ internal fun DrawingSurfaceView.commitChunkPlace(kind: PlaceKind) {
 }
 
 /**
+ * The **tile the view is centred on**, as a cell — the board's own answer to "where am I", which the
+ * chrome reads instead of a page ([DrawingSurfaceView.onBoardReading]). Null when this canvas is not a
+ * board.
+ *
+ * The answer is a coordinate, not an index: a board's parts are ordered by the file, and that order has
+ * nothing to do with where a view is. Whether the cell has a chunk is a different question, and the one
+ * [BoardGrid.nearestIndex] answers.
+ */
+internal fun DrawingSurfaceView.viewportCell(): Pair<Int, Int>? {
+    val board = board ?: return null
+    val scale = if (zoom > 0f) zoom else 1f
+    return board.ink.cellAt(
+        ((scrollX + width / 2f) / scale).toDouble(),
+        ((scrollY + height / 2f) / scale).toDouble(),
+    )
+}
+
+/**
  * The cell a view point falls in, on the board's own grid: the scroll and the zoom are the whole
  * conversion — a cell's corner is its coordinate times the tile size, so the document point is the
  * view point un-scrolled and un-zoomed ([BoardViewport]).

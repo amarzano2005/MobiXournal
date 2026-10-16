@@ -46,6 +46,34 @@ internal class BoardGrid(
     /** Where [cell] sits in the document, or `-1` when the board has no chunk there. */
     fun indexOf(cell: Pair<Int, Int>): Int = cells.indexOf(cell)
 
+    /**
+     * The tile a view centred on [cell] is "at", as its index — [cell] itself when the board has a
+     * chunk there, and otherwise the **nearest** cell it does have (measured on the board's own grid,
+     * not on the order the parts happen to sit in). `-1` only when the board holds no chunk at all.
+     *
+     * This is the reading the page-shaped chrome needs on a board: a layer panel, a tab's remembered
+     * position or a find hit all ask "which part am I at", and an empty cell on an infinite canvas is
+     * somewhere you can look but nothing you can edit. Nearest rather than the last one, because a 2D
+     * board's part order says nothing about where the view is (`docs/infinite-canvas.md`).
+     */
+    fun nearestIndex(cell: Pair<Int, Int>): Int {
+        val exact = indexOf(cell)
+        if (exact >= 0) return exact
+        var best = -1
+        var bestDistance = Double.MAX_VALUE
+        for (index in cells.indices) {
+            val (cx, cy) = cells[index]
+            val dx = (cx - cell.first).toDouble()
+            val dy = (cy - cell.second).toDouble()
+            val distance = dx * dx + dy * dy
+            if (distance < bestDistance) {
+                bestDistance = distance
+                best = index
+            }
+        }
+        return best
+    }
+
     /** The cells, in document order — the shape a save records. */
     fun toList(): List<Pair<Int, Int>> = cells.toList()
 

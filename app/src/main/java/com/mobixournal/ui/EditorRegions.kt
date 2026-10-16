@@ -1209,6 +1209,7 @@ private fun toolbarPagesCallbacks(
     ToolbarPagesCallbacks(
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
+        board = pane.board,
         // A page added or removed moves every bookmark at or after it, so the flags stay on the pages
         // they were put on (a page added goes *after* the one in view, a removal takes the one in view).
         onAddPage = {
@@ -1274,6 +1275,9 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     onHistoryChanged = { u, r -> state.canUndo = u; state.canRedo = r }
     onZoomChanged = { z -> state.zoom = z }
     onPageCountChanged = { n -> state.pageCount = n }
+    // A board reports where its view is instead of a page (the badge and the pages menu read this);
+    // null comes back the moment a page list takes its place.
+    onBoardReading = { reading -> state.board = reading }
     onPageSelectionChanged = { n -> state.selectedPages = n }
     onPageClipboardChanged = { n -> state.copiedPages = n }
     onCurrentPageChanged = { page ->
@@ -1485,6 +1489,7 @@ fun EditorPaneView(
                 PageCounter(
                     currentPage = state.currentPage,
                     pageCount = state.pageCount,
+                    tile = state.board?.cell,
                 )
             }
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the

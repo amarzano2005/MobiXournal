@@ -64,6 +64,35 @@ class BoardGridTest {
     }
 
     @Test
+    fun aFindHitNamesTheCellItWasFoundIn() {
+        // A search hit carries a document index; on a board that index is the cell's, which is what the
+        // chrome maps back to a place on the canvas (`chromeBoxFor`) and what the menu reads out.
+        val grid = BoardGrid(listOf(0 to 0, 2 to -3), CanvasMode.INFINITE_2D)
+
+        assertEquals(2 to -3, grid.coordAt(1))
+        assertEquals(1, grid.indexOf(2 to -3))
+    }
+
+    @Test
+    fun aViewOverAnEmptyCellIsAtTheNearestTile() {
+        val grid = BoardGrid(listOf(0 to 0, 3 to 0), CanvasMode.INFINITE_2D)
+
+        // Exactly on a tile: that tile.
+        assertEquals(0, grid.nearestIndex(0 to 0))
+        assertEquals(1, grid.nearestIndex(3 to 0))
+        // Out in the empty cells: the nearest one **on the board**, not the last part of the file.
+        assertEquals(0, grid.nearestIndex(1 to 0))
+        assertEquals(1, grid.nearestIndex(2 to 0))
+        assertEquals(1, grid.nearestIndex(4 to 0))
+        assertEquals(0, grid.nearestIndex(-5 to -5))
+    }
+
+    @Test
+    fun aBoardWithNoChunkAtAllHasNoNearestTile() {
+        assertEquals(-1, BoardGrid(emptyList(), CanvasMode.INFINITE_2D).nearestIndex(4 to 4))
+    }
+
+    @Test
     fun aWriteIntoACellTheBoardAlreadyHasKeepsItsIndex() {
         val grid = BoardGrid(listOf(0 to 0, 1 to 0), CanvasMode.INFINITE_VERTICAL)
 

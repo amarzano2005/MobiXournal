@@ -46,6 +46,17 @@ data class LayerInfo(val index: Int, val label: String, val visible: Boolean, va
 data class Placement(val pageIndex: Int, val xPt: Double, val yPt: Double, val existing: TextElement? = null)
 
 /**
+ * A board's own reading of the view — what the page-shaped chrome asks for and cannot have on a
+ * chunked document (`docs/chrome.md` → *A document with no pages*).
+ *
+ * [cell] is the **tile** the viewport is centred on, as its coordinate: not an index, because a board's
+ * parts are ordered by the file and that order says nothing about where a view is. [tiles] is how many
+ * tiles the document holds. It is reported **instead of** a page rather than beside one: a board has no
+ * page 1 of N, and a surface showing both would be claiming pages it does not have.
+ */
+data class BoardReading(val cell: Pair<Int, Int>, val tiles: Int)
+
+/**
  * The low-latency stylus canvas. Holds the whole [Document] and renders every page top-to-bottom,
  * each with its background ruling and all its layers, scaled to fit the view width (see
  * [PageStacker] / [BackgroundRenderer]). One finger draws; two fingers scroll the page stack.
@@ -329,8 +340,17 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerOf = { resolvedActiveLayer(it) },
         commit = { commitElementEdit(it) },
     )
+    /**
+     * Told the host where a **board**'s view is — the tile under the viewport centre and how many
+     * tiles the document holds — and told `null` when the canvas goes back to a page list
+     * ([reportBoardReading]). Fired once per change, from the same pass that reports the current page
+     * for a page stack.
+     */
+    var onBoardReading: ((BoardReading?) -> Unit)? = null
     /** Which page index was last reported to [onCurrentPageChanged], to suppress duplicate calls. */
     private var lastReportedPage = -1
+    /** The last [BoardReading] reported, so the chrome is told only what moved. */
+    private var lastBoardReading: BoardReading? = null
     /** Last (scrollY, totalHeightPx, viewportPx) reported to [onScrollChanged], to suppress duplicate calls. */
     private var lastScrollReport = Triple(-1f, -1f, -1f)
     /** Last selection box reported to [onSelectionRectChanged], to suppress duplicate calls. */
@@ -814,8 +834,14 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * The undo history is dropped, because it holds snapshots taken before the other view's edit and
      * undoing to one would silently throw that edit away. Undo therefore lives in the pane doing the
      * editing, and follows the user as they switch panes.
+     *
+     * [geometry] is the **board** the document is, as the pane that edited it holds it: a mirrored pane
+     * is a second view of the *same* infinite canvas, so it has to be given the same cells. The document
+     * alone cannot say where a chunk sits (`MobixOpenSessions.chunkGrids`), so a pane that only took the
+     * document would keep the grid it was opened with and draw — and save — a cell this session created
+     * at the wrong place. Null for a page list, and for a mirror that has no board to hand over.
      */
-    fun applyMirroredDocument(incoming: Document) {
+    internal fun applyMirroredDocument(incoming: Document, geometry: CanvasGeometry? = null) {
         if (incoming === docValue) return
         cancelIndexing()
         docValue = if (incoming.pages.isEmpty()) incoming.copy(pages = listOf(blankPage())) else incoming
@@ -837,6 +863,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
             triggerBackgroundIndexing(docValue)
         }
         relayout()
+        // A board is re-adopted rather than reconciled: a mirrored pane's own grid cannot know a cell the
+        // other pane created, and the source's grid answers for every cell there is. Adopting it also
+        // drops the tile cache, so the mirrored view reads the chunks it is about to draw again.
+        if (geometry != null && geometry.isBoard) setInfiniteCanvas(geometry)
         render()
         onLayersChanged?.invoke()
         onDocumentLoaded?.invoke()
@@ -1108,14 +1138,22 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private fun notifySearchChanged(): SearchStatus =
         searchStatus().also { onSearchChanged?.invoke(it) }
 
+    /**
+     * Bring the current hit under the eye. A hit names a document part, and the part's box comes from
+     * [chromeBoxFor]: on a board it is the **tile** the match was found in, so a search on an infinite
+     * canvas takes you to the cell the words are in rather than to a page box of a stack that is not
+     * drawn.
+     */
     private fun jumpToSearchHit() {
         val hit = searchHits.getOrNull(currentSearchHit) ?: return
-        val box = layout.boxes.getOrNull(hit.pageIndex) ?: return
+        val box = chromeBoxFor(hit.pageIndex) ?: return
         val bounds = hit.boxes.firstOrNull() ?: return
         val centerX = box.toViewX((bounds.left + bounds.right) / 2, 0f)
         val centerY = box.toViewY((bounds.top + bounds.bottom) / 2, 0f)
-        scrollX = (centerX - width / 2f).coerceIn(0f, maxScrollX())
-        scrollY = (centerY - height / 2f).coerceIn(0f, maxScrollY())
+        // Scrolled through the viewport so each mode's own clamps apply: a page stack is bounded, a 2D
+        // board is not, and a strip is bounded on one axis only.
+        viewport.scrollToX(centerX - width / 2f)
+        viewport.scrollToY(centerY - height / 2f)
         render()
     }
 
@@ -1312,9 +1350,14 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun setPageSize(widthPt: Double, heightPt: Double) = pages.setPageSize(widthPt, heightPt)
 
     /** Index of the page nearest the viewport centre — the one add/remove act on. */
-    internal fun currentPageIndex(): Int =
-        layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index
+    internal fun currentPageIndex(): Int {
+        // A board's part in view is the tile under the eye, or the nearest tile the board has when that
+        // cell is empty — never a page index, which is what the stack below would hand back
+        // (`docs/infinite-canvas.md` → *Writing on a board*).
+        viewportCell()?.let { cell -> return board?.grid?.nearestIndex(cell) ?: -1 }
+        return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index
             ?: (pageSource.pageCount - 1).coerceAtLeast(0)
+    }
 
     // --- layers --------------------------------------------------------------------------------
     // The panel acts on the page nearest the viewport centre ([visiblePageIndex]); layer indices are
@@ -1402,9 +1445,30 @@ class DrawingSurfaceView @JvmOverloads constructor(
         render()
     }
 
-    /** Emit [onCurrentPageChanged] if the page under the viewport centre changed since last time. */
+    /**
+     * Emit [onCurrentPageChanged] if the page under the viewport centre changed since last time, or
+     * [onBoardReading] when this canvas draws a board.
+     *
+     * A board reports **both** its reading and the part in view: the reading is what the page-shaped
+     * chrome shows instead of a page (the badge, the pages menu), while `onCurrentPageChanged` still
+     * carries "which document part is under the eye" — the tile, whose index is what a layer panel or a
+     * tab's remembered position means on a board.
+     */
     internal fun reportCurrentPage() {
         if (pageSource.pageCount == 0) return
+        val board = board
+        if (board != null) {
+            val cell = viewportCell() ?: return
+            val reading = BoardReading(cell = cell, tiles = board.grid.size)
+            if (reading != lastBoardReading) {
+                lastBoardReading = reading
+                onBoardReading?.invoke(reading)
+            }
+        } else if (lastBoardReading != null) {
+            // The board is gone: a page list took its place, so the chrome goes back to pages.
+            lastBoardReading = null
+            onBoardReading?.invoke(null)
+        }
         val idx = currentPageIndex()
         if (idx != lastReportedPage) {
             lastReportedPage = idx
@@ -1413,9 +1477,20 @@ class DrawingSurfaceView @JvmOverloads constructor(
         }
     }
 
-    /** Emit [onScrollChanged] if the scroll offset or content extent changed since last time. */
+    /**
+     * Emit [onScrollChanged] if the scroll offset or content extent changed since last time.
+     *
+     * A board has **no scrollable extent**: its content is unbounded in every direction, so a thumb
+     * fraction of "how far down the document" would be a number about nothing. It reports the viewport
+     * as the whole extent, which is what hides the right-edge scroll thumb and its page bubble, and it
+     * is the same report a document shorter than the screen makes.
+     */
     internal fun reportScroll() {
-        val t = Triple(scrollY, layout.totalHeightPx, height.toFloat())
+        val t = if (board != null) {
+            Triple(scrollY, height.toFloat(), height.toFloat())
+        } else {
+            Triple(scrollY, layout.totalHeightPx, height.toFloat())
+        }
         if (t != lastScrollReport) {
             lastScrollReport = t
             onScrollChanged?.invoke(t.first, t.second, t.third)
@@ -1498,8 +1573,16 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * The page nearest the viewport centre — the target for a paste, and what a tab records so
      * re-selecting it lands back where you left off (see `com.mobixournal.tabs`).
      */
-    fun visiblePageIndex(): Int =
-        layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: currentPage
+    fun visiblePageIndex(): Int {
+        // A board answers with the tile in view, like [currentPageIndex]: the layer panel, the paste
+        // target and a tab's remembered position all mean "the part I am looking at", and on a board
+        // that is a tile rather than a place in a stack that is not drawn.
+        viewportCell()?.let { cell ->
+            val index = board?.grid?.nearestIndex(cell) ?: -1
+            if (index >= 0) return index
+        }
+        return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index ?: currentPage
+    }
 
     /**
      * The page-local point (pt) at the middle of the viewport on page [index] — where a fresh insert

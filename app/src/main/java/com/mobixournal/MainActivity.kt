@@ -367,7 +367,10 @@ class MainActivity : ComponentActivity() {
                         // itself ([DrawingSurfaceView.onBoardBlocked]): say so rather than letting the
                         // gesture look broken.
                         view.onBoardBlocked = { toast(getString(R.string.infinite_canvas_only_drawing)) }
-                        view.onDocumentEdited = { doc -> mirrors.propagate(p, doc) }
+                        // The board's own shape rides with the document: a chunked document's cells are
+                        // not derivable from its pages, so a mirrored pane of an infinite canvas has to
+                        // be handed the grid the editing pane holds (`DrawingSurfaceView.canvasGeometry`).
+                        view.onDocumentEdited = { doc -> mirrors.propagate(p, doc, view.canvasGeometry()) }
                         attachAudio(view)
                         // Restore is asynchronous now, so a file handed to us by another app is opened
                         // once the session is back — otherwise it would be shoved aside by the restore.

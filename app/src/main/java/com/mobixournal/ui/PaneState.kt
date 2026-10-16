@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobixournal.render.BoardReading
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.LayerInfo
 import com.mobixournal.render.PdfOutline
@@ -27,6 +28,17 @@ class PaneState {
     
     /** Total number of pages in the document. */
     var pageCount by mutableStateOf(1)
+
+    /**
+     * Where a **board**'s view is, or null for a document that is a page list
+     * ([DrawingSurfaceView.onBoardReading]).
+     *
+     * It is the flag *and* the answer: the chrome surfaces that must not claim a page read this, and it
+     * is non-null exactly when the canvas is drawing an infinite canvas — so "is this a board" and
+     * "which tile is in view" cannot disagree, and neither can go stale while the other updates
+     * (`docs/chrome.md` → *A document with no pages*).
+     */
+    var board by mutableStateOf<BoardReading?>(null)
 
     /** How many pages are picked in the overview grid — drives the bulk-delete entries in the Pages menu. */
     var selectedPages by mutableStateOf(0)
