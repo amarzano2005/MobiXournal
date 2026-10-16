@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
@@ -78,7 +79,7 @@ fun PageCounter(
     Surface(
         modifier = modifier,
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+        color = rememberFloatingSurfaceColor(),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         tonalElevation = 3.dp,
         shadowElevation = 2.dp,
@@ -112,7 +113,7 @@ fun ZoomBadge(
         // Clip before the click so the ripple stays inside the badge's rounded corners.
         modifier = modifier.clip(shape).clickable(onClick = onClick),
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+        color = rememberFloatingSurfaceColor(),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         tonalElevation = 3.dp,
         shadowElevation = 2.dp,

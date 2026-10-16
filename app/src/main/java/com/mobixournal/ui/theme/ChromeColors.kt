@@ -53,8 +53,9 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
  *
  * This is the app's frosted glass ([ModernTheme.glassSurface]), and it is deliberately *one* function
  * rather than one call to the token per surface, so no two bands can end up different materials.
- * A **pop-up** takes [rememberMenuSurfaceColor] instead — the same colour, less see-through — rather
- * than this, because a panel is what text is read on (it used to paint [rememberToolbarColor],
+ * A **floating surface** takes [rememberFloatingSurfaceColor] instead — the same colour, less
+ * see-through — rather than this, because a panel is what text is read on (it used to paint
+ * [rememberToolbarColor],
  * `surfaceContainer`, which in the light theme was the baseline lavender `#F3EDF7`: a blue-grey panel
  * hanging from a near-white bar, in a palette with no violet in it).
  *
@@ -65,24 +66,34 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
 fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(isSystemInDarkTheme())
 
 /**
- * The fill of the **pop-ups** the chrome opens: the bars' glass with the see-through turned down
- * ([ModernTheme.menuPanelSurface]).
+ * The fill of every **floating surface**: the bars' glass with the see-through turned down
+ * ([ModernTheme.floatingSurface]).
  *
- * One function for the same reason its bar-side twin is one: every pop-up in the app is built by
- * `ToolbarMenu`, and this is what that one material paints — so the menu reads as the bar's own colour
- * while staying readable over the page behind it.
+ * "Floating" is everything the chrome puts *over* the page for a moment rather than in a band beside
+ * it, and they are one material because they are one idea: the pop-ups and submenus (`ToolbarMenu`),
+ * the action bars that come up with a selection (`EditorActionBars`), the STEM editors' chrome, the
+ * page/zoom/scroll badges, the dialogs that are not Material's own (`OnboardingDialog`,
+ * `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. Material's own `AlertDialog`s
+ * read `colorScheme.surface`, which the schemes pin to the same charcoal/white the glass is made of,
+ * and take [ModernTheme.panelCornerRadiusDp] through `AppShapes` — so a dialog and a menu are one
+ * material too, without every call site passing a colour.
+ *
+ * One function for the same reason its bar-side twin is one: a floating surface that read its own
+ * container role is how a lavender menu once hung from a grey bar.
  */
 @Composable
-fun rememberMenuSurfaceColor(): Color = ModernTheme.menuPanelSurface(isSystemInDarkTheme())
+fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(isSystemInDarkTheme())
 
 /**
- * The raised **panels'** colour: dialog and picker chrome (the function-plot chrome, the share and
- * page dialogs), i.e. `surfaceContainer` — [NeutralContainerLight] in the light theme,
- * [NeutralContainerDark] in the dark one.
+ * The **plate** colour: the opaque neutral step for a surface *inside* a floating one — the function
+ * dialog's mode-selector track, a thumbnail well, a caption strip. `surfaceContainer`:
+ * [NeutralContainerLight] in the light theme, [NeutralContainerDark] in the dark one.
  *
- * It is *not* the toolbars' colour even though the role was named for them: the rail, the header slab
- * and the dock are frosted glass ([rememberGlassSurfaceColor]) and have been since the chrome was
- * banded. A new panel takes this; a new *bar* or pop-up takes the glass.
+ * It is *not* the toolbars' colour, whatever the role's name suggests: the rail, the header slab and the
+ * dock are frosted glass ([rememberGlassSurfaceColor]) and have been since the chrome was banded, and
+ * anything that *floats* — a menu, an action bar, a badge, a dialog — takes
+ * [rememberFloatingSurfaceColor]. This is the third, quieter job: something that needs to read as a
+ * recessed plate rather than a raised surface.
  */
 @Composable
 fun rememberToolbarColor(): Color = MaterialTheme.colorScheme.surfaceContainer

@@ -71,10 +71,13 @@ change can see what will fail it:
   of the source tree, since a `Modifier.size(...)` argument is invisible to any behavioural assertion.
 - **`ColorContractGuardTest`** (`guards/`) — the palette's own contract, asserted by **sweep** rather
   than by spot-check: every container and outline role of both schemes is measured for a violet wash
-  ("green deficit"), the light ramp is pinned role by role, the one menu material must read
-  `rememberMenuSurfaceColor` rather than a container role of its own, its ink must clear 4.5:1 over
-  both extremes of backdrop, and the metric itself is pinned against Material 3's baseline neutrals so
-  it cannot be loosened into passing on lavender.
+  ("green deficit"), the light ramp is pinned role by role, the floating material must read
+  `rememberFloatingSurfaceColor` rather than a container role of its own, its ink must clear 4.5:1 over
+  both extremes of backdrop, the metric itself is pinned against Material 3's baseline neutrals so it
+  cannot be loosened into passing on lavender, and two further checks keep the family whole: every file
+  that carries a floating surface must read that one material (the container role it used to paint is
+  banned by name in the same file, so a second surface cannot slip in with an ad-hoc fill), and
+  `AppShapes.extraLarge` — the role Material's `AlertDialog` reads — must be the menus' own corner.
 - **`FormatDriftTest`** (`format/`) — the `.xopp` mapping the docs describe against what the writers
   emit, so the format documentation cannot drift from the code.
 - **`DesktopColorParityTest`**, **`RealFileRoundTripTest`**, **`SelectionHandleRadiusTest`** and

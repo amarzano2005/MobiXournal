@@ -5,9 +5,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.TOP_BAR_DOCK_CORNER
 import com.mobixournal.ui.theme.ActiveSlotDark
 import com.mobixournal.ui.theme.ActiveSlotLight
 import com.mobixournal.ui.theme.Amber
+import com.mobixournal.ui.theme.AppShapes
 import com.mobixournal.ui.theme.Blue
 import com.mobixournal.ui.theme.BlueDark
 import com.mobixournal.ui.theme.DarkColors
@@ -158,9 +162,9 @@ class ColorContractGuardTest {
         assertTrue("File must exist: ${file.path}", file.isFile)
         val text = file.readText()
         assertTrue(
-            "the pop-up's fill must be the bars' own glass, with the panel's less see-through alpha: " +
-                "`val toolbar = rememberMenuSurfaceColor()`",
-            text.contains("val toolbar = rememberMenuSurfaceColor()"),
+            "the pop-up's fill must be the bars' own glass at the floating alpha: " +
+                "`val toolbar = rememberFloatingSurfaceColor()`",
+            text.contains("val toolbar = rememberFloatingSurfaceColor()"),
         )
         assertFalse(
             "…and must not fall back to the surfaceContainer role it used to read",
@@ -182,7 +186,7 @@ class ColorContractGuardTest {
         for (isDark in listOf(false, true)) {
             val where = if (isDark) "dark" else "light"
             val bar = ModernTheme.glassSurface(isDark)
-            val panel = ModernTheme.menuPanelSurface(isDark)
+            val panel = ModernTheme.floatingSurface(isDark)
             assertEquals("the $where panel must be the bar's colour (red)", bar.red, panel.red)
             assertEquals("the $where panel must be the bar's colour (green)", bar.green, panel.green)
             assertEquals("the $where panel must be the bar's colour (blue)", bar.blue, panel.blue)
@@ -202,7 +206,7 @@ class ColorContractGuardTest {
      *
      * The pop-up hangs over the page, so the panel is composited over the two extremes that can sit
      * under it — a white sheet and heavy black ink — and both of its ink roles must clear 4.5:1, the
-     * WCAG AA floor for body text. This is the measurement behind `ModernTheme.menuPanelAlpha`: at
+     * WCAG AA floor for body text. This is the measurement behind `ModernTheme.floatingPanelAlpha`: at
      * the bars' own 0.85 the dark theme's secondary ink comes out at 4.41:1 over a white page, i.e.
      * below the floor — "a bit too see-through" as a number instead of an impression.
      */
@@ -211,7 +215,7 @@ class ColorContractGuardTest {
         for (isDark in listOf(false, true)) {
             val where = if (isDark) "dark" else "light"
             val scheme = if (isDark) DarkColors else LightColors
-            val panel = ModernTheme.menuPanelSurface(isDark)
+            val panel = ModernTheme.floatingSurface(isDark)
             for ((backdropName, backdrop) in listOf("a white sheet" to Color.White, "black ink" to Color.Black)) {
                 val composited = panel.compositeOver(backdrop)
                 val inks = listOf(
@@ -226,6 +230,81 @@ class ColorContractGuardTest {
                         ratio >= 4.5,
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * A dialog and a menu turn at the **same** corner.
+     *
+     * Material's `AlertDialog` takes its shape from `Shapes.extraLarge` — `DialogTokens.ContainerShape`
+     * is `ShapeKeyTokens.CornerExtraLarge`, read out of the material3 1.2.1 bytecode rather than assumed
+     * — so re-cutting that one role in [AppShapes] is what makes *every* dialog in the app turn at the
+     * floating corner, with no call site passing a shape. This pins the value, and pins it to the number
+     * the menus and the dock cap already use, so the three cannot drift into three radii.
+     */
+    @Test
+    fun dialogsAndMenusShareOneFloatingCorner() {
+        assertEquals("the floating corner", 20.dp, ModernTheme.panelCornerRadiusDp)
+        assertEquals(
+            "…and the documented value",
+            ModernTheme.PANEL_CORNER_RADIUS_DP_VAL,
+            ModernTheme.panelCornerRadiusDp.value.toInt(),
+        )
+        assertEquals(
+            "a dialog's corner must be the floating corner (Shapes.extraLarge)",
+            CornerSize(ModernTheme.panelCornerRadiusDp),
+            AppShapes.extraLarge.topStart,
+        )
+        assertEquals(
+            "the menus and the dock cap must use that same corner",
+            ModernTheme.panelCornerRadiusDp,
+            TOP_BAR_DOCK_CORNER,
+        )
+    }
+
+    /**
+     * **Every** floating surface paints the one material.
+     *
+     * The palette guard above can only see the theme's roles; whether a *call site* asked for them is a
+     * property of the source tree, exactly as with `ToolbarMenuGuardTest`. These are the surfaces the user
+     * meets over the page — the menus and submenus, the action bars that come up with a selection
+     * (cut/copy, table, spline, PDF text, region), the page/zoom/scroll badges, the transfer overlay, the
+     * two hand-rolled dialogs and the search-indexing card — and each must read
+     * `rememberFloatingSurfaceColor()` rather than a container role of its own.
+     *
+     * A presence check alone would pass a file that keeps one surface wired and adds a second one with an
+     * ad-hoc fill, so the fills this replaced are banned by name in the same files (normalised to `\n`
+     * first, since the tree is CRLF on Windows and LF elsewhere).
+     */
+    @Test
+    fun everyFloatingSurfacePaintsTheFloatingMaterial() {
+        val floating = mapOf(
+            "ToolbarPopup.kt" to listOf("import com.mobixournal.ui.theme.rememberToolbarColor"),
+            "EditorActionBars.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
+            "PageCounter.kt" to listOf("surfaceContainerHighest.copy(alpha = 0.85f)"),
+            "ScrollThumb.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
+            "EditorOverlays.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
+            "EditorRegions.kt" to listOf(
+                "shape = RoundedCornerShape(16.dp),\n            color = MaterialTheme.colorScheme.surfaceContainerHigh,",
+            ),
+            "ShortcutsSection.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
+            "OnboardingDialog.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
+        )
+        for ((fileName, retiredFills) in floating) {
+            val file = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/$fileName")
+            assertTrue("File must exist: $fileName", file.isFile)
+            val text = file.readText().replace("\r\n", "\n")
+            assertTrue(
+                "$fileName must paint its floating surface with rememberFloatingSurfaceColor()",
+                text.contains("rememberFloatingSurfaceColor()"),
+            )
+            for (retired in retiredFills) {
+                assertFalse(
+                    "$fileName still carries a floating fill of its own: `${retired.trim()}` — a " +
+                        "floating surface takes the one material, it does not pick a container role",
+                    text.contains(retired),
+                )
             }
         }
     }

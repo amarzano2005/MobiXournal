@@ -57,7 +57,9 @@ import androidx.compose.ui.unit.sp
  * what the standalone indicator borrows for a shape of its own ([StandaloneToolIndicator]).
  */
 internal val TOP_BAR_DOCK_HEIGHT = 40.dp
-internal val TOP_BAR_DOCK_CORNER = 20.dp
+// The dock's corner *is* the floating-surfaces corner (ModernTheme.panelCornerRadiusDp), so a menu, an
+// action bar and a dialog turn at the radius the dock does — see AppShapes.
+internal val TOP_BAR_DOCK_CORNER = ModernTheme.panelCornerRadiusDp
 
 /** How much smaller the cap's inner corners are than the dock's: it caps one end, it doesn't echo it. */
 internal val TOP_BAR_CAP_INNER_CORNER = 8.dp

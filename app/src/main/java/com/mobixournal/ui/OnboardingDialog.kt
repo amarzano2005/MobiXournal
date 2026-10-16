@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -90,7 +91,7 @@ fun OnboardingDialog(
     ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = rememberFloatingSurfaceColor(),
             tonalElevation = 6.dp,
             modifier = Modifier
                 .padding(20.dp)

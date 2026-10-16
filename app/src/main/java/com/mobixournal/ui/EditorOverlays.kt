@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -337,7 +338,11 @@ fun TransferOverlay(label: String) {
             .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } },
         contentAlignment = Alignment.Center,
     ) {
-        Surface(shape = MaterialTheme.shapes.large, tonalElevation = 4.dp) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = rememberFloatingSurfaceColor(),
+            tonalElevation = 4.dp,
+        ) {
             androidx.compose.foundation.layout.Row(
                 modifier = Modifier.padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically,

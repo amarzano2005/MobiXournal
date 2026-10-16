@@ -99,6 +99,7 @@ import com.mobixournal.render.SearchStatus
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
@@ -346,7 +347,7 @@ private fun SearchIndexingDialog(
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            color = rememberFloatingSurfaceColor(),
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
         ) {

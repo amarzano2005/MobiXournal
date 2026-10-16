@@ -3,8 +3,10 @@ package com.mobixournal.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -117,6 +119,20 @@ internal val LightColors: ColorScheme = lightColorScheme().pinnedLightChrome()
 internal val DarkColors: ColorScheme = darkColorScheme().pinnedDarkChrome()
 
 /**
+ * The app's shape set: Material 3's, with **one** change — `extraLarge`, which is what Material's
+ * `DialogTokens.ContainerShape` resolves to, is the chrome's own floating corner
+ * ([ModernTheme.panelCornerRadiusDp], 20dp) instead of Material's 28dp.
+ *
+ * One change, every dialog: the app's twenty-five `AlertDialog`s — and any added later — then turn at the
+ * same radius as the menus, the action bars and the docks, with no call site passing a shape and no
+ * wrapper to remember. `ColorContractGuardTest` pins the value, so dialogs and menus cannot drift into
+ * two corners.
+ */
+internal val AppShapes: Shapes = Shapes().copy(
+    extraLarge = RoundedCornerShape(ModernTheme.panelCornerRadiusDp),
+)
+
+/**
  * Whether [mode] means "paint dark" right now — SYSTEM defers to the OS setting.
  *
  * Use this to decide which Material 3 colour scheme to apply.
@@ -182,6 +198,7 @@ fun XoppTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = ModernTypography,
+        shapes = AppShapes,
         content = content,
     )
 }

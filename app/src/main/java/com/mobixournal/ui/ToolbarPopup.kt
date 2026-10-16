@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.MENU_RIM_ALPHA_BOTTOM
 import com.mobixournal.ui.theme.MENU_RIM_ALPHA_TOP
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberMenuRimColor
-import com.mobixournal.ui.theme.rememberMenuSurfaceColor
 
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
@@ -104,8 +104,8 @@ internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurf
 
 /**
  * The toolbar's own [DropdownMenu] — every pop-up the toolbars open is cut from the **same material
- * as the bars themselves**: [rememberMenuSurfaceColor], the frosted glass the rail, the header slab and
- * the dock paint with the see-through turned down, for its fill, and their own [TOP_BAR_DOCK_CORNER]
+ * as the bars themselves**: [rememberFloatingSurfaceColor], the one fill every floating surface in the
+ * app wears (the bars' glass with the see-through turned down), and their own [TOP_BAR_DOCK_CORNER]
  * for its corners,
  * so a menu reads as part of the bar it hangs from instead of a paler, squarer panel floating over it.
  *
@@ -153,7 +153,7 @@ internal fun ToolbarMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val toolbar = rememberMenuSurfaceColor()
+    val toolbar = rememberFloatingSurfaceColor()
     val scheme = MaterialTheme.colorScheme
     val shapes = MaterialTheme.shapes
     val rim = rememberMenuRimColor()

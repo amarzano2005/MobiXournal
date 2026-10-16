@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -92,6 +93,8 @@ fun SelectionActionBar(
     Surface(
         modifier = modifier,
         shape = shape,
+        // The one floating material: the same fill as the menus, the STEM chrome and the docks' bars.
+        color = rememberFloatingSurfaceColor(),
         border = border,
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
@@ -251,6 +254,7 @@ fun SelectModeBar(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
+        color = rememberFloatingSurfaceColor(),
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {
@@ -300,6 +304,7 @@ fun SplineModeBar(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
+        color = rememberFloatingSurfaceColor(),
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {
@@ -334,6 +339,7 @@ fun TextSelectionBar(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
+        color = rememberFloatingSurfaceColor(),
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {
@@ -369,6 +375,7 @@ fun TableModeBar(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
+        color = rememberFloatingSurfaceColor(),
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {

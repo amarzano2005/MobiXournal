@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -175,6 +176,8 @@ private fun PageBubble(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
+        // The page bubble is a floating badge like the page counter: the one floating material.
+        color = rememberFloatingSurfaceColor(),
         tonalElevation = 3.dp,
         shadowElevation = 4.dp,
     ) {

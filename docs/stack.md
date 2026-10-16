@@ -30,18 +30,29 @@ native for stylus latency and platform fit).
   - **`rememberGlassSurfaceColor()` — the one frosted-glass filler** (`ModernTheme.glassSurface`, so
     `rgba(22, 22, 24, 0.85)` in dark / `rgba(255, 255, 255, 0.88)` in light): the Main Toolbar rail
     (`SideToolbar.kt`), the header slab (`EditorRegions.kt` / `EditorScreen.kt`'s `RailLane`), the
-    Secondary Toolbar's floating dock, the tab chips — **and every pop-up the chrome opens**
-    (`ToolbarMenu`). Bars and menus read this one function, so a pop-up reads as the bar's own material
-    and cannot be a different one from the bar it hangs from; the canvas
+    Secondary Toolbar's floating dock, the tab chips — **and every pop-up the chrome opens**    (`ToolbarMenu`). Bars read this one function, so no two bands can end up different materials; the
+    canvas
     backdrop is the exception, on `rememberChromeColor()` (`background`), since the desk is the bars'
     colour and the frosted implements stand on it.
-  - **`rememberToolbarColor()` — the raised panels** (`surfaceContainer`): dialog and picker chrome
-    (`AdvancedFunctionGraphDialog`, section plates). It is *not* what the bars paint, whatever the
-    name suggests; it is the neutral container role [colours.md](colours.md) pins per theme (`NeutralContainerDark` `#252528`, `NeutralContainerLight` `#EAEDF0`).
+  - **`rememberFloatingSurfaceColor()` — the floating material** (`ModernTheme.floatingSurface`):
+    everything the chrome puts **over** the page for a moment — the menus and submenus (`ToolbarMenu`),
+    the action bars that appear with a selection and with the table/spline/PDF-text/region tools
+    (`EditorActionBars`), the STEM editors' chrome, the page/zoom/scroll badges, the hand-rolled dialogs
+    (`OnboardingDialog`, `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. The
+    bars' glass with the see-through turned down to `floatingPanelAlpha` (0.93) — same RGB, so a floating
+    surface is never a different colour from the bar it appears over. All of them are cut at
+    `ModernTheme.panelCornerRadiusDp` (20dp), which `AppShapes.extraLarge` gives Material's own
+    `AlertDialog`s too.
+  - **`rememberToolbarColor()` — the recessed plates** (`surfaceContainer`): a surface *inside* a
+    floating one that should read as a recess rather than a rise — the function dialog's mode-selector
+    track, a thumbnail well, the search field's track, settings plates. It is *not* what the bars paint,
+    whatever the name suggests; it is the neutral container role [colours.md](colours.md) pins per theme
+    (`NeutralContainerDark` `#252528`, `NeutralContainerLight` `#EAEDF0`).
 
-  A new *bar* or *pop-up* surface takes `rememberGlassSurfaceColor`, a new *raised panel* takes
-  `rememberToolbarColor`, and the desk takes `rememberChromeColor`; none of them is a
-  `surfaceContainer*` role spelled out by hand, in either theme. `pageOutline` (the scheme's
+  A new *bar* surface takes `rememberGlassSurfaceColor`, a new *floating* surface takes
+  `rememberFloatingSurfaceColor`, a new *recessed plate* takes `rememberToolbarColor`, and the desk takes
+  `rememberChromeColor`; none of them is a `surfaceContainer*` role spelled out by hand, in either theme,
+  and a floating one also takes `panelCornerRadiusDp`. `pageOutline` (the scheme's
   `outlineVariant` hairline around each sheet, drawn in `DrawingSurfacePaint.drawPageOutline` — **not**
   in `BackgroundRenderer`, which the PDF exporter also calls) is what keeps a near-white page findable
   against a light-themed surround. **Ink, pen palette and page backgrounds are document data, not

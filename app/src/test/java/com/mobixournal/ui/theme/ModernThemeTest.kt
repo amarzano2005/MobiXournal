@@ -21,7 +21,7 @@ class ModernThemeTest {
         assertEquals("rgba(22, 22, 24, 0.85)", ModernTheme.GLASS_DARK_RAW)
         assertEquals("rgba(255, 255, 255, 0.88)", ModernTheme.GLASS_LIGHT_RAW)
         assertEquals("rgba(255, 255, 255, 0.12)", ModernTheme.HAIRLINE_BORDER_RAW)
-        assertEquals("0.93", ModernTheme.MENU_PANEL_ALPHA_RAW)
+        assertEquals("0.93", ModernTheme.FLOATING_PANEL_ALPHA_RAW)
 
         // Color components (8-bit channel quantization tolerance: 1/255 is ~0.0039)
         val channelTolerance = 0.005f
@@ -64,19 +64,23 @@ class ModernThemeTest {
         assertEquals(ModernTheme.glassDark, ModernTheme.glassSurface(isDark = true))
         assertEquals(ModernTheme.glassLight, ModernTheme.glassSurface(isDark = false))
 
-        // A pop-up panel is its bar's glass with only the alpha turned down: same RGB, less see-through.
-        val panelDark = ModernTheme.menuPanelSurface(isDark = true)
+        // A floating surface is its bar's glass with only the alpha turned down: same RGB, less see-through.
+        val panelDark = ModernTheme.floatingSurface(isDark = true)
         assertEquals(ModernTheme.glassDark.red, panelDark.red)
         assertEquals(ModernTheme.glassDark.green, panelDark.green)
         assertEquals(ModernTheme.glassDark.blue, panelDark.blue)
         // One 8-bit step of tolerance: these colours pack into 8 bits per channel (0.93f → 237/255).
-        assertEquals(ModernTheme.menuPanelAlpha, panelDark.alpha, 0.005f)
-        assertEquals(ModernTheme.MENU_PANEL_ALPHA_VAL, panelDark.alpha.toDouble(), 0.005)
-        val panelLight = ModernTheme.menuPanelSurface(isDark = false)
+        assertEquals(ModernTheme.floatingPanelAlpha, panelDark.alpha, 0.005f)
+        assertEquals(ModernTheme.FLOATING_PANEL_ALPHA_VAL, panelDark.alpha.toDouble(), 0.005)
+        val panelLight = ModernTheme.floatingSurface(isDark = false)
         assertEquals(ModernTheme.glassLight.red, panelLight.red)
         assertEquals(ModernTheme.glassLight.green, panelLight.green)
         assertEquals(ModernTheme.glassLight.blue, panelLight.blue)
-        assertEquals(ModernTheme.menuPanelAlpha, panelLight.alpha, 0.005f)
+        assertEquals(ModernTheme.floatingPanelAlpha, panelLight.alpha, 0.005f)
+
+        // Every floating surface is cut with one corner, and it is a documented token.
+        assertEquals(20.dp, ModernTheme.panelCornerRadiusDp)
+        assertEquals(20, ModernTheme.PANEL_CORNER_RADIUS_DP_VAL)
 
         val spring = ModernTheme.springSpec<Float>()
         assertEquals(ModernTheme.springStiffness, spring.stiffness, 0.0001f)
@@ -114,7 +118,8 @@ class ModernThemeTest {
         assertEquals(ModernTheme.GLASS_DARK_RAW, extractString("glassDark"))
         assertEquals(ModernTheme.GLASS_LIGHT_RAW, extractString("glassLight"))
         assertEquals(ModernTheme.HAIRLINE_BORDER_RAW, extractString("hairlineBorder"))
-        assertEquals(ModernTheme.MENU_PANEL_ALPHA_RAW, extractNumber("menuPanelAlpha"))
+        assertEquals(ModernTheme.FLOATING_PANEL_ALPHA_RAW, extractNumber("floatingPanelAlpha"))
+        assertEquals(ModernTheme.PANEL_CORNER_RADIUS_DP_VAL, extractNumber("panelCornerRadiusDp").toInt())
 
         // Verify numeric tokens in doc match ModernTheme
         assertEquals(ModernTheme.BLUR_RADIUS_DP_VAL, extractNumber("blurRadiusDp").toInt())

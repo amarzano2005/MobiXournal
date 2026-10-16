@@ -56,14 +56,26 @@ fills in for any role a scheme does not name. See _The violet trap_ below for wh
   `rgba(255, 255, 255, 0.88)`) and every chrome **bar** reads **it** rather than the token: the rail
   capsule, the header slab, the figures' dock, the tab chips. Hairlines are
   `ModernTheme.hairlineBorder(isDark)` throughout.
-- **The pop-up panel — the same colour, less see-through**: `ToolbarMenu`, the app's one menu material,
-  takes `rememberMenuSurfaceColor()` = `ModernTheme.menuPanelSurface(isDark)`, i.e. the bar's glass
-  **RGB untouched** at the `menuPanelAlpha` token (**0.93**, `ModernTheme.menuPanelAlpha`). So a menu
-  is the bar's own colour by construction rather than by two call sites agreeing, and it is *less*
-  transparent on purpose: a bar carries one glyph and a panel carries rows of text over the page. The
-  floor is measured — at the bars' 0.85 the dark theme's secondary ink came out at 4.41:1 over a white
-  sheet, under the 4.5:1 WCAG AA body-text floor — and `ColorContractGuardTest` recomputes both ink
-  roles over a white sheet and over black ink, in both themes.
+- **The floating material — the same colour, less see-through**: everything that floats **over** the
+  page reads `rememberFloatingSurfaceColor()` = `ModernTheme.floatingSurface(isDark)`, i.e. the bar's
+  glass **RGB untouched** at the `floatingPanelAlpha` token (**0.93**, `ModernTheme.floatingPanelAlpha`).
+  *Floating* is one family by design: the pop-ups and submenus (`ToolbarMenu`), the action bars that come
+  up with a selection and with the table/spline/PDF-text/region tools (`EditorActionBars`), the STEM
+  editors' chrome, the page/zoom/scroll badges, the hand-rolled dialogs (`OnboardingDialog`,
+  `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. So one surface can never be a
+  different material from the bar it appears over — it used to be a container role of its own, which is
+  what left a lavender menu hanging from a grey bar.
+- **One floating corner (`panelCornerRadiusDp`, 20dp)**: a menu, an action bar and a **dialog** turn at
+  the docks' radius. Material's `AlertDialog` reads `Shapes.extraLarge` (`DialogTokens.ContainerShape` =
+  `CornerExtraLarge` in material3 1.2.1), which [`Theme.kt`]'s `AppShapes` re-cuts once — so all
+  twenty-five dialogs follow without one call site passing a shape. Their container is
+  `colorScheme.surface` (the same white/charcoal the glass is mixed from) and stays **opaque**: a modal
+  dialog sits on its own scrim, where 0.93 and 1.0 of one colour are the same picture.
+- **The measured legibility floor**: the floating material is less transparent than the bar on purpose,
+  and the number is measured rather than chosen — a bar carries one glyph, a floating surface carries
+  rows of text over the page, and at the bars' 0.85 the dark theme's secondary ink came out at 4.41:1
+  over a white sheet, under the 4.5:1 WCAG AA body-text floor. `ColorContractGuardTest` recomputes both
+  ink roles over a white sheet and over black ink, in both themes.
 - **`NeutralContainerDark` (`#252528`)** & **`NeutralContainerLight` (`#EAEDF0`)**: the neutral grey of
   `surfaceContainer` — the *raised panels* (dialog and `PlotGraphDialogChrome` chrome, section plates),
   one per theme. Neither theme leaves a container role to Material 3 any more: both schemes are built
@@ -104,5 +116,6 @@ never leans past 6 (`#38383E`). The guard's own self-test pins the metric agains
 threshold cannot be quietly loosened into a test that passes on lavender.
 
 The chrome's own colour roles — the bars' `rememberChromeColor()`, the one glass filler
-`rememberGlassSurfaceColor()`, and the panels' `rememberToolbarColor()` — are recorded where the rest of
-the pinned stack is: [`stack.md`](stack.md).
+`rememberGlassSurfaceColor()`, the floating filler `rememberFloatingSurfaceColor()`, and the recessed
+plates' `rememberToolbarColor()` — are recorded where the rest of the pinned stack is:
+[`stack.md`](stack.md).
