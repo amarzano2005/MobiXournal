@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "unify-ui-color-palette-and-semantic-theme-contract"
+title = "Unify UI color palette into a single semantic glass contract across Compose and Canvas"
+description = "Phase 1 & 2 of docs/ui-modernization.md: consolidate all chrome surfaces into a single semantic color contract shared by Compose (TopBar, rail, inspectors, settings) and Canvas SurfaceView (Radial HUD, selection handles, desk backdrop, page outline). Fix the chromatic inconsistency where the background under the main toolbar rail differs from the background under the secondary toolbar: unify the chrome backdrop (pure OLED black #000000 for desk), align the glass capsule fills (rgba(22, 22, 24, 0.85) in dark mode) so the rail lane and top bar read as parts of the same frame, luminescent violet (#C084FC) for active/selection accents, and amber (#FFB300) for geometric guides. Add ColorContractGuardTest asserting zero hardcoded color literals in UI composables and strict parity between Compose theme and CanvasChromeColors. Update docs/ui-modernization.md and docs/colours.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-16
+completed = 2026-10-16
+tags = ["ui", "theme", "design-system"]
+
+[[task]]
 id = "step-1-mobix-format-engines"
 title = "Step 1 - the native .mobix format (the engines it promises and does not run)"
 description = """

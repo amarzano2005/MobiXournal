@@ -41,6 +41,9 @@ object ModernTheme {
     /** Subtle hairline rim stroke: `rgba(255, 255, 255, 0.12)`. */
     val hairlineBorder: Color = Color(red = 1f, green = 1f, blue = 1f, alpha = 0.12f)
 
+    /** Subtle hairline rim stroke in light mode: `rgba(0, 0, 0, 0.12)`. */
+    val hairlineBorderLight: Color = Color(red = 0f, green = 0f, blue = 0f, alpha = 0.12f)
+
     /** Backdrop blur radius: 24 dp. */
     const val BLUR_RADIUS_DP_VAL: Int = 24
     val blurRadiusDp: Dp = 24.dp
@@ -98,4 +101,9 @@ object ModernTheme {
      * Resolves the glass surface background colour depending on dark mode state.
      */
     fun glassSurface(isDark: Boolean): Color = if (isDark) glassDark else glassLight
+
+    /**
+     * Resolves the hairline border stroke colour depending on dark mode state.
+     */
+    fun hairlineBorder(isDark: Boolean): Color = if (isDark) hairlineBorder else hairlineBorderLight
 }

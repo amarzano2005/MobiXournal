@@ -42,5 +42,20 @@ recolour menu), plus the shortcut tables that jump straight to a colour or a too
   start from one that already exists instead of from a hex the user would have to know; tapping a
   swatch loads it into the editor and nothing is committed until **Set**.
 
+## Semantic Theme Tokens & Chrome Roles (`Color.kt`, `Theme.kt`, `ChromeColors.kt`)
+
+The UI chrome follows a strict semantic colour contract pinned by `ColorContractGuardTest`:
+- **`DeskDark` (`#000000`)** & **`DeskLight` (`#F8F9FA`)**: True OLED black canvas backdrop in dark
+  mode and clean warm paper neutral in light mode (`rememberChromeColor()`). Both the canvas surround
+  and the empty desk behind the toolbars read this token, ensuring absolute chromatic consistency
+  between the main toolbar rail and secondary toolbar top bar without mismatched tones.
+- **Glass surfaces**: Both floating toolbars share identical frosted glass fills (`ModernTheme.glassDark`
+  `rgba(22, 22, 24, 0.85)` / `ModernTheme.glassLight` `rgba(255, 255, 255, 0.88)`) and hairlines
+  (`ModernTheme.hairlineBorder(isDark)`), eliminating conflicting double-glass or raw grey backdrops.
+- **`TextLightOnDark` (`#EDEDED`)** & **`TextDarkOnLight` (`#1B212F`)**: High-legibility neutral text.
+- **`TextSecondaryOnDark` (`#A0A0A0`)** & **`TextSecondaryOnLight` (`#596579`)**: Secondary caption text.
+- **`OutlineDark` (`#383838`)** & **`OutlineVariantDark` (`#262626`)**: Subtle neutral dividers.
+- **`PurpleDark` (`#C084FC`)** & **`Amber` (`#FFFFB300`)**: Luminescent primary brand and guide accents.
+
 The chrome's own colour roles — the bars' `rememberChromeColor()` and the implement colour
 `rememberToolbarColor()` — are recorded where the rest of the pinned stack is: [`stack.md`](stack.md).

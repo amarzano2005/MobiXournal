@@ -176,7 +176,7 @@ private fun ToolbarShell(
     val baseSlot = SideToolbarModernSlot
     val isDark = isSystemInDarkTheme()
     val glassColor = ModernTheme.glassSurface(isDark)
-    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
     if (horizontal) {
         BoxWithConstraints(

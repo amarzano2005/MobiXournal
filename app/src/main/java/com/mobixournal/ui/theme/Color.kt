@@ -23,3 +23,30 @@ val PurpleDark = Color(0xFFC084FC)
 
 /** Brand secondary in both schemes; the accent behind guide overlays on the canvas. */
 val Amber = Color(0xFFFFB300)
+
+// --- Formal Semantic Chrome Palette (docs/ui-modernization.md) ---
+
+/** True OLED Black canvas and desk background for dark mode (#000000). */
+val DeskDark = Color(0xFF000000)
+
+/** Clean warm paper light neutral desk background for light mode (#F8F9FA). */
+val DeskLight = Color(0xFFF8F9FA)
+
+/** Neutral dark text on light surfaces (#1B212F). */
+val TextDarkOnLight = Color(0xFF1B212F)
+
+/** High-legibility crisp light text on dark surfaces (#EDEDED). */
+val TextLightOnDark = Color(0xFFEDEDED)
+
+/** Secondary text on dark surfaces (#A0A0A0). */
+val TextSecondaryOnDark = Color(0xFFA0A0A0)
+
+/** Secondary text on light surfaces (#596579). */
+val TextSecondaryOnLight = Color(0xFF596579)
+
+/** Hairline outline border for dark surfaces (#383838). */
+val OutlineDark = Color(0xFF383838)
+
+/** Subtle hairline outline variant for dark surfaces (#262626). */
+val OutlineVariantDark = Color(0xFF262626)
+

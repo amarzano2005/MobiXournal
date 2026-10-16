@@ -213,7 +213,7 @@ fun EditorTopBar(
                 ),
                 actions = {
                 val glassColor = ModernTheme.glassSurface(isDark)
-                val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+                val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
                 // Order is deliberate: split view sits directly right of the search button, then the
                 // paired undo/redo. The two glyph-shaped file actions follow — a compact quick Export PDF
@@ -399,7 +399,7 @@ private fun SearchControls(pane: PaneState) {
     if (!pane.searchOpen) {
         val isDark = isSystemInDarkTheme()
         val glassColor = ModernTheme.glassSurface(isDark)
-        val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+        val hairlineColor = ModernTheme.hairlineBorder(isDark)
         Surface(
             shape = CircleShape,
             color = glassColor,
@@ -891,7 +891,7 @@ fun TopBarToolsRow(
 
     val isDark = isSystemInDarkTheme()
     val glassColor = ModernTheme.glassSurface(isDark)
-    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
     val dock = @Composable {
         Surface(

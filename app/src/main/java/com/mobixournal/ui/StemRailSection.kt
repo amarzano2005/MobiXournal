@@ -62,7 +62,7 @@ internal fun StemRailSection(
 ) {
     val slot = LocalRailSlotSize.current
     val isDark = isSystemInDarkTheme()
-    val hairlineColor = if (isDark) ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    val hairlineColor = ModernTheme.hairlineBorder(isDark)
     if (horizontal) {
         if (leadingDivider) {
             VerticalDivider(color = hairlineColor, thickness = ModernTheme.hairlineStrokeWidthDp)

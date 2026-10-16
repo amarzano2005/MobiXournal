@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "unify-ui-color-palette-and-semantic-theme-contract"
-title = "Unify UI color palette into a single semantic glass contract across Compose and Canvas"
-description = "Phase 1 & 2 of docs/ui-modernization.md: consolidate all chrome surfaces into a single semantic color contract shared by Compose (TopBar, rail, inspectors, settings) and Canvas SurfaceView (Radial HUD, selection handles, desk backdrop, page outline). Fix the chromatic inconsistency where the background under the main toolbar rail differs from the background under the secondary toolbar: unify the chrome backdrop (pure OLED black #000000 for desk), align the glass capsule fills (rgba(22, 22, 24, 0.85) in dark mode) so the rail lane and top bar read as parts of the same frame, luminescent violet (#C084FC) for active/selection accents, and amber (#FFB300) for geometric guides. Add ColorContractGuardTest asserting zero hardcoded color literals in UI composables and strict parity between Compose theme and CanvasChromeColors. Update docs/ui-modernization.md and docs/colours.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 515
-created = 2026-10-16
-tags = ["ui", "theme", "design-system"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "anchored-flyout-inspector-for-the-function-plot-editor"
 title = "Anchored flyout inspector for the function plot editor"
 description = "Phase 3 of docs/ui-modernization.md names three dialogs to turn into anchored micro-inspectors: colour and width (its own task), the function plot and the table editor (whose editor lands with the table family). This one is the plot: with a single PlotElement selected, the edit path that today raises the modal ui/AdvancedFunctionGraphDialog.kt through the Edit plot action in the selection action bar (docs/mobix-elements.md) opens as an anchored inspector beside the selection, pre-filled from the element and applied through applyPlotEdit in render/PlotElementFactory.kt, so every field the dialog has no input for (samples, parameters, shadeIntegral, axisColor, id) survives and undo still works. The first insertion may keep the modal if anchoring would move the placement maths; record which in docs/ui-modernization.md. Verify on the emulator with a screenshot of the anchored inspector over a selected plot, plus a unit test that an edit applied through it round-trips."

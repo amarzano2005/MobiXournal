@@ -306,7 +306,7 @@ internal fun StandaloneToolIndicator(
 ) {
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val glassColor = com.mobixournal.ui.theme.ModernTheme.glassSurface(isDark)
-    val hairlineColor = if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0f, 0f, 0f, 0.12f)
+    val hairlineColor = com.mobixournal.ui.theme.ModernTheme.hairlineBorder(isDark)
 
     Surface(
         shape = ModernTheme.capsuleShape,
