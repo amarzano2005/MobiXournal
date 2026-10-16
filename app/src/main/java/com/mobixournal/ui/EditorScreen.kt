@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -490,5 +492,15 @@ private fun EditorBody(
 /** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
 @Composable
 private fun RailLane(toolbar: @Composable () -> Unit) {
-    Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) { toolbar() }
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val glassColor = com.mobixournal.ui.theme.ModernTheme.glassSurface(isDark)
+    Surface(
+        color = glassColor,
+        shadowElevation = 4.dp,
+        modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
+    ) {
+        Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) {
+            toolbar()
+        }
+    }
 }

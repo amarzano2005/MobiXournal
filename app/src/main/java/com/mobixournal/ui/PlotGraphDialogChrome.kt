@@ -65,7 +65,7 @@ internal fun PlotGraphDialog(
             .fillMaxWidth(0.82f)
             .widthIn(max = 1000.dp)
             .padding(horizontal = 16.dp),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 0.dp,
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {

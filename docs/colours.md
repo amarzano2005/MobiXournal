@@ -52,6 +52,10 @@ The UI chrome follows a strict semantic colour contract pinned by `ColorContract
 - **Glass surfaces**: Both floating toolbars share identical frosted glass fills (`ModernTheme.glassDark`
   `rgba(22, 22, 24, 0.85)` / `ModernTheme.glassLight` `rgba(255, 255, 255, 0.88)`) and hairlines
   (`ModernTheme.hairlineBorder(isDark)`), eliminating conflicting double-glass or raw grey backdrops.
+- **`NeutralContainerDark` (`#252528`)**: Sleek neutral charcoal tone for `surfaceContainer`. Submenus, dropdown popups (`ToolbarMenu`), and dialog chrome (`PlotGraphDialogChrome`) read this token, ensuring a visible, balanced greyish container rather than pitch black or bluish washes.
+- **`ActiveSlotDark` (`#38383E`)**: Neutral steel grey for `primaryContainer`. Applied to active tool selection pills across both the side rail and the top bar's `ActiveToolIndicator` cap, avoiding jarring neon or periwinkle fills.
+- **Disabled dynamic colour tinting**: `dynamicColor` defaults to `false` in `AppSettings` and `XoppTheme`, eliminating wallpaper-derived Material You pastel/bluish casts across containers, chips, and active slots. `dynamicDarkColorScheme` also overrides container tokens so even if dynamic theming is enabled, surfaces stay strictly neutral.
+- **Unified toolbar band surfaces**: Both the top bar (`EditorTopBar`) and the side rail lane (`RailLane`) wrap in an identical full-span `Surface(color = glassColor, shadowElevation = 4.dp)`, ensuring that both horizontal and vertical chrome bands share the exact same frosted glass surface and shadow elevation without naked black cutouts.
 - **`TextLightOnDark` (`#EDEDED`)** & **`TextDarkOnLight` (`#1B212F`)**: High-legibility neutral text.
 - **`TextSecondaryOnDark` (`#A0A0A0`)** & **`TextSecondaryOnLight` (`#596579`)**: Secondary caption text.
 - **`OutlineDark` (`#383838`)** & **`OutlineVariantDark` (`#262626`)**: Subtle neutral dividers.

@@ -273,7 +273,7 @@ internal fun ActiveToolIndicator(
         modifier = modifier
             .fillMaxHeight()
             .clip(topBarCapShape(capOnLeft))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            .background(MaterialTheme.colorScheme.primaryContainer),
     )
 }
 

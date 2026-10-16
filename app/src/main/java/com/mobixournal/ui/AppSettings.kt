@@ -329,7 +329,7 @@ data class AppSettings(
     /** Light, dark, or follow the system — applied to the whole app's Material 3 scheme. */
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** Whether to use Android 12+ dynamic colours from the wallpaper (Material You). */
-    val dynamicColor: Boolean = true,
+    val dynamicColor: Boolean = false,
     /**
      * Per-tool keyboard shortcut, keyed by [EditorTool]. Absent or empty means that tool has no
      * shortcut. Every tool is covered, so the Settings screen can offer a key field for each.

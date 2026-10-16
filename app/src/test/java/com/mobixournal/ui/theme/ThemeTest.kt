@@ -16,12 +16,13 @@ class ThemeTest {
         assertEquals(Color(0xFF000000), DarkColors.background)
 
         // Neutral charcoal surfaces
-        assertEquals(Color(0xFF121212), DarkColors.surface)
-        assertEquals(Color(0xFF1E1E1E), DarkColors.surfaceVariant)
-        assertEquals(Color(0xFF1E1E1E), DarkColors.surfaceContainer)
-        assertEquals(Color(0xFF121212), DarkColors.surfaceContainerLow)
-        assertEquals(Color(0xFF242424), DarkColors.surfaceContainerHigh)
-        assertEquals(Color(0xFF2C2C2C), DarkColors.surfaceContainerHighest)
+        assertEquals(Color(0xFF161618), DarkColors.surface)
+        assertEquals(NeutralContainerDark, DarkColors.surfaceVariant)
+        assertEquals(NeutralContainerDark, DarkColors.surfaceContainer)
+        assertEquals(ActiveSlotDark, DarkColors.primaryContainer)
+        assertEquals(Color(0xFF18181A), DarkColors.surfaceContainerLow)
+        assertEquals(Color(0xFF2C2C30), DarkColors.surfaceContainerHigh)
+        assertEquals(Color(0xFF38383E), DarkColors.surfaceContainerHighest)
         assertEquals(Color(0xFF000000), DarkColors.surfaceContainerLowest)
 
         // Neutral onSurface / onBackground contrast

@@ -53,6 +53,8 @@ class ColorContractGuardTest {
         assertEquals("DarkColors.outline must be OutlineDark", OutlineDark, DarkColors.outline)
         assertEquals("DarkColors.outlineVariant must be OutlineVariantDark", OutlineVariantDark, DarkColors.outlineVariant)
         assertEquals("DarkColors.primary must be PurpleDark", PurpleDark, DarkColors.primary)
+        assertEquals("DarkColors.primaryContainer must be ActiveSlotDark", com.mobixournal.ui.theme.ActiveSlotDark, DarkColors.primaryContainer)
+        assertEquals("DarkColors.surfaceContainer must be NeutralContainerDark", com.mobixournal.ui.theme.NeutralContainerDark, DarkColors.surfaceContainer)
         assertEquals("DarkColors.secondary must be Amber", Amber, DarkColors.secondary)
     }
 

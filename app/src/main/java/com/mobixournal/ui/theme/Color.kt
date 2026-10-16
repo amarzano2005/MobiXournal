@@ -50,3 +50,9 @@ val OutlineDark = Color(0xFF383838)
 /** Subtle hairline outline variant for dark surfaces (#262626). */
 val OutlineVariantDark = Color(0xFF262626)
 
+/** Refined neutral grey container for submenus and dialogs (#252528). */
+val NeutralContainerDark = Color(0xFF252528)
+
+/** Active tool slot highlight in dark mode: refined neutral steel grey (#38383E). */
+val ActiveSlotDark = Color(0xFF38383E)
+
