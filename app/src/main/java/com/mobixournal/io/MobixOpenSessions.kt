@@ -122,9 +122,10 @@ internal class MobixOpenSessions {
     fun rememberMode(document: Document, mode: CanvasMode) {
         val id = document.documentId ?: return
         canvasModes[id] = mode
+        boardExtents.remove(id)
+        canvases.remove(id)
         if (mode == CanvasMode.PAGINATED) {
             chunkGrids.remove(id)
-            boardExtents.remove(id)
         }
     }
 

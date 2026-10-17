@@ -138,17 +138,18 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
     // (before any document is adopted) would tell the chrome there is none and the page-format dialog
     // would offer no fixed width for a strip.
     notifyCanvasExtent()
+    reportCurrentPage()
     requestRender()
 }
 
 /**
- * The zoom factor at which the board's fixed axis (or 100% on a 2D board) covers the entire viewport.
+ * The zoom factor at which the board's configured width/height covers the entire viewport.
  */
 internal fun DrawingSurfaceView.fitBoardZoom(): Float {
     val board = board ?: return 1f
     if (width <= 0 || height <= 0) return 1f
     return when (board.geometry.mode) {
-        CanvasMode.INFINITE_VERTICAL -> {
+        CanvasMode.INFINITE_VERTICAL, CanvasMode.INFINITE_2D -> {
             val wPt = board.geometry.widthPt
             if (wPt > 0.0) (width / wPt).toFloat().coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM) else 1f
         }
@@ -156,7 +157,7 @@ internal fun DrawingSurfaceView.fitBoardZoom(): Float {
             val hPt = board.geometry.heightPt
             if (hPt > 0.0) (height / hPt).toFloat().coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM) else 1f
         }
-        CanvasMode.INFINITE_2D, CanvasMode.PAGINATED -> 1f
+        CanvasMode.PAGINATED -> 1f
     }
 }
 
@@ -170,9 +171,10 @@ internal fun DrawingSurfaceView.fitBoardIfPending() {
     board.fittedToScreen = true
     val viewW = width.toDouble()
     val viewH = height.toDouble()
-    if (board.geometry.mode == CanvasMode.INFINITE_VERTICAL && board.geometry.widthPt <= 0.0) {
+    if ((board.geometry.mode == CanvasMode.INFINITE_VERTICAL || board.geometry.mode == CanvasMode.INFINITE_2D) && board.geometry.widthPt <= 0.0) {
         board.geometry = board.geometry.copy(widthPt = viewW)
-    } else if (board.geometry.mode == CanvasMode.INFINITE_HORIZONTAL && board.geometry.heightPt <= 0.0) {
+    }
+    if ((board.geometry.mode == CanvasMode.INFINITE_HORIZONTAL || board.geometry.mode == CanvasMode.INFINITE_2D) && board.geometry.heightPt <= 0.0) {
         board.geometry = board.geometry.copy(heightPt = viewH)
     }
     viewport.zoomTo(fitBoardZoom()) {}
@@ -181,6 +183,7 @@ internal fun DrawingSurfaceView.fitBoardIfPending() {
     expandBoardOnScroll()
     pushExtentToViewport()
     viewport.clamp()
+    notifyCanvasExtent()
     onZoomChanged?.invoke(zoom)
 }
 
@@ -242,33 +245,29 @@ private fun DrawingSurfaceView.appendChunkPage(page: Page): Boolean {
 
 /**
  * The **fixed dimension** of the board's non-infinite axis, in pt — the strip's width or height — or
- * null when the mode locks nothing ([CanvasMode.INFINITE_2D]) or the canvas is not a board at all.
+ * null when the canvas is not a board at all.
  */
-internal fun DrawingSurfaceView.boardFixedExtentPt(): Double? = board?.geometry?.fixedExtentPt
+internal fun DrawingSurfaceView.boardFixedExtentPt(): Double? {
+    val g = board?.geometry ?: return null
+    return g.fixedExtentPt ?: if (g.mode == CanvasMode.INFINITE_2D) g.widthPt else null
+}
 
 /**
- * Set the bound on the board's **non-infinite** axis: an `INFINITE_VERTICAL` strip becomes exactly [pt]
- * pt wide, an `INFINITE_HORIZONTAL` one exactly [pt] pt tall. An `INFINITE_2D` board locks nothing and is
- * left alone — there is no non-infinite zone to bound.
- *
- * The sheet is the geometry's ([BoardViewport.sheet]) and the clamp that stops the view at the
- * strip's edge follows from it ([BoardViewport.contentExtent]), so both move with the one value. The
- * paper is written where the format keeps a board's paper — **the cells' own pages**, which is what a
- * born-here board's `canvas.json` is derived from (`DocumentIo.canvasGeometryOf`) — so the bound
- * survives a save; only the locked axis moves, so no ink travels and no history step is recorded: this
- * is a property of the shape, not an edit of the page.
- *
- * Each page goes through the **page window** ([windowEditPage]) rather than the document list, because
- * a tile's pages are read and written there ([BoardInk]): a wholesale `doc.copy` would hand the window a
- * source it no longer overlays, while writing through it leaves the cell that is mid-stroke holding its
- * ink and simply carrying the new paper.
+ * Set the bound on the board's primary axis: an `INFINITE_VERTICAL` or `INFINITE_2D` board becomes
+ * [pt] pt wide, and an `INFINITE_HORIZONTAL` strip becomes [pt] pt tall, re-fitting the zoom so the
+ * chosen dimension covers the viewport.
  */
 internal fun DrawingSurfaceView.setBoardFixedExtent(pt: Double) {
     val board = board ?: return
-    val lockedX = board.geometry.fixedExtentIsWidth
-    if (pt <= 0.0 || board.geometry.fixedExtentPt == null) return
+    if (pt <= 0.0) return
     val bound = pt.coerceIn(DrawingSurfaceDefaults.PAGE_SIZE_MIN_PT, DrawingSurfaceDefaults.PAGE_SIZE_MAX_PT)
-    board.geometry = board.geometry.withFixedExtent(bound)
+    val lockedX = board.geometry.mode != CanvasMode.INFINITE_HORIZONTAL
+    board.geometry = if (board.geometry.mode == CanvasMode.INFINITE_2D) {
+        board.geometry.copy(widthPt = bound)
+    } else {
+        board.geometry.withFixedExtent(bound)
+    }
+    board.ink = boardInkOf(board)
     for (index in 0 until pageWindow.pageCount) {
         windowEditPage(index) { page ->
             if (lockedX) page.copy(width = bound) else page.copy(height = bound)
@@ -306,5 +305,6 @@ internal fun DrawingSurfaceView.clearInfiniteCanvas() {
     viewport.clamp()
     onCanvasModeChanged?.invoke(CanvasMode.PAGINATED)
     notifyCanvasExtent()
+    reportCurrentPage()
     requestRender()
 }

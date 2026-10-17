@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
@@ -1250,8 +1251,9 @@ private fun toolbarPagesCallbacks(
     onSettingsChange: (AppSettings) -> Unit,
     surface: DrawingSurfaceView?,
     onCanvasMode: (NewDocumentCanvas) -> Unit,
-): ToolbarPagesCallbacks =
-    ToolbarPagesCallbacks(
+): ToolbarPagesCallbacks {
+    var liveSettings = settings
+    return ToolbarPagesCallbacks(
         pageCount = pane.pageCount,
         currentPage = pane.currentPage,
         board = pane.board,
@@ -1272,7 +1274,8 @@ private fun toolbarPagesCallbacks(
         pageColumns = settings.pageColumns,
         onPageColumns = {
             surface?.setColumns(it)
-            onSettingsChange(settings.copy(pageColumns = it))
+            liveSettings = liveSettings.copy(pageColumns = it)
+            onSettingsChange(liveSettings)
         },
         pagesEditMode = pane.pagesEditMode,
         onPagesEditMode = { pane.pagesEditMode = it; surface?.setPagesEditMode(it) },
@@ -1283,7 +1286,8 @@ private fun toolbarPagesCallbacks(
         onCopySelectedPages = { surface?.copySelectedPages() },
         onPastePages = { surface?.pasteCopiedPages() },
         onSaveAsDefault = { w, h ->
-            onSettingsChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
+            liveSettings = liveSettings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h)
+            onSettingsChange(liveSettings)
         },
         canvasMode = pane.canvasMode,
         canvasExtentPt = pane.canvasExtentPt,
@@ -1291,14 +1295,16 @@ private fun toolbarPagesCallbacks(
         canvasEditable = pane.canvasEditable,
         onCanvasMode = onCanvasMode,
         onCanvasModeDefault = { mode ->
-            val fmt = if (mode != NewDocumentCanvas.PAGINATED) NewDocumentFormat.MOBIX else settings.newDocumentFormat
-            onSettingsChange(settings.copy(newDocumentCanvas = mode, newDocumentFormat = fmt))
+            val fmt = if (mode != NewDocumentCanvas.PAGINATED) NewDocumentFormat.MOBIX else liveSettings.newDocumentFormat
+            liveSettings = liveSettings.copy(newDocumentCanvas = mode, newDocumentFormat = fmt)
+            onSettingsChange(liveSettings)
         },
         bookmarks = pane.bookmarks,
         onBookmarkPage = { ui.bookmarkPage = it },
         outline = pane.outline,
         onGoToPdfPage = { surface?.goToPdfPage(it) },
     )
+}
 
 /**
  * Applies the initial tool and style settings to the drawing surface.
@@ -1552,15 +1558,17 @@ fun EditorPaneView(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            ScrollThumb(
-                scrollY = state.scrollY,
-                totalHeightPx = state.contentHeight,
-                viewportPx = state.viewportHeight,
-                currentPage = state.currentPage,
-                pageCount = state.pageCount,
-                onScrollTo = { state.surface?.scrollToY(it) },
-                modifier = Modifier.matchParentSize(),
-            )
+            if (state.canvasMode == CanvasMode.PAGINATED) {
+                ScrollThumb(
+                    scrollY = state.scrollY,
+                    totalHeightPx = state.contentHeight,
+                    viewportPx = state.viewportHeight,
+                    currentPage = state.currentPage,
+                    pageCount = state.pageCount,
+                    onScrollTo = { state.surface?.scrollToY(it) },
+                    modifier = Modifier.matchParentSize(),
+                )
+            }
             // Corner is user-configurable (Appearance settings); the default is bottom-right. The
             // zoom badge rides directly above the page badge and shares its look, so the pair reads as
             // one stack; tapping the zoom one puts the view back at 100%.
@@ -1574,11 +1582,13 @@ fun EditorPaneView(
                     zoom = state.zoom,
                     onClick = { state.surface?.resetZoom() },
                 )
-                PageCounter(
-                    currentPage = state.currentPage,
-                    pageCount = state.pageCount,
-                    tile = state.board?.cell,
-                )
+                if (state.canvasMode == CanvasMode.PAGINATED) {
+                    PageCounter(
+                        currentPage = state.currentPage,
+                        pageCount = state.pageCount,
+                        tile = state.board?.cell,
+                    )
+                }
             }
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the
             // chrome leaves free — the events it logs are then exactly the ones it describes.

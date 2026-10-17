@@ -29,7 +29,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -106,13 +105,12 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     // A geometry picked in the page-format dialog, waiting on "this document or new documents only".
     var pendingCanvas by remember { mutableStateOf<NewDocumentCanvas?>(null) }
     val board = callbacks.board
+    val isInfinite = callbacks.canvasMode != CanvasMode.PAGINATED
     ToolbarPopupButton(
         icon = Icons.Outlined.Description,
-        contentDescription = if (board == null) "Pages" else "Tiles",
+        contentDescription = "Pages",
     ) { dismiss ->
-        if (board != null) {
-            TileItems(board)
-            HorizontalDivider()
+        if (isInfinite) {
             PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
             return@ToolbarPopupButton
         }
@@ -194,23 +192,28 @@ private fun PageFormatDialogs(
             initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
             defaultWidthPt = callbacks.defaultPageSize.first,
             defaultHeightPt = callbacks.defaultPageSize.second,
-            // A board has no page to measure, so the paper half is left out — but its cells carry a
-            // paper size, which is why the test is the geometry, not the presence of a size.
             sized = callbacks.pageSize != null && board == null,
             canvasMode = callbacks.canvasMode,
             extentPt = callbacks.canvasExtentPt,
             extentEditable = callbacks.canvasEditable,
             onExtent = callbacks.onCanvasExtent,
-            onConfirm = { w, h, canvas, customExtentPt ->
+            onConfirm = { w, h, canvas ->
                 onOpen(false)
+                callbacks.onSaveAsDefault(w, h)
                 if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) {
-                    callbacks.onCanvasMode(canvas)
                     callbacks.onCanvasModeDefault(canvas)
+                    callbacks.onCanvasMode(canvas)
                 }
-                if (canvas == NewDocumentCanvas.PAGINATED) {
-                    if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
-                } else if (customExtentPt != null) {
-                    callbacks.onCanvasExtent(customExtentPt)
+                when (canvas) {
+                    NewDocumentCanvas.PAGINATED -> {
+                        if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
+                    }
+                    NewDocumentCanvas.INFINITE_VERTICAL, NewDocumentCanvas.INFINITE_2D -> {
+                        callbacks.onCanvasExtent(w)
+                    }
+                    NewDocumentCanvas.INFINITE_HORIZONTAL -> {
+                        callbacks.onCanvasExtent(h)
+                    }
                 }
             },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
@@ -291,34 +294,13 @@ private fun PageFormatRow(
             // On a page list the useful fact is the paper; on a board there is no page to measure, so
             // the row names the geometry instead — the thing that chose that board's sheet.
             val size = callbacks.pageSize
-            if (size != null && callbacks.board == null) {
+            if (size != null && callbacks.canvasMode == CanvasMode.PAGINATED) {
                 Text(pageSizeLabel(size.first, size.second))
             } else {
                 Text(NewDocumentCanvas.of(callbacks.canvasMode).label)
             }
         },
         onClick = { openSize(); dismiss() },
-    )
-}
-
-/**
- * What the pages menu is on an **infinite canvas**: the tile in view and how many there are, and
- * nothing else.
- *
- * Every other row in this menu addresses a page — previous/next, add, remove, the overview grid, page
- * copy and paste, the page size, the bookmarks — and a board has no page to address. Adding or removing
- * one would rewrite the chunk grid the file names its parts by, and offering a control that is disabled,
- * or that quietly does nothing, is the same lie in a smaller font. So the menu says what is true: which
- * tile you are looking at (the one the badge shows) and how many tiles the document holds. Navigation
- * on a board is the canvas itself (`docs/chrome.md` → *A document with no pages*).
- */
-@Composable
-private fun TileItems(board: BoardReading) {
-    ListItem(
-        headlineContent = { Text("Tile ${tileLabel(board.cell)}") },
-        supportingContent = {
-            Text(if (board.tiles == 1) "1 tile" else "${board.tiles} tiles")
-        },
     )
 }
 

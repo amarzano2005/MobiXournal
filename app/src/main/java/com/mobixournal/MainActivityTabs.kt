@@ -299,7 +299,7 @@ internal fun MainActivity.newTab(p: EditorPane = pane) {
 internal fun MainActivity.blankTab(p: EditorPane = pane): OpenTab = OpenTab(
     TabStore.newId(),
     MainActivity.UNTITLED,
-    boundToPane(blankDocument(), newDocumentCanvas, paneExtentPt(p)),
+    blankDocument(),
     format = newDocumentFormat,
     canvasMode = newDocumentCanvas,
 )
@@ -324,21 +324,6 @@ internal fun boundToPane(
     CanvasMode.INFINITE_HORIZONTAL ->
         document.copy(pages = document.pages.map { it.copy(height = panePt.second) })
     CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> document
-}
-
-/**
- * The pane's usable extent in **pt at 100% zoom** — the size a strip's bound is born at.
- *
- * Taken from the canvas itself when there is one, because that is the rectangle the sheet has to cover;
- * the window is only a stand-in for the first tab of a cold start, where a blank session is opened
- * before any surface exists (the sheet is then a window's worth, which is what the user sees anyway).
- */
-private fun MainActivity.paneExtentPt(p: EditorPane): Pair<Double, Double> {
-    val view = p.surface
-    val metrics = resources.displayMetrics
-    val w = (view?.width ?: 0).takeIf { it > 0 } ?: metrics.widthPixels
-    val h = (view?.height ?: 0).takeIf { it > 0 } ?: metrics.heightPixels
-    return w.toDouble() to h.toDouble()
 }
 
 /**
@@ -457,14 +442,17 @@ internal fun MainActivity.applyCanvasModeToDocument(mode: NewDocumentCanvas) {
     if (next == tab.canvasMode) return
     // The live edits are only in the canvas until it is snapshotted, and the re-show reloads the tab.
     snapshotActiveTab(p)
-    val panePt = paneExtentPt(p)
     val nextFormat = if (next != CanvasMode.PAGINATED && tab.format != com.mobixournal.format.SaveFormat.MOBIX) {
         com.mobixournal.format.SaveFormat.MOBIX
     } else {
         tab.format
     }
     p.tabs.updateActive { current ->
-        val reshaped = boundToPane(current.document, next, panePt)
+        val wPt = com.mobixournal.render.DrawingSurfaceDefaults.defaultPageWidth
+        val hPt = com.mobixournal.render.DrawingSurfaceDefaults.defaultPageHeight
+        val reshaped = current.document.copy(
+            pages = current.document.pages.map { it.copy(width = wPt, height = hPt) },
+        )
         io.rememberCanvasMode(reshaped, next)
         current.copy(
             format = nextFormat,

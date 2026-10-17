@@ -115,22 +115,14 @@ internal fun PageFormatDialog(
     extentPt: Double?,
     extentEditable: Boolean,
     onExtent: (Double) -> Unit,
-    onConfirm: (Double, Double, NewDocumentCanvas, Double?) -> Unit,
+    onConfirm: (Double, Double, NewDocumentCanvas) -> Unit,
     onSaveAsDefault: (Double, Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val paper = remember { PaperState(initialWidthPt, initialHeightPt) }
+    val startWidthPt = if ((canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) && extentPt != null) extentPt else initialWidthPt
+    val startHeightPt = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL && extentPt != null) extentPt else initialHeightPt
+    val paper = remember { PaperState(startWidthPt, startHeightPt) }
     var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
-    var customExtentPt by remember(canvas) { mutableStateOf<Double?>(null) }
-    val isPaginated = canvas == NewDocumentCanvas.PAGINATED
-    val isStrip = canvas == NewDocumentCanvas.INFINITE_VERTICAL ||
-        canvas == NewDocumentCanvas.INFINITE_HORIZONTAL
-    val stripIsWidth = canvas == NewDocumentCanvas.INFINITE_VERTICAL
-    val initialStripExtentPt = when {
-        canvas.mode == canvasMode && extentPt != null -> extentPt
-        stripIsWidth -> paper.widthPt
-        else -> paper.heightPt
-    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Page format") },
@@ -152,36 +144,17 @@ internal fun PageFormatDialog(
                         "sheet that grows as you scroll, so nothing is cut at a page edge.",
                     style = MaterialTheme.typography.bodySmall,
                 )
-                // A strip runs on in one direction and is **fixed** in the other: that fixed dimension
-                // is the board's bound, and it is the only paper a board has. Which axis it is follows
-                // from the selected mode — a vertical strip locks its width.
-                if (isStrip) {
-                    HorizontalDivider()
-                    FixedExtentField(
-                        pt = customExtentPt ?: initialStripExtentPt,
-                        isWidth = stripIsWidth,
-                        enabled = extentEditable || canvas.mode != canvasMode,
-                        onValue = { pt ->
-                            customExtentPt = pt
-                            if (canvas.mode == canvasMode) onExtent(pt)
-                        },
-                    )
-                }
-                if (isPaginated) {
-                    HorizontalDivider()
-                    PaperSection(paper, defaultWidthPt, defaultHeightPt)
-                }
+                HorizontalDivider()
+                PaperSection(paper, defaultWidthPt, defaultHeightPt, canvas)
             }
         },
         confirmButton = {
             Row {
-                if (isPaginated) {
-                    TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
-                        Text("Save as default")
-                    }
+                TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
+                    Text("Save as default")
                 }
                 TextButton(
-                    onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas, customExtentPt) },
+                    onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
                 ) {
                     Text("Set")
                 }
@@ -192,13 +165,17 @@ internal fun PageFormatDialog(
 }
 
 /**
- * The paper a page is measured on: preset tabs, the unit the fields are written in, two size fields
- * and the swap button. Only shown when the document has a page to measure ([PageFormatDialog]'s
- * `sized`) — a board's sheet is derived from its mode, not from a paper size.
+ * The paper dimensions and presets for the selected [canvas] mode: preset tabs, unit selector, and
+ * the relevant width/height field(s) for that mode.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PaperSection(paper: PaperState, defaultWidthPt: Double, defaultHeightPt: Double) {
+private fun PaperSection(
+    paper: PaperState,
+    defaultWidthPt: Double,
+    defaultHeightPt: Double,
+    canvas: NewDocumentCanvas,
+) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (preset in PAGE_PRESETS) {
             SizeTab(
@@ -232,78 +209,47 @@ private fun PaperSection(paper: PaperState, defaultWidthPt: Double, defaultHeigh
             }
         }
     }
+    val showWidth = canvas != NewDocumentCanvas.INFINITE_HORIZONTAL
+    val showHeight = canvas != NewDocumentCanvas.INFINITE_VERTICAL
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SizeField(
-            label = "Width",
-            text = paper.widthText,
-            unit = paper.unit,
-            onText = { entered ->
-                paper.widthText = entered
-                entered.toDoubleOrNull()?.let { paper.widthPt = paper.unit.toPt(it) }
-            },
-        )
-        IconButton(onClick = {
-            val w = paper.widthPt
-            paper.widthPt = paper.heightPt
-            paper.heightPt = w
-            paper.resync()
-        }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
-        SizeField(
-            label = "Height",
-            text = paper.heightText,
-            unit = paper.unit,
-            onText = { entered ->
-                paper.heightText = entered
-                entered.toDoubleOrNull()?.let { paper.heightPt = paper.unit.toPt(it) }
-            },
-        )
+        if (showWidth) {
+            SizeField(
+                label = if (canvas == NewDocumentCanvas.INFINITE_VERTICAL) "Fixed width" else "Width",
+                text = paper.widthText,
+                unit = paper.unit,
+                onText = { entered ->
+                    paper.widthText = entered
+                    entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
+                        paper.widthPt = paper.unit.toPt(it)
+                    }
+                },
+            )
+        }
+        if (showWidth && showHeight) {
+            IconButton(onClick = {
+                val w = paper.widthPt
+                paper.widthPt = paper.heightPt
+                paper.heightPt = w
+                paper.resync()
+            }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
+        }
+        if (showHeight) {
+            SizeField(
+                label = if (canvas == NewDocumentCanvas.INFINITE_HORIZONTAL) "Fixed height" else "Height",
+                text = paper.heightText,
+                unit = paper.unit,
+                onText = { entered ->
+                    paper.heightText = entered
+                    entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
+                        paper.heightPt = paper.unit.toPt(it)
+                    }
+                },
+            )
+        }
     }
-}
-
-/**
- * The **bound** of an infinite canvas: the size of the one axis its mode does not run on — a vertical
- * strip's width, a horizontal one's height ([CanvasGeometry.fixedExtentPt]).
- *
- * This is the answer to *how wide is an infinite sheet?*: without it a board's width would be whatever
- * paper it happened to be born with, which is a printing decision (A4) standing in for a screen one. It
- * is written in millimetres like every other paper dimension here, and every keystroke that parses is
- * applied at once — the sheet is redrawn from the new bound on the next frame, and a bound of *zero* is
- * ignored rather than shrinking the board to a line.
- *
- * A document that has already been written to a file cannot move its bound here ([enabled] false): a
- * `.mobix`'s shape is its own `canvas.json`'s, and changing the paper under existing ink would rewrite
- * how the stored chunks are read.
- */
-@Composable
-private fun FixedExtentField(pt: Double, isWidth: Boolean, enabled: Boolean, onValue: (Double) -> Unit) {
-    var text by remember(isWidth) { mutableStateOf(fmtDim(SizeUnit.MM.fromPt(pt))) }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { entered ->
-            text = entered
-            entered.toDoubleOrNull()?.takeIf { it > 0.0 }?.let { mm ->
-                onValue(SizeUnit.MM.toPt(mm).coerceIn(
-                    DrawingSurfaceDefaults.PAGE_SIZE_MIN_PT,
-                    DrawingSurfaceDefaults.PAGE_SIZE_MAX_PT,
-                ))
-            }
-        },
-        label = { Text(if (isWidth) "Fixed width" else "Fixed height") },
-        suffix = { Text(SizeUnit.MM.label) },
-        singleLine = true,
-        enabled = enabled,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.width(180.dp),
-    )
-    Text(
-        "The canvas never scrolls past this edge; the other direction runs on as you write. " +
-            if (enabled) "It is the sheet's own size, so it is what the board covers on screen."
-            else "A document already saved keeps the shape it was written with.",
-        style = MaterialTheme.typography.bodySmall,
-    )
 }
 
 /** One editable dimension of the paper, in the dialog's current [unit]. */
@@ -316,7 +262,7 @@ private fun SizeField(label: String, text: String, unit: SizeUnit, onText: (Stri
         suffix = { Text(unit.label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.width(120.dp),
+        modifier = Modifier.width(140.dp),
     )
 }
 
