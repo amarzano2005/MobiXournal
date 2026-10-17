@@ -69,7 +69,11 @@ because that is where the platform commits the surface's new geometry: a paint t
 locks a buffer of the old size again and, unless something else asks for a frame, leaves the old
 image on screen. `ui/EditorRegions.kt` feeds the pane's size to the canvas as the Compose box changes
 (`repaintAfterResize`), and the canvas's own `onSizeChanged` is not used — the pane, not the surface,
-is what knows it was resized.
+is what knows it was resized. **Opening or closing split view** hands every pane a different width in
+the same frame, so that toggle posts the same call to each surface as well (`MainActivityTabs.kt`):
+the pane's Compose box announces its new size on the traversal that follows, and the posted call is
+the belt to that braces — a pane cannot be left drawing the extent it had while the split was open,
+where its page and ruling would be at the wrong scale.
 
 ## One page as an image (`PageSvgWriter`, `writePagePng`/`writePageSvg`)
 

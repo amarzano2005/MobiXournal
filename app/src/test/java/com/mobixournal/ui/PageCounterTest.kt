@@ -28,6 +28,33 @@ class PageCounterTest {
     }
 
     @Test
+    fun `a label that fits its slot keeps its size`() {
+        // "41%" in the rail's slot: nothing to shrink, so the base size comes back untouched.
+        assertEquals(14f, fittedLabelSp(baseSp = 14f, measuredWidthPx = 54f, availablePx = 66f), 0.001f)
+        assertEquals(14f, fittedLabelSp(baseSp = 14f, measuredWidthPx = 66f, availablePx = 66f), 0.001f)
+    }
+
+    @Test
+    fun `a three digit percentage shrinks to fit the slot`() {
+        // "100%" needs 78 px in a slot that leaves 66 px: the font comes down by the same ratio, so
+        // the digits stay whole instead of being cropped by the circle.
+        val fitted = fittedLabelSp(baseSp = 14f, measuredWidthPx = 78f, availablePx = 66f)
+        assertEquals(11.85f, fitted, 0.01f)
+        assertEquals(66f, 78f * fitted / 14f, 0.01f)
+    }
+
+    @Test
+    fun `the shrink stops before the label becomes a speck`() {
+        assertEquals(14f * ZOOM_LABEL_MIN_SCALE, fittedLabelSp(14f, 8_000f, 66f), 0.001f)
+    }
+
+    @Test
+    fun `an unmeasurable label or slot is left alone`() {
+        assertEquals(14f, fittedLabelSp(14f, 0f, 66f), 0.001f)
+        assertEquals(14f, fittedLabelSp(14f, 78f, 0f), 0.001f)
+    }
+
+    @Test
     fun `a board's badge reads the tile's coordinate`() {
         assertEquals("0, 0", tileLabel(0 to 0))
         assertEquals("1, -1", tileLabel(1 to -1))

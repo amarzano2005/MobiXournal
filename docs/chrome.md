@@ -88,6 +88,13 @@ zoom slot's percentage label reads the factor itself via `LocalRailSlotScale`, s
 text and not a dp size) and applies it to the gaps but **not** to the column's padding, so the
 whole-number fit stays exact.
 
+The zoom slot is the rail's one slot whose *content grows with the value*: `41%` fits any slot,
+`100%` and `381%` do not. Its label therefore **fits itself to the slot** (`fittedLabelSp`): the text
+is measured against the slot's width minus a 7dp inset and the font comes down by that ratio, floored
+at 62% of the base size — so a three-digit percentage is *smaller*, never cropped by the circle. The
+percentage itself is formatted by one function (`zoomLabel`) shared with the canvas's zoom badge, so
+the two can never disagree.
+
 ## Chrome styling: the Material 3 floating dock
 
 Chrome styling is one design, with no switch: the Material 3 floating dock.

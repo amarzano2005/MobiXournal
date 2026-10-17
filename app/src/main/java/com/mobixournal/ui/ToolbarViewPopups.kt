@@ -41,8 +41,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.render.BackgroundRuling
@@ -55,10 +58,32 @@ import kotlin.math.roundToInt
 /** The zoom slot's percentage label at full size; it is typeset at this times the rail's scale. */
 private val ZOOM_LABEL = 14.sp
 
+/** Breathing room inside the slot's circle, so the label never touches its edge. */
+private val ZOOM_LABEL_INSET = 7.dp
+
+/** How far the label may shrink to fit the slot — enough for "100%", never a speck. */
+internal const val ZOOM_LABEL_MIN_SCALE = 0.62f
+
+/**
+ * The font size to draw a label at so it fits [availablePx], never larger than [baseSp] and never
+ * smaller than [baseSp] × [ZOOM_LABEL_MIN_SCALE].
+ *
+ * The zoom slot is a fixed circle — the rail's adaptive pitch decides how big — and the percentage it
+ * carries is the one thing in the rail whose text grows with the value: `41%` fits any slot, `100%`
+ * and `381%` do not. Shrinking to fit keeps all three whole, instead of cropping the digits the user
+ * is looking at. A label that was never measured (a non-positive width) is left at its base size.
+ */
+internal fun fittedLabelSp(baseSp: Float, measuredWidthPx: Float, availablePx: Float): Float {
+    if (measuredWidthPx <= 0f || availablePx <= 0f || measuredWidthPx <= availablePx) return baseSp
+    return (baseSp * (availablePx / measuredWidthPx)).coerceAtLeast(baseSp * ZOOM_LABEL_MIN_SCALE)
+}
+
 /**
  * The zoom level popup: shows the current zoom percentage with −/+/reset controls. The label is the
- * only slot face whose content is text rather than a glyph, so it is the one that reads the rail's
- * scale directly ([LocalRailSlotScale]) — a "100%" drawn at full size would not fit a shrunken slot.
+ * only slot face whose content is more than a glyph, so it is the one that reads the rail's scale
+ * directly ([LocalRailSlotScale]) and the one that **fits itself to the slot** ([fittedLabelSp]): a
+ * "100%" drawn at full size would be cropped by a shrunken slot, and a cropped percentage is worse
+ * than a small one.
  *
  * @param zoom Current zoom factor (1.0 = 100%).
  * @param onZoomIn Zoom in by one step.
@@ -72,8 +97,18 @@ internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () ->
             // A plain clickable box rather than a TextButton: a Button enforces Material's 48dp minimum
             // touch target (and its own 40dp minimum height) whatever its modifier asks for, which
             // would put the slot straight back to the size the rail's adaptive pitch shrank it out of.
-            // The label shrinks with the slot for the same reason — "100%" has to keep fitting inside.
             val slot = LocalRailSlotSize.current
+            val label = zoomLabel(zoom)
+            val textStyle = LocalTextStyle.current.copy(fontFeatureSettings = "tnum")
+            val measurer = rememberTextMeasurer()
+            val baseSp = ZOOM_LABEL.value * LocalRailSlotScale.current
+            val measured = measurer.measure(
+                text = AnnotatedString(label),
+                style = textStyle.copy(fontSize = baseSp.sp),
+                maxLines = 1,
+                softWrap = false,
+            )
+            val availablePx = with(LocalDensity.current) { (slot - ZOOM_LABEL_INSET).toPx() }
             Box(
                 modifier = Modifier
                     .size(slot)
@@ -83,11 +118,11 @@ internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () ->
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "${(zoom * 100).roundToInt()}%",
+                    text = label,
                     maxLines = 1,
                     softWrap = false,
-                    style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
-                    fontSize = ZOOM_LABEL * LocalRailSlotScale.current,
+                    style = textStyle,
+                    fontSize = fittedLabelSp(baseSp, measured.size.width.toFloat(), availablePx).sp,
                 )
             }
         },
@@ -98,10 +133,7 @@ internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () ->
         ) {
             IconButton(onClick = onZoomOut) { Icon(Icons.Outlined.ZoomOut, contentDescription = "Zoom out") }
             TextButton(onClick = onZoomReset) {
-                Text(
-                    text = "${(zoom * 100).roundToInt()}%",
-                    style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
-                )
+                Text(text = zoomLabel(zoom), style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"))
             }
             IconButton(onClick = onZoomIn) { Icon(Icons.Outlined.ZoomIn, contentDescription = "Zoom in") }
         }

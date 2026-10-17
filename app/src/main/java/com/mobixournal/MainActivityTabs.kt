@@ -7,6 +7,7 @@ import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
+import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.render.setInfiniteCanvas
 import com.mobixournal.tabs.DocColors
@@ -356,6 +357,13 @@ internal fun MainActivity.prunePdfCache() {
  * Turn split view on or off. Leaving it snapshots the right-hand pane and hands focus back to the
  * left one, so a menu action never targets a canvas that is no longer on screen. The pane's tabs
  * are kept (and stay on disk), so turning split view back on brings the same documents back.
+ *
+ * A toggle hands every pane a canvas of a different width in the *same* frame — the one layout change
+ * a canvas cannot hear about through an input event — so each surface is told to rebuild from the
+ * extent it ends up with (see `render/DrawingSurfaceResize.kt`). The pane's own Compose box announces
+ * its new size on the traversal that follows, and this is the belt to that braces: the call is posted,
+ * so it runs once the frame has committed the new width, and a pane left drawing the split's extent
+ * (a page and a ruling at the wrong scale) cannot survive the toggle.
  */
 internal fun MainActivity.toggleSplitView() {
     val on = !splitView.value
@@ -364,6 +372,7 @@ internal fun MainActivity.toggleSplitView() {
         activePane.value = 0
     }
     splitView.value = on
+    panes.forEach { pane -> pane.surface?.post { pane.surface?.repaintAfterResize() } }
 }
 
 /** The file name behind a `content://` URI, for the tab's label. Falls back to `UNTITLED`. */
