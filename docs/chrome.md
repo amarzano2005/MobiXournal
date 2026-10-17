@@ -209,12 +209,24 @@ Compact) the bottom band are rows of the layout, and the canvas — an `AndroidV
   lane plus their 8dp lead-in (`TAB_STRIP_LEAD_IN`), which keeps them over the canvas and on the figures'
   dock's starting line, and the lane itself begins below the whole header — the tab row is what
   `RailSizing.kt`'s narrower gap exists to pay for. In **split view** that row is cut the way the canvas
-  is (`SplitTabRow`): one strip per pane, sharing the canvas's weighted fraction and 22dp handle gap
-  (`SPLIT_HANDLE_WIDTH`, the same constant `SplitLayout` draws), so each half's chips, numbered pane
+  is (`SplitTabRow`): one strip per pane, cut by the canvas's own geometry — the same
+  `splitPaneSpans` the divider lays itself out with, and the same 22dp handle gap
+  (`SPLIT_HANDLE_WIDTH`, the constant `SplitLayout` draws; its semantics are in
+  [data-path.md](data-path.md)) — so each half's chips, numbered pane
   badge and "+" sit over that half for every divider position — not only at 50/50. The focused pane's
   badge is accent-filled and the other is outlined; touching a lane focuses its pane, and its "+" opens
   the new document there. Compact has one row and no room for two lanes, so it keeps the focused pane's
   strip in the title slot, badge included.
+
+**The split's divider is furniture, not a bar.** It is a hairline rule (`RULE_WIDTH`) that **fades into
+the sheet at both ends** — a vertical gradient, transparent → rule → transparent — with a **floating
+capsule grip** centred on it: a frosted fill (`surfaceContainerHighest`), a hairline border and an
+accent-blue core, lifted by a soft shadow. Nothing fills the 22dp grab lane, so the two pages still read
+as two sheets with the desk's own colour between them; while the grip is in hand the capsule widens,
+brightens, its border picks up the accent and a barely-there accent wash crosses the lane, and it settles
+back to a quiet bead on release. That replaces the earlier filled band with a heavy rounded grip, and
+keeps the same one-tap-off-the-page rule as the rest of the chrome — the divider is transient furniture
+*over* the seam between two pages, and it never covers a pixel inside either sheet.
 
 Whatever the chrome occupies the canvas does not, and that is the point. A translucent bar floating *on*
 the page hides the ink under it and swallows the stylus there, and the strip it covers is the top of the

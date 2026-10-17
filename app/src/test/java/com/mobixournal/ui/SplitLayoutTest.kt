@@ -56,6 +56,42 @@ class SplitLayoutTest {
         assertEquals(1f - SPLIT_MIN_FRACTION, clamped, EPSILON)
     }
 
+    @Test
+    fun `the panes and the handle tile the whole width`() {
+        for (fraction in listOf(0.15f, 0.3f, 0.5f, 0.72f, 0.85f)) {
+            val (first, second) = splitPaneSpans(1_600f, fraction, 56f)
+            assertEquals(1_600f, first + 56f + second, EPSILON)
+        }
+    }
+
+    @Test
+    fun `the divider is centred where the fraction says`() {
+        val (first, _) = splitPaneSpans(1_600f, 0.5f, 56f)
+        assertEquals(800f, first + 28f, EPSILON)
+        val (shifted, _) = splitPaneSpans(1_600f, 0.6f, 56f)
+        assertEquals(960f, shifted + 28f, EPSILON)
+    }
+
+    @Test
+    fun `the divider moves exactly as far as the finger drags`() {
+        val total = 1_600f
+        val handle = 56f
+        val start = 0.5f
+        val (startFirst, _) = splitPaneSpans(total, start, handle)
+        for (drag in listOf(-200f, -60f, 0f, 45f, 260f)) {
+            val moved = splitFractionAfterDrag(start, drag, total)
+            val (movedFirst, _) = splitPaneSpans(total, moved, handle)
+            assertEquals(drag, movedFirst - startFirst, EPSILON)
+        }
+    }
+
+    @Test
+    fun `a width narrower than the handle never yields a negative pane`() {
+        val (first, second) = splitPaneSpans(12f, 0.5f, 56f)
+        assertEquals(0f, first, EPSILON)
+        assertEquals(0f, second, EPSILON)
+    }
+
     private companion object {
         const val EPSILON = 0.0001f
     }

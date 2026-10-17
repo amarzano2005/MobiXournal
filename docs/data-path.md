@@ -348,10 +348,14 @@ The design decisions worth keeping:
   colour to every `docKey` open more than once across *both* panes, and `TabStrip` draws it as a dot;
   titles are file names, so they cannot distinguish "open twice" from "two files, one name".
 - The split position (`SplitLayout` in `ui/`) is a UI-only fraction: dragged, clamped to leave each
-  half at least 15% of the width, and deliberately **not** persisted. The divider is a hairline rule
-  with a slim rounded grip rather than a filled band; the grip brightens while dragged, drag distance
-  is measured from the start of the gesture (so a burst of pointer events cannot lose movement), and
-  a double-tap or the accessibility "Reset split" action returns it to 50/50 with a haptic tick.
+  half at least 15% of the width, and deliberately **not** persisted. The fraction is where the
+  **divider's centre** sits, and both panes are measured from it (`splitPaneSpans`, shared with the
+  tab lanes): a weighted split lays the halves out inside `total − handle`, so the divider crawled
+  behind the finger and the halves were never the widths the gesture asked for. Drag distance is
+  measured from the start of the gesture (so a burst of pointer events cannot lose movement), and a
+  double-tap or the accessibility "Reset split" action returns it to 50/50 with a haptic tick. What
+  the divider looks like is [chrome.md](chrome.md)'s to describe — that is where the canvas's own
+  furniture lives.
   Each half re-fits its page stack to its new width as the divider moves, and repaints once the
   platform has resized the surface's buffer (see [rendering.md](rendering.md) → *When the pane under
 the canvas changes size*) — without that second repaint the dragged-to half kept a cropped copy of
