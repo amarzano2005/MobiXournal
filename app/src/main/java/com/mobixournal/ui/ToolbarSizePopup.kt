@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -81,36 +83,60 @@ internal fun WidthSlotBar(
     onEditSlot: (Int) -> Unit,
 ) {
     val maxPt = (widthSlots + width).maxOrNull() ?: width
+    val shape = RoundedCornerShape(8.dp)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         widthSlots.forEachIndexed { i, pt ->
             val selected = pt == width
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    .clip(shape)
+                    .then(
+                        if (selected) {
+                            Modifier
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), shape)
+                        } else {
+                            Modifier
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), shape)
+                        }
                     )
                     .combinedClickable(
                         onClick = { onWidth(pt) },
                         onLongClick = { onEditSlot(i) },
                     )
-                    .padding(vertical = 3.dp),
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
             ) {
-                // A dot box a few dp smaller than the swatch one: this is a size ladder, not a
-                // colour, so it doesn't need the same target or the same presence in the menu.
-                WidthDot(pt, maxPt, MaterialTheme.colorScheme.onSurface, boxSize = 22.dp)
-                Spacer(Modifier.height(1.dp))
+                WidthDot(
+                    pt,
+                    maxPt,
+                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    boxSize = 14.dp,
+                )
+                Spacer(Modifier.width(5.dp))
                 Text(
-                    "${PEN_WIDTH_LABELS.getOrElse(i) { "${i + 1}" }} ${ptLabel(pt)} pt",
+                    text = PEN_WIDTH_LABELS.getOrElse(i) { "${i + 1}" },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    text = ptLabel(pt),
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     color = if (selected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
@@ -142,7 +168,7 @@ internal fun WidthSlotSliderDialog(
     }
     // Snap −/+ nudges to a clean [PEN_WIDTH_STEP] grid so repeated taps don't accumulate float drift.
     fun nudge(delta: Float) = setValue(((value + delta) / PEN_WIDTH_STEP).roundToInt() * PEN_WIDTH_STEP)
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Slot $label width") },
         text = {

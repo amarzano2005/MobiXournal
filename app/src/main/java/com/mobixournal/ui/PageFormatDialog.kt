@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -22,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,7 +46,7 @@ import kotlin.math.roundToInt
  *
  * Each unit knows how to convert points (1/72 in) to and from its own scale.
  */
-private enum class SizeUnit(val label: String, val perPt: Double) {
+internal enum class SizeUnit(val label: String, val perPt: Double) {
     /** Millimetres: 1 pt = 25.4/72 mm. */
     MM("mm", 25.4 / 72.0),
     /** Inches: 1 pt = 1/72 in. */
@@ -61,7 +62,7 @@ private enum class SizeUnit(val label: String, val perPt: Double) {
 }
 
 /** Format a unit value for a field: at most one decimal, trailing `.0` dropped. */
-private fun fmtDim(value: Double): String {
+internal fun fmtDim(value: Double): String {
     val rounded = (value * 10).roundToInt() / 10.0
     return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
 }
@@ -131,129 +132,163 @@ internal fun PageFormatDialog(
     val startHeightPt = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL && extentPt != null) extentPt else initialHeightPt
     val paper = remember { PaperState(startWidthPt, startHeightPt) }
     var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
-    var showDefaultSettings by remember { mutableStateOf(false) }
+    val defaultPaper = remember { PaperState(defaultWidthPt, defaultHeightPt) }
+    var defaultCanvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
+    var inDefaultSection by remember { mutableStateOf(false) }
 
-    if (showDefaultSettings) {
-        DefaultSettingsDialog(
-            initialWidthPt = defaultWidthPt,
-            initialHeightPt = defaultHeightPt,
-            initialCanvas = NewDocumentCanvas.of(canvasMode),
-            onSave = { defW, defH, defCanvas ->
-                onSaveDefaultSettings(defW, defH, defCanvas)
-                showDefaultSettings = false
-            },
-            onDismiss = { showDefaultSettings = false },
-        )
-    }
-
-    AlertDialog(
+    com.mobixournal.ui.theme.FloatingDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Page format") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // --- the canvas: what a page *is* in this document -------------------------------
-                Text("Canvas", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    for (option in NewDocumentCanvas.entries) {
-                        FilterChip(
-                            selected = option == canvas,
-                            onClick = { canvas = option },
-                            label = { Text(option.label) },
-                        )
+        title = {
+            if (inDefaultSection) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { inDefaultSection = false }) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
+                    Spacer(Modifier.width(4.dp))
+                    Text("Default settings")
                 }
-                Text(
-                    "Paged breaks the writing into sheets; the infinite canvases keep one running " +
-                        "sheet that grows as you scroll, so nothing is cut at a page edge.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                HorizontalDivider()
-                PaperSection(paper, canvas)
+            } else {
+                Text("Page format")
+            }
+        },
+        text = {
+            if (inDefaultSection) {
+                DefaultFormatContent(defaultPaper, defaultCanvas, onSelectCanvas = { defaultCanvas = it })
+            } else {
+                ActiveFormatContent(paper, canvas, onSelectCanvas = { canvas = it })
             }
         },
         confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FilledTonalButton(
-                    onClick = { showDefaultSettings = true },
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Icon(
-                        Icons.Outlined.Settings,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text("Default settings", fontWeight = FontWeight.SemiBold)
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
-                    TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
-                        Text("Set as default")
-                    }
-                    TextButton(
-                        onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
-                    ) {
-                        Text("Set")
-                    }
-                }
+            if (inDefaultSection) {
+                DefaultFormatActionButtons(
+                    onBack = { inDefaultSection = false },
+                    onCancel = onDismiss,
+                    onSave = {
+                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvas)
+                        inDefaultSection = false
+                    },
+                )
+            } else {
+                ActiveFormatActionButtons(
+                    onOpenDefaults = { inDefaultSection = true },
+                    onCancel = onDismiss,
+                    onSaveAsDefault = { onSaveAsDefault(paper.widthPt, paper.heightPt) },
+                    onSet = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
+                )
             }
         },
     )
 }
 
-/**
- * A dialog to configure default settings for new documents: default page dimensions and default canvas mode.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DefaultSettingsDialog(
-    initialWidthPt: Double,
-    initialHeightPt: Double,
-    initialCanvas: NewDocumentCanvas,
-    onSave: (Double, Double, NewDocumentCanvas) -> Unit,
-    onDismiss: () -> Unit,
+private fun ActiveFormatContent(
+    paper: PaperState,
+    canvas: NewDocumentCanvas,
+    onSelectCanvas: (NewDocumentCanvas) -> Unit,
 ) {
-    val paper = remember { PaperState(initialWidthPt, initialHeightPt) }
-    var canvas by remember { mutableStateOf(initialCanvas) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Canvas", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (option in NewDocumentCanvas.entries) {
+                FilterChip(
+                    selected = option == canvas,
+                    onClick = { onSelectCanvas(option) },
+                    label = { Text(option.label) },
+                )
+            }
+        }
+        Text(
+            "Paged breaks the writing into sheets; the infinite canvases keep one running " +
+                "sheet that grows as you scroll, so nothing is cut at a page edge.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        HorizontalDivider()
+        PaperSection(paper, canvas)
+    }
+}
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Default settings") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Default canvas", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    for (option in NewDocumentCanvas.entries) {
-                        FilterChip(
-                            selected = option == canvas,
-                            onClick = { canvas = option },
-                            label = { Text(option.label) },
-                        )
-                    }
-                }
-                HorizontalDivider()
-                Text("Default dimensions", style = MaterialTheme.typography.labelMedium)
-                PaperSection(paper, canvas)
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DefaultFormatContent(
+    defaultPaper: PaperState,
+    defaultCanvas: NewDocumentCanvas,
+    onSelectCanvas: (NewDocumentCanvas) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Default canvas", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (option in NewDocumentCanvas.entries) {
+                FilterChip(
+                    selected = option == defaultCanvas,
+                    onClick = { onSelectCanvas(option) },
+                    label = { Text(option.label) },
+                )
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(paper.widthPt, paper.heightPt, canvas) },
-            ) {
-                Text("Save default")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
+        }
+        Text(
+            "The default canvas geometry used when creating new documents.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        HorizontalDivider()
+        Text("Default dimensions", style = MaterialTheme.typography.labelMedium)
+        PaperSection(defaultPaper, defaultCanvas)
+    }
+}
+
+@Composable
+private fun ActiveFormatActionButtons(
+    onOpenDefaults: () -> Unit,
+    onCancel: () -> Unit,
+    onSaveAsDefault: () -> Unit,
+    onSet: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilledTonalButton(
+            onClick = onOpenDefaults,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+        ) {
+            Icon(Icons.Outlined.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Default settings", fontWeight = FontWeight.SemiBold)
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onSaveAsDefault) { Text("Set as default") }
+            TextButton(onClick = onSet) { Text("Set") }
+        }
+    }
+}
+
+@Composable
+private fun DefaultFormatActionButtons(
+    onBack: () -> Unit,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(onClick = onBack) {
+            Text("Back")
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+            Button(onClick = onSave) { Text("Save default") }
+        }
+    }
 }
 
 /**

@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -146,8 +147,8 @@ fun LatexPalette(
                 Surface(
                     onClick = { onInsertSnippet(sym.snippet) },
                     shape = RoundedCornerShape(8.dp),
-                    tonalElevation = 2.dp,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 1.dp,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 ) {
                     Text(
                         text = sym.label,
@@ -175,7 +176,7 @@ fun LatexDialog(
     }
     var activeCategory by remember { mutableStateOf(LatexCategory.CALCULUS) }
 
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("LaTeX Formula") },
         text = {
