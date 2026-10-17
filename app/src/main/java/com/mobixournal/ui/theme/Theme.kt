@@ -12,7 +12,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -20,6 +23,27 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.mobixournal.ui.ThemeMode
+
+/**
+ * Whether the **app's own** theme is dark right now — the answer from `settings.themeMode`.
+ *
+ * The chrome (the bars and everything that floats over the page) must ask *this* and never
+ * `isSystemInDarkTheme()`. [XoppTheme] picks its colour scheme from the app's `ThemeMode`, so a band
+ * that asked the OS instead could paint the light theme's white glass while the icons and text on it
+ * came from the dark scheme: with the app on Dark and the device on Light, a bar used to be a flat
+ * white slab under white ink — which reads as a surface that has lost its material, not as one
+ * wearing the wrong shade. Read it through [chromeIsDark].
+ */
+val LocalChromeIsDark = staticCompositionLocalOf { false }
+
+/**
+ * The chrome's dark/light answer for this composition: the app's `ThemeMode`, resolved once by
+ * [XoppTheme] and handed down, so every band, badge and panel agrees with the scheme the text on it
+ * comes from.
+ */
+@Composable
+@ReadOnlyComposable
+fun chromeIsDark(): Boolean = LocalChromeIsDark.current
 
 /**
  * Re-pins every chrome role of a light scheme, in one place.
@@ -195,10 +219,14 @@ fun XoppTheme(
             controller.isAppearanceLightNavigationBars = lightIcons
         }
     }
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = ModernTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    // The chrome's own dark/light answer is published from the *same* decision as the scheme above:
+    // one source for both, so a bar cannot be lit for a theme its ink does not come from.
+    CompositionLocalProvider(LocalChromeIsDark provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = ModernTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

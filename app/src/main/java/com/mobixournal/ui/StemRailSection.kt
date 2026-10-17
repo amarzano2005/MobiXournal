@@ -22,9 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 
 /** One 1-tap STEM entry: a tool to activate, or (tool == null) the function-plot dialog. */
 internal data class StemEntry(val label: String, val icon: ImageVector, val tool: EditorTool?)
@@ -61,7 +61,7 @@ internal fun StemRailSection(
     trailingDivider: Boolean = true,
 ) {
     val slot = LocalRailSlotSize.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
     if (horizontal) {
         if (leadingDivider) {

@@ -37,23 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.mobixournal.ui.theme.MENU_RIM_ALPHA_BOTTOM
-import com.mobixournal.ui.theme.MENU_RIM_ALPHA_TOP
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
-import com.mobixournal.ui.theme.rememberMenuRimColor
 
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
@@ -156,8 +148,6 @@ internal fun ToolbarMenu(
     val toolbar = rememberFloatingSurfaceColor()
     val scheme = MaterialTheme.colorScheme
     val shapes = MaterialTheme.shapes
-    val rim = rememberMenuRimColor()
-    val shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER)
     MaterialTheme(
         colorScheme = scheme.copy(surface = toolbar, surfaceTint = toolbar),
         shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
@@ -167,34 +157,14 @@ internal fun ToolbarMenu(
             onDismissRequest = onDismissRequest,
             // The menu's own `modifier` lands on the panel itself (the `Surface` inside
             // [DropdownMenu]), which is what lets the rim be drawn on the panel's own bounds — there
-            // is no other handle on the panel in this Material3 version.
-            modifier = modifier.drawWithContent {
-                    drawContent()
-                    val width = MENU_RIM_WIDTH.toPx()
-                    // Half a hairline in from the edge: a stroke straddles its path, and the outer
-                    // half would be wasted on the corner's own curve.
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                rim.copy(alpha = MENU_RIM_ALPHA_TOP),
-                                rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM),
-                            ),
-                            startY = 0f,
-                            endY = size.height,
-                        ),
-                        topLeft = Offset(width / 2f, width / 2f),
-                        size = Size(size.width - width, size.height - width),
-                        cornerRadius = CornerRadius(TOP_BAR_DOCK_CORNER.toPx()),
-                        style = Stroke(width = width),
-                    )
-                },
+            // is no other handle on the panel in this Material3 version. It is the *shared* rim
+            // ([floatingRim]), so the pop-ups, the action bars and the STEM dialogs cannot grow
+            // three different edges.
+            modifier = modifier.floatingRim(),
             content = content,
         )
     }
 }
-
-/** The rim's thickness — one hairline, drawn inside the panel's edge. */
-private val MENU_RIM_WIDTH = 1.dp
 
 /**
  * A small non-clickable section heading inside a dropdown menu.

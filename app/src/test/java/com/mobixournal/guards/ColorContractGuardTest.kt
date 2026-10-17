@@ -34,6 +34,7 @@ import com.mobixournal.ui.theme.TextDarkOnLight
 import com.mobixournal.ui.theme.TextLightOnDark
 import com.mobixournal.ui.theme.TextSecondaryOnDark
 import com.mobixournal.ui.theme.TextSecondaryOnLight
+import com.mobixournal.ui.theme.chromeIsDark
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -173,13 +174,16 @@ class ColorContractGuardTest {
     }
 
     /**
-     * The panel is the **bar's colour** at a **higher** opacity — one material, read at two fade
-     * levels — rather than a colour of its own.
+     * The panel is the **bar's colour** and is **never more see-through than the bar** — one
+     * material, not a colour of its own.
      *
      * Both halves matter. Sharing the RGB is what makes a menu read as part of the bar it hangs from
-     * (the lavender `surfaceContainer` failure); the higher alpha is what makes the rows on it
-     * readable (see [thePopUpPanelKeepsItsInkLegibleOverAnyBackdrop]). A future "let me just make the
-     * panel a bit lighter" edit has to break one of these two assertions first.
+     * (the lavender `surfaceContainer` failure); never being *more* transparent than the bar is what
+     * keeps the rows on it readable (see [thePopUpPanelKeepsItsInkLegibleOverAnyBackdrop]). Equality is
+     * allowed and is where the material now sits in the light theme: the fill is the most see-through
+     * the ink permits (0.88), so the panel and the light bar are one and the same glass rather than two
+     * fade levels of it. A future "let me just make the panel a bit lighter" edit has to break one of
+     * these assertions first.
      */
     @Test
     fun thePanelIsTheBarsColourWithLessSeeThrough() {
@@ -191,8 +195,8 @@ class ColorContractGuardTest {
             assertEquals("the $where panel must be the bar's colour (green)", bar.green, panel.green)
             assertEquals("the $where panel must be the bar's colour (blue)", bar.blue, panel.blue)
             assertTrue(
-                "the $where panel must be *less* transparent than the bar it hangs from",
-                panel.alpha > bar.alpha,
+                "the $where panel must not be *more* transparent than the bar it hangs from",
+                panel.alpha >= bar.alpha,
             )
             assertTrue(
                 "…but not opaque: the little that still comes through is what ties it to the bar",
@@ -269,9 +273,13 @@ class ColorContractGuardTest {
      * The palette guard above can only see the theme's roles; whether a *call site* asked for them is a
      * property of the source tree, exactly as with `ToolbarMenuGuardTest`. These are the surfaces the user
      * meets over the page — the menus and submenus, the action bars that come up with a selection
-     * (cut/copy, table, spline, PDF text, region), the page/zoom/scroll badges, the transfer overlay, the
-     * two hand-rolled dialogs and the search-indexing card — and each must read
-     * `rememberFloatingSurfaceColor()` rather than a container role of its own.
+     * (cut/copy, table, spline, PDF text, region), the STEM editors the triangle, trapezoid and function
+     * tools open, the page/zoom/scroll badges, the transfer overlay, the two hand-rolled dialogs and the
+     * search-indexing card — and each must reach
+     * `rememberFloatingSurfaceColor()` rather than a container role of its own, either directly or
+     * through the one shared wrapper for its kind (`FloatingSurface` for a bar, `FloatingDialog` for a
+     * dialog). Those wrappers are checked here too: a bar that stopped reading the material and painted
+     * a colour of its own would take every call site with it.
      *
      * A presence check alone would pass a file that keeps one surface wired and adds a second one with an
      * ad-hoc fill, so the fills this replaced are banned by name in the same files (normalised to `\n`
@@ -290,14 +298,22 @@ class ColorContractGuardTest {
             ),
             "ShortcutsSection.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
             "OnboardingDialog.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
+            // The STEM editors: the triangle's and trapezoid's angle dialogs and both function dialogs.
+            "EditorDialogs.kt" to emptyList(),
+            "PlotGraphDialogChrome.kt" to listOf(
+                "containerColor = MaterialTheme.colorScheme.surfaceContainer",
+            ),
         )
         for ((fileName, retiredFills) in floating) {
             val file = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/$fileName")
             assertTrue("File must exist: $fileName", file.isFile)
             val text = file.readText().replace("\r\n", "\n")
             assertTrue(
-                "$fileName must paint its floating surface with rememberFloatingSurfaceColor()",
-                text.contains("rememberFloatingSurfaceColor()"),
+                "$fileName must paint its floating surface with the one material — " +
+                    "rememberFloatingSurfaceColor() directly, or through FloatingSurface/FloatingDialog",
+                text.contains("rememberFloatingSurfaceColor()") ||
+                    text.contains("FloatingSurface(") ||
+                    text.contains("FloatingDialog("),
             )
             for (retired in retiredFills) {
                 assertFalse(
@@ -307,7 +323,76 @@ class ColorContractGuardTest {
                 )
             }
         }
+
+        // The wrappers themselves are the single place a bar or a STEM dialog gets its fill and its
+        // edge, so they are what the sweep above depends on.
+        val glass = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/theme/FloatingGlass.kt")
+        assertTrue("File must exist: theme/FloatingGlass.kt", glass.isFile)
+        val glassText = glass.readText().replace("\r\n", "\n")
+        assertTrue(
+            "FloatingSurface must paint the floating material",
+            glassText.contains("fun FloatingSurface(") &&
+                glassText.contains("background(rememberFloatingSurfaceColor())"),
+        )
+        assertTrue(
+            "FloatingDialog must override the dialog's container with the floating material",
+            glassText.contains("fun FloatingDialog(") &&
+                glassText.contains("scheme.copy(surface = surface, surfaceTint = surface)"),
+        )
+        assertTrue(
+            "…and both must wear the one rim, so a bar and a dialog cannot grow a second edge",
+            glassText.contains(".floatingRim()"),
+        )
     }
+
+    /**
+     * **The chrome takes its dark/light answer from the app's `ThemeMode`, never from the OS.**
+     *
+     * `XoppTheme` picks the colour scheme from `settings.themeMode`, so a band that asked
+     * `isSystemInDarkTheme` could paint the *light* theme's white glass while the ink on it came from
+     * the dark scheme: with the app on Dark and the device on Light, a bar became a flat white slab
+     * under white text — a surface that has lost its material rather than one wearing the wrong shade.
+     * One decision has to feed both, so the sweep reads the whole `ui` tree: only the theme's own
+     * `Theme.kt` may resolve the OS setting (and it hands the answer down through `LocalChromeIsDark`),
+     * and every other file asks [chromeIsDark].
+     */
+    @Test
+    fun theChromeTakesItsDarkLightAnswerFromTheAppAndNeverFromTheOs() {
+        val themeFile = File(repoRoot(), "app/src/main/java/com/mobixournal/ui/theme/Theme.kt")
+        assertTrue("Theme.kt must exist", themeFile.isFile)
+        assertTrue(
+            "XoppTheme must publish its own dark/light decision for the chrome to read",
+            themeFile.readText().contains("LocalChromeIsDark provides darkTheme"),
+        )
+
+        // Guard the guard: a sweep that found no files would pass on anything. The `ui` tree is
+        // dozens of files, so a count this low can only mean the walk broke.
+        val swept = uiSourceFiles()
+        assertTrue(
+            "the sweep must actually read the chrome's source (found ${swept.size} files)",
+            swept.size > 40,
+        )
+
+        val offending = mutableListOf<String>()
+        for (file in swept) {
+            if (file.canonicalPath == themeFile.canonicalPath) continue
+            val line = file.readLines().firstOrNull { it.contains("isSystemInDarkTheme(") }
+            if (line != null) offending += "${file.name}: ${line.trim()}"
+        }
+        assertTrue(
+            "these files resolve the OS theme themselves instead of reading the app's ThemeMode " +
+                "through chromeIsDark(), so a band can be lit for a theme its ink is not from: " +
+                offending.joinToString("; "),
+            offending.isEmpty(),
+        )
+    }
+
+    /** Every Kotlin file under the app's `ui` tree — the chrome's own source. */
+    private fun uiSourceFiles(): List<File> =
+        File(repoRoot(), "app/src/main/java/com/mobixournal/ui")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .toList()
 
     /** WCAG 2.1 relative-luminance contrast ratio. */
     private fun contrastRatio(a: Color, b: Color): Double {

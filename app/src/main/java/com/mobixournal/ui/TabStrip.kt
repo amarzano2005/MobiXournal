@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
@@ -120,7 +121,7 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         }
         scroll.animateScrollTo(target.toInt().coerceIn(0, scroll.maxValue))
     }
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     Row(
         modifier = modifier
             .height(TAB_STRIP_HEIGHT)
@@ -253,7 +254,7 @@ private fun Modifier.tabChipInteractions(
     drag: androidx.compose.runtime.State<Triple<() -> Unit, (Float, Float) -> Unit, () -> Unit>>,
     chipWidth: Float,
 ): Modifier {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val shape = RoundedCornerShape(TAB_CHIP_CORNER)
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = com.mobixournal.ui.theme.ModernTheme.hairlineBorder(isDark)

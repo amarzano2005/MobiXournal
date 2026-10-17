@@ -39,8 +39,10 @@ native for stylus latency and platform fit).
     the action bars that appear with a selection and with the table/spline/PDF-text/region tools
     (`EditorActionBars`), the STEM editors' chrome, the page/zoom/scroll badges, the hand-rolled dialogs
     (`OnboardingDialog`, `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. The
-    bars' glass with the see-through turned down to `floatingPanelAlpha` (0.93) — same RGB, so a floating
-    surface is never a different colour from the bar it appears over. All of them are cut at
+    bars' glass with the see-through turned down to `floatingPanelAlpha` (0.88) — same RGB, so a floating
+    surface is never a different colour from the bar it appears over. The action bars and the STEM
+    editors reach that fill through one wrapper each (`FloatingSurface`, `FloatingDialog` in
+    `theme/FloatingGlass.kt`), so they also wear the menus' lit hairline. All of them are cut at
     `ModernTheme.panelCornerRadiusDp` (20dp), which `AppShapes.extraLarge` gives Material's own
     `AlertDialog`s too.
   - **`rememberToolbarColor()` — the recessed plates** (`surfaceContainer`): a surface *inside* a

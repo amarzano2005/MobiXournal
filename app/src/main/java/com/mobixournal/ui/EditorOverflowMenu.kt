@@ -3,7 +3,6 @@ package com.mobixournal.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -81,7 +81,7 @@ internal fun OverflowMenu(
     onOpenPenParameters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
     Box {

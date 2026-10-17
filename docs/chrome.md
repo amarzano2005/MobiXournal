@@ -98,9 +98,10 @@ is anchored to that button (opening to the right of the rail) rather than fillin
 one of those menus — the rail's, the dock's, the views'/pages'/layers' panels, the ☰ overflow and
 the settings drop-downs — is built by `ToolbarMenu` (`ToolbarPopup.kt`), the app's **one menu
 material**: the frosted glass the bars paint with its see-through turned down
-(`rememberFloatingSurfaceColor()`, the `floatingPanelAlpha` token at 0.93 — a floating surface is read
-on, a bar is not), the same fill the action bars, the badges, the hand-rolled dialogs and the transfer
-overlay take, and the same corner (`panelCornerRadiusDp`, which `AppShapes.extraLarge` hands Material's
+(`rememberFloatingSurfaceColor()`, the `floatingPanelAlpha` token at 0.88 — a floating surface is read
+on, a bar is not), the same fill the action bars (`FloatingSurface`), the STEM editors
+(`FloatingDialog`), the badges, the hand-rolled dialogs and the transfer overlay take, the same lit
+hairline (`floatingRim`, one implementation for all of them), and the same corner (`panelCornerRadiusDp`, which `AppShapes.extraLarge` hands Material's
 own `AlertDialog`s too, so a dialog and a menu cannot turn at two radii)
 and `surfaceTint` pinned to it (M3 paints the
 menu's 3dp `ContainerElevation` as a tint wash, which otherwise lands it a step off the bar) and the

@@ -1,6 +1,5 @@
 package com.mobixournal.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -59,11 +58,13 @@ fun rememberChromeColor(): Color = MaterialTheme.colorScheme.background
  * `surfaceContainer`, which in the light theme was the baseline lavender `#F3EDF7`: a blue-grey panel
  * hanging from a near-white bar, in a palette with no violet in it).
  *
- * Bar and panel read the *same* dark/light answer, so the pair cannot disagree when a device's system
- * setting and the app's own `ThemeMode` differ either.
+ * Bar and panel read the *same* dark/light answer — the app's own `ThemeMode`, through
+ * [chromeIsDark] — so neither can be lit for a theme its ink does not come from. Asking the OS
+ * directly (`isSystemInDarkTheme`) is what used to let a bar paint the light theme's white glass
+ * while its icons and text came from the dark scheme.
  */
 @Composable
-fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(isSystemInDarkTheme())
+fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(chromeIsDark())
 
 /**
  * The fill of every **floating surface**: the bars' glass with the see-through turned down
@@ -82,7 +83,7 @@ fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(isSystemInDark
  * container role is how a lavender menu once hung from a grey bar.
  */
 @Composable
-fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(isSystemInDarkTheme())
+fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(chromeIsDark())
 
 /**
  * The **plate** colour: the opaque neutral step for a surface *inside* a floating one — the function

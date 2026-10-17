@@ -96,8 +96,8 @@ import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
-import androidx.compose.foundation.isSystemInDarkTheme
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
@@ -133,7 +133,7 @@ fun EditorTopBar(
     // The rail can only be docked to a vertical edge now, so the spacer that keeps the top bar's
     // content clear of it is simply needed whenever that edge is the left one.
     val railOnLeft = (settings?.toolbarPosition ?: ToolbarPosition.LEFT) == ToolbarPosition.LEFT
-    val isDark = isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
 
     // **One header, one slab — and no line across it.** In the Standard layout the document tabs are this
@@ -399,7 +399,7 @@ private fun SearchControls(pane: PaneState) {
         pane.searchTotal = status.total
     }
     if (!pane.searchOpen) {
-        val isDark = isSystemInDarkTheme()
+        val isDark = chromeIsDark()
         val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
         Surface(
@@ -891,7 +891,7 @@ fun TopBarToolsRow(
         }
     }
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
 

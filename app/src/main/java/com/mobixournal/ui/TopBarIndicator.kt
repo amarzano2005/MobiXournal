@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -308,7 +309,7 @@ internal fun StandaloneToolIndicator(
     styleCallbacks: ToolbarStyleCallbacks,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = com.mobixournal.ui.theme.ModernTheme.hairlineBorder(isDark)
 

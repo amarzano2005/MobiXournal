@@ -34,11 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Stationery
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
@@ -186,7 +186,7 @@ private fun ToolbarShell(
     buttons: @Composable () -> Unit,
 ) {
     val baseSlot = SideToolbarModernSlot
-    val isDark = isSystemInDarkTheme()
+    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
 

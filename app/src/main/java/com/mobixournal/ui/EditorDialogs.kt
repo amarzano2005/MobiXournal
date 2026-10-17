@@ -58,6 +58,7 @@ import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.ui.theme.FloatingDialog
 import kotlin.math.roundToInt
 
 /** The families offered in the text dialog — names desktop Xournal++ and Android both resolve. */
@@ -301,7 +302,7 @@ fun ScaleneAnglesDialog(
     val sum = a.roundToInt() + b.roundToInt() + c.roundToInt()
     val isValid = sum == 180 && a >= 5f && b >= 5f && c >= 5f
 
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Scalene triangle angles") },
         text = {
@@ -442,7 +443,7 @@ fun TrapezoidAnglesDialog(
     var a by remember { mutableStateOf(angleA) }
     var b by remember { mutableStateOf(angleB) }
 
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Scalene trapezoid angles") },
         text = {
@@ -835,7 +836,7 @@ fun FunctionGraphDialog(
     val xMax = xMaxText.toDoubleOrNull()
     val rangeOk = xMin != null && xMax != null && xMax > xMin
 
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.widthIn(max = 380.dp),
         title = { Text("Insert graph", style = MaterialTheme.typography.titleMedium) },

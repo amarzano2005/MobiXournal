@@ -3,7 +3,6 @@ package com.mobixournal.ui
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -13,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.PlotCurve
+import com.mobixournal.ui.theme.FloatingDialog
 
 /**
  * The graph dialog's **chrome**: the `AlertDialog`, the body it shows and the two buttons that close it.
@@ -58,15 +58,16 @@ internal fun PlotGraphDialog(
     ) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    // The floating material, not the opaque `surfaceContainer` plate this dialog used to be cut from:
+    // the function editor is the one pop-up big enough to *see* the material in, and it was the last
+    // opaque panel the STEM tools opened. [FloatingDialog] also gives it the family's rim and corner.
+    FloatingDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
         modifier = Modifier
             .fillMaxWidth(0.82f)
             .widthIn(max = 1000.dp)
             .padding(horizontal = 16.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 0.dp,
         title = { Text("Graph & Function Study", style = MaterialTheme.typography.titleMedium) },
         text = {
             DialogBodyContent(

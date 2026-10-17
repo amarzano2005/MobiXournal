@@ -58,24 +58,31 @@ fills in for any role a scheme does not name. See _The violet trap_ below for wh
   `ModernTheme.hairlineBorder(isDark)` throughout.
 - **The floating material — the same colour, less see-through**: everything that floats **over** the
   page reads `rememberFloatingSurfaceColor()` = `ModernTheme.floatingSurface(isDark)`, i.e. the bar's
-  glass **RGB untouched** at the `floatingPanelAlpha` token (**0.93**, `ModernTheme.floatingPanelAlpha`).
+  glass **RGB untouched** at the `floatingPanelAlpha` token (**0.88**, `ModernTheme.floatingPanelAlpha`),
+  which is the most see-through that token can be while both ink roles stay above the WCAG floor.
   *Floating* is one family by design: the pop-ups and submenus (`ToolbarMenu`), the action bars that come
   up with a selection and with the table/spline/PDF-text/region tools (`EditorActionBars`), the STEM
   editors' chrome, the page/zoom/scroll badges, the hand-rolled dialogs (`OnboardingDialog`,
   `KeyDetectionDialog`, the search-indexing card) and the transfer overlay. So one surface can never be a
   different material from the bar it appears over — it used to be a container role of its own, which is
   what left a lavender menu hanging from a grey bar.
-- **One floating corner (`panelCornerRadiusDp`, 20dp)**: a menu, an action bar and a **dialog** turn at
-  the docks' radius. Material's `AlertDialog` reads `Shapes.extraLarge` (`DialogTokens.ContainerShape` =
-  `CornerExtraLarge` in material3 1.2.1), which [`Theme.kt`]'s `AppShapes` re-cuts once — so all
-  twenty-five dialogs follow without one call site passing a shape. Their container is
-  `colorScheme.surface` (the same white/charcoal the glass is mixed from) and stays **opaque**: a modal
-  dialog sits on its own scrim, where 0.93 and 1.0 of one colour are the same picture.
-- **The measured legibility floor**: the floating material is less transparent than the bar on purpose,
-  and the number is measured rather than chosen — a bar carries one glyph, a floating surface carries
-  rows of text over the page, and at the bars' 0.85 the dark theme's secondary ink came out at 4.41:1
-  over a white sheet, under the 4.5:1 WCAG AA body-text floor. `ColorContractGuardTest` recomputes both
-  ink roles over a white sheet and over black ink, in both themes.
+- **One floating edge, one floating corner (`panelCornerRadiusDp`, 20dp)**: a menu, an action bar and a
+  **dialog** turn at the docks' radius *and* wear the same lit hairline
+  (`theme/FloatingGlass.kt` — `floatingRim`), which is what tells a translucent panel apart from the
+  desk behind it. The action bars draw it through `FloatingSurface` and the STEM editors through
+  `FloatingDialog`; Material's `AlertDialog` reads `Shapes.extraLarge` (`DialogTokens.ContainerShape` =
+  `CornerExtraLarge` in material3 1.2.1), which `Theme.kt`'s `AppShapes` re-cuts once, so all
+  twenty-five dialogs turn at that radius without one call site passing a shape. A dialog's container is
+  `colorScheme.surface` (the same white/charcoal the glass is mixed from); a modal that does not go
+  through `FloatingDialog` stays **opaque**, since it sits on its own scrim where 0.88 and 1.0 of one
+  colour are nearly the same picture.
+- **The measured legibility floor**: the floating fill is the *most* see-through the ink allows, and the
+  number is measured rather than chosen — a bar carries one glyph, a floating surface carries rows of
+  text over the page, and at the bars' 0.85 the dark theme's secondary ink came out at 4.41:1 over a
+  white sheet, under the 4.5:1 WCAG AA body-text floor. The token is 0.88: **4.90:1** for the dark
+  theme's secondary ink over a white sheet and **4.68:1** for the light theme's over black ink.
+  `ColorContractGuardTest` recomputes both ink roles over a white sheet and over black ink, in both
+  themes.
 - **`NeutralContainerDark` (`#252528`)** & **`NeutralContainerLight` (`#EAEDF0`)**: the neutral grey of
   `surfaceContainer` — the *raised panels* (dialog and `PlotGraphDialogChrome` chrome, section plates),
   one per theme. Neither theme leaves a container role to Material 3 any more: both schemes are built

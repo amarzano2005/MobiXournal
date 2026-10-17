@@ -45,22 +45,28 @@ object ModernTheme {
     val hairlineBorderLight: Color = Color(red = 0f, green = 0f, blue = 0f, alpha = 0.12f)
 
     /** Raw string definition of [floatingPanelAlpha] from `docs/ui-modernization.md`. */
-    const val FLOATING_PANEL_ALPHA_RAW: String = "0.93"
+    const val FLOATING_PANEL_ALPHA_RAW: String = "0.88"
 
-    /** Floating-surface opacity, as documented: **0.93**. */
-    const val FLOATING_PANEL_ALPHA_VAL: Double = 0.93
+    /** Floating-surface opacity, as documented: **0.88**. */
+    const val FLOATING_PANEL_ALPHA_VAL: Double = 0.88
 
     /**
      * How opaque a **floating surface** is — the bars' glass with the see-through turned down
      * ([floatingPanelAlpha]).
      *
-     * A bar carries one glyph; a floating surface carries rows of text — a menu's items, an action
-     * bar's labels, a badge's page number — and it can land over the sheet's own ink. At the bars' 0.85
-     * the panel's secondary ink measured **4.41:1** against a paper page in the dark theme — below the
-     * 4.5:1 floor for body text — and the page's strokes showed through the rows while they were being
-     * read. 0.93 keeps the frost (about 7% still comes through, which is what ties the surface to the
-     * bar under it) and puts the ink back above the floor (`ColorContractGuardTest` computes it, over
-     * both extremes of backdrop, in both themes).
+     * It is the **most see-through the ink allows**, not a taste: a bar carries one glyph, a floating
+     * surface carries rows of text — a menu's items, an action bar's labels, a badge's page number — and
+     * it can land over the sheet's own ink. At the bars' 0.85 the dark theme's secondary ink measured
+     * **4.41:1** over a paper page, below the 4.5:1 floor for body text. The half-step this token used
+     * to take (0.93) bought that back by making the panel a slab: at seven percent, nothing shows
+     * through, and over the true-black desk a charcoal panel at 0.93 and an opaque one are the same
+     * picture — which is what "the transparency does not apply" looks like.
+     *
+     * 0.88 is where both themes still clear the floor with room — the dark theme's secondary ink over a
+     * white sheet measures **4.90:1**, the light theme's over black ink **4.68:1** — so it is as far as
+     * the fill can go without trading legibility for frost. `ColorContractGuardTest` recomputes both
+     * over both extremes of backdrop, so it cannot be made more see-through by an edit that does not
+     * also fix the ink.
      */
     val floatingPanelAlpha: Float = FLOATING_PANEL_ALPHA_VAL.toFloat()
 

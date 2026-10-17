@@ -21,7 +21,7 @@ class ModernThemeTest {
         assertEquals("rgba(22, 22, 24, 0.85)", ModernTheme.GLASS_DARK_RAW)
         assertEquals("rgba(255, 255, 255, 0.88)", ModernTheme.GLASS_LIGHT_RAW)
         assertEquals("rgba(255, 255, 255, 0.12)", ModernTheme.HAIRLINE_BORDER_RAW)
-        assertEquals("0.93", ModernTheme.FLOATING_PANEL_ALPHA_RAW)
+        assertEquals("0.88", ModernTheme.FLOATING_PANEL_ALPHA_RAW)
 
         // Color components (8-bit channel quantization tolerance: 1/255 is ~0.0039)
         val channelTolerance = 0.005f

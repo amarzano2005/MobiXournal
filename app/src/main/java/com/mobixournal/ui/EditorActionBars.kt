@@ -1,12 +1,14 @@
 package com.mobixournal.ui
 
-import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,11 +32,9 @@ import androidx.compose.material.icons.outlined.LineWeight
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,11 +44,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.SelectionOps
+import com.mobixournal.ui.theme.FloatingSurface
 
 /**
  * The Select tool's contextual action bar: cut / copy / paste / duplicate / delete, recolour and
@@ -86,19 +90,10 @@ fun SelectionActionBar(
     onEditPlot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // 50% corners: a pill that follows whatever height the compact buttons give the bar, instead of a
-    // fixed radius that a shorter bar would read as a lozenge.
-    val shape = RoundedCornerShape(50)
-    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-    Surface(
-        modifier = modifier,
-        shape = shape,
-        // The one floating material: the same fill as the menus, the STEM chrome and the docks' bars.
-        color = rememberFloatingSurfaceColor(),
-        border = border,
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-    ) {
+    // The one floating surface: the menus' fill and the menus' *edge* ([FloatingSurface]), at the
+    // floating corner (20dp) rather than the 50% pill this bar used to cut for itself — a 32dp bar
+    // at 20dp is a pill anyway, and it is now the pill the rest of the chrome turns at.
+    FloatingSurface(modifier = modifier) {
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
@@ -251,13 +246,7 @@ fun SelectModeBar(
     onClearRegion: () -> Unit = {},
 ) {
     if (!hasRegion) return
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-    ) {
+    FloatingSurface(modifier = modifier) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -301,13 +290,7 @@ fun SplineModeBar(
     modifier: Modifier = Modifier,
 ) {
     if (nodeCount <= 0) return
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-    ) {
+    FloatingSurface(modifier = modifier) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -336,13 +319,7 @@ fun TextSelectionBar(
     onDeselect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-    ) {
+    FloatingSurface(modifier = modifier) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -372,13 +349,7 @@ fun TableModeBar(
     onInsert: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-    ) {
+    FloatingSurface(modifier = modifier) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -428,10 +399,10 @@ fun TableModeBar(
 
             Spacer(Modifier.width(4.dp))
 
-            FilterChip(
+            GlassToggleChip(
                 selected = hasHeader,
+                label = "Header",
                 onClick = { onHasHeaderChange(!hasHeader) },
-                label = { Text("Header", style = MaterialTheme.typography.labelMedium) },
             )
 
             Spacer(Modifier.width(4.dp))
@@ -442,5 +413,40 @@ fun TableModeBar(
                 Text("Insert")
             }
         }
+    }
+}
+
+/**
+ * A one-option toggle that sits **on** the glass instead of on a plate of its own: a pill with the
+ * family's hairline, tinted with the primary container only while it is on.
+ *
+ * It replaces a Material [androidx.compose.material3.FilterChip] here. A chip is drawn as its own
+ * *container* — a tonal fill, its own elevation and M3's own border — so inside this bar it read as
+ * an opaque little card lying on a pane of glass, which is exactly what made the table bar look
+ * wrong however transparent the bar itself was. This keeps the bar one material edge to edge and
+ * states "on" with the same steel grey the rail's live slot uses.
+ */
+@Composable
+private fun GlassToggleChip(selected: Boolean, label: String, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .height(28.dp)
+            .clip(CircleShape)
+            .background(if (selected) scheme.primaryContainer else Color.Transparent)
+            .border(
+                width = 1.dp,
+                color = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.6f),
+                shape = CircleShape,
+            )
+            .selectable(selected = selected, role = Role.Checkbox, onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
+        )
     }
 }
