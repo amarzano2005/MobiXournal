@@ -308,10 +308,18 @@ The design decisions worth keeping:
   a canvas pushes up through its callbacks; `EditorUiState` keeps one per pane and `EditorScreen`
   hands the active one to each region. Each surface's callbacks write into *its own* `PaneState`, so
   a background pane stays current instead of scribbling over the focused one.
-- **Turning split view off doesn't destroy the pane.** Its canvas is disposed, so when it comes back
-  `restoreTabs` finds a non-empty session and re-loads the showing tab onto the *replacement*
-  surface. (Undo history is per surface, so it does not survive that round trip — same rule as a tab
-  switch.)
+- **The left pane is movable, not rebuilt.** Toggling split view (or full-page mode, or the dock
+  layout) changes only *where* the panes sit, so both are held in `movableContentOf` while the split
+  is on. Without it Compose disposed the left pane's `AndroidView` and rebuilt it from its tab
+  record — written on tab change and pause, not on every stroke — which repainted a stale document
+  over the live edits and dropped the undo history. The right pane only exists while split view is
+  on, so it is disposed when the split closes; `restoreTabs` re-loads its showing tab onto the
+  replacement surface when it comes back. (Undo history is per surface, so it does not survive that
+  round trip — same rule as a tab switch.)
+- **Touching a pane adopts the live pen.** Tool, colour, width and line style live in
+  `EditorUiState`, but each change only reached the surface of the pane that was active at the time.
+  A touch now pushes that state onto its canvas on the pointer-input *initial* pass, before the
+  canvas sees the down, so switching panes with the highlighter selected cannot draw pen ink.
 - **A document can be open in both panes as two live views.** Tabs carry an `OpenTab.docKey`; the
   mirror action copies a tab keeping that key, so "same key" means "same document". Every edit
   reaches the other views through `panes/MirrorSync.kt`: `DrawingSurfaceView.doc` is a property whose
@@ -335,7 +343,16 @@ The design decisions worth keeping:
   colour to every `docKey` open more than once across *both* panes, and `TabStrip` draws it as a dot;
   titles are file names, so they cannot distinguish "open twice" from "two files, one name".
 - The split position (`SplitLayout` in `ui/`) is a UI-only fraction: dragged, clamped to leave each
-  half at least 15% of the width, and deliberately **not** persisted.
+  half at least 15% of the width, and deliberately **not** persisted. The divider is a hairline rule
+  with a slim rounded grip rather than a filled band; the grip brightens while dragged, drag distance
+  is measured from the start of the gesture (so a burst of pointer events cannot lose movement), and
+  a double-tap or the accessibility "Reset split" action returns it to 50/50 with a haptic tick.
+  Each half re-fits its page stack to its new width as the divider moves, and repaints once the
+  platform has resized the surface's buffer (see [rendering.md](rendering.md) → *When the pane under
+the canvas changes size*) — without that second repaint the dragged-to half kept a cropped copy of
+  the old frame until the next touch.
+  Whether the workspace is split, and which half has focus, survive process death through the saved
+  instance state; the fraction itself restarts at 50/50.
 
 ### In-memory document model
 

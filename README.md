@@ -89,7 +89,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 - **Multi-Tab Interface**: Work with multiple documents simultaneously. Each tab preserves its own viewport, zoom, page position, and history. Tabs can be dragged to reorder.
 - **Split View & Live Mirroring**:
-  - **Split View**: View and edit two different documents side by side with an adjustable divider.
+  - **Split View**: View and edit two different documents side by side with an adjustable divider that re-fits each half to its width as you drag it; double-tap the divider to recenter it at 50/50. Each side keeps its own tabs, viewport and zoom, with its own undo history while the split is open. The split workspace — whether it is open, and which half has focus — comes back if Android restarts the app in the background.
   - **Mirrored View**: Open a second live view of the *same* document (e.g. view a reference diagram at the top while writing notes at the bottom). Changes sync immediately.
 - **Tab Overview**: Tap the grid icon in the top bar to inspect all open tabs as thumbnail previews.
 - **Session Restore**: Open tabs and unsaved drafts are cached locally and restored automatically on next launch.

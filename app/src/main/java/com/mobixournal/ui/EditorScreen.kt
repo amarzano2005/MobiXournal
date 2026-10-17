@@ -14,7 +14,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -435,18 +437,33 @@ private fun EditorBody(
             paneChrome(ui, pane, settings, onSettingsChange, audio)
         }
     }
+    // The callbacks are read through the latest state because the movable content below is
+    // remembered once: a frozen `settings` here would write the first composition's values back
+    // over every later change.
+    val latestSettings = rememberUpdatedState(settings)
+    val latestOnSettingsChange = rememberUpdatedState(onSettingsChange)
+    val latestOnActivePane = rememberUpdatedState(onActivePane)
+    val latestOnSurfaceCreated = rememberUpdatedState(onSurfaceCreated)
+    val latestOnPickImage = rememberUpdatedState(onPickImage)
     val paneAt: @Composable (Int, Modifier) -> Unit = { index, paneModifier ->
         EditorPaneView(
             index = index,
             ui = ui,
-            settings = settings,
-            onSettingsChange = onSettingsChange,
-            onActivePane = onActivePane,
-            onSurfaceCreated = onSurfaceCreated,
-            onPickImage = onPickImage,
+            settings = latestSettings.value,
+            onSettingsChange = latestOnSettingsChange.value,
+            onActivePane = latestOnActivePane.value,
+            onSurfaceCreated = latestOnSurfaceCreated.value,
+            onPickImage = latestOnPickImage.value,
             modifier = paneModifier,
         )
     }
+    // **Movable**, not re-keyed: turning split view on or off (and full-page or the dock layout)
+    // only changes *where* a pane sits in the tree. Without this, Compose disposes the pane's
+    // `AndroidView` and builds a new one, which reloads the tab record — written on tab change and
+    // pause, not on every stroke — so the live edits and the undo history are lost. Also, pane one
+    // only exists while split view is on, so it is disposed with the split as documented.
+    val firstPane = remember { movableContentOf<Modifier> { paneAt(0, it) } }
+    val secondPane = remember { movableContentOf<Modifier> { paneAt(1, it) } }
     /** The drawing area: one pane, or both with a draggable bar between them. */
     val canvas: @Composable (Modifier) -> Unit = { canvasModifier ->
         if (splitView) {
@@ -454,11 +471,11 @@ private fun EditorBody(
                 fraction = ui.splitFraction,
                 onFraction = { ui.splitFraction = it },
                 modifier = canvasModifier,
-                first = { paneAt(0, it) },
-                second = { paneAt(1, it) },
+                first = { firstPane(it) },
+                second = { secondPane(it) },
             )
         } else {
-            paneAt(0, canvasModifier)
+            firstPane(canvasModifier)
         }
     }
     when {

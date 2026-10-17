@@ -52,6 +52,25 @@ disarmed by touch-slop travel or a second pointer, and never armed for a stylus 
 lifts the page under it, the drag tracks a drop slot with `nearestPage`, and the release commits one
 undoable `PageOps.move(pages, from, to)` through `editPages`. The same `pageAt(x, y)` hit-test drives
 
+## When the pane under the canvas changes size (`render/DrawingSurfaceResize.kt`)
+
+A resize is the one change to the canvas that **no event announces**: a split-divider drag, a pane
+handed back to the single-pane layout, a rotated window — none of them is a touch, and
+`SurfaceHolder.Callback.surfaceChanged` is not guaranteed for each step of a drag. What the canvas
+kept instead was the frame it last drew for the old extent: a cropped copy of the old layout in the
+newly exposed half, sitting there until something unrelated asked for a repaint.
+
+The invariant that fixes it is that **the page stack always describes the frame being painted into**:
+`PageStacker`/`ViewportState` are rebuilt from the pane's extent (`relayout`), and the paint pass
+compares the size of the buffer it actually locked with the view's own — a frame drawn into a buffer
+the surface is about to outgrow is *provisional*, and asks for one more frame. The repaint itself is
+deferred to **after the next traversal** (`OnPreDrawListener` + `post`, coalesced per traversal),
+because that is where the platform commits the surface's new geometry: a paint that runs any earlier
+locks a buffer of the old size again and, unless something else asks for a frame, leaves the old
+image on screen. `ui/EditorRegions.kt` feeds the pane's size to the canvas as the Compose box changes
+(`repaintAfterResize`), and the canvas's own `onSizeChanged` is not used — the pane, not the surface,
+is what knows it was resized.
+
 ## One page as an image (`PageSvgWriter`, `writePagePng`/`writePageSvg`)
 
 **One page as an image (`PageSvgWriter`, `DrawingSurfaceView.writePagePng`/`writePageSvg`).** The

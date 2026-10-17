@@ -336,6 +336,7 @@ class MainActivity : ComponentActivity() {
         setupThemeAndWindow(initialSettings)
 
         super.onCreate(savedInstanceState)
+        restoreSplitWorkspace(savedInstanceState)
         applyEdgeToEdge(isDarkTheme(initialSettings))
 
         // PDFBox needs its font/resource loader primed once before any PDF export can run.
@@ -488,6 +489,26 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    /**
+     * Bring back the split workspace saved by [onSaveInstanceState]: a workspace that was split when
+     * the process was killed comes back split, on the same half. The divider's fraction is still
+     * view-only and restarts at 50/50.
+     */
+    private fun restoreSplitWorkspace(savedInstanceState: Bundle?) {
+        splitView.value = savedInstanceState?.getBoolean(STATE_SPLIT_VIEW) == true
+        activePane.value = savedInstanceState
+            ?.getInt(STATE_ACTIVE_PANE, 0)
+            ?.takeIf { splitView.value && it in panes.indices }
+            ?: 0
+    }
+
+    /** Keep the split workspace (and the half in focus) across process death. */
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_SPLIT_VIEW, splitView.value)
+        outState.putInt(STATE_ACTIVE_PANE, activePane.value)
+    }
+
     /** Cache both panes' open tabs on the way to the background — the app may not come back. */
     override fun onPause() {
         super.onPause()
@@ -524,6 +545,10 @@ class MainActivity : ComponentActivity() {
 
         /** Tab label for a document that has never been opened from, or saved to, a file. */
         internal const val UNTITLED = "Untitled"
+
+        /** Saved-instance-state keys for the split workspace (see [onSaveInstanceState]). */
+        private const val STATE_SPLIT_VIEW = "editor.splitView"
+        private const val STATE_ACTIVE_PANE = "editor.activePane"
     }
 }
 

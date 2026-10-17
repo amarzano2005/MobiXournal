@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
@@ -91,6 +92,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.clearPenDebug
 import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.PlaceKind
@@ -822,6 +824,11 @@ fun TopBarToolsRow(
                         active = ui.tool == tool,
                         heading = if (triangle) "Triangle" else "Trapezoid",
                         kinds = kindLabels,
+                        kindIcons = if (triangle) {
+                            TriangleKind.values().map(::triangleKindIcon)
+                        } else {
+                            TrapezoidKind.values().map(::trapezoidKindIcon)
+                        },
                         selectedKind = kind,
                         editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
                         onSelectKind = { index ->
@@ -988,6 +995,7 @@ private fun CompactShapeKindButton(
     active: Boolean,
     heading: String,
     kinds: List<String>,
+    kindIcons: List<ImageVector>,
     selectedKind: Int,
     editableKind: Int,
     onSelectKind: (Int) -> Unit,
@@ -1032,6 +1040,7 @@ private fun CompactShapeKindButton(
                 ToolVariantPicker(
                     heading = heading,
                     labels = kinds,
+                    icons = kindIcons,
                     selectedIndex = selectedKind,
                     onPick = { index ->
                         onSelectKind(index)
@@ -1254,8 +1263,21 @@ private fun toolbarPagesCallbacks(
  * Applies the initial tool and style settings to the drawing surface.
  */
 private fun DrawingSurfaceView.applyInitialStyle(ui: EditorUiState, settings: AppSettings) {
-    applyTool(ui.tool)
+    applyLiveStyle(ui)
     applySettings(settings)
+}
+
+/**
+ * Pushes the **live** pen onto a canvas that has just become the focused pane.
+ *
+ * The rail, the colour pop-ups and the keyboard shortcuts all write through [EditorUiState], but
+ * they only reach the surface of the pane that was active at the time. In split view the other
+ * pane keeps whatever tool and style it had when it was last touched, so switching focus and then
+ * drawing produced the *previous* tool — the toolbar said highlighter while the ink came out as a
+ * pen. Touching a pane now adopts the shared style before that same touch reaches the canvas.
+ */
+private fun DrawingSurfaceView.applyLiveStyle(ui: EditorUiState) {
+    applyTool(ui.tool)
     colorArgb = ui.color
     baseWidthPt = ui.width
     currentLineStyle = ui.lineStyle
@@ -1436,6 +1458,9 @@ fun EditorPaneView(
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                 onActivePane(index)
+                // The touch is about to reach the canvas, so the focused pane must already hold the
+                // tool and style the chrome is showing (see [applyLiveStyle]).
+                state.surface?.applyLiveStyle(ui)
                 // Richiedi il focus per ricevere i tasti
                 state.surface?.requestFocus()
             }
@@ -1446,7 +1471,16 @@ fun EditorPaneView(
         // canvas and nothing else. No chrome sits on the page: see [EditorBody] for why that matters.
         // the surface's own view px, so the box the surface reports needs no conversion here.
         var canvasSizePx by remember { mutableStateOf(IntSize.Zero) }
-        Box(modifier = Modifier.weight(1f).fillMaxWidth().onSizeChanged { canvasSizePx = it }) {
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth().onSizeChanged { size ->
+                canvasSizePx = size
+                // The pane changed size with no touch reaching the canvas — a split-divider drag or a
+                // pane handed back to the single-pane layout. The canvas cannot hear about it through
+                // `onTouchEvent`, and `surfaceChanged` is not guaranteed either, so it is told here:
+                // see `render/DrawingSurfaceResize.kt` for why the repaint is deferred as well.
+                state.surface?.repaintAfterResize()
+            },
+        ) {
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {

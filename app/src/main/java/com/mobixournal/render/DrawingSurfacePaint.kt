@@ -86,6 +86,14 @@ internal fun DrawingSurfaceView.paint() {
     paintPosted = false
     if (!holder.surface.isValid) return
     val canvas = lockCanvasForFrame() ?: return
+    // Both the page stack and the surface's buffer have to describe the frame being drawn, and a pane
+    // resized a frame ago can disagree on either: the stack is rebuilt for the view's extent, and a
+    // locked buffer that is not that size makes this a tentative frame — one more is asked for once
+    // the surface has settled (`DrawingSurfaceResize.kt`). Without the second half, a divider drag
+    // left the pane showing a cropped copy of the frame drawn for the old width.
+    val stackStale = viewport.viewWidth != width.toFloat() || viewport.viewHeight != height.toFloat()
+    if (stackStale) relayout()
+    val provisional = stackStale || canvas.width != width || canvas.height != height
     try {
         canvas.drawColor(chrome.backdropColor)
         // Two passes, never both: a chunked `.mobix` is drawn as an unbounded sheet with its tiles on
@@ -127,6 +135,9 @@ internal fun DrawingSurfaceView.paint() {
     } finally {
         holder.unlockCanvasAndPost(canvas)
     }
+    // A frame drawn into a buffer the surface is about to outgrow must not be the last one: once the
+    // platform has resized the surface, paint again for the settled size.
+    if (provisional) repaintWhenSurfaceSettles()
     reportCurrentPage()
     reportScroll()
     reportSelectionRect()

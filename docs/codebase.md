@@ -269,7 +269,7 @@ app/
       EditorOverflowMenu.kt  # the top bar's ☰ menu: its button + panel (quick file actions, PDF row, pen, Settings)
       EditorBackHandler.kt   # back peels off one transient editor state at a time before leaving the app
       PaneState.kt           # per-pane canvas state the chrome mirrors (zoom, page, layer, undo) + the pane count
-      SplitLayout.kt         # two panes side by side with a draggable bar down the middle
+      SplitLayout.kt         # two panes side by side with a slim draggable grip down the middle
       EditorOverlays.kt      # what layers over the canvas: selection bars + author/save/import dialogs
       ExportGapsDialog.kt    # what a .xopp export could not draw, in the user's terms (living entities it has to cook into ink)
       PenDiagnosticsPanel.kt # the on-canvas pen-diagnostics log: the raw stylus stream, with Copy/Clear
