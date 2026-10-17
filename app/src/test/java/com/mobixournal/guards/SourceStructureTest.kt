@@ -49,7 +49,7 @@ class SourceStructureTest {
         // reported instead of a page), the part-in-view reads the layer panel and a tab snapshot need
         // (currentPageIndex / visiblePageIndex over the grid), the search jump through the chrome box,
         // and the mirrored pane being handed the board's grid along with the document.
-        "render/DrawingSurfaceView.kt" to 1857,
+        "render/DrawingSurfaceView.kt" to 1851,
         "render/CircuitShapes.kt" to 1180,
         // +6 deliberate: the new-document canvas geometry (NewDocumentCanvas), beside the format it
         // pairs with, and its pref key on both sides of SettingsStore.

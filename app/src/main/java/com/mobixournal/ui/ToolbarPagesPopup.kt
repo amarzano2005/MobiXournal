@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
 import kotlin.math.abs
@@ -111,6 +112,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var open by remember { mutableStateOf(false) }
     var sizing by remember { mutableStateOf(false) }
     var contents by remember { mutableStateOf(false) }
+    // A geometry picked in the page-format dialog, waiting on "this document or new documents only".
+    var pendingCanvas by remember { mutableStateOf<NewDocumentCanvas?>(null) }
     val board = callbacks.board
     ToolbarPopupButton(
         icon = Icons.Outlined.Description,
@@ -118,6 +121,10 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     ) { dismiss ->
         if (board != null) {
             TileItems(board)
+            // A board still needs a way back to pages — and that is the *format* of the document, so
+            // it lives in the same dialog a page list opens (see `docs/infinite-canvas.md`).
+            HorizontalDivider()
+            PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
             return@ToolbarPopupButton
         }
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
@@ -155,13 +162,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         PagesPerRowRow(callbacks.pageColumns, callbacks.onPageColumns)
         OverviewModeRow(callbacks.pageColumns, callbacks.pagesEditMode, callbacks.onPagesEditMode)
         HorizontalDivider()
-        DropdownMenuItem(
-            text = { Text("Page size…") },
-            leadingIcon = { Icon(Icons.Outlined.AspectRatio, contentDescription = null) },
-            trailingIcon = { callbacks.pageSize?.let { Text(pageSizeLabel(it.first, it.second)) } },
-            enabled = callbacks.pageSize != null,
-            onClick = { sizing = true; dismiss() },
-        )
+        PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
     }
     val outline = callbacks.outline
     if (contents && outline != null) {
@@ -171,17 +172,111 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onDismiss = { contents = false },
         )
     }
-    if (sizing && callbacks.pageSize != null) {
-        PageSizeDialog(
-            initialWidthPt = callbacks.pageSize.first,
-            initialHeightPt = callbacks.pageSize.second,
+    // The page-format dialog: the paper (when there is a page to size) and the document's canvas
+    // geometry, which is the same question — "what is a page of this document" — answered twice.
+    if (sizing) {
+        PageFormatDialog(
+            initialWidthPt = callbacks.pageSize?.first ?: callbacks.defaultPageSize.first,
+            initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
             defaultWidthPt = callbacks.defaultPageSize.first,
             defaultHeightPt = callbacks.defaultPageSize.second,
-            onConfirm = { w, h -> callbacks.onPageSize(w, h); sizing = false },
+            // A board has no page to measure, so the paper half is left out — but its cells carry a
+            // paper size, which is why the test is the geometry, not the presence of a size.
+            sized = callbacks.pageSize != null && board == null,
+            canvasMode = callbacks.canvasMode,
+            onConfirm = { w, h, canvas ->
+                if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
+                sizing = false
+                // A geometry that changed has one more question to ask: this document, or the next
+                // ones? Asked here rather than assumed, because the two answers do different things.
+                if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) pendingCanvas = canvas
+            },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
             onDismiss = { sizing = false },
         )
     }
+    pendingCanvas?.let { chosen ->
+        CanvasScopeDialog(
+            canvas = chosen,
+            editable = callbacks.canvasEditable,
+            onThisDocument = { callbacks.onCanvasMode(chosen); pendingCanvas = null },
+            onNewDocuments = { callbacks.onCanvasModeDefault(chosen); pendingCanvas = null },
+            onDismiss = { pendingCanvas = null },
+        )
+    }
+}
+
+/**
+ * "This document, or the next ones?" — the second half of choosing a canvas geometry, asked every
+ * time because the two answers write in different places.
+ *
+ * **This document** changes the shape the open document is drawn (and saved) in, and is offered only
+ * while the document is still unsaved ([ToolbarPagesCallbacks.canvasEditable]): a `.mobix` that came
+ * from a file keeps the geometry its own `canvas.json` declares, because moving its parts between
+ * `pages/` and `chunks/` is a conversion of the file, not a preference
+ * (`docs/infinite-canvas.md`). **New documents** only moves the default, exactly as Settings' own
+ * control does.
+ */
+@Composable
+private fun CanvasScopeDialog(
+    canvas: NewDocumentCanvas,
+    editable: Boolean,
+    onThisDocument: () -> Unit,
+    onNewDocuments: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Canvas: ${canvas.label}") },
+        text = {
+            Text(
+                if (editable) {
+                    "Change this document, or only the ones you create from now on?"
+                } else {
+                    "This document keeps the canvas it was saved with — a saved document's geometry " +
+                        "is part of its file. The choice will apply to the documents you create from " +
+                        "now on (and Save As can write this one out as a new document)."
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onThisDocument, enabled = editable) { Text("This document") }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onNewDocuments) { Text("New documents only") }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+    )
+}
+
+/**
+ * The **Page format…** row — the paper's size as its trailing hint on a page list, and the canvas
+ * geometry's name on a board (which has no paper to label). The one entry point into the page-format
+ * dialog from both geometries.
+ */
+@Composable
+private fun PageFormatRow(
+    callbacks: ToolbarPagesCallbacks,
+    openSize: () -> Unit,
+    dismiss: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text("Page format…") },
+        leadingIcon = { Icon(Icons.Outlined.AspectRatio, contentDescription = null) },
+        trailingIcon = {
+            // On a page list the useful fact is the paper; on a board there is no page to measure, so
+            // the row names the geometry instead — the thing that chose that board's sheet.
+            val size = callbacks.pageSize
+            if (size != null && callbacks.board == null) {
+                Text(pageSizeLabel(size.first, size.second))
+            } else {
+                Text(NewDocumentCanvas.of(callbacks.canvasMode).label)
+            }
+        },
+        onClick = { openSize(); dismiss() },
+    )
 }
 
 /**
@@ -337,106 +432,179 @@ private fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
 }
 
 /**
- * The page-size chooser: preset tabs (A4/A5/Letter/Legal plus **Default**, which restores the app's
- * default page size), a unit toggle (mm/in/pt), width/height fields, and a swap-orientation button.
- * The entry matching the current size is set bold, so it's obvious where the page stands.
+ * The **page format** of the document: its paper (preset tabs A4/A5/Letter/Legal plus **Default**, a
+ * unit toggle, width/height fields and a swap button) and its **canvas geometry** — fixed pages, or one
+ * of the infinite boards.
  *
- * [onConfirm] applies the chosen size to the page in view as an undoable edit; [onSaveAsDefault]
- * stores it as the default new documents and pages are born with.
+ * The two belong together because they answer one question — *what is a page of this document* — and
+ * because a geometry is not a per-app preference: a document is written in the shape it was created
+ * in, so the choice is made here, next to the paper it replaces, and asked about on confirm
+ * ([CanvasScopeDialog]). The paper half is hidden for a board ([sized] false), which has no page to
+ * measure; the geometry half is always there, so a board can be turned back into pages.
+ *
+ * [onConfirm] reports the paper **and** the chosen geometry; the caller decides whether the paper is
+ * applied (only when there is a page to apply it to) and asks where the geometry goes.
+ * [onSaveAsDefault] stores the paper as the default new documents and pages are born with.
  */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PageSizeDialog(
-    initialWidthPt: Double,
-    initialHeightPt: Double,
-    defaultWidthPt: Double,
-    defaultHeightPt: Double,
-    onConfirm: (Double, Double) -> Unit,
-    onSaveAsDefault: (Double, Double) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var unit by remember { mutableStateOf(SizeUnit.MM) }
-    var widthPt by remember { mutableStateOf(initialWidthPt) }
-    var heightPt by remember { mutableStateOf(initialHeightPt) }
-    var widthText by remember { mutableStateOf(fmtDim(unit.fromPt(initialWidthPt))) }
-    var heightText by remember { mutableStateOf(fmtDim(unit.fromPt(initialHeightPt))) }
+/**
+ * The paper half of the page format, as one piece of state: the unit the fields are written in, the
+ * size the user has settled on, and the two field strings that carry what they typed (kept separate
+ * from the parsed size so a half-typed "20" does not become 20 mm on its way to 200).
+ */
+private class PaperState(widthPt: Double, heightPt: Double) {
+    var unit by mutableStateOf(SizeUnit.MM)
+    var widthPt by mutableStateOf(widthPt)
+    var heightPt by mutableStateOf(heightPt)
+    var widthText by mutableStateOf(fmtDim(unit.fromPt(widthPt)))
+    var heightText by mutableStateOf(fmtDim(unit.fromPt(heightPt)))
+
     fun resync() {
         widthText = fmtDim(unit.fromPt(widthPt))
         heightText = fmtDim(unit.fromPt(heightPt))
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PageFormatDialog(
+    initialWidthPt: Double,
+    initialHeightPt: Double,
+    defaultWidthPt: Double,
+    defaultHeightPt: Double,
+    sized: Boolean,
+    canvasMode: CanvasMode,
+    onConfirm: (Double, Double, NewDocumentCanvas) -> Unit,
+    onSaveAsDefault: (Double, Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val paper = remember { PaperState(initialWidthPt, initialHeightPt) }
+    var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Page size") },
+        title = { Text("Page format") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // --- the canvas: what a page *is* in this document -------------------------------
+                Text("Canvas", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    for (preset in PAGE_PRESETS) {
-                        SizeTab(
-                            label = preset.name,
-                            selected = matchesPageSize(widthPt, heightPt, preset.widthPt, preset.heightPt),
-                            onClick = { widthPt = preset.widthPt; heightPt = preset.heightPt; resync() },
+                    for (option in NewDocumentCanvas.entries) {
+                        FilterChip(
+                            selected = option == canvas,
+                            onClick = { canvas = option },
+                            label = { Text(option.label) },
                         )
                     }
-                    SizeTab(
-                        label = DEFAULT_PAGE_PRESET,
-                        selected = matchesPageSize(widthPt, heightPt, defaultWidthPt, defaultHeightPt),
-                        onClick = { widthPt = defaultWidthPt; heightPt = defaultHeightPt; resync() },
-                    )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Units:", style = MaterialTheme.typography.labelMedium)
-                    for (u in SizeUnit.entries) {
-                        TextButton(onClick = { if (u != unit) { unit = u; resync() } }) {
-                            Text(
-                                u.label,
-                                fontWeight = if (u == unit) FontWeight.Bold else FontWeight.Normal,
-                            )
-                        }
-                    }
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = widthText,
-                        onValueChange = { entered ->
-                            widthText = entered
-                            entered.toDoubleOrNull()?.let { widthPt = unit.toPt(it) }
-                        },
-                        label = { Text("Width") },
-                        suffix = { Text(unit.label) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.width(120.dp),
-                    )
-                    IconButton(onClick = {
-                        val w = widthPt; widthPt = heightPt; heightPt = w; resync()
-                    }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
-                    OutlinedTextField(
-                        value = heightText,
-                        onValueChange = { entered ->
-                            heightText = entered
-                            entered.toDoubleOrNull()?.let { heightPt = unit.toPt(it) }
-                        },
-                        label = { Text("Height") },
-                        suffix = { Text(unit.label) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.width(120.dp),
-                    )
+                Text(
+                    "Paged breaks the writing into sheets; the infinite canvases keep one running " +
+                        "sheet that grows as you scroll, so nothing is cut at a page edge.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (sized) {
+                    HorizontalDivider()
+                    PaperSection(paper, defaultWidthPt, defaultHeightPt)
                 }
             }
         },
         confirmButton = {
             Row {
-                TextButton(onClick = { onSaveAsDefault(widthPt, heightPt) }) {
-                    Text("Save as default")
+                if (sized) {
+                    TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
+                        Text("Save as default")
+                    }
                 }
-                TextButton(onClick = { onConfirm(widthPt, heightPt) }) { Text("Set") }
+                TextButton(onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) }) {
+                    Text("Set")
+                }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/**
+ * The paper a page is measured on: preset tabs, the unit the fields are written in, two size fields
+ * and the swap button. Only shown when the document has a page to measure ([PageFormatDialog]'s
+ * `sized`) — a board's sheet is derived from its mode, not from a paper size.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PaperSection(paper: PaperState, defaultWidthPt: Double, defaultHeightPt: Double) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (preset in PAGE_PRESETS) {
+            SizeTab(
+                label = preset.name,
+                selected = matchesPageSize(paper.widthPt, paper.heightPt, preset.widthPt, preset.heightPt),
+                onClick = {
+                    paper.widthPt = preset.widthPt
+                    paper.heightPt = preset.heightPt
+                    paper.resync()
+                },
+            )
+        }
+        SizeTab(
+            label = DEFAULT_PAGE_PRESET,
+            selected = matchesPageSize(paper.widthPt, paper.heightPt, defaultWidthPt, defaultHeightPt),
+            onClick = {
+                paper.widthPt = defaultWidthPt
+                paper.heightPt = defaultHeightPt
+                paper.resync()
+            },
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Units:", style = MaterialTheme.typography.labelMedium)
+        for (u in SizeUnit.entries) {
+            TextButton(onClick = { if (u != paper.unit) { paper.unit = u; paper.resync() } }) {
+                Text(
+                    u.label,
+                    fontWeight = if (u == paper.unit) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SizeField(
+            label = "Width",
+            text = paper.widthText,
+            unit = paper.unit,
+            onText = { entered ->
+                paper.widthText = entered
+                entered.toDoubleOrNull()?.let { paper.widthPt = paper.unit.toPt(it) }
+            },
+        )
+        IconButton(onClick = {
+            val w = paper.widthPt
+            paper.widthPt = paper.heightPt
+            paper.heightPt = w
+            paper.resync()
+        }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
+        SizeField(
+            label = "Height",
+            text = paper.heightText,
+            unit = paper.unit,
+            onText = { entered ->
+                paper.heightText = entered
+                entered.toDoubleOrNull()?.let { paper.heightPt = paper.unit.toPt(it) }
+            },
+        )
+    }
+}
+
+/** One editable dimension of the paper, in the dialog's current [unit]. */
+@Composable
+private fun SizeField(label: String, text: String, unit: SizeUnit, onText: (String) -> Unit) {
+    OutlinedTextField(
+        value = text,
+        onValueChange = onText,
+        label = { Text(label) },
+        suffix = { Text(unit.label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.width(120.dp),
     )
 }
 

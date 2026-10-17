@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.GuideKind
@@ -69,6 +70,22 @@ data class ToolbarPagesCallbacks(
     val outline: PdfOutline? = null,
     /** Jump to the page a Contents entry names — a **PDF** page index, resolved by the canvas. */
     val onGoToPdfPage: (Int) -> Unit = {},
+    /**
+     * The geometry the showing document is drawn in, so the page-format dialog opens on the choice
+     * the document is *really* in rather than on a setting that may have moved since.
+     */
+    val canvasMode: CanvasMode = CanvasMode.PAGINATED,
+    /**
+     * Whether this document's geometry can still be changed in place: true for a document that has
+     * never been saved to a file, whose shape is still the tab's to decide. A saved `.mobix` keeps the
+     * geometry its `canvas.json` declares — rewriting a file's container is the conversion
+     * `docs/mobix-format.md` refuses to do behind the user's back.
+     */
+    val canvasEditable: Boolean = false,
+    /** The page-format dialog chose a new geometry for this document. */
+    val onCanvasMode: (NewDocumentCanvas) -> Unit = {},
+    /** The dialog chose a geometry for documents created from now on (Settings' own default). */
+    val onCanvasModeDefault: (NewDocumentCanvas) -> Unit = {},
 )
 
 /**

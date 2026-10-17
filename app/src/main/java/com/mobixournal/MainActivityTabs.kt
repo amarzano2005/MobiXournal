@@ -14,6 +14,7 @@ import com.mobixournal.render.setInfiniteCanvas
 import com.mobixournal.tabs.DocColors
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
+import com.mobixournal.ui.NewDocumentCanvas
 import com.mobixournal.ui.TabsUiState
 import java.io.File
 
@@ -46,6 +47,8 @@ internal fun MainActivity.tabsUiState(p: EditorPane): TabsUiState {
         paneIndex = index.coerceAtLeast(0),
         paneCount = if (splitView.value) panes.size else 1,
         focused = activePane.value == index,
+        // Never-saved: the shape is still the tab's to decide (see `TabsUiState.canvasEditable`).
+        canvasEditable = p.tabs.active?.uri == null,
         onFocus = { if (index >= 0) activePane.value = index },
         onSelect = { selectTab(it, p) },
         onClose = { closeTab(it, p) },
@@ -381,6 +384,33 @@ internal fun MainActivity.toggleSplitView() {
     panes.forEach { it.surface?.keepScaleAcrossNextResize() }
     splitView.value = on
     panes.forEach { pane -> pane.surface?.post { pane.surface?.repaintAfterResize() } }
+}
+
+/**
+ * Re-shape the **showing** document onto [mode]'s canvas geometry — the page-format dialog's "this
+ * document" answer.
+ *
+ * Only a document that has never been written to a file may change shape. A `.mobix` that came from
+ * disk keeps the geometry its own `canvas.json` declares, because moving its parts between `pages/`
+ * and `chunks/` converts the file rather than recording a preference (`docs/mobix-format.md`), and a
+ * silent conversion is exactly what the format policy refuses; the dialog says so instead of doing
+ * it. For an unsaved document the shape is still the tab's ([OpenTab.canvasMode]) — the record the
+ * next save is written from — so the change is a re-show, with no file involved: a page list becomes
+ * the strip of chunks its pages already imply, and a board goes back to the pages its cells stand
+ * for.
+ */
+internal fun MainActivity.applyCanvasModeToDocument(mode: NewDocumentCanvas) {
+    val p = pane
+    val tab = p.tabs.active ?: return
+    if (tab.uri != null) return
+    val next = mode.modeFor(tab.format)
+    if (next == tab.canvasMode) return
+    // The live edits are only in the canvas until it is snapshotted, and the re-show reloads the tab.
+    snapshotActiveTab(p)
+    p.tabs.updateActive { it.copy(canvasMode = next) }
+    p.tabs.active?.let { show(it, p) }
+    tabsTick.value++
+    p.persist()
 }
 
 /** The file name behind a `content://` URI, for the tab's label. Falls back to `UNTITLED`. */

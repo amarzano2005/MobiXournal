@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.LayerInfo
@@ -123,6 +124,17 @@ class PaneState {
     val bookmarkedPages: Map<Int, Int> get() = bookmarks.associate { it.page to it.color }
     /** Page size as (widthPt, heightPt) in points, or null when unavailable. */
     var pageSize by mutableStateOf<Pair<Double, Double>?>(null)
+    /**
+     * The canvas geometry this pane's document is drawn in (see `NewDocumentCanvas`): fixed pages, or
+     * one of the infinite boards. Mirrored from the canvas (`DrawingSurfaceView.onCanvasModeChanged`)
+     * so the page-format dialog can show — and offer to change — the geometry the document is really in.
+     */
+    var canvasMode by mutableStateOf(CanvasMode.PAGINATED)
+    /**
+     * Whether this document may still change geometry in place — true only while it has never been
+     * written to a file (a saved document's shape belongs to its own `canvas.json`).
+     */
+    var canvasEditable by mutableStateOf(false)
     /** Monotonically increasing version counter bumped whenever a new document is loaded into the canvas. */
     var documentVersion by mutableStateOf(0)
 }

@@ -312,6 +312,15 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Ask the picker for a PDF to import, remembering how — the launcher answers on a later turn and
+     * reads the mode back then ([pendingImportMode]).
+     */
+    private fun startPdfImport(mode: ImportPdfMode) {
+        pendingImportMode = mode
+        importPdfLauncher.launch(arrayOf(PDF_MIME))
+    }
+
+    /**
      * Draw the whole screen, under both system bars: the canvas is the document, so a bar-shaped band
      * of window background along any edge would read as part of the page. Both bars are transparent
      * and their contrast scrims are off, so only their contents (clock, gesture handle) remain.
@@ -364,10 +373,7 @@ class MainActivity : ComponentActivity() {
                     onSaveAs = { name, format -> beginSaveAs(name, format) },
                     currentSaveFormat = { saveFormat },
                     currentSaveName = { suggestedSaveName() },
-                    onImportPdf = { mode ->
-                        pendingImportMode = mode
-                        importPdfLauncher.launch(arrayOf(PDF_MIME))
-                    },
+                    onImportPdf = ::startPdfImport,
                     onExportPdf = { exportPdfLauncher.launch(suggestedPdfName()) },
                     exportGaps = exportGaps.value,
                     onDismissExportGaps = { exportGaps.value = emptyList() },
@@ -388,6 +394,7 @@ class MainActivity : ComponentActivity() {
                         pendingImagePlacement = placement
                         pickImageLauncher.launch(arrayOf("image/*"))
                     },
+                    onCanvasModeForDocument = { mode -> applyCanvasModeToDocument(mode) },
                     onSurfaceCreated = { index, view ->
                         val p = panes[index]
                         p.surface = view

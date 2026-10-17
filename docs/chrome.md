@@ -322,11 +322,12 @@ place. Per surface:
   The canvas reports the viewport as its whole extent (`DrawingSurfaceView.reportScroll`), which is the same
   report a document shorter than the screen makes, so the thumb hides itself and the chrome needs no flag.
 - **The Pages menu** (`ui/ToolbarPagesPopup.kt`) becomes a **tiles** reading: which tile you are looking at,
-  and how many there are. Everything else in that menu addresses a page — previous/next, add, remove, the
-  overview grid, page copy and paste, page size, bookmarks, the PDF's Contents — and a board has none:
-  adding or removing one would rewrite the chunk grid the file names its parts by, so the rows are gone rather
-  than disabled. The **pages-per-row grid and its edit mode** are inert on a board for the same reason (the
-  board pass replaces the page stack, so `columns` changes nothing on screen) and are not offered.
+  and how many there are — plus the one row about the *document* rather than its parts, **Page format…**,
+  which names the geometry a board is in and is the way back to pages. Every other row addresses a page and
+  a board has none: adding or removing one would rewrite the chunk grid the file names its parts by, so
+  those rows are gone rather than disabled. The **pages-per-row grid and its edit mode** are inert on a
+  board for the same reason (the board pass replaces the page stack, so `columns` changes nothing on screen)
+  and are not offered.
 - **Bookmarks** are not offered on a board. A bookmark is a page flag drawn on the page it belongs to, and the
   board pass draws no page outline or flag; a bookmark you could set and never see would be the same lie in
   the other direction. Bookmarks for a board's tiles are left in the store untouched — nothing is lost, it is

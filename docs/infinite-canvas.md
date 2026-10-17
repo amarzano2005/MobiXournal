@@ -134,11 +134,23 @@ What the app does with this geometry today, so the mode is not a format the edit
   ([sync-and-storage.md](sync-and-storage.md)). A chunk the write does *not* build is never even converted
   from its page (`LazyChunks`), so the only page such a save reads is the board's first, which carries
   `defaultPaper` into the new manifest.
-- **A new document can be born on one.** The geometry is the second half of the one question Settings
-  asks about a new document, beside its format ([mobix-format.md](mobix-format.md) → *Which format a
-  document is written in*): **Settings → App & data → Documents → Canvas geometry** picks the mode, it
-  is pushed down with the format (`MainActivity.applyNewDocumentCanvas`, `ui/NewDocumentCanvas.kt`), and
-  the blank document a new tab opens with is created **on** it. The mode rides on the **tab**
+- **A document is born on one, chosen with its page format.** The geometry is the second half of the one
+  question a document asks about itself, beside its paper (and its format,
+  [mobix-format.md](mobix-format.md) → *Which format a document is written in*): **Pages ▸ Page format…**
+  (`ui/ToolbarPagesPopup.kt` → `PageFormatDialog`) shows the four geometries — *Paged*, *Infinite
+  vertical*, *Infinite horizontal*, *Infinite board* — beside the A4/Letter presets, because the two
+  answer one question: *what is a page of this document*. On confirm the dialog **asks where the choice
+  goes**: *this document*, or *only the new ones*. **This document** is offered only while the document
+  has never been saved (`TabsUiState.canvasEditable`): a `.mobix` that came from a file keeps the
+  geometry its own `canvas.json` declares, because moving its parts between `pages/` and `chunks/`
+  converts the file, and a conversion is not a preference. *New documents only* writes
+  `AppSettings.newDocumentCanvas` — the same value Settings used to host, which is now chosen here and
+  nowhere else (`Settings → App & data → Documents` only says where). An unsaved document re-shapes in
+  place: its tab's `OpenTab.canvasMode` is what the next save is written from, so a re-show is the whole
+  conversion (`MainActivity.applyCanvasModeToDocument`), pages becoming the strip of chunks they imply
+  and a board going back to the pages its cells stand for. The mode is pushed down with the format
+  (`MainActivity.applyNewDocumentCanvas`, `ui/NewDocumentCanvas.kt`), and the blank document a new tab
+  opens with is created **on** it. The mode rides on the **tab**
   (`OpenTab.canvasMode`, persisted with the rest of the tab record in `TabIndex`) rather than being
   re-derived per document, so the first save already writes `chunks/` — a board is never converted out
   of a paginated file — and it survives a tab switch and a restart. A `.xopp` has no chunk container, so
@@ -219,6 +231,14 @@ stack, and every one of them is a place where "almost a page" would have been wr
 - **A placement gives an empty cell its page.** A tap with the text, image or LaTeX tool in a cell the
   board has no chunk for creates the chunk, because the element it is about to insert needs a page to
   live on. Every other path leaves an empty cell empty: drawing, erasing and panning create nothing.
+
+### Opening a document shows it at 100%
+
+**Opening a document shows it at 100%.** A file is opened at zoom 1 rather than at whatever the previous
+document was left at (`MainActivity.applyLoadedDoc` → `resetZoom`): on a board an inherited 250% could
+land the view on empty sheet with no ink in sight and no obvious way back, and on a page stack it opened
+the document already cropped. Tab switching inside a session is not an open and keeps each tab's own
+zoom, which is the promise `README.md` makes for tabs.
 
 ### Spatial query and culling
 1. **Viewport intersection**: At each frame, the active viewport bounds $[x_{\min}, y_{\min}, x_{\max}, y_{\max}]$

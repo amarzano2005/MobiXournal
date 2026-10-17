@@ -207,6 +207,11 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
     // box per chunk. Null for everything else, which is also what clears a board the *previous*
     // document had.
     surface?.setInfiniteCanvas(io.canvasGeometryOf(loaded.document, loaded.canvasMode))
+    // A document opens at **100% zoom**, whatever the previous one was left at: opening a file is a
+    // fresh look at it, and a remembered 250% from some other document is a zoom nobody asked for.
+    // A board is where this matters most — an arbitrary zoom on an unbounded sheet can leave the
+    // view somewhere with no ink at all with no way back.
+    surface?.resetZoom()
     if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
     else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
     else if (loaded.missingImage) toast("Background image not found; those pages will be blank")

@@ -6,6 +6,17 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.io.CanvasGeometry
 
 /**
+ * A board's own reading of the view — what the page-shaped chrome asks for and cannot have on a
+ * chunked document (`docs/chrome.md` → *A document with no pages*).
+ *
+ * [cell] is the **tile** the viewport is centred on, as its coordinate: not an index, because a board's
+ * parts are ordered by the file and that order says nothing about where a view is. [tiles] is how many
+ * tiles the document holds. It is reported **instead of** a page rather than beside one: a board has no
+ * page 1 of N, and a surface showing both would be claiming pages it does not have.
+ */
+data class BoardReading(val cell: Pair<Int, Int>, val tiles: Int)
+
+/**
  * The board a canvas draws: the document's geometry, the cells it occupies, the tile manager that holds
  * their chunks, the ink written into them, and the paper the sheet is ruled with — everything that only
  * exists for a chunked `.mobix`, in one object so a canvas in paginated mode carries **no** board state
@@ -107,6 +118,7 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
     this.board = canvas
     viewport.canvasMode = board.mode
     viewport.clamp()
+    onCanvasModeChanged?.invoke(canvasMode)
     requestRender()
 }
 
@@ -154,5 +166,6 @@ internal fun DrawingSurfaceView.clearInfiniteCanvas() {
     board = null
     viewport.canvasMode = CanvasMode.PAGINATED
     viewport.clamp()
+    onCanvasModeChanged?.invoke(CanvasMode.PAGINATED)
     requestRender()
 }

@@ -17,6 +17,7 @@ import com.mobixournal.audio.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.XoppColor.withAlpha
+import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
@@ -44,17 +45,6 @@ data class LayerInfo(val index: Int, val label: String, val visible: Boolean, va
  * colour — instead of creating a new one); null means "create new".
  */
 data class Placement(val pageIndex: Int, val xPt: Double, val yPt: Double, val existing: TextElement? = null)
-
-/**
- * A board's own reading of the view — what the page-shaped chrome asks for and cannot have on a
- * chunked document (`docs/chrome.md` → *A document with no pages*).
- *
- * [cell] is the **tile** the viewport is centred on, as its coordinate: not an index, because a board's
- * parts are ordered by the file and that order says nothing about where a view is. [tiles] is how many
- * tiles the document holds. It is reported **instead of** a page rather than beside one: a board has no
- * page 1 of N, and a surface showing both would be claiming pages it does not have.
- */
-data class BoardReading(val cell: Pair<Int, Int>, val tiles: Int)
 
 /**
  * The low-latency stylus canvas. Holds the whole [Document] and renders every page top-to-bottom,
@@ -347,6 +337,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * for a page stack.
      */
     var onBoardReading: ((BoardReading?) -> Unit)? = null
+    /** The geometry this view draws in: the board's mode, or [CanvasMode.PAGINATED] for a page list. */
+    val canvasMode: CanvasMode get() = board?.geometry?.mode ?: CanvasMode.PAGINATED
+    /** Told when [canvasMode] changes — a board adopted, or a canvas going back to pages. */
+    var onCanvasModeChanged: ((CanvasMode) -> Unit)? = null
     /** Which page index was last reported to [onCurrentPageChanged], to suppress duplicate calls. */
     private var lastReportedPage = -1
     /** The last [BoardReading] reported, so the chrome is told only what moved. */

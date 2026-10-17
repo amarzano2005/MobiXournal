@@ -47,4 +47,9 @@ enum class NewDocumentCanvas(val label: String, val mode: CanvasMode) {
      */
     fun modeFor(format: SaveFormat): CanvasMode =
         if (format == SaveFormat.MOBIX) mode else CanvasMode.PAGINATED
+
+    companion object {
+        /** The choice [mode] stands for — how the page-format dialog shows where a document is now. */
+        fun of(mode: CanvasMode): NewDocumentCanvas = entries.firstOrNull { it.mode == mode } ?: PAGINATED
+    }
 }

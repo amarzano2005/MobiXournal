@@ -659,6 +659,8 @@ fun EditorToolbar(
     onSettingsChange: (AppSettings) -> Unit,
     audio: AudioUiState,
     modifier: Modifier = Modifier,
+    /** Applied to the showing document when the page-format dialog picks a new canvas geometry. */
+    onCanvasMode: (NewDocumentCanvas) -> Unit = {},
 ) {
     val surface = pane.surface
     SideToolbar(
@@ -714,7 +716,7 @@ fun EditorToolbar(
         onZoomIn = { surface?.zoomIn() },
         onZoomOut = { surface?.zoomOut() },
         onZoomReset = { surface?.resetZoom() },
-        pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface),
+        pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface, onCanvasMode),
         backgroundStyle = pane.backgroundStyle,
         onBackgroundStyle = { surface?.setPageBackgroundStyle(it) },
         backgroundConfig = pane.backgroundConfig,
@@ -1245,6 +1247,7 @@ private fun toolbarPagesCallbacks(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     surface: DrawingSurfaceView?,
+    onCanvasMode: (NewDocumentCanvas) -> Unit,
 ): ToolbarPagesCallbacks =
     ToolbarPagesCallbacks(
         pageCount = pane.pageCount,
@@ -1280,6 +1283,12 @@ private fun toolbarPagesCallbacks(
         onSaveAsDefault = { w, h ->
             onSettingsChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
         },
+        canvasMode = pane.canvasMode,
+        // Only a document that has never been written to a file can change shape here: a saved
+        // `.mobix` keeps the geometry its `canvas.json` declares (see `docs/infinite-canvas.md`).
+        canvasEditable = pane.canvasEditable,
+        onCanvasMode = onCanvasMode,
+        onCanvasModeDefault = { mode -> onSettingsChange(settings.copy(newDocumentCanvas = mode)) },
         bookmarks = pane.bookmarks,
         onBookmarkPage = { ui.bookmarkPage = it },
         outline = pane.outline,
@@ -1331,6 +1340,10 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     // A board reports where its view is instead of a page (the badge and the pages menu read this);
     // null comes back the moment a page list takes its place.
     onBoardReading = { reading -> state.board = reading }
+    // The geometry the canvas is really drawing in — the page-format dialog starts from this rather
+    // than from the setting, which may have moved since the document was created.
+    state.canvasMode = canvasMode
+    onCanvasModeChanged = { mode -> state.canvasMode = mode }
     onPageSelectionChanged = { n -> state.selectedPages = n }
     onPageClipboardChanged = { n -> state.copiedPages = n }
     onCurrentPageChanged = { page ->

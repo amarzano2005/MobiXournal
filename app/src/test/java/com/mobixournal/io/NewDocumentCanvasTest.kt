@@ -149,6 +149,16 @@ class NewDocumentCanvasTest {
     }
 
     @Test
+    fun everyModeRoundTripsThroughThePageFormatDialogsChoice() {
+        // The dialog shows the geometry the canvas is in: each mode names exactly one choice, and the
+        // choice it names gives the mode back (which is what keeps the dialog from opening on "Paged"
+        // over a board and offering to "change" it to what it already is).
+        for (mode in CanvasMode.entries) {
+            assertEquals(mode, NewDocumentCanvas.of(mode).mode)
+        }
+    }
+
+    @Test
     fun anOpenedBoardKeepsTheModeItsFileDeclares() {
         val file = writeBoard(temp.newFile("board.mobix"))
         val io = createIo()

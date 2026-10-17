@@ -39,15 +39,10 @@ fun DocumentsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 "the companion plugin to open one. A Xournal++ document opens on the desktop as it is, " +
                 "with those entities drawn as ink: portable, but no longer editable as a formula.",
         )
-        OptionGroup(
-            title = "Canvas geometry",
-            subtitle = "How the space of a new MobiXournal document is shaped: fixed pages, or a canvas " +
-                "that grows as you write. A Xournal++ document has no chunk container, so one created " +
-                "as a .xopp is always paged.",
-            options = NewDocumentCanvas.values().toList(),
-            selected = settings.newDocumentCanvas,
-            label = { it.label },
-            onSelect = { onChange(settings.copy(newDocumentCanvas = it)) },
+        SettingsNote(
+            "A document's canvas — fixed pages, or one of the infinite boards that grow as you scroll — " +
+                "is part of its page format, so it is chosen in the editor: Pages ▸ Page format. That " +
+                "dialog asks whether the choice applies to the open document or only to the next ones.",
         )
     }
 }
