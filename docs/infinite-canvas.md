@@ -261,13 +261,12 @@ stack, and every one of them is a place where "almost a page" would have been wr
   board has no chunk for creates the chunk, because the element it is about to insert needs a page to
   live on. Every other path leaves an empty cell empty: drawing, erasing and panning create nothing.
 
-### Opening a document shows it at 100%
+### Opening a board fits the screen and expands on scroll
 
-**Opening a document shows it at 100%.** A file is opened at zoom 1 rather than at whatever the previous
-document was left at (`MainActivity.applyLoadedDoc` → `resetZoom`): on a board an inherited 250% could
-land the view on empty sheet with no ink in sight and no obvious way back, and on a page stack it opened
-the document already cropped. Tab switching inside a session is not an open and keeps each tab's own
-zoom, which is the promise `README.md` makes for tabs.
+**Opening an infinite canvas fits it to cover the entire screen (`fitBoardIfPending`) and expands progressively as you scroll (`expandBoardOnScroll`).**
+- **Canvas mode selection in the Pages menu**: The four modes (*Paged*, *Infinite vertical*, *Infinite horizontal*, *Infinite board*) are listed directly inside the **Pages** menu (`ToolbarPagesPopup.kt`), so switching the active document (and the default for new tabs) takes a single tap.
+- **Full-screen fit on open**: When a board opens, `fitBoardIfPending()` fits the fixed axis (`widthPt` for `INFINITE_VERTICAL`, `heightPt` for `INFINITE_HORIZONTAL`) to cover 100% of the viewport (`fitBoardZoom()`) and seeds the infinite axis so the sheet fills the entire screen from the first frame.
+- **Progressive expansion on scroll**: Every pan or scroll step (`scrollViewportBy`) invokes `expandBoardOnScroll()`, extending `board.geometry` along the mode's infinite axis (`heightPt` for `INFINITE_VERTICAL`, `widthPt` for `INFINITE_HORIZONTAL`, or both for `INFINITE_2D`) to cover the newly scrolled viewport extent.
 
 ### Spatial query and culling
 1. **Viewport intersection**: At each frame, the active viewport bounds $[x_{\min}, y_{\min}, x_{\max}, y_{\max}]$
@@ -285,57 +284,26 @@ zoom, which is the promise `README.md` makes for tabs.
 
 ## Auto-pagination and export slicing
 
-Because printing, PDF export, and interoperability with `.xopp` require discrete pages, the Infinite Canvas
-includes an **Intelligent Auto-Slicer**:
-
-```text
-Infinite Strip [==================================================]
-Slicing:       [--- Page 1 ---] [--- Page 2 ---] [--- Page 3 ---]
-                     ▲                ▲
-              Content-aware gap (avoid splitting lines of text / strokes)
-```
-
-1. **Content-aware seam detection**: Rather than slicing mechanically at rigid intervals $H, 2H, 3H$, the slicer
-   searches a vertical search window $[\pm 40\text{ pt}]$ around each target cut for empty whitespace bands.
-2. **Stroke splitting avoidance**: If a bounding box of a `Stroke`, `TableElement`, or `PlotElement` spans the cut line,
-   the seam is shifted above or below the element to keep it intact on a single page.
-3. **PDF & `.xopp` generation**: Exporting produces a standard multi-page document that opens cleanly in desktop
-   Xournal++ or PDF viewers — see *What an export does with a board* below.
+When an infinite canvas leaves the app as `.xopp`, PDF, PNG, or SVG (`sheetDocument` → `BoardSlicer.slice`),
+the board's spatial chunks and expanded dimensions are assembled into **one single continuous page**
+(`pages.size == 1`) sized to the full expanded area (`maxOf(geometry.widthPt, board.right)` /
+`maxOf(geometry.heightPt, board.bottom)`), while `CanvasAutoSlicer` remains available as the pure
+content-aware seam utility.
 
 ### What an export does with a board
 
-The slicer decides only **where the cuts go** (`CanvasAutoSlicer`, pure and JVM-tested). Everything around
-it is `BoardSlicer` — a board's tiles as the pages a reader opens:
+`BoardSlicer.slice` translates every chunk's cell-local elements onto one continuous sheet:
 
-- **Where the ink is.** A chunk stores its elements **cell-local** (`x = 0` is the tile's left edge) and
-  which cell that is is a fact of the *board*, so an element is moved onto the board first: cell
-  `(cx, cy)` × `canvas.json`'s `chunkSizePt`, the document's own tile size rather than this build's
-  default.
-- **Which paper the sheets are.** The board's own, taken from the chunks that carry it — not a tile's. A
-  board ruled across its tiles would otherwise come back with a seam at every tile edge.
-- **A sheet carries one layer.** On a board a layer belongs to a *tile* (a chunk is an independent page,
-  and its layer 1 has nothing to do with its neighbour's), so there is no document-wide layer structure
-  for a sheet to keep. The ink is never dropped: every element of every chunk lands on exactly one sheet.
-- **The origin is the first sheet's margin.** `origin.offsetPt` is where document `(0, 0)` sits on the
-  printed sheet, so the first sheet begins `offsetPt` before the origin; `origin.pageNo` numbers a sheet
-  inside a bigger print job and a standalone export has nothing before its page 1 to number against.
-- **A 2D board is cut into a grid**: columns of the paper's width first (the same seam search, on the x
-  axis), then each column into sheets of the paper's height.
+- **Where the ink is.** A chunk stores its elements **cell-local** (`x = 0` is the tile's left edge), so
+  each element is moved onto the board by `(cx * chunkSizePt, cy * chunkSizePt)` (plus any
+  `origin.offsetPt`), ordered by spatial cell coordinate, and shifted if any 2D coordinate is negative so
+  all coordinates on the single page are $\ge 0$.
+- **Single expanded page.** The resulting document has `pages.size == 1`, with `width` and `height`
+  covering both the expanded `geometry.widthPt` / `geometry.heightPt` (grown by scrolling in the editor
+  and recorded via `rememberBoardShape`) and the furthest reach of all ink across the tiles.
+- **Which paper the sheet is.** The board's own, taken from the first chunk (`defaultPaper`), so the
+  ruling runs continuously across the entire single page without tile seams.
 
-**Where it is wired in — and where it is not.** Both ways out of the app go through it: Save As `.xopp`
-(`DocumentIo.encode`, for the plain container and the ZIP one) and Export PDF
-(`DrawingSurfaceView.exportPdf`). A `.mobix` **save** does not: the file *is* the board, and slicing it
-into pages would be the rewrite `docs/mobix-format.md` refuses a document over. Neither does the model:
-`sheetDocument` builds the pages for the file being written and leaves the document — its chunks, its
-cells and its origin — exactly as they were.
-
-**Where the geometry comes from.** A save asks the session that opened the file
-(`DocumentIo.canvasGeometryOf`), because a board's shape is not derivable from its pages: the locked
-paper dimensions, the tile grid and the origin are `canvas.json`'s, and the cells are the coordinates the
-manifest's entry names carry. A board this session never opened — one created here — is laid out as the
-writer lays it out: the strip its mode runs in, by page index, on the pages it was born with. A `.xopp`
-and every paginated document have no board at all and are written exactly as they are.
-
-Pinned by JVM tests: `BoardSlicerTest` (the coordinate decides the sheet, the paper, the origin margin, a
-single long stroke leaving whole) and `InfiniteExportTest` (the written `.xopp` is gzip + XML, re-parses
-through `Xopp.parseXml` with the expected page count, and the `.mobix` it came from keeps its chunks).
+Pinned by JVM tests: `BoardSlicerTest` (all cells assemble onto one expanded page, spatial coordinate
+ordering, paper preservation) and `InfiniteExportTest` (the written `.xopp` re-parses through
+`Xopp.parseXml` as a single expanded page while the `.mobix` keeps its chunks).

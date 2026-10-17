@@ -141,8 +141,8 @@ internal fun DrawingSurfaceView.boardTileBox(index: Int, cx: Int, cy: Int, board
         index = index,
         topPx = at.topPx,
         leftPx = at.leftPx,
-        widthPx = if (size != null && size.widthPt > 0.0) (size.widthPt * zoom).toFloat() else at.widthPx,
-        heightPx = if (size != null && size.heightPt > 0.0) (size.heightPt * zoom).toFloat() else at.heightPx,
+        widthPx = if (size != null && size.widthPt > 0.0) maxOf((size.widthPt * zoom).toFloat(), at.widthPx) else at.widthPx,
+        heightPx = if (size != null && size.heightPt > 0.0) maxOf((size.heightPt * zoom).toFloat(), at.heightPx) else at.heightPx,
         scale = zoom,
         source = pageSource,
     )

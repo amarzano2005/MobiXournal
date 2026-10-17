@@ -111,9 +111,14 @@ internal data class CanvasGeometry(
  * A paginated document, a `.xopp`, a PDF or an image has no board and is left alone: there is nothing
  * to record, and nothing that could go stale.
  */
+internal fun DocumentIo.rememberCanvasMode(document: Document, mode: CanvasMode) {
+    openSessions.rememberMode(document, mode)
+}
+
 internal fun DocumentIo.rememberBoardShape(document: Document, geometry: CanvasGeometry?) {
     val board = geometry?.takeIf { it.isBoard } ?: return
     openSessions.rememberGrid(document, board.chunkCoords)
+    openSessions.rememberExtent(document, board.widthPt, board.heightPt)
 }
 
 internal fun DocumentIo.canvasGeometryOf(
@@ -123,13 +128,14 @@ internal fun DocumentIo.canvasGeometryOf(
     val mode = openSessions.canvasModeOf(document, bornAs)
     if (mode == CanvasMode.PAGINATED) return null
     val canvas = openSessions.canvasOf(document)
-    // The dimensions the file declares, or the first chunk's own page when it declares none: a
-    // brand-new board has no file to ask, and the page it was born with *is* its sheet.
+    val extent = openSessions.extentOf(document)
+    // The dimensions the session expanded to, or what the file declares, or the first chunk's own page:
+    // a brand-new board has no file to ask, and the page it was born with *is* its sheet.
     val first = document.pages.firstOrNull()
     return CanvasGeometry(
         mode = mode,
-        widthPt = canvas?.widthPt?.takeIf { it > 0.0 } ?: first?.width ?: 0.0,
-        heightPt = canvas?.heightPt?.takeIf { it > 0.0 } ?: first?.height ?: 0.0,
+        widthPt = extent?.first?.takeIf { it > 0.0 } ?: canvas?.widthPt?.takeIf { it > 0.0 } ?: first?.width ?: 0.0,
+        heightPt = extent?.second?.takeIf { it > 0.0 } ?: canvas?.heightPt?.takeIf { it > 0.0 } ?: first?.height ?: 0.0,
         chunkSizePt = canvas?.chunkSizePt ?: MobixCanvasFile.DEFAULT_CHUNK_SIZE_PT,
         chunkCoords = openSessions.chunkCoordsOf(document)
             ?: List(document.pages.size) { stripCoords(it, mode) },

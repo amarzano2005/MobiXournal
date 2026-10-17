@@ -124,34 +124,32 @@ class InfiniteExportTest {
     private fun strokesOf(page: com.mobixournal.format.model.Page): List<Stroke> =
         page.layers.flatMap { it.elements }.filterIsInstance<Stroke>()
 
-    /** Three cells down the board, each holding a stroke, export as three sheets of the paper. */
+    /** Three cells down the board, each holding a stroke, export as one single expanded page. */
     @Test
-    fun `a board exports as the sheets its cells add up to`() {
+    fun `a board exports as a single expanded page containing all its cells`() {
         val file = writeStrip(temp.newFile("strip.mobix"), positions = listOf(100.0, 20.0, 20.0))
 
         val parsed = exportOf(file)
 
-        assertEquals("one sheet per cell's worth of board", 3, parsed.pages.size)
-        for (page in parsed.pages) {
-            assertEquals("the sheet is the board's paper", sheetWidth, page.width, 0.001)
-            assertEquals(sheetHeight, page.height, 0.001)
-        }
-        // The ink is on the sheet its coordinate names, placed as the cell-local y moved onto the board:
-        // the second cell starts 1000 pt down, which is the second sheet's band at 200 pt.
+        assertEquals("assembled into one single page", 1, parsed.pages.size)
+        val page = parsed.pages.single()
+        assertEquals("the page keeps the locked paper width", sheetWidth, page.width, 0.001)
+        assertEquals("and expands to cover the furthest cell's ink", 2101.0, page.height, 0.001)
+        val strokes = strokesOf(page)
         assertEquals(
-            listOf(100.0, 220.0, 420.0),
-            parsed.pages.map { strokesOf(it).single().points.first().y },
+            listOf(100.0, 1020.0, 2020.0),
+            strokes.map { it.points.first().y },
         )
         assertEquals(
             "and every stroke arrives whole",
             listOf(2, 2, 2),
-            parsed.pages.map { strokesOf(it).single().points.size },
+            strokes.map { it.points.size },
         )
     }
 
-    /** A horizontal strip exports the same way, cut along x. */
+    /** A horizontal strip exports as a single page expanded along x. */
     @Test
-    fun `a horizontal strip exports along its own axis`() {
+    fun `a horizontal strip exports along its own axis as a single page`() {
         val file = writeStrip(
             temp.newFile("sideways.mobix"),
             positions = listOf(100.0, 20.0),
@@ -160,12 +158,14 @@ class InfiniteExportTest {
 
         val parsed = exportOf(file)
 
-        assertEquals(3, parsed.pages.size)
-        for (page in parsed.pages) assertEquals(sheetHeight, page.height, 0.001)
+        assertEquals(1, parsed.pages.size)
+        val page = parsed.pages.single()
+        assertEquals(sheetHeight, page.height, 0.001)
+        assertEquals(1101.0, page.width, 0.001)
         assertEquals(
             "the ink follows its cell along x",
-            listOf(100.0, 20.0),
-            parsed.pages.filter { strokesOf(it).isNotEmpty() }.map { strokesOf(it).single().points.first().x },
+            listOf(100.0, 1020.0),
+            strokesOf(page).map { it.points.first().x },
         )
     }
 

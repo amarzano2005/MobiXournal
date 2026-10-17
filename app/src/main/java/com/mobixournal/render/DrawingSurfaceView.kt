@@ -1222,7 +1222,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     fun zoomIn() = setZoom(zoom * DrawingSurfaceDefaults.ZOOM_STEP)
     fun zoomOut() = setZoom(zoom / DrawingSurfaceDefaults.ZOOM_STEP)
-    fun resetZoom() = setZoom(1f)
+    fun resetZoom() = setZoom(if (board != null) fitBoardZoom() else 1f)
 
     /** Set the zoom factor (clamped), keeping the point at the viewport centre roughly fixed. */
     private fun setZoom(target: Float) {
@@ -1812,6 +1812,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal fun scrollViewportBy(dx: Float, dy: Float): Boolean {
         val moved = viewport.scrollBy(dx, dy)
         if (moved) {
+            expandBoardOnScroll()
             // A board drops the tiles it has scrolled away from, on the document's own grid rather
             // than this build's default ([ChunkTileManager.evictOffscreen]).
             board?.let { it.tiles.evictOffscreen(viewport.visibleChunkRange(it.geometry.chunkSizePt)) }

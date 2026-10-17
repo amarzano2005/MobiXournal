@@ -67,6 +67,9 @@ internal class MobixOpenSessions {
      */
     private val canvases = HashMap<String, MobixCanvasFile>()
 
+    /** Expanded board dimensions `(widthPt, heightPt)` grown by scrolling in the editor, by document id. */
+    private val boardExtents = HashMap<String, Pair<Double, Double>>()
+
     /** Record that [documentId] was read from [staged], through [uri] when the caller knows it. */
     fun remember(documentId: String, staged: File, uri: String?) {
         sources[documentId] = OpenMobix(staged, uri)
@@ -115,24 +118,34 @@ internal class MobixOpenSessions {
         if (grid.size == chunks.size) chunkGrids[id] = grid
     }
 
+    /** Update the remembered canvas mode of [document] when the user switches mode in the Pages menu. */
+    fun rememberMode(document: Document, mode: CanvasMode) {
+        val id = document.documentId ?: return
+        canvasModes[id] = mode
+        if (mode == CanvasMode.PAGINATED) {
+            chunkGrids.remove(id)
+            boardExtents.remove(id)
+        }
+    }
+
     /**
      * Record where [document]'s parts sit **now**, by the document's own id, before a write that has to
      * keep them.
-     *
-     * The grid a chunked document was opened with is only half the answer: a board can be written past
-     * its last chunk, and every cell created since the open has a coordinate the file never held — one
-     * the *canvas* knows, because the canvas is what grew it ([BoardGrid]). A write that read only the
-     * opened manifest would drop those cells and fall back to the mode's strip, moving the ink that was
-     * written into them, so the shape the board holds is handed back here on the way to the writer.
-     *
-     * Ignored for a document with no id yet: a board nothing has written has no cells beyond the ones
-     * the writer would derive for itself, and the first save adopts an id before it encodes (which is
-     * the id the next one is recorded under).
      */
     fun rememberGrid(document: Document, coords: List<Pair<Int, Int>>) {
         val id = document.documentId ?: return
         chunkGrids[id] = coords
     }
+
+    /** Record the expanded `(widthPt, heightPt)` of [document]'s board before saving/exporting. */
+    fun rememberExtent(document: Document, widthPt: Double, heightPt: Double) {
+        val id = document.documentId ?: return
+        boardExtents[id] = widthPt to heightPt
+    }
+
+    /** The expanded `(widthPt, heightPt)` recorded for [document], or null if none was recorded. */
+    fun extentOf(document: Document): Pair<Double, Double>? =
+        document.documentId?.let { boardExtents[it] }
 
     /**
      * The canvas mode a write of [document] must claim: the one the file it was opened from declares,
@@ -176,6 +189,7 @@ internal class MobixOpenSessions {
             canvasModes.remove(id)
             chunkGrids.remove(id)
             canvases.remove(id)
+            boardExtents.remove(id)
         }
     }
 }

@@ -20,8 +20,7 @@ import kotlin.math.min
 
 internal fun DrawingSurfaceView.relayout() {
     applyQueuedScaleKeep()
-    // Laid out from the source, so the boxes hold the pages' geometry rather than the pages: the
-    // canvas then reads only the pages it draws (see `DrawingSurfaceView.pageSource`).
+    fitBoardIfPending()
     layout = PageStacker.stack(pageSource, width, DrawingSurfaceDefaults.GAP_PX, zoom, columns)
     pushExtentToViewport()
 }
@@ -342,7 +341,7 @@ internal fun DrawingSurfaceView.visibleBounds(box: PageBox): Bounds? {
 }
 
 internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
-    val box = layout.boxes.getOrNull(currentPage) ?: return
+    val box = gestureBox() ?: return
     currentStrokes?.let { multi ->
         for (pts in multi) {
             strokePainter.draw(
@@ -368,7 +367,7 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
  * read once a third point pulled the earlier segments around.
  */
 internal fun DrawingSurfaceView.drawSplineOverlay(canvas: Canvas) {
-    val box = layout.boxes.getOrNull(currentPage) ?: return
+    val box = gestureBox() ?: return
     for (node in splineNodes) {
         val ax = box.toViewX(node.x, scrollX)
         val ay = box.toViewY(node.y, scrollY)
@@ -652,7 +651,7 @@ private const val EXPORT_PAGE_SCALE = 2f
  * Returns false for a missing/degenerate page or a bitmap the heap could not take.
  */
 internal fun DrawingSurfaceView.writePagePng(pageIndex: Int, out: java.io.OutputStream): Boolean {
-    val page = pageAt(pageIndex) ?: return false
+    val page = (if (board != null) sheetDocument(doc, canvasGeometry()).pages.firstOrNull() else pageAt(pageIndex)) ?: return false
     if (page.width <= 0.0 || page.height <= 0.0) return false
     val width = (page.width * EXPORT_PAGE_SCALE).toInt().coerceAtLeast(1)
     val height = (page.height * EXPORT_PAGE_SCALE).toInt().coerceAtLeast(1)
@@ -666,7 +665,7 @@ internal fun DrawingSurfaceView.writePagePng(pageIndex: Int, out: java.io.Output
         val box = PageBox(
             index = pageIndex, topPx = 0f, leftPx = 0f,
             widthPx = width.toFloat(), heightPx = height.toFloat(), scale = EXPORT_PAGE_SCALE,
-            source = pageSource,
+            source = com.mobixournal.format.mobix.PageSource.of(listOf(page)),
         )
         val pageImage = when (val bg = page.background) {
             is Background.Pdf -> pdfSource?.request(bg.pageNo, width)
@@ -685,7 +684,7 @@ internal fun DrawingSurfaceView.writePagePng(pageIndex: Int, out: java.io.Output
 
 /** Serialise one page to SVG (see [PageSvgWriter]) and write it to [out]. */
 internal fun DrawingSurfaceView.writePageSvg(pageIndex: Int, out: java.io.OutputStream): Boolean {
-    val page = pageAt(pageIndex) ?: return false
+    val page = (if (board != null) sheetDocument(doc, canvasGeometry()).pages.firstOrNull() else pageAt(pageIndex)) ?: return false
     return runCatching {
         out.write(PageSvgWriter.write(page).toByteArray(Charsets.UTF_8))
         true

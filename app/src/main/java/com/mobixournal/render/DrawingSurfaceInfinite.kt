@@ -52,6 +52,9 @@ internal class BoardCanvas(
     var geometry: CanvasGeometry = geometry
         internal set
 
+    /** True once this board has been fitted to cover the view on its initial layout. */
+    internal var fittedToScreen: Boolean = false
+
     /** The cells the board occupies, in document order — the file's own, plus the ones written here. */
     val grid = BoardGrid(geometry.chunkCoords, geometry.mode)
 
@@ -128,6 +131,7 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
     canvas.ink = boardInkOf(canvas)
     this.board = canvas
     viewport.canvasMode = board.mode
+    fitBoardIfPending()
     viewport.clamp()
     onCanvasModeChanged?.invoke(canvasMode)
     // The bound comes from the *board*, which only exists from here: reporting it at the bind alone
@@ -135,6 +139,72 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
     // would offer no fixed width for a strip.
     notifyCanvasExtent()
     requestRender()
+}
+
+/**
+ * The zoom factor at which the board's fixed axis (or 100% on a 2D board) covers the entire viewport.
+ */
+internal fun DrawingSurfaceView.fitBoardZoom(): Float {
+    val board = board ?: return 1f
+    if (width <= 0 || height <= 0) return 1f
+    return when (board.geometry.mode) {
+        CanvasMode.INFINITE_VERTICAL -> {
+            val wPt = board.geometry.widthPt
+            if (wPt > 0.0) (width / wPt).toFloat().coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM) else 1f
+        }
+        CanvasMode.INFINITE_HORIZONTAL -> {
+            val hPt = board.geometry.heightPt
+            if (hPt > 0.0) (height / hPt).toFloat().coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM) else 1f
+        }
+        CanvasMode.INFINITE_2D, CanvasMode.PAGINATED -> 1f
+    }
+}
+
+/**
+ * Fit the newly opened board so it covers the entire screen from the start, and seed its initial
+ * expanded extent once the surface has non-zero dimensions.
+ */
+internal fun DrawingSurfaceView.fitBoardIfPending() {
+    val board = board ?: return
+    if (board.fittedToScreen || width <= 0 || height <= 0) return
+    board.fittedToScreen = true
+    val viewW = width.toDouble()
+    val viewH = height.toDouble()
+    if (board.geometry.mode == CanvasMode.INFINITE_VERTICAL && board.geometry.widthPt <= 0.0) {
+        board.geometry = board.geometry.copy(widthPt = viewW)
+    } else if (board.geometry.mode == CanvasMode.INFINITE_HORIZONTAL && board.geometry.heightPt <= 0.0) {
+        board.geometry = board.geometry.copy(heightPt = viewH)
+    }
+    viewport.zoomTo(fitBoardZoom()) {}
+    scrollX = 0f
+    scrollY = 0f
+    expandBoardOnScroll()
+    pushExtentToViewport()
+    viewport.clamp()
+    onZoomChanged?.invoke(zoom)
+}
+
+/**
+ * Progressively expand the board's dimensions along its infinite direction(s) whenever the user scrolls,
+ * so the resulting single-page output grows to cover the scrolled area.
+ */
+internal fun DrawingSurfaceView.expandBoardOnScroll() {
+    val board = board ?: return
+    if (width <= 0 || height <= 0) return
+    val scale = (if (zoom > 0f) zoom else 1f).toDouble()
+    val reachedWidthPt = ((scrollX + width).coerceAtLeast(width.toFloat())) / scale
+    val reachedHeightPt = ((scrollY + height).coerceAtLeast(height.toFloat())) / scale
+    val g = board.geometry
+    val next = when (g.mode) {
+        CanvasMode.INFINITE_VERTICAL -> g.copy(heightPt = maxOf(g.heightPt, reachedHeightPt))
+        CanvasMode.INFINITE_HORIZONTAL -> g.copy(widthPt = maxOf(g.widthPt, reachedWidthPt))
+        CanvasMode.INFINITE_2D -> g.copy(
+            widthPt = maxOf(g.widthPt, reachedWidthPt),
+            heightPt = maxOf(g.heightPt, reachedHeightPt),
+        )
+        CanvasMode.PAGINATED -> g
+    }
+    if (next != g) board.geometry = next
 }
 
 /**

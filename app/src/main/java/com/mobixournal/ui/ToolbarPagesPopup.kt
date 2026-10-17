@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,6 +48,29 @@ import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
 import kotlin.math.abs
+
+/**
+ * Direct canvas-mode selector inside the Pages menu so switching between paged and infinite canvas
+ * modes happens in one tap from the Pages popup.
+ */
+@Composable
+private fun CanvasModeSection(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
+    val current = NewDocumentCanvas.of(callbacks.canvasMode)
+    MenuHeading("Canvas mode")
+    for (option in NewDocumentCanvas.entries) {
+        DropdownMenuItem(
+            text = { Text(option.label) },
+            leadingIcon = { RadioButton(selected = option == current, onClick = null) },
+            onClick = {
+                if (option != current) {
+                    callbacks.onCanvasMode(option)
+                    callbacks.onCanvasModeDefault(option)
+                }
+                dismiss()
+            },
+        )
+    }
+}
 
 /**
  * The bookmark section of the Pages menu: bookmark (or edit the bookmark on) the page in view, then
@@ -112,8 +136,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     ) { dismiss ->
         if (board != null) {
             TileItems(board)
-            // A board still needs a way back to pages — and that is the *format* of the document, so
-            // it lives in the same dialog a page list opens (see `docs/infinite-canvas.md`).
+            HorizontalDivider()
+            CanvasModeSection(callbacks, dismiss)
             HorizontalDivider()
             PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
             return@ToolbarPopupButton
@@ -152,6 +176,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         HorizontalDivider()
         PagesPerRowRow(callbacks.pageColumns, callbacks.onPageColumns)
         OverviewModeRow(callbacks.pageColumns, callbacks.pagesEditMode, callbacks.onPagesEditMode)
+        HorizontalDivider()
+        CanvasModeSection(callbacks, dismiss)
         HorizontalDivider()
         PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
     }
@@ -206,9 +232,10 @@ private fun PageFormatDialogs(
             onConfirm = { w, h, canvas ->
                 if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
                 onOpen(false)
-                // A geometry that changed has one more question to ask: this document, or the next
-                // ones? Asked here rather than assumed, because the two answers do different things.
-                if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) onPending(canvas)
+                if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) {
+                    callbacks.onCanvasMode(canvas)
+                    callbacks.onCanvasModeDefault(canvas)
+                }
             },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
             onDismiss = { onOpen(false) },

@@ -499,16 +499,12 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     // says ([MobixOpenSessions.canvasModeOf]) — the two agree for anything the app itself opened, and
     // the file is the one to trust if they ever disagree.
     val canvasMode = tabs.active?.canvasMode ?: CanvasMode.PAGINATED
-    val document = if (saveFormat == SaveFormat.MOBIX) {
+    val document = if (saveFormat == SaveFormat.MOBIX || canvasMode != CanvasMode.PAGINATED) {
         view.adoptIdentity(io.identifyForSave(snapshot, uri, canvasMode))
     } else {
         snapshot
     }
-    // A board's cells are a fact of the board and not of its pages: a chunk is named after the cell it
-    // sits in, so a cell written past the last chunk of the opened file has to be handed to the write or
-    // it would be laid out on the mode's strip and its ink would move
-    // (`docs/infinite-canvas.md` → *A chunked document opens, is edited and saves as chunks*).
-    if (saveFormat == SaveFormat.MOBIX) io.rememberBoardShape(document, view.canvasGeometry())
+    io.rememberBoardShape(document, view.canvasGeometry())
     val pdf = view.pdfSourceFile()
     val images = view.imageSources()
     inBackground(

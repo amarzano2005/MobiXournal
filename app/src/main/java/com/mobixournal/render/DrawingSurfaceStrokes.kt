@@ -136,7 +136,7 @@ internal fun DrawingSurfaceView.splineDown(event: MotionEvent, pointerIndex: Int
 internal fun DrawingSurfaceView.splineMove(event: MotionEvent) {
     val pointerIndex = event.findPointerIndex(gesturePointerId)
     if (pointerIndex < 0) return
-    val box = layout.boxes.getOrNull(currentPage) ?: return
+    val box = gestureBox() ?: return
     val tx = box.toPtX(event.getX(pointerIndex), scrollX) - splineAnchorX
     val ty = box.toPtY(event.getY(pointerIndex), scrollY) - splineAnchorY
     splineNodes[splineNodes.lastIndex] = SplineNode(splineAnchorX, splineAnchorY, tx, ty)
@@ -490,7 +490,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
     // Shape tools emit exact geometry — only freehand samples get thinned.
     // Thin against the page's real px/pt (fit-to-width × zoom), not the zoom alone — on a large
     // screen those differ by 2–4×, and using the zoom leaves visible facets at 100% and below.
-    val pxPerPt = layout.boxes.getOrNull(currentPage)?.scale ?: zoom
+    val pxPerPt = gestureBox()?.scale ?: zoom
     var snapped = false
     val pts = if (wasShaping) {
         raw

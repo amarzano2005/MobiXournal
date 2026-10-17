@@ -1288,11 +1288,12 @@ private fun toolbarPagesCallbacks(
         canvasMode = pane.canvasMode,
         canvasExtentPt = pane.canvasExtentPt,
         onCanvasExtent = { surface?.setBoardFixedExtent(it) },
-        // Only a document that has never been written to a file can change shape here: a saved
-        // `.mobix` keeps the geometry its `canvas.json` declares (see `docs/infinite-canvas.md`).
         canvasEditable = pane.canvasEditable,
         onCanvasMode = onCanvasMode,
-        onCanvasModeDefault = { mode -> onSettingsChange(settings.copy(newDocumentCanvas = mode)) },
+        onCanvasModeDefault = { mode ->
+            val fmt = if (mode != NewDocumentCanvas.PAGINATED) NewDocumentFormat.MOBIX else settings.newDocumentFormat
+            onSettingsChange(settings.copy(newDocumentCanvas = mode, newDocumentFormat = fmt))
+        },
         bookmarks = pane.bookmarks,
         onBookmarkPage = { ui.bookmarkPage = it },
         outline = pane.outline,

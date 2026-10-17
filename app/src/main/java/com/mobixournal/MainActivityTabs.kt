@@ -5,6 +5,7 @@ import android.net.Uri
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Document
 import com.mobixournal.io.canvasGeometryOf
+import com.mobixournal.io.rememberCanvasMode
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
@@ -452,19 +453,24 @@ internal fun MainActivity.toggleSplitView() {
 internal fun MainActivity.applyCanvasModeToDocument(mode: NewDocumentCanvas) {
     val p = pane
     val tab = p.tabs.active ?: return
-    if (tab.uri != null) return
-    val next = mode.modeFor(tab.format)
+    val next = mode.mode
     if (next == tab.canvasMode) return
     // The live edits are only in the canvas until it is snapshotted, and the re-show reloads the tab.
     snapshotActiveTab(p)
-    // A strip is drawn on one sheet whose fixed side is the bound, so **becoming** a strip is where that
-    // side is chosen: the sheets the document already had (A4 for a page list, a band for another mode)
-    // would leave the new canvas a narrow strip of paper with grey beside it. Reshaping the pages the
-    // same way a brand-new board is born ([boundToPane]) keeps the two paths telling one story, and no
-    // ink moves: a stroke is stored page-local, so widening a cell only gives it more room.
     val panePt = paneExtentPt(p)
-    p.tabs.updateActive { tab ->
-        tab.copy(canvasMode = next, document = boundToPane(tab.document, next, panePt))
+    val nextFormat = if (next != CanvasMode.PAGINATED && tab.format != com.mobixournal.format.SaveFormat.MOBIX) {
+        com.mobixournal.format.SaveFormat.MOBIX
+    } else {
+        tab.format
+    }
+    p.tabs.updateActive { current ->
+        val reshaped = boundToPane(current.document, next, panePt)
+        io.rememberCanvasMode(reshaped, next)
+        current.copy(
+            format = nextFormat,
+            canvasMode = next,
+            document = reshaped,
+        )
     }
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++

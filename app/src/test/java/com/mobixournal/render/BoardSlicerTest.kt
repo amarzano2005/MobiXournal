@@ -64,9 +64,11 @@ class BoardSlicerTest {
 
     private fun ysOf(stroke: Stroke): List<Double> = stroke.points.map { it.y }
 
-    /** A vertical strip: a cell's own coordinates are how far down the board its page sits. */
+    private fun xsOf(stroke: Stroke): List<Double> = stroke.points.map { it.x }
+
+    /** A vertical strip: all cells assemble onto one continuous page whose height covers the full strip. */
     @Test
-    fun `a vertical strip's chunk lands on the sheet its coordinate names`() {
+    fun `a vertical strip's chunks assemble onto a single expanded page`() {
         val geometry = geometry(CanvasMode.INFINITE_VERTICAL, listOf(0 to 0, 0 to 1, 0 to 2))
         val pages = listOf(
             chunk(stroke(10.0 to 100.0, 10.0 to 180.0, id = "a")),
@@ -76,23 +78,20 @@ class BoardSlicerTest {
 
         val sliced = BoardSlicer.slice(pages, geometry)
 
-        assertEquals("one sheet per sheet's worth of board", 3, sliced.size)
-        for (page in sliced) {
-            assertEquals("a strip's sheets are the paper's width", sheetWidth, page.width, 0.001)
-            assertEquals(sheetHeight, page.height, 0.001)
-        }
-        // Cell (0, 0) is the board's first sheet; (0, 1) is 1000 pt down, which is the *second* sheet's
-        // second band — the ink is moved onto the board by the tile size before it is placed.
-        assertEquals(listOf(100.0, 180.0), ysOf(strokesOf(sliced[0]).single()))
-        assertEquals(listOf(220.0, 260.0), ysOf(strokesOf(sliced[1]).single()))
-        assertEquals(listOf(420.0, 460.0), ysOf(strokesOf(sliced[2]).single()))
-        assertEquals(listOf("a", "b", "c"), sliced.flatMap { strokesOf(it) }.map { it.id })
+        assertEquals("assembled into one single page", 1, sliced.size)
+        val page = sliced.single()
+        assertEquals("a strip's page keeps the locked width", sheetWidth, page.width, 0.001)
+        assertEquals("and expands to cover the furthest stroke", 2061.0, page.height, 0.001)
+        val strokes = strokesOf(page)
+        assertEquals(listOf("a", "b", "c"), strokes.map { it.id })
+        assertEquals(listOf(100.0, 180.0), ysOf(strokes[0]))
+        assertEquals(listOf(1020.0, 1060.0), ysOf(strokes[1]))
+        assertEquals(listOf(2020.0, 2060.0), ysOf(strokes[2]))
     }
 
     /**
      * The manifest's order is not the board's: a chunk is **named** after its cell, so a document whose
-     * parts were reordered still slices by coordinate. A slicer that trusted the index would put the
-     * furthest ink on the first sheet.
+     * parts were reordered still orders elements by coordinate on the single page.
      */
     @Test
     fun `the ink follows the coordinate and not the part's index`() {
@@ -104,13 +103,13 @@ class BoardSlicerTest {
 
         val sliced = BoardSlicer.slice(pages, geometry)
 
-        assertEquals("near", strokesOf(sliced[0]).single().id)
-        assertEquals("far", strokesOf(sliced[1]).single().id)
+        assertEquals(1, sliced.size)
+        assertEquals(listOf("near", "far"), strokesOf(sliced.single()).map { it.id })
     }
 
-    /** A horizontal strip is cut the other way round: along x, with the paper height locked. */
+    /** A horizontal strip expands along x onto a single page with its paper height locked. */
     @Test
-    fun `a horizontal strip is cut along x with its sheets the paper's height`() {
+    fun `a horizontal strip expands along x on a single page with the paper's height`() {
         val geometry = geometry(CanvasMode.INFINITE_HORIZONTAL, listOf(0 to 0, 1 to 0))
         val pages = listOf(
             chunk(stroke(100.0 to 10.0, 180.0 to 10.0, id = "left")),
@@ -119,21 +118,17 @@ class BoardSlicerTest {
 
         val sliced = BoardSlicer.slice(pages, geometry)
 
-        assertEquals(3, sliced.size)
-        for (page in sliced) assertEquals("a horizontal strip's sheets are the paper's height", sheetHeight, page.height, 0.001)
-        assertEquals(listOf("left"), strokesOf(sliced[0]).map { it.id })
-        assertEquals(listOf(100.0, 180.0), strokesOf(sliced[0]).single().points.map { it.x })
-        assertTrue("the sheet between the two cells holds no ink", strokesOf(sliced[1]).isEmpty())
-        // Cell (1, 0) is 1000 pt to the right, which is the third sheet's own band.
-        assertEquals(listOf("right"), strokesOf(sliced[2]).map { it.id })
-        assertEquals(listOf(20.0, 60.0), strokesOf(sliced[2]).single().points.map { it.x })
+        assertEquals(1, sliced.size)
+        val page = sliced.single()
+        assertEquals("a horizontal strip's page keeps the paper's height", sheetHeight, page.height, 0.001)
+        assertEquals("and expands along x to cover the right cell", 1061.0, page.width, 0.001)
+        val strokes = strokesOf(page)
+        assertEquals(listOf("left", "right"), strokes.map { it.id })
+        assertEquals(listOf(100.0, 180.0), xsOf(strokes[0]))
+        assertEquals(listOf(1020.0, 1060.0), xsOf(strokes[1]))
     }
 
-    /**
-     * The seam search can never find whitespace inside one long stroke, so a cut lands in it — and the
-     * stroke still leaves whole: an element is placed by its **midpoint**, never divided into partial
-     * point lists, which is what keeps a page from holding half a stroke.
-     */
+    /** One long stroke stays whole on the single expanded page. */
     @Test
     fun `one long stroke leaves on a single sheet rather than as two halves`() {
         val geometry = geometry(CanvasMode.INFINITE_VERTICAL, listOf(0 to 0))
@@ -141,30 +136,27 @@ class BoardSlicerTest {
         val sliced = BoardSlicer.slice(listOf(chunk(long)), geometry)
 
         val placed = sliced.flatMap { strokesOf(it) }
-        assertEquals("the stroke is on exactly one sheet", 1, placed.size)
+        assertEquals("the stroke is on the single sheet", 1, placed.size)
         assertEquals("and it is the whole stroke", 2, placed.single().points.size)
         assertEquals(listOf(0.0, 1200.0), ysOf(placed.single()))
     }
 
     /**
-     * `canvas.json`'s origin is where document `(0, 0)` sits on the **printed sheet**: the margin page 1
-     * begins with. So the first sheet covers the origin and the ink at `y = 600` lands on the second.
+     * `canvas.json`'s origin is where document `(0, 0)` sits on the printed sheet: the margin the single
+     * sheet starts with.
      */
     @Test
     fun `the origin offset is the margin the first sheet starts with`() {
         val geometry = geometry(CanvasMode.INFINITE_VERTICAL, listOf(0 to 0), offsetPt = 200.0)
-        // Ink well below the first sheet's own cut, so the seam needs no searching: the first sheet runs
-        // from the origin (0) up to 600 and the ink at 900 is on the second.
         val sliced = BoardSlicer.slice(listOf(chunk(stroke(10.0 to 900.0, 10.0 to 980.0, id = "a"))), geometry)
 
-        assertEquals(2, sliced.size)
-        assertTrue("the sheet the margin covers holds no ink", strokesOf(sliced[0]).isEmpty())
-        assertEquals(listOf(300.0, 380.0), ysOf(strokesOf(sliced[1]).single()))
+        assertEquals(1, sliced.size)
+        assertEquals(listOf(1100.0, 1180.0), ysOf(strokesOf(sliced.single()).single()))
     }
 
-    /** A free board is cut into a **grid**: columns of the paper's width, then sheets down each column. */
+    /** A 2D board assembles all cells onto a single expanded page covering both axes. */
     @Test
-    fun `a 2D board's cell is cut into the column its coordinate names`() {
+    fun `a 2D board's cells assemble onto a single expanded page`() {
         val geometry = geometry(CanvasMode.INFINITE_2D, listOf(0 to 0, 1 to 0))
         val pages = listOf(
             chunk(stroke(100.0 to 100.0, 180.0 to 100.0, id = "left")),
@@ -173,17 +165,14 @@ class BoardSlicerTest {
 
         val sliced = BoardSlicer.slice(pages, geometry)
 
-        assertEquals(3, sliced.size)
-        assertEquals(listOf("left"), strokesOf(sliced[0]).map { it.id })
-        assertEquals(listOf("right"), strokesOf(sliced[2]).map { it.id })
-        assertEquals("the far cell's ink is placed in its own column", listOf(20.0, 60.0), strokesOf(sliced[2]).single().points.map { it.x })
+        assertEquals(1, sliced.size)
+        val strokes = strokesOf(sliced.single())
+        assertEquals(listOf("left", "right"), strokes.map { it.id })
+        assertEquals(listOf(100.0, 180.0), xsOf(strokes[0]))
+        assertEquals(listOf(1020.0, 1060.0), xsOf(strokes[1]))
     }
 
-    /**
-     * The sheets are the **board's** paper and not a tile's. Chunks carry a background each, and one that
-     * disagrees cannot rule the sheet its ink is cut onto: a board ruled across its tiles would otherwise
-     * come back with a seam at every tile edge.
-     */
+    /** The single page carries the board's own paper. */
     @Test
     fun `every sheet carries the board's own paper`() {
         val other = Background.Solid(0xFF112233.toInt(), "plain")
@@ -195,10 +184,10 @@ class BoardSlicerTest {
 
         val sliced = BoardSlicer.slice(pages, geometry)
 
-        assertEquals(listOf(paper, paper), sliced.map { it.background })
+        assertEquals(listOf(paper), sliced.map { it.background })
     }
 
-    /** An export slices a board and leaves the document alone: the `.mobix` keeps its chunks. */
+    /** An export assembles a board into a single page and leaves the source document alone. */
     @Test
     fun `sheetDocument slices a board and passes everything else through`() {
         val geometry = geometry(CanvasMode.INFINITE_VERTICAL, listOf(0 to 0, 0 to 1))
@@ -209,10 +198,10 @@ class BoardSlicerTest {
 
         val exported = sheetDocument(document, geometry)
 
-        assertEquals(2, exported.pages.size)
+        assertEquals("assembled into one single page", 1, exported.pages.size)
         assertEquals("the document is not the file being written", 2, document.pages.size)
         assertSame("and the ink it holds is the ink it always held", ink, strokesOf(document.pages[0]).single())
-        assertEquals("a strip's sheet is cut at the paper's height", 800.0, exported.pages[0].height, 0.001)
+        assertEquals("the single page expands to cover the second chunk's ink", 1061.0, exported.pages[0].height, 0.001)
 
         assertSame("no board, no slicing", document, sheetDocument(document, null))
     }
