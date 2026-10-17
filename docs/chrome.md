@@ -318,16 +318,16 @@ place. Per surface:
   cell is how you find the next one to write in. The **zoom badge** above it is untouched — zoom is real on a
   board. `pageLabel` and `tileLabel` are pure functions of the numbers, pinned by `PageCounterTest`.
 - **The right-edge scroll thumb** (`ui/ScrollThumb.kt`) is not drawn, and neither is its page bubble: a board's
-  content is unbounded in every direction, so a thumb fraction of "how far down" is a number about nothing.
-  The canvas reports the viewport as its whole extent (`DrawingSurfaceView.reportScroll`), which is the same
-  report a document shorter than the screen makes, so the thumb hides itself and the chrome needs no flag.
+  content is unbounded, so a thumb fraction of "how far down" is a number about nothing, and the canvas reports
+  the viewport as its whole extent — the report a short document makes — so the thumb hides itself.
 - **The Pages menu** (`ui/ToolbarPagesPopup.kt`) becomes a **tiles** reading: which tile you are looking at,
   and how many there are — plus the one row about the *document* rather than its parts, **Page format…**,
-  which names the geometry a board is in and is the way back to pages. Every other row addresses a page and
-  a board has none: adding or removing one would rewrite the chunk grid the file names its parts by, so
-  those rows are gone rather than disabled. The **pages-per-row grid and its edit mode** are inert on a
-  board for the same reason (the board pass replaces the page stack, so `columns` changes nothing on screen)
-  and are not offered.
+  which names the geometry a board is in, carries the strip's own **Fixed width/height** bound
+  ([infinite-canvas.md](infinite-canvas.md) → *The bound on the non-infinite axis*) and is the way back
+  to pages. Every other row addresses a page and a board has none: adding or removing one would rewrite
+  the chunk grid the file names its parts by, so those rows are gone rather than disabled. The
+  **pages-per-row grid and its edit mode** are inert on a board for the same reason (the board pass
+  replaces the page stack, so `columns` changes nothing on screen) and are not offered.
 - **Bookmarks** are not offered on a board. A bookmark is a page flag drawn on the page it belongs to, and the
   board pass draws no page outline or flag; a bookmark you could set and never see would be the same lie in
   the other direction. Bookmarks for a board's tiles are left in the store untouched — nothing is lost, it is

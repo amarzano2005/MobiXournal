@@ -86,6 +86,13 @@ data class ToolbarPagesCallbacks(
     val onCanvasMode: (NewDocumentCanvas) -> Unit = {},
     /** The dialog chose a geometry for documents created from now on (Settings' own default). */
     val onCanvasModeDefault: (NewDocumentCanvas) -> Unit = {},
+    /**
+     * The board's **bound**: the size of its non-infinite axis in pt (a strip's width or height), or
+     * null when the mode locks nothing ([CanvasMode.INFINITE_2D]) or the document is a page list.
+     */
+    val canvasExtentPt: Double? = null,
+    /** Set the bound on the non-infinite axis; only meaningful while [canvasEditable]. */
+    val onCanvasExtent: (Double) -> Unit = {},
 )
 
 /**

@@ -92,6 +92,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.boardFixedExtentPt
+import com.mobixournal.render.setBoardFixedExtent
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.clearPenDebug
 import com.mobixournal.render.setPenDebug
@@ -1284,6 +1286,8 @@ private fun toolbarPagesCallbacks(
             onSettingsChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
         },
         canvasMode = pane.canvasMode,
+        canvasExtentPt = pane.canvasExtentPt,
+        onCanvasExtent = { surface?.setBoardFixedExtent(it) },
         // Only a document that has never been written to a file can change shape here: a saved
         // `.mobix` keeps the geometry its `canvas.json` declares (see `docs/infinite-canvas.md`).
         canvasEditable = pane.canvasEditable,
@@ -1344,6 +1348,11 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     // than from the setting, which may have moved since the document was created.
     state.canvasMode = canvasMode
     onCanvasModeChanged = { mode -> state.canvasMode = mode }
+    // The bound on the non-infinite axis, mirrored for the page-format dialog (null for a page list and
+    // for a 2D board, which locks nothing): read once here for a document already on the canvas, and
+    // pushed by every adoption after that ([setInfiniteCanvas] / [clearInfiniteCanvas]).
+    state.canvasExtentPt = boardFixedExtentPt()
+    onCanvasExtentChanged = { pt -> state.canvasExtentPt = pt }
     onPageSelectionChanged = { n -> state.selectedPages = n }
     onPageClipboardChanged = { n -> state.copiedPages = n }
     onCurrentPageChanged = { page ->

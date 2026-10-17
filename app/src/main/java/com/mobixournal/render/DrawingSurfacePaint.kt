@@ -23,7 +23,7 @@ internal fun DrawingSurfaceView.relayout() {
     // Laid out from the source, so the boxes hold the pages' geometry rather than the pages: the
     // canvas then reads only the pages it draws (see `DrawingSurfaceView.pageSource`).
     layout = PageStacker.stack(pageSource, width, DrawingSurfaceDefaults.GAP_PX, zoom, columns)
-    viewport.setBounds(width.toFloat(), height.toFloat(), layout.contentWidthPx, layout.totalHeightPx)
+    pushExtentToViewport()
 }
 
 /**

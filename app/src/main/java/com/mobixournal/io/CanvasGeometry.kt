@@ -48,6 +48,38 @@ internal data class CanvasGeometry(
 ) {
     /** True for the three modes whose content is spatial tiles rather than a page list. */
     val isBoard: Boolean get() = mode != CanvasMode.PAGINATED
+
+    /**
+     * The mode's **non-infinite** axis, in pt, or null when both axes run on forever.
+     *
+     * A strip locks one dimension: [CanvasMode.INFINITE_VERTICAL] fixes the width (the strip runs
+     * down) and [CanvasMode.INFINITE_HORIZONTAL] fixes the height. That fixed dimension is the board's
+     * *bound* — the one edge you cannot scroll past, because `ViewportState` clamps the locked axis and
+     * the sheet is drawn exactly that wide ([BoardViewport.sheet]). [CanvasMode.INFINITE_2D] locks
+     * nothing, and a paginated document is not a board at all.
+     */
+    val fixedExtentPt: Double?
+        get() = when (mode) {
+            CanvasMode.INFINITE_VERTICAL -> widthPt
+            CanvasMode.INFINITE_HORIZONTAL -> heightPt
+            CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> null
+        }
+
+    /** True when [fixedExtentPt] is the **width** (a strip running down) rather than the height. */
+    val fixedExtentIsWidth: Boolean get() = mode == CanvasMode.INFINITE_VERTICAL
+
+    /**
+     * This geometry with its fixed dimension set to [pt] — the page-format dialog's *fixed width / fixed
+     * height*, which is how the bound on the non-infinite axis is chosen a priori.
+     *
+     * Only the locked axis moves: an [CanvasMode.INFINITE_2D] board has none, so it is returned
+     * unchanged rather than having one invented for it.
+     */
+    fun withFixedExtent(pt: Double): CanvasGeometry = when (mode) {
+        CanvasMode.INFINITE_VERTICAL -> copy(widthPt = pt)
+        CanvasMode.INFINITE_HORIZONTAL -> copy(heightPt = pt)
+        CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> this
+    }
 }
 
 /**

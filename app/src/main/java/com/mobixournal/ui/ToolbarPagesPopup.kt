@@ -1,17 +1,13 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AspectRatio
@@ -26,7 +22,6 @@ import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.automirrored.outlined.Toc
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,14 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /**
  * The bookmark section of the Pages menu: bookmark (or edit the bookmark on) the page in view, then
@@ -172,9 +163,34 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onDismiss = { contents = false },
         )
     }
-    // The page-format dialog: the paper (when there is a page to size) and the document's canvas
-    // geometry, which is the same question — "what is a page of this document" — answered twice.
-    if (sizing) {
+    PageFormatDialogs(
+        callbacks = callbacks,
+        open = sizing,
+        board = board,
+        onOpen = { sizing = it },
+        pending = pendingCanvas,
+        onPending = { pendingCanvas = it },
+    )
+}
+
+/**
+ * The page-format dialog: the paper (when there is a page to size) and the document's canvas geometry,
+ * which is the same question — *what is a page of this document* — answered twice. Behind it sits the
+ * second half of a geometry change: **this document, or the next ones?**
+ *
+ * Both are driven through the caller's own state ([open], [pending]) rather than held here, because
+ * `PagesPopupButton` owns the two and has to keep them across recompositions of the menu behind them.
+ */
+@Composable
+private fun PageFormatDialogs(
+    callbacks: ToolbarPagesCallbacks,
+    open: Boolean,
+    board: BoardReading?,
+    onOpen: (Boolean) -> Unit,
+    pending: NewDocumentCanvas?,
+    onPending: (NewDocumentCanvas?) -> Unit,
+) {
+    if (open) {
         PageFormatDialog(
             initialWidthPt = callbacks.pageSize?.first ?: callbacks.defaultPageSize.first,
             initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
@@ -184,24 +200,27 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             // paper size, which is why the test is the geometry, not the presence of a size.
             sized = callbacks.pageSize != null && board == null,
             canvasMode = callbacks.canvasMode,
+            extentPt = callbacks.canvasExtentPt,
+            extentEditable = callbacks.canvasEditable,
+            onExtent = callbacks.onCanvasExtent,
             onConfirm = { w, h, canvas ->
                 if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
-                sizing = false
+                onOpen(false)
                 // A geometry that changed has one more question to ask: this document, or the next
                 // ones? Asked here rather than assumed, because the two answers do different things.
-                if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) pendingCanvas = canvas
+                if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) onPending(canvas)
             },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
-            onDismiss = { sizing = false },
+            onDismiss = { onOpen(false) },
         )
     }
-    pendingCanvas?.let { chosen ->
+    pending?.let { chosen ->
         CanvasScopeDialog(
             canvas = chosen,
             editable = callbacks.canvasEditable,
-            onThisDocument = { callbacks.onCanvasMode(chosen); pendingCanvas = null },
-            onNewDocuments = { callbacks.onCanvasModeDefault(chosen); pendingCanvas = null },
-            onDismiss = { pendingCanvas = null },
+            onThisDocument = { callbacks.onCanvasMode(chosen); onPending(null) },
+            onNewDocuments = { callbacks.onCanvasModeDefault(chosen); onPending(null) },
+            onDismiss = { onPending(null) },
         )
     }
 }
@@ -393,227 +412,6 @@ internal fun matchesPageSize(widthPt: Double, heightPt: Double, presetWidthPt: D
     fun near(a: Double, b: Double) = abs(a - b) <= 1.0
     return (near(widthPt, presetWidthPt) && near(heightPt, presetHeightPt)) ||
         (near(widthPt, presetHeightPt) && near(heightPt, presetWidthPt))
-}
-
-/**
- * Unit of measurement for the page-size dialog.
- *
- * Each unit knows how to convert points (1/72 in) to and from its own scale.
- */
-private enum class SizeUnit(val label: String, val perPt: Double) {
-    /** Millimetres: 1 pt = 25.4/72 mm. */
-    MM("mm", 25.4 / 72.0),
-    /** Inches: 1 pt = 1/72 in. */
-    IN("in", 1.0 / 72.0),
-    /** Points: 1 pt = 1 pt (identity). */
-    PT("pt", 1.0);
-
-    /** Convert points to this unit. */
-    fun fromPt(pt: Double): Double = pt * perPt
-    
-    /** Convert a value in this unit to points. */
-    fun toPt(value: Double): Double = value / perPt
-}
-
-/** Format a unit value for a field: at most one decimal, trailing `.0` dropped. */
-private fun fmtDim(value: Double): String {
-    val rounded = (value * 10).roundToInt() / 10.0
-    return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
-}
-
-/**
- * A short label for the current page size: the matching preset's name (either orientation), else the
- * dimensions in millimetres — used as the trailing hint on the "Page size…" menu row.
- */
-private fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
-    PAGE_PRESETS.firstOrNull { matchesPageSize(widthPt, heightPt, it.widthPt, it.heightPt) }
-        ?.let { return it.name }
-    return "${fmtDim(widthPt * SizeUnit.MM.perPt)}×${fmtDim(heightPt * SizeUnit.MM.perPt)} mm"
-}
-
-/**
- * The **page format** of the document: its paper (preset tabs A4/A5/Letter/Legal plus **Default**, a
- * unit toggle, width/height fields and a swap button) and its **canvas geometry** — fixed pages, or one
- * of the infinite boards.
- *
- * The two belong together because they answer one question — *what is a page of this document* — and
- * because a geometry is not a per-app preference: a document is written in the shape it was created
- * in, so the choice is made here, next to the paper it replaces, and asked about on confirm
- * ([CanvasScopeDialog]). The paper half is hidden for a board ([sized] false), which has no page to
- * measure; the geometry half is always there, so a board can be turned back into pages.
- *
- * [onConfirm] reports the paper **and** the chosen geometry; the caller decides whether the paper is
- * applied (only when there is a page to apply it to) and asks where the geometry goes.
- * [onSaveAsDefault] stores the paper as the default new documents and pages are born with.
- */
-/**
- * The paper half of the page format, as one piece of state: the unit the fields are written in, the
- * size the user has settled on, and the two field strings that carry what they typed (kept separate
- * from the parsed size so a half-typed "20" does not become 20 mm on its way to 200).
- */
-private class PaperState(widthPt: Double, heightPt: Double) {
-    var unit by mutableStateOf(SizeUnit.MM)
-    var widthPt by mutableStateOf(widthPt)
-    var heightPt by mutableStateOf(heightPt)
-    var widthText by mutableStateOf(fmtDim(unit.fromPt(widthPt)))
-    var heightText by mutableStateOf(fmtDim(unit.fromPt(heightPt)))
-
-    fun resync() {
-        widthText = fmtDim(unit.fromPt(widthPt))
-        heightText = fmtDim(unit.fromPt(heightPt))
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PageFormatDialog(
-    initialWidthPt: Double,
-    initialHeightPt: Double,
-    defaultWidthPt: Double,
-    defaultHeightPt: Double,
-    sized: Boolean,
-    canvasMode: CanvasMode,
-    onConfirm: (Double, Double, NewDocumentCanvas) -> Unit,
-    onSaveAsDefault: (Double, Double) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val paper = remember { PaperState(initialWidthPt, initialHeightPt) }
-    var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Page format") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // --- the canvas: what a page *is* in this document -------------------------------
-                Text("Canvas", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    for (option in NewDocumentCanvas.entries) {
-                        FilterChip(
-                            selected = option == canvas,
-                            onClick = { canvas = option },
-                            label = { Text(option.label) },
-                        )
-                    }
-                }
-                Text(
-                    "Paged breaks the writing into sheets; the infinite canvases keep one running " +
-                        "sheet that grows as you scroll, so nothing is cut at a page edge.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                if (sized) {
-                    HorizontalDivider()
-                    PaperSection(paper, defaultWidthPt, defaultHeightPt)
-                }
-            }
-        },
-        confirmButton = {
-            Row {
-                if (sized) {
-                    TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
-                        Text("Save as default")
-                    }
-                }
-                TextButton(onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) }) {
-                    Text("Set")
-                }
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-/**
- * The paper a page is measured on: preset tabs, the unit the fields are written in, two size fields
- * and the swap button. Only shown when the document has a page to measure ([PageFormatDialog]'s
- * `sized`) — a board's sheet is derived from its mode, not from a paper size.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PaperSection(paper: PaperState, defaultWidthPt: Double, defaultHeightPt: Double) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        for (preset in PAGE_PRESETS) {
-            SizeTab(
-                label = preset.name,
-                selected = matchesPageSize(paper.widthPt, paper.heightPt, preset.widthPt, preset.heightPt),
-                onClick = {
-                    paper.widthPt = preset.widthPt
-                    paper.heightPt = preset.heightPt
-                    paper.resync()
-                },
-            )
-        }
-        SizeTab(
-            label = DEFAULT_PAGE_PRESET,
-            selected = matchesPageSize(paper.widthPt, paper.heightPt, defaultWidthPt, defaultHeightPt),
-            onClick = {
-                paper.widthPt = defaultWidthPt
-                paper.heightPt = defaultHeightPt
-                paper.resync()
-            },
-        )
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Units:", style = MaterialTheme.typography.labelMedium)
-        for (u in SizeUnit.entries) {
-            TextButton(onClick = { if (u != paper.unit) { paper.unit = u; paper.resync() } }) {
-                Text(
-                    u.label,
-                    fontWeight = if (u == paper.unit) FontWeight.Bold else FontWeight.Normal,
-                )
-            }
-        }
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SizeField(
-            label = "Width",
-            text = paper.widthText,
-            unit = paper.unit,
-            onText = { entered ->
-                paper.widthText = entered
-                entered.toDoubleOrNull()?.let { paper.widthPt = paper.unit.toPt(it) }
-            },
-        )
-        IconButton(onClick = {
-            val w = paper.widthPt
-            paper.widthPt = paper.heightPt
-            paper.heightPt = w
-            paper.resync()
-        }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
-        SizeField(
-            label = "Height",
-            text = paper.heightText,
-            unit = paper.unit,
-            onText = { entered ->
-                paper.heightText = entered
-                entered.toDoubleOrNull()?.let { paper.heightPt = paper.unit.toPt(it) }
-            },
-        )
-    }
-}
-
-/** One editable dimension of the paper, in the dialog's current [unit]. */
-@Composable
-private fun SizeField(label: String, text: String, unit: SizeUnit, onText: (String) -> Unit) {
-    OutlinedTextField(
-        value = text,
-        onValueChange = onText,
-        label = { Text(label) },
-        suffix = { Text(unit.label) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.width(120.dp),
-    )
-}
-
-/** One entry in the page-size preset row: bold while the current size matches the entry. */
-@Composable
-private fun SizeTab(label: String, selected: Boolean, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-    }
 }
 
 /**

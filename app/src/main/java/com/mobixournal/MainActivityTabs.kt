@@ -2,6 +2,8 @@ package com.mobixournal
 
 import android.graphics.Bitmap
 import android.net.Uri
+import com.mobixournal.format.mobix.CanvasMode
+import com.mobixournal.format.model.Document
 import com.mobixournal.io.canvasGeometryOf
 import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
@@ -88,7 +90,7 @@ internal fun MainActivity.sendTabToOtherPane(index: Int, from: EditorPane, keepH
     if (!keepHere) {
         val showing = from.tabs.active?.id
         from.tabs.close(index)
-        if (from.tabs.isEmpty) from.tabs.open(blankTab())
+        if (from.tabs.isEmpty) from.tabs.open(blankTab(from))
         from.tabs.active?.takeIf { it.id != showing }?.let { show(it, from) }
         // The document just moved: hand the tools to the pane it landed in, so the next stroke edits
         // the tab the user chose to move rather than the one left behind.
@@ -248,7 +250,7 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     snapshotActiveTab(p)
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
-    if (p.tabs.isEmpty) p.tabs.open(blankTab())
+    if (p.tabs.isEmpty) p.tabs.open(blankTab(p))
     p.tabs.active?.takeIf { it.id != showing }?.let { show(it, p) }
     tabsTick.value++
     p.persist()
@@ -260,7 +262,7 @@ internal fun MainActivity.newTab(p: EditorPane = pane) {
     // The "+" belongs to a lane, so the new document opens — and the tools land — in that pane.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
-    p.tabs.open(blankTab())
+    p.tabs.open(blankTab(p))
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
     p.persist()
@@ -280,15 +282,63 @@ internal fun MainActivity.newTab(p: EditorPane = pane) {
  * The document itself is still one blank page: on a board that page *is* the first chunk (the strip
  * coordinates come from the page index, `MobixDocument.of`), so the same blank sheet is a page in one
  * geometry and chunk `(0, 0)` in another.
+ *
+ * **A strip is born the size of the pane.** On a page list the sheet's size is the paper — A4 is A4
+ * because a printer will see it — but an infinite canvas has no printer in its future until an export,
+ * and a strip drawn at A4 width on a 2400 px screen is a narrow band of paper with grey down both sides:
+ * "infinite" paper that visibly ends a quarter of the way across. So the **bound** of a strip is the
+ * pane's own extent in pt (px at 100%, which is what the sheet's scale is): the sheet covers the whole
+ * canvas the moment it opens, scrolling adds more of it, and the page-format dialog is where that number
+ * is changed afterwards.
+ *
+ * Only the *locked* axis moves. The running one carries no size of the sheet (it goes on forever) and is
+ * read only by an export — its cut length — so it keeps the default paper rather than inheriting a screen
+ * height, and a 2D board covers the canvas by construction and so keeps it too.
  */
-internal fun blankTab() =
-    OpenTab(
-        TabStore.newId(),
-        MainActivity.UNTITLED,
-        blankDocument(),
-        format = newDocumentFormat,
-        canvasMode = newDocumentCanvas,
-    )
+internal fun MainActivity.blankTab(p: EditorPane = pane): OpenTab = OpenTab(
+    TabStore.newId(),
+    MainActivity.UNTITLED,
+    boundToPane(blankDocument(), newDocumentCanvas, paneExtentPt(p)),
+    format = newDocumentFormat,
+    canvasMode = newDocumentCanvas,
+)
+
+/**
+ * [document] with the fixed side of [mode]'s strip set to the pane's own extent — the one number a
+ * board's birth (and its conversion, [applyCanvasModeToDocument]) takes from the screen.
+ *
+ * Applied to **every** page, so a document converted into a strip has all its cells on the same sheet
+ * (they share one bound: the axis is a property of the board, not of a tile), and left alone for a page
+ * list (whose paper is the printer's) and for a 2D board (which locks nothing, so it has no side to
+ * take: `CanvasGeometry.fixedExtentPt`). The running axis is deliberately untouched — it carries no
+ * size of the sheet and is read only by an export, as its cut length.
+ */
+internal fun boundToPane(
+    document: Document,
+    mode: CanvasMode,
+    panePt: Pair<Double, Double>,
+): Document = when (mode) {
+    CanvasMode.INFINITE_VERTICAL ->
+        document.copy(pages = document.pages.map { it.copy(width = panePt.first) })
+    CanvasMode.INFINITE_HORIZONTAL ->
+        document.copy(pages = document.pages.map { it.copy(height = panePt.second) })
+    CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> document
+}
+
+/**
+ * The pane's usable extent in **pt at 100% zoom** — the size a strip's bound is born at.
+ *
+ * Taken from the canvas itself when there is one, because that is the rectangle the sheet has to cover;
+ * the window is only a stand-in for the first tab of a cold start, where a blank session is opened
+ * before any surface exists (the sheet is then a window's worth, which is what the user sees anyway).
+ */
+private fun MainActivity.paneExtentPt(p: EditorPane): Pair<Double, Double> {
+    val view = p.surface
+    val metrics = resources.displayMetrics
+    val w = (view?.width ?: 0).takeIf { it > 0 } ?: metrics.widthPixels
+    val h = (view?.height ?: 0).takeIf { it > 0 } ?: metrics.heightPixels
+    return w.toDouble() to h.toDouble()
+}
 
 /**
  * Bring back the tabs [p] was last closed with, or start it on a single blank one. Called once
@@ -311,7 +361,7 @@ internal fun MainActivity.restoreTabs(p: EditorPane, then: () -> Unit = {}) {
         runOnUiThread {
             if (p.tabs.isEmpty) {
                 if (session == null) {
-                    p.tabs.open(blankTab())
+                    p.tabs.open(blankTab(p))
                 } else {
                     session.tabs.forEach(p.tabs::open)
                     p.tabs.select(session.activeIndex)
@@ -407,7 +457,15 @@ internal fun MainActivity.applyCanvasModeToDocument(mode: NewDocumentCanvas) {
     if (next == tab.canvasMode) return
     // The live edits are only in the canvas until it is snapshotted, and the re-show reloads the tab.
     snapshotActiveTab(p)
-    p.tabs.updateActive { it.copy(canvasMode = next) }
+    // A strip is drawn on one sheet whose fixed side is the bound, so **becoming** a strip is where that
+    // side is chosen: the sheets the document already had (A4 for a page list, a band for another mode)
+    // would leave the new canvas a narrow strip of paper with grey beside it. Reshaping the pages the
+    // same way a brand-new board is born ([boundToPane]) keeps the two paths telling one story, and no
+    // ink moves: a stroke is stored page-local, so widening a cell only gives it more room.
+    val panePt = paneExtentPt(p)
+    p.tabs.updateActive { tab ->
+        tab.copy(canvasMode = next, document = boundToPane(tab.document, next, panePt))
+    }
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
     p.persist()

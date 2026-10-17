@@ -48,6 +48,31 @@ internal fun DrawingSurfaceView.paintBoard(canvas: Canvas, board: BoardCanvas) {
 }
 
 /**
+ * Push the extent the viewport may scroll across, which is **not** the page stack's on a board.
+ *
+ * A board is not laid out as a page stack: the sheet is the geometry's, and how far the view may
+ * scroll across a strip is the **bound**'s business ([BoardViewport.contentExtent]), not a fitting
+ * page's. The stack is still built (the page-shaped chrome reads it), but its extent would strand the
+ * far side of a strip wider than the screen, so a board pushes its own.
+ */
+internal fun DrawingSurfaceView.pushExtentToViewport() {
+    val board = board
+    val widthPx = width.toFloat()
+    val heightPx = height.toFloat()
+    if (board == null) {
+        viewport.setBounds(widthPx, heightPx, layout.contentWidthPx, layout.totalHeightPx)
+        return
+    }
+    val (contentWidthPx, contentHeightPx) = BoardViewport.contentExtent(
+        geometry = board.geometry,
+        zoom = zoom,
+        viewWidthPx = widthPx,
+        viewHeightPx = heightPx,
+    )
+    viewport.setBounds(widthPx, heightPx, contentWidthPx, contentHeightPx)
+}
+
+/**
  * Draw the sheet: the board's paper, ruled, laid over the area the viewport can see.
  *
  * It is drawn through [BackgroundRenderer] with a box of its own — not through the tiles — because the

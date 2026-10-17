@@ -10,11 +10,13 @@ import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
+import com.mobixournal.render.blankPage
 import java.io.File
 import java.io.FileOutputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -114,6 +116,48 @@ class CanvasGeometryTest {
 
         val right = io.canvasGeometryOf(created, CanvasMode.INFINITE_HORIZONTAL)
         assertEquals(listOf(0 to 0, 1 to 0, 2 to 0), right!!.chunkCoords)
+    }
+
+    @Test
+    fun `a strip locks one axis and a board can only move that one`() {
+        val io = createIo()
+        val created = Document(pages = SyntheticNotebook.pages(1))
+
+        val down = io.canvasGeometryOf(created, CanvasMode.INFINITE_VERTICAL)!!
+        assertEquals("a vertical strip's bound is its width", 595.0, down.fixedExtentPt!!, 0.001)
+        assertTrue(down.fixedExtentIsWidth)
+        val wider = down.withFixedExtent(1200.0)
+        assertEquals(1200.0, wider.widthPt, 0.001)
+        assertEquals("the running axis is untouched", 842.0, wider.heightPt, 0.001)
+
+        val right = io.canvasGeometryOf(created, CanvasMode.INFINITE_HORIZONTAL)!!
+        assertEquals("a horizontal strip's bound is its height", 842.0, right.fixedExtentPt!!, 0.001)
+        val taller = right.withFixedExtent(1200.0)
+        assertEquals(1200.0, taller.heightPt, 0.001)
+        assertEquals("the running axis is untouched", 595.0, taller.widthPt, 0.001)
+
+        val board2d = io.canvasGeometryOf(created, CanvasMode.INFINITE_2D)!!
+        assertNull("a 2D board locks nothing, so there is no bound to apply", board2d.fixedExtentPt)
+        assertEquals("and none is invented for it", board2d, board2d.withFixedExtent(1200.0))
+    }
+
+    @Test
+    fun `a strip born at the pane's size takes that width as its bound`() {
+        // What `MainActivity.blankTab` does for a strip: the one locked side is the pane's own extent
+        // in pt, so the sheet covers the canvas from the first frame and the bound is that number.
+        val io = createIo()
+        val born = Document(pages = listOf(blankPage(2400.0, 841.89)))
+
+        val down = io.canvasGeometryOf(born, CanvasMode.INFINITE_VERTICAL)!!
+        assertEquals(2400.0, down.fixedExtentPt!!, 0.001)
+        assertEquals("the running axis keeps the default paper", 841.89, down.heightPt, 0.001)
+
+        val right = io.canvasGeometryOf(
+            Document(pages = listOf(blankPage(595.276, 800.0))),
+            CanvasMode.INFINITE_HORIZONTAL,
+        )!!
+        assertEquals(800.0, right.fixedExtentPt!!, 0.001)
+        assertEquals(595.276, right.widthPt, 0.001)
     }
 
     @Test

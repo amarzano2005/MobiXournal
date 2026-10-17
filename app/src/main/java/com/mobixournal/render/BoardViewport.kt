@@ -118,6 +118,44 @@ internal object BoardViewport {
     }
 
     /**
+     * The content extent a strip's **bound** implies, in px — what the viewport is allowed to scroll
+     * across.
+     *
+     * A locked axis may not be panned past the sheet: the bound is the edge of the paper, so the
+     * scrollable extent on that axis is the sheet's own size ([CanvasGeometry.fixedExtentPt] × [zoom])
+     * and nothing wider. The other axis is unbounded in that mode, so the viewport's own size stands in
+     * (its clamp ignores the extent there anyway) and the axis keeps running as you write.
+     *
+     * This is what lets a sheet **wider** than the screen still be reachable: a page stack's extent
+     * would have fitted the paper to the width, clamping the scroll to zero and stranding the rest of
+     * the strip off the right edge. A bound narrower than the view stays at the view's width, so the
+     * scroll is pinned at 0 rather than going negative.
+     */
+    fun contentExtent(
+        geometry: CanvasGeometry,
+        zoom: Float,
+        viewWidthPx: Float,
+        viewHeightPx: Float,
+    ): Pair<Float, Float> {
+        val scale = if (zoom > 0f) zoom else 1f
+        val width = when (geometry.mode) {
+            CanvasMode.INFINITE_VERTICAL ->
+                (geometry.widthPt.takeIf { it > 0.0 }
+                    ?: DrawingSurfaceDefaults.defaultPageWidth) * scale
+            CanvasMode.PAGINATED, CanvasMode.INFINITE_HORIZONTAL, CanvasMode.INFINITE_2D ->
+                viewWidthPx.toDouble()
+        }
+        val height = when (geometry.mode) {
+            CanvasMode.INFINITE_HORIZONTAL ->
+                (geometry.heightPt.takeIf { it > 0.0 }
+                    ?: DrawingSurfaceDefaults.defaultPageHeight) * scale
+            CanvasMode.PAGINATED, CanvasMode.INFINITE_VERTICAL, CanvasMode.INFINITE_2D ->
+                viewHeightPx.toDouble()
+        }
+        return maxOf(width.toFloat(), viewWidthPx) to maxOf(height.toFloat(), viewHeightPx)
+    }
+
+    /**
      * The largest multiple of [step] at or above [pt] — the step's own grid line the band starts on, so
      * the ruling is continuous with document `(0, 0)`. `0.0` when there is no step (an unruled sheet has
      * no phase to keep).

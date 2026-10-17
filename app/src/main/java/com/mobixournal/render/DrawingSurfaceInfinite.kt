@@ -37,9 +37,20 @@ data class BoardReading(val cell: Pair<Int, Int>, val tiles: Int)
  *   memoised by then.
  */
 internal class BoardCanvas(
-    val geometry: CanvasGeometry,
+    geometry: CanvasGeometry,
     private val paperOf: () -> Background.Solid?,
 ) {
+
+    /**
+     * The board's geometry — the mode, the paper and the tile grid — as the document currently has it.
+     *
+     * Mutable for exactly one reason: the **fixed dimension** of a strip (its bound, the one axis that
+     * does not run on) is a choice the user can make while the document is open
+     * ([setBoardFixedExtent]), and the sheet must be drawn on the new one from the same frame. Nothing
+     * else about a board's shape changes under it: the tile grid and the mode are the file's.
+     */
+    var geometry: CanvasGeometry = geometry
+        internal set
 
     /** The cells the board occupies, in document order — the file's own, plus the ones written here. */
     val grid = BoardGrid(geometry.chunkCoords, geometry.mode)
@@ -119,6 +130,10 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
     viewport.canvasMode = board.mode
     viewport.clamp()
     onCanvasModeChanged?.invoke(canvasMode)
+    // The bound comes from the *board*, which only exists from here: reporting it at the bind alone
+    // (before any document is adopted) would tell the chrome there is none and the page-format dialog
+    // would offer no fixed width for a strip.
+    notifyCanvasExtent()
     requestRender()
 }
 
@@ -156,16 +171,65 @@ private fun DrawingSurfaceView.appendChunkPage(page: Page): Boolean {
 }
 
 /**
+ * The **fixed dimension** of the board's non-infinite axis, in pt — the strip's width or height — or
+ * null when the mode locks nothing ([CanvasMode.INFINITE_2D]) or the canvas is not a board at all.
+ */
+internal fun DrawingSurfaceView.boardFixedExtentPt(): Double? = board?.geometry?.fixedExtentPt
+
+/**
+ * Set the bound on the board's **non-infinite** axis: an `INFINITE_VERTICAL` strip becomes exactly [pt]
+ * pt wide, an `INFINITE_HORIZONTAL` one exactly [pt] pt tall. An `INFINITE_2D` board locks nothing and is
+ * left alone — there is no non-infinite zone to bound.
+ *
+ * The sheet is the geometry's ([BoardViewport.sheet]) and the clamp that stops the view at the
+ * strip's edge follows from it ([BoardViewport.contentExtent]), so both move with the one value. The
+ * paper is written where the format keeps a board's paper — **the cells' own pages**, which is what a
+ * born-here board's `canvas.json` is derived from (`DocumentIo.canvasGeometryOf`) — so the bound
+ * survives a save; only the locked axis moves, so no ink travels and no history step is recorded: this
+ * is a property of the shape, not an edit of the page.
+ *
+ * Each page goes through the **page window** ([windowEditPage]) rather than the document list, because
+ * a tile's pages are read and written there ([BoardInk]): a wholesale `doc.copy` would hand the window a
+ * source it no longer overlays, while writing through it leaves the cell that is mid-stroke holding its
+ * ink and simply carrying the new paper.
+ */
+internal fun DrawingSurfaceView.setBoardFixedExtent(pt: Double) {
+    val board = board ?: return
+    val lockedX = board.geometry.fixedExtentIsWidth
+    if (pt <= 0.0 || board.geometry.fixedExtentPt == null) return
+    val bound = pt.coerceIn(DrawingSurfaceDefaults.PAGE_SIZE_MIN_PT, DrawingSurfaceDefaults.PAGE_SIZE_MAX_PT)
+    board.geometry = board.geometry.withFixedExtent(bound)
+    for (index in 0 until pageWindow.pageCount) {
+        windowEditPage(index) { page ->
+            if (lockedX) page.copy(width = bound) else page.copy(height = bound)
+        }
+    }
+    relayout()
+    notifyCanvasExtent()
+    requestRender()
+}
+
+/** Tell the chrome the bound this board has now ([boardFixedExtentPt]), or that it has none. */
+private fun DrawingSurfaceView.notifyCanvasExtent() =
+    onCanvasExtentChanged?.invoke(boardFixedExtentPt())
+
+/**
  * Put the canvas back in paginated mode: no tile manager, no sheet, the scroll clamps of a page stack.
  *
  * Called by every path that adopts a document which is not a board — a tab switch to a `.xopp`, a PDF or
  * an image import — so a board cannot survive on the canvas after the document it belonged to is gone.
  */
 internal fun DrawingSurfaceView.clearInfiniteCanvas() {
-    if (board == null && viewport.canvasMode == CanvasMode.PAGINATED) return
+    if (board == null && viewport.canvasMode == CanvasMode.PAGINATED) {
+        // Nothing to clear, but the chrome still has to be told this canvas locks nothing: it may have
+        // been showing a strip a moment ago.
+        notifyCanvasExtent()
+        return
+    }
     board = null
     viewport.canvasMode = CanvasMode.PAGINATED
     viewport.clamp()
     onCanvasModeChanged?.invoke(CanvasMode.PAGINATED)
+    notifyCanvasExtent()
     requestRender()
 }

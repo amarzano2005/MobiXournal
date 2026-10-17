@@ -135,6 +135,13 @@ class PaneState {
      * written to a file (a saved document's shape belongs to its own `canvas.json`).
      */
     var canvasEditable by mutableStateOf(false)
+    /**
+     * The bound on this board's **non-infinite** axis, in pt — a vertical strip's width or a horizontal
+     * one's height — or null for a page list and for an [CanvasMode.INFINITE_2D] board, which locks
+     * nothing ([CanvasGeometry.fixedExtentPt]). This is the one dimension of an infinite canvas that
+     * does *not* run on, and the page-format dialog offers it.
+     */
+    var canvasExtentPt by mutableStateOf<Double?>(null)
     /** Monotonically increasing version counter bumped whenever a new document is loaded into the canvas. */
     var documentVersion by mutableStateOf(0)
 }

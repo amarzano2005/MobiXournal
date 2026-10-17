@@ -129,6 +129,50 @@ class BoardViewportTest {
     }
 
     @Test
+    fun `a strip's bound is what the viewport may scroll across`() {
+        // A strip narrower than the screen: the bound pins the view at its left edge rather than
+        // letting it scroll into the grey beside the paper.
+        val narrow = BoardViewport.contentExtent(
+            geometry = geometry(CanvasMode.INFINITE_VERTICAL, widthPt = 300.0),
+            zoom = 1f,
+            viewWidthPx = 800f,
+            viewHeightPx = 1000f,
+        )
+        assertEquals(800f, narrow.first, 0.01f)
+        assertEquals("the running axis is the view's own", 1000f, narrow.second, 0.01f)
+
+        // A strip wider than the screen: the bound is the paper, so the whole width is reachable even
+        // though the page stack would have fitted it to the view.
+        val wide = BoardViewport.contentExtent(
+            geometry = geometry(CanvasMode.INFINITE_VERTICAL, widthPt = 2000.0),
+            zoom = 2f,
+            viewWidthPx = 800f,
+            viewHeightPx = 1000f,
+        )
+        assertEquals("the sheet's own px width, so the far edge is reachable", 4000f, wide.first, 0.01f)
+
+        val viewport = ViewportState().apply {
+            canvasMode = CanvasMode.INFINITE_VERTICAL
+            setBounds(800f, 1000f, wide.first, wide.second)
+            scrollToX(10_000f)
+        }
+        assertEquals("never past the bound", 3200f, viewport.scrollX, 0.01f)
+        assertEquals("and the running axis keeps going", 0f, viewport.scrollY, 0.01f)
+        viewport.scrollToY(50_000f)
+        assertEquals(50_000f, viewport.scrollY, 0.01f)
+
+        // A horizontal strip is the same statement on the other axis.
+        val across = BoardViewport.contentExtent(
+            geometry = geometry(CanvasMode.INFINITE_HORIZONTAL, heightPt = 1200.0),
+            zoom = 1f,
+            viewWidthPx = 800f,
+            viewHeightPx = 1000f,
+        )
+        assertEquals(800f, across.first, 0.01f)
+        assertEquals(1200f, across.second, 0.01f)
+    }
+
+    @Test
     fun `a board that declares no size falls back to the default paper`() {
         val geometry = geometry(CanvasMode.INFINITE_VERTICAL, widthPt = 0.0, heightPt = 0.0)
         val at = BoardViewport.sheet(

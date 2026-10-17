@@ -33,16 +33,45 @@ persisted natively in `.mobix` (documented in [mobix-schema-spec.md](mobix-schem
 
 ### 2. Infinite Vertical (Width-locked, Continuous downwards)
 - Ideal for linear lecture notes and vertical handwriting.
-- Horizontal width is locked to standard paper dimensions (e.g., standard A4 width: $595.28\text{ pt}$).
+- Horizontal width is **locked**, and it is the board's own bound ([below](#the-bound-on-the-non-infinite-axis)):
+  $0 \le x \le W$, where a document born here takes $W$ from the pane it opened in.
 - The bottom edge automatically extends as the user writes near the lower boundary.
 
 ### 3. Infinite Horizontal (Height-locked, Continuous strip)
 - Ideal for timeline annotations, engineering process charts, and panoramic diagrams.
-- Vertical height is locked (e.g. $841.89\text{ pt}$); horizontal space expands infinitely to the right.
+- Vertical height is locked the same way ($0 \le y \le H$); horizontal space expands infinitely to the right.
 
 ### 4. Infinite 2D (Unconstrained whiteboard)
-- Completely free Cartesian plane $(-\infty < x < +\infty, -\infty < y < +\infty)$.
+- Completely free Cartesian plane $(-\infty < x < +\infty, -\infty < y < +\infty)$: it locks nothing, so
+  it has no bound at all.
 - Ideal for mind mapping, brainstorming, and complex geometric graphs.
+
+### The bound on the non-infinite axis
+
+The locked dimension of a strip is a real number in `canvas.json` (`widthPt` for a vertical strip,
+`heightPt` for a horizontal one), and it is the only edge the canvas refuses to scroll past
+(`ViewportState` clamps that axis to the sheet's own extent, `BoardViewport.contentExtent`). Three rules
+make it behave the way paper does:
+
+- **A board is born the size of the pane.** A sheet whose width is A4 because a printer might one day
+  see it is a narrow band of paper on a 2400 px screen — infinite paper that visibly ends a quarter of
+  the way across. So a document created in a strip mode is born with the pane's own extent as its bound
+  (`MainActivity.blankTab` → `paneExtentPt`), and the sheet covers the canvas the moment it opens. The
+  running axis is unbounded from the first frame, so scrolling simply continues the same sheet.
+- **The bound is settable a priori**, in the page-format dialog: *Pages ▸ Page format ▸ Fixed width* (or
+  *Fixed height*), in millimetres like the paper beside it. It applies at once — the sheet, the scroll
+  clamp and the cells' own pages all move off the one value — and it is offered only while the document
+  has never been written to a file, for the same reason the geometry is: a saved `.mobix`'s shape is its
+  own `canvas.json`'s, and changing the paper under chunks already on disk is a conversion, not a
+  preference (`docs/mobix-format.md`).
+- **A sheet wider than the screen is reachable.** The view may pan across the whole bound (not merely
+  the part of it that fits), and a bound narrower than the pane pins the view at the paper's edge rather
+  than letting it drift into the grey beside it. The clamp is the **mode's**: every pan and glide step
+  goes through `ViewportState.scrollBy`, which bounds a page stack on both axes, a strip on its one
+  fixed side, and a 2D board on neither. A page stack's extent describes a board's axes not at all — the
+  running one goes on forever, and how far the other reaches is the bound's business — so a pan clamped
+  to what a *fitted page* measures would drag the running axis home. A 2D board locks nothing, has no
+  bound to offer and is untouched by the field.
 
 ---
 

@@ -120,7 +120,10 @@ internal object DrawingSurfaceDefaults {
  * A fresh one-page document — what a new tab starts on (see `com.mobixournal.tabs`), already at the
  * default page size, so the very first sheet of a session is the paper the user chose.
  */
-internal fun blankDocument() = Document(pages = listOf(blankPage()))
+internal fun blankDocument(
+    widthPt: Double = DrawingSurfaceDefaults.defaultPageWidth,
+    heightPt: Double = DrawingSurfaceDefaults.defaultPageHeight,
+) = Document(pages = listOf(blankPage(widthPt, heightPt)))
 
 /**
  * A fresh blank page at the app's **default page size** ([DrawingSurfaceDefaults.defaultPageWidth] ×
