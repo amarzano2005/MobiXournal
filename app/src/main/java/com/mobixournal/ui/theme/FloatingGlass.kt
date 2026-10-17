@@ -144,6 +144,7 @@ fun FloatingDialog(
     MaterialTheme(colorScheme = scheme.copy(surface = surface, surfaceTint = surface)) {
         AlertDialog(
             onDismissRequest = onDismissRequest,
+            containerColor = surface,
             // The modifier lands on the dialog's own `Surface`, which is what lets the rim be drawn
             // on the panel's bounds.
             modifier = modifier.floatingRim(),

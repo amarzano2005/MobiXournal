@@ -1211,6 +1211,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         if (next == 1) clearPageSelection() // no grid, no way to see or extend a selection
         columns = next
         relayout()
+        if (next == 1) viewport.centerHorizontal()
         goToPage(at)
         onColumnsChanged?.invoke(columns)
         render()
@@ -1416,6 +1417,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun goToPage(index: Int) {
         val box = layout.boxes.getOrNull(index) ?: return
         viewport.scrollToY(box.topPx)
+        if (columns == 1) viewport.centerHorizontal()
         render()
     }
 
@@ -1825,6 +1827,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     override fun surfaceCreated(holder: SurfaceHolder) = render()
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, w: Int, h: Int) {
         relayout()
+        if (columns == 1) viewport.centerHorizontal()
         // A guide restored from settings before the first layout had no viewport to centre on; now
         // there is one, so place it for real rather than leaving it wherever the fallback guessed.
         pendingGuide?.let { pendingGuide = null; placeGuide(it) }
@@ -1845,6 +1848,4 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** False during gestures that rewrite the page model each frame, where caching would thrash. */
     internal val inkCacheUsable: Boolean
         get() = !gestures.transforming && !erasing
-
-
 }

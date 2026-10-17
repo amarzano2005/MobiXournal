@@ -192,6 +192,7 @@ private fun PageFormatDialogs(
             initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
             defaultWidthPt = callbacks.defaultPageSize.first,
             defaultHeightPt = callbacks.defaultPageSize.second,
+            defaultCanvas = callbacks.defaultCanvas,
             sized = callbacks.pageSize != null && board == null,
             canvasMode = callbacks.canvasMode,
             extentPt = callbacks.canvasExtentPt,

@@ -1311,6 +1311,7 @@ private fun toolbarPagesCallbacks(
             liveSettings = liveSettings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h)
             onSettingsChange(liveSettings)
         },
+        defaultCanvas = settings.newDocumentCanvas,
         canvasMode = pane.canvasMode,
         canvasExtentPt = pane.canvasExtentPt,
         onCanvasExtent = { surface?.setBoardFixedExtent(it) },

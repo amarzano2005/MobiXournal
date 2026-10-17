@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,41 +35,6 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    if (showDialog) {
-        PageFormatDialog(
-            initialWidthPt = settings.defaultPageWidthPt,
-            initialHeightPt = settings.defaultPageHeightPt,
-            defaultWidthPt = settings.defaultPageWidthPt,
-            defaultHeightPt = settings.defaultPageHeightPt,
-            sized = true,
-            canvasMode = settings.newDocumentCanvas.modeFor(settings.newDocumentFormat.format),
-            extentPt = null,
-            extentEditable = true,
-            onExtent = {},
-            onConfirm = { w, h, canvas ->
-                onChange(settings.copy(
-                    defaultPageWidthPt = w,
-                    defaultPageHeightPt = h,
-                    newDocumentCanvas = canvas,
-                ))
-                showDialog = false
-            },
-            onSaveAsDefault = { w, h ->
-                onChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
-            },
-            onSaveDefaultSettings = { w, h, canvas ->
-                onChange(settings.copy(
-                    defaultPageWidthPt = w,
-                    defaultPageHeightPt = h,
-                    newDocumentCanvas = canvas,
-                ))
-            },
-            onDismiss = { showDialog = false },
-        )
-    }
-
     SettingsGroup("New documents") {
         OptionGroup(
             title = "Default tool",
@@ -92,14 +55,6 @@ fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         )
         SettingsDivider()
         DefaultDimensionsControl(settings, onChange)
-        OutlinedButton(
-            onClick = { showDialog = true },
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-        ) {
-            Icon(Icons.Outlined.Description, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Open page format popup")
-        }
     }
     SettingsGroup("Drawing aids") {
         SwitchRow(

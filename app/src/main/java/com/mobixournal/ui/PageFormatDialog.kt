@@ -117,6 +117,7 @@ internal fun PageFormatDialog(
     initialHeightPt: Double,
     defaultWidthPt: Double,
     defaultHeightPt: Double,
+    defaultCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,
     sized: Boolean,
     canvasMode: CanvasMode,
     /** The bound on a strip's non-infinite axis, or null when nothing is locked. */
@@ -130,10 +131,10 @@ internal fun PageFormatDialog(
 ) {
     val startWidthPt = if ((canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) && extentPt != null) extentPt else initialWidthPt
     val startHeightPt = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL && extentPt != null) extentPt else initialHeightPt
-    val paper = remember { PaperState(startWidthPt, startHeightPt) }
-    var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
-    val defaultPaper = remember { PaperState(defaultWidthPt, defaultHeightPt) }
-    var defaultCanvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
+    val paper = remember(startWidthPt, startHeightPt) { PaperState(startWidthPt, startHeightPt) }
+    var canvas by remember(canvasMode) { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
+    val defaultPaper = remember(defaultWidthPt, defaultHeightPt) { PaperState(defaultWidthPt, defaultHeightPt) }
+    var defaultCanvasChoice by remember(defaultCanvas) { mutableStateOf(defaultCanvas) }
     var inDefaultSection by remember { mutableStateOf(false) }
 
     com.mobixournal.ui.theme.FloatingDialog(
@@ -153,7 +154,7 @@ internal fun PageFormatDialog(
         },
         text = {
             if (inDefaultSection) {
-                DefaultFormatContent(defaultPaper, defaultCanvas, onSelectCanvas = { defaultCanvas = it })
+                DefaultFormatContent(defaultPaper, defaultCanvasChoice, onSelectCanvas = { defaultCanvasChoice = it })
             } else {
                 ActiveFormatContent(paper, canvas, onSelectCanvas = { canvas = it })
             }
@@ -164,7 +165,7 @@ internal fun PageFormatDialog(
                     onBack = { inDefaultSection = false },
                     onCancel = onDismiss,
                     onSave = {
-                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvas)
+                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
                         inDefaultSection = false
                     },
                 )

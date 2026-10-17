@@ -58,6 +58,8 @@ data class ToolbarPagesCallbacks(
     val onCopySelectedPages: () -> Unit,
     val onPastePages: () -> Unit,
     val onSaveAsDefault: (Double, Double) -> Unit,
+    /** The global default canvas mode for new documents from settings. */
+    val defaultCanvas: NewDocumentCanvas = NewDocumentCanvas.PAGINATED,
     /** The document's page bookmarks, in page order (see [PageBookmarks]). */
     val bookmarks: List<PageBookmark> = emptyList(),
     /** Open the bookmark editor for a page — adding one, or editing/deleting the one it has. */

@@ -129,6 +129,11 @@ internal class ViewportState {
         }
     }
 
+    /** Centre horizontal scroll so content is balanced across [viewWidth]. */
+    fun centerHorizontal() {
+        scrollToX(((contentWidthPx - viewWidth) / 2f).coerceAtLeast(0f))
+    }
+
     /**
      * Scroll by ([dx], [dy]) pixels, clamped; false when nothing moved (pinned at a bound).
      * @param dx Horizontal delta in pixels.

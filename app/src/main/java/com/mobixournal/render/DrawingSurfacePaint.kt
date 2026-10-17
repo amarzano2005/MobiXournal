@@ -92,7 +92,10 @@ internal fun DrawingSurfaceView.paint() {
     // the surface has settled (`DrawingSurfaceResize.kt`). Without the second half, a divider drag
     // left the pane showing a cropped copy of the frame drawn for the old width.
     val stackStale = viewport.viewWidth != width.toFloat() || viewport.viewHeight != height.toFloat()
-    if (stackStale) relayout()
+    if (stackStale) {
+        relayout()
+        if (columns == 1) viewport.centerHorizontal()
+    }
     val provisional = stackStale || canvas.width != width || canvas.height != height
     try {
         canvas.drawColor(chrome.backdropColor)
