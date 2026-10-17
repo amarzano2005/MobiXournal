@@ -115,12 +115,22 @@ internal fun PageFormatDialog(
     extentPt: Double?,
     extentEditable: Boolean,
     onExtent: (Double) -> Unit,
-    onConfirm: (Double, Double, NewDocumentCanvas) -> Unit,
+    onConfirm: (Double, Double, NewDocumentCanvas, Double?) -> Unit,
     onSaveAsDefault: (Double, Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val paper = remember { PaperState(initialWidthPt, initialHeightPt) }
     var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
+    var customExtentPt by remember(canvas) { mutableStateOf<Double?>(null) }
+    val isPaginated = canvas == NewDocumentCanvas.PAGINATED
+    val isStrip = canvas == NewDocumentCanvas.INFINITE_VERTICAL ||
+        canvas == NewDocumentCanvas.INFINITE_HORIZONTAL
+    val stripIsWidth = canvas == NewDocumentCanvas.INFINITE_VERTICAL
+    val initialStripExtentPt = when {
+        canvas.mode == canvasMode && extentPt != null -> extentPt
+        stripIsWidth -> paper.widthPt
+        else -> paper.heightPt
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Page format") },
@@ -144,16 +154,20 @@ internal fun PageFormatDialog(
                 )
                 // A strip runs on in one direction and is **fixed** in the other: that fixed dimension
                 // is the board's bound, and it is the only paper a board has. Which axis it is follows
-                // from the mode the document is in — a vertical strip locks its width.
-                if (extentPt != null) {
+                // from the selected mode — a vertical strip locks its width.
+                if (isStrip) {
+                    HorizontalDivider()
                     FixedExtentField(
-                        pt = extentPt,
-                        isWidth = canvasMode == CanvasMode.INFINITE_VERTICAL,
-                        enabled = extentEditable,
-                        onValue = onExtent,
+                        pt = customExtentPt ?: initialStripExtentPt,
+                        isWidth = stripIsWidth,
+                        enabled = extentEditable || canvas.mode != canvasMode,
+                        onValue = { pt ->
+                            customExtentPt = pt
+                            if (canvas.mode == canvasMode) onExtent(pt)
+                        },
                     )
                 }
-                if (sized) {
+                if (isPaginated) {
                     HorizontalDivider()
                     PaperSection(paper, defaultWidthPt, defaultHeightPt)
                 }
@@ -161,12 +175,14 @@ internal fun PageFormatDialog(
         },
         confirmButton = {
             Row {
-                if (sized) {
+                if (isPaginated) {
                     TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
                         Text("Save as default")
                     }
                 }
-                TextButton(onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) }) {
+                TextButton(
+                    onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas, customExtentPt) },
+                ) {
                     Text("Set")
                 }
             }
@@ -263,7 +279,7 @@ private fun PaperSection(paper: PaperState, defaultWidthPt: Double, defaultHeigh
  */
 @Composable
 private fun FixedExtentField(pt: Double, isWidth: Boolean, enabled: Boolean, onValue: (Double) -> Unit) {
-    var text by remember { mutableStateOf(fmtDim(SizeUnit.MM.fromPt(pt))) }
+    var text by remember(isWidth) { mutableStateOf(fmtDim(SizeUnit.MM.fromPt(pt))) }
     OutlinedTextField(
         value = text,
         onValueChange = { entered ->

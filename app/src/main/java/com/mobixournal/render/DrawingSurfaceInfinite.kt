@@ -274,6 +274,11 @@ internal fun DrawingSurfaceView.setBoardFixedExtent(pt: Double) {
             if (lockedX) page.copy(width = bound) else page.copy(height = bound)
         }
     }
+    if (width > 0 && height > 0) {
+        viewport.zoomTo(fitBoardZoom()) {}
+        expandBoardOnScroll()
+        onZoomChanged?.invoke(zoom)
+    }
     relayout()
     notifyCanvasExtent()
     requestRender()

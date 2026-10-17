@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,29 +47,6 @@ import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
 import kotlin.math.abs
-
-/**
- * Direct canvas-mode selector inside the Pages menu so switching between paged and infinite canvas
- * modes happens in one tap from the Pages popup.
- */
-@Composable
-private fun CanvasModeSection(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit) {
-    val current = NewDocumentCanvas.of(callbacks.canvasMode)
-    MenuHeading("Canvas mode")
-    for (option in NewDocumentCanvas.entries) {
-        DropdownMenuItem(
-            text = { Text(option.label) },
-            leadingIcon = { RadioButton(selected = option == current, onClick = null) },
-            onClick = {
-                if (option != current) {
-                    callbacks.onCanvasMode(option)
-                    callbacks.onCanvasModeDefault(option)
-                }
-                dismiss()
-            },
-        )
-    }
-}
 
 /**
  * The bookmark section of the Pages menu: bookmark (or edit the bookmark on) the page in view, then
@@ -137,8 +113,6 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         if (board != null) {
             TileItems(board)
             HorizontalDivider()
-            CanvasModeSection(callbacks, dismiss)
-            HorizontalDivider()
             PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
             return@ToolbarPopupButton
         }
@@ -176,8 +150,6 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         HorizontalDivider()
         PagesPerRowRow(callbacks.pageColumns, callbacks.onPageColumns)
         OverviewModeRow(callbacks.pageColumns, callbacks.pagesEditMode, callbacks.onPagesEditMode)
-        HorizontalDivider()
-        CanvasModeSection(callbacks, dismiss)
         HorizontalDivider()
         PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
     }
@@ -229,12 +201,16 @@ private fun PageFormatDialogs(
             extentPt = callbacks.canvasExtentPt,
             extentEditable = callbacks.canvasEditable,
             onExtent = callbacks.onCanvasExtent,
-            onConfirm = { w, h, canvas ->
-                if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
+            onConfirm = { w, h, canvas, customExtentPt ->
                 onOpen(false)
                 if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) {
                     callbacks.onCanvasMode(canvas)
                     callbacks.onCanvasModeDefault(canvas)
+                }
+                if (canvas == NewDocumentCanvas.PAGINATED) {
+                    if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
+                } else if (customExtentPt != null) {
+                    callbacks.onCanvasExtent(customExtentPt)
                 }
             },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
