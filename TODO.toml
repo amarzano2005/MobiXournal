@@ -426,3 +426,17 @@ created = 2026-10-13
 tags = ["ui", "guard"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "keep-the-split-drag-smooth-on-a-heavy-canvas"
+title = "Keep the split drag smooth on a heavy canvas"
+description = "Divider drags repaint both panes per layout frame (ui/EditorRegions.kt -> onSizeChanged -> render/DrawingSurfaceResize.repaintAfterResize: relayout + requestRender + a repaint posted after the next traversal). One automated run on the Pixel_Tablet emulator produced an ANR while dragging with a canvas at 381% zoom: the system trace (14:11:15) shows the main thread blocked in android_view_ThreadedRenderer_syncAndDrawFrame with no app frames, i.e. waiting on the render pipeline, while the injected MOVE waited 5006 ms. It did not reproduce in a clean run (taps only, no uiautomator dumps in flight) at 100% or 381%: there the divider tracked one-to-one and each pane clipped its sheet 1px past the lane. Investigate and, if real, give the drag an interactive fast path: while a divider drag is in flight, render one cheap frame per pane per traversal (drop the duplicate immediate requestRender when a resize repaint is already queued, or paint the existing stack scaled) and do the full page-stack rebuild on drag stop. Measure with atrace/systrace on the emulator and on a device: frames during the drag, no ANR, and divider position still exact."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 810
+created = 2026-10-17
+tags = ["split", "rendering"]
+rebuild = false
+emulator_debug = true
