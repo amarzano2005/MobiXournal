@@ -134,6 +134,7 @@ private fun TriangleGeometry(settings: AppSettings, onChange: (AppSettings) -> U
         options = TriangleKind.values().toList(),
         selected = settings.triangleKind,
         label = { it.label },
+        icon = { triangleKindIcon(it) },
         onSelect = { onChange(settings.copy(triangleKind = it)) },
     )
     if (settings.triangleKind == TriangleKind.SCALENE) {
@@ -171,6 +172,7 @@ private fun TrapezoidGeometry(settings: AppSettings, onChange: (AppSettings) -> 
         options = TrapezoidKind.values().toList(),
         selected = settings.trapezoidKind,
         label = { it.label },
+        icon = { trapezoidKindIcon(it) },
         onSelect = { onChange(settings.copy(trapezoidKind = it)) },
     )
     if (settings.trapezoidKind == TrapezoidKind.SCALENE) {

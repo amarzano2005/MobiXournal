@@ -187,9 +187,11 @@ PDF-style fast paging: the surface reports its vertical scroll geometry via
 sizes/positions itself from that ratio and **dragging it** drives `DrawingSurfaceView.scrollToY`. The
 touch target is only the thumb *band* (a small region tracking the scroll position), not the full
 right edge, so a stylus can still draw over the page's right margin everywhere but the thumb; the
-thumb sits faint when idle, brightens after a scroll, and is brightest while dragged, showing a
-page-number bubble beside it. A rounded grip "peninsula" bulges out of the thumb's centre (purely
-visual — the whole band already catches touches) so there's an obvious finger-sized target to grab. It is a pure navigation affordance — no `.xopp` state, so nothing
+thumb is a **2dp neutral-grey capsule** (`rememberScrollThumbColor`, the theme's secondary ink
+rather than the accent blue) sitting **flush against the pane's edge**, faint when idle, brightening
+after a scroll and brightest while dragged, with a page-number bubble beside it. Nothing is drawn
+*in* the bar: there is no grip bulge and no inset, so it reads as a hairline at the sheet's edge
+rather than as a control lying on the page, and it never covers a line of the ruling. It is a pure navigation affordance — no `.xopp` state, so nothing
 round-trips.
 
 ## The frame around the page: the chrome's bands, and the canvas's rest

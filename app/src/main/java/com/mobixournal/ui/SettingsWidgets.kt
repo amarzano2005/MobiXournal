@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.selection.selectable
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -85,6 +87,7 @@ fun <T> OptionGroup(
     options: List<T>,
     selected: T,
     label: (T) -> String,
+    icon: ((T) -> ImageVector)? = null,
     onSelect: (T) -> Unit,
 ) {
     ControlHeader(title, subtitle, Modifier.padding(top = 8.dp, bottom = 4.dp))
@@ -97,6 +100,15 @@ fun <T> OptionGroup(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RadioButton(selected = option == selected, onClick = null, modifier = Modifier.padding(12.dp))
+            if (icon != null) {
+                Icon(
+                    icon(option),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+            }
             Text(
                 label(option),
                 style = MaterialTheme.typography.bodyMedium,

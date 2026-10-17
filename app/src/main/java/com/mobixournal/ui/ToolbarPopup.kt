@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -201,6 +202,12 @@ private val ToolPickerCellWidth = 76.dp
 private val ToolPickerWideCellWidth = 104.dp
 
 /**
+ * A variant cell is a little wider than a plain picker cell: it carries an outline glyph beside
+ * the kind's name, and "Right-angled" should not break across lines to pay for it.
+ */
+private val ToolVariantCellWidth = 124.dp
+
+/**
  * The body of a **tool group's picker**: the group's members as rows of icon-and-label buttons, with
  * the members that belong together sharing a row ([pickerRows]) — the diode family across one row,
  * the two transistors side by side on the next — instead of every member taking a full-width row. The
@@ -292,6 +299,8 @@ private fun ToolPickerCell(tool: EditorTool, selected: Boolean, width: Dp, onCli
  *
  * @param labels the kinds in menu order.
  * @param selectedIndex the live kind, or an out-of-range index when none is picked.
+ * @param icons one outline per kind, drawn beside its name so the choice reads as a shape and not
+ *   only as a word; empty keeps the label-only layout for pickers that have no shape to show.
  * @param editableIndex the kind that opens a dialog, or null when no kind does.
  */
 @Composable
@@ -300,6 +309,7 @@ internal fun ToolVariantPicker(
     labels: List<String>,
     selectedIndex: Int,
     onPick: (Int) -> Unit,
+    icons: List<ImageVector> = emptyList(),
     editableIndex: Int? = null,
     editHint: String = "",
     onEdit: (() -> Unit)? = null,
@@ -311,8 +321,9 @@ internal fun ToolVariantPicker(
                 for (index in row) {
                     VariantCell(
                         label = labels[index],
+                        icon = icons.getOrNull(index),
                         selected = index == selectedIndex,
-                        width = ToolPickerWideCellWidth,
+                        width = ToolVariantCellWidth,
                         onPick = { onPick(index) },
                         editHint = editHint,
                         onEdit = if (index == editableIndex) onEdit else null,
@@ -331,6 +342,7 @@ internal fun ToolVariantPicker(
 @Composable
 private fun VariantCell(
     label: String,
+    icon: ImageVector?,
     selected: Boolean,
     width: Dp,
     onPick: () -> Unit,
@@ -354,20 +366,36 @@ private fun VariantCell(
             .heightIn(min = 40.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = tint,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(
                 start = 6.dp,
                 end = if (onEdit != null) 22.dp else 6.dp,
                 top = 10.dp,
                 bottom = 10.dp,
             ),
-        )
+        ) {
+            if (icon != null) {
+                // 18dp, not the 16 the label would take: these glyphs are the whole point of the
+                // row — two kinds that differ only in a leg or an apex have to read at a glance.
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
         if (onEdit != null) {
             Box(
                 modifier = Modifier

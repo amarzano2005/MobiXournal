@@ -100,6 +100,18 @@ fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(chromeIs
 fun rememberToolbarColor(): Color = MaterialTheme.colorScheme.surfaceContainer
 
 /**
+ * The **scroll thumb's** ink: the chrome's own secondary grey — [TextSecondaryOnLight] in the light
+ * theme, [TextSecondaryOnDark] in the dark one.
+ *
+ * The thumb used to be a `primary` (accent-blue) bar, which read as a live control competing with
+ * the page rather than as the quiet hint beside it. It now borrows the neutral every caption uses,
+ * and `ScrollThumb` draws it at low alpha (faint when idle, brighter while dragged), so the bar is
+ * a grey shadow at the sheet's edge in both themes instead of a blue stripe.
+ */
+@Composable
+fun rememberScrollThumbColor(): Color = if (chromeIsDark()) TextSecondaryOnDark else TextSecondaryOnLight
+
+/**
  * The ink the pop-up menus' rim is drawn with: the surface's own ink, so the edge is dark in the
  * light theme and light in the dark one — an edge in both, rather than one.
  *

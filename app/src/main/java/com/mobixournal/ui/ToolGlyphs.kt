@@ -7,6 +7,8 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.render.TriangleKind
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -110,6 +112,41 @@ val PentagonIcon: ImageVector by lazy { buildOutlineIcon("Pentagon", PENTAGON_OU
 
 /** Hollow hexagon outline glyph. */
 val HexagonIcon: ImageVector by lazy { buildOutlineIcon("Hexagon", HEXAGON_OUTLINE) }
+
+/**
+ * One monoline outline per **triangle variant**, drawn on the same 24-unit grid as the shape icons.
+ *
+ * The proportions are what tell the kinds apart at 18dp: the equilateral is wide and short, the
+ * isosceles is the tall narrow one with its apex centred, the right-angled one stands on a vertical
+ * leg and the scalene's apex leans off-centre.
+ */
+private val TRIANGLE_KIND_OUTLINES: Map<TriangleKind, List<Pair<Float, Float>>> = mapOf(
+    TriangleKind.EQUILATERAL to listOf(12f to 4f, 20f to 17f, 4f to 17f),
+    TriangleKind.RIGHT to listOf(4f to 4f, 4f to 19f, 20f to 19f),
+    TriangleKind.ISOSCELES to listOf(12f to 2.5f, 18f to 19f, 6f to 19f),
+    TriangleKind.SCALENE to listOf(8.5f to 3f, 20f to 19f, 4f to 19f),
+)
+
+/** One monoline outline per **trapezoid variant**: centred, right-angled, then the uneven one. */
+private val TRAPEZOID_KIND_OUTLINES: Map<TrapezoidKind, List<Pair<Float, Float>>> = mapOf(
+    TrapezoidKind.ISOSCELES to listOf(8f to 7f, 16f to 7f, 20f to 19f, 4f to 19f),
+    TrapezoidKind.RIGHT to listOf(5f to 7f, 12f to 7f, 20f to 19f, 5f to 19f),
+    TrapezoidKind.SCALENE to listOf(9f to 7f, 17f to 7f, 20f to 19f, 4f to 19f),
+)
+
+private val triangleKindIcons: Map<TriangleKind, ImageVector> by lazy {
+    TRIANGLE_KIND_OUTLINES.mapValues { (kind, outline) -> buildOutlineIcon("Triangle ${kind.name}", outline) }
+}
+
+private val trapezoidKindIcons: Map<TrapezoidKind, ImageVector> by lazy {
+    TRAPEZOID_KIND_OUTLINES.mapValues { (kind, outline) -> buildOutlineIcon("Trapezoid ${kind.name}", outline) }
+}
+
+/** The outline that represents [kind] beside its name in the picker and in Settings. */
+internal fun triangleKindIcon(kind: TriangleKind): ImageVector = triangleKindIcons.getValue(kind)
+
+/** The outline that represents [kind] beside its name in the picker and in Settings. */
+internal fun trapezoidKindIcon(kind: TrapezoidKind): ImageVector = trapezoidKindIcons.getValue(kind)
 
 /**
  * The **Cartesian axis** glyph: a first-quadrant coordinate diagram — two arrowed axes meeting at an

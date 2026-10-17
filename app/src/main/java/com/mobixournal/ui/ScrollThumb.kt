@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
+import com.mobixournal.ui.theme.rememberScrollThumbColor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -21,8 +22,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -31,11 +32,18 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-private val THUMB_GRAB_WIDTH = 28.dp
-private val THUMB_WIDTH = 6.dp
-private val OUTSERT_WIDTH = 18.dp
-private val OUTSERT_HEIGHT = 38.dp
-private val THUMB_MIN_HEIGHT = 44.dp
+private val THUMB_GRAB_WIDTH = 20.dp
+
+/**
+ * The painted bar: a hairline, sat flush against the pane's edge.
+ *
+ * It carries no inset and no grip notch — an earlier thumb was a wider bar with a bulge in the
+ * middle and a margin off the edge, which read as a control sitting *on* the page. This is the quiet
+ * hint beside it: thin enough to hide under a fingernail's width, and at the edge so it never covers
+ * a line of the ruling.
+ */
+private val THUMB_WIDTH = 2.dp
+private val THUMB_MIN_HEIGHT = 32.dp
 private const val FADE_MS = 1400L
 
 @Composable
@@ -71,9 +79,9 @@ fun ScrollThumb(
     }
 
     val alpha = when {
-        dragging -> 0.9f
-        recentlyScrolled -> 0.55f
-        else -> 0.24f
+        dragging -> 0.92f
+        recentlyScrolled -> 0.58f
+        else -> 0.30f
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -143,8 +151,7 @@ private fun ScrollThumbBand(
         ThumbVisual(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(end = 3.dp)
-                .width(OUTSERT_WIDTH),
+                .width(THUMB_WIDTH),
             alpha = alpha,
         )
     }
@@ -155,15 +162,15 @@ private fun ThumbVisual(
     modifier: Modifier,
     alpha: Float,
 ) {
-    val thumbColor = MaterialTheme.colorScheme.primary
+    val thumbColor = rememberScrollThumbColor()
     Canvas(modifier = modifier) {
-        val path = thumbPath(
-            w = size.width,
-            h = size.height,
-            barW = THUMB_WIDTH.toPx(),
-            bulgeH = OUTSERT_HEIGHT.toPx(),
+        // A plain rounded capsule: no grip bulge, so nothing pokes into the page's margin.
+        drawRoundRect(
+            color = thumbColor.copy(alpha = alpha),
+            topLeft = Offset(0f, 0f),
+            size = size,
+            cornerRadius = CornerRadius(size.width / 2f),
         )
-        drawPath(path, color = thumbColor.copy(alpha = alpha))
     }
 }
 
@@ -186,35 +193,6 @@ private fun PageBubble(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
-    }
-}
-
-private fun thumbPath(w: Float, h: Float, barW: Float, bulgeH: Float): Path {
-    val r = barW / 2f
-    val barLeft = w - barW
-    val bulge = bulgeH.coerceIn(0f, h - 2f * r)
-    val bulgeTop = (h - bulge) / 2f
-    val bulgeBot = bulgeTop + bulge
-    val yMid = (bulgeTop + bulgeBot) / 2f
-    val k = 0.5f
-    return Path().apply {
-        moveTo(barLeft, r)
-        lineTo(barLeft, bulgeTop)
-        cubicTo(
-            barLeft, bulgeTop + k * (yMid - bulgeTop),
-            0f, yMid - k * (yMid - bulgeTop),
-            0f, yMid,
-        )
-        cubicTo(
-            0f, yMid + k * (bulgeBot - yMid),
-            barLeft, bulgeBot - k * (bulgeBot - yMid),
-            barLeft, bulgeBot,
-        )
-        lineTo(barLeft, h - r)
-        arcTo(Rect(barLeft, h - barW, w, h), 180f, -180f, false)
-        lineTo(w, r)
-        arcTo(Rect(barLeft, 0f, w, barW), 0f, -180f, false)
-        close()
     }
 }
 
