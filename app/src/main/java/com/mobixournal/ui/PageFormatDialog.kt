@@ -4,12 +4,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -117,12 +124,28 @@ internal fun PageFormatDialog(
     onExtent: (Double) -> Unit,
     onConfirm: (Double, Double, NewDocumentCanvas) -> Unit,
     onSaveAsDefault: (Double, Double) -> Unit,
+    onSaveDefaultSettings: (Double, Double, NewDocumentCanvas) -> Unit = { w, h, _ -> onSaveAsDefault(w, h) },
     onDismiss: () -> Unit,
 ) {
     val startWidthPt = if ((canvasMode == CanvasMode.INFINITE_VERTICAL || canvasMode == CanvasMode.INFINITE_2D) && extentPt != null) extentPt else initialWidthPt
     val startHeightPt = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL && extentPt != null) extentPt else initialHeightPt
     val paper = remember { PaperState(startWidthPt, startHeightPt) }
     var canvas by remember { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
+    var showDefaultSettings by remember { mutableStateOf(false) }
+
+    if (showDefaultSettings) {
+        DefaultSettingsDialog(
+            initialWidthPt = defaultWidthPt,
+            initialHeightPt = defaultHeightPt,
+            initialCanvas = NewDocumentCanvas.of(canvasMode),
+            onSave = { defW, defH, defCanvas ->
+                onSaveDefaultSettings(defW, defH, defCanvas)
+                showDefaultSettings = false
+            },
+            onDismiss = { showDefaultSettings = false },
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Page format") },
@@ -145,22 +168,91 @@ internal fun PageFormatDialog(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 HorizontalDivider()
-                PaperSection(paper, defaultWidthPt, defaultHeightPt, canvas)
+                PaperSection(paper, canvas)
             }
         },
         confirmButton = {
-            Row {
-                TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
-                    Text("Save as default")
-                }
-                TextButton(
-                    onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledTonalButton(
+                    onClick = { showDefaultSettings = true },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                 ) {
-                    Text("Set")
+                    Icon(
+                        Icons.Outlined.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Default settings", fontWeight = FontWeight.SemiBold)
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = { onSaveAsDefault(paper.widthPt, paper.heightPt) }) {
+                        Text("Set as default")
+                    }
+                    TextButton(
+                        onClick = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
+                    ) {
+                        Text("Set")
+                    }
                 }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/**
+ * A dialog to configure default settings for new documents: default page dimensions and default canvas mode.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun DefaultSettingsDialog(
+    initialWidthPt: Double,
+    initialHeightPt: Double,
+    initialCanvas: NewDocumentCanvas,
+    onSave: (Double, Double, NewDocumentCanvas) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val paper = remember { PaperState(initialWidthPt, initialHeightPt) }
+    var canvas by remember { mutableStateOf(initialCanvas) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Default settings") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Default canvas", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    for (option in NewDocumentCanvas.entries) {
+                        FilterChip(
+                            selected = option == canvas,
+                            onClick = { canvas = option },
+                            label = { Text(option.label) },
+                        )
+                    }
+                }
+                HorizontalDivider()
+                Text("Default dimensions", style = MaterialTheme.typography.labelMedium)
+                PaperSection(paper, canvas)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(paper.widthPt, paper.heightPt, canvas) },
+            ) {
+                Text("Save default")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
     )
 }
 
@@ -172,8 +264,6 @@ internal fun PageFormatDialog(
 @Composable
 private fun PaperSection(
     paper: PaperState,
-    defaultWidthPt: Double,
-    defaultHeightPt: Double,
     canvas: NewDocumentCanvas,
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -188,15 +278,6 @@ private fun PaperSection(
                 },
             )
         }
-        SizeTab(
-            label = DEFAULT_PAGE_PRESET,
-            selected = matchesPageSize(paper.widthPt, paper.heightPt, defaultWidthPt, defaultHeightPt),
-            onClick = {
-                paper.widthPt = defaultWidthPt
-                paper.heightPt = defaultHeightPt
-                paper.resync()
-            },
-        )
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("Units:", style = MaterialTheme.typography.labelMedium)

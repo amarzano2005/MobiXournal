@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
@@ -150,17 +151,18 @@ internal fun ToolbarMenu(
     val scheme = MaterialTheme.colorScheme
     val shapes = MaterialTheme.shapes
     MaterialTheme(
-        colorScheme = scheme.copy(surface = toolbar, surfaceTint = toolbar),
+        colorScheme = scheme.copy(
+            surface = toolbar,
+            surfaceTint = Color.Transparent,
+            surfaceContainer = toolbar,
+            surfaceContainerHigh = toolbar,
+            surfaceContainerHighest = toolbar,
+        ),
         shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
     ) {
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = onDismissRequest,
-            // The menu's own `modifier` lands on the panel itself (the `Surface` inside
-            // [DropdownMenu]), which is what lets the rim be drawn on the panel's own bounds — there
-            // is no other handle on the panel in this Material3 version. It is the *shared* rim
-            // ([floatingRim]), so the pop-ups, the action bars and the STEM dialogs cannot grow
-            // three different edges.
             modifier = modifier.floatingRim(),
             content = content,
         )

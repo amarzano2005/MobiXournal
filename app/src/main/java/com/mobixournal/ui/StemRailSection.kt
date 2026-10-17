@@ -41,7 +41,8 @@ internal val STEM_ENTRIES: List<StemEntry> = listOf(
 )
 
 /** Whether [tool] is the live one for [entry] (geometry/circuit cover their whole families). */
-internal fun stemEntryActive(entry: StemEntry, tool: EditorTool): Boolean {
+internal fun stemEntryActive(entry: StemEntry, tool: EditorTool, showGraphDialog: Boolean = false): Boolean {
+    if (entry.label.startsWith("Function plot")) return showGraphDialog
     val t = entry.tool ?: return false
     val group = TOOL_GROUPS.firstOrNull { t in it.tools }
     return tool == t || (group != null && tool in group.tools)
@@ -59,6 +60,7 @@ internal fun StemRailSection(
     horizontal: Boolean = false,
     leadingDivider: Boolean = false,
     trailingDivider: Boolean = true,
+    showGraphDialog: Boolean = false,
 ) {
     val slot = LocalRailSlotSize.current
     val isDark = chromeIsDark()
@@ -77,7 +79,7 @@ internal fun StemRailSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             for (entry in STEM_ENTRIES) {
-                val active = stemEntryActive(entry, tool)
+                val active = stemEntryActive(entry, tool, showGraphDialog)
                 Box(
                     modifier = Modifier
                         .size(slot)
@@ -112,7 +114,7 @@ internal fun StemRailSection(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             for (entry in STEM_ENTRIES) {
-                val active = stemEntryActive(entry, tool)
+                val active = stemEntryActive(entry, tool, showGraphDialog)
                 Box(
                     modifier = Modifier
                         .size(slot)

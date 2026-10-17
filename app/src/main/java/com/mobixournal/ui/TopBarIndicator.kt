@@ -43,6 +43,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.render.TriangleKind
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -194,6 +196,8 @@ private fun ToolIndicatorFace(
     modifier: Modifier = Modifier,
     /** Air on each side of the face, inside whatever surface the caller paints. */
     horizontalPadding: Dp = TOP_BAR_FACE_PADDING,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
 ) {
     val isHighlighter = ui.tool == EditorTool.HIGHLIGHTER
     val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
@@ -219,7 +223,7 @@ private fun ToolIndicatorFace(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
-                    imageVector = ui.tool.icon,
+                    imageVector = toolDisplayIcon(ui.tool, triangleKind, trapezoidKind),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
                     // The dock's own glyph size, shared with the rail ([ToolIconSize]).
@@ -270,11 +274,15 @@ internal fun ActiveToolIndicator(
     styleCallbacks: ToolbarStyleCallbacks,
     /** True when the cap is the dock's left end, which is where the Main Toolbar is docked. */
     capOnLeft: Boolean = true,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
     modifier: Modifier = Modifier,
 ) {
     ToolIndicatorFace(
         ui = ui,
         styleCallbacks = styleCallbacks,
+        triangleKind = triangleKind,
+        trapezoidKind = trapezoidKind,
         modifier = modifier
             .fillMaxHeight()
             .clip(topBarCapShape(capOnLeft))
@@ -307,6 +315,8 @@ internal fun ActiveToolIndicator(
 internal fun StandaloneToolIndicator(
     ui: EditorUiState,
     styleCallbacks: ToolbarStyleCallbacks,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
     modifier: Modifier = Modifier,
 ) {
     val isDark = chromeIsDark()
@@ -326,6 +336,8 @@ internal fun StandaloneToolIndicator(
         ToolIndicatorFace(
             ui = ui,
             styleCallbacks = styleCallbacks,
+            triangleKind = triangleKind,
+            trapezoidKind = trapezoidKind,
             modifier = Modifier.fillMaxSize(),
             horizontalPadding = TOP_BAR_FACE_PADDING_TIGHT,
         )

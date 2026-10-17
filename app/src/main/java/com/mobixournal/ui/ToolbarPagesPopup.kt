@@ -217,6 +217,10 @@ private fun PageFormatDialogs(
                 }
             },
             onSaveAsDefault = { w, h -> callbacks.onSaveAsDefault(w, h) },
+            onSaveDefaultSettings = { w, h, canvas ->
+                callbacks.onSaveAsDefault(w, h)
+                callbacks.onCanvasModeDefault(canvas)
+            },
             onDismiss = { onOpen(false) },
         )
     }

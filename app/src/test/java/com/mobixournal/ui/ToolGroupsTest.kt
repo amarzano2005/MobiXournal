@@ -11,7 +11,10 @@ class ToolGroupsTest {
 
     @Test
     fun `every tool belongs to exactly one group`() {
-        for (tool in EditorTool.entries) {
+        val uiTools = EditorTool.entries.filterNot {
+            it == EditorTool.TEXT_SELECT || it == EditorTool.BG_SELECT
+        }
+        for (tool in uiTools) {
             assertEquals("group count for $tool", 1, TOOL_GROUPS.count { tool in it.tools })
             assertNotNull(groupOf(tool))
         }
@@ -44,8 +47,10 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `background select lives in the select group`() {
-        assertEquals("select", groupOf(EditorTool.BG_SELECT)?.id)
+    fun `select group contains select and lasso`() {
+        val select = groupOf(EditorTool.SELECT)
+        assertEquals("select", select?.id)
+        assertEquals(listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT), select?.tools)
     }
 
     @Test

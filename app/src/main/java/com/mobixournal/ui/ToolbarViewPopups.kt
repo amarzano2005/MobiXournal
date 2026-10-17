@@ -197,13 +197,16 @@ internal fun BackgroundPopupButton(
         }
         HorizontalDivider()
         MenuHeading("Stationery")
-        for (kind in Stationery.entries) {
-            DropdownMenuItem(
-                text = { Text(kind.label) },
-                // A paper preset needs a solid sheet to re-rule; Cornell is drawn, so it works on any page.
-                enabled = style != null || kind == Stationery.CORNELL,
-                onClick = { onStationery(kind); dismiss() },
-            )
+        PopupChipRow {
+            for (kind in Stationery.entries) {
+                FilterChip(
+                    selected = false,
+                    enabled = style != null || kind == Stationery.CORNELL,
+                    onClick = { onStationery(kind); dismiss() },
+                    label = { Text(kind.label) },
+                    modifier = Modifier.padding(end = 6.dp),
+                )
+            }
         }
     }
 }

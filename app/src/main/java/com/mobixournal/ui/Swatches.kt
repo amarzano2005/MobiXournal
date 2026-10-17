@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +24,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 
 /** The default box size for a width dot swatch, and the largest dot that fits comfortably inside it. */
 private val DEFAULT_DOT_BOX = 28.dp
@@ -97,8 +100,6 @@ fun ColorSwatch(
     editable: Boolean = false,
     add: Boolean = false,
 ) {
-    val ring = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-    val ringWidth = if (selected) 3.dp else 1.dp
     val clickModifier = if (onLongClick != null)
         Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
     else Modifier.clickable(onClick = onClick)
@@ -107,33 +108,54 @@ fun ColorSwatch(
         color == null -> "Custom colour (not set)"
         else -> colorDisplayName(color)
     }
+    val isDark = chromeIsDark()
+    val hairline = ModernTheme.hairlineBorder(isDark)
+    val outerRingColor = MaterialTheme.colorScheme.primary
+
     Box(
         modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(if (color == null) Color.Transparent else Color(color))
-            .border(ringWidth, ring, CircleShape)
+            .size(34.dp)
             .semantics { contentDescription = label }
             .then(clickModifier),
         contentAlignment = Alignment.Center,
     ) {
-        when {
-            add -> Icon(
-                Icons.Filled.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(2.dp, outerRingColor, CircleShape),
             )
-            editable -> Icon(
-                Icons.Filled.Edit,
-                contentDescription = "Edit custom colour",
-                tint = when {
-                    color == null -> MaterialTheme.colorScheme.onSurfaceVariant
-                    Color(color).luminance() < 0.5f -> Color.White
-                    else -> Color.Black
-                },
-                modifier = Modifier.size(16.dp),
-            )
+        }
+        Box(
+            modifier = Modifier
+                .size(if (selected) 24.dp else 28.dp)
+                .clip(CircleShape)
+                .background(if (color == null) Color.Transparent else Color(color))
+                .border(
+                    width = 1.dp,
+                    color = if (add || color == null) MaterialTheme.colorScheme.outlineVariant else hairline,
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            when {
+                add -> Icon(
+                    Icons.Filled.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+                editable -> Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Edit custom colour",
+                    tint = when {
+                        color == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        Color(color).luminance() < 0.5f -> Color.White
+                        else -> Color.Black
+                    },
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
     }
 }

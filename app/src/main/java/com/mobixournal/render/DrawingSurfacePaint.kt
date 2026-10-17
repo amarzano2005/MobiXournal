@@ -446,8 +446,8 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     val t = (b.top * box.scale + box.topPx - scrollY).toFloat() - DrawingSurfaceDefaults.SELECT_PAD_PX
     val r = (b.right * box.scale + box.leftPx - scrollX).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
     val bot = (b.bottom * box.scale + box.topPx - scrollY).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
-    canvas.drawRect(l, t, r, bot, chrome.selectionFill)
-    canvas.drawRect(l, t, r, bot, chrome.selectionStroke)
+    canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
+    canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
     // Corner resize handles: proportional (both axes together).
     for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bot)) {
         canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)

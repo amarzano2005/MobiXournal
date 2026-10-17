@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 
 /**
  * The rail's **Colour & size** slot: the whole stroke story in one place, in the two parts a stroke
@@ -201,6 +203,9 @@ private fun FavoriteSwatch(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
+    val isDark = chromeIsDark()
+    val hairline = ModernTheme.hairlineBorder(isDark)
+    val baseSize = minOf(width, height)
     Box(
         modifier = Modifier
             .size(width, height)
@@ -211,18 +216,21 @@ private fun FavoriteSwatch(
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size((baseSize - 2.dp).coerceAtLeast(MIN_DOT + 4.dp))
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+            )
+        }
         Box(
             modifier = Modifier
-                .size((minOf(width, height) - DOT_INSET).coerceAtLeast(MIN_DOT))
+                .size(if (selected) (baseSize - 8.dp).coerceAtLeast(MIN_DOT) else (baseSize - DOT_INSET).coerceAtLeast(MIN_DOT))
                 .clip(CircleShape)
                 .background(Color(color))
                 .border(
-                    width = if (selected) 2.dp else 1.dp,
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)
-                    },
+                    width = 1.dp,
+                    color = hairline,
                     shape = CircleShape,
                 ),
         )

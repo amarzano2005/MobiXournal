@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Stationery
+import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
@@ -88,6 +90,9 @@ fun SideToolbar(
     onShowGraph: () -> Unit = {},
     horizontal: Boolean = false,
     showStemSection: Boolean = true,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
+    showGraphDialog: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val items = visibleRailItems(railOrder, railHidden)
@@ -97,7 +102,7 @@ fun SideToolbar(
         modifier = modifier,
     ) {
         if (showStemSection) {
-            StemRailSection(tool, onTool, onShowGraph, horizontal = horizontal)
+            StemRailSection(tool, onTool, onShowGraph, horizontal = horizontal, showGraphDialog = showGraphDialog)
         }
         for (item in items) {
             val group = toolGroupForRailItem(item.id)
@@ -113,6 +118,8 @@ fun SideToolbar(
                     },
                     selected = group.selected(toolGroupSelections),
                     active = tool in group.tools,
+                    triangleKind = triangleKind,
+                    trapezoidKind = trapezoidKind,
                     onTool = onTool,
                     // One callback for the whole pick: the slot's new face and the tool activation
                     // are a single settings write. Split in two they would both start from the same
@@ -310,6 +317,8 @@ private fun ToolGroupButton(
     members: List<EditorTool> = group.tools,
     selected: EditorTool,
     active: Boolean,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
 ) {
@@ -334,7 +343,7 @@ private fun ToolGroupButton(
             // Half the slot — [ToolIconSize] at scale 1, and a little more when the rail's adaptive
             // pitch grows the whole slot to swallow the strip it could not fit.
             Icon(
-                selected.icon,
+                toolDisplayIcon(selected, triangleKind, trapezoidKind),
                 contentDescription = "Tool: ${selected.label}",
                 tint = tint,
                 modifier = Modifier.size(buttonSize / 2),

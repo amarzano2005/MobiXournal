@@ -163,14 +163,9 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
     ToolGroup(
         "select", "Select",
-        listOf(
-            EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.TEXT_SELECT,
-            EditorTool.BG_SELECT,
-        ),
-        // The two ink marquees, then the two that pick text and backgrounds out of the page.
+        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
         pickerLayout = listOf(
             listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
-            listOf(EditorTool.TEXT_SELECT, EditorTool.BG_SELECT),
         ),
     ),
     // Text authoring lives in a slot of its own (below), so Insert is only about pictures.

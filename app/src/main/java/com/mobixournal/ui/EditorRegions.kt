@@ -643,6 +643,7 @@ private fun CompactIconButton(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .alpha(if (enabled) 1f else 0.38f)
+            .clip(RoundedCornerShape(8.dp))
             .semantics { this.contentDescription = contentDescription }
             .clickable(enabled = enabled, onClick = onClick),
     ) {
@@ -728,6 +729,9 @@ fun EditorToolbar(
         onShowGraph = { ui.showGraphDialog = true },
         horizontal = settings.toolbarLayout == ToolbarLayout.COMPACT,
         showStemSection = settings.toolbarLayout == ToolbarLayout.COMPACT,
+        triangleKind = settings.triangleKind,
+        trapezoidKind = settings.trapezoidKind,
+        showGraphDialog = ui.showGraphDialog,
     )
 }
 
@@ -817,10 +821,21 @@ fun TopBarToolsRow(
     val styleCallbacks = rememberToolbarStyleCallbacks(ui, surface, settings, onSettingsChange)
 
     val indicator = @Composable {
-        ActiveToolIndicator(ui = ui, styleCallbacks = styleCallbacks, capOnLeft = railOnLeft)
+        ActiveToolIndicator(
+            ui = ui,
+            styleCallbacks = styleCallbacks,
+            capOnLeft = railOnLeft,
+            triangleKind = settings.triangleKind,
+            trapezoidKind = settings.trapezoidKind,
+        )
     }
     val standaloneIndicator = @Composable {
-        StandaloneToolIndicator(ui = ui, styleCallbacks = styleCallbacks)
+        StandaloneToolIndicator(
+            ui = ui,
+            styleCallbacks = styleCallbacks,
+            triangleKind = settings.triangleKind,
+            trapezoidKind = settings.trapezoidKind,
+        )
     }
 
     val toolsRow = @Composable {
@@ -900,19 +915,25 @@ fun TopBarToolsRow(
                                 )
                                 surface?.activateTool(picked, ui, base, onSettingsChange)
                             },
+                            triangleKind = settings.triangleKind,
+                            trapezoidKind = settings.trapezoidKind,
                         )
                     } else if (item.id == "graph") {
-                        // The function plotter sits in the tools row itself: it is a one-tap dialog, not
-                        // a tool, so it needs no pop-up of its own — just the button that opens it.
-                        CompactIconButton(
-                            contentDescription = "Insert graph",
-                            modifier = Modifier.size(32.dp),
-                            onClick = { ui.showGraphDialog = true },
+                        val active = ui.showGraphDialog
+                        val shape = RoundedCornerShape(8.dp)
+                        val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(shape)
+                                .then(if (active) Modifier.background(MaterialTheme.colorScheme.primaryContainer) else Modifier)
+                                .clickable { ui.showGraphDialog = true },
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Outlined.ShowChart,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                contentDescription = "Insert graph",
+                                tint = tint,
                                 modifier = Modifier.size(ToolIconSize),
                             )
                         }
@@ -1052,8 +1073,9 @@ private fun CompactShapeKindButton(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
+                val displayIcon = kindIcons.getOrElse(selectedKind) { tool.icon }
                 Icon(
-                    tool.icon,
+                    displayIcon,
                     contentDescription = "Tool: ${tool.label}",
                     tint = tint,
                     modifier = Modifier.size(ToolIconSize),
@@ -1109,8 +1131,6 @@ private fun CompactShapeKindButton(
     }
 }
 
-
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CompactTopBarToolButton(
@@ -1120,6 +1140,8 @@ private fun CompactTopBarToolButton(
     active: Boolean,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -1137,7 +1159,7 @@ private fun CompactTopBarToolButton(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                selected.icon,
+                toolDisplayIcon(selected, triangleKind, trapezoidKind),
                 contentDescription = "Tool: ${selected.label}",
                 tint = tint,
                 modifier = Modifier.size(ToolIconSize),

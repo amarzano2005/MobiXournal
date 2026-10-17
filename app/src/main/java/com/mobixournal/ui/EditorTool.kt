@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mobixournal.format.model.Tool
+import com.mobixournal.render.TrapezoidKind
+import com.mobixournal.render.TriangleKind
 
 /**
  * The editor's interaction modes. PEN/HIGHLIGHTER/ERASER map to the document [Tool]; HAND is a
@@ -152,3 +154,17 @@ val EditorTool.icon: ImageVector get() = TOOLS.first { it.tool == this }.icon
  */
 val DEFAULT_TOOL_CHOICES: List<EditorTool> =
     listOf(EditorTool.PEN, EditorTool.HIGHLIGHTER, EditorTool.ERASER, EditorTool.HAND)
+
+/**
+ * Resolves the display icon for [tool], taking the specific geometric variant into account when the
+ * tool is [EditorTool.TRIANGLE] or [EditorTool.TRAPEZOID].
+ */
+fun toolDisplayIcon(
+    tool: EditorTool,
+    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
+    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
+): ImageVector = when (tool) {
+    EditorTool.TRIANGLE -> triangleKindIcon(triangleKind)
+    EditorTool.TRAPEZOID -> trapezoidKindIcon(trapezoidKind)
+    else -> tool.icon
+}
