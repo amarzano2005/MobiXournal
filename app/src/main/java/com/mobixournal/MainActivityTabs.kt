@@ -7,6 +7,7 @@ import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
+import com.mobixournal.render.keepScaleAcrossNextResize
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.render.setInfiniteCanvas
@@ -364,6 +365,12 @@ internal fun MainActivity.prunePdfCache() {
  * its new size on the traversal that follows, and this is the belt to that braces: the call is posted,
  * so it runs once the frame has committed the new width, and a pane left drawing the split's extent
  * (a page and a ruling at the wrong scale) cannot survive the toggle.
+ *
+ * The width change also compensates the zoom (`keepScaleAcrossNextResize`): the page is drawn at
+ * `width × zoom`, so without it the same 100% would draw the sheet half as wide in split and twice as
+ * wide back in single view — turning the toggle off would *double* the page. With it the page keeps
+ * the size it had on screen in either direction (the badge reports the compensated zoom), and the
+ * toggle becomes exactly reversible.
  */
 internal fun MainActivity.toggleSplitView() {
     val on = !splitView.value
@@ -371,6 +378,7 @@ internal fun MainActivity.toggleSplitView() {
         panes.forEach { snapshotActiveTab(it); it.persist() }
         activePane.value = 0
     }
+    panes.forEach { it.surface?.keepScaleAcrossNextResize() }
     splitView.value = on
     panes.forEach { pane -> pane.surface?.post { pane.surface?.repaintAfterResize() } }
 }

@@ -19,6 +19,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 internal fun DrawingSurfaceView.relayout() {
+    applyQueuedScaleKeep()
     // Laid out from the source, so the boxes hold the pages' geometry rather than the pages: the
     // canvas then reads only the pages it draws (see `DrawingSurfaceView.pageSource`).
     layout = PageStacker.stack(pageSource, width, DrawingSurfaceDefaults.GAP_PX, zoom, columns)

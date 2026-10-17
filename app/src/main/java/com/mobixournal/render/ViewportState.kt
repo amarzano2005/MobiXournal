@@ -45,6 +45,27 @@ internal class ViewportState {
     private var contentHeightPx = 0f
 
     /**
+     * Set when the next extent change should *keep* the page's on-screen size instead of re-fitting
+     * it to the new width — the split toggle hands a pane a canvas of another width, and under it a
+     * page should not jump. Consumed by [adoptResizeZoom]; see `render/DrawingSurfaceScaleKeep.kt`.
+     */
+    var keepScaleOnResize = false
+
+    /**
+     * The zoom to adopt for a canvas [width] pixels wide, accounting for a queued [keepScaleOnResize]:
+     * the current zoom when nothing was queued (the ordinary re-fit-on-drag), the compensated zoom
+     * from [keptScaleZoom] otherwise. The queue is only spent by the width change it was queued for:
+     * a relayout at the *old* extent (the last frame of the old layout, which the toggle's own repaint
+     * can still run) leaves it armed, or the real resize would find nothing queued.
+     */
+    fun adoptResizeZoom(width: Float): Float {
+        if (!keepScaleOnResize) return zoom
+        if (width <= 0f || width == viewWidth) return zoom
+        keepScaleOnResize = false
+        return keptScaleZoom(zoom, viewWidth, width)
+    }
+
+    /**
      * Adopt the current view size and content extent, then clamp the offsets into the new range.
      * @param viewWidth View width in pixels.
      * @param viewHeight View height in pixels.
@@ -206,3 +227,15 @@ internal class ViewportState {
         const val MAX_ZOOM = 10f
     }
 }
+
+/**
+ * The zoom that keeps the page the same size on screen when the canvas changes width.
+ *
+ * A page is drawn at `viewWidth × zoom` (the stack fits it to the pane and then scales by the zoom),
+ * so the factor that preserves its on-screen size across a resize is `previousWidth / width` — what
+ * the split toggle asks for when it hands a pane a canvas of another width (`docs/rendering.md`).
+ * Degenerate widths leave the zoom alone, and the result is clamped like every other zoom change.
+ */
+internal fun keptScaleZoom(zoom: Float, previousWidth: Float, width: Float): Float =
+    if (previousWidth <= 0f || width <= 0f) zoom
+    else (zoom * previousWidth / width).coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM)

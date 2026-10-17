@@ -75,6 +75,16 @@ the pane's Compose box announces its new size on the traversal that follows, and
 the belt to that braces — a pane cannot be left drawing the extent it had while the split was open,
 where its page and ruling would be at the wrong scale.
 
+**A width change re-fits the page; a *toggle* keeps its size.** The stack fits each page to the pane
+and then scales by the zoom, so a page is drawn at `viewWidth × zoom`: re-fitting on every resize
+means the same 100% draws the sheet half as wide in split view and twice as wide back in single
+view — turning the split off *doubles* the page and its ruling. Dragging the divider still re-fits
+(the zoom is the factor you chose, and the pane is the frame you chose it in), but the split toggle
+is not a resize to re-fit: it hands the pane a canvas of another width and compensates the zoom by
+`previousWidth / width` (`keptScaleZoom`) in the same relayout, so the page keeps the size it had on
+screen in either direction and the toggle is exactly reversible. The compensated zoom is reported
+through `onZoomChanged`, so the badge shows the value the canvas is actually drawn at.
+
 ## One page as an image (`PageSvgWriter`, `writePagePng`/`writePageSvg`)
 
 **One page as an image (`PageSvgWriter`, `DrawingSurfaceView.writePagePng`/`writePageSvg`).** The

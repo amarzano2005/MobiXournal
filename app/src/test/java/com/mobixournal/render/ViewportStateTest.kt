@@ -155,4 +155,50 @@ class ViewportStateTest {
         assertEquals(3, range.cyMin)
         assertEquals(4, range.cyMax)
     }
+
+    @Test fun `kept scale holds the page's size across a width change`() {
+        // The page is drawn at `width × zoom`: half the width needs twice the zoom for the same px.
+        val split = keptScaleZoom(1f, 2432f, 1194f)
+        assertEquals(2432f, 1194f * split, 0.5f)
+        assertEquals(2432f, 2432f * keptScaleZoom(split, 1194f, 2432f), 0.5f)
+    }
+
+    @Test fun `kept scale is exactly reversible`() {
+        // The toggle in both directions: landing back on the old width restores the old zoom.
+        val zoomed = keptScaleZoom(0.8f, 2432f, 1194f)
+        assertEquals(0.8f, keptScaleZoom(zoomed, 1194f, 2432f), 1e-5f)
+    }
+
+    @Test fun `kept scale clamps like any other zoom`() {
+        assertEquals(ViewportState.MAX_ZOOM, keptScaleZoom(9f, 2400f, 600f), 0f)
+        assertEquals(ViewportState.MIN_ZOOM, keptScaleZoom(0.3f, 600f, 2400f), 0f)
+    }
+
+    @Test fun `kept scale leaves the zoom alone on a degenerate width`() {
+        // A canvas that has not been laid out yet has no width to compensate against.
+        assertEquals(1.4f, keptScaleZoom(1.4f, 0f, 1200f), 0f)
+        assertEquals(1.4f, keptScaleZoom(1.4f, 1200f, 0f), 0f)
+    }
+
+    @Test fun `an unqueued resize keeps the zoom`() {
+        val v = viewport()
+        assertEquals(1f, v.adoptResizeZoom(40f), 0f)
+    }
+
+    @Test fun `a queued keep compensates once and then clears`() {
+        val v = viewport()
+        v.keepScaleOnResize = true
+        // The canvas grew from 100 to 200: the page's fit doubles, so the zoom halves to hold its px.
+        assertEquals(0.5f, v.adoptResizeZoom(200f), 1e-5f)
+        // Only the toggle's own resize is compensated; the next one re-fits like a drag.
+        assertEquals(v.zoom, v.adoptResizeZoom(100f), 0f)
+    }
+
+    @Test fun `a relayout at the same width leaves the queue armed`() {
+        val v = viewport()
+        v.keepScaleOnResize = true
+        // The toggle's own repaint can still run against the old extent: that is not the resize.
+        assertEquals(1f, v.adoptResizeZoom(100f), 0f)
+        assertEquals(0.5f, v.adoptResizeZoom(200f), 1e-5f)
+    }
 }
