@@ -341,6 +341,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     val canvasMode: CanvasMode get() = board?.geometry?.mode ?: CanvasMode.PAGINATED
     /** Told when [canvasMode] changes — a board adopted, or a canvas going back to pages. */
     var onCanvasModeChanged: ((CanvasMode) -> Unit)? = null
+    /** Told the board's bound in pt whenever a document is adopted or the bounded side moves — or null
+     * when the canvas locks nothing (a page list, an `INFINITE_2D` board): *is there a bound to offer*. */
+    var onCanvasExtentChanged: ((Double?) -> Unit)? = null
     /** Which page index was last reported to [onCurrentPageChanged], to suppress duplicate calls. */
     private var lastReportedPage = -1
     /** The last [BoardReading] reported, so the chrome is told only what moved. */
@@ -372,8 +375,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         clearActiveLayer = { activeLayerIndex = -1 },
         refresh = {
             relayout()
-            // A page's height (or the page count) may have changed, so keep the viewport in range.
-            scrollY = scrollY.coerceIn(0f, maxScrollY())
+            // A page's height (or the page count) may have changed, so keep the viewport in range —
+            // through the viewport, whose clamps are per mode (a strip's running axis has no range).
+            viewport.clamp()
             render()
         },
         onPageCountChanged = { onPageCountChanged?.invoke(it) },
@@ -390,14 +394,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onReadOnlyChanged: ((Boolean) -> Unit)? = null
     var onReadOnlyBlocked: (() -> Unit)? = null
 
-    /**
-     * Told when a gesture was refused because the document is a **board** and the gesture is
-     * page-shaped. Set by the host, which is the only layer that can speak to the user.
-     */
+    /** Told when a gesture was refused because the document is a **board** and the gesture is page-shaped;
+     * set by the host, which is the only layer that can speak to the user. */
     var onBoardBlocked: (() -> Unit)? = null
 
-    /** Report a gesture a board cannot carry out — selection, the element clipboard, the vertical-space
-     * drag — once per attempt, in the same shape as [notifyReadOnlyBlocked]. */
+    /** Report a gesture a board cannot carry out once per attempt, like [notifyReadOnlyBlocked]. */
     fun notifyBoardBlocked() {
         onBoardBlocked?.invoke() ?: run {
             post {
@@ -1414,7 +1415,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Scroll so page [index]'s top aligns with the viewport top (used by the page navigator). */
     fun goToPage(index: Int) {
         val box = layout.boxes.getOrNull(index) ?: return
-        scrollY = box.topPx.coerceIn(0f, maxScrollY())
+        viewport.scrollToY(box.topPx)
         render()
     }
 
@@ -1807,10 +1808,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     override fun onHoverEvent(event: MotionEvent): Boolean =
         handleHover(event) ?: super.onHoverEvent(event)
 
-    internal fun maxScrollY(): Float = viewport.maxScrollY()
-    internal fun maxScrollX(): Float = viewport.maxScrollX()
-
-    /** Scroll the viewport by one glide step, clamped; false when it didn't move (pinned at a bound). */
+    /** Scroll the viewport (a pan step or one glide step), clamped per mode; false when it didn't move. */
     internal fun scrollViewportBy(dx: Float, dy: Float): Boolean {
         val moved = viewport.scrollBy(dx, dy)
         if (moved) {

@@ -441,8 +441,11 @@ internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
     val fy = focusY(event, skip = -1)
     val fx = focusX(event, skip = -1)
     // Pan gain: 1 tracks the finger one-to-one, <1 pans slower, >1 faster, 0 freezes the document.
-    scrollY = (scrollY + (lastFocusY - fy) * panSensitivity).coerceIn(0f, maxScrollY())
-    scrollX = (scrollX + (lastFocusX - fx) * panSensitivity).coerceIn(0f, maxScrollX())
+    // The clamps are the viewport's, and they are **per mode** ([ViewportState.scrollBy]): a strip is
+    // bounded on its one fixed axis and runs on in the other, a 2D board is bounded on neither, and a
+    // page stack is bounded on both. Clamping both axes to the page stack's extent — which is what
+    // this pan used to do — pins the running axis home the moment that extent stops describing it.
+    scrollViewportBy((lastFocusX - fx) * panSensitivity, (lastFocusY - fy) * panSensitivity)
     lastFocusY = fy
     lastFocusX = fx
     if (multiTapCandidate) {
