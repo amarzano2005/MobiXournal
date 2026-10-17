@@ -34,10 +34,17 @@ import java.io.File
 internal fun MainActivity.tabsUiState(p: EditorPane): TabsUiState {
     tabsTick.value // read so Compose re-invokes this when the session changes
     val dots = DocColors.assign(panes.flatMap { pane -> pane.tabs.tabs.map(OpenTab::docKey) })
+    val index = panes.indexOf(p)
     return TabsUiState(
         titles = p.tabs.tabs.map { it.title },
         dotColors = p.tabs.tabs.map { dots[it.docKey] },
         activeIndex = p.tabs.activeIndex,
+        // Split view shows one strip lane per pane, so a strip has to know whose it is: the badge
+        // names the pane, and the focused one wears the accent (see `TabsUiState`).
+        paneIndex = index.coerceAtLeast(0),
+        paneCount = if (splitView.value) panes.size else 1,
+        focused = activePane.value == index,
+        onFocus = { if (index >= 0) activePane.value = index },
         onSelect = { selectTab(it, p) },
         onClose = { closeTab(it, p) },
         onNew = { newTab(p) },
@@ -78,6 +85,9 @@ internal fun MainActivity.sendTabToOtherPane(index: Int, from: EditorPane, keepH
         from.tabs.close(index)
         if (from.tabs.isEmpty) from.tabs.open(blankTab())
         from.tabs.active?.takeIf { it.id != showing }?.let { show(it, from) }
+        // The document just moved: hand the tools to the pane it landed in, so the next stroke edits
+        // the tab the user chose to move rather than the one left behind.
+        activePane.value = panes.indexOf(other).coerceAtLeast(0)
     }
     // Only paints now if that pane already has a canvas; otherwise [restoreTabs] shows it when
     // split view builds one.
@@ -201,6 +211,9 @@ internal fun MainActivity.previewTabPage(
 
 /** Switch [p] to the tab at [index], snapshotting the one being left. */
 internal fun MainActivity.selectTab(index: Int, p: EditorPane = pane) {
+    // A chip is a statement about *its* pane: selecting one from a lane the tools aren't on has to
+    // hand them over too, or the toolbar would keep editing the other half.
+    activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
     if (!p.tabs.select(index)) return
     p.tabs.active?.let { show(it, p) }
@@ -224,6 +237,9 @@ internal fun MainActivity.reorderTab(from: Int, to: Int, p: EditorPane = pane) {
  * empty pane, and the canvas is only reloaded when the *showing* tab actually changed.
  */
 internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
+    // Closing a tab in a lane focuses that pane: what takes its place (or the fallback blank page)
+    // is now what the chrome will act on, so it must be the pane in focus.
+    activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
@@ -236,6 +252,8 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
 
 /** Open a fresh blank document in a new tab of [p] and switch to it. */
 internal fun MainActivity.newTab(p: EditorPane = pane) {
+    // The "+" belongs to a lane, so the new document opens — and the tools land — in that pane.
+    activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
     p.tabs.open(blankTab())
     p.tabs.active?.let { show(it, p) }

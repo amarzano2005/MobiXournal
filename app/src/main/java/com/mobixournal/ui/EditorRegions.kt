@@ -120,6 +120,11 @@ fun EditorTopBar(
     ui: EditorUiState,
     pane: PaneState,
     tabs: TabsUiState,
+    /**
+     * Every pane's tab session, in pane order. Split view draws one strip lane per pane from this;
+     * [tabs] stays the focused pane's session for the single-pane and Compact layouts.
+     */
+    paneTabs: List<TabsUiState> = emptyList(),
     settings: AppSettings? = null,
     onSettingsChange: ((AppSettings) -> Unit)? = null,
     onOpen: () -> Unit,
@@ -161,6 +166,9 @@ fun EditorTopBar(
         onSettingsChange == null ||
         settings.toolbarLayout == ToolbarLayout.COMPACT
     val tabsUnderTheTools = !tabsInline && !ui.fullPage
+    // In Compact the tabs ride in the title slot, where there is no room for two lanes: the focused
+    // pane's strip is drawn there, and its badge still says which half it belongs to.
+    val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
     Surface(
         color = glassColor,
         shadowElevation = 4.dp,
@@ -204,7 +212,7 @@ fun EditorTopBar(
                             onSettingsChange = onSettingsChange,
                         )
                     } else {
-                        TabStrip(tabs, modifier = Modifier.fillMaxWidth())
+                        TabStrip(stripTabs, modifier = Modifier.fillMaxWidth())
                     }
                 },
                 // The bar pads itself by the status-bar inset and then stands its own row of tools under it,
@@ -323,16 +331,35 @@ fun EditorTopBar(
             // ([SideToolbarModernTotalWidth]) plus their 8dp lead-in, on whichever side the rail takes —
             // so they still stand over the canvas rather than over the rail, and still line up with the
             // figures' dock above them.
+            //
+            // In split view the row is cut into one lane per pane instead ([SplitTabRow]): both halves
+            // keep their own tabs, badge and "+", so a chip and an add belong visibly to the sheet under
+            // them. The rail's lane is still padded out here — not the 8dp lead-in, which each lane
+            // carries itself — so the lanes' total width is exactly the canvas row's and a lane starts on
+            // its pane's own left edge.
             if (tabsUnderTheTools) {
-                TabStrip(
-                    tabs,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = TAB_STRIP_LEAD_IN + if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
-                            end = TAB_STRIP_LEAD_IN + if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
-                        ),
-                )
+                if (splitView && paneTabs.size >= 2) {
+                    SplitTabRow(
+                        tabs = paneTabs,
+                        fraction = ui.splitFraction,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
+                                end = if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
+                            ),
+                    )
+                } else {
+                    TabStrip(
+                        stripTabs,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = TAB_STRIP_LEAD_IN + if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
+                                end = TAB_STRIP_LEAD_IN + if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
+                            ),
+                    )
+                }
             }
         }
     }
@@ -1564,5 +1591,5 @@ fun EditorPaneView(
  * band's content was inset by this much inside the pane, so adding it to the rail's lane lands the chips
  * on exactly the columns they occupied before — and on the figures' dock's own starting line.
  */
-private val TAB_STRIP_LEAD_IN = 8.dp
+internal val TAB_STRIP_LEAD_IN = 8.dp
 

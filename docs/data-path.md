@@ -301,6 +301,11 @@ The design decisions worth keeping:
 - **One pane has focus; the chrome drives that pane.** A touch anywhere in a pane (observed on the
   pointer-input *initial* pass, so the canvas still receives the event) makes it active. There is no
   second toolbar and no per-pane menu — the single top bar and rail always act on the focused pane.
+  The tabs are the exception that makes that ownership visible: in split view each pane's strip is its
+  own lane over its own half (`SplitTabRow`), the focused pane's numbered badge wears the accent, and
+  a touch anywhere in a lane — a chip, its "+", even its empty space — focuses that pane. Selecting a
+  tab, adding one or closing one also focuses the pane it happened in, and a *move* to the other pane
+  hands focus to the destination; a mirror leaves it where it was.
 - **Each pane persists separately.** `TABS_DIRS` gives pane 0 the historical `filesDir/tabs` and pane
   1 `filesDir/tabs-right`, so an existing session still restores and the right-hand pane's documents
   survive both a split-view toggle and a restart. `onPause` snapshots and writes *both*.

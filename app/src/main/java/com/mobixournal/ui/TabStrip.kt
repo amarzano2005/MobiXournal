@@ -5,12 +5,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -41,10 +44,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,6 +74,17 @@ data class TabsUiState(
      */
     val dotColors: List<Int?> = emptyList(),
     val activeIndex: Int = 0,
+    /**
+     * 0-based pane this session belongs to, and how many panes are on screen. In split view the
+     * header draws one strip per pane and each one carries a badge with its number, so a chip is
+     * never mistaken for the other half's document.
+     */
+    val paneIndex: Int = 0,
+    val paneCount: Int = 1,
+    /** Whether this pane is the one the top bar and the rail drive. */
+    val focused: Boolean = true,
+    /** Make this pane the focused one — a touch anywhere on its strip does it. */
+    val onFocus: () -> Unit = {},
     val onSelect: (Int) -> Unit = {},
     val onClose: (Int) -> Unit = {},
     val onNew: () -> Unit = {},
@@ -122,62 +139,129 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         scroll.animateScrollTo(target.toInt().coerceIn(0, scroll.maxValue))
     }
     val isDark = chromeIsDark()
+    // The pane badge and the "+" stay pinned while the chips scroll: in split view each half's
+    // strip is narrow, and an "add" that can only be reached by scrolling is how a tab ends up in
+    // the wrong pane.
+    val transferLabels = tabTransferLabels(state.paneIndex, state.paneCount)
     Row(
         modifier = modifier
             .height(TAB_STRIP_HEIGHT)
             .background(Color.Transparent)
-            .onSizeChanged { viewportWidth = it.width.toFloat() }
-            .horizontalScroll(scroll),
+            // Focus the pane on the initial pass, before a chip, the "+" or the badge handles the
+            // tap, so the action that follows (select, new, close) already belongs to this pane.
+            .pointerInput(state.paneIndex) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    state.onFocus()
+                }
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        state.titles.forEachIndexed { index, title ->
-            TabChip(
-                title = title,
-                dotColor = state.dotColors.getOrNull(index),
-                selected = index == state.activeIndex,
-                onSelect = { state.onSelect(index) },
-                onClose = { state.onClose(index) },
-                onMove = { state.onMove(index) },
-                onMirror = { state.onMirror(index) },
-                dragOffset = if (index == dragIndex) dragOffset else 0f,
-                onDragStart = { dragIndex = index; dragOffset = 0f },
-                onDrag = { dx, width ->
-                    if (dragIndex >= 0) {
-                        dragOffset += dx
-                        // One whole chip of travel = one slot; swap and keep the rest of the offset so a
-                        // long drag walks the tab across several neighbours in one gesture.
-                        while (dragOffset > width && dragIndex < state.titles.lastIndex) {
-                            state.onReorder(dragIndex, dragIndex + 1)
-                            dragIndex++
-                            dragOffset -= width
-                        }
-                        while (dragOffset < -width && dragIndex > 0) {
-                            state.onReorder(dragIndex, dragIndex - 1)
-                            dragIndex--
-                            dragOffset += width
-                        }
-                        dragOffset = dragOffset.coerceIn(-width, width)
-                    }
-                },
-                onDragEnd = { dragIndex = -1; dragOffset = 0f },
-                onBounds = { left, width -> activeBounds = left to width },
-            )
+        if (state.paneCount > 1) {
+            PaneBadge(number = state.paneIndex + 1, focused = state.focused, onClick = state.onFocus)
         }
-        Surface(
-            shape = CircleShape,
-            color = if (isDark) Color(0x22FFFFFF) else Color(0x10000000),
-            border = BorderStroke(1.dp, if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0x18000000)),
-            modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .onSizeChanged { viewportWidth = it.width.toFloat() }
+                .horizontalScroll(scroll),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = state.onNew, modifier = Modifier.size(30.dp)) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = "New document",
-                    modifier = Modifier.size(TAB_NEW_ICON),
-                    tint = MaterialTheme.colorScheme.primary,
+            state.titles.forEachIndexed { index, title ->
+                TabChip(
+                    title = title,
+                    dotColor = state.dotColors.getOrNull(index),
+                    selected = index == state.activeIndex,
+                    onSelect = { state.onSelect(index) },
+                    onClose = { state.onClose(index) },
+                    onMove = { state.onMove(index) },
+                    onMirror = { state.onMirror(index) },
+                    transferLabels = transferLabels,
+                    dragOffset = if (index == dragIndex) dragOffset else 0f,
+                    onDragStart = { dragIndex = index; dragOffset = 0f },
+                    onDrag = { dx, width ->
+                        if (dragIndex >= 0) {
+                            dragOffset += dx
+                            // One whole chip of travel = one slot; swap and keep the rest of the offset
+                            // so a long drag walks the tab across several neighbours in one gesture.
+                            while (dragOffset > width && dragIndex < state.titles.lastIndex) {
+                                state.onReorder(dragIndex, dragIndex + 1)
+                                dragIndex++
+                                dragOffset -= width
+                            }
+                            while (dragOffset < -width && dragIndex > 0) {
+                                state.onReorder(dragIndex, dragIndex - 1)
+                                dragIndex--
+                                dragOffset += width
+                            }
+                            dragOffset = dragOffset.coerceIn(-width, width)
+                        }
+                    },
+                    onDragEnd = { dragIndex = -1; dragOffset = 0f },
+                    onBounds = { left, width -> activeBounds = left to width },
                 )
             }
         }
+        AddTabButton(isDark = isDark, onNew = state.onNew)
+    }
+}
+
+/** The strip's trailing "+", pinned outside the scrolling chips so it is always one tap away. */
+@Composable
+private fun AddTabButton(isDark: Boolean, onNew: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = if (isDark) Color(0x22FFFFFF) else Color(0x10000000),
+        border = BorderStroke(1.dp, if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0x18000000)),
+        modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+    ) {
+        IconButton(onClick = onNew, modifier = Modifier.size(30.dp)) {
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = "New document",
+                modifier = Modifier.size(TAB_NEW_ICON),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/**
+ * The pane's number, at the head of its strip, in split view: filled with the accent when this is
+ * the pane the tools drive and hairline-outlined when it is the other one. It is the strip's answer
+ * to "which half am I editing?" — the top bar and the rail are shared, so without it the only cue
+ * was a tab row that silently swapped documents when the other canvas was touched.
+ *
+ * Tapping it focuses the pane, which is the same thing touching its canvas does.
+ */
+@Composable
+private fun PaneBadge(number: Int, focused: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val ink = if (focused) colors.onPrimary else colors.onSurfaceVariant
+    Box(
+        modifier = Modifier
+            .padding(start = 8.dp, end = 2.dp)
+            .size(TAB_PANE_BADGE)
+            .clip(CircleShape)
+            .background(if (focused) colors.primary else Color.Transparent)
+            .then(
+                if (focused) Modifier
+                else Modifier.border(1.dp, colors.outlineVariant, CircleShape),
+            )
+            .clickable(onClick = onClick)
+            .semantics {
+                contentDescription =
+                    if (focused) "Pane $number, focused" else "Pane $number, tap to focus"
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "$number",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = ink,
+        )
     }
 }
 
@@ -199,6 +283,7 @@ private fun TabChip(
     onClose: () -> Unit,
     onMove: () -> Unit,
     onMirror: () -> Unit,
+    transferLabels: TabTransferLabels,
     dragOffset: Float,
     onDragStart: () -> Unit,
     onDrag: (dx: Float, chipWidth: Float) -> Unit,
@@ -222,7 +307,13 @@ private fun TabChip(
             .padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TabChipMenu(expanded = menuOpen, onDismiss = { menuOpen = false }, onMove = onMove, onMirror = onMirror)
+        TabChipMenu(
+            expanded = menuOpen,
+            onDismiss = { menuOpen = false },
+            labels = transferLabels,
+            onMove = onMove,
+            onMirror = onMirror,
+        )
         if (dotColor != null) {
             Box(
                 modifier = Modifier
@@ -290,16 +381,17 @@ private fun Modifier.tabChipInteractions(
 private fun TabChipMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
+    labels: TabTransferLabels,
     onMove: () -> Unit,
     onMirror: () -> Unit,
 ) {
     ToolbarMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
-            text = { Text("Move to other view") },
+            text = { Text(labels.move) },
             onClick = { onDismiss(); onMove() },
         )
         DropdownMenuItem(
-            text = { Text("Mirror on other view") },
+            text = { Text(labels.mirror) },
             onClick = { onDismiss(); onMirror() },
         )
     }
@@ -327,6 +419,9 @@ private fun TabCloseButton(
 
 /** The mirrored-document dot: big enough to read as a colour, small enough not to crowd the title. */
 private val TAB_DOT_SIZE = 6.dp
+
+/** The pane badge at the head of a split strip: a number that still fits the 38dp row. */
+private val TAB_PANE_BADGE = 20.dp
 
 /**
  * The strip's tap-target size. Below Material's 48dp minimum on purpose: the strip is deliberately

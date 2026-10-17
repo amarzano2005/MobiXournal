@@ -41,8 +41,13 @@ internal const val SPLIT_MIN_FRACTION = 0.15f
 /** The balanced split: what a double-tap on the grip restores. */
 internal const val SPLIT_EVEN_FRACTION = 0.5f
 
-/** The grab area down the middle — wide enough for a finger, per the tap-target sizing in [TabStrip]. */
-private val HANDLE_WIDTH = 22.dp
+/**
+ * The grab area down the middle — wide enough for a finger, per the tap-target sizing in [TabStrip].
+ *
+ * Shared with [SplitTabRow], which leaves the same gap between the two panes' tab lanes so a lane
+ * starts exactly where its canvas does.
+ */
+internal val SPLIT_HANDLE_WIDTH = 22.dp
 
 /** The painted rule: one hairline, so the two sheets read as two without a band between them. */
 private val RULE_WIDTH = 1.dp
@@ -113,7 +118,7 @@ fun SplitLayout(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(HANDLE_WIDTH)
+                    .width(SPLIT_HANDLE_WIDTH)
                     .semantics {
                         contentDescription = "Resize split"
                         customActions = listOf(

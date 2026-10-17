@@ -319,6 +319,7 @@ fun EditorScreen(
                             ui = ui,
                             pane = pane,
                             tabs = activeTabs,
+                            paneTabs = tabs,
                             settings = settings,
                             onSettingsChange = onSettingsChange,
                             onOpen = onOpen,

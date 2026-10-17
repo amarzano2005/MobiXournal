@@ -208,7 +208,13 @@ Compact) the bottom band are rows of the layout, and the canvas — an `AndroidV
   row of the chrome ends on an edge the row beside it does not share. Their chips are inset by the rail's
   lane plus their 8dp lead-in (`TAB_STRIP_LEAD_IN`), which keeps them over the canvas and on the figures'
   dock's starting line, and the lane itself begins below the whole header — the tab row is what
-  `RailSizing.kt`'s narrower gap exists to pay for.
+  `RailSizing.kt`'s narrower gap exists to pay for. In **split view** that row is cut the way the canvas
+  is (`SplitTabRow`): one strip per pane, sharing the canvas's weighted fraction and 22dp handle gap
+  (`SPLIT_HANDLE_WIDTH`, the same constant `SplitLayout` draws), so each half's chips, numbered pane
+  badge and "+" sit over that half for every divider position — not only at 50/50. The focused pane's
+  badge is accent-filled and the other is outlined; touching a lane focuses its pane, and its "+" opens
+  the new document there. Compact has one row and no room for two lanes, so it keeps the focused pane's
+  strip in the title slot, badge included.
 
 Whatever the chrome occupies the canvas does not, and that is the point. A translucent bar floating *on*
 the page hides the ink under it and swallows the stylus there, and the strip it covers is the top of the
