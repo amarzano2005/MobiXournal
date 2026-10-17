@@ -149,6 +149,23 @@ them through two complementary paths:
 4. **Touch & palm isolation:** with `AppSettings.fingerDraws = false`, tablets equipped with capacitive
    multi-touch reserve touch strictly for navigation (pan/zoom), preventing stray marks from a resting palm.
 
+## A figure is resized, not thickened
+
+**A figure is resized, not thickened.** The shape tools lay a figure down as one constant-width stroke,
+and the width it is laid at is the pen slot the figure tool uses (`AppSettings.shapeWidth`, point 3
+above). **Resizing** that figure afterwards is a different act: dragging a selection handle stretches the
+*geometry* and leaves every vertex's width alone (`SelectionOps.affineXY(..., scaleWidth = false)`), so an
+arrow made twice as long is twice as long and exactly as thin, and a figure shrunk to annotate a detail
+does not collapse into a smear. Lengthening an arrow therefore never fattens it, and the same holds for
+the V heads of arrows, the axes of the coordinate diagram and every other figure — the head's own size
+still follows the figure's length (`ShapeBuilder.ARROW_HEAD_FRACTION`, clamped), because that is part of
+the geometry.
+
+The one case where the width *does* follow the scale is **re-homing** ink onto another page's frame
+(`affineXY`'s default `scaleWidth = true`): that is a change of units, not a resize, and a stroke that
+kept its pt width while its page changed size would change thickness on screen. Text boxes keep scaling
+their font size in both cases — letters are the figure there, not a stroke.
+
 ## First-launch onboarding
 
 **First-launch onboarding.** Fresh installs display `OnboardingDialog.kt` over `EditorScreen`, controlled

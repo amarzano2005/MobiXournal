@@ -79,39 +79,62 @@ object SelectionOps {
     }
 
     /**
-     * Apply the affine `x' = x·s + dx`, `y' = y·s + dy` to one element; scalar sizes (a stroke's
-     * per-vertex width, a text box's font size) scale by [s]. This single primitive backs both
-     * uniform resize (a scale about an anchor) and cross-page re-homing (a scale+shift between two
-     * pages' pt frames). [s] is expected positive so image/box corner order is preserved.
+     * Apply the affine `x' = x·s + dx`, `y' = y·s + dy` to one element. This single primitive backs
+     * both uniform resize (a scale about an anchor) and cross-page re-homing (a scale+shift between
+     * two pages' pt frames). [s] is expected positive so image/box corner order is preserved.
+     *
      * @param element Element to transform.
      * @param s Scale factor (positive).
      * @param dx Translation X in points.
      * @param dy Translation Y in points.
+     * @param scaleWidth Whether a stroke's per-vertex width follows the scale. True for re-homing
+     *   between two pages' frames (the ink is rescaled to the new paper), **false** for a resize
+     *   gesture: a figure dragged bigger grows in *length*, and its line keeps the thickness it was
+     *   drawn with — see [scaleXY].
      * @return Transformed element, or unchanged if unmodelled.
      */
-    fun affine(element: Element, s: Double, dx: Double, dy: Double): Element = affineXY(element, s, s, dx, dy)
+    fun affine(
+        element: Element,
+        s: Double,
+        dx: Double,
+        dy: Double,
+        scaleWidth: Boolean = true,
+    ): Element = affineXY(element, s, s, dx, dy, scaleWidth)
 
     /**
      * Apply the axis-independent affine `x' = x·sx + dx`, `y' = y·sy + dy` to one element — the
      * primitive behind a **non-uniform** resize, where a drag on an edge handle stretches the
-     * selection in one axis only. Scalar sizes (a stroke's per-vertex width, a text box's font size)
-     * have no single axis, so they scale by the **geometric mean** `sqrt(sx·sy)`: stretching a square
-     * into a 4:1 rectangle makes its ink twice as thick (not 4×, which of the two axes would be
-     * arbitrary, and not 1×, which would leave the ink hair-thin under a doubled stroke). [sx] and
-     * [sy] are expected positive so image/box corner order is preserved.
+     * selection in one axis only.
+     *
+     * A stroke's per-vertex width has no single axis, so it has two honest answers and the caller
+     * picks: with [scaleWidth] it follows the **geometric mean** `sqrt(sx·sy)` (re-homing ink onto
+     * another page's frame — 4:1 makes it twice as thick, not 4× at one axis's whim), and without it
+     * the width is **carried through untouched** (a resize gesture: the figure's geometry grows, its
+     * line stays the thickness it was drawn with, so lengthening an arrow does not fatten it). A text
+     * box's font size follows the geometry either way — letters are the figure there, not a stroke.
+     * [sx] and [sy] are expected positive so image/box corner order is preserved.
      * @param element Element to transform.
      * @param sx Horizontal scale factor (positive).
      * @param sy Vertical scale factor (positive).
      * @param dx Translation X in points.
      * @param dy Translation Y in points.
+     * @param scaleWidth Whether a stroke's width follows the scale (see above).
      * @return Transformed element, or unchanged if unmodelled.
      */
-    fun affineXY(element: Element, sx: Double, sy: Double, dx: Double, dy: Double): Element {
+    fun affineXY(
+        element: Element,
+        sx: Double,
+        sy: Double,
+        dx: Double,
+        dy: Double,
+        scaleWidth: Boolean = true,
+    ): Element {
         val scalar = kotlin.math.sqrt(sx * sy)
+        val ink = if (scaleWidth) scalar else 1.0
         return when (element) {
             is Stroke -> element.copy(
                 points = element.points.map {
-                    StrokePoint(it.x * sx + dx, it.y * sy + dy, it.width * scalar)
+                    StrokePoint(it.x * sx + dx, it.y * sy + dy, it.width * ink)
                 },
             )
             is TextElement -> element.copy(
@@ -178,8 +201,11 @@ object SelectionOps {
         if (refs.isEmpty() || (sx == 1.0 && sy == 1.0)) return pages
         val dx = anchorX * (1.0 - sx)
         val dy = anchorY * (1.0 - sy)
+        // A resize stretches the figure, not its ink: the geometry scales and every stroke keeps the
+        // width it was drawn with, so an arrow made longer stays as thin as it was
+        // (`docs/stylus.md` → *A figure is resized, not thickened*).
         return mapPage(pages, pageIndex) { li, ei, el ->
-            if (ElementRef(li, ei) in refs) affineXY(el, sx, sy, dx, dy) else el
+            if (ElementRef(li, ei) in refs) affineXY(el, sx, sy, dx, dy, scaleWidth = false) else el
         }
     }
 

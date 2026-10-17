@@ -131,14 +131,32 @@ class SelectionTest {
     private fun wide(w: Double, vararg pts: Pair<Double, Double>) =
         Stroke(Tool.PEN, 0xFF000000.toInt(), "round", pts.map { StrokePoint(it.first, it.second, w) }, true)
 
-    @Test fun scaleGrowsStrokeAboutAnchorAndScalesWidth() {
+    @Test fun scaleGrowsStrokeAboutAnchorAndKeepsItsWidth() {
         val s = wide(2.0, 10.0 to 10.0, 20.0 to 20.0)
         val pg = page(Layer(listOf(s)))
-        // Double about the anchor (0,0): coords and width both double.
+        // Double about the anchor (0,0): the geometry doubles, the line stays as thick as it was.
         val out = SelectionOps.scale(listOf(pg), 0, setOf(ElementRef(0, 0)), 2.0, 0.0, 0.0)
         val r = out[0].layers[0].elements[0] as Stroke
         assertEquals(20.0, r.points[0].x, 1e-9)
         assertEquals(40.0, r.points[1].y, 1e-9)
+        assertEquals(2.0, r.points[0].width, 1e-9)
+        assertEquals(2.0, r.points[1].width, 1e-9)
+    }
+
+    @Test fun shrinkingAFigureKeepsItsWidthToo() {
+        // The same rule backwards: a halved arrow is not a hairline one.
+        val s = wide(3.0, 0.0 to 0.0, 40.0 to 0.0)
+        val out = SelectionOps.scale(listOf(page(Layer(listOf(s)))), 0, setOf(ElementRef(0, 0)), 0.5, 0.0, 0.0)
+        val r = out[0].layers[0].elements[0] as Stroke
+        assertEquals(20.0, r.points[1].x, 1e-9)
+        assertEquals(3.0, r.points[1].width, 1e-9)
+    }
+
+    @Test fun rehomingStillScalesTheInk() {
+        // The other caller of the same primitive: ink moved onto another page's frame IS rescaled,
+        // width included — that is a change of units, not a resize of the figure.
+        val s = wide(2.0, 10.0 to 10.0)
+        val r = SelectionOps.affineXY(s, 2.0, 2.0, 0.0, 0.0) as Stroke
         assertEquals(4.0, r.points[0].width, 1e-9)
     }
 
@@ -176,14 +194,14 @@ class SelectionTest {
         assertEquals(30.0, r.points[1].y, 1e-9)
     }
 
-    @Test fun scaleXYScalesStrokeWidthByTheGeometricMean() {
-        // 4:1 out-of-proportion stretch: sqrt(4·1) = 2, so the ink doubles rather than quadrupling at
-        // the whim of one axis (and rather than staying hairline under a widened stroke).
+    @Test fun scaleXYStretchesGeometryAndKeepsStrokeWidth() {
+        // 4:1 out-of-proportion stretch: the ink widens fourfold, the line keeps its 2 pt.
         val s = wide(2.0, 10.0 to 10.0)
         val pg = page(Layer(listOf(s)))
         val out = SelectionOps.scaleXY(listOf(pg), 0, setOf(ElementRef(0, 0)), 4.0, 1.0, 0.0, 0.0)
         val r = out[0].layers[0].elements[0] as Stroke
-        assertEquals(4.0, r.points[0].width, 1e-9)
+        assertEquals(40.0, r.points[0].x, 1e-9)
+        assertEquals(2.0, r.points[0].width, 1e-9)
     }
 
     @Test fun scaleXYKeepsTheOppositeEdgePinned() {
