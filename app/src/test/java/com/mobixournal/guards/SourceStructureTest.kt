@@ -52,7 +52,8 @@ class SourceStructureTest {
         "render/DrawingSurfaceView.kt" to 1851,
         "render/CircuitShapes.kt" to 1180,
         // +5 deliberate: transcriptionLanguage setting for speech recognition language choice.
-        "ui/AppSettings.kt" to 1026,
+        // +2 deliberate: liquidGlassAnimations preference for Apple-style fluid popup scale animations.
+        "ui/AppSettings.kt" to 1028,
         "ui/EditorDialogs.kt" to 920,
     )
 
