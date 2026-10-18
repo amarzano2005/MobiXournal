@@ -33,12 +33,15 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -176,11 +179,24 @@ fun TableCellInspectorAnchor(
         marginPx = marginPx,
     )
 
-    fun applyAndDismiss() {
+    fun commitCurrentCell(): TableElement {
         val updatedCell = cell.copy(text = state.text, align = state.align, bold = state.bold)
         val updatedTable = TableElementFactory.updateCell(table, row, col, updatedCell)
-        pane.surface?.replaceTableElement(table, updatedTable)
+        if (updatedTable != table) {
+            pane.surface?.replaceTableElement(table, updatedTable)
+        }
+        return updatedTable
+    }
+
+    fun applyAndDismiss() {
+        commitCurrentCell()
         ui.editingTableCell = null
+    }
+
+    fun navigateTo(nextR: Int, nextC: Int) {
+        val currentTable = commitCurrentCell()
+        val nextBounds = com.mobixournal.render.TableDividers.cellBoundsPt(currentTable, nextR, nextC)
+        ui.editingTableCell = EditingTableCell(currentTable, nextR, nextC, nextBounds)
     }
 
     FloatingSurface(
@@ -196,11 +212,8 @@ fun TableCellInspectorAnchor(
             row = row,
             col = col,
             state = state,
-            onNavigate = { nextR, nextC ->
-                val nextBounds = com.mobixournal.render.TableDividers.cellBoundsPt(table, nextR, nextC)
-                ui.editingTableCell = EditingTableCell(table, nextR, nextC, nextBounds)
-            },
-            onApply = ::applyAndDismiss,
+            onNavigate = ::navigateTo,
+            onDone = ::applyAndDismiss,
             onDismiss = onDismiss,
         )
     }
@@ -213,9 +226,23 @@ private fun TableCellInspectorContent(
     col: Int,
     state: TableCellInspectorState,
     onNavigate: (Int, Int) -> Unit,
-    onApply: () -> Unit,
+    onDone: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val totalRows = table.rowHeights.size
+    val totalCols = table.colWidths.size
+    val hasNext = row < totalRows - 1 || col < totalCols - 1
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(row, col) {
+        focusRequester.requestFocus()
+    }
+
+    fun advanceToNext() {
+        val (nR, nC) = if (col < totalCols - 1) row to (col + 1) else (row + 1) to 0
+        onNavigate(nR, nC)
+    }
+
     Column(
         modifier = Modifier
             .widthIn(min = 260.dp, max = 340.dp)
@@ -227,7 +254,7 @@ private fun TableCellInspectorContent(
             row = row,
             col = col,
             onNavigate = onNavigate,
-            onDismiss = onDismiss,
+            onDismiss = onDone,
         )
         OutlinedTextField(
             value = state.text,
@@ -239,7 +266,9 @@ private fun TableCellInspectorContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
             textStyle = MaterialTheme.typography.bodyMedium.copy(
@@ -270,31 +299,53 @@ private fun TableCellInspectorContent(
                     }
                 }
             } else null,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onApply() }),
+            keyboardOptions = KeyboardOptions(
+                imeAction = if (hasNext) ImeAction.Next else ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { advanceToNext() },
+                onDone = { onDone() },
+            ),
         )
+        TableCellInspectorBottomBar(
+            state = state,
+            hasNext = hasNext,
+            onNext = { advanceToNext() },
+            onDone = onDone,
+        )
+    }
+}
+
+@Composable
+private fun TableCellInspectorBottomBar(
+    state: TableCellInspectorState,
+    hasNext: Boolean,
+    onNext: () -> Unit,
+    onDone: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TableCellInspectorStyleButtons(state)
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TableCellInspectorStyleButtons(state)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    onClick = onDismiss,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Text("Cancel", style = MaterialTheme.typography.labelMedium)
-                }
+            if (hasNext) {
                 Button(
-                    onClick = onApply,
+                    onClick = onNext,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 ) {
-                    Text("Done", style = MaterialTheme.typography.labelMedium)
+                    Text("Next >", style = MaterialTheme.typography.labelMedium)
                 }
+            }
+            TextButton(
+                onClick = onDone,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(if (hasNext) "Close" else "Done", style = MaterialTheme.typography.labelMedium)
             }
         }
     }
