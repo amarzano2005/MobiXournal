@@ -225,17 +225,19 @@ sits); the width and height are the sums above. So a file whose cached `right`/`
 the grid is read at the grid's size and rewritten with the box the grid implies — rule 3, applied to
 the one box that has a stored half and a derived half.
 
-The cells are edited in place by a micro-inspector anchored to the tapped cell: a double tap opens
-`ui/TableCellInspectorAnchor.kt`, which positions itself through the pure `tableCellInspectorOffset`
-over the cell's pt bounds converted to view px against the live page box — so the panel follows the
-pan (the scroll is republished per frame by `DrawingSurfaceView.reportScroll`) and clamps inside the
-canvas instead of covering behind the keyboard. The typed text travels as `draftText` inside the
-`EditingTableCell` state, so every path that replaces the editing session — a double tap on another
-cell, the Android Back button — flushes it first (`flushTableCellDraft`) and commits through
-`DrawingSurfaceView.replaceTableElement` with full undo; nothing typed is lost on a switch.
+The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
+anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app
+draws edge-to-edge, so `adjustResize` gives it nothing to clamp against) and could only edit one
+cell at a time. Opened by a double tap on a cell or by **Edit table** in the selection bar, the
+dialog shows every cell's text at once in the table's own shape, with align/bold acting on the
+last-focused cell. Nothing tracks the canvas: the dialog is a fixed surface, so the keyboard
+can never cover it mid-edit.
 
-The style knobs (align, bold) commit on every change; the text commits on navigation, Done, or a
-forced flush, never per keystroke.
+**Save** is the one commit point: the whole grid is swapped in through
+`DrawingSurfaceView.replaceTableElement` — one element edit, one undo step — and that is exactly
+what the canvas then draws. **Annulla** (and dismiss-on-back) closes without saving, so the
+pre-edit state never leaves the table in a half-committed shape; there is no per-keystroke
+commit inside the dialog at all.
 
 ### Function plot (`plot`)
 

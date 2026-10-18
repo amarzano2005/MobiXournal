@@ -104,7 +104,6 @@ import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
-import com.mobixournal.render.replaceTableElement
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
@@ -1503,12 +1502,9 @@ private fun DrawingSurfaceView.bindEditorActions(
             PlaceKind.IMAGE -> onPickImage(placement)
         }
     }
-    onTableCellDoubleTap = { table, row, col, cellBoundsPt, pageIndex ->
+    onTableCellDoubleTap = { table, row, col ->
         onActivePane(index)
-        // An editing session may already be open (a tap on another cell): commit its pending draft
-        // first, so switching cells never loses what was typed into the old one.
-        ui.editingTableCell = flushTableCellDraft(ui.editingTableCell) { old, new -> replaceTableElement(old, new) }
-        ui.editingTableCell = EditingTableCell(table, row, col, cellBoundsPt, pageIndex)
+        ui.editingTableCell = EditingTableCell(table, row, col)
     }
     // Remember where an instrument was posed, so it comes back there after a restart. Only the
     // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the
@@ -1709,13 +1705,11 @@ fun EditorPaneView(
                 )
             }
             if (ui.editingTableCell != null) {
-                TableCellInspectorAnchor(
-                    pane = state,
+                TableCellEditorDialog(
                     ui = ui,
-                    canvasSizePx = canvasSizePx,
-                    // Anchored by the inspector itself through its offset, which clamps to the
-                    // canvas the way the plot and selection anchors do (TopStart + offset).
-                    modifier = Modifier.align(Alignment.TopStart),
+                    pane = state,
+                    // A fixed modal dialog: it positions itself in the window and needs no canvas anchoring.
+                    modifier = Modifier.padding(16.dp),
                 )
             }
         }

@@ -437,8 +437,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onScrollChanged: ((Float, Float, Float, Float) -> Unit)? = null
     /** Notified when a placement tap lands, so the editor can prompt for content / pick an image. */
     var onPlace: ((PlaceKind, Placement) -> Unit)? = null
-    /** Notified when a double-tap lands on a table cell: (table, row, col, cellBoundsPt, pageIndex). */
-    var onTableCellDoubleTap: ((TableElement, Int, Int, Bounds, Int) -> Unit)? = null
+    /** Notified when a double-tap lands on a table cell: (table, row, col) — the editor opens fixed, so it needs no geometry. */
+    var onTableCellDoubleTap: ((TableElement, Int, Int) -> Unit)? = null
     internal var lastTableTapTime = 0L
     internal var lastTableTapX = 0f
     internal var lastTableTapY = 0f

@@ -185,20 +185,12 @@ fun rememberEditorUiState(settings: AppSettings): EditorUiState = remember {
 }
 
 /**
- * An existing [com.mobixournal.format.model.TableElement] cell being edited in place.
+ * A [TableElement] with its cell editor open. The fixed editor (`TableCellEditorDialog`) shows
+ * every cell at once and commits on Save, so this only needs to name the table and the cell the
+ * session starts focused on.
  */
 data class EditingTableCell(
     val table: com.mobixournal.format.model.TableElement,
     val row: Int,
     val col: Int,
-    /** The cell bounds in page pt — what the inspector anchors itself to through the live page box. */
-    val cellBoundsPt: com.mobixournal.render.Bounds? = null,
-    /** The laid-out page the cell sits on (index into the surface's layout), or -1 when unknown. */
-    val pageIndex: Int = -1,
-    /**
-     * Typed-but-uncommitted cell text, or null when nothing is pending. The draft rides with
-     * the editing state itself, so anything that replaces [editingTableCell] — a tap on another
-     * cell, back navigation, a tool switch — can commit it first instead of silently losing it.
-     */
-    val draftText: String? = null,
 )

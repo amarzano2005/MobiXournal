@@ -82,9 +82,10 @@ Tablet Portrait / Landscape:
 - Compact layout: the same tools as a horizontal band along the bottom edge, above the nav-bar inset.
   There is no drag-to-dock and no top/bottom docking: the top band is the header's, and Compact is what
   "toolbar along the bottom" means.
-- Anchored Micro-Inspectors: Living entity editors (function plot inspector, table cell editing) open in
-  anchored micro-inspectors directly adjacent to the element rather than heavy full-screen dialogs (transient,
-  so they may sit over the page).
+- Anchored Micro-Inspectors: Living entity editors open beside the element rather than heavy full-screen dialogs
+  (transient, so they may sit over the page): the plot inspector anchors next to its selection, while the table
+  uses a **fixed editor dialog** (`docs/mobix-elements.md`) — one panel with every cell editable, because an
+  anchored one-cell strip fought the keyboard.
 ```
 
 ---

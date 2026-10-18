@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "replace-floating-cell-inspector-with-fixed-table-editor"
+title = "Replace the floating cell inspector with a fixed whole-table editor dialog"
+description = "The anchored floating cell inspector proved fragile (keyboard occlusion, one cell at a time). It is replaced by a fixed modal editor (ui/TableCellEditorDialog.kt): opened by double-tap or Edit table, it lists every cell's text in the table's own shape, align/bold act on the last-focused cell, Annulla/back discards, and Salva commits the whole grid through a single replaceTableElement (one undo step). flushTableCellDraft/draftText and the anchor arithmetic are deleted; EditingTableCell is back to (table, row, col); the back cascade closes the editor without saving; TableDividers tests moved to render/TableDividersTest.kt; new pure tests pin the grid commit seams. Docs updated in mobix-elements.md and ui-modernization.md. Full suite green."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-19
+completed = 2026-10-19
+tags = []
+
+[[task]]
 id = "fix-living-table-cell-inspector-avoiding-keyboard-occlusion-and-centred-cells"
 title = "Cell inspector clamps above the keyboard occlusion; fresh cells default to centred text"
 description = "The app draws edge-to-edge (setDecorFitsSystemWindows(false)), so the manifest adjustResize never shrinks the pane when the IME opens: the anchored cell inspector kept its own clamping against the full canvas and slid under the keyboard. TableCellInspectorAnchor now reads the IME (and nav-bar) insets reactively in rememberCellInspectorOffset and clamps against the unoccluded bottom, preferring below-the-cell, then wholly-open above-the-cell, then the lowest fully-open spot; two new JVM tests pin it. Also fresh TableCell creation and codec decode now default align to CENTER, so typed text is centred in its cell out of the box (factory assertion updated, TableElementFactoryTest). Full testDebugUnitTest suite green."

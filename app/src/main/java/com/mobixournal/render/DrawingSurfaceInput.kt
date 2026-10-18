@@ -212,11 +212,8 @@ private fun DrawingSurfaceView.tryTableCellDoubleTap(event: MotionEvent): Boolea
     lastTableTapRow = r
     lastTableTapCol = c
     if (isDouble) {
-        val bounds = TableDividers.cellBoundsPt(table, r, c)
-            ?: Bounds(table.left, table.top, table.left + table.width, table.top + table.height)
-        // Also name the page the cell sits on, so the editor can anchor the cell inspector to
-        // this page's live layout box (and re-anchor it as the view scrolls and zooms).
-        onTableCellDoubleTap?.invoke(table, r, c, bounds, box.index)
+        // The editor opens as a fixed dialog, so it needs no cell geometry here.
+        onTableCellDoubleTap?.invoke(table, r, c)
         return true
     }
     return false
