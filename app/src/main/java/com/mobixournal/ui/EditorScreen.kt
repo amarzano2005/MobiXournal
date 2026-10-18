@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -513,8 +515,16 @@ private fun EditorBody(
             // The horizontal dock in a band of its own along the bottom edge, above the nav-bar inset.
             // The band's height is the rail's own (its shell carries the padding), and the canvas ends
             // where the band begins.
-            Column(modifier = modifier) {
+            Column(
+                modifier = modifier,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 canvas(Modifier.weight(1f).fillMaxWidth())
+                AudioMiniCapsule(
+                    audio = audio,
+                    horizontal = true,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
                 Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) { toolbar() }
             }
         }
@@ -527,9 +537,9 @@ private fun EditorBody(
             // tab row; see `RailSizing.kt`.
             val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
             Row(modifier = modifier) {
-                if (railOnLeft) RailLane(toolbar)
+                if (railOnLeft) RailLane(toolbar, audio)
                 canvas(Modifier.weight(1f).fillMaxHeight())
-                if (!railOnLeft) RailLane(toolbar)
+                if (!railOnLeft) RailLane(toolbar, audio)
             }
         }
     }
@@ -537,15 +547,26 @@ private fun EditorBody(
 
 /** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
 @Composable
-private fun RailLane(toolbar: @Composable () -> Unit) {
+private fun RailLane(toolbar: @Composable () -> Unit, audio: AudioUiState) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
         color = glassColor,
         shadowElevation = 4.dp,
         modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
     ) {
-        Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) {
-            toolbar()
+        Column(
+            modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(8.dp))
+            AudioMiniCapsule(audio = audio, horizontal = false)
+            Box(
+                modifier = Modifier
+                    .width(SideToolbarModernTotalWidth)
+                    .weight(1f),
+            ) {
+                toolbar()
+            }
         }
     }
 }

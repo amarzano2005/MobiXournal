@@ -2,98 +2,152 @@ package com.mobixournal.audio
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import java.util.Locale
 
 /**
- * On-device speech recognizer wrapper using Android's platform [SpeechRecognizer]
- * with `EXTRA_PREFER_OFFLINE` enabled to provide private, local transcription.
+ * On-device continuous speech recognizer wrapper using Android's platform [SpeechRecognizer]
+ * with automatic utterance continuation, silence recovery, and live partial subtitle support.
  */
 class SpeechToTextEngine(private val context: Context) {
 
+    private val handler = Handler(Looper.getMainLooper())
     private var speechRecognizer: SpeechRecognizer? = null
-    private var isListening = false
+    private var isSessionActive = false
     private var sessionStartTimeMs = 0L
+    private var activeLanguage: String = Locale.getDefault().toLanguageTag()
+    private var activeListener: TranscriptionListener? = null
+    private var currentUtteranceStartMs = 0
 
     /** Listener callback for progressive speech recognition events. */
     interface TranscriptionListener {
         fun onSegmentRecognized(segment: TranscriptionSegment)
-        fun onError(error: String)
-        fun onFinished()
+        fun onPartialSubtitle(text: String, startMs: Int, endMs: Int) {}
+        fun onError(error: String) {}
+        fun onFinished() {}
     }
 
     /**
-     * Checks whether offline on-device speech recognition is available on this platform.
+     * Checks whether speech recognition is available on this platform.
      */
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
     /**
-     * Begins real-time listening and segment transcription for an active recording session.
+     * Begins real-time listening and continuous segment transcription for an active recording session.
      */
     fun startListening(
         language: String = Locale.getDefault().toLanguageTag(),
         listener: TranscriptionListener,
     ) {
-        if (isListening) return
+        if (isSessionActive) return
         if (!isAvailable()) {
             listener.onError("Speech recognition not available on this device")
             return
         }
 
-        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
-        speechRecognizer = recognizer
+        isSessionActive = true
         sessionStartTimeMs = System.currentTimeMillis()
-        isListening = true
+        activeLanguage = language
+        activeListener = listener
+
+        handler.post { startListeningInternal() }
+    }
+
+    private fun startListeningInternal() {
+        if (!isSessionActive) return
+
+        destroyCurrentRecognizer()
+
+        val recognizer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+        ) {
+            runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(context) }
+                .getOrNull() ?: SpeechRecognizer.createSpeechRecognizer(context)
+        } else {
+            SpeechRecognizer.createSpeechRecognizer(context)
+        }
+
+        speechRecognizer = recognizer
+        currentUtteranceStartMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLanguage)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, activeLanguage)
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 800L)
         }
 
-        recognizer.setRecognitionListener(object : RecognitionListener {
-            private var segmentStartOffsetMs = 0
+        recognizer.setRecognitionListener(createRecognitionListener())
 
-            override fun onReadyForSpeech(params: Bundle?) {
-                segmentStartOffsetMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
+        runCatching {
+            recognizer.startListening(intent)
+        }.onFailure { err ->
+            if (isSessionActive) {
+                scheduleRestart(500L)
+            } else {
+                activeListener?.onError(err.message ?: "Failed to start speech recognition")
             }
+        }
+    }
+
+    private fun createRecognitionListener(): RecognitionListener {
+        return object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {}
 
             override fun onBeginningOfSpeech() {
-                segmentStartOffsetMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
+                currentUtteranceStartMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
             }
 
             override fun onRmsChanged(rmsdB: Float) {}
-
             override fun onBufferReceived(buffer: ByteArray?) {}
-
             override fun onEndOfSpeech() {}
 
             override fun onError(error: Int) {
-                isListening = false
-                listener.onError("Speech recognition error: $error")
+                if (isSessionActive) {
+                    val delay = when (error) {
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> 300L
+                        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> 600L
+                        else -> 100L
+                    }
+                    scheduleRestart(delay)
+                } else {
+                    activeListener?.onError("Speech recognition error: $error")
+                }
             }
 
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val scores = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
                 val text = matches?.firstOrNull()?.trim().orEmpty()
-                val confidence = scores?.firstOrNull()?.toDouble() ?: 1.0
+                val confidence = scores?.firstOrNull()?.toDouble() ?: 0.95
                 val nowOffsetMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
 
                 if (text.isNotEmpty()) {
                     val segment = TranscriptionSegment(
-                        startTimeMs = segmentStartOffsetMs,
-                        endTimeMs = nowOffsetMs.coerceAtLeast(segmentStartOffsetMs + 200),
+                        startTimeMs = currentUtteranceStartMs,
+                        endTimeMs = nowOffsetMs.coerceAtLeast(currentUtteranceStartMs + 200),
                         text = text,
                         confidence = confidence.coerceIn(0.0, 1.0),
                     )
-                    listener.onSegmentRecognized(segment)
+                    activeListener?.onSegmentRecognized(segment)
                 }
-                isListening = false
-                listener.onFinished()
+
+                if (isSessionActive) {
+                    scheduleRestart(80L)
+                } else {
+                    activeListener?.onFinished()
+                }
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
@@ -101,38 +155,44 @@ class SpeechToTextEngine(private val context: Context) {
                 val text = matches?.firstOrNull()?.trim().orEmpty()
                 val nowOffsetMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
                 if (text.isNotEmpty()) {
-                    val segment = TranscriptionSegment(
-                        startTimeMs = segmentStartOffsetMs,
-                        endTimeMs = nowOffsetMs.coerceAtLeast(segmentStartOffsetMs + 200),
-                        text = text,
-                        confidence = 0.8,
-                    )
-                    listener.onSegmentRecognized(segment)
+                    activeListener?.onPartialSubtitle(text, currentUtteranceStartMs, nowOffsetMs)
                 }
             }
 
             override fun onEvent(eventType: Int, params: Bundle?) {}
-        })
-
-        runCatching {
-            recognizer.startListening(intent)
-        }.onFailure { err ->
-            isListening = false
-            listener.onError(err.message ?: "Failed to start speech recognition")
         }
+    }
+
+    private fun scheduleRestart(delayMs: Long) {
+        if (!isSessionActive) return
+        handler.postDelayed({
+            if (isSessionActive) {
+                startListeningInternal()
+            }
+        }, delayMs)
+    }
+
+    private fun destroyCurrentRecognizer() {
+        runCatching {
+            speechRecognizer?.stopListening()
+            speechRecognizer?.cancel()
+            speechRecognizer?.destroy()
+        }
+        speechRecognizer = null
     }
 
     /**
      * Stops an active listening session.
      */
     fun stopListening() {
-        if (!isListening) return
-        isListening = false
-        runCatching {
-            speechRecognizer?.stopListening()
-            speechRecognizer?.destroy()
+        if (!isSessionActive) return
+        isSessionActive = false
+        handler.removeCallbacksAndMessages(null)
+        handler.post {
+            destroyCurrentRecognizer()
+            activeListener?.onFinished()
+            activeListener = null
         }
-        speechRecognizer = null
     }
 
     /**

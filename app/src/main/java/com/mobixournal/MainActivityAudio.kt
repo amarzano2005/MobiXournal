@@ -204,17 +204,36 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
     runCatching {
         val engine = com.mobixournal.audio.SpeechToTextEngine(this)
         if (engine.isAvailable()) {
-            val segments = mutableListOf<com.mobixournal.audio.TranscriptionSegment>()
+            val finalizedSegments = mutableListOf<com.mobixournal.audio.TranscriptionSegment>()
             engine.startListening(
                 listener = object : com.mobixournal.audio.SpeechToTextEngine.TranscriptionListener {
                     override fun onSegmentRecognized(segment: com.mobixournal.audio.TranscriptionSegment) {
-                        segments.add(segment)
-                        activeTranscription.value = com.mobixournal.audio.AudioTranscription(
-                            audioFilename = filename,
-                            segments = segments.toList(),
-                        )
-                        audioTick.value++
+                        runOnUiThread {
+                            finalizedSegments.add(segment)
+                            activeTranscription.value = com.mobixournal.audio.AudioTranscription(
+                                audioFilename = filename,
+                                segments = finalizedSegments.toList(),
+                            )
+                            audioTick.value++
+                        }
                     }
+
+                    override fun onPartialSubtitle(text: String, startMs: Int, endMs: Int) {
+                        runOnUiThread {
+                            val liveSegment = com.mobixournal.audio.TranscriptionSegment(
+                                startTimeMs = startMs,
+                                endTimeMs = endMs,
+                                text = text,
+                                confidence = 0.8,
+                            )
+                            activeTranscription.value = com.mobixournal.audio.AudioTranscription(
+                                audioFilename = filename,
+                                segments = finalizedSegments + listOf(liveSegment),
+                            )
+                            audioTick.value++
+                        }
+                    }
+
                     override fun onError(error: String) {}
                     override fun onFinished() {}
                 },
