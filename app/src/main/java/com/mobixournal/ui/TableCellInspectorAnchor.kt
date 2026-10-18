@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +44,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -214,9 +218,9 @@ private fun TableCellInspectorContent(
 ) {
     Column(
         modifier = Modifier
-            .widthIn(min = 280.dp, max = 360.dp)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .widthIn(min = 260.dp, max = 340.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         TableCellInspectorHeader(
             table = table,
@@ -228,9 +232,44 @@ private fun TableCellInspectorContent(
         OutlinedTextField(
             value = state.text,
             onValueChange = { state.text = it },
-            label = { Text("Cell text", style = MaterialTheme.typography.labelSmall) },
+            placeholder = {
+                Text(
+                    text = "Cell text...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (state.bold) FontWeight.Bold else FontWeight.Normal,
+                textAlign = when (state.align) {
+                    TableAlign.LEFT -> TextAlign.Start
+                    TableAlign.CENTER -> TextAlign.Center
+                    TableAlign.RIGHT -> TextAlign.End
+                },
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.75f),
+            ),
+            trailingIcon = if (state.text.isNotEmpty()) {
+                {
+                    IconButton(
+                        onClick = { state.text = "" },
+                        modifier = Modifier.size(24.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription = "Clear text",
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            } else null,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onApply() }),
         )
@@ -241,13 +280,19 @@ private fun TableCellInspectorContent(
         ) {
             TableCellInspectorStyleButtons(state)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = onDismiss,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
                     Text("Cancel", style = MaterialTheme.typography.labelMedium)
                 }
-                Button(onClick = onApply) {
+                Button(
+                    onClick = onApply,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                ) {
                     Text("Done", style = MaterialTheme.typography.labelMedium)
                 }
             }
