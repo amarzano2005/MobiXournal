@@ -178,35 +178,36 @@ fun EditorTopBar(
         shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column {
-            TopAppBar(
-                navigationIcon = {
-                // The leading slot is exactly the rail's lane wide ([SideToolbarModernTotalWidth]), so the
-                // figures' dock starts on the line the canvas starts on — one vertical edge down the window
-                // from the bar's content to the page. In the current style the active tool indicator is the
-                // dock's own cap (its face riding at the dock's leading end); in the standalone style
-                // ([INDICATOR_AS_DOCK_CAP] off) it is this slot's own pill, and its width is fixed
-                // ([TOP_BAR_INDICATOR_WIDTH]) so the dock cannot drift with the size letter in play.
-                    if (settings != null && railOnLeft && !ui.fullPage) {
-                        if (!INDICATOR_AS_DOCK_CAP &&
-                            onSettingsChange != null &&
-                            standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
-                        ) {
-                            StandaloneToolIndicator(
-                                ui = ui,
-                                styleCallbacks = rememberToolbarStyleCallbacks(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column {
+                TopAppBar(
+                    navigationIcon = {
+                    // The leading slot is exactly the rail's lane wide ([SideToolbarModernTotalWidth]), so the
+                    // figures' dock starts on the line the canvas starts on — one vertical edge down the window
+                    // from the bar's content to the page. In the current style the active tool indicator is the
+                    // dock's own cap (its face riding at the dock's leading end); in the standalone style
+                    // ([INDICATOR_AS_DOCK_CAP] off) it is this slot's own pill, and its width is fixed
+                    // ([TOP_BAR_INDICATOR_WIDTH]) so the dock cannot drift with the size letter in play.
+                        if (settings != null && railOnLeft && !ui.fullPage) {
+                            if (!INDICATOR_AS_DOCK_CAP &&
+                                onSettingsChange != null &&
+                                standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
+                            ) {
+                                StandaloneToolIndicator(
                                     ui = ui,
-                                    surface = pane.surface,
-                                    settings = settings,
-                                    onSettingsChange = onSettingsChange,
-                                ),
-                                modifier = Modifier,
-                            )
-                        } else {
-                            TopBarAudioCapsule(audio, ui, pane, settings, onSettingsChange)
+                                    styleCallbacks = rememberToolbarStyleCallbacks(
+                                        ui = ui,
+                                        surface = pane.surface,
+                                        settings = settings,
+                                        onSettingsChange = onSettingsChange,
+                                    ),
+                                    modifier = Modifier,
+                                )
+                            } else {
+                                Spacer(Modifier.width(SideToolbarModernTotalWidth))
+                            }
                         }
-                    }
-                },
+                    },
                 title = {
                     if (!tabsInline) {
                         TopBarToolsRow(
@@ -327,7 +328,7 @@ fun EditorTopBar(
                     onOpenPenParameters = { ui.showPenParametersDialog = true },
                 )
                 if (settings != null && !railOnLeft && !ui.fullPage) {
-                    TopBarAudioCapsule(audio, ui, pane, settings, onSettingsChange)
+                    Spacer(Modifier.width(SideToolbarModernTotalWidth))
                 }
             },
         )
@@ -369,6 +370,22 @@ fun EditorTopBar(
                 }
             }
         }
+
+            if (settings != null && !ui.fullPage) {
+                val alignCorner = if (railOnLeft) Alignment.BottomStart else Alignment.BottomEnd
+                TopBarAudioCapsule(
+                    audio = audio,
+                    ui = ui,
+                    pane = pane,
+                    settings = settings,
+                    onSettingsChange = onSettingsChange,
+                    vertical = tabsUnderTheTools,
+                    modifier = Modifier
+                        .align(alignCorner)
+                        .padding(bottom = if (tabsUnderTheTools) 2.dp else 4.dp),
+                )
+            }
+        }
     }
 }
 
@@ -379,16 +396,17 @@ private fun TopBarAudioCapsule(
     pane: PaneState,
     settings: AppSettings?,
     onSettingsChange: ((AppSettings) -> Unit)?,
+    vertical: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = Modifier
-            .width(SideToolbarModernTotalWidth)
-            .height(TOP_BAR_ROW_HEIGHT),
+        modifier = modifier.width(SideToolbarModernTotalWidth),
         contentAlignment = Alignment.Center,
     ) {
         AudioMiniCapsule(
             audio = audio,
             tool = ui.tool,
+            vertical = vertical,
             onTool = { newTool ->
                 if (settings != null && onSettingsChange != null) {
                     pane.surface?.activateTool(newTool, ui, settings, onSettingsChange)

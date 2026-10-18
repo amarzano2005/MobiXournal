@@ -113,6 +113,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
 
     return AudioUiState(
         recording = audio.isRecording,
+        recordingPaused = audio.isRecordingPaused,
         playing = audio.isPlaying,
         clipOn = audio.nowPlaying != null,
         playheadMs = audio.playheadMs,
@@ -124,6 +125,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         transcription = transcription,
         miniPlayerVisible = miniPlayerVisible.value && audio.nowPlaying != null,
         onToggleRecord = ::toggleRecording,
+        onTogglePauseRecord = ::togglePauseRecording,
         onResume = {
             audio.resume()
             karaokeDriver?.publishOnce()
@@ -160,6 +162,21 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             audioTick.value++
         },
     )
+}
+
+/** Pause or resume the active recording. */
+internal fun MainActivity.togglePauseRecording() {
+    if (!audio.isRecording) return
+    if (audio.isRecordingPaused) {
+        audio.resumeRecording()
+        speechEngine?.resumeListening()
+        toast("Registrazione ripresa")
+    } else {
+        audio.pauseRecording()
+        speechEngine?.pauseListening()
+        toast("Registrazione in pausa")
+    }
+    audioTick.value++
 }
 
 /** Stop a running recording, or ask for the microphone and start one. */

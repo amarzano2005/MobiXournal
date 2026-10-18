@@ -35,6 +35,7 @@ class OpusAudioRecorder {
     private var muxerStarted = false
     private var thread: Thread? = null
     private val running = AtomicBoolean(false)
+    private val paused = AtomicBoolean(false)
 
     @Volatile
     private var presentationTimeUs: Long = 0L
@@ -45,6 +46,17 @@ class OpusAudioRecorder {
 
     /** True between a successful [start] and its [stop]. */
     val isRecording: Boolean get() = running.get()
+
+    /** True while recording is temporarily paused. */
+    val isPaused: Boolean get() = paused.get()
+
+    fun pause() {
+        if (running.get()) paused.set(true)
+    }
+
+    fun resume() {
+        if (running.get()) paused.set(false)
+    }
 
     /**
      * Start capturing microphone audio to [target].
@@ -71,6 +83,7 @@ class OpusAudioRecorder {
         trackIndex = -1
         muxerStarted = false
         presentationTimeUs = 0L
+        paused.set(false)
         running.set(true)
 
         rec.startRecording()
@@ -130,6 +143,10 @@ class OpusAudioRecorder {
     }
 
     private fun feedEncoder(rec: AudioRecord, cod: MediaCodec, pcmBuffer: ByteArray) {
+        if (paused.get()) {
+            Thread.sleep(40)
+            return
+        }
         val read = rec.read(pcmBuffer, 0, pcmBuffer.size)
         if (read <= 0) return
 

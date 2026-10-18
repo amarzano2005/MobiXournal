@@ -24,6 +24,7 @@ class AudioRecorder {
     private var writer: WavWriter? = null
     private var thread: Thread? = null
     private val running = AtomicBoolean(false)
+    private val paused = AtomicBoolean(false)
 
     /** The file being written, or null when idle. */
     var file: File? = null
@@ -31,6 +32,17 @@ class AudioRecorder {
 
     /** True between a successful [start] and its [stop]. */
     val isRecording: Boolean get() = running.get()
+
+    /** True while recording is temporarily paused. */
+    val isPaused: Boolean get() = paused.get()
+
+    fun pause() {
+        if (running.get()) paused.set(true)
+    }
+
+    fun resume() {
+        if (running.get()) paused.set(false)
+    }
 
     /**
      * Begin capturing into [target]. Returns false (leaving the recorder idle) if the microphone
@@ -56,6 +68,7 @@ class AudioRecorder {
         record = rec
         writer = w
         file = target
+        paused.set(false)
         running.set(true)
         rec.startRecording()
         thread = Thread({ pump(rec, w, bufferBytes) }, "xopp-audio-record").also { it.start() }
@@ -66,6 +79,10 @@ class AudioRecorder {
     private fun pump(rec: AudioRecord, w: WavWriter, bufferBytes: Int) {
         val buffer = ByteArray(bufferBytes)
         while (running.get()) {
+            if (paused.get()) {
+                Thread.sleep(40)
+                continue
+            }
             val read = rec.read(buffer, 0, buffer.size)
             if (read > 0) synchronized(w) { w.write(buffer, read) } else if (read < 0) break
         }

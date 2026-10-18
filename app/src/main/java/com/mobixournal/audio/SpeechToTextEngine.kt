@@ -20,6 +20,7 @@ class SpeechToTextEngine(private val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private var speechRecognizer: SpeechRecognizer? = null
     private var isSessionActive = false
+    private var isPaused = false
     private var sessionStartTimeMs = 0L
     private var activeLanguage: String = Locale.getDefault().toLanguageTag()
     private var activeListener: TranscriptionListener? = null
@@ -52,6 +53,7 @@ class SpeechToTextEngine(private val context: Context) {
         }
 
         isSessionActive = true
+        isPaused = false
         sessionStartTimeMs = System.currentTimeMillis()
         activeLanguage = language
         activeListener = listener
@@ -164,12 +166,31 @@ class SpeechToTextEngine(private val context: Context) {
     }
 
     private fun scheduleRestart(delayMs: Long) {
-        if (!isSessionActive) return
+        if (!isSessionActive || isPaused) return
         handler.postDelayed({
-            if (isSessionActive) {
+            if (isSessionActive && !isPaused) {
                 startListeningInternal()
             }
         }, delayMs)
+    }
+
+    /**
+     * Pauses speech recognition while keeping session state.
+     */
+    fun pauseListening() {
+        if (!isSessionActive || isPaused) return
+        isPaused = true
+        handler.removeCallbacksAndMessages(null)
+        handler.post { runCatching { speechRecognizer?.stopListening() } }
+    }
+
+    /**
+     * Resumes speech recognition in an ongoing session.
+     */
+    fun resumeListening() {
+        if (!isSessionActive || !isPaused) return
+        isPaused = false
+        handler.post { startListeningInternal() }
     }
 
     private fun destroyCurrentRecognizer() {

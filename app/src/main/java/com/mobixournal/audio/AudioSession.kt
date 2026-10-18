@@ -38,6 +38,9 @@ class AudioSession(
     /** True while the microphone is being captured — whichever of the two encoders took it. */
     val isRecording: Boolean get() = wav.isRecording || opus.isRecording
 
+    /** True while recording is active but paused. */
+    val isRecordingPaused: Boolean get() = (opus.isRecording && opus.isPaused) || (wav.isRecording && wav.isPaused)
+
     /** True while a clip is sounding — false while one is merely held (a pause, or a scrub). */
     val isPlaying: Boolean get() = player.isSounding
 
@@ -94,6 +97,22 @@ class AudioSession(
         currentFile = name
         onStateChanged?.invoke()
         return name
+    }
+
+    /** Pause recording if currently recording and not already paused. */
+    fun pauseRecording(): Boolean {
+        if (!isRecording || isRecordingPaused) return false
+        if (opus.isRecording) opus.pause() else wav.pause()
+        onStateChanged?.invoke()
+        return true
+    }
+
+    /** Resume recording if currently paused. */
+    fun resumeRecording(): Boolean {
+        if (!isRecording || !isRecordingPaused) return false
+        if (opus.isRecording) opus.resume() else wav.resume()
+        onStateChanged?.invoke()
+        return true
     }
 
     /** Finish the recording and return the file written, or null if none was running. */

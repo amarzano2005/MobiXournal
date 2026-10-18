@@ -451,8 +451,12 @@ data class AudioUiState(
     val transcription: com.mobixournal.audio.AudioTranscription? = null,
     /** Whether the floating mini-player is visible. */
     val miniPlayerVisible: Boolean = false,
+    /** Whether recording is currently paused. */
+    val recordingPaused: Boolean = false,
     /** Callback to start or stop recording. */
     val onToggleRecord: () -> Unit = {},
+    /** Callback to pause or resume recording. */
+    val onTogglePauseRecord: () -> Unit = {},
     /** Callback to sound the held clip again from where it is. */
     val onResume: () -> Unit = {},
     /** Callback to hold the clip that is sounding where it is. */
