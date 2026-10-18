@@ -51,7 +51,7 @@ class TableElementFactoryTest {
             assertEquals(4, row.size)
             row.forEach { cell ->
                 assertEquals("", cell.text)
-                assertEquals(TableAlign.LEFT, cell.align)
+                assertEquals("a fresh cell is centred by default", TableAlign.CENTER, cell.align)
             }
         }
     }

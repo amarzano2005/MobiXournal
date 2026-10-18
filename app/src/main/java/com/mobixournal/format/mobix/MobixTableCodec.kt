@@ -104,7 +104,7 @@ internal object MobixTableCodec {
     }
 
     private fun decodeCell(node: JsonNode.Obj): TableCell? {
-        val alignName = node.getStr("align", TableAlign.LEFT.name)
+        val alignName = node.getStr("align", TableAlign.CENTER.name)
         val align = TableAlign.entries.firstOrNull { it.name == alignName } ?: return null
         return TableCell(
             text = node.getStr("text", ""),

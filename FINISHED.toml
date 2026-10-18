@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-living-table-cell-inspector-avoiding-keyboard-occlusion-and-centred-cells"
+title = "Cell inspector clamps above the keyboard occlusion; fresh cells default to centred text"
+description = "The app draws edge-to-edge (setDecorFitsSystemWindows(false)), so the manifest adjustResize never shrinks the pane when the IME opens: the anchored cell inspector kept its own clamping against the full canvas and slid under the keyboard. TableCellInspectorAnchor now reads the IME (and nav-bar) insets reactively in rememberCellInspectorOffset and clamps against the unoccluded bottom, preferring below-the-cell, then wholly-open above-the-cell, then the lowest fully-open spot; two new JVM tests pin it. Also fresh TableCell creation and codec decode now default align to CENTER, so typed text is centred in its cell out of the box (factory assertion updated, TableElementFactoryTest). Full testDebugUnitTest suite green."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-18
+completed = 2026-10-18
+tags = []
+
+[[task]]
 id = "fix-living-table-cell-inspector-anchoring-and-text-draft-loss"
 title = "Fix living-table cell inspector: anchor to the tapped cell and never lose the typed draft"
 description = "The cell inspector was pinned to the top-centre of the canvas (its anchor helpers existed and were unit-tested but never used), and any path that replaced the editing session — a double-tap on another cell, an Android Back press — silently dropped the typed text. Now TableCellInspectorAnchor positions itself through the pure tableCellInspectorOffset/cellBoundsToViewPx against the live page box, following the pan (scroll republished per frame, scrollX included) and clamping into the canvas; the typed text travels as draftText inside EditingTableCell and every clobber path flushes it first (flushTableCellDraft), committing through replaceTableElement with full undo; Back closes the editor as the most transient surface. Verified: full testDebugUnitTest suite green (1656 tests) incl. guards, new JVM tests for the flush seam."

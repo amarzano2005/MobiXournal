@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -73,10 +77,17 @@ internal fun tableCellInspectorOffset(
     canvasSize: IntSize,
     gapPx: Int,
     marginPx: Int,
+    /**
+     * View-bottom px already occluded by system UI — the IME above all (the window draws
+     * edge-to-edge, so `adjustResize` never shrinks the pane for the keyboard), then the nav
+     * bars when no keyboard is up. The vertical clamp keeps the panel out of that band.
+     */
+    occlusionBottomPx: Int = 0,
 ): IntOffset {
+    val availBottom = (canvasSize.height - occlusionBottomPx).coerceAtLeast(0)
     if (cellLeft == null || cellRight == null || cellTop == null || cellBottom == null || inspectorSize.width <= 0) {
         val cx = ((canvasSize.width - inspectorSize.width) / 2).coerceAtLeast(marginPx)
-        val cy = ((canvasSize.height - inspectorSize.height) / 2).coerceAtLeast(marginPx)
+        val cy = ((availBottom - inspectorSize.height) / 2).coerceAtLeast(marginPx)
         return IntOffset(cx, cy)
     }
 
@@ -86,12 +97,18 @@ internal fun tableCellInspectorOffset(
     val clampedX = idealX.coerceIn(marginPx, maxX.coerceAtLeast(marginPx))
 
     val belowY = cellBottom.toInt() + gapPx
-    val maxY = canvasSize.height - inspectorSize.height - marginPx
-    val clampedY = if (belowY + inspectorSize.height <= canvasSize.height - marginPx) {
-        belowY.coerceAtLeast(marginPx)
-    } else {
-        val aboveY = cellTop.toInt() - gapPx - inspectorSize.height
-        if (aboveY >= marginPx) aboveY else belowY.coerceIn(marginPx, maxY.coerceAtLeast(marginPx))
+    val maxY = (availBottom - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
+    val freeBottom = availBottom - marginPx
+    val clampedY = when {
+        // Preferred: right under the cell, while the whole panel stays on open canvas.
+        belowY + inspectorSize.height <= freeBottom -> belowY.coerceAtLeast(marginPx)
+        // Then right above the cell — but only when the panel fits entirely above occluded
+        // band (a cell that slid under the keyboard cannot carry a panel that straddles it).
+        cellTop.toInt() - gapPx - inspectorSize.height >= marginPx &&
+            cellTop.toInt() - gapPx - inspectorSize.height + inspectorSize.height <= freeBottom ->
+            cellTop.toInt() - gapPx - inspectorSize.height
+        // Neither fits: park the panel as low as the open canvas allows.
+        else -> belowY.coerceIn(marginPx, maxY)
     }
     return IntOffset(clampedX, clampedY)
 }
@@ -129,6 +146,43 @@ internal fun cellBoundsToViewPx(
  * it clobbers, because the typed text travels with the state itself.
  */
 /**
+ * The panel's anchoring offset for one editing session: converts the cell's pt bounds through the
+ * pane's live page box into view px and clamps the panel inside the *unoccluded* canvas — the
+ * window draws edge-to-edge (MainActivity sets decorFitsSystemWindows(false)), so `adjustResize`
+ * never shrinks the pane when the keyboard opens, and the panel must clamp itself above the IME
+ * instead. The IME and nav-bar reads are inset state reads, so the offset recomputes the moment
+ * the keyboard slides in or out; scroll and zoom are component states republished per frame.
+ */
+@Composable
+private fun rememberCellInspectorOffset(
+    editing: EditingTableCell,
+    pane: PaneState,
+    canvasSizePx: IntSize,
+    inspectorSize: IntSize,
+): IntOffset {
+    val density = LocalDensity.current
+    val gapPx = with(density) { 12.dp.roundToPx() }
+    val marginPx = with(density) { 8.dp.roundToPx() }
+    val bottomOcclusionPx = with(density) {
+        val imePx = WindowInsets.ime.asPaddingValues().calculateBottomPadding().roundToPx()
+        val navPx = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding().roundToPx()
+        maxOf(imePx, navPx)
+    }
+    val pageBox = if (editing.pageIndex >= 0) {
+        pane.surface?.layout?.boxes?.getOrNull(editing.pageIndex)
+    } else null
+    return remember(
+        editing, inspectorSize, canvasSizePx, pageBox,
+        pane.scrollX, pane.scrollY, pane.zoom, pane.documentVersion, bottomOcclusionPx,
+    ) {
+        editingCellInspectorOffset(
+            editing, pageBox, pane.scrollX, pane.scrollY,
+            inspectorSize, canvasSizePx, gapPx, marginPx, bottomOcclusionPx,
+        )
+    }
+}
+
+/**
  * One step from the editing cell to the inspector's on-screen offset: the cell's pt bounds are
  * converted through the live page box into view px, then the pure placement helper clamps the
  * panel inside the canvas. Pure, so the offset recomputation in the composable is a single
@@ -143,6 +197,7 @@ private fun editingCellInspectorOffset(
     canvasSize: IntSize,
     gapPx: Int,
     marginPx: Int,
+    occlusionBottomPx: Int = 0,
 ): IntOffset {
     val rectPx = cellBoundsToViewPx(editing.cellBoundsPt, pageBox, scrollX, scrollY)
     return tableCellInspectorOffset(
@@ -154,6 +209,7 @@ private fun editingCellInspectorOffset(
         canvasSize = canvasSize,
         gapPx = gapPx,
         marginPx = marginPx,
+        occlusionBottomPx = occlusionBottomPx,
     )
 }
 
@@ -231,26 +287,7 @@ fun TableCellInspectorAnchor(
     )
 
     var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
-    val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
-    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
-
-    // Anchored to the cell through the same pure helper the plot and selection anchors use: the
-    // conversion needs this pane's live page box (looked up by [EditingTableCell.pageIndex]) and its
-    // scroll, which the surface republishes per frame — so the panel follows the cell as the view
-    // pans, and clamps inside the canvas instead of hiding under the keyboard or the page edge.
-    // The zoom and document versions are read here only so a relayout re-anchors the panel.
-    val pageBox = if (editing.pageIndex >= 0) {
-        pane.surface?.layout?.boxes?.getOrNull(editing.pageIndex)
-    } else null
-    val offset = remember(
-        editing, inspectorSize, canvasSizePx, pageBox,
-        pane.scrollX, pane.scrollY, pane.zoom, pane.documentVersion,
-    ) {
-        editingCellInspectorOffset(
-            editing, pageBox, pane.scrollX, pane.scrollY,
-            inspectorSize, canvasSizePx, gapPx, marginPx,
-        )
-    }
+    val offset = rememberCellInspectorOffset(editing, pane, canvasSizePx, inspectorSize)
 
     fun commitDraftText(text: String) {
         state.text = text

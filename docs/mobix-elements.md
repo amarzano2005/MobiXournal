@@ -52,7 +52,7 @@ rule for the living families below).
 | `tool` | `PEN`, `HIGHLIGHTER`, `ERASER` |
 | `lineStyle` | `PLAIN`, `DASHED`, `DASH_DOT`, `DOTTED` |
 | colours | `#RRGGBBAA` — lowercase hex, the same order `.xopp` uses (`XoppColor`), **not** the `0xAARRGGBB` the int is held in |
-| `align` | `LEFT`, `CENTER`, `RIGHT` |
+| `align` | `LEFT`, `CENTER`, `RIGHT` — fresh cells are **centred by default** (and a file cell with no `align` reads centred too); use `LEFT` explicitly when a cell reads as prose |
 
 ---
 

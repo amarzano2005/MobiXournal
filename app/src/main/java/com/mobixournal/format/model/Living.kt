@@ -45,13 +45,14 @@ enum class TableAlign { LEFT, CENTER, RIGHT }
  * ([TableElement.colWidths] by [TableElement.rowHeights]) so a row index means a row.
  *
  * @param text The cell's content: plain text (a cell may hold a formula as text, not as a plot).
- * @param align Where [text] sits in its column.
+ * @param align Where [text] sits in its column. **Centred by default**: that is how a table of
+ *   numbers reads, and explicitly set to LEFT when a cell is meant to read as prose.
  * @param bold Whether the cell is emphasised — the header-row style, and usable anywhere.
  * @param fillColor An ARGB int behind the cell, or null for no fill.
  */
 data class TableCell(
     val text: String = "",
-    val align: TableAlign = TableAlign.LEFT,
+    val align: TableAlign = TableAlign.CENTER,
     val bold: Boolean = false,
     val fillColor: Int? = null,
 )

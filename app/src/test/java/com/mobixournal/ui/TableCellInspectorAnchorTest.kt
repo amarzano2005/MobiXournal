@@ -299,4 +299,51 @@ class TableCellInspectorAnchorTest {
 
     private fun swappedCellText(table: TableElement, row: Int, col: Int): String =
         table.cell(row, col).text
+
+    // ---------------------------------------------------------------------
+    // Occlusion: the window draws edge-to-edge (adjustResize never shrinks the
+    // pane), so the panel clamps itself above the IME's band when it is up.
+
+    @Test
+    fun tableCellInspectorOffsetLiftsThePanelAboveKeyboardOcclusion() {
+        val canvasSize = IntSize(800, 1000)
+        val inspectorSize = IntSize(280, 150)
+        val gapPx = 10
+        val marginPx = 8
+        val occlusion = 300
+
+        // A cell near the bottom, under where the keyboard now sits.
+        val offset = tableCellInspectorOffset(
+            cellLeft = 350f, cellTop = 800f, cellRight = 450f, cellBottom = 900f,
+            inspectorSize = inspectorSize, canvasSize = canvasSize,
+            gapPx = gapPx, marginPx = marginPx, occlusionBottomPx = occlusion,
+        )
+        // Below the cell (910) and directly above it (640..790) both run past the 700px of
+        // unoccluded canvas; the panel parks at the lowest fully-open position: 700 - 150 - 8.
+        assertEquals(542, offset.y)
+        assertTrue("panel must clear the keyboard band", offset.y + inspectorSize.height <= 1000 - occlusion)
+
+        // Without occlusion the same cell sits above the keyboard-free geometry: here the
+        // below-placement (910..1060) does not even fit the bare canvas, so above it is (640).
+        val unOccluded = tableCellInspectorOffset(
+            cellLeft = 350f, cellTop = 800f, cellRight = 450f, cellBottom = 900f,
+            inspectorSize = inspectorSize, canvasSize = canvasSize,
+            gapPx = gapPx, marginPx = marginPx, occlusionBottomPx = 0,
+        )
+        assertEquals("above-the-cell wins when below does not fit the canvas", 640, unOccluded.y)
+    }
+
+    @Test
+    fun tableCellInspectorOffsetCentresInsideTheUnoccludedAreaWithoutBounds() {
+        val canvasSize = IntSize(800, 1000)
+        val inspectorSize = IntSize(280, 150)
+
+        val offset = tableCellInspectorOffset(
+            cellLeft = null, cellTop = null, cellRight = null, cellBottom = null,
+            inspectorSize = inspectorSize, canvasSize = canvasSize,
+            gapPx = 10, marginPx = 8, occlusionBottomPx = 300,
+        )
+        // Fallback centring happens inside the 700px of unoccluded canvas, not the full window.
+        assertEquals(((700 - 150) / 2), offset.y)
+    }
 }
