@@ -453,6 +453,8 @@ data class AudioUiState(
     val clipTitle: String? = null,
     /** Whether the floating mini-player is visible. */
     val miniPlayerVisible: Boolean = false,
+    /** Whether speech-to-text deferred transcription is running in background. */
+    val isTranscribing: Boolean = false,
     /** Whether recording is currently paused. */
     val recordingPaused: Boolean = false,
     /** Callback to start or stop recording. */

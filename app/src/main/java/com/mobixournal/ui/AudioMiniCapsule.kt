@@ -225,17 +225,25 @@ private fun PlayCapsuleButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        val tint = when {
-            playActive -> MaterialTheme.colorScheme.primary
-            isDark -> Color.White
-            else -> MaterialTheme.colorScheme.onSurface
+        if (audio.isTranscribing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            val tint = when {
+                playActive -> MaterialTheme.colorScheme.primary
+                isDark -> Color.White
+                else -> MaterialTheme.colorScheme.onSurface
+            }
+            Icon(
+                imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                contentDescription = if (audio.playing) "Metti in pausa riproduzione" else "Riproduci audio",
+                tint = tint,
+                modifier = Modifier.size(16.dp),
+            )
         }
-        Icon(
-            imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-            contentDescription = if (audio.playing) "Metti in pausa riproduzione" else "Riproduci audio",
-            tint = tint,
-            modifier = Modifier.size(16.dp),
-        )
     }
 }
 

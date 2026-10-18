@@ -196,4 +196,20 @@ class TranscriptionTest {
         assertEquals(2, decoded?.segments?.size)
         assertEquals("Primo teorema fondamentale", decoded?.segments?.get(1)?.text)
     }
+
+    @Test
+    fun audioPcmExtractorResamplesCorrectly() {
+        // 44.1 kHz 16-bit mono: 44100 samples -> 16000 samples
+        val samples44k = 4410
+        val pcm44k = ByteArray(samples44k * 2) { 0 }
+        val resampled = AudioPcmExtractor.resamplePcm16Mono(pcm44k, 44100, 16000)
+        assertEquals(1600 * 2, resampled.size)
+    }
+
+    @Test
+    fun audioPcmExtractorHandlesMissingOrInvalidFile() {
+        val nonExistent = java.io.File("does_not_exist.wav")
+        val result = AudioPcmExtractor.extract16kMonoPcm(nonExistent)
+        org.junit.Assert.assertNull(result)
+    }
 }

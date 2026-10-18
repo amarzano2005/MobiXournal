@@ -422,6 +422,7 @@ fun EditorScreen(
             transcription = audio.transcription,
             clipTitle = audio.clipTitle,
             playbackSpeed = audio.playbackSpeed,
+            isTranscribing = audio.isTranscribing,
             onTogglePlay = audio.onPlayAutonomous,
             onSeek = audio.onScrub,
             onSkip = audio.onSkip,

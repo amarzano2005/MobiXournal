@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Subtitles
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -79,6 +80,7 @@ fun AudioMiniPlayer(
     transcription: AudioTranscription? = null,
     clipTitle: String? = null,
     playbackSpeed: Float = 1.0f,
+    isTranscribing: Boolean = false,
     onTogglePlay: () -> Unit,
     onSeek: (Int) -> Unit,
     onSkip: (Int) -> Unit,
@@ -147,6 +149,7 @@ fun AudioMiniPlayer(
                     transcription = transcription,
                     activeSubtitle = activeSubtitle,
                     playheadMs = playheadMs,
+                    isTranscribing = isTranscribing,
                     onSeek = onSeek,
                     onOpenTranscript = { showTranscript = true },
                 )
@@ -263,10 +266,34 @@ private fun SubtitleOrTranscriptSection(
     transcription: AudioTranscription?,
     activeSubtitle: String?,
     playheadMs: Int,
+    isTranscribing: Boolean = false,
     onSeek: (Int) -> Unit,
     onOpenTranscript: () -> Unit,
 ) {
-    if (showTranscript) {
+    if (isTranscribing) {
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(12.dp),
+                strokeWidth = 1.5.dp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "Trascrizione in corso...",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+            )
+        }
+    } else if (showTranscript) {
         Spacer(Modifier.height(4.dp))
         TranscriptPanel(
             transcription = transcription,
