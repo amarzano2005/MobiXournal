@@ -57,8 +57,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.TransformOrigin
 import com.mobixournal.audio.AudioTranscription
 import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import kotlin.math.roundToInt
 
@@ -112,7 +114,10 @@ fun AudioMiniPlayer(
             shape = RoundedCornerShape(16.dp),
             color = glassColor,
             shadowElevation = 8.dp,
-            modifier = Modifier.width(300.dp).floatingRim(16.dp),
+            modifier = Modifier
+                .width(300.dp)
+                .floatingRim(16.dp)
+                .liquidGlassSpringAnimation(expanded = visible, origin = TransformOrigin(0.5f, 0.5f)),
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

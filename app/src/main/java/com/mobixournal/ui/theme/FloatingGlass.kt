@@ -1,5 +1,8 @@
 package com.mobixournal.ui.theme
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -19,10 +25,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 /**
  * The **one edge** a floating surface wears.
@@ -100,6 +109,55 @@ internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
 /** The rim's thickness — one hairline, drawn inside the surface's edge. */
 internal val MENU_RIM_WIDTH = 1.dp
 
+/** CompositionLocal providing the liquid glass spring opening animation preference. */
+val LocalLiquidGlassAnimations = compositionLocalOf { true }
+
+/**
+ * Apple-style liquid glass opening animation for popups, menus, and dialogs.
+ * Smoothly expands from [expanded] state with a fluid, organic spring bounce and alpha fade-in.
+ * Can be disabled by user preference via [LocalLiquidGlassAnimations].
+ */
+@Composable
+fun Modifier.liquidGlassSpringAnimation(
+    expanded: Boolean = true,
+    enabled: Boolean = LocalLiquidGlassAnimations.current,
+    origin: TransformOrigin = TransformOrigin(0f, 0f),
+): Modifier {
+    if (!enabled) return this
+
+    val scale = remember { Animatable(if (expanded) 0.75f else 1f) }
+    val alpha = remember { Animatable(if (expanded) 0f else 1f) }
+
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            scale.snapTo(0.75f)
+            alpha.snapTo(0f)
+            launch {
+                scale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = 0.62f, // Bouncy Apple liquid spring with soft overshoot
+                        stiffness = 350f,
+                    ),
+                )
+            }
+            launch {
+                alpha.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(durationMillis = 150),
+                )
+            }
+        }
+    }
+
+    return this.graphicsLayer {
+        scaleX = scale.value
+        scaleY = scale.value
+        this.alpha = alpha.value
+        transformOrigin = origin
+    }
+}
+
 /**
  * The one **floating surface**: the bars' glass
  * ([rememberFloatingSurfaceColor]) cut at the floating corner
@@ -165,9 +223,9 @@ fun FloatingDialog(
         AlertDialog(
             onDismissRequest = onDismissRequest,
             containerColor = surface,
-            // The modifier lands on the dialog's own `Surface`, which is what lets the rim be drawn
-            // on the panel's bounds.
-            modifier = modifier.floatingRim(),
+            modifier = modifier
+                .floatingRim()
+                .liquidGlassSpringAnimation(expanded = true, origin = TransformOrigin(0.5f, 0.5f)),
             properties = properties,
             // No tonal wash: with `surface` and `surfaceTint` the same colour the RGB would survive it,
             // but the composite still stacks the tint's alpha over the fill's and lands the panel a

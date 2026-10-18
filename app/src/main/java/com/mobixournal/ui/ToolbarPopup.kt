@@ -45,7 +45,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.TransformOrigin
 import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
@@ -163,7 +165,9 @@ internal fun ToolbarMenu(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = onDismissRequest,
-            modifier = modifier.floatingRim(),
+            modifier = modifier
+                .floatingRim()
+                .liquidGlassSpringAnimation(expanded = expanded, origin = TransformOrigin(0f, 0f)),
             content = content,
         )
     }
