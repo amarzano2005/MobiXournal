@@ -2,7 +2,6 @@ package com.mobixournal.audio
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,8 +11,8 @@ import android.speech.SpeechRecognizer
 import java.util.Locale
 
 /**
- * On-device continuous speech recognizer wrapper using Android's platform [SpeechRecognizer]
- * with automatic utterance continuation, silence recovery, and live partial subtitle support.
+ * Continuous speech recognizer wrapper using Android's platform [SpeechRecognizer]
+ * with persistent session reuse, natural silence tolerance, and live partial subtitle support.
  */
 class SpeechToTextEngine(private val context: Context) {
 
@@ -58,45 +57,46 @@ class SpeechToTextEngine(private val context: Context) {
         activeLanguage = language
         activeListener = listener
 
-        handler.post { startListeningInternal() }
+        handler.post { startListeningInternal(recreate = false) }
     }
 
-    private fun startListeningInternal() {
-        if (!isSessionActive) return
-
-        destroyCurrentRecognizer()
-
-        val recognizer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
-        ) {
-            runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(context) }
-                .getOrNull() ?: SpeechRecognizer.createSpeechRecognizer(context)
-        } else {
-            SpeechRecognizer.createSpeechRecognizer(context)
-        }
-
-        speechRecognizer = recognizer
-        currentUtteranceStartMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
-
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLanguage)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, activeLanguage)
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 800L)
-        }
-
+    private fun ensureRecognizer(): SpeechRecognizer? {
+        speechRecognizer?.let { return it }
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer.setRecognitionListener(createRecognitionListener())
+        speechRecognizer = recognizer
+        return recognizer
+    }
 
+    private fun buildIntent(): Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLanguage)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, activeLanguage)
+        putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
+        putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
+        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
+        putExtra("android.speech.extra.DICTATION_MODE", true)
+    }
+
+    private fun startListeningInternal(recreate: Boolean = false) {
+        if (!isSessionActive || isPaused) return
+        if (recreate) destroyCurrentRecognizer()
+
+        val recognizer = ensureRecognizer() ?: run {
+            activeListener?.onError("Could not initialize speech recognizer")
+            return
+        }
+
+        currentUtteranceStartMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
         runCatching {
-            recognizer.startListening(intent)
+            recognizer.startListening(buildIntent())
         }.onFailure { err ->
-            if (isSessionActive) {
-                scheduleRestart(500L)
+            if (isSessionActive && !isPaused) {
+                scheduleRestart(500L, recreate = true)
             } else {
                 activeListener?.onError(err.message ?: "Failed to start speech recognition")
             }
@@ -116,15 +116,15 @@ class SpeechToTextEngine(private val context: Context) {
             override fun onEndOfSpeech() {}
 
             override fun onError(error: Int) {
-                if (isSessionActive) {
-                    val delay = when (error) {
-                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> 300L
-                        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> 600L
-                        else -> 100L
-                    }
-                    scheduleRestart(delay)
+                if (!isSessionActive || isPaused) return
+                val isTransientSilence = error == SpeechRecognizer.ERROR_NO_MATCH ||
+                    error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+
+                if (isTransientSilence) {
+                    scheduleRestart(80L, recreate = false)
                 } else {
-                    activeListener?.onError("Speech recognition error: $error")
+                    val isBusy = error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
+                    scheduleRestart(if (isBusy) 300L else 150L, recreate = true)
                 }
             }
 
@@ -145,8 +145,8 @@ class SpeechToTextEngine(private val context: Context) {
                     activeListener?.onSegmentRecognized(segment)
                 }
 
-                if (isSessionActive) {
-                    scheduleRestart(80L)
+                if (isSessionActive && !isPaused) {
+                    scheduleRestart(40L, recreate = false)
                 } else {
                     activeListener?.onFinished()
                 }
@@ -165,11 +165,12 @@ class SpeechToTextEngine(private val context: Context) {
         }
     }
 
-    private fun scheduleRestart(delayMs: Long) {
+    private fun scheduleRestart(delayMs: Long, recreate: Boolean) {
         if (!isSessionActive || isPaused) return
+        handler.removeCallbacksAndMessages(null)
         handler.postDelayed({
             if (isSessionActive && !isPaused) {
-                startListeningInternal()
+                startListeningInternal(recreate = recreate)
             }
         }, delayMs)
     }
@@ -181,7 +182,7 @@ class SpeechToTextEngine(private val context: Context) {
         if (!isSessionActive || isPaused) return
         isPaused = true
         handler.removeCallbacksAndMessages(null)
-        handler.post { runCatching { speechRecognizer?.stopListening() } }
+        handler.post { runCatching { speechRecognizer?.cancel() } }
     }
 
     /**
@@ -190,7 +191,7 @@ class SpeechToTextEngine(private val context: Context) {
     fun resumeListening() {
         if (!isSessionActive || !isPaused) return
         isPaused = false
-        handler.post { startListeningInternal() }
+        handler.post { startListeningInternal(recreate = false) }
     }
 
     private fun destroyCurrentRecognizer() {

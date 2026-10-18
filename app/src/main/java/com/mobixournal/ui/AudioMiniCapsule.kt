@@ -91,16 +91,16 @@ fun AudioMiniCapsule(
     }
 }
 
+private val VividRed = Color(0xFFE53935)
+private val VividAmber = Color(0xFFF57C00)
+private val VividGreen = Color(0xFF2E7D32)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
     var showMenu by remember { mutableStateOf(false) }
     val isRecording = audio.recording
-    val recordingBg by animateColorAsState(
-        targetValue = if (isRecording) MaterialTheme.colorScheme.error.copy(alpha = 0.85f)
-        else Color.Transparent,
-        label = "recordingBg",
-    )
+    val recordingBg = if (isRecording) VividRed else Color.Transparent
 
     Box(
         modifier = Modifier
@@ -147,13 +147,13 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             Icons.Outlined.Pause,
         )
         isPaused -> Triple(
-            Color(0xFF388E3C), // Bright green when paused to indicate tap to resume
+            VividGreen,
             Color.White,
             Icons.Outlined.PlayArrow,
         )
         else -> Triple(
-            Color(0x33FFA726), // Amber tint while active recording
-            Color(0xFFFFA726),
+            VividAmber,
+            Color.White,
             Icons.Outlined.Pause,
         )
     }

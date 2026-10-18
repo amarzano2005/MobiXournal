@@ -107,8 +107,15 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         emptyList()
     }
 
-    val transcription = activeTranscription.value ?: surface?.toDocument()?.let { doc ->
-        playingFile?.name?.let { com.mobixournal.audio.AudioInkAligner.buildTranscriptFromStrokes(doc, it) }
+    val transcription = activeTranscription.value ?: playingFile?.let { file ->
+        val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
+        if (transcriptFile.isFile) {
+            runCatching { com.mobixournal.audio.TranscriptionCodec.decode(transcriptFile.readText()) }.getOrNull()
+        } else {
+            surface?.toDocument()?.let { doc ->
+                com.mobixournal.audio.AudioInkAligner.buildTranscriptFromStrokes(doc, file.name)
+            }
+        }
     }
 
     return AudioUiState(
@@ -187,6 +194,15 @@ internal fun MainActivity.toggleRecording() {
         speechEngine = null
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "Nothing was recording")
+        if (file != null) {
+            val transcript = activeTranscription.value
+            if (transcript != null && transcript.segments.isNotEmpty()) {
+                val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
+                runCatching {
+                    transcriptFile.writeText(com.mobixournal.audio.TranscriptionCodec.encode(transcript))
+                }
+            }
+        }
         if (file != null && settingsStore.load().saveStandaloneAudio) {
             val exported = AudioStandaloneExporter.exportStandalone(this, file)
             if (exported) toast("Standalone audio exported to Music/Recordings")
