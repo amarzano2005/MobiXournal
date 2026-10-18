@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "guard-the-chrome-bands-as-one-geometry-contract"
+title = "Guard the chrome's bands as one geometry contract"
+description = "The principle that bands never lie on the page, and that a header closes on one edge, is discipline today: the two failures it exists to prevent (a pane-local tab band leaving a notch of desk inside the header's own bottom edge, and a rim-less bar stacked over a slab reading as two bars) both shipped and were found by eye. Make it mechanical, as the prerequisite of the first UI task in this epic started after it, next to the system-bar guard (guard-the-system-bars-as-one-transparent-contract). One test in app/src/test/java/com/mobixournal/guards/ reading the layout sources the way SourceStructureTest reads the tree, pinning three properties: (a) the chrome's bands and the canvas partition the window in every combination - Standard and Compact, rail left and rail right - so no band rectangle can intersect the canvas's; (b) the header is one Surface whose closing edge spans what the bar spans, with the tabs row inside it rather than a slab beside it, so its bottom edge is drawn once across the full width; (c) the rail's lane begins at the header's bottom, not at the bar's row. Keep the matrix of combinations in one table so a new layout mode has to be added there instead of slipping past. Verify: the guard fails on the pre-fix shapes (TabStrip outside EditorTopBar's Column, a pane-local TabBand, a lane started at the bar's height) and passes on the current tree - that is what makes it a guard rather than a comment."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-10-13
+completed = 2026-10-18
+tags = ["ui", "guard"]
+
+[[task]]
+id = "guard-the-system-bars-as-one-transparent-contract"
+title = "Guard the system bars as one transparent contract"
+description = "The bug that hid the bottom 64px of every page was two files disagreeing about the system bars: MainActivity set navigationBarColor transparent via enableEdgeToEdge while XoppTheme's SideEffect repainted it with colorScheme.background, and the later write won. Add a guard that fails the build when any source assigns a non-transparent statusBarColor or navigationBarColor, so the one fact (the app owns no colour of its own in the system bars, only icons) cannot be split across two files again. The fix has shipped: MainActivity and XoppTheme both write transparent today (see the note in docs/chrome.md), and what this task adds is only the guard."
+status = "finished"
+level = "task"
+category = "test"
+created = 2026-10-13
+completed = 2026-10-18
+tags = ["ui", "testing"]
+
+[[task]]
 id = "tri-directional-touch-to-seek-audio-ink-transcript"
 title = "Tri-Directional Touch-to-Seek Synchronization (Strokes <-> Waveform <-> Transcript)"
 description = "Implement three-way interactive seeking: (1) touching any handwritten stroke on the canvas jumps audio playback and transcript to the exact instant it was drawn, with dynamic ghost/karaoke stroke illumination; (2) tapping any word in the transcript panel seeks audio playback and scrolls the canvas to the corresponding handwritten content; (3) scrubbing the waveform advances both the transcript and canvas viewport in real time."
