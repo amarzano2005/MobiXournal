@@ -54,8 +54,6 @@ internal class BoardCanvas(
 
     /** True once this board has been fitted to cover the view on its initial layout. */
     internal var fittedToScreen: Boolean = false
-    internal var lastFitWidthPx: Int = 0
-    internal var lastFitHeightPx: Int = 0
 
     /** The cells the board occupies, in document order — the file's own, plus the ones written here. */
     val grid = BoardGrid(geometry.chunkCoords, geometry.mode)
@@ -169,13 +167,8 @@ internal fun DrawingSurfaceView.fitBoardZoom(): Float {
  */
 internal fun DrawingSurfaceView.fitBoardIfPending() {
     val board = board ?: return
-    if (width <= 0 || height <= 0) return
-    val sizeChanged = board.lastFitWidthPx != width || board.lastFitHeightPx != height
-    if (board.fittedToScreen && !sizeChanged) return
-    val firstFit = !board.fittedToScreen
+    if (board.fittedToScreen || width <= 0 || height <= 0) return
     board.fittedToScreen = true
-    board.lastFitWidthPx = width
-    board.lastFitHeightPx = height
     val viewW = width.toDouble()
     val viewH = height.toDouble()
     if ((board.geometry.mode == CanvasMode.INFINITE_VERTICAL || board.geometry.mode == CanvasMode.INFINITE_2D) && board.geometry.widthPt <= 0.0) {
@@ -185,10 +178,8 @@ internal fun DrawingSurfaceView.fitBoardIfPending() {
         board.geometry = board.geometry.copy(heightPt = viewH)
     }
     viewport.zoomTo(fitBoardZoom()) {}
-    if (firstFit) {
-        scrollX = 0f
-        scrollY = 0f
-    }
+    scrollX = 0f
+    scrollY = 0f
     expandBoardOnScroll()
     pushExtentToViewport()
     viewport.clamp()
