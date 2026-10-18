@@ -40,6 +40,8 @@ object MobixFormat {
     /** Binary assets, named by content hash ([assetEntry]) — never inline base64. */
     const val ASSETS_DIR = "assets/"
 
+    /** The on-device speech-to-text transcript file (`docs/audio-inking-sync.md`). */
+    const val TRANSCRIPT_ENTRY = "transcript.json"
 
     /** The `.xopp` bridge's sidecar directory (`docs/mobix-format.md`). */
     const val BRIDGE_DIR = "xopp-bridge/"

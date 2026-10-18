@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = true
 
 [[task]]
-id = "on-device-speech-to-text-and-stroke-sync"
-title = "On-Device Speech-to-Text Transcription and Timestamp Alignment"
-description = "Integrate offline/on-device Speech-to-Text transcription with word-level and sentence-level timestamp segments (TranscriptionSegment(startTimeMs, endTimeMs, text)). Align transcribed words with pen stroke timestamps recorded in .mobix ink metadata. Index transcribed words into the editor's search engine (SearchControls), enabling unified search across both handwritten text and spoken audio."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 830
-created = 2026-10-18
-tags = ["audio", "stt", "transcription", "search"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "floating-glass-audio-mini-player-waveform-and-heatmap"
 title = "Floating Frosted-Glass Audio Mini-Player with Waveform and Writing Heatmap"
 description = "Create a modern, draggable frosted-glass mini-player pill (AudioMiniPlayer) featuring: real audio amplitude waveform rendering, interactive scrubbing with haptic feedback, a writing-density heatmap along the waveform showing where notes were authored, +-5s skip buttons, playback speed selector (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch compensation, and an inline live synchronized subtitle pill."

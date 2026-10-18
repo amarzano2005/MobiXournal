@@ -126,6 +126,7 @@ internal object MobixIncrementalSaver {
         name == MobixFormat.MANIFEST_ENTRY -> 0
         name == MobixFormat.CANVAS_ENTRY -> 1
         name == MobixFormat.BRIDGE_ENTRY -> 2
+        name == MobixFormat.TRANSCRIPT_ENTRY -> 2
         name.startsWith(MobixFormat.PAGES_DIR) -> 3
         name.startsWith(MobixFormat.CHUNKS_DIR) -> 3
         name.startsWith(MobixFormat.ASSETS_DIR) -> 4

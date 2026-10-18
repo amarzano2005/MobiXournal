@@ -54,6 +54,17 @@ Rather than relying on vulnerable loose sidecars in user folders:
   that automatically exports an independent copy of each completed recording into the device's public
   `Music/MobiXournal` or `Recordings/MobiXournal` collection via MediaStore.
 
+### On-device Speech-to-Text and stroke synchronization
+- **Temporal transcript segments (`TranscriptionSegment`)**: Stores recognized speech with start and end timestamps
+  in milliseconds (`startTimeMs`, `endTimeMs`, `text`, `confidence`), serialized in `.mobix` via
+  `TranscriptionCodec` into `transcript.json`.
+- **Temporal ink alignment (`AudioInkAligner`)**: Correlates handwritten stroke telemetry (`startMs` + $\sum \Delta t$)
+  with spoken audio segments. Tapping a stroke navigates directly to the exact spoken phrase; seeking in audio
+  locates the bounding box of words written at that moment on the page canvas.
+- **Unified multi-modal search (`DocumentSearch`)**: Search queries automatically scan across typed text boxes,
+  PDF background layers, recognized handwriting, and spoken audio transcripts simultaneously, highlighting
+  both the handwritten ink on canvas and the active playback point.
+
 ---
 
 ## Point-level telemetry mapping
