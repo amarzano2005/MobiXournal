@@ -2,11 +2,11 @@ package com.mobixournal.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,13 +16,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,15 +38,17 @@ import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
- * Modern floating frosted-glass mini capsule situated directly above the main toolbar.
- * Houses:
- * 1. Microphone button: 1-tap toggle for audio recording (pulsing/colored when active)
- * 2. Player button: 1-tap toggle for the audio player / play-pause playback
+ * Modern floating frosted-glass mini capsule situated in the top bar leading empty space
+ * directly above the main toolbar lane.
+ * Houses the two audio buttons moved from the main toolbar:
+ * 1. Microphone button (toggle audio recording, pulsing red when recording; long-press for audio menu)
+ * 2. Play object button (activates stroke audio playback mode and controls mini-player, using GraphicEq)
  */
 @Composable
 fun AudioMiniCapsule(
     audio: AudioUiState,
-    horizontal: Boolean = false,
+    tool: EditorTool = EditorTool.PEN,
+    onTool: (EditorTool) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val isDark = chromeIsDark()
@@ -49,96 +56,145 @@ fun AudioMiniCapsule(
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = glassColor,
         shadowElevation = 4.dp,
         border = BorderStroke(1.dp, hairlineColor),
         modifier = modifier,
     ) {
-        if (horizontal) {
-            Row(
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CapsuleButtons(audio = audio)
-            }
-        } else {
-            Column(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                CapsuleButtons(audio = audio)
-            }
+        Row(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MicCapsuleButton(audio = audio)
+            PlayCapsuleButton(audio = audio, tool = tool, onTool = onTool)
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CapsuleButtons(audio: AudioUiState) {
+private fun MicCapsuleButton(audio: AudioUiState) {
+    var showMenu by remember { mutableStateOf(false) }
     val recordingBg by animateColorAsState(
-        targetValue = if (audio.recording) MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+        targetValue = if (audio.recording) MaterialTheme.colorScheme.error.copy(alpha = 0.22f)
         else Color.Transparent,
         label = "recordingBg",
     )
-    val playingBg by animateColorAsState(
-        targetValue = if (audio.playing) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-        else Color.Transparent,
-        label = "playingBg",
-    )
 
-    // Microphone button: toggle audio recording
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(26.dp)
             .clip(CircleShape)
             .background(recordingBg)
-            .clickable(onClick = audio.onToggleRecord),
+            .combinedClickable(
+                onClick = audio.onToggleRecord,
+                onLongClick = { showMenu = true },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = if (audio.recording) Icons.Outlined.Stop else Icons.Outlined.Mic,
             contentDescription = if (audio.recording) "Ferma registrazione" else "Avvia registrazione audio",
             tint = if (audio.recording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
         )
-    }
 
-    // Player button: toggle mini-player visibility or playback
+        ToolbarMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+        ) {
+            AudioCapsuleMenuContent(audio = audio, onDismiss = { showMenu = false })
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PlayCapsuleButton(
+    audio: AudioUiState,
+    tool: EditorTool,
+    onTool: (EditorTool) -> Unit,
+) {
+    val playActive = tool == EditorTool.PLAY_OBJECT || audio.playing
+    val playBg by animateColorAsState(
+        targetValue = if (playActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        else Color.Transparent,
+        label = "playBg",
+    )
+
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(26.dp)
             .clip(CircleShape)
-            .background(playingBg)
-            .clickable {
-                if (audio.clipOn) {
-                    if (!audio.miniPlayerVisible) {
-                        audio.onToggleMiniPlayer()
+            .background(playBg)
+            .combinedClickable(
+                onClick = {
+                    if (tool == EditorTool.PLAY_OBJECT) {
+                        if (audio.clipOn) {
+                            if (!audio.miniPlayerVisible) {
+                                audio.onToggleMiniPlayer()
+                            } else {
+                                if (audio.playing) audio.onPause() else audio.onResume()
+                            }
+                        } else {
+                            onTool(EditorTool.PEN)
+                        }
                     } else {
-                        if (audio.playing) audio.onPause() else audio.onResume()
+                        onTool(EditorTool.PLAY_OBJECT)
+                        if (audio.clipOn && !audio.miniPlayerVisible) {
+                            audio.onToggleMiniPlayer()
+                        }
                     }
-                } else {
-                    audio.onToggleMiniPlayer()
-                }
-            },
+                },
+                onLongClick = { audio.onToggleMiniPlayer() },
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        val playerIcon = when {
-            audio.playing -> Icons.Outlined.Pause
-            audio.clipOn -> Icons.Outlined.PlayArrow
-            else -> Icons.Outlined.GraphicEq
-        }
-        val playerTint = when {
-            audio.playing -> MaterialTheme.colorScheme.primary
-            audio.clipOn -> MaterialTheme.colorScheme.onSurface
-            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-        }
         Icon(
-            imageVector = playerIcon,
-            contentDescription = "Riproduttore audio",
-            tint = playerTint,
-            modifier = Modifier.size(18.dp),
+            imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.GraphicEq,
+            contentDescription = "Riproduci audio / Play object",
+            tint = if (playActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
         )
     }
+}
+
+@Composable
+private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) {
+    MenuHeading("Audio")
+    DropdownMenuItem(
+        text = { Text(if (audio.recording) "Ferma registrazione" else "Avvia registrazione") },
+        leadingIcon = {
+            Icon(
+                if (audio.recording) Icons.Outlined.Stop else Icons.Outlined.Mic,
+                contentDescription = null,
+            )
+        },
+        onClick = { audio.onToggleRecord(); onDismiss() },
+    )
+    if (audio.clipOn) {
+        DropdownMenuItem(
+            text = { Text(if (audio.miniPlayerVisible) "Nascondi mini-player" else "Mostra mini-player") },
+            leadingIcon = { Icon(Icons.Outlined.GraphicEq, contentDescription = null) },
+            onClick = { audio.onToggleMiniPlayer(); onDismiss() },
+        )
+    }
+    HorizontalDivider()
+    DropdownMenuItem(
+        text = { Text("Salva audio separato") },
+        trailingIcon = {
+            androidx.compose.material3.Switch(
+                checked = audio.saveStandalone,
+                onCheckedChange = { audio.onToggleSaveStandalone(it) },
+            )
+        },
+        onClick = { audio.onToggleSaveStandalone(!audio.saveStandalone) },
+    )
+    HorizontalDivider()
+    DropdownMenuItem(
+        text = { Text(if (audio.folderChosen) "Cambia cartella audio…" else "Scegli cartella audio…") },
+        onClick = { audio.onChooseFolder(); onDismiss() },
+    )
 }

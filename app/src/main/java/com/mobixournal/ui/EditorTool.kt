@@ -14,7 +14,7 @@ import androidx.compose.material.icons.outlined.HighlightAlt
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PanTool
-import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Polyline
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.SelectAll
@@ -138,7 +138,7 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.IMAGE, "Image", Icons.Outlined.Image),
     ToolInfo(EditorTool.TEXIMAGE, "LaTeX", Icons.Outlined.Functions),
     ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", Icons.Outlined.SwapVert),
-    ToolInfo(EditorTool.PLAY_OBJECT, "Play object", Icons.Outlined.PlayCircleOutline),
+    ToolInfo(EditorTool.PLAY_OBJECT, "Play object", Icons.Outlined.GraphicEq),
 )
 
 /** Human-readable label for a tool (the same text the rail's tool menu shows). */

@@ -346,6 +346,7 @@ fun EditorScreen(
                             onExportPageSvg = onExportPageSvg,
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
+                            audio = audio,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -515,16 +516,8 @@ private fun EditorBody(
             // The horizontal dock in a band of its own along the bottom edge, above the nav-bar inset.
             // The band's height is the rail's own (its shell carries the padding), and the canvas ends
             // where the band begins.
-            Column(
-                modifier = modifier,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Column(modifier = modifier) {
                 canvas(Modifier.weight(1f).fillMaxWidth())
-                AudioMiniCapsule(
-                    audio = audio,
-                    horizontal = true,
-                    modifier = Modifier.padding(bottom = 6.dp),
-                )
                 Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) { toolbar() }
             }
         }
@@ -537,9 +530,9 @@ private fun EditorBody(
             // tab row; see `RailSizing.kt`.
             val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
             Row(modifier = modifier) {
-                if (railOnLeft) RailLane(toolbar, audio)
+                if (railOnLeft) RailLane(toolbar)
                 canvas(Modifier.weight(1f).fillMaxHeight())
-                if (!railOnLeft) RailLane(toolbar, audio)
+                if (!railOnLeft) RailLane(toolbar)
             }
         }
     }
@@ -547,26 +540,15 @@ private fun EditorBody(
 
 /** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
 @Composable
-private fun RailLane(toolbar: @Composable () -> Unit, audio: AudioUiState) {
+private fun RailLane(toolbar: @Composable () -> Unit) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
         color = glassColor,
         shadowElevation = 4.dp,
         modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
     ) {
-        Column(
-            modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.height(8.dp))
-            AudioMiniCapsule(audio = audio, horizontal = false)
-            Box(
-                modifier = Modifier
-                    .width(SideToolbarModernTotalWidth)
-                    .weight(1f),
-            ) {
-                toolbar()
-            }
+        Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) {
+            toolbar()
         }
     }
 }

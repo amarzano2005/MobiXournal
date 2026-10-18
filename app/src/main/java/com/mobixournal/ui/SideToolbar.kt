@@ -95,7 +95,7 @@ fun SideToolbar(
     showGraphDialog: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val items = visibleRailItems(railOrder, railHidden)
+    val items = visibleRailItems(railOrder, railHidden).filterNot { it.id == "audio" || it.id == "play" }
     ToolbarShell(
         slotCount = items.size + (if (showStemSection) STEM_ENTRY_COUNT else 0),
         horizontal = horizontal,

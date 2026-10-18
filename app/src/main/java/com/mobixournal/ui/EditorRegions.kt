@@ -138,6 +138,7 @@ fun EditorTopBar(
     onExportPageSvg: () -> Unit,
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
+    audio: AudioUiState = AudioUiState(),
     modifier: Modifier = Modifier,
 ) {
     // The rail can only be docked to a vertical edge now, so the spacer that keeps the top bar's
@@ -202,7 +203,7 @@ fun EditorTopBar(
                                 modifier = Modifier,
                             )
                         } else {
-                            Spacer(Modifier.width(SideToolbarModernTotalWidth))
+                            TopBarAudioCapsule(audio, ui, pane, settings, onSettingsChange)
                         }
                     }
                 },
@@ -325,6 +326,9 @@ fun EditorTopBar(
                     onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
                     onOpenPenParameters = { ui.showPenParametersDialog = true },
                 )
+                if (settings != null && !railOnLeft && !ui.fullPage) {
+                    TopBarAudioCapsule(audio, ui, pane, settings, onSettingsChange)
+                }
             },
         )
 
@@ -365,6 +369,35 @@ fun EditorTopBar(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TopBarAudioCapsule(
+    audio: AudioUiState,
+    ui: EditorUiState,
+    pane: PaneState,
+    settings: AppSettings?,
+    onSettingsChange: ((AppSettings) -> Unit)?,
+) {
+    Box(
+        modifier = Modifier
+            .width(SideToolbarModernTotalWidth)
+            .height(TOP_BAR_ROW_HEIGHT),
+        contentAlignment = Alignment.Center,
+    ) {
+        AudioMiniCapsule(
+            audio = audio,
+            tool = ui.tool,
+            onTool = { newTool ->
+                if (settings != null && onSettingsChange != null) {
+                    pane.surface?.activateTool(newTool, ui, settings, onSettingsChange)
+                } else {
+                    ui.tool = newTool
+                    pane.surface?.applyTool(newTool)
+                }
+            },
+        )
     }
 }
 
