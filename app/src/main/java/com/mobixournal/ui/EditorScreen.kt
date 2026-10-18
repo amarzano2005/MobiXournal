@@ -243,6 +243,13 @@ fun EditorScreen(
     pendingNewerAppConsentName: String? = null,
     onConfirmNewerAppConsent: () -> Unit = {},
     onDismissNewerAppConsent: () -> Unit = {},
+    /** Existing audio clip waiting on consent to overwrite before starting a new recording. */
+    pendingAudioOverwriteClip: String? = null,
+    onConfirmAudioOverwrite: () -> Unit = {},
+    onDismissAudioOverwrite: () -> Unit = {},
+    /** In-app frosted glass toast notification message, or null. */
+    glassToast: String? = null,
+    onDismissToast: () -> Unit = {},
     /** An image-placement tap: open the file/gallery picker and insert what it returns. */
     onPickImage: (Placement) -> Unit,
     /** A pane's canvas has just been built: its index, then the view. */
@@ -430,6 +437,20 @@ fun EditorScreen(
             onSpeedChange = audio.onSpeedChange,
             onClose = audio.onStopPlayback,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
+        )
+
+        if (pendingAudioOverwriteClip != null) {
+            AudioOverwriteConsentDialog(
+                existingClip = pendingAudioOverwriteClip,
+                onConfirm = onConfirmAudioOverwrite,
+                onDismiss = onDismissAudioOverwrite,
+            )
+        }
+
+        GlassToastHost(
+            message = glassToast,
+            onDismiss = onDismissToast,
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
 
         if (!settings.hasSeenOnboarding) {

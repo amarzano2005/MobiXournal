@@ -221,6 +221,15 @@ class MainActivity : ComponentActivity() {
     /** What long-running transfer is in flight, or null. Drives the editor's blocking progress note. */
     internal var busy = mutableStateOf<String?>(null)
 
+    /** In-app frosted glass toast notification message, or null. */
+    internal val glassToast = mutableStateOf<String?>(null)
+
+    /** Pending callback to start recording after user consents to overwrite existing audio. */
+    internal val pendingAudioOverwriteConsent = mutableStateOf<(() -> Unit)?>(null)
+
+    /** Existing audio clip name on the active page/tab prompting for overwrite consent. */
+    internal val pendingAudioOverwriteClip = mutableStateOf<String?>(null)
+
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             uri?.let { insertPickedImage(it) }
@@ -386,6 +395,28 @@ class MainActivity : ComponentActivity() {
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
     }
 
+    private fun initSubsystems(initialSettings: AppSettings) {
+        PDFBoxResourceLoader.init(applicationContext)
+        BitmapBudget.configure(applicationContext)
+        com.mobixournal.render.MlKitInkEngine.ensureModelDownloaded()
+        audioFolder = initialSettings.audioFolderUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
+        audio.onStateChanged = { runOnUiThread { audioTick.value++ } }
+        takeIncoming(intent)
+        requestNotificationPermissionIfNecessary()
+    }
+
+    private fun confirmAudioOverwriteConsent() {
+        val consent = pendingAudioOverwriteConsent.value
+        pendingAudioOverwriteClip.value = null
+        pendingAudioOverwriteConsent.value = null
+        consent?.invoke()
+    }
+
+    private fun dismissAudioOverwriteConsent() {
+        pendingAudioOverwriteClip.value = null
+        pendingAudioOverwriteConsent.value = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val store = settingsStore
         val initialSettings = store.load()
@@ -394,20 +425,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         restoreSplitWorkspace(savedInstanceState)
         applyEdgeToEdge(isDarkTheme(initialSettings))
+        initSubsystems(initialSettings)
 
-        // PDFBox needs its font/resource loader primed once before any PDF export can run.
-        PDFBoxResourceLoader.init(applicationContext)
-        // Size the one bitmap-cache budget from this device's heap, before any cache is built.
-        BitmapBudget.configure(applicationContext)
-        // Ensure digital ink recognition model is downloaded in background for high-accuracy handwriting search
-        com.mobixournal.render.MlKitInkEngine.ensureModelDownloaded()
-        audioFolder = initialSettings.audioFolderUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
-        audio.onStateChanged = { runOnUiThread { audioTick.value++ } }
-        // A cold start from another app's "open with": stash it now, open it once the canvas is up.
-        takeIncoming(intent)
-        requestNotificationPermissionIfNecessary()
         setContent {
-            // Settings live above the theme so the Appearance choice re-colours the whole app.
             var settings by remember {
                 mutableStateOf(initialSettings.also(::applySettingsToLayers))
             }
@@ -416,7 +436,6 @@ class MainActivity : ComponentActivity() {
                     onOpen = { openLauncher.launch(arrayOf("*/*")) },
                     onSave = { saveActiveTab() },
                     busy = busy.value,
-                    // Nothing left for back to peel off in the editor: leave the app for real.
                     onExit = { finish() },
                     onSaveAs = { name, format -> beginSaveAs(name, format) },
                     currentSaveFormat = { saveFormat },
@@ -436,6 +455,11 @@ class MainActivity : ComponentActivity() {
                         pendingNewerAppConsent.value = null
                         pending?.onDismiss?.invoke()
                     },
+                    pendingAudioOverwriteClip = pendingAudioOverwriteClip.value,
+                    onConfirmAudioOverwrite = ::confirmAudioOverwriteConsent,
+                    onDismissAudioOverwrite = ::dismissAudioOverwriteConsent,
+                    glassToast = glassToast.value,
+                    onDismissToast = { glassToast.value = null },
                     onExportPagePng = { exportPagePngLauncher.launch(suggestedPageImageName("png")) },
                     onExportPageSvg = { exportPageSvgLauncher.launch(suggestedPageImageName("svg")) },
                     onPickImage = { placement ->
@@ -579,7 +603,13 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    internal fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    internal fun toast(msg: String) {
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            glassToast.value = msg
+        } else {
+            runOnUiThread { glassToast.value = msg }
+        }
+    }
 
     internal companion object {
         // The document MIME lives in io/SaveTarget.kt beside the `.xopp` suffix, since the manifest's

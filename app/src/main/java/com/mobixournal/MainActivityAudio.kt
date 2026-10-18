@@ -164,9 +164,9 @@ internal fun MainActivity.audioUiState(): AudioUiState {
     val duration = if (activeClip != null) (audio.clipDurationMs ?: lastDurationMs) else null
 
     val clipTitle = when {
-        audio.isRecording -> "Registrazione live"
+        audio.isRecording -> "Live recording"
         activeClip != null -> {
-            val currentTabTitle = pane.tabs.active?.title?.takeIf { it.isNotBlank() } ?: "Documento"
+            val currentTabTitle = pane.tabs.active?.title?.takeIf { it.isNotBlank() } ?: "Document"
             val doc = surface?.toDocument()
             val matchedPage = if (doc != null) {
                 com.mobixournal.audio.AudioInkAligner.findTimestampedStrokes(doc)
@@ -176,7 +176,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
                         a.equals(b, ignoreCase = true)
                     }?.first
             } else null
-            if (matchedPage != null) "$currentTabTitle • Pag. ${matchedPage + 1}" else currentTabTitle
+            if (matchedPage != null) "$currentTabTitle • Page ${matchedPage + 1}" else currentTabTitle
         }
         else -> null
     }
@@ -249,10 +249,10 @@ internal fun MainActivity.togglePauseRecording() {
     if (!audio.isRecording) return
     if (audio.isRecordingPaused) {
         audio.resumeRecording()
-        toast("Registrazione ripresa")
+        toast("Recording resumed")
     } else {
         audio.pauseRecording()
-        toast("Registrazione in pausa")
+        toast("Recording paused")
     }
     audioTick.value++
 }
@@ -262,7 +262,7 @@ internal fun MainActivity.toggleRecording() {
     if (audio.isRecording) {
         AudioRecordingService.stop(this)
         val file = audio.stopRecording()
-        toast(if (file != null) "Registrazione salvata: ${file.name}" else "Nessuna registrazione in corso")
+        toast(if (file != null) "Recording saved: ${file.name}" else "No active recording")
         if (file != null) {
             val ref = AudioRef(file.name, 0)
             lastAudioRef = ref
@@ -279,6 +279,20 @@ internal fun MainActivity.toggleRecording() {
         audioTick.value++
         return
     }
+
+    val existing = findCandidateAudioRef()
+    if (existing != null) {
+        pendingAudioOverwriteClip.value = existing.filename
+        pendingAudioOverwriteConsent.value = {
+            checkPermissionAndBeginRecording()
+        }
+        return
+    }
+
+    checkPermissionAndBeginRecording()
+}
+
+internal fun MainActivity.checkPermissionAndBeginRecording() {
     val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
         PackageManager.PERMISSION_GRANTED
     if (granted) beginRecording() else recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -296,22 +310,22 @@ internal fun MainActivity.beginRecording() {
             runOnUiThread { if (audio.isRecording) toggleRecording() }
         }
         AudioRecordingService.start(this)
-        toast("Registrazione in corso")
+        toast("Recording in progress")
     } else {
-        toast("Impossibile aprire il microfono")
+        toast("Unable to open microphone")
     }
 }
 
 internal fun MainActivity.transcribeDeferredAudio(file: File) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-        transcriptionStatus.value = "Trascrizione richiede Android 12+"
+        transcriptionStatus.value = "Transcription requires Android 12+"
         return
     }
     val selectedLang = settingsStore.load().transcriptionLanguage
     val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
 
     isTranscribing.value = true
-    transcriptionStatus.value = "Analisi audio in corso..."
+    transcriptionStatus.value = "Analyzing audio..."
     audioTick.value++
 
     lifecycleScope.launch(Dispatchers.IO) {
@@ -319,7 +333,7 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
         if (pcmData == null || pcmData.isEmpty()) {
             withContext(Dispatchers.Main) {
                 isTranscribing.value = false
-                transcriptionStatus.value = "Trascrizione non disponibile"
+                transcriptionStatus.value = "Transcription unavailable"
                 audioTick.value++
             }
             return@launch
@@ -329,7 +343,7 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
         if (chunks.isEmpty()) {
             withContext(Dispatchers.Main) {
                 isTranscribing.value = false
-                transcriptionStatus.value = "Nessun parlato rilevato"
+                transcriptionStatus.value = "No speech detected"
                 audioTick.value++
             }
             return@launch
@@ -341,7 +355,7 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
             language = resolvedLang,
             onProgress = { current, total ->
                 runOnUiThread {
-                    transcriptionStatus.value = "Trascrizione ($current/$total)..."
+                    transcriptionStatus.value = "Transcribing ($current/$total)..."
                     audioTick.value++
                 }
             },
@@ -354,7 +368,7 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
                 commitTranscriptionSegments(file, segments, resolvedLang)
                 transcriptionStatus.value = null
             } else {
-                transcriptionStatus.value = "Nessun testo rilevato"
+                transcriptionStatus.value = "No text recognized"
             }
             audioTick.value++
         }
@@ -482,9 +496,9 @@ internal fun MainActivity.playAutonomousAudio() {
             if (surfaceView != null) followRecording(surfaceView)
             audioTick.value++
         } else {
-            toast("Registrazione non trovata: ${candidate.filename}")
+            toast("Recording not found: ${candidate.filename}")
         }
     } else {
-        toast("Nessuna registrazione audio in questa scheda")
+        toast("No audio recording in this tab")
     }
 }

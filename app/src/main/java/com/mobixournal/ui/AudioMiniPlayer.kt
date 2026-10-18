@@ -283,11 +283,11 @@ private fun SubtitleOrTranscriptSection(
     } else {
         Spacer(Modifier.height(4.dp))
         val displayText = when {
-            isTranscribing -> "Trascrizione in corso..."
+            isTranscribing -> "Transcribing..."
             !activeSubtitle.isNullOrBlank() -> "“$activeSubtitle”"
-            transcription != null && transcription.segments.isNotEmpty() -> "Trascrizione (${transcription.segments.size} segmenti)"
+            transcription != null && transcription.segments.isNotEmpty() -> "Transcript (${transcription.segments.size} segments)"
             !transcriptionStatus.isNullOrBlank() -> transcriptionStatus
-            else -> "Trascrizione (tocca per aprire)"
+            else -> "Transcript (tap to open)"
         }
         val isHighlighted = !activeSubtitle.isNullOrBlank() || isTranscribing
 
@@ -345,7 +345,7 @@ private fun TranscriptPanel(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Nessuna trascrizione disponibile",
+                text = "No transcript available",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
