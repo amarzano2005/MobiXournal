@@ -417,7 +417,7 @@ fun EditorScreen(
             onSkip = audio.onSkip,
             onSpeedChange = audio.onSpeedChange,
             onClose = audio.onToggleMiniPlayer,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
 
         if (!settings.hasSeenOnboarding) {

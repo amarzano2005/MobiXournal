@@ -107,6 +107,10 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         emptyList()
     }
 
+    val transcription = activeTranscription.value ?: surface?.toDocument()?.let { doc ->
+        playingFile?.name?.let { com.mobixournal.audio.AudioInkAligner.buildTranscriptFromStrokes(doc, it) }
+    }
+
     return AudioUiState(
         recording = audio.isRecording,
         playing = audio.isPlaying,
@@ -117,7 +121,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         saveStandalone = settings.saveStandaloneAudio,
         playbackSpeed = audio.playbackSpeed,
         waveform = waveform,
-        transcription = activeTranscription.value,
+        transcription = transcription,
         miniPlayerVisible = miniPlayerVisible.value && audio.nowPlaying != null,
         onToggleRecord = ::toggleRecording,
         onResume = {

@@ -52,7 +52,6 @@ class SpeechToTextEngine(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
 
         recognizer.setRecognitionListener(object : RecognitionListener {
@@ -73,7 +72,6 @@ class SpeechToTextEngine(private val context: Context) {
             override fun onEndOfSpeech() {}
 
             override fun onError(error: Int) {
-                // SpeechRecognizer error codes (7 = NO_MATCH, 6 = SPEECH_TIMEOUT, etc.)
                 isListening = false
                 listener.onError("Speech recognition error: $error")
             }
@@ -98,7 +96,20 @@ class SpeechToTextEngine(private val context: Context) {
                 listener.onFinished()
             }
 
-            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onPartialResults(partialResults: Bundle?) {
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val text = matches?.firstOrNull()?.trim().orEmpty()
+                val nowOffsetMs = (System.currentTimeMillis() - sessionStartTimeMs).toInt().coerceAtLeast(0)
+                if (text.isNotEmpty()) {
+                    val segment = TranscriptionSegment(
+                        startTimeMs = segmentStartOffsetMs,
+                        endTimeMs = nowOffsetMs.coerceAtLeast(segmentStartOffsetMs + 200),
+                        text = text,
+                        confidence = 0.8,
+                    )
+                    listener.onSegmentRecognized(segment)
+                }
+            }
 
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })

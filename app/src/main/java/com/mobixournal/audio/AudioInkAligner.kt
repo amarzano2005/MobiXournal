@@ -122,4 +122,50 @@ object AudioInkAligner {
         val b = refB.substringAfterLast('/').substringAfterLast('\\')
         return a.equals(b, ignoreCase = true)
     }
+
+    /**
+     * Synthesizes an aligned [AudioTranscription] from handwritten strokes on [doc]
+     * tagged with [audioFilename]. Useful for existing documents or when speech recognition
+     * was not captured during recording.
+     */
+    fun buildTranscriptFromStrokes(doc: Document, audioFilename: String): AudioTranscription? {
+        val strokes = findTimestampedStrokes(doc)
+            .filter { (_, _, ref) -> isMatchingAudio(ref.filename, audioFilename) }
+        if (strokes.isEmpty()) return null
+
+        val recognizedWords = runCatching {
+            HandwritingRecognizer.recognizePage(strokes.map { it.second })
+        }.getOrNull().orEmpty()
+
+        val segments = if (recognizedWords.isNotEmpty()) {
+            recognizedWords.mapNotNull { word ->
+                val matching = strokes.minByOrNull { (_, stroke, _) ->
+                    val b = HandwritingRecognizer.strokeBounds(stroke)
+                    val dx = b.left - word.bounds.left
+                    val dy = b.top - word.bounds.top
+                    dx * dx + dy * dy
+                } ?: return@mapNotNull null
+                val ref = matching.third
+                val dur = matching.second.points.sumOf { (it.dtMs ?: 0).coerceAtLeast(0) }.coerceAtLeast(400)
+                TranscriptionSegment(
+                    startTimeMs = ref.startMs,
+                    endTimeMs = ref.startMs + dur,
+                    text = word.text,
+                    confidence = 0.9,
+                )
+            }.distinctBy { it.startTimeMs }
+        } else {
+            strokes.mapIndexed { idx, (_, stroke, ref) ->
+                val dur = stroke.points.sumOf { (it.dtMs ?: 0).coerceAtLeast(0) }.coerceAtLeast(500)
+                TranscriptionSegment(
+                    startTimeMs = ref.startMs,
+                    endTimeMs = ref.startMs + dur,
+                    text = "Tratto #${idx + 1}",
+                    confidence = 1.0,
+                )
+            }
+        }
+
+        return AudioTranscription(audioFilename = audioFilename, segments = segments)
+    }
 }
