@@ -56,6 +56,14 @@ class AudioSession(
     /** Notified whenever recording starts or stops, so the chrome can re-render its state. */
     var onStateChanged: (() -> Unit)? = null
 
+    /** Optional listener receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)` while recording. */
+    var onPcmData: ((ByteArray, Int, Int) -> Unit)?
+        get() = opus.onPcmData ?: wav.onPcmData
+        set(value) {
+            opus.onPcmData = value
+            wav.onPcmData = value
+        }
+
     /**
      * The sidecar name of the clip that is **on** — sounding, or paused at a position — or null when
      * none is. What tells the replay path *which* recording its playhead belongs to, since the player

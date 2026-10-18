@@ -36,6 +36,10 @@ class AudioRecorder {
     /** True while recording is temporarily paused. */
     val isPaused: Boolean get() = paused.get()
 
+    /** Optional listener receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)`. */
+    @Volatile
+    var onPcmData: ((ByteArray, Int, Int) -> Unit)? = null
+
     fun pause() {
         if (running.get()) paused.set(true)
     }
@@ -54,13 +58,7 @@ class AudioRecorder {
         val minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING)
         if (minBuffer <= 0) return false
         val bufferBytes = minBuffer * BUFFER_MULTIPLIER
-        val rec = runCatching {
-            AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, ENCODING, bufferBytes)
-        }.getOrNull() ?: return false
-        if (rec.state != AudioRecord.STATE_INITIALIZED) {
-            rec.release()
-            return false
-        }
+        val rec = openAudioRecord(bufferBytes) ?: return false
         val w = runCatching { WavWriter(target, SAMPLE_RATE) }.getOrElse {
             rec.release()
             return false
@@ -75,6 +73,22 @@ class AudioRecorder {
         return true
     }
 
+    @SuppressLint("MissingPermission")
+    private fun openAudioRecord(bufferBytes: Int): AudioRecord? {
+        val sources = intArrayOf(
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            MediaRecorder.AudioSource.MIC,
+        )
+        for (source in sources) {
+            val candidate = runCatching {
+                AudioRecord(source, SAMPLE_RATE, CHANNEL_CONFIG, ENCODING, bufferBytes)
+            }.getOrNull() ?: continue
+            if (candidate.state == AudioRecord.STATE_INITIALIZED) return candidate
+            candidate.release()
+        }
+        return null
+    }
+
     /** Drain the capture buffer into the WAV until [stop] flips the flag. */
     private fun pump(rec: AudioRecord, w: WavWriter, bufferBytes: Int) {
         val buffer = ByteArray(bufferBytes)
@@ -84,7 +98,12 @@ class AudioRecorder {
                 continue
             }
             val read = rec.read(buffer, 0, buffer.size)
-            if (read > 0) synchronized(w) { w.write(buffer, read) } else if (read < 0) break
+            if (read > 0) {
+                synchronized(w) { w.write(buffer, read) }
+                onPcmData?.invoke(buffer, read, SAMPLE_RATE)
+            } else if (read < 0) {
+                break
+            }
         }
     }
 

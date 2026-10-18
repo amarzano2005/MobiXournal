@@ -95,7 +95,10 @@ internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
     val driver = KaraokeFrameDriver(
         choreographer = Choreographer.getInstance(),
         clip = { KaraokeFrames.Clip(audio.nowPlaying, audio.playheadMs, audio.isPlaying) },
-        publish = { state -> view.karaokeState = state },
+        publish = { state ->
+            view.karaokeState = state
+            audioTick.value++
+        },
     )
     karaokeDriver = driver
     driver.follow()
@@ -105,6 +108,28 @@ internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
 internal fun MainActivity.detachAudio() {
     karaokeDriver?.stop()
     karaokeDriver = null
+}
+
+private val transcriptDiskCache = mutableMapOf<String, com.mobixournal.audio.AudioTranscription?>()
+
+private fun MainActivity.resolveTranscriptionForClip(activeClip: String?): com.mobixournal.audio.AudioTranscription? {
+    val live = activeTranscription.value
+    if (audio.isRecording && live != null) return live
+    if (activeClip == null) return live
+    if (live != null && live.audioFilename == activeClip) return live
+
+    val transcriptFile = File(filesDir, "audio/$activeClip.transcript.json")
+    val cacheKey = "${transcriptFile.absolutePath}_${transcriptFile.lastModified()}"
+    if (transcriptDiskCache.containsKey(cacheKey)) {
+        return transcriptDiskCache[cacheKey]
+    }
+    val decoded = if (transcriptFile.isFile) {
+        runCatching { com.mobixournal.audio.TranscriptionCodec.decode(transcriptFile.readText()) }.getOrNull()
+    } else {
+        null
+    }
+    transcriptDiskCache[cacheKey] = decoded
+    return decoded
 }
 
 /** The audio slot's current state, read fresh on every recomposition [MainActivity.audioTick] triggers. */
@@ -119,16 +144,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         emptyList()
     }
 
-    val transcription = activeTranscription.value ?: playingFile?.let { file ->
-        val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
-        if (transcriptFile.isFile) {
-            runCatching { com.mobixournal.audio.TranscriptionCodec.decode(transcriptFile.readText()) }.getOrNull()
-        } else {
-            surface?.toDocument()?.let { doc ->
-                com.mobixournal.audio.AudioInkAligner.buildTranscriptFromStrokes(doc, file.name)
-            }
-        }
-    }
+    val transcription = resolveTranscriptionForClip(activeClip)
 
     if (audio.clipDurationMs != null && audio.clipDurationMs != 0) {
         lastDurationMs = audio.clipDurationMs
@@ -152,7 +168,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         onTogglePauseRecord = ::togglePauseRecording,
         onResume = {
             audio.resume()
-            karaokeDriver?.publishOnce()
+            surface?.let { followRecording(it) }
             audioTick.value++
         },
         onPause = {
@@ -202,8 +218,8 @@ internal fun MainActivity.togglePauseRecording() {
         speechEngine?.resumeListening()
         toast("Registrazione ripresa")
     } else {
-        audio.pauseRecording()
         speechEngine?.pauseListening()
+        audio.pauseRecording()
         toast("Registrazione in pausa")
     }
     audioTick.value++
@@ -215,6 +231,7 @@ internal fun MainActivity.toggleRecording() {
         AudioRecordingService.stop(this)
         speechEngine?.stopListening()
         speechEngine = null
+        audio.onPcmData = null
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "Nothing was recording")
         if (file != null) {
@@ -225,6 +242,7 @@ internal fun MainActivity.toggleRecording() {
                 runCatching {
                     transcriptFile.writeText(com.mobixournal.audio.TranscriptionCodec.encode(transcript))
                 }
+                transcriptDiskCache.clear()
             }
         }
         if (file != null && settingsStore.load().saveStandaloneAudio) {
@@ -232,6 +250,7 @@ internal fun MainActivity.toggleRecording() {
             if (exported) toast("Standalone audio exported to Music/Recordings")
         }
         pushAudioSidecars()
+        audioTick.value++
         return
     }
     val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
@@ -259,12 +278,22 @@ internal fun MainActivity.beginRecording() {
 
 internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
     runCatching {
-        val engine = com.mobixournal.audio.SpeechToTextEngine(this)
+        val selectedLang = settingsStore.load().transcriptionLanguage
+        val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
+        activeTranscription.value = com.mobixournal.audio.AudioTranscription(
+            audioFilename = filename,
+            segments = emptyList(),
+            language = resolvedLang,
+        )
+        val engine = com.mobixournal.audio.SpeechToTextEngine(
+            context = this,
+            elapsedMsProvider = { audio.stamp()?.startMs ?: 0 },
+        )
         if (engine.isAvailable()) {
             val finalizedSegments = mutableListOf<com.mobixournal.audio.TranscriptionSegment>()
-            val selectedLang = settingsStore.load().transcriptionLanguage
-            val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
+            audio.onPcmData = { buf, len, rate -> engine.feedPcm(buf, len, rate) }
             com.mobixournal.audio.checkSpeechLanguagePack(this, resolvedLang) { status ->
+                engine.preferOffline = (status == com.mobixournal.audio.LanguagePackStatus.INSTALLED)
                 if (status == com.mobixournal.audio.LanguagePackStatus.DOWNLOAD_AVAILABLE) {
                     toast("Pacchetto offline [$resolvedLang] non scaricato: trascrizione online attiva")
                 }
@@ -278,6 +307,7 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
                             activeTranscription.value = com.mobixournal.audio.AudioTranscription(
                                 audioFilename = filename,
                                 segments = finalizedSegments.toList(),
+                                language = resolvedLang,
                             )
                             audioTick.value++
                         }
@@ -289,11 +319,12 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
                                 startTimeMs = startMs,
                                 endTimeMs = endMs,
                                 text = text,
-                                confidence = 0.8,
+                                confidence = 0.85,
                             )
                             activeTranscription.value = com.mobixournal.audio.AudioTranscription(
                                 audioFilename = filename,
                                 segments = finalizedSegments + listOf(liveSegment),
+                                language = resolvedLang,
                             )
                             audioTick.value++
                         }
@@ -306,6 +337,8 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
                 },
             )
             speechEngine = engine
+        } else {
+            toast("Servizio di riconoscimento vocale di sistema non trovato sul dispositivo")
         }
     }
 }

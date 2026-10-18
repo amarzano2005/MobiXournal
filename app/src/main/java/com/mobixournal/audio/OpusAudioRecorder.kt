@@ -50,6 +50,10 @@ class OpusAudioRecorder {
     /** True while recording is temporarily paused. */
     val isPaused: Boolean get() = paused.get()
 
+    /** Optional listener receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)`. */
+    @Volatile
+    var onPcmData: ((ByteArray, Int, Int) -> Unit)? = null
+
     fun pause() {
         if (running.get()) paused.set(true)
     }
@@ -93,18 +97,23 @@ class OpusAudioRecorder {
         return true
     }
 
+    @SuppressLint("MissingPermission")
     private fun initAudioRecord(): AudioRecord? {
         val minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, ENCODING)
         if (minBuffer <= 0) return null
         val bufferBytes = minBuffer * BUFFER_MULTIPLIER
-        val rec = runCatching {
-            AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, ENCODING, bufferBytes)
-        }.getOrNull() ?: return null
-        if (rec.state != AudioRecord.STATE_INITIALIZED) {
+        val sources = intArrayOf(
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            MediaRecorder.AudioSource.MIC,
+        )
+        for (source in sources) {
+            val rec = runCatching {
+                AudioRecord(source, SAMPLE_RATE, CHANNEL_CONFIG, ENCODING, bufferBytes)
+            }.getOrNull() ?: continue
+            if (rec.state == AudioRecord.STATE_INITIALIZED) return rec
             rec.release()
-            return null
         }
-        return rec
+        return null
     }
 
     private fun initMediaCodec(): MediaCodec? = runCatching {
@@ -149,6 +158,7 @@ class OpusAudioRecorder {
         }
         val read = rec.read(pcmBuffer, 0, pcmBuffer.size)
         if (read <= 0) return
+        onPcmData?.invoke(pcmBuffer, read, SAMPLE_RATE)
 
         val inputIndex = cod.dequeueInputBuffer(TIMEOUT_US)
         if (inputIndex >= 0) {
