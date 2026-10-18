@@ -155,6 +155,9 @@ class MainActivity : ComponentActivity() {
     /** Whether speech-to-text deferred transcription is currently running in background. */
     internal val isTranscribing = mutableStateOf(false)
 
+    /** Status message for deferred transcription, displayed inline in the player. */
+    internal val transcriptionStatus = mutableStateOf<String?>(null)
+
     /** The most recent audio recording made or referenced, used for autonomous playback fallback. */
     internal var lastAudioRef: AudioRef? = null
 

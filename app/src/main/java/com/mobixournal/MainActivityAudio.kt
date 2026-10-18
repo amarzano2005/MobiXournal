@@ -13,7 +13,6 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.view.Choreographer
 import androidx.core.content.ContextCompat
-import java.util.concurrent.atomic.AtomicBoolean
 import com.mobixournal.audio.AudioRecordingService
 import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
@@ -196,7 +195,8 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         waveform = waveform,
         transcription = transcription,
         isTranscribing = isTranscribing.value,
-        miniPlayerVisible = miniPlayerVisible.value && (activeClip != null || audio.isRecording || isTranscribing.value),
+        transcriptionStatus = transcriptionStatus.value,
+        miniPlayerVisible = miniPlayerVisible.value && (activeClip != null || audio.isRecording),
         onToggleRecord = ::toggleRecording,
         onTogglePauseRecord = ::togglePauseRecording,
         onResume = {
@@ -269,7 +269,6 @@ internal fun MainActivity.toggleRecording() {
             pane.tabs.active?.id?.let { tabId ->
                 tabAudioRefs[tabId] = ref
             }
-            miniPlayerVisible.value = true
             transcribeDeferredAudio(file)
         }
         if (file != null && settingsStore.load().saveStandaloneAudio) {
@@ -305,93 +304,105 @@ internal fun MainActivity.beginRecording() {
 
 internal fun MainActivity.transcribeDeferredAudio(file: File) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-        toast("La trascrizione richiede Android 12 o superiore")
+        transcriptionStatus.value = "Trascrizione richiede Android 12+"
         return
     }
     val selectedLang = settingsStore.load().transcriptionLanguage
     val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
 
     isTranscribing.value = true
+    transcriptionStatus.value = "Trascrizione in corso..."
     audioTick.value++
-    toast("Trascrizione in corso...")
 
     Thread({
         val pcmData = com.mobixournal.audio.AudioPcmExtractor.extract16kMonoPcm(file)
         if (pcmData == null || pcmData.isEmpty()) {
             runOnUiThread {
                 isTranscribing.value = false
+                transcriptionStatus.value = "Trascrizione non disponibile"
                 audioTick.value++
-                toast("Impossibile elaborare l'audio per la trascrizione")
             }
             return@Thread
         }
 
-        val pipe = runCatching { ParcelFileDescriptor.createPipe() }.getOrNull()
-        if (pipe == null) {
+        val pcmTempFile = runCatching {
+            File(cacheDir, "transcribe_${System.currentTimeMillis()}.pcm").apply {
+                writeBytes(pcmData)
+                setReadable(true, false)
+            }
+        }.getOrNull()
+
+        val pfd = pcmTempFile?.let {
+            runCatching { ParcelFileDescriptor.open(it, ParcelFileDescriptor.MODE_READ_ONLY) }.getOrNull()
+        }
+
+        if (pfd == null) {
             runOnUiThread {
                 isTranscribing.value = false
+                transcriptionStatus.value = "Trascrizione non disponibile"
                 audioTick.value++
-                toast("Errore creazione stream audio")
             }
             return@Thread
         }
 
         runOnUiThread {
-            startSpeechRecognitionPipe(file, pcmData, pipe[0], pipe[1], resolvedLang)
+            startSpeechRecognitionSession(file, pcmTempFile, pfd, resolvedLang, pcmData.size)
         }
     }, "deferred-transcription").start()
 }
 
-private fun MainActivity.startSpeechRecognitionPipe(
+private fun MainActivity.startSpeechRecognitionSession(
     file: File,
-    pcmData: ByteArray,
-    readSide: ParcelFileDescriptor,
-    writeSide: ParcelFileDescriptor,
+    pcmTempFile: File,
+    pfd: ParcelFileDescriptor,
     resolvedLang: String,
+    pcmByteCount: Int,
 ) {
     val recognizer = runCatching {
-        if (SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+        SpeechRecognizer.createSpeechRecognizer(this)
+    }.getOrNull() ?: runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
             SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-        } else {
-            SpeechRecognizer.createSpeechRecognizer(this)
-        }
+        } else null
     }.getOrNull() ?: run {
-        runCatching { readSide.close() }
-        runCatching { writeSide.close() }
+        runCatching { pfd.close() }
+        runCatching { pcmTempFile.delete() }
         isTranscribing.value = false
+        transcriptionStatus.value = "Riconoscimento vocale non disponibile"
         audioTick.value++
-        toast("Riconoscimento vocale non disponibile")
         return
     }
 
     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, resolvedLang)
-        putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, readSide)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, resolvedLang)
+        putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
+        putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, pfd)
+        putExtra("android.speech.extra.AUDIO_INJECT_SOURCE", pfd)
         putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, AudioFormat.ENCODING_PCM_16BIT)
         putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1)
         putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, 16000)
-        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
     }
 
-    val streamEnded = AtomicBoolean(false)
     val cleanUp: () -> Unit = {
-        streamEnded.set(true)
-        runCatching { readSide.close() }
-        runCatching { writeSide.close() }
+        runCatching { pfd.close() }
+        runCatching { pcmTempFile.delete() }
     }
 
-    val timeoutMs = (pcmData.size / 32L) + 15_000L
+    val timeoutMs = (pcmByteCount / 32L) + 15_000L
+    val handler = android.os.Handler(android.os.Looper.getMainLooper())
     val timeoutRunnable = Runnable {
         if (isTranscribing.value) {
             isTranscribing.value = false
+            transcriptionStatus.value = "Trascrizione terminata"
             cleanUp()
             runCatching { recognizer.destroy() }
             audioTick.value++
-            toast("Trascrizione terminata (timeout)")
         }
     }
-    val handler = android.os.Handler(android.os.Looper.getMainLooper())
     handler.postDelayed(timeoutRunnable, timeoutMs.coerceAtLeast(10_000L))
 
     recognizer.setRecognitionListener(
@@ -400,17 +411,13 @@ private fun MainActivity.startSpeechRecognitionPipe(
 
     runCatching {
         recognizer.startListening(intent)
-        runCatching { readSide.close() }
-        Thread({
-            pumpPcmToPipe(pcmData, writeSide, streamEnded)
-        }, "pcm-pipe-feeder").start()
     }.onFailure {
         handler.removeCallbacks(timeoutRunnable)
         cleanUp()
         isTranscribing.value = false
+        transcriptionStatus.value = "Trascrizione non disponibile"
         audioTick.value++
         runCatching { recognizer.destroy() }
-        toast("Impossibile avviare il riconoscimento")
     }
 }
 
@@ -422,6 +429,8 @@ private fun MainActivity.createSpeechRecognitionListener(
     timeoutRunnable: Runnable,
     cleanUp: () -> Unit,
 ): RecognitionListener = object : RecognitionListener {
+    private var accumulatedText: String = ""
+
     override fun onReadyForSpeech(params: Bundle?) {}
     override fun onBeginningOfSpeech() {}
     override fun onRmsChanged(rmsdB: Float) {}
@@ -431,16 +440,13 @@ private fun MainActivity.createSpeechRecognitionListener(
         handler.removeCallbacks(timeoutRunnable)
         cleanUp()
         isTranscribing.value = false
-        audioTick.value++
-        val errorMsg = when (error) {
-            SpeechRecognizer.ERROR_NO_MATCH -> "Nessuna parola riconosciuta"
-            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Nessun parlato rilevato"
-            SpeechRecognizer.ERROR_AUDIO -> "Errore audio durante il riconoscimento"
-            SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Errore di connessione"
-            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED, 13 -> "Lingua non supportata su questo dispositivo"
-            else -> "Errore riconoscimento ($error)"
+        if (accumulatedText.isNotBlank()) {
+            commitTranscription(file, accumulatedText, resolvedLang)
+            transcriptionStatus.value = null
+        } else {
+            transcriptionStatus.value = "Trascrizione non disponibile"
         }
-        toast("Trascrizione: $errorMsg")
+        audioTick.value++
         runCatching { recognizer.destroy() }
     }
 
@@ -449,59 +455,47 @@ private fun MainActivity.createSpeechRecognitionListener(
         cleanUp()
         isTranscribing.value = false
         val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            ?.firstOrNull { it.isNotBlank() }
-        if (!text.isNullOrBlank()) {
-            val transcript = com.mobixournal.audio.AudioTranscription(
-                audioFilename = file.name,
-                segments = listOf(
-                    com.mobixournal.audio.TranscriptionSegment(
-                        startTimeMs = 0,
-                        endTimeMs = (lastDurationMs ?: 1000).coerceAtLeast(1000),
-                        text = text.trim(),
-                        confidence = 0.9,
-                    ),
-                ),
-                language = resolvedLang,
-            )
-            activeTranscription.value = transcript
-            val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
-            runCatching {
-                transcriptFile.writeText(com.mobixournal.audio.TranscriptionCodec.encode(transcript))
-            }
-            transcriptDiskCache.clear()
-            audioTick.value++
-            toast("Trascrizione completata!")
+            ?.firstOrNull { it.isNotBlank() } ?: accumulatedText
+        if (text.isNotBlank()) {
+            commitTranscription(file, text, resolvedLang)
+            transcriptionStatus.value = null
         } else {
-            audioTick.value++
-            toast("Nessun testo rilevato nell'audio")
+            transcriptionStatus.value = "Nessun testo rilevato"
         }
+        audioTick.value++
         runCatching { recognizer.destroy() }
     }
 
-    override fun onPartialResults(partialResults: Bundle?) {}
+    override fun onPartialResults(partialResults: Bundle?) {
+        val text = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            ?.firstOrNull { it.isNotBlank() }
+        if (!text.isNullOrBlank()) {
+            accumulatedText = text.trim()
+        }
+    }
+
     override fun onEvent(eventType: Int, params: Bundle?) {}
 }
 
-private fun pumpPcmToPipe(
-    pcmData: ByteArray,
-    writeSide: ParcelFileDescriptor,
-    canceled: AtomicBoolean,
-) {
-    val output = ParcelFileDescriptor.AutoCloseOutputStream(writeSide)
-    try {
-        var offset = 0
-        val chunkSize = 1024
-        while (offset < pcmData.size && !canceled.get()) {
-            val len = minOf(chunkSize, pcmData.size - offset)
-            output.write(pcmData, offset, len)
-            offset += len
-            Thread.sleep(25)
-        }
-        output.flush()
-    } catch (_: Throwable) {
-    } finally {
-        runCatching { output.close() }
+private fun MainActivity.commitTranscription(file: File, text: String, resolvedLang: String) {
+    val transcript = com.mobixournal.audio.AudioTranscription(
+        audioFilename = file.name,
+        segments = listOf(
+            com.mobixournal.audio.TranscriptionSegment(
+                startTimeMs = 0,
+                endTimeMs = (lastDurationMs ?: 1000).coerceAtLeast(1000),
+                text = text.trim(),
+                confidence = 0.9,
+            ),
+        ),
+        language = resolvedLang,
+    )
+    activeTranscription.value = transcript
+    val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
+    runCatching {
+        transcriptFile.writeText(com.mobixournal.audio.TranscriptionCodec.encode(transcript))
     }
+    transcriptDiskCache.clear()
 }
 
 /**

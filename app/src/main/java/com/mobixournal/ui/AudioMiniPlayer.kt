@@ -81,6 +81,7 @@ fun AudioMiniPlayer(
     clipTitle: String? = null,
     playbackSpeed: Float = 1.0f,
     isTranscribing: Boolean = false,
+    transcriptionStatus: String? = null,
     onTogglePlay: () -> Unit,
     onSeek: (Int) -> Unit,
     onSkip: (Int) -> Unit,
@@ -150,6 +151,7 @@ fun AudioMiniPlayer(
                     activeSubtitle = activeSubtitle,
                     playheadMs = playheadMs,
                     isTranscribing = isTranscribing,
+                    transcriptionStatus = transcriptionStatus,
                     onSeek = onSeek,
                     onOpenTranscript = { showTranscript = true },
                 )
@@ -267,33 +269,11 @@ private fun SubtitleOrTranscriptSection(
     activeSubtitle: String?,
     playheadMs: Int,
     isTranscribing: Boolean = false,
+    transcriptionStatus: String? = null,
     onSeek: (Int) -> Unit,
     onOpenTranscript: () -> Unit,
 ) {
-    if (isTranscribing) {
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(12.dp),
-                strokeWidth = 1.5.dp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = "Trascrizione in corso...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-            )
-        }
-    } else if (showTranscript) {
+    if (showTranscript) {
         Spacer(Modifier.height(4.dp))
         TranscriptPanel(
             transcription = transcription,
@@ -303,35 +283,45 @@ private fun SubtitleOrTranscriptSection(
     } else {
         Spacer(Modifier.height(4.dp))
         val displayText = when {
+            isTranscribing -> "Trascrizione in corso..."
             !activeSubtitle.isNullOrBlank() -> "“$activeSubtitle”"
             transcription != null && transcription.segments.isNotEmpty() -> "Trascrizione (${transcription.segments.size} segmenti)"
+            !transcriptionStatus.isNullOrBlank() -> transcriptionStatus
             else -> "Trascrizione (tocca per aprire)"
         }
-        val isSubtitled = !activeSubtitle.isNullOrBlank()
+        val isHighlighted = !activeSubtitle.isNullOrBlank() || isTranscribing
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(6.dp))
                 .background(
-                    if (isSubtitled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    if (isHighlighted) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
                 )
-                .clickable(onClick = onOpenTranscript)
+                .clickable(enabled = !isTranscribing, onClick = onOpenTranscript)
                 .padding(horizontal = 6.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Subtitles,
-                contentDescription = null,
-                tint = if (isSubtitled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(12.dp),
-            )
+            if (isTranscribing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    strokeWidth = 1.5.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Outlined.Subtitles,
+                    contentDescription = null,
+                    tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
             Spacer(Modifier.width(4.dp))
             Text(
                 text = displayText,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isSubtitled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }
