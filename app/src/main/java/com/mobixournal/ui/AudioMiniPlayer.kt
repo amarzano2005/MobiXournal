@@ -386,14 +386,14 @@ private fun MiniPlayerControls(
         IconButton(
             onClick = onTogglePlay,
             modifier = Modifier
-                .size(36.dp)
+                .size(30.dp)
                 .background(MaterialTheme.colorScheme.primary, CircleShape),
         ) {
             Icon(
                 imageVector = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                 contentDescription = if (playing) "Pause" else "Play",
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
         Spacer(Modifier.width(12.dp))

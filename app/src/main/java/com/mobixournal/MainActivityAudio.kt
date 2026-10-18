@@ -38,7 +38,7 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
     view.audioStamp = { audio.stamp() }
     view.onAudioTap = { ref ->
         when {
-            ref == null -> toast("That stroke has no recording")
+            ref == null -> Unit
             !audio.play(ref) -> toast("Recording not found: ${ref.filename}")
             else -> {
                 lastAudioRef = ref
@@ -67,7 +67,15 @@ internal fun MainActivity.scrollToAudioTimestamp(ms: Int) {
 }
 
 internal fun MainActivity.scrubTo(ms: Int) {
-    audio.seek(ms)
+    if (audio.nowPlaying == null) {
+        val candidate = findCandidateAudioRef()
+        if (candidate != null) {
+            audio.play(candidate.copy(startMs = ms))
+            audio.pausePlayback()
+        }
+    } else {
+        audio.seek(ms)
+    }
     karaokeDriver?.publishOnce()
     scrollToAudioTimestamp(ms)
     audioTick.value++
@@ -103,7 +111,8 @@ internal fun MainActivity.detachAudio() {
 internal fun MainActivity.audioUiState(): AudioUiState {
     audioTick.value // read so Compose re-invokes this when the session changes
     val settings = settingsStore.load()
-    val playingFile = audio.nowPlaying?.let { File(filesDir, "audio/$it") }
+    val activeClip = audio.nowPlaying ?: lastAudioRef?.filename
+    val playingFile = activeClip?.let { File(filesDir, "audio/$it") }
     val waveform = if (playingFile != null && playingFile.exists()) {
         AudioWaveformExtractor.extract(playingFile)
     } else {
@@ -121,19 +130,24 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         }
     }
 
+    if (audio.clipDurationMs != null && audio.clipDurationMs != 0) {
+        lastDurationMs = audio.clipDurationMs
+    }
+    val duration = audio.clipDurationMs ?: lastDurationMs
+
     return AudioUiState(
         recording = audio.isRecording,
         recordingPaused = audio.isRecordingPaused,
         playing = audio.isPlaying,
         clipOn = audio.nowPlaying != null,
-        playheadMs = audio.playheadMs,
-        durationMs = audio.clipDurationMs,
+        playheadMs = audio.playheadMs ?: if (!audio.isPlaying && lastAudioRef != null) (lastDurationMs ?: 0) else 0,
+        durationMs = duration,
         folderChosen = audioFolder != null,
         saveStandalone = settings.saveStandaloneAudio,
         playbackSpeed = audio.playbackSpeed,
         waveform = waveform,
         transcription = transcription,
-        miniPlayerVisible = miniPlayerVisible.value && audio.nowPlaying != null,
+        miniPlayerVisible = miniPlayerVisible.value,
         onToggleRecord = ::toggleRecording,
         onTogglePauseRecord = ::togglePauseRecording,
         onResume = {
@@ -154,7 +168,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         onScrub = ::scrubTo,
         onSkip = { deltaMs ->
             val cur = audio.playheadMs ?: 0
-            val dur = audio.clipDurationMs ?: 0
+            val dur = duration ?: 0
             val target = (cur + deltaMs).coerceIn(0, dur.coerceAtLeast(0))
             scrubTo(target)
         },

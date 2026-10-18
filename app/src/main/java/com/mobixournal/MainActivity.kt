@@ -152,6 +152,9 @@ class MainActivity : ComponentActivity() {
     /** The most recent audio recording made or referenced, used for autonomous playback fallback. */
     internal var lastAudioRef: AudioRef? = null
 
+    /** The duration in ms of the most recent audio recording played or referenced. */
+    internal var lastDurationMs: Int? = null
+
     /** On-device speech recognition engine active during recording sessions. */
     internal var speechEngine: com.mobixournal.audio.SpeechToTextEngine? = null
 

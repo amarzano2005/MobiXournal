@@ -407,19 +407,25 @@ fun EditorScreen(
             onDismissNewerAppConsent = onDismissNewerAppConsent,
         )
 
+        LaunchedEffect(ui.tool) {
+            if (ui.tool != EditorTool.PLAY_OBJECT && audio.miniPlayerVisible) {
+                audio.onStopPlayback()
+            }
+        }
+
         AudioMiniPlayer(
-            visible = audio.miniPlayerVisible && audio.clipOn,
+            visible = audio.miniPlayerVisible,
             playing = audio.playing,
             playheadMs = audio.playheadMs ?: 0,
             durationMs = audio.durationMs ?: 0,
             waveform = audio.waveform,
             transcription = audio.transcription,
             playbackSpeed = audio.playbackSpeed,
-            onTogglePlay = { if (audio.playing) audio.onPause() else audio.onResume() },
+            onTogglePlay = audio.onPlayAutonomous,
             onSeek = audio.onScrub,
             onSkip = audio.onSkip,
             onSpeedChange = audio.onSpeedChange,
-            onClose = audio.onToggleMiniPlayer,
+            onClose = audio.onStopPlayback,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
 
