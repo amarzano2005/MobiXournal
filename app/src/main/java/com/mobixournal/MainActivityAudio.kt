@@ -325,18 +325,8 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
             return@Thread
         }
 
-        val pcmTempFile = runCatching {
-            File(cacheDir, "transcribe_${System.currentTimeMillis()}.pcm").apply {
-                writeBytes(pcmData)
-                setReadable(true, false)
-            }
-        }.getOrNull()
-
-        val pfd = pcmTempFile?.let {
-            runCatching { ParcelFileDescriptor.open(it, ParcelFileDescriptor.MODE_READ_ONLY) }.getOrNull()
-        }
-
-        if (pfd == null) {
+        val pipe = runCatching { ParcelFileDescriptor.createPipe() }.getOrNull()
+        if (pipe == null) {
             runOnUiThread {
                 isTranscribing.value = false
                 transcriptionStatus.value = "Trascrizione non disponibile"
@@ -346,18 +336,48 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
         }
 
         runOnUiThread {
-            startSpeechRecognitionSession(file, pcmTempFile, pfd, resolvedLang, pcmData.size)
+            startSpeechRecognitionSession(file, pipe[0], pipe[1], pcmData, resolvedLang)
         }
     }, "deferred-transcription").start()
 }
 
+private fun pumpPcmToPipe(
+    pcmData: ByteArray,
+    writeSide: ParcelFileDescriptor,
+    isActive: () -> Boolean,
+) {
+    Thread({
+        try {
+            ParcelFileDescriptor.AutoCloseOutputStream(writeSide).use { stream ->
+                val chunkSize = 1600
+                var offset = 0
+                while (offset < pcmData.size && isActive()) {
+                    val count = minOf(chunkSize, pcmData.size - offset)
+                    stream.write(pcmData, offset, count)
+                    stream.flush()
+                    offset += count
+                    Thread.sleep(35)
+                }
+            }
+        } catch (_: Exception) {
+        } finally {
+            runCatching { writeSide.close() }
+        }
+    }, "speech-pcm-pump").start()
+}
+
 private fun MainActivity.startSpeechRecognitionSession(
     file: File,
-    pcmTempFile: File,
-    pfd: ParcelFileDescriptor,
+    readSide: ParcelFileDescriptor,
+    writeSide: ParcelFileDescriptor,
+    pcmData: ByteArray,
     resolvedLang: String,
-    pcmByteCount: Int,
 ) {
+    val cleanUp: () -> Unit = {
+        runCatching { writeSide.close() }
+        runCatching { readSide.close() }
+    }
+
     val recognizer = runCatching {
         SpeechRecognizer.createSpeechRecognizer(this)
     }.getOrNull() ?: runCatching {
@@ -365,8 +385,7 @@ private fun MainActivity.startSpeechRecognitionSession(
             SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
         } else null
     }.getOrNull() ?: run {
-        runCatching { pfd.close() }
-        runCatching { pcmTempFile.delete() }
+        cleanUp()
         isTranscribing.value = false
         transcriptionStatus.value = "Riconoscimento vocale non disponibile"
         audioTick.value++
@@ -378,21 +397,20 @@ private fun MainActivity.startSpeechRecognitionSession(
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, resolvedLang)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, resolvedLang)
         putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
-        putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, pfd)
-        putExtra("android.speech.extra.AUDIO_INJECT_SOURCE", pfd)
+        putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, readSide)
+        putExtra("android.speech.extra.AUDIO_INJECT_SOURCE", readSide)
         putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, AudioFormat.ENCODING_PCM_16BIT)
         putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1)
         putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, 16000)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 10_000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3_000L)
     }
 
-    val cleanUp: () -> Unit = {
-        runCatching { pfd.close() }
-        runCatching { pcmTempFile.delete() }
-    }
-
-    val timeoutMs = (pcmByteCount / 32L) + 15_000L
+    val durationMs = (pcmData.size / 32L)
+    val timeoutMs = (durationMs * 35L / 50L) + 15_000L
     val handler = android.os.Handler(android.os.Looper.getMainLooper())
     val timeoutRunnable = Runnable {
         if (isTranscribing.value) {
@@ -406,11 +424,12 @@ private fun MainActivity.startSpeechRecognitionSession(
     handler.postDelayed(timeoutRunnable, timeoutMs.coerceAtLeast(10_000L))
 
     recognizer.setRecognitionListener(
-        createSpeechRecognitionListener(file, resolvedLang, recognizer, handler, timeoutRunnable, cleanUp)
+        createSpeechRecognitionListener(file, resolvedLang, pcmData.size, recognizer, handler, timeoutRunnable, cleanUp)
     )
 
     runCatching {
         recognizer.startListening(intent)
+        pumpPcmToPipe(pcmData, writeSide) { isTranscribing.value }
     }.onFailure {
         handler.removeCallbacks(timeoutRunnable)
         cleanUp()
@@ -424,6 +443,7 @@ private fun MainActivity.startSpeechRecognitionSession(
 private fun MainActivity.createSpeechRecognitionListener(
     file: File,
     resolvedLang: String,
+    pcmByteCount: Int,
     recognizer: SpeechRecognizer,
     handler: android.os.Handler,
     timeoutRunnable: Runnable,
@@ -437,14 +457,21 @@ private fun MainActivity.createSpeechRecognitionListener(
     override fun onBufferReceived(buffer: ByteArray?) {}
     override fun onEndOfSpeech() {}
     override fun onError(error: Int) {
+        android.util.Log.w("MainActivityAudio", "Speech recognition error: $error")
         handler.removeCallbacks(timeoutRunnable)
         cleanUp()
         isTranscribing.value = false
         if (accumulatedText.isNotBlank()) {
-            commitTranscription(file, accumulatedText, resolvedLang)
+            commitTranscription(file, accumulatedText, resolvedLang, pcmByteCount)
             transcriptionStatus.value = null
         } else {
-            transcriptionStatus.value = "Trascrizione non disponibile"
+            transcriptionStatus.value = when (error) {
+                SpeechRecognizer.ERROR_NO_MATCH -> "Nessun testo rilevato"
+                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Nessun parlato rilevato"
+                SpeechRecognizer.ERROR_AUDIO -> "Errore audio"
+                SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Errore di connessione"
+                else -> "Trascrizione non disponibile"
+            }
         }
         audioTick.value++
         runCatching { recognizer.destroy() }
@@ -457,7 +484,7 @@ private fun MainActivity.createSpeechRecognitionListener(
         val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             ?.firstOrNull { it.isNotBlank() } ?: accumulatedText
         if (text.isNotBlank()) {
-            commitTranscription(file, text, resolvedLang)
+            commitTranscription(file, text, resolvedLang, pcmByteCount)
             transcriptionStatus.value = null
         } else {
             transcriptionStatus.value = "Nessun testo rilevato"
@@ -477,13 +504,23 @@ private fun MainActivity.createSpeechRecognitionListener(
     override fun onEvent(eventType: Int, params: Bundle?) {}
 }
 
-private fun MainActivity.commitTranscription(file: File, text: String, resolvedLang: String) {
+private fun MainActivity.commitTranscription(
+    file: File,
+    text: String,
+    resolvedLang: String,
+    pcmByteCount: Int = 0,
+) {
+    val durationMs = if (pcmByteCount > 0) {
+        (pcmByteCount / 32).coerceAtLeast(1000)
+    } else {
+        (lastDurationMs ?: 1000).coerceAtLeast(1000)
+    }
     val transcript = com.mobixournal.audio.AudioTranscription(
         audioFilename = file.name,
         segments = listOf(
             com.mobixournal.audio.TranscriptionSegment(
                 startTimeMs = 0,
-                endTimeMs = (lastDurationMs ?: 1000).coerceAtLeast(1000),
+                endTimeMs = durationMs,
                 text = text.trim(),
                 confidence = 0.9,
             ),
