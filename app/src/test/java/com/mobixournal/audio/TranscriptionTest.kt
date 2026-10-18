@@ -212,4 +212,38 @@ class TranscriptionTest {
         val result = AudioPcmExtractor.extract16kMonoPcm(nonExistent)
         org.junit.Assert.assertNull(result)
     }
+
+    @Test
+    fun audioVadSegmenterSplitsSpeechAndSilenceIntoChunks() {
+        // 16 kHz 16-bit mono = 32,000 bytes per second
+        // Create 6 seconds: 2s speech (high amplitude), 1s silence, 3s speech
+        val sampleRate = 16000
+        val totalSeconds = 6
+        val pcm = ByteArray(totalSeconds * sampleRate * 2)
+
+        fun fillSine(startSec: Int, durationSec: Int, amplitude: Short) {
+            val startSample = startSec * sampleRate
+            val endSample = (startSec + durationSec) * sampleRate
+            for (i in startSample until endSample) {
+                val idx = i * 2
+                pcm[idx] = (amplitude.toInt() and 0xFF).toByte()
+                pcm[idx + 1] = ((amplitude.toInt() shr 8) and 0xFF).toByte()
+            }
+        }
+
+        // Utterance 1: 0s to 2s
+        fillSine(0, 2, 8000)
+        // 2s to 3s is silence (all 0)
+        // Utterance 2: 3s to 6s
+        fillSine(3, 3, 8000)
+
+        val chunks = AudioVadSegmenter.segment(pcm, minChunkMs = 1000, maxChunkMs = 5000, silenceGapMs = 400)
+        assertEquals(2, chunks.size)
+        // First chunk around [0..2000ms]
+        assertEquals(0, chunks[0].startMs)
+        assertTrue("End of chunk 0 should be around 2000-2500ms but was ${chunks[0].endMs}", chunks[0].endMs in 1800..2600)
+        // Second chunk around [3000..6000ms]
+        assertTrue("Start of chunk 1 should be around 2900-3100ms but was ${chunks[1].startMs}", chunks[1].startMs in 2800..3200)
+        assertEquals(6000, chunks[1].endMs)
+    }
 }
