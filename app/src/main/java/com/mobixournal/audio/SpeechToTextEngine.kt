@@ -62,7 +62,14 @@ class SpeechToTextEngine(private val context: Context) {
 
     private fun ensureRecognizer(): SpeechRecognizer? {
         speechRecognizer?.let { return it }
-        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
+        val recognizer = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+        ) {
+            runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(context) }.getOrNull()
+                ?: SpeechRecognizer.createSpeechRecognizer(context)
+        } else {
+            SpeechRecognizer.createSpeechRecognizer(context)
+        }
         recognizer.setRecognitionListener(createRecognitionListener())
         speechRecognizer = recognizer
         return recognizer
@@ -76,10 +83,12 @@ class SpeechToTextEngine(private val context: Context) {
         putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
-        putExtra("android.speech.extra.DICTATION_MODE", true)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+        }
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500)
     }
 
     private fun startListeningInternal(recreate: Boolean = false) {
@@ -95,6 +104,7 @@ class SpeechToTextEngine(private val context: Context) {
         runCatching {
             recognizer.startListening(buildIntent())
         }.onFailure { err ->
+            android.util.Log.w("SpeechToTextEngine", "startListening failed", err)
             if (isSessionActive && !isPaused) {
                 scheduleRestart(500L, recreate = true)
             } else {
@@ -117,14 +127,15 @@ class SpeechToTextEngine(private val context: Context) {
 
             override fun onError(error: Int) {
                 if (!isSessionActive || isPaused) return
+                android.util.Log.d("SpeechToTextEngine", "SpeechRecognizer error: $error")
                 val isTransientSilence = error == SpeechRecognizer.ERROR_NO_MATCH ||
                     error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
 
                 if (isTransientSilence) {
-                    scheduleRestart(80L, recreate = false)
+                    scheduleRestart(250L, recreate = false)
                 } else {
                     val isBusy = error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
-                    scheduleRestart(if (isBusy) 300L else 150L, recreate = true)
+                    scheduleRestart(if (isBusy) 400L else 300L, recreate = true)
                 }
             }
 
@@ -146,7 +157,7 @@ class SpeechToTextEngine(private val context: Context) {
                 }
 
                 if (isSessionActive && !isPaused) {
-                    scheduleRestart(40L, recreate = false)
+                    scheduleRestart(250L, recreate = false)
                 } else {
                     activeListener?.onFinished()
                 }
@@ -168,11 +179,12 @@ class SpeechToTextEngine(private val context: Context) {
     private fun scheduleRestart(delayMs: Long, recreate: Boolean) {
         if (!isSessionActive || isPaused) return
         handler.removeCallbacksAndMessages(null)
+        runCatching { speechRecognizer?.cancel() }
         handler.postDelayed({
             if (isSessionActive && !isPaused) {
                 startListeningInternal(recreate = recreate)
             }
-        }, delayMs)
+        }, delayMs.coerceAtLeast(200L))
     }
 
     /**

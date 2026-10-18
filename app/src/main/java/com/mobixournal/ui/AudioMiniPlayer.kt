@@ -371,41 +371,49 @@ private fun MiniPlayerControls(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(
-            onClick = { onSkip(-5000) },
-            modifier = Modifier.size(30.dp),
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .clickable { onSkip(-5000) },
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.FastRewind,
                 contentDescription = "Rewind 5s",
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
-        Spacer(Modifier.width(12.dp))
-        IconButton(
-            onClick = onTogglePlay,
+        Spacer(Modifier.width(16.dp))
+        Box(
             modifier = Modifier
-                .size(30.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                .size(26.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .clickable(onClick = onTogglePlay),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                 contentDescription = if (playing) "Pause" else "Play",
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(15.dp),
             )
         }
-        Spacer(Modifier.width(12.dp))
-        IconButton(
-            onClick = { onSkip(5000) },
-            modifier = Modifier.size(30.dp),
+        Spacer(Modifier.width(16.dp))
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .clickable { onSkip(5000) },
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.FastForward,
                 contentDescription = "Forward 5s",
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(16.dp),
             )
         }
     }

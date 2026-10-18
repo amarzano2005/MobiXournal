@@ -299,7 +299,9 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
                         }
                     }
 
-                    override fun onError(error: String) {}
+                    override fun onError(error: String) {
+                        android.util.Log.w("AudioTranscription", "Speech recognition error: $error")
+                    }
                     override fun onFinished() {}
                 },
             )

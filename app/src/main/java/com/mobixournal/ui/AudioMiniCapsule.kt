@@ -124,7 +124,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
 
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(24.dp)
             .clip(CircleShape)
             .background(recordingBg)
             .combinedClickable(
@@ -142,7 +142,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             imageVector = if (isRecording) Icons.Outlined.Stop else Icons.Outlined.Mic,
             contentDescription = if (isRecording) "Termina registrazione" else "Avvia registrazione audio",
             tint = iconTint,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
         )
 
         ToolbarMenu(
@@ -180,7 +180,7 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
 
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(24.dp)
             .clip(CircleShape)
             .background(bg)
             .clickable(
@@ -193,7 +193,7 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             imageVector = icon,
             contentDescription = if (isPaused) "Riprendi registrazione" else "Metti in pausa registrazione",
             tint = iconTint,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
         )
     }
 }
@@ -211,7 +211,7 @@ private fun PlayCapsuleButton(
 
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(24.dp)
             .clip(CircleShape)
             .background(playBg)
             .combinedClickable(
@@ -234,7 +234,7 @@ private fun PlayCapsuleButton(
             imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
             contentDescription = if (audio.playing) "Metti in pausa riproduzione" else "Riproduci audio",
             tint = tint,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
         )
     }
 }

@@ -45,8 +45,7 @@ data class AudioTranscription(
 
     /** Finds the transcription segment active at [playheadMs], if any. */
     fun segmentAt(playheadMs: Int): TranscriptionSegment? =
-        segments.firstOrNull { it.containsTime(playheadMs) }
-            ?: segments.lastOrNull { it.endTimeMs <= playheadMs }
+        segments.firstOrNull { it.containsTime(playheadMs) || (playheadMs in it.endTimeMs..(it.endTimeMs + 1200)) }
 
     /** Finds all segments whose text contains [query] (case-insensitive). */
     fun search(query: String): List<TranscriptionSegment> {
