@@ -1708,8 +1708,8 @@ fun EditorPaneView(
                 TableCellEditorDialog(
                     ui = ui,
                     pane = state,
-                    // A fixed modal dialog: it positions itself in the window and needs no canvas anchoring.
-                    modifier = Modifier.padding(16.dp),
+                    // A fixed modal dialog: it positions, sizes and pads itself in the window —
+                    // no canvas anchoring, no external sizing to feed it.
                 )
             }
         }

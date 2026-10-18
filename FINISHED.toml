@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "compact-glass-table-editor-dialog"
+title = "Compact the table editor dialog and dress it in the shared floating glass material"
+description = "The fixed whole-table editor dialog now wears the same frosted-glass material as the rest of the floating chrome: FloatingSurface (shared fill, rim, panel corner radius) with the family's liquid-glass spring entry, capped at 380dp instead of a full-screen card. Compact layout: one-line header (title + rows x cols), denser cell grid (max 300dp), and a single bottom strip merging the align/bold pills (acting on the last-focused cell, now labelled RxC) with Annulla/Salva. Also fixed a latent Kotlin visibility violation in TranscriptionCodec (public encodeNode exposing the internal JsonNode.Obj, now internal). Full testDebugUnitTest suite green."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-19
+completed = 2026-10-19
+tags = []
+
+[[task]]
 id = "replace-floating-cell-inspector-with-fixed-table-editor"
 title = "Replace the floating cell inspector with a fixed whole-table editor dialog"
 description = "The anchored floating cell inspector proved fragile (keyboard occlusion, one cell at a time). It is replaced by a fixed modal editor (ui/TableCellEditorDialog.kt): opened by double-tap or Edit table, it lists every cell's text in the table's own shape, align/bold act on the last-focused cell, Annulla/back discards, and Salva commits the whole grid through a single replaceTableElement (one undo step). flushTableCellDraft/draftText and the anchor arithmetic are deleted; EditingTableCell is back to (table, row, col); the back cascade closes the editor without saving; TableDividers tests moved to render/TableDividersTest.kt; new pure tests pin the grid commit seams. Docs updated in mobix-elements.md and ui-modernization.md. Full suite green."

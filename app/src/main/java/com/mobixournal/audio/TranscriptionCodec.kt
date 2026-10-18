@@ -23,8 +23,8 @@ object TranscriptionCodec {
     fun encode(transcription: AudioTranscription): String =
         JsonWriter.write(encodeNode(transcription))
 
-    /** Serializes [transcription] into a [JsonNode.Obj]. */
-    fun encodeNode(transcription: AudioTranscription): JsonNode.Obj =
+    /** Serializes [transcription] into a [JsonNode.Obj] (internal: it exposes the internal type). */
+    internal fun encodeNode(transcription: AudioTranscription): JsonNode.Obj =
         MobixJson.obj { out ->
             out[AUDIO_FILE] = JsonNode.of(transcription.audioFilename)
             out[LANGUAGE] = JsonNode.of(transcription.language)

@@ -1,14 +1,17 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,7 +26,6 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -46,6 +49,8 @@ import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.replaceTableElement
+import com.mobixournal.ui.theme.FloatingSurface
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 
 /**
  * Rectangular cell grid an edit session works on: the model may carry short rows (they read as
@@ -101,10 +106,9 @@ internal fun cellStyled(
 }
 
 /**
- * One open editing session's working grid plus the cell the style bar currently acts on. The grid
- * lives only in this session: **Save** commits it onto the table wholesale, closing without saving
- * throws it away — there is no half-committed state in between, unlike the anchored inspector it
- * replaced.
+ * One open editing session's working grid plus the cell the style strip currently acts on. The
+ * grid lives only in this session: **Save** commits it onto the table wholesale, closing without
+ * saving throws it away — there is no half-committed state in between.
  */
 internal class TableCellEditorState(initial: TableElement) {
     var cells by mutableStateOf(editorCellsOf(initial))
@@ -126,14 +130,14 @@ internal class TableCellEditorState(initial: TableElement) {
 }
 
 /**
- * The fixed table editor: a modal dialog listing **every cell's text at once**, so the user never
- * scrolls a floating panel from cell to cell. Nothing here tracks the canvas — the dialog stays
- * where the window puts it, above whatever the IME does — and Save applies the whole grid to the
- * table in a single `replaceTableElement` (one undo step), exactly what the canvas then draws.
+ * The fixed, **compact** table editor: every cell's text editable at once, on the same frosted
+ * glass the rest of the floating chrome wears ([FloatingSurface] fill + rim + the family's fluid
+ * entry spring) instead of a full-width material card. Save applies the whole grid to the table
+ * in a single `replaceTableElement` (one undo step).
  *
- * Opened by **Edit table** on a selected table (`SelectionActionAnchor`) or a double-tap on a cell
- * (`DrawingSurfaceInput`); the tapped (or first) cell starts focused. Align/bold act on the cell
- * the user last focused (`TableCellEditorState.current*`).
+ * Opened by **Edit table** on a selected table (`SelectionActionAnchor`) or a double-tap on a
+ * cell (`DrawingSurfaceInput`); the tapped (or first) cell starts focused. Align/bold act on the
+ * cell the user last focused (`TableCellEditorState.current*`).
  */
 @Composable
 fun TableCellEditorDialog(
@@ -150,17 +154,15 @@ fun TableCellEditorDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
+        FloatingSurface(
             modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 24.dp),
-            shape = RoundedCornerShape(20.dp),
-            tonalElevation = 6.dp,
-            color = MaterialTheme.colorScheme.surface,
+                .widthIn(max = 380.dp)
+                .padding(horizontal = 12.dp, vertical = 16.dp)
+                .liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f)),
         ) {
             Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 TableCellEditorHeader(table)
                 TableCellEditorGrid(
@@ -168,10 +170,10 @@ fun TableCellEditorDialog(
                     initialCell = editing.row to editing.col,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 400.dp),
+                        .heightIn(max = 300.dp),
                 )
-                TableCellEditorStyleBar(state)
-                TableCellEditorButtons(
+                TableCellEditorBottomBar(
+                    state = state,
                     onCancel = onDismiss,
                     onSave = {
                         val updated = applyEditedCells(table, state.cells)
@@ -186,18 +188,22 @@ fun TableCellEditorDialog(
     }
 }
 
+/** One compact line: the edit affordance on the left, the grid's shape on the right. */
 @Composable
 private fun TableCellEditorHeader(table: TableElement) {
-    Column {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = "Modifica tabella",
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "${table.rowHeights.size} righe × ${table.colWidths.size} colonne — " +
-                "modifica le celle come vuoi, poi salva",
-            style = MaterialTheme.typography.bodySmall,
+            text = "${table.rowHeights.size}×${table.colWidths.size}",
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -212,11 +218,11 @@ private fun TableCellEditorGrid(
 ) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         state.cells.forEachIndexed { row, rowCells ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 rowCells.forEachIndexed { col, cell ->
@@ -257,7 +263,7 @@ private fun TableCellEditorField(
                 }
             },
         singleLine = true,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         textStyle = MaterialTheme.typography.bodySmall.copy(
             fontWeight = if (cell.bold) FontWeight.Bold else FontWeight.Normal,
             textAlign = when (cell.align) {
@@ -268,51 +274,70 @@ private fun TableCellEditorField(
         ),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.75f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
         ),
     )
 }
 
-/** Align/bold for whichever cell was focused last, so styling needs no per-cell buttons. */
+/**
+ * One strip instead of two: the align/bold pills at the left (acting on the last-focused cell,
+ * whose coordinates the strip names) and Annulla / Salva buttons at the right.
+ */
 @Composable
-private fun TableCellEditorStyleBar(state: TableCellEditorState) {
+private fun TableCellEditorBottomBar(
+    state: TableCellEditorState,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+) {
+    val active = state.cells.getOrNull(state.currentRow)?.getOrNull(state.currentCol) ?: TableCell()
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Cella ${state.currentRow + 1}, ${state.currentCol + 1}",
-            style = MaterialTheme.typography.labelLarge,
+            text = "R${state.currentRow + 1}·C${state.currentCol + 1}",
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TableCellEditorStyleIconButton(
-                selected = state.cells.getOrNull(state.currentRow)?.getOrNull(state.currentCol)?.align == TableAlign.LEFT,
-                imageVector = Icons.AutoMirrored.Outlined.FormatAlignLeft,
-                description = "Allinea a sinistra",
-                onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.LEFT) },
-            )
-            TableCellEditorStyleIconButton(
-                selected = state.cells.getOrNull(state.currentRow)?.getOrNull(state.currentCol)?.align == TableAlign.CENTER,
-                imageVector = Icons.Outlined.FormatAlignCenter,
-                description = "Allinea al centro",
-                onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.CENTER) },
-            )
-            TableCellEditorStyleIconButton(
-                selected = state.cells.getOrNull(state.currentRow)?.getOrNull(state.currentCol)?.align == TableAlign.RIGHT,
-                imageVector = Icons.AutoMirrored.Outlined.FormatAlignRight,
-                description = "Allinea a destra",
-                onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.RIGHT) },
-            )
-            TableCellEditorStyleIconButton(
-                selected = state.cells.getOrNull(state.currentRow)?.getOrNull(state.currentCol)?.bold == true,
-                imageVector = Icons.Outlined.FormatBold,
-                description = "Grassetto",
-                onClick = { state.toggleBold(state.currentRow, state.currentCol) },
-            )
+        TableCellEditorStyleIconButton(
+            selected = active.align == TableAlign.LEFT,
+            imageVector = Icons.AutoMirrored.Outlined.FormatAlignLeft,
+            description = "Allinea a sinistra",
+            onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.LEFT) },
+        )
+        TableCellEditorStyleIconButton(
+            selected = active.align == TableAlign.CENTER,
+            imageVector = Icons.Outlined.FormatAlignCenter,
+            description = "Allinea al centro",
+            onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.CENTER) },
+        )
+        TableCellEditorStyleIconButton(
+            selected = active.align == TableAlign.RIGHT,
+            imageVector = Icons.AutoMirrored.Outlined.FormatAlignRight,
+            description = "Allinea a destra",
+            onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.RIGHT) },
+        )
+        TableCellEditorStyleIconButton(
+            selected = active.bold,
+            imageVector = Icons.Outlined.FormatBold,
+            description = "Grassetto",
+            onClick = { state.toggleBold(state.currentRow, state.currentCol) },
+        )
+        Spacer(Modifier.weight(1f))
+        TextButton(
+            onClick = onCancel,
+            contentPadding = PaddingValues(horizontal = 8.dp),
+        ) {
+            Text("Annulla", style = MaterialTheme.typography.labelMedium)
+        }
+        Button(
+            onClick = onSave,
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+        ) {
+            Text("Salva", style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -328,7 +353,7 @@ private fun TableCellEditorStyleIconButton(
         checked = selected,
         onCheckedChange = { onClick() },
         modifier = Modifier
-            .size(32.dp)
+            .size(28.dp)
             .background(
                 color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                 shape = RoundedCornerShape(8.dp),
@@ -337,32 +362,12 @@ private fun TableCellEditorStyleIconButton(
         Icon(
             imageVector = imageVector,
             contentDescription = description,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
             tint = if (selected) {
                 MaterialTheme.colorScheme.onPrimaryContainer
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
-    }
-}
-
-/** Discard keeps the table as it is; Save swaps the whole grid in in exactly one element edit. */
-@Composable
-private fun TableCellEditorButtons(
-    onCancel: () -> Unit,
-    onSave: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(onClick = onCancel) {
-            Text("Annulla", style = MaterialTheme.typography.labelLarge)
-        }
-        Button(onClick = onSave) {
-            Text("Salva", style = MaterialTheme.typography.labelLarge)
-        }
     }
 }
