@@ -43,9 +43,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import com.mobixournal.ui.theme.LocalLiquidGlassAnimations
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
@@ -149,27 +163,109 @@ internal fun ToolbarMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val toolbar = rememberFloatingSurfaceColor()
-    val scheme = MaterialTheme.colorScheme
-    val shapes = MaterialTheme.shapes
-    MaterialTheme(
-        colorScheme = scheme.copy(
-            surface = toolbar,
-            surfaceTint = Color.Transparent,
-            surfaceContainer = toolbar,
-            surfaceContainerHigh = toolbar,
-            surfaceContainerHighest = toolbar,
-        ),
-        shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
-    ) {
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = onDismissRequest,
-            modifier = modifier
-                .floatingRim()
-                .liquidGlassSpringAnimation(expanded = expanded, origin = TransformOrigin(0f, 0f)),
-            content = content,
-        )
+    val useLiquid = LocalLiquidGlassAnimations.current
+    if (useLiquid) {
+        if (expanded) {
+            var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
+            val density = LocalDensity.current
+            val positionProvider = remember(density) {
+                ToolbarPopupPositionProvider(density = density) { origin ->
+                    transformOrigin = origin
+                }
+            }
+            Popup(
+                onDismissRequest = onDismissRequest,
+                popupPositionProvider = positionProvider,
+                properties = PopupProperties(focusable = true),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
+                    color = rememberFloatingSurfaceColor(),
+                    shadowElevation = 8.dp,
+                    modifier = modifier
+                        .floatingRim()
+                        .liquidGlassSpringAnimation(expanded = true, origin = transformOrigin),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .width(IntrinsicSize.Max)
+                            .verticalScroll(rememberScrollState()),
+                        content = content,
+                    )
+                }
+            }
+        }
+    } else {
+        val toolbar = rememberFloatingSurfaceColor()
+        val scheme = MaterialTheme.colorScheme
+        val shapes = MaterialTheme.shapes
+        MaterialTheme(
+            colorScheme = scheme.copy(
+                surface = toolbar,
+                surfaceTint = Color.Transparent,
+                surfaceContainer = toolbar,
+                surfaceContainerHigh = toolbar,
+                surfaceContainerHighest = toolbar,
+            ),
+            shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
+        ) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = onDismissRequest,
+                modifier = modifier.floatingRim(),
+                content = content,
+            )
+        }
+    }
+}
+
+internal class ToolbarPopupPositionProvider(
+    private val density: Density,
+    private val onPositionCalculated: (TransformOrigin) -> Unit,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val fitsRight = anchorBounds.right + popupContentSize.width <= windowSize.width
+        val fitsBelow = anchorBounds.bottom + popupContentSize.height <= windowSize.height
+        val fitsLeft = anchorBounds.left - popupContentSize.width >= 0
+
+        val x: Int
+        val pivotX: Float
+        if (fitsRight && anchorBounds.left < windowSize.width / 3) {
+            x = anchorBounds.right
+            pivotX = 0f
+        } else if (anchorBounds.left + popupContentSize.width <= windowSize.width) {
+            x = anchorBounds.left
+            pivotX = 0f
+        } else if (fitsLeft) {
+            x = anchorBounds.left - popupContentSize.width
+            pivotX = 1f
+        } else {
+            x = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+            pivotX = 0.5f
+        }
+
+        val y: Int
+        val pivotY: Float
+        if (fitsBelow) {
+            y = if (fitsRight && anchorBounds.left < windowSize.width / 3) {
+                anchorBounds.top.coerceAtLeast(0)
+            } else {
+                anchorBounds.bottom
+            }
+            pivotY = 0f
+        } else {
+            y = (windowSize.height - popupContentSize.height).coerceAtLeast(0)
+            pivotY = 1f
+        }
+
+        onPositionCalculated(TransformOrigin(pivotX, pivotY))
+        return IntOffset(x, y)
     }
 }
 
