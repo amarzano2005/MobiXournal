@@ -1,6 +1,7 @@
 package com.mobixournal.ui.theme
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -125,26 +126,26 @@ fun Modifier.liquidGlassSpringAnimation(
 ): Modifier {
     if (!enabled) return this
 
-    val scale = remember { Animatable(if (expanded) 0.35f else 1f) }
+    val scale = remember { Animatable(if (expanded) 0.82f else 1f) }
     val alpha = remember { Animatable(if (expanded) 0f else 1f) }
 
     LaunchedEffect(expanded) {
         if (expanded) {
-            scale.snapTo(0.35f)
+            scale.snapTo(0.82f)
             alpha.snapTo(0f)
             launch {
                 scale.animateTo(
                     targetValue = 1f,
                     animationSpec = spring(
-                        dampingRatio = 0.52f, // Bouncy Apple liquid spring with visible ~10% overshoot and rebound
-                        stiffness = 500f,
+                        dampingRatio = 0.74f, // Apple iOS fluid spring: rapid release with organic deceleration and cushioned snap (no cartoon bouncing)
+                        stiffness = 550f,
                     ),
                 )
             }
             launch {
                 alpha.animateTo(
                     targetValue = 1f,
-                    animationSpec = tween(durationMillis = 60),
+                    animationSpec = tween(durationMillis = 110, easing = FastOutSlowInEasing),
                 )
             }
         }
