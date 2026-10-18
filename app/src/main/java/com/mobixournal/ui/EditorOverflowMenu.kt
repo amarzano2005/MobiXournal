@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -90,8 +91,7 @@ internal fun OverflowMenu(
             color = glassColor,
             tonalElevation = 0.dp,
             shadowElevation = 4.dp,
-            border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-            modifier = Modifier.padding(horizontal = 2.dp),
+            modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
         ) {
             IconButton(
                 onClick = { open = true },

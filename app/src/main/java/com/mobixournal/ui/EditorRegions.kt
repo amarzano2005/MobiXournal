@@ -103,6 +103,7 @@ import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
@@ -242,8 +243,7 @@ fun EditorTopBar(
                     color = glassColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 4.dp,
-                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                    modifier = Modifier.padding(horizontal = 2.dp),
+                    modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
                     IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
                         Icon(
@@ -259,8 +259,7 @@ fun EditorTopBar(
                     color = glassColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 4.dp,
-                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                    modifier = Modifier.padding(horizontal = 4.dp),
+                    modifier = Modifier.padding(horizontal = 4.dp).floatingRim(ModernTheme.capsuleCornerRadiusDp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { pane.surface?.undo() }, enabled = !pane.isReadOnly && pane.canUndo, modifier = Modifier.size(36.dp)) {
@@ -276,8 +275,7 @@ fun EditorTopBar(
                     color = glassColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 4.dp,
-                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                    modifier = Modifier.padding(horizontal = 2.dp),
+                    modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
                     IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                         Icon(
@@ -293,8 +291,7 @@ fun EditorTopBar(
                     color = glassColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 4.dp,
-                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-                    modifier = Modifier.padding(horizontal = 2.dp),
+                    modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
                     IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
@@ -490,8 +487,7 @@ private fun SearchControls(pane: PaneState) {
             color = glassColor,
             tonalElevation = 0.dp,
             shadowElevation = 4.dp,
-            border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-            modifier = Modifier.padding(horizontal = 2.dp),
+            modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
         ) {
             IconButton(
                 onClick = { pane.searchOpen = true },
@@ -1012,10 +1008,10 @@ fun TopBarToolsRow(
             color = glassColor,
             tonalElevation = 0.dp,
             shadowElevation = 6.dp,
-            border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
             modifier = modifier
                 .wrapContentWidth()
-                .height(TOP_BAR_DOCK_HEIGHT),
+                .height(TOP_BAR_DOCK_HEIGHT)
+                .floatingRim(ModernTheme.capsuleCornerRadiusDp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (INDICATOR_AS_DOCK_CAP) {

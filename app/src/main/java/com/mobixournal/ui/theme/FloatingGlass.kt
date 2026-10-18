@@ -76,6 +76,25 @@ internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
         cornerRadius = CornerRadius(cornerRadiusPx),
         style = Stroke(width = width),
     )
+    // Soft inner transition that feathers the outer border seamlessly into the transparent central fill
+    val innerWidth = width * 1.5f
+    val innerInset = width + innerWidth / 2f
+    if (size.width > innerInset * 2 && size.height > innerInset * 2) {
+        drawRoundRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    rim.copy(alpha = MENU_RIM_ALPHA_TOP * 0.35f),
+                    rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM * 0.35f),
+                ),
+                startY = 0f,
+                endY = size.height,
+            ),
+            topLeft = Offset(innerInset, innerInset),
+            size = Size(size.width - innerInset * 2, size.height - innerInset * 2),
+            cornerRadius = CornerRadius(maxOf(0f, cornerRadiusPx - width)),
+            style = Stroke(width = innerWidth),
+        )
+    }
 }
 
 /** The rim's thickness — one hairline, drawn inside the surface's edge. */

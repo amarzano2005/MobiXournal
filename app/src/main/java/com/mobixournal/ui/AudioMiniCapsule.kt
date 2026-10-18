@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import com.mobixournal.ui.theme.floatingRim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -84,8 +85,7 @@ fun AudioMiniCapsule(
         shape = ModernTheme.capsuleShape,
         color = glassColor,
         shadowElevation = 6.dp,
-        border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
-        modifier = modifier,
+        modifier = modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp),
     ) {
         if (vertical) {
             Column(

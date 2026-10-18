@@ -1,6 +1,5 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -41,6 +40,7 @@ import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
@@ -219,12 +219,11 @@ private fun ToolbarShell(
                 LocalRailSlotScale provides scale,
             ) {
                 Surface(
-                    modifier = Modifier.height(SideToolbarModernWidth),
+                    modifier = Modifier.height(SideToolbarModernWidth).floatingRim(ModernTheme.capsuleCornerRadiusDp),
                     shape = ModernTheme.capsuleShape,
                     color = glassColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 6.dp,
-                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
                 ) {
                     RailRow(scale) { buttons() }
                 }
@@ -252,12 +251,11 @@ private fun ToolbarShell(
                 LocalRailSlotScale provides scale,
             ) {
                 Surface(
-                    modifier = Modifier.width(SideToolbarModernWidth),
+                    modifier = Modifier.width(SideToolbarModernWidth).floatingRim(ModernTheme.capsuleCornerRadiusDp),
                     shape = ModernTheme.capsuleShape,
                     color = glassColor,
                     tonalElevation = 0.dp,
                     shadowElevation = 6.dp,
-                    border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
                 ) {
                     RailColumn(scale) { buttons() }
                 }

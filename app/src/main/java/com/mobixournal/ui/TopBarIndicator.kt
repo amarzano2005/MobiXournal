@@ -37,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -319,19 +320,17 @@ internal fun StandaloneToolIndicator(
     trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
-    val hairlineColor = com.mobixournal.ui.theme.ModernTheme.hairlineBorder(isDark)
 
     Surface(
         shape = ModernTheme.capsuleShape,
         color = glassColor,
         tonalElevation = 0.dp,
         shadowElevation = 6.dp,
-        border = BorderStroke(com.mobixournal.ui.theme.ModernTheme.hairlineStrokeWidthDp, hairlineColor),
         modifier = modifier
             .width(TOP_BAR_INDICATOR_WIDTH)
-            .height(TOP_BAR_DOCK_HEIGHT),
+            .height(TOP_BAR_DOCK_HEIGHT)
+            .floatingRim(ModernTheme.capsuleCornerRadiusDp),
     ) {
         ToolIndicatorFace(
             ui = ui,
