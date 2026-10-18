@@ -76,8 +76,8 @@ class AudioRecorder {
     @SuppressLint("MissingPermission")
     private fun openAudioRecord(bufferBytes: Int): AudioRecord? {
         val sources = intArrayOf(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
             MediaRecorder.AudioSource.MIC,
+            MediaRecorder.AudioSource.DEFAULT,
         )
         for (source in sources) {
             val candidate = runCatching {

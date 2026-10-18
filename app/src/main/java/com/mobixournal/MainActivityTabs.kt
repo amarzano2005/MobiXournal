@@ -225,8 +225,10 @@ internal fun MainActivity.selectTab(index: Int, p: EditorPane = pane) {
     if (audio.isPlaying || audio.nowPlaying != null) {
         audio.stopPlayback()
         karaokeDriver?.stop()
-        audioTick.value++
     }
+    lastAudioRef = null
+    miniPlayerVisible.value = false
+    audioTick.value++
     if (!p.tabs.select(index)) return
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
@@ -256,8 +258,10 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     if (audio.isPlaying || audio.nowPlaying != null) {
         audio.stopPlayback()
         karaokeDriver?.stop()
-        audioTick.value++
     }
+    lastAudioRef = null
+    miniPlayerVisible.value = false
+    audioTick.value++
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
     if (p.tabs.isEmpty) p.tabs.open(blankTab(p))

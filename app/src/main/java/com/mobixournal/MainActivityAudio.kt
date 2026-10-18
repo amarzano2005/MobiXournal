@@ -139,7 +139,8 @@ private fun MainActivity.resolveTranscriptionForClip(activeClip: String?): com.m
 internal fun MainActivity.audioUiState(): AudioUiState {
     audioTick.value // read so Compose re-invokes this when the session changes
     val settings = settingsStore.load()
-    val activeClip = audio.nowPlaying ?: lastAudioRef?.filename
+    val candidate = findCandidateAudioRef()
+    val activeClip = audio.nowPlaying ?: candidate?.filename
     val playingFile = activeClip?.let { File(filesDir, "audio/$it") }
     val waveform = if (playingFile != null && playingFile.exists()) {
         AudioWaveformExtractor.extract(playingFile)
@@ -152,7 +153,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
     if (audio.clipDurationMs != null && audio.clipDurationMs != 0) {
         lastDurationMs = audio.clipDurationMs
     }
-    val duration = audio.clipDurationMs ?: lastDurationMs
+    val duration = if (activeClip != null) (audio.clipDurationMs ?: lastDurationMs) else null
 
     val clipTitle = when {
         audio.isRecording -> "Registrazione live"
@@ -178,14 +179,14 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         playing = audio.isPlaying,
         clipOn = audio.nowPlaying != null,
         clipTitle = clipTitle,
-        playheadMs = audio.playheadMs ?: if (!audio.isPlaying && lastAudioRef != null) (lastDurationMs ?: 0) else 0,
+        playheadMs = if (activeClip != null) (audio.playheadMs ?: 0) else 0,
         durationMs = duration,
         folderChosen = audioFolder != null,
         saveStandalone = settings.saveStandaloneAudio,
         playbackSpeed = audio.playbackSpeed,
         waveform = waveform,
         transcription = transcription,
-        miniPlayerVisible = miniPlayerVisible.value,
+        miniPlayerVisible = miniPlayerVisible.value && (activeClip != null || audio.isRecording),
         onToggleRecord = ::toggleRecording,
         onTogglePauseRecord = ::togglePauseRecording,
         onResume = {
@@ -257,7 +258,11 @@ internal fun MainActivity.toggleRecording() {
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "Nothing was recording")
         if (file != null) {
-            lastAudioRef = AudioRef(file.name, 0)
+            val ref = AudioRef(file.name, 0)
+            lastAudioRef = ref
+            pane.tabs.active?.id?.let { tabId ->
+                tabAudioRefs[tabId] = ref
+            }
             val transcript = activeTranscription.value
             if (transcript != null && transcript.segments.isNotEmpty()) {
                 val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
@@ -312,9 +317,9 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
             context = this,
             elapsedMsProvider = { audio.stamp()?.startMs ?: 0 },
         )
+        speechEngine = engine
         if (engine.isAvailable()) {
             val finalizedSegments = mutableListOf<com.mobixournal.audio.TranscriptionSegment>()
-            audio.onPcmData = { buf, len, rate -> engine.feedPcm(buf, len, rate) }
             com.mobixournal.audio.checkSpeechLanguagePack(this, resolvedLang) { status ->
                 engine.preferOffline = (status == com.mobixournal.audio.LanguagePackStatus.INSTALLED)
                 if (status == com.mobixournal.audio.LanguagePackStatus.DOWNLOAD_AVAILABLE) {
@@ -408,8 +413,9 @@ internal fun MainActivity.findCandidateAudioRef(): AudioRef? {
     val surfaceView = surface
     val doc = surfaceView?.toDocument()
 
-    // 1. Check current page strokes first
+    // When a document is open in the active tab:
     if (doc != null) {
+        // 1. Check strokes on the current page first
         val curPageIndex = surfaceView.currentPage.coerceIn(0, (doc.pages.size - 1).coerceAtLeast(0))
         val curPage = doc.pages.getOrNull(curPageIndex)
         if (curPage != null) {
@@ -421,28 +427,23 @@ internal fun MainActivity.findCandidateAudioRef(): AudioRef? {
             val available = pageFiles.firstOrNull { File(filesDir, "audio/${it.filename}").isFile }
             if (available != null) return available
         }
-    }
 
-    val last = lastAudioRef
-    if (last != null && File(filesDir, "audio/${last.filename}").isFile) {
-        return AudioRef(last.filename, 0)
-    }
-
-    if (doc != null) {
+        // 2. Otherwise check strokes anywhere across the other pages of THIS document
         val docFiles = documentAudioFiles(doc)
         val available = docFiles.firstOrNull { File(filesDir, "audio/$it").isFile }
         if (available != null) return AudioRef(available, 0)
-        if (docFiles.isNotEmpty()) return AudioRef(docFiles.first(), 0)
     }
 
-    val audioDir = File(filesDir, "audio")
-    if (audioDir.isDirectory) {
-        val latest = audioDir.listFiles()
-            ?.filter { it.isFile && (it.name.endsWith(".wav", ignoreCase = true) || it.name.endsWith(".ogg", ignoreCase = true)) }
-            ?.maxByOrNull { it.lastModified() }
-        if (latest != null) return AudioRef(latest.name, 0)
+    // 3. Check if an audio was recorded in this active tab session
+    val activeTabId = pane.tabs.active?.id
+    if (activeTabId != null) {
+        val tabRef = tabAudioRefs[activeTabId]
+        if (tabRef != null && File(filesDir, "audio/${tabRef.filename}").isFile) {
+            return tabRef
+        }
     }
 
+    // If the active tab has no audio strokes or referenced files at all, do NOT play anything!
     return null
 }
 
@@ -476,6 +477,6 @@ internal fun MainActivity.playAutonomousAudio() {
             toast("Registrazione non trovata: ${candidate.filename}")
         }
     } else {
-        toast("Nessuna registrazione audio trovata")
+        toast("Nessuna registrazione audio in questa scheda")
     }
 }

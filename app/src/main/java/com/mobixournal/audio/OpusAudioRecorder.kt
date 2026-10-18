@@ -103,8 +103,8 @@ class OpusAudioRecorder {
         if (minBuffer <= 0) return null
         val bufferBytes = minBuffer * BUFFER_MULTIPLIER
         val sources = intArrayOf(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
             MediaRecorder.AudioSource.MIC,
+            MediaRecorder.AudioSource.DEFAULT,
         )
         for (source in sources) {
             val rec = runCatching {

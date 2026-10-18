@@ -155,6 +155,9 @@ class MainActivity : ComponentActivity() {
     /** The most recent audio recording made or referenced, used for autonomous playback fallback. */
     internal var lastAudioRef: AudioRef? = null
 
+    /** Audio recordings created per-tab during this session, mapped by tab id. */
+    internal val tabAudioRefs = mutableMapOf<String, AudioRef>()
+
     /** The duration in ms of the most recent audio recording played or referenced. */
     internal var lastDurationMs: Int? = null
 
@@ -262,7 +265,11 @@ class MainActivity : ComponentActivity() {
         }
 
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted && com.mobixournal.audio.AudioRecordingService.isRunning) {
+                com.mobixournal.audio.AudioRecordingService.start(this)
+            }
+        }
 
     internal val recordPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -392,6 +399,7 @@ class MainActivity : ComponentActivity() {
         audio.onStateChanged = { runOnUiThread { audioTick.value++ } }
         // A cold start from another app's "open with": stash it now, open it once the canvas is up.
         takeIncoming(intent)
+        requestNotificationPermissionIfNecessary()
         setContent {
             // Settings live above the theme so the Appearance choice re-colours the whole app.
             var settings by remember {
