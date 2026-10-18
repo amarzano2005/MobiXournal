@@ -197,24 +197,14 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var eraseY = 0f
     internal var scrolling = false
 
-    /**
-     * Whether a two-finger tap undoes and a three-finger tap redoes (the "Shortcuts" setting). The
-     * detector in `DrawingSurfaceInput.kt` reads it; off, a multi-finger tap is just a no-op pan.
-     */
-    internal var multiFingerShortcuts = true
-
-    // Multi-finger tap detection state, owned by the touch state machine in `DrawingSurfaceInput.kt`.
-    /** A candidate two/three-finger tap is in progress (still still and within the time window). */
-    internal var multiTapCandidate = false
-    /** Set once the fingers have travelled past the touch slop, which disqualifies the tap. */
-    internal var multiTapMoved = false
-    /** Most pointers seen during the candidate gesture (2 = undo, 3 = redo). */
-    internal var multiTapMaxPointers = 0
-    internal var multiTapStartTime = 0L
-    internal var multiTapStartX = 0f
-    internal var multiTapStartY = 0f
-    /** Touch slop in px, resolved lazily from this view's configuration. */
-    internal var multiTapSlop = 0f
+    /** Multi-finger tap shortcut detector (two fingers → Undo, three → Redo). */
+    internal val multiTap = MultiFingerTapDetector()
+    var multiFingerShortcuts: Boolean
+        get() = multiTap.shortcutsEnabled
+        set(value) { multiTap.shortcutsEnabled = value }
+    internal val multiTapCandidate: Boolean get() = multiTap.candidate
+    internal val multiTapMoved: Boolean get() = multiTap.moved
+    internal val multiTapMaxPointers: Int get() = multiTap.maxPointers
 
     /**
      * The bookmarked pages of the document on screen and their flag colours (page index → ARGB).
