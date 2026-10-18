@@ -479,4 +479,6 @@ data class AudioUiState(
     val onToggleSaveStandalone: (Boolean) -> Unit = {},
     /** Callback to toggle the mini-player's visibility. */
     val onToggleMiniPlayer: () -> Unit = {},
+    /** Callback to start or toggle autonomous audio playback. */
+    val onPlayAutonomous: () -> Unit = {},
 )

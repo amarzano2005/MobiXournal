@@ -206,7 +206,7 @@ private fun PlayCapsuleButton(
     onTool: (EditorTool) -> Unit,
     isDark: Boolean,
 ) {
-    val playActive = tool == EditorTool.PLAY_OBJECT || audio.playing
+    val playActive = tool == EditorTool.PLAY_OBJECT || audio.playing || audio.clipOn
     val playBg = if (playActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent
 
     Box(
@@ -216,22 +216,10 @@ private fun PlayCapsuleButton(
             .background(playBg)
             .combinedClickable(
                 onClick = {
-                    if (tool == EditorTool.PLAY_OBJECT) {
-                        if (audio.clipOn) {
-                            if (!audio.miniPlayerVisible) {
-                                audio.onToggleMiniPlayer()
-                            } else {
-                                if (audio.playing) audio.onPause() else audio.onResume()
-                            }
-                        } else {
-                            onTool(EditorTool.PEN)
-                        }
-                    } else {
+                    if (tool != EditorTool.PLAY_OBJECT) {
                         onTool(EditorTool.PLAY_OBJECT)
-                        if (audio.clipOn && !audio.miniPlayerVisible) {
-                            audio.onToggleMiniPlayer()
-                        }
                     }
+                    audio.onPlayAutonomous()
                 },
                 onLongClick = { audio.onToggleMiniPlayer() },
             ),
@@ -243,8 +231,8 @@ private fun PlayCapsuleButton(
             else -> MaterialTheme.colorScheme.onSurface
         }
         Icon(
-            imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.GraphicEq,
-            contentDescription = "Riproduci audio / Play object",
+            imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+            contentDescription = if (audio.playing) "Metti in pausa riproduzione" else "Riproduci audio",
             tint = tint,
             modifier = Modifier.size(18.dp),
         )
@@ -280,9 +268,25 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     }
     if (audio.clipOn) {
         DropdownMenuItem(
+            text = { Text(if (audio.playing) "Metti in pausa riproduzione" else "Riprendi riproduzione") },
+            leadingIcon = {
+                Icon(
+                    if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                    contentDescription = null,
+                )
+            },
+            onClick = { audio.onPlayAutonomous(); onDismiss() },
+        )
+        DropdownMenuItem(
             text = { Text(if (audio.miniPlayerVisible) "Nascondi mini-player" else "Mostra mini-player") },
             leadingIcon = { Icon(Icons.Outlined.GraphicEq, contentDescription = null) },
             onClick = { audio.onToggleMiniPlayer(); onDismiss() },
+        )
+    } else {
+        DropdownMenuItem(
+            text = { Text("Riproduci audio") },
+            leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null) },
+            onClick = { audio.onPlayAutonomous(); onDismiss() },
         )
     }
     HorizontalDivider()

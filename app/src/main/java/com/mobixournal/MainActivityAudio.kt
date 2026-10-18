@@ -7,9 +7,11 @@ import android.net.Uri
 import android.view.Choreographer
 import androidx.core.content.ContextCompat
 import com.mobixournal.audio.AudioRecordingService
+import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
 import com.mobixournal.audio.AudioStandaloneExporter
 import com.mobixournal.audio.AudioWaveformExtractor
+import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.KaraokeFrameDriver
@@ -39,6 +41,7 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
             ref == null -> toast("That stroke has no recording")
             !audio.play(ref) -> toast("Recording not found: ${ref.filename}")
             else -> {
+                lastAudioRef = ref
                 miniPlayerVisible.value = true
                 followRecording(view)
             }
@@ -173,6 +176,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             miniPlayerVisible.value = !miniPlayerVisible.value
             audioTick.value++
         },
+        onPlayAutonomous = ::playAutonomousAudio,
     )
 }
 
@@ -200,6 +204,7 @@ internal fun MainActivity.toggleRecording() {
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "Nothing was recording")
         if (file != null) {
+            lastAudioRef = AudioRef(file.name, 0)
             val transcript = activeTranscription.value
             if (transcript != null && transcript.segments.isNotEmpty()) {
                 val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
@@ -323,5 +328,64 @@ internal fun MainActivity.pushAudioSidecars() {
     val compressed = audio.compressedFor(doc)
     if (compressed.isNotEmpty()) {
         toast("${compressed.size} recording(s) here are compressed — desktop Xournal++ plays WAV only")
+    }
+}
+
+/** Find an audio recording candidate to play when autonomous playback is triggered. */
+internal fun MainActivity.findCandidateAudioRef(): AudioRef? {
+    val last = lastAudioRef
+    if (last != null && File(filesDir, "audio/${last.filename}").isFile) {
+        return AudioRef(last.filename, 0)
+    }
+
+    val doc = surface?.toDocument()
+    if (doc != null) {
+        val docFiles = documentAudioFiles(doc)
+        val available = docFiles.firstOrNull { File(filesDir, "audio/$it").isFile }
+        if (available != null) return AudioRef(available, 0)
+        if (docFiles.isNotEmpty()) return AudioRef(docFiles.first(), 0)
+    }
+
+    val audioDir = File(filesDir, "audio")
+    if (audioDir.isDirectory) {
+        val latest = audioDir.listFiles()
+            ?.filter { it.isFile && (it.name.endsWith(".wav", ignoreCase = true) || it.name.endsWith(".ogg", ignoreCase = true)) }
+            ?.maxByOrNull { it.lastModified() }
+        if (latest != null) return AudioRef(latest.name, 0)
+    }
+
+    return null
+}
+
+/**
+ * Play audio autonomously without requiring the user to tap a specific stroke on the page,
+ * or toggle pause/resume if playback is already active.
+ */
+internal fun MainActivity.playAutonomousAudio() {
+    if (audio.isPlaying) {
+        audio.pausePlayback()
+        audioTick.value++
+        return
+    }
+    val surfaceView = surface
+    if (audio.nowPlaying != null) {
+        audio.resume()
+        miniPlayerVisible.value = true
+        if (surfaceView != null) followRecording(surfaceView)
+        audioTick.value++
+        return
+    }
+    val candidate = findCandidateAudioRef()
+    if (candidate != null) {
+        if (audio.play(candidate)) {
+            lastAudioRef = candidate
+            miniPlayerVisible.value = true
+            if (surfaceView != null) followRecording(surfaceView)
+            audioTick.value++
+        } else {
+            toast("Registrazione non trovata: ${candidate.filename}")
+        }
+    } else {
+        toast("Nessuna registrazione audio trovata")
     }
 }

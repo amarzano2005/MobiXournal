@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.io.DocumentIo
@@ -147,6 +148,9 @@ class MainActivity : ComponentActivity() {
 
     /** Active speech-to-text transcription associated with the open document or current recording. */
     internal val activeTranscription = mutableStateOf<com.mobixournal.audio.AudioTranscription?>(null)
+
+    /** The most recent audio recording made or referenced, used for autonomous playback fallback. */
+    internal var lastAudioRef: AudioRef? = null
 
     /** On-device speech recognition engine active during recording sessions. */
     internal var speechEngine: com.mobixournal.audio.SpeechToTextEngine? = null
