@@ -49,8 +49,16 @@ internal object TableInk {
         }
         var y = table.top
         for (index in 0 until table.rowHeights.size - 1) {
-            y += table.rowHeights[index]
+            val rHeight = table.rowHeights[index]
+            y += rHeight
             out += line(table, table.left, y, right, y)
+            if (table.headerRow && index == 0) {
+                val gap = (table.borderWidth * 2.5).coerceIn(2.0, (rHeight * 0.3).coerceAtLeast(2.0))
+                val doubleY = (y + gap).coerceAtMost(bottom)
+                if (doubleY > y && doubleY < bottom) {
+                    out += line(table, table.left, doubleY, right, doubleY)
+                }
+            }
         }
         return out
     }
@@ -68,7 +76,7 @@ internal object TableInk {
     /** A closed rectangle per filled cell, in the cell's own colour. */
     private fun filledCells(table: TableElement): List<Element> {
         val out = mutableListOf<Element>()
-        forEachCell(table) { cell, left, top, width, height ->
+        forEachCell(table) { cell, left, top, width, height, _ ->
             val fill = cell.fillColor ?: return@forEachCell
             out += InkPrimitives.stroke(
                 points = closedRect(left, top, left + width, top + height, table.borderWidth),
@@ -82,8 +90,8 @@ internal object TableInk {
 
     private fun cellTexts(table: TableElement): List<Element> {
         val out = mutableListOf<Element>()
-        forEachCell(table) { cell, left, top, width, height ->
-            if (cell.text.isNotEmpty()) out += textIn(cell, table, left, top, width, height)
+        forEachCell(table) { cell, left, top, width, height, rowIdx ->
+            if (cell.text.isNotEmpty()) out += textIn(cell, table, left, top, width, height, rowIdx)
         }
         return out
     }
@@ -103,13 +111,16 @@ internal object TableInk {
         top: Double,
         width: Double,
         height: Double,
+        rowIdx: Int,
     ): TextElement {
+        val isHeader = table.headerRow && rowIdx == 0
+        val isBold = cell.bold || isHeader
         val probe = InkPrimitives.text(
             content = cell.text,
             x = 0.0,
             y = 0.0,
             color = table.borderColor,
-            bold = cell.bold,
+            bold = isBold,
         )
         val box = ElementBounds.of(probe)
         val x = when (cell.align) {
@@ -124,7 +135,7 @@ internal object TableInk {
     /** Walk the grid, handing each cell its box: [table]'s own widths and heights, not an even split. */
     private inline fun forEachCell(
         table: TableElement,
-        action: (cell: TableCell, left: Double, top: Double, width: Double, height: Double) -> Unit,
+        action: (cell: TableCell, left: Double, top: Double, width: Double, height: Double, row: Int) -> Unit,
     ) {
         var top = table.top
         for (row in table.rowHeights.indices) {
@@ -132,7 +143,7 @@ internal object TableInk {
             var left = table.left
             for (col in table.colWidths.indices) {
                 val width = table.colWidths[col]
-                action(table.cell(row, col), left, top, width, height)
+                action(table.cell(row, col), left, top, width, height, row)
                 left += width
             }
             top += height

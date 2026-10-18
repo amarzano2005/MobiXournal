@@ -44,6 +44,8 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
         val (sx, sy) = guided(box, gx, gy)
         shapeStartX = sx
         shapeStartY = sy
+        shapeEndX = sx
+        shapeEndY = sy
         shapeWidthPt = nominalShapeWidthPt()
         currentStrokes = null
         current = ArrayList(listOf(StrokePoint(shapeStartX, shapeStartY, shapeWidthPt, dtMs = 0)))
@@ -70,6 +72,8 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
             box.toPtY(event.getY(pointerIndex), scrollY),
         )
         val (ex, ey) = guided(box, gx, gy)
+        shapeEndX = ex
+        shapeEndY = ey
         val multi = ShapeBuilder.buildMulti(
             shapeKind ?: return, shapeStartX, shapeStartY, ex, ey, shapeWidthPt,
             tableRows, tableCols, tableHeader,
@@ -503,8 +507,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
 }
 
 private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {
-    val ex = raw.lastOrNull()?.x ?: shapeStartX
-    val ey = raw.lastOrNull()?.y ?: shapeStartY
+    val ex = shapeEndX
+    val ey = shapeEndY
     val isTap = raw.size <= 2 && hypot(ex - shapeStartX, ey - shapeStartY) < 6.0
     val table = if (isTap) {
         val halfW = 100.0

@@ -1,12 +1,18 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -16,10 +22,9 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FormatAlignCenter
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,15 +36,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.render.PageBox
 import com.mobixournal.render.TableElementFactory
 import com.mobixournal.render.replaceTableElement
 import com.mobixournal.ui.theme.FloatingSurface
@@ -77,6 +85,24 @@ internal fun tableCellInspectorOffset(
         if (aboveY >= marginPx) aboveY else belowY.coerceIn(marginPx, maxY.coerceAtLeast(marginPx))
     }
     return IntOffset(clampedX, clampedY)
+}
+
+/**
+ * Converts a table cell's document-space pt bounds to surface view px using the active [PageBox] and scroll.
+ */
+internal fun cellBoundsToViewPx(
+    boundsPt: com.mobixournal.render.Bounds?,
+    pageBox: PageBox?,
+    scrollX: Float,
+    scrollY: Float,
+): com.mobixournal.render.Bounds? {
+    if (boundsPt == null || pageBox == null) return null
+    return com.mobixournal.render.Bounds(
+        left = boundsPt.left * pageBox.scale + pageBox.leftPx - scrollX,
+        top = boundsPt.top * pageBox.scale + pageBox.topPx - scrollY,
+        right = boundsPt.right * pageBox.scale + pageBox.leftPx - scrollX,
+        bottom = boundsPt.bottom * pageBox.scale + pageBox.topPx - scrollY,
+    )
 }
 
 /**
@@ -121,49 +147,163 @@ fun TableCellInspectorAnchor(
     val state = rememberTableCellInspectorState(cell)
 
     var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
-    val gapPx = with(LocalDensity.current) { 10.dp.roundToPx() }
+    val gapPx = with(LocalDensity.current) { 8.dp.roundToPx() }
     val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
 
+    val surface = pane.surface
+    val activeBox = surface?.let { s ->
+        s.selection?.pageIndex?.let { s.layout.boxes.getOrNull(it) } ?: s.layout.boxes.getOrNull(s.currentPage)
+    }
+    val cellPx = cellBoundsToViewPx(
+        boundsPt = editing.cellBoundsPt ?: com.mobixournal.render.TableDividers.cellBoundsPt(table, row, col),
+        pageBox = activeBox,
+        scrollX = surface?.scrollX ?: 0f,
+        scrollY = surface?.scrollY ?: 0f,
+    )
+
     val offset = tableCellInspectorOffset(
-        cellLeft = pane.selectionRect?.left,
-        cellTop = pane.selectionRect?.top,
-        cellRight = pane.selectionRect?.right,
-        cellBottom = pane.selectionRect?.bottom,
+        cellLeft = cellPx?.left?.toFloat() ?: pane.selectionRect?.left,
+        cellTop = cellPx?.top?.toFloat() ?: pane.selectionRect?.top,
+        cellRight = cellPx?.right?.toFloat() ?: pane.selectionRect?.right,
+        cellBottom = cellPx?.bottom?.toFloat() ?: pane.selectionRect?.bottom,
         inspectorSize = inspectorSize,
         canvasSize = canvasSizePx,
         gapPx = gapPx,
         marginPx = marginPx,
     )
 
+    fun applyAndDismiss() {
+        val updatedCell = cell.copy(text = state.text, align = state.align, bold = state.bold)
+        val updatedTable = TableElementFactory.updateCell(table, row, col, updatedCell)
+        pane.surface?.replaceTableElement(table, updatedTable)
+        ui.editingTableCell = null
+    }
+
     FloatingSurface(
         modifier = modifier
             .offset { offset }
-            .onSizeChanged { inspectorSize = it },
+            .onSizeChanged { inspectorSize = it }
+            .pointerInput(Unit) {
+                detectTapGestures { /* Swallow taps to prevent them leaking to the canvas below */ }
+            },
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(min = 260.dp, max = 340.dp)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        TableCellInspectorContent(
+            table = table,
+            row = row,
+            col = col,
+            state = state,
+            onNavigate = { nextR, nextC ->
+                val nextBounds = com.mobixournal.render.TableDividers.cellBoundsPt(table, nextR, nextC)
+                ui.editingTableCell = EditingTableCell(table, nextR, nextC, nextBounds)
+            },
+            onApply = ::applyAndDismiss,
+            onDismiss = onDismiss,
+        )
+    }
+}
+
+@Composable
+private fun TableCellInspectorContent(
+    table: TableElement,
+    row: Int,
+    col: Int,
+    state: TableCellInspectorState,
+    onNavigate: (Int, Int) -> Unit,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(min = 280.dp, max = 360.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TableCellInspectorHeader(
+            table = table,
+            row = row,
+            col = col,
+            onNavigate = onNavigate,
+            onDismiss = onDismiss,
+        )
+        OutlinedTextField(
+            value = state.text,
+            onValueChange = { state.text = it },
+            label = { Text("Cell text", style = MaterialTheme.typography.labelSmall) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onApply() }),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            TableCellInspectorHeader(
-                table = table,
-                row = row,
-                col = col,
-                onNavigate = { nextR, nextC -> ui.editingTableCell = EditingTableCell(table, nextR, nextC) },
-                onDismiss = onDismiss,
+            TableCellInspectorStyleButtons(state)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel", style = MaterialTheme.typography.labelMedium)
+                }
+                Button(onClick = onApply) {
+                    Text("Done", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TableCellInspectorStyleButtons(state: TableCellInspectorState) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconToggleButton(
+            checked = state.align == TableAlign.LEFT,
+            onCheckedChange = { state.align = TableAlign.LEFT },
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Outlined.FormatAlignLeft,
+                contentDescription = "Left",
+                modifier = Modifier.size(18.dp),
             )
-            HorizontalDivider()
-            TableCellInspectorBody(state)
-            HorizontalDivider()
-            TableCellInspectorActions(
-                onApply = {
-                    val updatedCell = cell.copy(text = state.text, align = state.align, bold = state.bold)
-                    val updatedTable = TableElementFactory.updateCell(table, row, col, updatedCell)
-                    pane.surface?.replaceTableElement(table, updatedTable)
-                    ui.editingTableCell = null
-                },
-                onCancel = onDismiss,
+        }
+        IconToggleButton(
+            checked = state.align == TableAlign.CENTER,
+            onCheckedChange = { state.align = TableAlign.CENTER },
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                Icons.Outlined.FormatAlignCenter,
+                contentDescription = "Center",
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        IconToggleButton(
+            checked = state.align == TableAlign.RIGHT,
+            onCheckedChange = { state.align = TableAlign.RIGHT },
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Outlined.FormatAlignRight,
+                contentDescription = "Right",
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Spacer(Modifier.width(4.dp))
+        IconToggleButton(
+            checked = state.bold,
+            onCheckedChange = { state.bold = !state.bold },
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                Icons.Outlined.FormatBold,
+                contentDescription = "Bold",
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -192,15 +332,23 @@ private fun TableCellInspectorHeader(
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             IconButton(
                 onClick = {
                     val (nR, nC) = if (col > 0) row to (col - 1) else (row - 1) to (totalCols - 1)
                     onNavigate(nR, nC)
                 },
                 enabled = hasPrev,
+                modifier = Modifier.size(28.dp),
             ) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous cell")
+                Icon(
+                    Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = "Previous cell",
+                    modifier = Modifier.size(16.dp),
+                )
             }
             IconButton(
                 onClick = {
@@ -208,68 +356,25 @@ private fun TableCellInspectorHeader(
                     onNavigate(nR, nC)
                 },
                 enabled = hasNext,
+                modifier = Modifier.size(28.dp),
             ) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next cell")
+                Icon(
+                    Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = "Next cell",
+                    modifier = Modifier.size(16.dp),
+                )
             }
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Outlined.Close, contentDescription = "Close inspector")
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = "Close inspector",
+                    modifier = Modifier.size(16.dp),
+                )
             }
         }
     }
 }
 
-@Composable
-private fun TableCellInspectorBody(state: TableCellInspectorState) {
-    OutlinedTextField(
-        value = state.text,
-        onValueChange = { state.text = it },
-        label = { Text("Cell text") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        FilterChip(
-            selected = state.align == TableAlign.LEFT,
-            onClick = { state.align = TableAlign.LEFT },
-            label = { Icon(Icons.AutoMirrored.Outlined.FormatAlignLeft, contentDescription = "Align Left") },
-        )
-        FilterChip(
-            selected = state.align == TableAlign.CENTER,
-            onClick = { state.align = TableAlign.CENTER },
-            label = { Icon(Icons.Outlined.FormatAlignCenter, contentDescription = "Align Center") },
-        )
-        FilterChip(
-            selected = state.align == TableAlign.RIGHT,
-            onClick = { state.align = TableAlign.RIGHT },
-            label = { Icon(Icons.AutoMirrored.Outlined.FormatAlignRight, contentDescription = "Align Right") },
-        )
-        FilterChip(
-            selected = state.bold,
-            onClick = { state.bold = !state.bold },
-            label = { Icon(Icons.Outlined.FormatBold, contentDescription = "Bold") },
-        )
-    }
-}
-
-@Composable
-private fun TableCellInspectorActions(
-    onApply: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(onClick = onCancel) {
-            Text("Cancel")
-        }
-        Button(onClick = onApply) {
-            Text("Done")
-        }
-    }
-}

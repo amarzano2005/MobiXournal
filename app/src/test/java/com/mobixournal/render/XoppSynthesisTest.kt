@@ -142,15 +142,15 @@ class XoppSynthesisTest {
     fun aTableExportsAsItsGridAndItsCellsText() {
         val result = synthesize(table())
 
-        // Outer border, two column dividers, one row divider, and the three shaded header cells.
-        assertEquals("four sides, two column rules, one row rule, three shaded cells", 10, strokesOf(result).size)
+        // Outer border, two column dividers, one row divider, one header double rule, and the three shaded header cells.
+        assertEquals("four sides, two column rules, one row rule, one header double rule, three shaded cells", 11, strokesOf(result).size)
         assertTrue(
-            "the seven rules are the table's own ink",
-            strokesOf(result).take(7).all { it.color == 0xFF212121.toInt() },
+            "the eight rules are the table's own ink",
+            strokesOf(result).take(8).all { it.color == 0xFF212121.toInt() },
         )
         assertTrue(
             "and the three shaded cells carry their shading",
-            strokesOf(result).drop(7).all { it.color == 0x15000000 },
+            strokesOf(result).drop(8).all { it.color == 0x15000000 },
         )
         assertTrue(strokesOf(result).all { it.uniformWidth && it.points.size >= 2 })
 
@@ -400,8 +400,8 @@ class XoppSynthesisTest {
 
         assertEquals("the first stroke is still first", before, ink.first())
         assertEquals("the last is still last", after, ink.last())
-        // 7 grid rules + 3 shaded cells + 6 cell labels of the table's own ink.
-        assertTrue("and the table's grid is in between: ${ink.size}", ink.size == 2 + 16)
+        // 8 grid rules + 3 shaded cells + 6 cell labels of the table's own ink.
+        assertTrue("and the table's grid is in between: ${ink.size}", ink.size == 2 + 17)
     }
 
     @Test

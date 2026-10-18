@@ -189,4 +189,29 @@ class TableCellInspectorAnchorTest {
         assertEquals(table.cells, resizedRow.cells)
         assertEquals(table.id, resizedRow.id)
     }
+
+    @Test
+    fun cellBoundsToViewPxConvertsPtToSurfacePx() {
+        val box = PageBox(
+            index = 0,
+            scale = 2f,
+            leftPx = 10f,
+            topPx = 20f,
+            widthPx = 500f,
+            heightPx = 500f,
+            source = com.mobixournal.format.mobix.PageSource.of(emptyList()),
+        )
+        val boundsPt = com.mobixournal.render.Bounds(left = 50.0, top = 60.0, right = 150.0, bottom = 100.0)
+
+        val rect = cellBoundsToViewPx(boundsPt, box, scrollX = 5f, scrollY = 10f)
+        assertNotNull(rect)
+        // left: 50 * 2 + 10 - 5 = 105
+        assertEquals(105.0, rect!!.left, 1e-4)
+        // top: 60 * 2 + 20 - 10 = 130
+        assertEquals(130.0, rect.top, 1e-4)
+        // right: 150 * 2 + 10 - 5 = 305
+        assertEquals(305.0, rect.right, 1e-4)
+        // bottom: 100 * 2 + 20 - 10 = 210
+        assertEquals(210.0, rect.bottom, 1e-4)
+    }
 }

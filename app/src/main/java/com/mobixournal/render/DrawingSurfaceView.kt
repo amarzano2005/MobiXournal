@@ -166,6 +166,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var shaping = false
     internal var shapeStartX = 0.0
     internal var shapeStartY = 0.0
+    internal var shapeEndX = 0.0
+    internal var shapeEndY = 0.0
     /**
      * The width a shape/spline draws at, in pt: the tool's width setting, fixed at the gesture's
      * first touch and held constant for the whole shape. Shapes ignore pressure — desktop Xournal++
