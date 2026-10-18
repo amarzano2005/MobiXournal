@@ -224,48 +224,77 @@ internal class ToolbarPopupPositionProvider(
     private val density: Density,
     private val onPositionCalculated: (TransformOrigin) -> Unit,
 ) : PopupPositionProvider {
+    private val verticalMargin = with(density) { 48.dp.roundToPx() }
+
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize,
     ): IntOffset {
-        val fitsRight = anchorBounds.right + popupContentSize.width <= windowSize.width
-        val fitsBelow = anchorBounds.bottom + popupContentSize.height <= windowSize.height
-        val fitsLeft = anchorBounds.left - popupContentSize.width >= 0
-
-        val x: Int
-        val pivotX: Float
-        if (fitsRight && anchorBounds.left < windowSize.width / 3) {
-            x = anchorBounds.right
-            pivotX = 0f
-        } else if (anchorBounds.left + popupContentSize.width <= windowSize.width) {
-            x = anchorBounds.left
-            pivotX = 0f
-        } else if (fitsLeft) {
-            x = anchorBounds.left - popupContentSize.width
-            pivotX = 1f
+        val startToAnchorStart = if (layoutDirection == LayoutDirection.Ltr) {
+            anchorBounds.left
         } else {
-            x = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
-            pivotX = 0.5f
+            anchorBounds.right - popupContentSize.width
+        }
+        val endToAnchorEnd = if (layoutDirection == LayoutDirection.Ltr) {
+            anchorBounds.right - popupContentSize.width
+        } else {
+            anchorBounds.left
+        }
+        val windowBoundaryX = if (anchorBounds.center.x < windowSize.width / 2) {
+            0
+        } else {
+            windowSize.width - popupContentSize.width
         }
 
-        val y: Int
-        val pivotY: Float
-        if (fitsBelow) {
-            y = if (fitsRight && anchorBounds.left < windowSize.width / 3) {
-                anchorBounds.top.coerceAtLeast(0)
-            } else {
-                anchorBounds.bottom
-            }
-            pivotY = 0f
+        val xCandidates = listOf(startToAnchorStart, endToAnchorEnd, windowBoundaryX)
+        val x = xCandidates.firstOrNull { candidate ->
+            candidate in 0..(windowSize.width - popupContentSize.width)
+        } ?: windowBoundaryX
+
+        val topToAnchorBottom = anchorBounds.bottom
+        val bottomToAnchorTop = anchorBounds.top - popupContentSize.height
+        val centerToAnchorTop = anchorBounds.top - popupContentSize.height / 2
+        val windowBoundaryY = if (anchorBounds.center.y < windowSize.height / 2) {
+            verticalMargin
         } else {
-            y = (windowSize.height - popupContentSize.height).coerceAtLeast(0)
-            pivotY = 1f
+            windowSize.height - verticalMargin - popupContentSize.height
+        }
+
+        val yCandidates = listOf(topToAnchorBottom, bottomToAnchorTop, centerToAnchorTop, windowBoundaryY)
+        val y = yCandidates.firstOrNull { candidate ->
+            candidate in verticalMargin..(windowSize.height - verticalMargin - popupContentSize.height)
+        } ?: yCandidates.firstOrNull { candidate ->
+            candidate in 0..(windowSize.height - popupContentSize.height)
+        } ?: windowBoundaryY
+
+        val finalX = x.coerceIn(0, maxOf(0, windowSize.width - popupContentSize.width))
+        val finalY = y.coerceIn(0, maxOf(0, windowSize.height - popupContentSize.height))
+        val menuOffset = IntOffset(finalX, finalY)
+        val menuBounds = IntRect(offset = menuOffset, size = popupContentSize)
+
+        val pivotX = when {
+            menuBounds.left >= anchorBounds.right -> 0f
+            menuBounds.right <= anchorBounds.left -> 1f
+            menuBounds.width == 0 -> 0f
+            else -> {
+                val intersectionCenter = (maxOf(anchorBounds.left, menuBounds.left) + minOf(anchorBounds.right, menuBounds.right)) / 2
+                ((intersectionCenter - menuBounds.left).toFloat() / menuBounds.width).coerceIn(0f, 1f)
+            }
+        }
+        val pivotY = when {
+            menuBounds.top >= anchorBounds.bottom -> 0f
+            menuBounds.bottom <= anchorBounds.top -> 1f
+            menuBounds.height == 0 -> 0f
+            else -> {
+                val intersectionCenter = (maxOf(anchorBounds.top, menuBounds.top) + minOf(anchorBounds.bottom, menuBounds.bottom)) / 2
+                ((intersectionCenter - menuBounds.top).toFloat() / menuBounds.height).coerceIn(0f, 1f)
+            }
         }
 
         onPositionCalculated(TransformOrigin(pivotX, pivotY))
-        return IntOffset(x, y)
+        return menuOffset
     }
 }
 
