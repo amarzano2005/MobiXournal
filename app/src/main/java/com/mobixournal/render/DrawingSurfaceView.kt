@@ -27,6 +27,7 @@ import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import com.mobixournal.io.CanvasGeometry
@@ -434,6 +435,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onScrollChanged: ((Float, Float, Float) -> Unit)? = null
     /** Notified when a placement tap lands, so the editor can prompt for content / pick an image. */
     var onPlace: ((PlaceKind, Placement) -> Unit)? = null
+    /** Notified when a double-tap lands on a table cell: (table, row, col, cellBoundsPt). */
+    var onTableCellDoubleTap: ((TableElement, Int, Int, Bounds) -> Unit)? = null
+    internal var lastTableTapTime = 0L
+    internal var lastTableTapX = 0f
+    internal var lastTableTapY = 0f
+    internal var lastTableTapRow = -1
+    internal var lastTableTapCol = -1
     /** Notified when the Hand tool receives a centre double-tap, so the editor can toggle full-page (chrome-hidden) view. */
     var onToggleFullPage: (() -> Unit)? = null
     /**

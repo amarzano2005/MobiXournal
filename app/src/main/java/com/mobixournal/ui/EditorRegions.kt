@@ -73,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mobixournal.format.model.TableElement
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.runtime.Composable
@@ -1499,6 +1500,10 @@ private fun DrawingSurfaceView.bindEditorActions(
             PlaceKind.IMAGE -> onPickImage(placement)
         }
     }
+    onTableCellDoubleTap = { table, row, col, cellBoundsPt ->
+        onActivePane(index)
+        ui.editingTableCell = EditingTableCell(table, row, col, cellBoundsPt)
+    }
     // Remember where an instrument was posed, so it comes back there after a restart. Only the
     // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the
     // page. Writing only on a real change also keeps the place/restore pass from echoing a settings
@@ -1691,6 +1696,14 @@ fun EditorPaneView(
             }
             if (ui.editingPlot != null) {
                 PlotInspectorAnchor(
+                    pane = state,
+                    ui = ui,
+                    canvasSizePx = canvasSizePx,
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
+            if (ui.editingTableCell != null) {
+                TableCellInspectorAnchor(
                     pane = state,
                     ui = ui,
                     canvasSizePx = canvasSizePx,

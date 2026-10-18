@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "interactive-living-table-selection-and-in-place-cell-editing"
+title = "Living table editor: select it, edit cells in place, resize rows and columns"
+description = "docs/mobix-elements.md: the plot is the family that became editable first - created by render/PlotElementFactory.kt, given a box and hit-testability by render/ElementBounds.kt, moved and resized by render/SelectionOps.kt, re-edited from the selection action bar through applyPlotEdit - and the other three families follow one at a time, each when its own editor lands (future-roadmap.md, Step 2). The table model is already written and tested (format/mobix/MobixTableCodec.kt over format/model/Living.kt, with colWidths/rowHeights as the authority for the grid) but the Table tool still draws a static grid stroke, ElementBounds answers an empty box and isHitTestable = false for the family, and no editing surface exists. Investigate what the plot precedent hands over (creation from the existing tool, a truthful box, a selection entry, undo, preserving uninterpreted fields) and what is genuinely new (per-cell text editing, row and column resize), then add the task-level children. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-18
+tags = ["ui", "mobix", "table"]
+
+[[task]]
+id = "in-place-table-cell-editor-and-row-and-column-resize"
+title = "In-place table cell editor and row and column resize"
+description = "The table editing surface itself (docs/mobix-elements.md): a double tap on a cell opens an in-place overlay anchored to that cell, reusing the text editing path in render/TextEditController.kt, and commits into that one cell only; dragging a row or column divider rewrites rowHeights/colWidths, which are the authority for the grid, while the header row and the per-cell align, bold and fillColor all survive. Drawing goes through render/LivingInk.kt, so screen, SVG and PDF cannot disagree about the table, and any field the editor has no input for is preserved rather than dropped - the same rule the plot edit follows. Full undo support. Verify on the emulator with a stylus and a finger: edit a cell, resize a column, undo and redo, with screenshots and a clean logcat."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-18
+tags = ["table", "mobix"]
+
+[[task]]
 id = "make-the-table-family-selectable-on-the-canvas"
 title = "Make the table family selectable on the canvas"
 description = "Give TableElement a real bounding box and mark it hit-testable in render/ElementBounds.kt, the way PlotElement already is; today the table, shape and circuit families answer an empty box and isHitTestable = false so a marquee cannot pick up something that has no editor yet (docs/mobix-elements.md). Then let the existing selection machinery move, resize and delete it: render/SelectionOps.kt already does exactly that for a plot, and a moved table must move its origin while colWidths/rowHeights stay put, because the grid is the authority and the bounds follow it. Cover marquee, tap, drag, resize, delete and undo in a test beside render/LivingEntitySelectionTest.kt. Verify with those JVM tests plus one emulator pass marquee-selecting a table and moving it."

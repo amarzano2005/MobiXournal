@@ -161,10 +161,27 @@ class ElementBoundsTest {
         assertEquals(plot, SelectionOps.restyle(plot, 0xFF123456.toInt(), 5.0))
     }
 
-    @Test fun otherLivingEntitiesAreNotPickableUntilEditorsLand() {
+    @Test fun tableIsPickableMovableAndResizable() {
+        val table = TableElement(10.0, 20.0, listOf(50.0), listOf(20.0), id = "tbl_1", borderWidth = 1.0)
+        assertTrue("TableElement must be pickable", ElementBounds.isHitTestable(table))
+        assertEquals(Bounds(9.5, 19.5, 60.5, 40.5), ElementBounds.of(table))
+
+        val moved = SelectionOps.translate(table, 5.0, 7.0) as TableElement
+        assertEquals(15.0, moved.left, 1e-9)
+        assertEquals(27.0, moved.top, 1e-9)
+        assertEquals(table.colWidths, moved.colWidths)
+        assertEquals(table.rowHeights, moved.rowHeights)
+
+        val scaled = SelectionOps.affineXY(table, 2.0, 2.0, 1.0, 1.0) as TableElement
+        assertEquals(21.0, scaled.left, 1e-9)
+        assertEquals(41.0, scaled.top, 1e-9)
+        assertEquals(listOf(100.0), scaled.colWidths)
+        assertEquals(listOf(40.0), scaled.rowHeights)
+    }
+
+    @Test fun remainingLivingEntitiesAreNotPickableUntilEditorsLand() {
         val black = 0xFF000000.toInt()
         val others = listOf(
-            TableElement(10.0, 20.0, listOf(50.0), listOf(20.0), id = "tbl_1"),
             ParametricShapeElement(
                 "TRIANGLE_SCALENE",
                 listOf(ShapeVertex(1.0, 2.0), ShapeVertex(3.0, 4.0), ShapeVertex(5.0, 6.0)),

@@ -72,6 +72,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showGraphDialog by mutableStateOf(false)
     /** The existing [PlotElement] being edited in the graph dialog, or null when creating a new one. */
     var editingPlot by mutableStateOf<com.mobixournal.format.model.PlotElement?>(null)
+    /** The existing [TableElement] cell being edited in place, or null when none is. */
+    var editingTableCell by mutableStateOf<EditingTableCell?>(null)
     /**
      * The page whose **bookmark editor** is open (0-based), or null when none is. Opening it for a
      * page that has no bookmark adds one; opening it for a bookmarked page edits or deletes that one.
@@ -181,3 +183,13 @@ fun rememberEditorUiState(settings: AppSettings): EditorUiState = remember {
         highlighterWidthInit = settings.highlighterWidth,
     )
 }
+
+/**
+ * An existing [com.mobixournal.format.model.TableElement] cell being edited in place.
+ */
+data class EditingTableCell(
+    val table: com.mobixournal.format.model.TableElement,
+    val row: Int,
+    val col: Int,
+    val cellBoundsPt: com.mobixournal.render.Bounds? = null,
+)

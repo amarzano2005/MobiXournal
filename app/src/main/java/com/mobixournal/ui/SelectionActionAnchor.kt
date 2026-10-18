@@ -25,6 +25,7 @@ import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.singleSelectedPlot
+import com.mobixournal.render.singleSelectedTable
 import kotlin.math.roundToInt
 
 /** Gap between the floating action bar and the selection it belongs to. */
@@ -113,6 +114,12 @@ fun SelectionActionAnchor(
         onEditPlot = {
             surface?.singleSelectedPlot()?.let { plot ->
                 ui.editingPlot = plot
+            }
+        },
+        canEditTable = surface?.singleSelectedTable() != null,
+        onEditTable = {
+            surface?.singleSelectedTable()?.let { table ->
+                ui.editingTableCell = EditingTableCell(table, 0, 0)
             }
         },
         modifier = modifier

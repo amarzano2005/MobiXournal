@@ -5,6 +5,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TableElement
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.max
@@ -119,8 +120,13 @@ internal class SelectionGestureController(
     private var activeTrack: PlotSliderTrack? = null
     private var sliderPlotRef: ElementRef? = null
 
+    // Live column/row divider drag on a selected TableElement.
+    var draggingDivider = false
+        private set
+    private var activeDivider: TableDividerHit? = null
+
     /** True while any of the transforms or slider adjustments is mid-drag. */
-    val transforming: Boolean get() = moving || resizing || rotating || slidingParam
+    val transforming: Boolean get() = moving || resizing || rotating || slidingParam || draggingDivider
 
     /** Drop the selection without recording anything (a view-only change). */
     fun clearSelection() {
@@ -136,6 +142,8 @@ internal class SelectionGestureController(
         rotating = false
         banding = false
         slidingParam = false
+        draggingDivider = false
+        activeDivider = null
         activeTrack = null
         sliderPlotRef = null
         startDoc = null
@@ -173,6 +181,14 @@ internal class SelectionGestureController(
                 val hit = PlotSliders.hitTestSlider(tracks, event.x, event.y)
                 if (hit != null) {
                     beginSlide(hit, ref, event.x)
+                    return true
+                }
+            }
+            val table = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? TableElement
+            if (table != null) {
+                val hit = TableDividers.hitTest(table, ref, box, viewport.scrollX, viewport.scrollY, event.x, event.y)
+                if (hit != null) {
+                    beginDividerDrag(hit)
                     return true
                 }
             }
@@ -295,6 +311,53 @@ internal class SelectionGestureController(
         slidingParam = false
         activeTrack = null
         sliderPlotRef = null
+    }
+
+    /** Checks whether a touch hits a row or column divider of a single selected table. */
+    fun tryBeginDividerDrag(event: MotionEvent): Boolean {
+        val sel = selection ?: return false
+        val box = layout().boxes.getOrNull(sel.pageIndex) ?: return false
+        val page = pageAt(sel.pageIndex) ?: return false
+        if (sel.refs.size != 1) return false
+        val ref = sel.refs.first()
+        val table = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? TableElement ?: return false
+        val hit = TableDividers.hitTest(table, ref, box, viewport.scrollX, viewport.scrollY, event.x, event.y) ?: return false
+        beginDividerDrag(hit)
+        return true
+    }
+
+    private fun beginDividerDrag(hit: TableDividerHit) {
+        draggingDivider = true
+        activeDivider = hit
+        snapshot()
+    }
+
+    fun dragDivider(event: MotionEvent) {
+        val hit = activeDivider ?: return
+        val sel = selection ?: return
+        val box = layout().boxes.getOrNull(sel.pageIndex) ?: return
+        val page = pageAt(sel.pageIndex) ?: return
+        val table = page.layers.getOrNull(hit.tableRef.layerIndex)?.elements?.getOrNull(hit.tableRef.elementIndex) as? TableElement ?: return
+
+        val newTable = if (hit.isColumn) {
+            val touchXPt = box.toPtX(event.x, viewport.scrollX)
+            val newWidth = (touchXPt - hit.startPt).coerceAtLeast(TableElementFactory.MIN_COL_WIDTH_PT)
+            TableElementFactory.updateColWidth(table, hit.index, newWidth)
+        } else {
+            val touchYPt = box.toPtY(event.y, viewport.scrollY)
+            val newHeight = (touchYPt - hit.startPt).coerceAtLeast(TableElementFactory.MIN_ROW_HEIGHT_PT)
+            TableElementFactory.updateRowHeight(table, hit.index, newHeight)
+        }
+
+        val edited = ElementEdits.replaceElementOn(page, table, newTable) ?: return
+        val doc = document()
+        setDocument(doc.copy(pages = doc.pages.toMutableList().also { it[sel.pageIndex] = edited }))
+        render()
+    }
+
+    fun commitDividerDrag() {
+        draggingDivider = false
+        activeDivider = null
     }
 
     private fun beginMove(event: MotionEvent, box: PageBox) {

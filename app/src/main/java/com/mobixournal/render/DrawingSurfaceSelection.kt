@@ -13,6 +13,7 @@ import android.content.Context
 import android.view.MotionEvent
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.TableElement
 
 // --- selection: rubber-band / tap to select, drag to move, delete ------------------------------
 
@@ -222,6 +223,35 @@ fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
     // The page is known whenever the plot is the selected one, which is the usual case: edit it
     // through the page window, so only that page is touched. Without a selection fall back to the
     // whole-document search (a plot opened from the overlay, with nothing selected).
+    val index = selection?.pageIndex
+    if (index != null) {
+        windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
+    } else {
+        doc = ElementEdits.replaceElement(doc, old, new) ?: return
+    }
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
+/**
+ * Returns the currently selected [TableElement] if the active selection consists of exactly one table.
+ */
+fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? TableElement
+}
+
+/**
+ * Replace [old] table element with [new] in place: records history for undo,
+ * keeps the same layer, z-order, and id, and repaints.
+ */
+fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
+    val before = doc
     val index = selection?.pageIndex
     if (index != null) {
         windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
