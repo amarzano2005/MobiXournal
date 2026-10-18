@@ -2,16 +2,17 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.FloatingDialog
 
 /**
  * Consent dialog shown when attempting to record audio on a tab/page that already contains an existing recording.
  * Warns that continuing will overwrite or replace the previous audio binding.
+ * Wears the standard frosted-glass floating material (`FloatingDialog`).
  */
 @Composable
 fun AudioOverwriteConsentDialog(
@@ -19,7 +20,7 @@ fun AudioOverwriteConsentDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Existing recording") },
         text = {
