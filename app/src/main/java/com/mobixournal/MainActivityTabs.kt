@@ -167,6 +167,13 @@ internal fun MainActivity.show(tab: OpenTab, p: EditorPane = pane) {
 /** Load [tab] onto [p]'s canvas: its document, background PDF, save format and page. */
 internal fun MainActivity.showTab(tab: OpenTab, p: EditorPane = pane) {
     val view = p.surface ?: return
+    if (audio.isPlaying || audio.nowPlaying != null) {
+        audio.stopPlayback()
+        karaokeDriver?.stop()
+    }
+    lastAudioRef = null
+    miniPlayerVisible.value = false
+    audioTick.value++
     p.saveFormat = tab.format
     p.pendingSaveName = tab.title
     val pdf = tab.pdfPath?.let(::File)?.takeIf(File::exists)
