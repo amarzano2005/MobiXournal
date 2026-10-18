@@ -113,7 +113,6 @@ fun SelectionActionAnchor(
         onEditPlot = {
             surface?.singleSelectedPlot()?.let { plot ->
                 ui.editingPlot = plot
-                ui.showGraphDialog = true
             }
         },
         modifier = modifier

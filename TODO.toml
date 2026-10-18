@@ -36,20 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "anchored-flyout-inspector-for-the-function-plot-editor"
-title = "Anchored flyout inspector for the function plot editor"
-description = "Phase 3 of docs/ui-modernization.md names three dialogs to turn into anchored micro-inspectors: colour and width (its own task), the function plot and the table editor (whose editor lands with the table family). This one is the plot: with a single PlotElement selected, the edit path that today raises the modal ui/AdvancedFunctionGraphDialog.kt through the Edit plot action in the selection action bar (docs/mobix-elements.md) opens as an anchored inspector beside the selection, pre-filled from the element and applied through applyPlotEdit in render/PlotElementFactory.kt, so every field the dialog has no input for (samples, parameters, shadeIntegral, axisColor, id) survives and undo still works. The first insertion may keep the modal if anchoring would move the placement maths; record which in docs/ui-modernization.md. Verify on the emulator with a screenshot of the anchored inspector over a selected plot, plus a unit test that an edit applied through it round-trips."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 520
-created = 2026-10-13
-tags = ["ui", "plot"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "summon-and-anchor-the-pen-tip-radial-hud"
 title = "Summon and anchor the pen-tip radial HUD"
 description = "The pen-tip radial HUD of docs/ui-modernization.md, and deliberately not the NeXopp palette docs/codebase.md records as deleted: nothing is on screen until the stylus barrel button is pressed, the ring is anchored at the nib (hoverX/hoverY on render/DrawingSurfaceView), and it disappears on release instead of sitting over the canvas. Build the summon on the barrel path the input layer already has (render/DrawingSurfaceInput.kt: BarrelButtonState, barrelClicks, the vendor-key route a Bluetooth pen needs, InputClassifier.classify), dismiss on a second press or a cancelled gesture, and add no settings section of its own - the bindings stay in Settings to Shortcuts (docs/chrome.md). Verify with the connected harness that already drives these paths (com.mobixournal.StylusInputTest, see docs/stylus.md) plus an emulator pass with screenshots: the button opens the HUD at the tip, a release outside cancels without committing, and logcat shows no stroke was written."

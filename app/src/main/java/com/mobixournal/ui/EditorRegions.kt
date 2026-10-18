@@ -1689,6 +1689,14 @@ fun EditorPaneView(
                     modifier = Modifier.align(Alignment.TopStart),
                 )
             }
+            if (ui.editingPlot != null) {
+                PlotInspectorAnchor(
+                    pane = state,
+                    ui = ui,
+                    canvasSizePx = canvasSizePx,
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
         }
     }
 }

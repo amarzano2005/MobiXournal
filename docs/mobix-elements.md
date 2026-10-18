@@ -179,9 +179,9 @@ same graph and only the file changed). `ElementBounds` provides `PlotElement` wi
 bounding box and marks it hit-testable: marquee, lasso and tap gestures pick it up, drag gestures move it
 (translating its page-local frame while preserving mathematical ranges), handles resize it, and delete
 removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). When a single plot is selected,
-the selection action bar offers **Edit plot**, which reopens `AdvancedFunctionGraphDialog` pre-filled with the
-element's curves, range, flags and shaded area; confirming applies the edits in place
-(`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog has no input for (`samples`,
+the selection action bar offers **Edit plot**, which opens the anchored micro-inspector `PlotInspectorAnchor` beside
+the selection on canvas, pre-filled with the element's curves, range, flags and shaded area; confirming applies the edits
+in place (`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog has no input for (`samples`,
 `parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. The dialog owns the
 shaded integral area (`shadeIntegral`), whose from/to pair drives the wash, the integral the summary
 reports and the ink an export compiles ([math-engine.md](math-engine.md), section 3).

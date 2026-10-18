@@ -192,7 +192,7 @@ fun AdvancedFunctionGraphDialog(
     )
 }
 
-private fun createInitialCurveList(
+internal fun createInitialCurveList(
     isParametricInitial: Boolean,
     initialCurves: List<PlotCurve>?,
 ): List<CurveEditorState> =
@@ -202,7 +202,7 @@ private fun createInitialCurveList(
         listOf(CurveEditorState("sin(x)", PRESET_COLORS[0]))
     }
 
-private fun resolveActiveCurves(
+internal fun resolveActiveCurves(
     modeTab: Int,
     curves: List<CurveEditorState>,
     paramX: String,
@@ -295,7 +295,7 @@ internal fun DialogBodyContent(
 }
 
 @Composable
-private fun DialogInputsColumn(
+internal fun DialogInputsColumn(
     modifier: Modifier = Modifier,
     modeTab: Int,
     onModeTabChange: (Int) -> Unit,

@@ -87,7 +87,7 @@ internal fun DialogPreviewColumn(
 }
 
 @Composable
-private fun OptionsRow(
+internal fun OptionsRow(
     showCriticalPoints: Boolean,
     onShowCriticalPointsChange: (Boolean) -> Unit,
     includeDerivative: Boolean,
