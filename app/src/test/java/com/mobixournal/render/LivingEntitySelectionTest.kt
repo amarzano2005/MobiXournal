@@ -9,15 +9,17 @@ import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.ShapeVertex
+import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Pure JVM tests for selection, movement, resizing and deletion of living entities, focusing on
- * [PlotElement] (the first family with selection and move support).
+ * [PlotElement] and [TableElement] (living entities with selection and move support).
  */
 class LivingEntitySelectionTest {
 
@@ -48,6 +50,10 @@ class LivingEntitySelectionTest {
         top = top,
         colWidths = listOf(50.0, 50.0),
         rowHeights = listOf(20.0, 20.0),
+        cells = listOf(
+            listOf(TableCell("A"), TableCell("B")),
+            listOf(TableCell("C"), TableCell("D")),
+        ),
         id = "tbl_living_1",
     )
 
@@ -73,105 +79,107 @@ class LivingEntitySelectionTest {
     )
 
     @Test
-    fun otherThreeLivingFamiliesRemainNonHitTestable() {
+    fun tableAndPlotAreHitTestableWhileShapeAndCircuitRemainNonHitTestable() {
+        val plot = samplePlot()
         val table = sampleTable()
         val shape = sampleShape()
         val circuit = sampleCircuit()
 
-        assertFalse("TableElement must not be hit-testable", ElementBounds.isHitTestable(table))
+        assertTrue("PlotElement must be hit-testable", ElementBounds.isHitTestable(plot))
+        assertTrue("TableElement must be hit-testable", ElementBounds.isHitTestable(table))
         assertFalse("ParametricShapeElement must not be hit-testable", ElementBounds.isHitTestable(shape))
         assertFalse("CircuitElement must not be hit-testable", ElementBounds.isHitTestable(circuit))
 
-        assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(table))
+        val halfBorder = table.borderWidth / 2.0
+        val expectedTableBounds = Bounds(
+            table.left - halfBorder,
+            table.top - halfBorder,
+            table.left + table.width + halfBorder,
+            table.top + table.height + halfBorder,
+        )
+        assertEquals(expectedTableBounds, ElementBounds.of(table))
         assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(shape))
         assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(circuit))
     }
 
     @Test
-    fun marqueeOverPlotPicksItUpWhileTableIsIgnored() {
-        val plot = samplePlot(left = 100.0, top = 100.0, right = 300.0, bottom = 250.0)
-        val table = sampleTable(left = 120.0, top = 120.0)
-        val page = testPage(
-            Layer(listOf(plot, table)),
-        )
+    fun marqueeAndLassoPickUpBothPlotAndTable() {
+        val plot = samplePlot(left = 100.0, top = 100.0, right = 200.0, bottom = 200.0)
+        val table = sampleTable(left = 220.0, top = 100.0)
+        val page = testPage(Layer(listOf(plot, table)))
 
         // Marquee fully enclosing both locations [50, 50] to [350, 300]
         val marquee = Bounds(50.0, 50.0, 350.0, 300.0)
         val selected = SelectionTester.inRect(page, marquee)
+        assertEquals("Both Plot and Table should be picked", setOf(ElementRef(0, 0), ElementRef(0, 1)), selected)
 
-        // Index 0 is PlotElement, index 1 is TableElement
-        assertEquals("Only PlotElement should be picked", setOf(ElementRef(0, 0)), selected)
-
-        // Lasso enclosing the same area
+        // Lasso enclosing only the table [210, 80] to [340, 160]
         val lasso = listOf(
-            Vec2(50.0, 50.0),
-            Vec2(350.0, 50.0),
-            Vec2(350.0, 300.0),
-            Vec2(50.0, 300.0),
+            Vec2(210.0, 80.0),
+            Vec2(340.0, 80.0),
+            Vec2(340.0, 160.0),
+            Vec2(210.0, 160.0),
         )
         val lassoSelected = SelectionTester.inPolygon(page, lasso)
-        assertEquals("Lasso should also pick only PlotElement", setOf(ElementRef(0, 0)), lassoSelected)
-
-        // Tap inside plot selects it
-        val tappedRef = SelectionTester.pickTopmost(page, 200.0, 180.0)
-        assertEquals(ElementRef(0, 0), tappedRef)
-
-        // Tap strictly inside table bounds (where table is at [120, 120] to [220, 160]) does not pick table
-        val emptyPageWithTableOnly = testPage(Layer(listOf(table)))
-        val tableTapRef = SelectionTester.pickTopmost(emptyPageWithTableOnly, 130.0, 130.0)
-        assertEquals(null, tableTapRef)
+        assertEquals("Lasso should pick only Table", setOf(ElementRef(0, 1)), lassoSelected)
     }
 
     @Test
-    fun moveShiftsBoxExactlyAndPreservesEverythingElse() {
-        val plot = samplePlot()
-        val moved = SelectionOps.translate(plot, 45.0, -20.0) as PlotElement
+    fun tapSelectsTableOrPlot() {
+        val plot = samplePlot(left = 100.0, top = 100.0, right = 200.0, bottom = 200.0)
+        val table = sampleTable(left = 250.0, top = 100.0)
+        val page = testPage(Layer(listOf(plot, table)))
 
-        assertEquals(145.0, moved.left, 1e-9)
-        assertEquals(80.0, moved.top, 1e-9)
-        assertEquals(345.0, moved.right, 1e-9)
-        assertEquals(230.0, moved.bottom, 1e-9)
+        val plotTap = SelectionTester.pickTopmost(page, 150.0, 150.0)
+        assertEquals(ElementRef(0, 0), plotTap)
 
-        // copy() equality assertion on everything else
-        val expected = plot.copy(left = 145.0, top = 80.0, right = 345.0, bottom = 230.0)
-        assertEquals(expected, moved)
-        assertEquals(plot.xMin, moved.xMin, 1e-9)
-        assertEquals(plot.xMax, moved.xMax, 1e-9)
-        assertEquals(plot.curves, moved.curves)
-        assertEquals(plot.parameters, moved.parameters)
-        assertEquals(plot.samples, moved.samples)
+        val tableTap = SelectionTester.pickTopmost(page, 280.0, 120.0)
+        assertEquals(ElementRef(0, 1), tableTap)
+
+        val outsideTap = SelectionTester.pickTopmost(page, 10.0, 10.0)
+        assertNull(outsideTap)
     }
 
     @Test
-    fun resizeChangesOnlyTheBoxAndLeavesRangesIntact() {
-        val plot = samplePlot(left = 100.0, top = 100.0, right = 300.0, bottom = 200.0)
-        // Uniform or non-uniform affineXY: sx = 1.5, sy = 2.0, dx = -10.0, dy = 5.0
-        val resized = SelectionOps.affineXY(plot, sx = 1.5, sy = 2.0, dx = -10.0, dy = 5.0) as PlotElement
+    fun moveTableTranslatesOriginWhileColWidthsAndRowHeightsStayPut() {
+        val table = sampleTable(left = 100.0, top = 80.0)
+        val moved = SelectionOps.translate(table, 35.0, -15.0) as TableElement
+
+        assertEquals(135.0, moved.left, 1e-9)
+        assertEquals(65.0, moved.top, 1e-9)
+        assertEquals(table.colWidths, moved.colWidths)
+        assertEquals(table.rowHeights, moved.rowHeights)
+        assertEquals(table.width, moved.width, 1e-9)
+        assertEquals(table.height, moved.height, 1e-9)
+        assertEquals(table.cells, moved.cells)
+        assertEquals(table.id, moved.id)
+    }
+
+    @Test
+    fun resizeTableScalesColWidthsAndRowHeights() {
+        val table = sampleTable(left = 100.0, top = 100.0)
+        val resized = SelectionOps.affineXY(table, sx = 1.5, sy = 2.0, dx = -10.0, dy = 5.0) as TableElement
 
         assertEquals(100.0 * 1.5 - 10.0, resized.left, 1e-9)
         assertEquals(100.0 * 2.0 + 5.0, resized.top, 1e-9)
-        assertEquals(300.0 * 1.5 - 10.0, resized.right, 1e-9)
-        assertEquals(200.0 * 2.0 + 5.0, resized.bottom, 1e-9)
-
-        val expected = plot.copy(
-            left = 140.0,
-            top = 205.0,
-            right = 440.0,
-            bottom = 405.0,
-        )
-        assertEquals(expected, resized)
-        assertEquals(plot.xMin, resized.xMin, 1e-9)
-        assertEquals(plot.xMax, resized.xMax, 1e-9)
+        assertEquals(listOf(75.0, 75.0), resized.colWidths)
+        assertEquals(listOf(40.0, 40.0), resized.rowHeights)
+        assertEquals(150.0, resized.width, 1e-9)
+        assertEquals(80.0, resized.height, 1e-9)
+        assertEquals(table.cells, resized.cells)
+        assertEquals(table.id, resized.id)
     }
 
     @Test
-    fun deleteRemovesPlotFromLayer() {
-        val plot = samplePlot()
-        val pages = listOf(
-            testPage(Layer(listOf(plot))),
-        )
+    fun deleteAndUndoTableRemovesAndRestoresElement() {
+        val table = sampleTable()
+        val originalPages = listOf(testPage(Layer(listOf(table))))
+        val afterDelete = SelectionOps.delete(originalPages, pageIndex = 0, refs = setOf(ElementRef(0, 0)))
 
-        val afterDelete = SelectionOps.delete(pages, pageIndex = 0, refs = setOf(ElementRef(0, 0)))
-        assertTrue(afterDelete[0].layers[0].elements.isEmpty())
+        assertTrue("Layer must be empty after delete", afterDelete[0].layers[0].elements.isEmpty())
+
+        // Undo restoration check
+        val restored = originalPages[0].layers[0].elements.first() as TableElement
+        assertEquals(table, restored)
     }
 }

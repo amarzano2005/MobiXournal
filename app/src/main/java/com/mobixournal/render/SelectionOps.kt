@@ -52,14 +52,17 @@ object SelectionOps {
         )
         // Elements we don't model carry geometry we can't interpret, so every op leaves them be.
         is RawElement -> element
-        // PlotElement is the first living entity with selection and move support (`docs/mobix-elements.md`).
-        // Moving translates its page-local frame while preserving mathematical data ranges (xMin..xMax).
+        // PlotElement translates its page-local frame while preserving mathematical data ranges (xMin..xMax).
         is PlotElement -> element.copy(
             left = element.left + dx, top = element.top + dy,
             right = element.right + dx, bottom = element.bottom + dy,
         )
+        // TableElement translates its origin while colWidths/rowHeights stay put.
+        is TableElement -> element.copy(
+            left = element.left + dx, top = element.top + dy,
+        )
         // The remaining living entities keep their geometry untouched until their editors land.
-        is TableElement, is ParametricShapeElement, is CircuitElement -> element
+        is ParametricShapeElement, is CircuitElement -> element
     }
 
     /**
@@ -156,8 +159,25 @@ object SelectionOps {
                 left = element.left * sx + dx, top = element.top * sy + dy,
                 right = element.right * sx + dx, bottom = element.bottom * sy + dy,
             )
+            // TableElement scales its origin and column/row dimensions (enforcing minimums).
+            is TableElement -> {
+                val newLeft = element.left * sx + dx
+                val newTop = element.top * sy + dy
+                val newColWidths = element.colWidths.map {
+                    (it * sx).coerceAtLeast(TableElementFactory.MIN_COL_WIDTH_PT)
+                }
+                val newRowHeights = element.rowHeights.map {
+                    (it * sy).coerceAtLeast(TableElementFactory.MIN_ROW_HEIGHT_PT)
+                }
+                element.copy(
+                    left = newLeft,
+                    top = newTop,
+                    colWidths = newColWidths,
+                    rowHeights = newRowHeights,
+                )
+            }
             // The remaining living entities keep their geometry untouched until their editors land.
-            is TableElement, is ParametricShapeElement, is CircuitElement -> element
+            is ParametricShapeElement, is CircuitElement -> element
         }
     }
 

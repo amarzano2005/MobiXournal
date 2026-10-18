@@ -92,20 +92,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "make-the-table-family-selectable-on-the-canvas"
-title = "Make the table family selectable on the canvas"
-description = "Give TableElement a real bounding box and mark it hit-testable in render/ElementBounds.kt, the way PlotElement already is; today the table, shape and circuit families answer an empty box and isHitTestable = false so a marquee cannot pick up something that has no editor yet (docs/mobix-elements.md). Then let the existing selection machinery move, resize and delete it: render/SelectionOps.kt already does exactly that for a plot, and a moved table must move its origin while colWidths/rowHeights stay put, because the grid is the authority and the bounds follow it. Cover marquee, tap, drag, resize, delete and undo in a test beside render/LivingEntitySelectionTest.kt. Verify with those JVM tests plus one emulator pass marquee-selecting a table and moving it."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 590
-created = 2026-10-13
-tags = ["table"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "in-place-table-cell-editor-and-row-and-column-resize"
 title = "In-place table cell editor and row and column resize"
 description = "The table editing surface itself (docs/mobix-elements.md): a double tap on a cell opens an in-place overlay anchored to that cell, reusing the text editing path in render/TextEditController.kt, and commits into that one cell only; dragging a row or column divider rewrites rowHeights/colWidths, which are the authority for the grid, while the header row and the per-cell align, bold and fillColor all survive. Drawing goes through render/LivingInk.kt, so screen, SVG and PDF cannot disagree about the table, and any field the editor has no input for is preserved rather than dropped - the same rule the plot edit follows. Full undo support. Verify on the emulator with a stylus and a finger: edit a cell, resize a column, undo and redo, with screenshots and a clean logcat."

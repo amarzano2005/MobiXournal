@@ -79,10 +79,10 @@ object ElementBounds {
      */
     fun isHitTestable(element: Element): Boolean = when (element) {
         is RawElement -> false
-        // The plot is the first living entity to become selectable and movable (`docs/mobix-elements.md`).
-        // The other three keep an empty box and are not hit-testable until their respective editors land.
-        is PlotElement -> true
-        is TableElement, is ParametricShapeElement, is CircuitElement -> false
+        // Plot and Table are living entities with selection and move support (`docs/mobix-elements.md`).
+        // The other two keep an empty box and are not hit-testable until their respective editors land.
+        is PlotElement, is TableElement -> true
+        is ParametricShapeElement, is CircuitElement -> false
         is Stroke -> element.points.isNotEmpty()
         else -> true
     }
@@ -97,12 +97,18 @@ object ElementBounds {
         is ImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TexImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is PlotElement -> plotBounds(element)
+        is TableElement -> tableBounds(element)
         // An element we don't model has no geometry we can trust; the empty box keeps it out of
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
-        // The other living entities carry their own geometry (a table's grid, a shape's vertices) and are
+        // The other living entities carry their own geometry (a shape's vertices) and are
         // drawn through it, but their box stays deliberately empty until their editors land (`docs/mobix-elements.md`).
-        is TableElement, is ParametricShapeElement, is CircuitElement -> Bounds(0.0, 0.0, 0.0, 0.0)
+        is ParametricShapeElement, is CircuitElement -> Bounds(0.0, 0.0, 0.0, 0.0)
+    }
+
+    private fun tableBounds(t: TableElement): Bounds {
+        val half = t.borderWidth / 2.0
+        return Bounds(t.left - half, t.top - half, t.left + t.width + half, t.top + t.height + half)
     }
 
     private fun plotBounds(p: PlotElement): Bounds {
