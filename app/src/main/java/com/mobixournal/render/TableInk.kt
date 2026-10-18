@@ -113,21 +113,56 @@ internal object TableInk {
         height: Double,
         rowIdx: Int,
     ): TextElement {
+        val fontSize = autoFontSizePt(cell.text, width, height, cell.bold)
         val probe = InkPrimitives.text(
             content = cell.text,
             x = 0.0,
             y = 0.0,
             color = table.borderColor,
             bold = cell.bold,
+            sizePt = fontSize,
         )
         val box = ElementBounds.of(probe)
         val x = when (cell.align) {
             TableAlign.LEFT -> left + CELL_PAD_PT
-            TableAlign.CENTER -> left + (width - box.width) / 2.0
-            TableAlign.RIGHT -> left + width - box.width - CELL_PAD_PT
+            TableAlign.CENTER -> (left + (width - box.width) / 2.0).coerceAtLeast(left + CELL_PAD_PT)
+            TableAlign.RIGHT -> (left + width - box.width - CELL_PAD_PT).coerceAtLeast(left + CELL_PAD_PT)
         }
-        val y = top + (height - box.height) / 2.0
+        val y = (top + (height - box.height) / 2.0).coerceAtLeast(top + CELL_PAD_PT)
         return probe.copy(x = x, y = y)
+    }
+
+    /**
+     * Computes an auto-fitted font size in pt for text inside a cell of size [width] x [height].
+     *
+     * The size scales with cell height for comfortable proportion, but adapts down gracefully
+     * if the text width or line count would overflow the available cell bounds.
+     */
+    internal fun autoFontSizePt(
+        text: String,
+        width: Double,
+        height: Double,
+        isBold: Boolean = false,
+    ): Double {
+        if (text.isEmpty()) return FIGURE_LABEL_SIZE_PT
+        val pad = CELL_PAD_PT * 2.0
+        val availW = (width - pad).coerceAtLeast(1.0)
+        val availH = (height - pad).coerceAtLeast(1.0)
+        val lines = text.split("\n")
+        val maxChars = lines.maxOfOrNull { it.length }?.coerceAtLeast(1) ?: 1
+        val numLines = lines.size.coerceAtLeast(1)
+
+        val charW = if (isBold) 0.65 else 0.60
+        val lineH = 1.30
+
+        // Preferred font size proportional to cell height (e.g. ~38% of available height per line).
+        val preferred = ((availH / numLines) * 0.38).coerceIn(8.0, 18.0)
+
+        // Geometric limits so text fits within cell borders without clipping
+        val maxFittingW = availW / (maxChars * charW)
+        val maxFittingH = availH / (numLines * lineH)
+
+        return minOf(preferred, maxFittingW, maxFittingH).coerceIn(5.0, 24.0)
     }
 
     /** Walk the grid, handing each cell its box: [table]'s own widths and heights, not an even split. */

@@ -325,7 +325,7 @@ private fun BoxScope.SelectionOverlays(
             onRowsChange = { onSettingsChange(settings.copy(tableRows = it)) },
             onColsChange = { onSettingsChange(settings.copy(tableCols = it)) },
             onHasHeaderChange = { onSettingsChange(settings.copy(tableHeader = it)) },
-            onInsert = { surface?.insertTable(settings.tableRows, settings.tableCols, hasHeader = settings.tableHeader) },
+            onDone = { surface?.activateTool(EditorTool.PEN, ui, settings, onSettingsChange) },
             modifier = barModifier,
         )
     }

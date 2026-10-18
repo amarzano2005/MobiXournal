@@ -351,7 +351,7 @@ fun TableModeBar(
     onRowsChange: (Int) -> Unit,
     onColsChange: (Int) -> Unit,
     onHasHeaderChange: (Boolean) -> Unit = {},
-    onInsert: () -> Unit,
+    onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     FloatingSurface(modifier = modifier) {
@@ -412,10 +412,10 @@ fun TableModeBar(
 
             Spacer(Modifier.width(4.dp))
 
-            TextButton(onClick = onInsert) {
+            TextButton(onClick = onDone) {
                 Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Insert")
+                Text("Done")
             }
         }
     }

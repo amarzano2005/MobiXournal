@@ -191,4 +191,32 @@ class TableElementFactoryTest {
         assertTrue("Must include border strokes", elements.any { it is Stroke })
         assertTrue("Must include cell text box", elements.any { it is TextElement && it.content == "Item A" })
     }
+
+    @Test
+    fun tableInkAutoScalesFontSizeToFitCellDimensions() {
+        val largeCellSize = TableInk.autoFontSizePt("Hi", width = 120.0, height = 60.0)
+        assertTrue("Large cell should have larger font size: $largeCellSize", largeCellSize >= 14.0)
+
+        val narrowCellSize = TableInk.autoFontSizePt("A very long title that exceeds bounds", width = 60.0, height = 30.0)
+        assertTrue("Long text should scale down: $narrowCellSize", narrowCellSize < 8.0)
+
+        val singleLineSize = TableInk.autoFontSizePt("Line 1", width = 80.0, height = 40.0)
+        val multiLineSize = TableInk.autoFontSizePt("Line 1\nLine 2\nLine 3", width = 80.0, height = 40.0)
+        assertTrue("Multi-line text should have smaller font size than single line", multiLineSize < singleLineSize)
+
+        val table = TableElement(
+            left = 50.0,
+            top = 50.0,
+            colWidths = listOf(120.0, 40.0),
+            rowHeights = listOf(50.0),
+            cells = listOf(listOf(TableCell("Wide"), TableCell("VeryLongWordInNarrowCell"))),
+            id = "tbl_font_test",
+        )
+        val inkElements = TableInk.ink(table)
+        val textElements = inkElements.filterIsInstance<TextElement>()
+        assertEquals(2, textElements.size)
+        val wideText = textElements.first { it.content == "Wide" }
+        val narrowText = textElements.first { it.content == "VeryLongWordInNarrowCell" }
+        assertTrue("Wide cell text size (${wideText.size}) should be greater than narrow (${narrowText.size})", wideText.size > narrowText.size)
+    }
 }

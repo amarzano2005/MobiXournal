@@ -51,10 +51,17 @@ internal object InkPrimitives {
      * ([FontDescription]) rather than a second spelling of "bold" this format would have to keep in
      * sync with the desktop's.
      */
-    fun text(content: String, x: Double, y: Double, color: Int, bold: Boolean = false): TextElement =
+    fun text(
+        content: String,
+        x: Double,
+        y: Double,
+        color: Int,
+        bold: Boolean = false,
+        sizePt: Double = FIGURE_LABEL_SIZE_PT,
+    ): TextElement =
         TextElement(
             font = if (bold) FontDescription(FIGURE_LABEL_FONT, bold = true, italic = false).compose() else FIGURE_LABEL_FONT,
-            size = FIGURE_LABEL_SIZE_PT,
+            size = sizePt,
             x = x,
             y = y,
             color = color,
