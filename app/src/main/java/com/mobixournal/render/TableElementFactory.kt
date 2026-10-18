@@ -74,6 +74,7 @@ internal object TableElementFactory {
             cells = cells,
             borderColor = borderColor,
             borderWidth = borderWidth,
+            id = com.mobixournal.format.model.ElementId.mint(com.mobixournal.format.model.ElementId.TABLE),
         )
     }
 

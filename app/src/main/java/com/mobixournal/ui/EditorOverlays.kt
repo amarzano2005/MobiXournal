@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -69,7 +71,11 @@ fun BoxScope.EditorOverlays(
 ) {
     val surface = pane.surface
     val palette = rememberColorPaletteState(settings, onSettingsChange)
-    val barModifier = Modifier.align(Alignment.BottomCenter).padding(24.dp)
+    val barModifier = Modifier
+        .align(Alignment.BottomCenter)
+        .navigationBarsPadding()
+        .imePadding()
+        .padding(bottom = 16.dp)
 
     SelectionOverlays(ui, pane, barModifier, settings, onSettingsChange)
 

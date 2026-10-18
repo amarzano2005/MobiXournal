@@ -62,8 +62,11 @@ internal object ElementEdits {
      */
     fun replaceElementOn(page: Page, old: Element, new: Element?): Page? {
         var changed = false
+        val oldId = com.mobixournal.format.model.ElementId.idOf(old)
         val layers = page.layers.map { layer ->
-            val idx = layer.elements.indexOfFirst { it === old }
+            val idx = layer.elements.indexOfFirst {
+                it === old || (oldId != null && com.mobixournal.format.model.ElementId.idOf(it) == oldId)
+            }
             if (idx < 0) return@map layer
             changed = true
             val els = layer.elements.toMutableList()

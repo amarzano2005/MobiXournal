@@ -432,6 +432,18 @@ internal fun DrawingSurfaceView.point(
 }
 
 internal fun DrawingSurfaceView.commitCurrent() {
+    // The table tool authors a living TableElement (on tap or drag) rather than baked strokes.
+    if (shaping && shapeKind == ShapeKind.TABLE) {
+        val raw = current
+        current = null
+        currentStrokes = null
+        shaping = false
+        cancelHoldSnap()
+        holdSnapped = false
+        commitTableInsertion(raw ?: emptyList())
+        return
+    }
+
     val multi = currentStrokes
     if (multi != null) {
         currentStrokes = null
@@ -456,12 +468,6 @@ internal fun DrawingSurfaceView.commitCurrent() {
     shaping = false
     val holdWasSnapped = holdSnapped
     holdSnapped = false
-
-    // The table tool authors a living TableElement (on tap or drag) rather than a baked stroke.
-    if (wasShaping && shapeKind == ShapeKind.TABLE) {
-        commitTableInsertion(raw)
-        return
-    }
 
     // Shape tools emit exact geometry — only freehand samples get thinned.
     // Thin against the page's real px/pt (fit-to-width × zoom), not the zoom alone — on a large
@@ -509,7 +515,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
 private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {
     val ex = shapeEndX
     val ey = shapeEndY
-    val isTap = raw.size <= 2 && hypot(ex - shapeStartX, ey - shapeStartY) < 6.0
+    val isTap = hypot(ex - shapeStartX, ey - shapeStartY) < 6.0
     val table = if (isTap) {
         val halfW = 100.0
         val halfH = 60.0

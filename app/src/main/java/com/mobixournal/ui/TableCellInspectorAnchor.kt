@@ -141,7 +141,7 @@ internal fun rememberTableCellInspectorState(
             initialBold = cell.bold,
         )
     }
-    LaunchedEffect(tableId, row, col, cell.text, cell.align, cell.bold) {
+    LaunchedEffect(tableId, row, col) {
         state.text = cell.text
         state.align = cell.align
         state.bold = cell.bold
@@ -158,22 +158,25 @@ fun TableCellInspectorAnchor(
     ui: EditorUiState,
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
-    onDismiss: () -> Unit = { ui.editingTableCell = null },
+    onDismiss: () -> Unit = {},
 ) {
     val editing = ui.editingTableCell ?: return
     val table = editing.table
     val row = editing.row
     val col = editing.col
     val cell = table.cell(row, col)
-    val state = rememberTableCellInspectorState(table.id, row, col, cell)
+    val state = rememberTableCellInspectorState(table.id ?: table.hashCode().toString(), row, col, cell)
 
     var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
 
     fun commitCurrentCell(): TableElement {
-        val updatedCell = cell.copy(text = state.text, align = state.align, bold = state.bold)
-        val updatedTable = TableElementFactory.updateCell(table, row, col, updatedCell)
-        if (updatedTable != table) {
-            pane.surface?.replaceTableElement(table, updatedTable)
+        val currentTable = ui.editingTableCell?.table ?: table
+        val targetCell = currentTable.cell(row, col)
+        val updatedCell = targetCell.copy(text = state.text, align = state.align, bold = state.bold)
+        val updatedTable = TableElementFactory.updateCell(currentTable, row, col, updatedCell)
+        if (updatedTable != currentTable) {
+            pane.surface?.replaceTableElement(currentTable, updatedTable)
+            ui.editingTableCell = ui.editingTableCell?.copy(table = updatedTable)
         }
         return updatedTable
     }
@@ -181,6 +184,7 @@ fun TableCellInspectorAnchor(
     fun applyAndDismiss() {
         commitCurrentCell()
         ui.editingTableCell = null
+        onDismiss()
     }
 
     fun navigateTo(nextR: Int, nextC: Int) {
@@ -208,7 +212,7 @@ fun TableCellInspectorAnchor(
             onNavigate = ::navigateTo,
             onStyleChange = ::onStyleChange,
             onDone = ::applyAndDismiss,
-            onDismiss = onDismiss,
+            onDismiss = ::applyAndDismiss,
         )
     }
 }
