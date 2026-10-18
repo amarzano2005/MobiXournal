@@ -362,10 +362,11 @@ data class AppSettings(
      * oldest-first once the folder exceeds this; a dropped generated PDF simply regenerates.
      */
     val pdfCacheLimitMb: Int = DEFAULT_PDF_CACHE_LIMIT_MB,
-    /** Whether a **two-finger tap** undoes and a **three-finger tap** redoes. On by default. */
+    /**
+     * Whether a **two-finger tap** undoes and a **three-finger tap** redoes. On by default; the
+     * fingers must stay still and lift quickly, so an ordinary pan is never mistaken for a tap.
+     */
     val multiFingerShortcuts: Boolean = true,
-    /** Enable Apple-style fluid spring & scale opening animations for popups, menus, and dialogs. */
-    val liquidGlassAnimations: Boolean = true,
     /** Whether the user has seen or dismissed the first-launch onboarding popup. */
     val hasSeenOnboarding: Boolean = false,
 ) {
@@ -705,7 +706,6 @@ class SettingsStore(context: Context) {
             textImportLimitMb = prefs.getInt(KEY_TEXT_IMPORT_LIMIT, d.textImportLimitMb).coerceAtLeast(1),
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
             multiFingerShortcuts = prefs.getBoolean(KEY_MULTI_FINGER_SHORTCUTS, d.multiFingerShortcuts),
-            liquidGlassAnimations = prefs.getBoolean(KEY_LIQUID_GLASS_ANIMATIONS, d.liquidGlassAnimations),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
         ).sanitized()
     }
@@ -819,7 +819,6 @@ class SettingsStore(context: Context) {
         e.putInt(KEY_TEXT_IMPORT_LIMIT, s.textImportLimitMb)
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
         e.putBoolean(KEY_MULTI_FINGER_SHORTCUTS, s.multiFingerShortcuts)
-        e.putBoolean(KEY_LIQUID_GLASS_ANIMATIONS, s.liquidGlassAnimations)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
         e.apply()
     }
@@ -921,7 +920,6 @@ class SettingsStore(context: Context) {
         const val KEY_TEXT_IMPORT_LIMIT = "text_import_limit_mb"
         const val KEY_PDF_CACHE_LIMIT = "pdf_cache_limit_mb"
         const val KEY_MULTI_FINGER_SHORTCUTS = "multi_finger_shortcuts"
-        const val KEY_LIQUID_GLASS_ANIMATIONS = "liquid_glass_animations"
 
         /** Per-slot SharedPreferences key for the [i]th configurable pen width. */
         fun keyPenWidth(i: Int): String = "pen_width_$i"

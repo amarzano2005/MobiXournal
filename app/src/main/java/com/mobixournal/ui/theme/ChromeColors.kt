@@ -126,11 +126,11 @@ fun rememberScrollThumbColor(): Color = if (chromeIsDark()) TextSecondaryOnDark 
 @Composable
 fun rememberMenuRimColor(): Color = MaterialTheme.colorScheme.onSurface
 
-/** Strength of the pop-up rim along the panel's lit top edge (0.0f in pure uniform transparency mode). */
-const val MENU_RIM_ALPHA_TOP = 0.0f
+/** Strength of the pop-up rim along the panel's lit top edge. */
+const val MENU_RIM_ALPHA_TOP = 0.12f
 
-/** Strength of the pop-up rim along the panel's shaded bottom edge (0.0f in pure uniform transparency mode). */
-const val MENU_RIM_ALPHA_BOTTOM = 0.0f
+/** Strength of the pop-up rim along the panel's shaded bottom edge. */
+const val MENU_RIM_ALPHA_BOTTOM = 0.04f
 
 /** Derives the canvas chrome colours from the ambient Material 3 scheme. */
 @Composable

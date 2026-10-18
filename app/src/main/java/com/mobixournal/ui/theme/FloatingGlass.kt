@@ -1,8 +1,5 @@
 package com.mobixournal.ui.theme
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,9 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -27,10 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 
 /**
  * The **one edge** a floating surface wears.
@@ -58,59 +50,55 @@ import kotlinx.coroutines.launch
 internal fun Modifier.floatingRim(
     cornerRadius: Dp = ModernTheme.panelCornerRadiusDp,
 ): Modifier {
-    // Pure uniform transparency: no perimeter stroke is drawn, eliminating any opaque border demarcation
-    return this
+    val rim = rememberMenuRimColor()
+    return drawWithContent {
+        drawContent()
+        drawFloatingRim(cornerRadius.toPx(), rim)
+    }
 }
 
-/** [floatingRim]'s stroke stub, kept for API compatibility with pure uniform transparency. */
+/** [floatingRim]'s stroke, for a surface that already holds its own ink and radius. */
 internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
-    // Pure uniform transparency: no perimeter strokes to maintain 100% homogeneous translucency
-}
-
-/** The rim's thickness token — zero in pure uniform transparency mode. */
-internal val MENU_RIM_WIDTH = 0.dp
-
-/** CompositionLocal providing the liquid glass opening animation preference. */
-val LocalLiquidGlassAnimations = compositionLocalOf { true }
-
-/**
- * Apple-style liquid glass opening animation for popups, menus, and dialogs.
- * Smoothly scales from 0.85 with fluid spring physics (overshooting softly) and gentle fade-in.
- * Can be disabled by user preference via [LocalLiquidGlassAnimations].
- */
-@Composable
-fun Modifier.liquidGlassPopupAnimation(
-    enabled: Boolean = LocalLiquidGlassAnimations.current,
-): Modifier {
-    if (!enabled) return this
-
-    val scale = remember { Animatable(0.85f) }
-    val alpha = remember { Animatable(0f) }
-
-    LaunchedEffect(Unit) {
-        launch {
-            scale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = 0.68f, // Fluid Apple-style spring with subtle liquid bounce
-                    stiffness = 450f,
+    val width = MENU_RIM_WIDTH.toPx()
+    // Half a hairline in from the edge: a stroke straddles its path, and the outer half would be
+    // wasted on the corner's own curve.
+    drawRoundRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                rim.copy(alpha = MENU_RIM_ALPHA_TOP),
+                rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM),
+            ),
+            startY = 0f,
+            endY = size.height,
+        ),
+        topLeft = Offset(width / 2f, width / 2f),
+        size = Size(size.width - width, size.height - width),
+        cornerRadius = CornerRadius(cornerRadiusPx),
+        style = Stroke(width = width),
+    )
+    // Soft inner transition that feathers the outer border seamlessly into the transparent central fill
+    val innerWidth = width * 1.5f
+    val innerInset = width + innerWidth / 2f
+    if (size.width > innerInset * 2 && size.height > innerInset * 2) {
+        drawRoundRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    rim.copy(alpha = MENU_RIM_ALPHA_TOP * 0.35f),
+                    rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM * 0.35f),
                 ),
-            )
-        }
-        launch {
-            alpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 140),
-            )
-        }
-    }
-
-    return this.graphicsLayer {
-        scaleX = scale.value
-        scaleY = scale.value
-        this.alpha = alpha.value
+                startY = 0f,
+                endY = size.height,
+            ),
+            topLeft = Offset(innerInset, innerInset),
+            size = Size(size.width - innerInset * 2, size.height - innerInset * 2),
+            cornerRadius = CornerRadius(maxOf(0f, cornerRadiusPx - width)),
+            style = Stroke(width = innerWidth),
+        )
     }
 }
+
+/** The rim's thickness — one hairline, drawn inside the surface's edge. */
+internal val MENU_RIM_WIDTH = 1.dp
 
 /**
  * The one **floating surface**: the bars' glass
@@ -179,7 +167,7 @@ fun FloatingDialog(
             containerColor = surface,
             // The modifier lands on the dialog's own `Surface`, which is what lets the rim be drawn
             // on the panel's bounds.
-            modifier = modifier.floatingRim().liquidGlassPopupAnimation(),
+            modifier = modifier.floatingRim(),
             properties = properties,
             // No tonal wash: with `surface` and `surfaceTint` the same colour the RGB would survive it,
             // but the composite still stacks the tint's alpha over the fill's and lands the panel a

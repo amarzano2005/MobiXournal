@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.floatingRim
-import com.mobixournal.ui.theme.liquidGlassPopupAnimation
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import kotlinx.coroutines.delay
 
@@ -52,7 +51,7 @@ fun GlassToastHost(
                 shape = RoundedCornerShape(20.dp),
                 color = glassBg,
                 shadowElevation = 8.dp,
-                modifier = Modifier.padding(horizontal = 24.dp).floatingRim(20.dp).liquidGlassPopupAnimation(),
+                modifier = Modifier.padding(horizontal = 24.dp).floatingRim(20.dp),
             ) {
                 Box(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
