@@ -58,6 +58,7 @@ import com.mobixournal.audio.triggerSpeechLanguageDownload
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * Modern floating frosted-glass mini capsule situated in the top bar leading empty space
@@ -76,20 +77,20 @@ fun AudioMiniCapsule(
     modifier: Modifier = Modifier,
 ) {
     val isDark = chromeIsDark()
-    val glassColor = if (isDark) Color(0xFF222226) else rememberFloatingSurfaceColor()
-    val hairlineColor = if (isDark) Color(0x40FFFFFF) else ModernTheme.hairlineBorder(isDark)
+    val glassColor = rememberGlassSurfaceColor()
+    val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = ModernTheme.capsuleShape,
         color = glassColor,
-        shadowElevation = 4.dp,
-        border = BorderStroke(1.dp, hairlineColor),
+        shadowElevation = 6.dp,
+        border = BorderStroke(ModernTheme.hairlineStrokeWidthDp, hairlineColor),
         modifier = modifier,
     ) {
         if (vertical) {
             Column(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 MicCapsuleButton(audio = audio, isDark = isDark)
@@ -98,8 +99,8 @@ fun AudioMiniCapsule(
             }
         } else {
             Row(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MicCapsuleButton(audio = audio, isDark = isDark)
@@ -123,7 +124,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
 
     Box(
         modifier = Modifier
-            .size(24.dp)
+            .size(28.dp)
             .clip(CircleShape)
             .background(recordingBg)
             .combinedClickable(
@@ -141,7 +142,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             imageVector = if (isRecording) Icons.Outlined.Stop else Icons.Outlined.Mic,
             contentDescription = if (isRecording) "Termina registrazione" else "Avvia registrazione audio",
             tint = iconTint,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
         )
 
         ToolbarMenu(
@@ -179,10 +180,10 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
 
     Box(
         modifier = Modifier
-            .size(24.dp)
+            .size(28.dp)
             .clip(CircleShape)
             .background(bg)
-            .combinedClickable(
+            .clickable(
                 onClick = { if (isRecording) audio.onTogglePauseRecord() },
                 enabled = isRecording,
             ),
@@ -192,7 +193,7 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             imageVector = icon,
             contentDescription = if (isPaused) "Riprendi registrazione" else "Metti in pausa registrazione",
             tint = iconTint,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -210,7 +211,7 @@ private fun PlayCapsuleButton(
 
     Box(
         modifier = Modifier
-            .size(24.dp)
+            .size(28.dp)
             .clip(CircleShape)
             .background(playBg)
             .combinedClickable(
@@ -245,7 +246,7 @@ private fun PlayCapsuleButton(
             imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.GraphicEq,
             contentDescription = "Riproduci audio / Play object",
             tint = tint,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
