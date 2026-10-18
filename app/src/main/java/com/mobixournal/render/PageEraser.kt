@@ -4,6 +4,8 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.TextElement
+import com.mobixournal.format.model.isLivingEntity
 
 /** How the eraser removes ink: rub out touched segments, or delete whole strokes. */
 enum class EraserMode { STANDARD, WHOLE_STROKE }
@@ -31,7 +33,8 @@ fun eraserRadiusPt(widthPt: Float): Double =
  * The eraser applied to a whole page: pure, Android-free, and unit-testable ([PageEraserTest]).
  *
  * Hidden layers are left untouched — you can only rub out ink you can actually see, matching the
- * desktop. Only [Stroke]s erase; text and images are deleted through selection instead.
+ * desktop. [Stroke]s and living entities ([Element.isLivingEntity]) erase; standalone text and images
+ * are deleted through selection instead.
  */
 object PageEraser {
 
@@ -73,6 +76,14 @@ object PageEraser {
         var touched = false
         val rebuilt = ArrayList<Element>(layer.elements.size)
         for (el in layer.elements) {
+            if (el.isLivingEntity) {
+                if (hitsLiving(el, px, py, radius)) {
+                    touched = true
+                } else {
+                    rebuilt += el
+                }
+                continue
+            }
             if (el !is Stroke) { rebuilt += el; continue }
             when (mode) {
                 EraserMode.WHOLE_STROKE ->
@@ -84,5 +95,36 @@ object PageEraser {
             }
         }
         return if (touched) Layer(rebuilt, layer.name) else null
+    }
+
+    /** True if an eraser disc of [radius] centered at ([px], [py]) touches any drawn part of [element]. */
+    private fun hitsLiving(element: Element, px: Double, py: Double, radius: Double): Boolean {
+        val ink = LivingInk.of(element)
+        val radiusSq = radius * radius
+        for (el in ink.elements) {
+            when (el) {
+                is Stroke -> if (StrokeHitTester.hits(el, px, py, radius)) return true
+                is TextElement -> {
+                    val b = ElementBounds.of(el)
+                    val cx = px.coerceIn(b.left, b.right)
+                    val cy = py.coerceIn(b.top, b.bottom)
+                    val dx = px - cx
+                    val dy = py - cy
+                    if (dx * dx + dy * dy <= radiusSq) return true
+                }
+                else -> Unit
+            }
+        }
+        if (ink.elements.isEmpty()) {
+            val b = ElementBounds.of(element)
+            if (b.width > 0 && b.height > 0) {
+                val cx = px.coerceIn(b.left, b.right)
+                val cy = py.coerceIn(b.top, b.bottom)
+                val dx = px - cx
+                val dy = py - cy
+                if (dx * dx + dy * dy <= radiusSq) return true
+            }
+        }
+        return false
     }
 }

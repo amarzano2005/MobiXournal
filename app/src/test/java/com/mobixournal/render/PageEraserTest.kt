@@ -6,7 +6,13 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
+import com.mobixournal.format.model.PlotCurve
+import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.TableCell
+import com.mobixournal.format.model.TableElement
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -79,5 +85,78 @@ class PageEraserTest {
         assertTrue(eraserRadiusPt(0.1f) >= ERASER_RADIUS_MIN_PT)
         // The radius is the pen's full width, i.e. twice the ink's own radius.
         assertEquals(1.5, eraserRadiusPt(1.5f), 1e-9)
+    }
+
+    private fun table(left: Double = 50.0, top: Double = 50.0): TableElement = TableElement(
+        left = left,
+        top = top,
+        colWidths = listOf(100.0, 100.0),
+        rowHeights = listOf(30.0, 30.0),
+        cells = listOf(
+            listOf(TableCell("A"), TableCell("B")),
+            listOf(TableCell("C"), TableCell("D")),
+        ),
+        headerRow = true,
+        id = "tbl_test",
+    )
+
+    private fun plot(): PlotElement = PlotElement(
+        left = 100.0,
+        top = 100.0,
+        right = 300.0,
+        bottom = 200.0,
+        curves = listOf(PlotCurve(PlotKind.CARTESIAN, "x", 0xFF000000.toInt())),
+        xMin = -10.0,
+        xMax = 10.0,
+        id = "plt_test",
+    )
+
+    @Test fun erasingTableDeletesItInWholeStrokeMode() {
+        val tbl = table()
+        val p = page(Layer(listOf(tbl)))
+        val out = PageEraser.erase(p, 50.0, 50.0, 3.0, EraserMode.WHOLE_STROKE)
+        assertNotNull(out)
+        assertTrue(out!!.layers[0].elements.isEmpty())
+    }
+
+    @Test fun erasingTableDeletesItInStandardMode() {
+        val tbl = table()
+        val p = page(Layer(listOf(tbl)))
+        val out = PageEraser.erase(p, 50.0, 50.0, 3.0, EraserMode.STANDARD)
+        assertNotNull(out)
+        assertTrue(out!!.layers[0].elements.isEmpty())
+    }
+
+    @Test fun missingLivingEntityLeavesItAlone() {
+        val tbl = table()
+        val p = page(Layer(listOf(tbl)))
+        assertNull(PageEraser.erase(p, 500.0, 500.0, 5.0, EraserMode.STANDARD))
+    }
+
+    @Test fun erasingPlotDeletesIt() {
+        val plt = plot()
+        val p = page(Layer(listOf(plt)))
+        val out = PageEraser.erase(p, 100.0, 100.0, 5.0, EraserMode.WHOLE_STROKE)
+        assertNotNull(out)
+        assertTrue(out!!.layers[0].elements.isEmpty())
+    }
+
+    @Test fun erasingHandwritingInsideTableCellDoesNotDeleteTable() {
+        val tbl = TableElement(
+            left = 50.0,
+            top = 50.0,
+            colWidths = listOf(200.0),
+            rowHeights = listOf(200.0),
+            cells = listOf(listOf(TableCell())),
+            id = "tbl_cell",
+        )
+        val note = stroke(149.0, 150.0, 151.0).let {
+            it.copy(points = it.points.map { pt -> pt.copy(y = 150.0) })
+        }
+        val p = page(Layer(listOf(tbl, note)))
+
+        val out = PageEraser.erase(p, 150.0, 150.0, 2.0, EraserMode.WHOLE_STROKE)!!
+        assertEquals(1, out.layers[0].elements.size)
+        assertTrue(out.layers[0].elements[0] is TableElement)
     }
 }
