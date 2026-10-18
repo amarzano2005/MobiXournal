@@ -115,6 +115,64 @@ internal fun cellBoundsToViewPx(
 }
 
 /**
+ * Commits the draft text an open cell inspector holds into its cell, purely: the caller supplies
+ * how the swap lands on the document (the surface's [replaceTableElement] in the editor, a captured
+ * lambda in tests).
+ *
+ * Returns the updated editing target with the draft absorbed (null draft when the text did not
+ * change, so a repeated flush never writes), or null when [editing] was already null. Nothing here
+ * opens or closes the session — callers decide what the editing state becomes afterwards, so the
+ * same helper serves *switching* to another cell and *closing* the editor.
+ *
+ * This is the seam that fixes the lost-text class of bugs: any path that replaces
+ * [EditorUiState.editingTableCell] — a double-tap on another cell, back navigation — flushes before
+ * it clobbers, because the typed text travels with the state itself.
+ */
+/**
+ * One step from the editing cell to the inspector's on-screen offset: the cell's pt bounds are
+ * converted through the live page box into view px, then the pure placement helper clamps the
+ * panel inside the canvas. Pure, so the offset recomputation in the composable is a single
+ * `remember` keyed on the view state, and this step is unit-testable without Compose.
+ */
+private fun editingCellInspectorOffset(
+    editing: EditingTableCell,
+    pageBox: PageBox?,
+    scrollX: Float,
+    scrollY: Float,
+    inspectorSize: IntSize,
+    canvasSize: IntSize,
+    gapPx: Int,
+    marginPx: Int,
+): IntOffset {
+    val rectPx = cellBoundsToViewPx(editing.cellBoundsPt, pageBox, scrollX, scrollY)
+    return tableCellInspectorOffset(
+        rectPx?.left?.toFloat(),
+        rectPx?.top?.toFloat(),
+        rectPx?.right?.toFloat(),
+        rectPx?.bottom?.toFloat(),
+        inspectorSize = inspectorSize,
+        canvasSize = canvasSize,
+        gapPx = gapPx,
+        marginPx = marginPx,
+    )
+}
+
+fun flushTableCellDraft(
+    editing: EditingTableCell?,
+    apply: (old: TableElement, new: TableElement) -> Unit,
+): EditingTableCell? {
+    val draft = editing?.draftText ?: return editing?.copy(draftText = null)
+    val cell = editing.table.cell(editing.row, editing.col)
+    if (draft == cell.text) return editing.copy(draftText = null)
+    val updatedTable = TableElementFactory.updateCell(
+        editing.table, editing.row, editing.col,
+        cell.copy(text = draft),
+    )
+    apply(editing.table, updatedTable)
+    return editing.copy(table = updatedTable, draftText = null)
+}
+
+/**
  * State holder for in-place table cell editing.
  */
 internal class TableCellInspectorState(
@@ -133,16 +191,18 @@ internal fun rememberTableCellInspectorState(
     row: Int = 0,
     col: Int = 0,
     cell: TableCell,
+    /** The pending draft the editing state carries; the cell text when nothing is pending. */
+    drafting: String? = null,
 ): TableCellInspectorState {
     val state = remember(tableId, row, col) {
         TableCellInspectorState(
-            initialText = cell.text,
+            initialText = drafting ?: cell.text,
             initialAlign = cell.align,
             initialBold = cell.bold,
         )
     }
     LaunchedEffect(tableId, row, col) {
-        state.text = cell.text
+        state.text = drafting ?: cell.text
         state.align = cell.align
         state.bold = cell.bold
     }
@@ -165,9 +225,37 @@ fun TableCellInspectorAnchor(
     val row = editing.row
     val col = editing.col
     val cell = table.cell(row, col)
-    val state = rememberTableCellInspectorState(table.id ?: table.hashCode().toString(), row, col, cell)
+    val state = rememberTableCellInspectorState(
+        table.id ?: table.hashCode().toString(), row, col, cell,
+        drafting = editing.draftText,
+    )
 
     var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
+    val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
+    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
+
+    // Anchored to the cell through the same pure helper the plot and selection anchors use: the
+    // conversion needs this pane's live page box (looked up by [EditingTableCell.pageIndex]) and its
+    // scroll, which the surface republishes per frame — so the panel follows the cell as the view
+    // pans, and clamps inside the canvas instead of hiding under the keyboard or the page edge.
+    // The zoom and document versions are read here only so a relayout re-anchors the panel.
+    val pageBox = if (editing.pageIndex >= 0) {
+        pane.surface?.layout?.boxes?.getOrNull(editing.pageIndex)
+    } else null
+    val offset = remember(
+        editing, inspectorSize, canvasSizePx, pageBox,
+        pane.scrollX, pane.scrollY, pane.zoom, pane.documentVersion,
+    ) {
+        editingCellInspectorOffset(
+            editing, pageBox, pane.scrollX, pane.scrollY,
+            inspectorSize, canvasSizePx, gapPx, marginPx,
+        )
+    }
+
+    fun commitDraftText(text: String) {
+        state.text = text
+        ui.editingTableCell = ui.editingTableCell?.copy(draftText = text)
+    }
 
     fun commitCurrentCell(): TableElement {
         val currentTable = ui.editingTableCell?.table ?: table
@@ -176,7 +264,7 @@ fun TableCellInspectorAnchor(
         val updatedTable = TableElementFactory.updateCell(currentTable, row, col, updatedCell)
         if (updatedTable != currentTable) {
             pane.surface?.replaceTableElement(currentTable, updatedTable)
-            ui.editingTableCell = ui.editingTableCell?.copy(table = updatedTable)
+            ui.editingTableCell = ui.editingTableCell?.copy(table = updatedTable, draftText = null)
         }
         return updatedTable
     }
@@ -190,7 +278,7 @@ fun TableCellInspectorAnchor(
     fun navigateTo(nextR: Int, nextC: Int) {
         val currentTable = commitCurrentCell()
         val nextBounds = com.mobixournal.render.TableDividers.cellBoundsPt(currentTable, nextR, nextC)
-        ui.editingTableCell = EditingTableCell(currentTable, nextR, nextC, nextBounds)
+        ui.editingTableCell = EditingTableCell(currentTable, nextR, nextC, nextBounds, pane.currentPage)
     }
 
     fun onStyleChange() {
@@ -199,6 +287,7 @@ fun TableCellInspectorAnchor(
 
     FloatingSurface(
         modifier = modifier
+            .offset { offset }
             .onSizeChanged { inspectorSize = it }
             .pointerInput(Unit) {
                 detectTapGestures { /* Swallow taps to prevent them leaking to the canvas below */ }
@@ -209,6 +298,7 @@ fun TableCellInspectorAnchor(
             row = row,
             col = col,
             state = state,
+            onChangeText = ::commitDraftText,
             onNavigate = ::navigateTo,
             onStyleChange = ::onStyleChange,
             onDone = ::applyAndDismiss,
@@ -223,6 +313,8 @@ private fun TableCellInspectorContent(
     row: Int,
     col: Int,
     state: TableCellInspectorState,
+    /** Every keystroke, mirrored into the editing state so an outside clobber can commit it. */
+    onChangeText: (String) -> Unit,
     onNavigate: (Int, Int) -> Unit,
     onStyleChange: () -> Unit,
     onDone: () -> Unit,
@@ -255,56 +347,13 @@ private fun TableCellInspectorContent(
             onNavigate = onNavigate,
             onDismiss = onDone,
         )
-        OutlinedTextField(
-            value = state.text,
-            onValueChange = { state.text = it },
-            placeholder = {
-                Text(
-                    text = "Cell text...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            singleLine = true,
-            shape = RoundedCornerShape(14.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = if (state.bold) FontWeight.Bold else FontWeight.Normal,
-                textAlign = when (state.align) {
-                    TableAlign.LEFT -> TextAlign.Start
-                    TableAlign.CENTER -> TextAlign.Center
-                    TableAlign.RIGHT -> TextAlign.End
-                },
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.75f),
-            ),
-            trailingIcon = if (state.text.isNotEmpty()) {
-                {
-                    IconButton(
-                        onClick = { state.text = "" },
-                        modifier = Modifier.size(24.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Close,
-                            contentDescription = "Clear text",
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-            } else null,
-            keyboardOptions = KeyboardOptions(
-                imeAction = if (hasNext) ImeAction.Next else ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = { advanceToNext() },
-                onDone = { onDone() },
-            ),
+        TableCellInspectorTextField(
+            state = state,
+            hasNext = hasNext,
+            focusRequester = focusRequester,
+            onChangeText = onChangeText,
+            onNext = { advanceToNext() },
+            onDone = { onDone() },
         )
         TableCellInspectorBottomBar(
             state = state,
@@ -314,6 +363,78 @@ private fun TableCellInspectorContent(
             onDone = onDone,
         )
     }
+}
+
+/**
+ * The inspector's single-line cell text field, with the clear button mirroring the keystroke path
+ * (so a clear cannot leave a stale draft behind) and the IME next/done wiring.
+ */
+@Composable
+private fun TableCellInspectorTextField(
+    state: TableCellInspectorState,
+    hasNext: Boolean,
+    focusRequester: FocusRequester,
+    onChangeText: (String) -> Unit,
+    onNext: () -> Unit,
+    onDone: () -> Unit,
+) {
+    OutlinedTextField(
+        value = state.text,
+        onValueChange = {
+            state.text = it
+            onChangeText(it)
+        },
+        placeholder = {
+            Text(
+                text = "Cell text...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        singleLine = true,
+        shape = RoundedCornerShape(14.dp),
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            fontWeight = if (state.bold) FontWeight.Bold else FontWeight.Normal,
+            textAlign = when (state.align) {
+                TableAlign.LEFT -> TextAlign.Start
+                TableAlign.CENTER -> TextAlign.Center
+                TableAlign.RIGHT -> TextAlign.End
+            },
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.75f),
+        ),
+        trailingIcon = if (state.text.isNotEmpty()) {
+            {
+                IconButton(
+                    onClick = {
+                        state.text = ""
+                        onChangeText("")
+                    },
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        contentDescription = "Clear text",
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        } else null,
+        keyboardOptions = KeyboardOptions(
+            imeAction = if (hasNext) ImeAction.Next else ImeAction.Done,
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { onNext() },
+            onDone = { onDone() },
+        ),
+    )
 }
 
 @Composable

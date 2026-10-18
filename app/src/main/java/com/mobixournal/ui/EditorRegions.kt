@@ -104,6 +104,7 @@ import com.mobixournal.render.setPenDebug
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
+import com.mobixournal.render.replaceTableElement
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
@@ -1443,7 +1444,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
         state.backgroundConfig = visiblePageBackgroundConfig()
         state.pageSize = visiblePageSize()
     }
-    onScrollChanged = { y, total, vp -> state.scrollY = y; state.contentHeight = total; state.viewportHeight = vp }
+    onScrollChanged = { y, total, vp, x -> state.scrollY = y; state.contentHeight = total; state.viewportHeight = vp; state.scrollX = x }
     onSelectionChanged = { s -> state.hasSelection = s }
     onSelectionRectChanged = { r -> state.selectionRect = r }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
@@ -1502,9 +1503,12 @@ private fun DrawingSurfaceView.bindEditorActions(
             PlaceKind.IMAGE -> onPickImage(placement)
         }
     }
-    onTableCellDoubleTap = { table, row, col, cellBoundsPt ->
+    onTableCellDoubleTap = { table, row, col, cellBoundsPt, pageIndex ->
         onActivePane(index)
-        ui.editingTableCell = EditingTableCell(table, row, col, cellBoundsPt)
+        // An editing session may already be open (a tap on another cell): commit its pending draft
+        // first, so switching cells never loses what was typed into the old one.
+        ui.editingTableCell = flushTableCellDraft(ui.editingTableCell) { old, new -> replaceTableElement(old, new) }
+        ui.editingTableCell = EditingTableCell(table, row, col, cellBoundsPt, pageIndex)
     }
     // Remember where an instrument was posed, so it comes back there after a restart. Only the
     // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the
@@ -1709,10 +1713,9 @@ fun EditorPaneView(
                     pane = state,
                     ui = ui,
                     canvasSizePx = canvasSizePx,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding()
-                        .padding(top = 64.dp),
+                    // Anchored by the inspector itself through its offset, which clamps to the
+                    // canvas the way the plot and selection anchors do (TopStart + offset).
+                    modifier = Modifier.align(Alignment.TopStart),
                 )
             }
         }

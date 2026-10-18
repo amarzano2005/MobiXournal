@@ -234,4 +234,69 @@ class TableCellInspectorAnchorTest {
         assertEquals("NewText", updated.cell(0, 0).text)
         assertEquals("", updated.cell(0, 1).text)
     }
+
+    // ---------------------------------------------------------------------
+    // flushTableCellDraft — the seam that keeps typed text alive across a
+    // clobber of the editing state (cell switch, back press, tool change).
+
+    @Test
+    fun flushTableCellDraftCommitsPendingTextIntoTheCell() {
+        val table = sampleTable()
+        val editing = EditingTableCell(
+            table = table,
+            row = 0,
+            col = 1,
+            cellBoundsPt = TableDividers.cellBoundsPt(table, 0, 1),
+            pageIndex = 0,
+            draftText = "B engraved",
+        )
+        val swaps = mutableListOf<Pair<TableElement, TableElement>>()
+
+        val flushed = flushTableCellDraft(editing) { old, new -> swaps.add(old to new) }
+
+        assertEquals("one swap: old table -> updated table", 1, swaps.size)
+        assertEquals("flush swaps the very table that was editing", table, swaps[0].first)
+        assertEquals(
+            "the draft lands in the edited cell, and only there",
+            "B engraved", swappedCellText(swaps[0].second, 0, 1),
+        )
+        assertEquals("A, untouched", "A", swappedCellText(swaps[0].second, 0, 0))
+        assertEquals("F, untouched", "F", swappedCellText(swaps[0].second, 1, 2))
+        assertEquals("the id survives the flush", table.id, swaps[0].second.id)
+        assertNotNull("the editing target stays open after a flush", flushed)
+        assertEquals("the committed table becomes the editing table", swaps[0].second, flushed!!.table)
+        assertNull("the draft is absorbed after committing", flushed.draftText)
+    }
+
+    @Test
+    fun flushTableCellDraftWithoutADraftIsANoOpThatClearsTheField() {
+        val table = sampleTable()
+        var called = false
+
+        val flushed = flushTableCellDraft(
+            EditingTableCell(table, 1, 2, null, 0, draftText = null),
+        ) { _, _ -> called = true }
+
+        assertTrue("no swap is applied when there is nothing pending", !called)
+        assertEquals("the target passes through unchanged", "F", flushed!!.table.cell(1, 2).text)
+        assertNull("the draft field stays clear", flushed.draftText)
+
+        assertNull("a null editing state flushes to null", flushTableCellDraft(null) { _, _ -> called = true })
+    }
+
+    @Test
+    fun flushTableCellDraftWithUnchangedTextAppliesNoSwap() {
+        val table = sampleTable()
+        var called = false
+
+        val flushed = flushTableCellDraft(
+            EditingTableCell(table, 0, 0, null, 0, draftText = "A"),
+        ) { _, _ -> called = true }
+
+        assertTrue("re-committing the cell's own text writes nothing", !called)
+        assertNull("but the draft field is still cleared", flushed!!.draftText)
+    }
+
+    private fun swappedCellText(table: TableElement, row: Int, col: Int): String =
+        table.cell(row, col).text
 }

@@ -121,7 +121,7 @@ fun SelectionActionAnchor(
         onEditTable = {
             surface?.singleSelectedTable()?.let { table ->
                 val bounds = com.mobixournal.render.TableDividers.cellBoundsPt(table, 0, 0)
-                ui.editingTableCell = EditingTableCell(table, 0, 0, bounds)
+                ui.editingTableCell = EditingTableCell(table, 0, 0, bounds, pane.currentPage)
             }
         },
         modifier = modifier

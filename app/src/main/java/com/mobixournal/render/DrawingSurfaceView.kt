@@ -342,7 +342,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The last [BoardReading] reported, so the chrome is told only what moved. */
     private var lastBoardReading: BoardReading? = null
     /** Last (scrollY, totalHeightPx, viewportPx) reported to [onScrollChanged], to suppress duplicate calls. */
-    private var lastScrollReport = Triple(-1f, -1f, -1f)
+    private var lastScrollReport = ScrollReport(-1f, -1f, -1f, -1f)
     /** Last selection box reported to [onSelectionRectChanged], to suppress duplicate calls. */
     private var lastSelectionRect: android.graphics.RectF? = null
 
@@ -433,12 +433,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onPageSelectionChanged: ((Int) -> Unit)? = null
     /** Notified with how many pages are on the page clipboard whenever a copy changes it. */
     var onPageClipboardChanged: ((Int) -> Unit)? = null
-    /** Notified with (scrollY, totalHeightPx, viewportPx) whenever the vertical scroll or content extent changes — drives the right-edge scroll thumb. */
-    var onScrollChanged: ((Float, Float, Float) -> Unit)? = null
+    /** Notified with (scrollY, totalHeightPx, viewportPx, scrollX) whenever the scroll (vertical or horizontal) or content extent changes —­ drives the right-edge scroll thumb and keeps view-anchored overlays (table cell inspector) tracking the pan. */
+    var onScrollChanged: ((Float, Float, Float, Float) -> Unit)? = null
     /** Notified when a placement tap lands, so the editor can prompt for content / pick an image. */
     var onPlace: ((PlaceKind, Placement) -> Unit)? = null
-    /** Notified when a double-tap lands on a table cell: (table, row, col, cellBoundsPt). */
-    var onTableCellDoubleTap: ((TableElement, Int, Int, Bounds) -> Unit)? = null
+    /** Notified when a double-tap lands on a table cell: (table, row, col, cellBoundsPt, pageIndex). */
+    var onTableCellDoubleTap: ((TableElement, Int, Int, Bounds, Int) -> Unit)? = null
     internal var lastTableTapTime = 0L
     internal var lastTableTapX = 0f
     internal var lastTableTapY = 0f
@@ -1484,13 +1484,13 @@ class DrawingSurfaceView @JvmOverloads constructor(
      */
     internal fun reportScroll() {
         val t = if (board != null) {
-            Triple(scrollY, height.toFloat(), height.toFloat())
+            ScrollReport(scrollY, height.toFloat(), height.toFloat(), scrollX)
         } else {
-            Triple(scrollY, layout.totalHeightPx, height.toFloat())
+            ScrollReport(scrollY, layout.totalHeightPx, height.toFloat(), scrollX)
         }
         if (t != lastScrollReport) {
             lastScrollReport = t
-            onScrollChanged?.invoke(t.first, t.second, t.third)
+            onScrollChanged?.invoke(t.scrollY, t.totalPx, t.viewportPx, t.scrollX)
         }
     }
 

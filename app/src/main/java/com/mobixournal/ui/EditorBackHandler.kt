@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import com.mobixournal.render.cancelSpline
 import com.mobixournal.render.clearBackgroundRegion
 import com.mobixournal.render.clearSelection
+import com.mobixournal.render.replaceTableElement
 import com.mobixournal.render.splineInProgress
 
 /**
@@ -39,6 +40,15 @@ fun EditorBackHandler(
         val surface = pane.surface
 
         when {
+            // An open table-cell editor is the most transient surface: back commits its pending draft
+            // (nothing typed is lost) and closes it, before the wider cascade below gets a say.
+            ui.editingTableCell != null -> {
+                ui.editingTableCell = flushTableCellDraft(
+                    ui.editingTableCell,
+                ) { old, new -> surface?.replaceTableElement(old, new) }
+                ui.editingTableCell = null
+            }
+
             // A multi-tap spline gesture in progress: back throws the open curve away, as Escape does.
             surface != null && surface.splineInProgress() -> surface.cancelSpline()
 

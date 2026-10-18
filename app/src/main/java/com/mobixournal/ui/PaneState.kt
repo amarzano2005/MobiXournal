@@ -56,6 +56,8 @@ class PaneState {
     // Vertical scroll geometry (content px) fed from the surface, driving the right-edge scroll thumb.
     /** Current vertical scroll offset in pixels. */
     var scrollY by mutableStateOf(0f)
+    /** Current horizontal scroll offset in pixels — published per frame so view-anchored overlays track a horizontal pan too (see `DrawingSurfaceView.reportScroll`). */
+    var scrollX by mutableStateOf(0f)
     /** Total height of the scrollable content in pixels. */
     var contentHeight by mutableStateOf(0f)
     /** Height of the visible viewport in pixels. */
