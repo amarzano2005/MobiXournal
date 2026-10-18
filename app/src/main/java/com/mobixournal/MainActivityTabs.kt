@@ -222,6 +222,11 @@ internal fun MainActivity.selectTab(index: Int, p: EditorPane = pane) {
     // hand them over too, or the toolbar would keep editing the other half.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
+    if (audio.isPlaying || audio.nowPlaying != null) {
+        audio.stopPlayback()
+        karaokeDriver?.stop()
+        audioTick.value++
+    }
     if (!p.tabs.select(index)) return
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
@@ -248,6 +253,11 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     // is now what the chrome will act on, so it must be the pane in focus.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
+    if (audio.isPlaying || audio.nowPlaying != null) {
+        audio.stopPlayback()
+        karaokeDriver?.stop()
+        audioTick.value++
+    }
     val showing = p.tabs.active?.id
     p.tabs.close(index) ?: return
     if (p.tabs.isEmpty) p.tabs.open(blankTab(p))

@@ -157,6 +157,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
     val clipTitle = when {
         audio.isRecording -> "Registrazione live"
         activeClip != null -> {
+            val currentTabTitle = pane.tabs.active?.title?.takeIf { it.isNotBlank() } ?: "Documento"
             val doc = surface?.toDocument()
             val matchedPage = if (doc != null) {
                 com.mobixournal.audio.AudioInkAligner.findTimestampedStrokes(doc)
@@ -166,7 +167,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
                         a.equals(b, ignoreCase = true)
                     }?.first
             } else null
-            if (matchedPage != null) "Pagina ${matchedPage + 1}" else "Audio"
+            if (matchedPage != null) "$currentTabTitle • Pag. ${matchedPage + 1}" else currentTabTitle
         }
         else -> null
     }
