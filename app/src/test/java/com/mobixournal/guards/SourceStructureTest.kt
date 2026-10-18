@@ -51,8 +51,8 @@ class SourceStructureTest {
         // and the mirrored pane being handed the board's grid along with the document.
         "render/DrawingSurfaceView.kt" to 1851,
         "render/CircuitShapes.kt" to 1180,
-        // +5 deliberate: saveStandaloneAudio property and persistence key for standalone audio export.
-        "ui/AppSettings.kt" to 1021,
+        // +5 deliberate: transcriptionLanguage setting for speech recognition language choice.
+        "ui/AppSettings.kt" to 1026,
         "ui/EditorDialogs.kt" to 920,
     )
 

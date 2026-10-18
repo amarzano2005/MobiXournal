@@ -1,24 +1,33 @@
 package com.mobixournal.ui
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.Subtitles
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,7 +35,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +46,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.mobixournal.audio.LanguagePackStatus
+import com.mobixournal.audio.SUPPORTED_TRANSCRIPTION_LANGUAGES
+import com.mobixournal.audio.checkSpeechLanguagePack
+import com.mobixournal.audio.triggerSpeechLanguageDownload
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
@@ -44,7 +63,7 @@ import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
  * Modern floating frosted-glass mini capsule situated in the top bar leading empty space
  * directly above the main toolbar lane.
  * Houses the audio actions moved from the main toolbar:
- * 1. Microphone / Stop button (toggle recording; red square when recording; long-press for settings menu)
+ * 1. Microphone / Stop button (toggle recording; solid red when recording; long-press for settings menu)
  * 2. Pause / Resume button (pauses recording without finalizing; resumes seamlessly)
  * 3. Play object button (activates stroke audio playback mode and controls mini-player, using GraphicEq)
  */
@@ -187,11 +206,7 @@ private fun PlayCapsuleButton(
     isDark: Boolean,
 ) {
     val playActive = tool == EditorTool.PLAY_OBJECT || audio.playing
-    val playBg by animateColorAsState(
-        targetValue = if (playActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-        else Color.Transparent,
-        label = "playBg",
-    )
+    val playBg = if (playActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color.Transparent
 
     Box(
         modifier = Modifier
@@ -237,6 +252,8 @@ private fun PlayCapsuleButton(
 
 @Composable
 private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) {
+    var showLanguageDialog by remember { mutableStateOf(false) }
+
     MenuHeading("Audio")
     DropdownMenuItem(
         text = { Text(if (audio.recording) "Termina registrazione" else "Avvia registrazione") },
@@ -269,6 +286,24 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     }
     HorizontalDivider()
     DropdownMenuItem(
+        text = {
+            val currentLangName = SUPPORTED_TRANSCRIPTION_LANGUAGES.firstOrNull {
+                it.code == audio.transcriptionLanguage
+            }?.displayName ?: audio.transcriptionLanguage
+            Column {
+                Text("Lingua trascrizione")
+                Text(
+                    text = currentLangName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        },
+        leadingIcon = { Icon(Icons.Outlined.Subtitles, contentDescription = null) },
+        onClick = { showLanguageDialog = true },
+    )
+    HorizontalDivider()
+    DropdownMenuItem(
         text = { Text("Salva audio separato") },
         trailingIcon = {
             Switch(
@@ -283,4 +318,207 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
         text = { Text(if (audio.folderChosen) "Cambia cartella audio…" else "Scegli cartella audio…") },
         onClick = { audio.onChooseFolder(); onDismiss() },
     )
+
+    if (showLanguageDialog) {
+        TranscriptionLanguageDialog(
+            currentLanguage = audio.transcriptionLanguage,
+            onLanguageSelected = { audio.onLanguageChange(it) },
+            onDismiss = {
+                showLanguageDialog = false
+                onDismiss()
+            },
+        )
+    }
+}
+
+@Composable
+private fun TranscriptionLanguageDialog(
+    currentLanguage: String,
+    onLanguageSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    var selectedLang by remember { mutableStateOf(currentLanguage) }
+    var packStatus by remember { mutableStateOf<LanguagePackStatus?>(null) }
+    var checking by remember { mutableStateOf(true) }
+
+    LaunchedEffect(selectedLang) {
+        checking = true
+        packStatus = null
+        checkSpeechLanguagePack(context, selectedLang) { status ->
+            packStatus = status
+            checking = false
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = rememberFloatingSurfaceColor(),
+            shadowElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Lingua Trascrizione Vocale",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                LanguageSelectionList(
+                    selectedLang = selectedLang,
+                    onSelect = {
+                        selectedLang = it
+                        onLanguageSelected(it)
+                    },
+                )
+
+                HorizontalDivider()
+
+                LanguagePackStatusCard(
+                    checking = checking,
+                    packStatus = packStatus,
+                    selectedLang = selectedLang,
+                    onTriggerDownload = { triggerSpeechLanguageDownload(context, selectedLang) },
+                )
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text("Chiudi")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageSelectionList(
+    selectedLang: String,
+    onSelect: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (lang in SUPPORTED_TRANSCRIPTION_LANGUAGES) {
+            val isSelected = lang.code == selectedLang
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else Color.Transparent,
+                    )
+                    .clickable { onSelect(lang.code) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = lang.displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguagePackStatusCard(
+    checking: Boolean,
+    packStatus: LanguagePackStatus?,
+    selectedLang: String,
+    onTriggerDownload: () -> Unit,
+) {
+    when {
+        checking -> {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 4.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Verifica pacchetto vocale...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        packStatus == LanguagePackStatus.INSTALLED -> {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF2E7D32).copy(alpha = 0.15f),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = "Pacchetto offline installato sul dispositivo",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF2E7D32),
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+        }
+        packStatus == LanguagePackStatus.DOWNLOAD_AVAILABLE -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFE65100).copy(alpha = 0.12f))
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "⚠️ Pacchetto offline non installato. Per trascrivere senza connessione, scarica il modello vocale.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFE65100),
+                )
+                Button(
+                    onClick = onTriggerDownload,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text("Scarica pacchetto", fontSize = 12.sp, color = Color.White)
+                }
+            }
+        }
+        else -> {
+            Text(
+                text = "Trascrizione gestita tramite Google Speech Services",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
 }

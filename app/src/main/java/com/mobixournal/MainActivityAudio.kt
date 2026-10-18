@@ -159,6 +159,11 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             audio.playbackSpeed = speed
             audioTick.value++
         },
+        transcriptionLanguage = settings.transcriptionLanguage,
+        onLanguageChange = { lang ->
+            settingsStore.save(settingsStore.load().copy(transcriptionLanguage = lang))
+            audioTick.value++
+        },
         onChooseFolder = { audioFolderLauncher.launch(null) },
         onToggleSaveStandalone = { enabled ->
             settingsStore.save(settingsStore.load().copy(saveStandaloneAudio = enabled))
@@ -238,7 +243,15 @@ internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
         val engine = com.mobixournal.audio.SpeechToTextEngine(this)
         if (engine.isAvailable()) {
             val finalizedSegments = mutableListOf<com.mobixournal.audio.TranscriptionSegment>()
+            val selectedLang = settingsStore.load().transcriptionLanguage
+            val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
+            com.mobixournal.audio.checkSpeechLanguagePack(this, resolvedLang) { status ->
+                if (status == com.mobixournal.audio.LanguagePackStatus.DOWNLOAD_AVAILABLE) {
+                    toast("Pacchetto offline [$resolvedLang] non scaricato: trascrizione online attiva")
+                }
+            }
             engine.startListening(
+                language = resolvedLang,
                 listener = object : com.mobixournal.audio.SpeechToTextEngine.TranscriptionListener {
                     override fun onSegmentRecognized(segment: com.mobixournal.audio.TranscriptionSegment) {
                         runOnUiThread {

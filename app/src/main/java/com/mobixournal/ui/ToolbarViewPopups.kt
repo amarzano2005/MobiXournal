@@ -469,6 +469,10 @@ data class AudioUiState(
     val onSkip: (Int) -> Unit = {},
     /** Callback to set the playback speed factor. */
     val onSpeedChange: (Float) -> Unit = {},
+    /** Configured transcription language tag or "auto". */
+    val transcriptionLanguage: String = "auto",
+    /** Callback to set transcription language tag. */
+    val onLanguageChange: (String) -> Unit = {},
     /** Callback to open the folder picker. */
     val onChooseFolder: () -> Unit = {},
     /** Callback to toggle standalone audio export. */
