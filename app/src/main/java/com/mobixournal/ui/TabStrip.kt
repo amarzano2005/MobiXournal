@@ -145,9 +145,8 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         scroll.animateScrollTo(target.toInt().coerceIn(0, scroll.maxValue))
     }
     val isDark = chromeIsDark()
-    // The pane badge and the "+" stay pinned while the chips scroll: in split view each half's
-    // strip is narrow, and an "add" that can only be reached by scrolling is how a tab ends up in
-    // the wrong pane.
+    // In split view the "+" stays pinned outside the scrolling chips so it is always one tap away
+    // in narrow lanes; in standard single-pane mode, the "+" sits right next to the last opened tab.
     val transferLabels = tabTransferLabels(state.paneIndex, state.paneCount)
     Row(
         modifier = modifier
@@ -208,8 +207,13 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
                     onBounds = { left, width -> activeBounds = left to width },
                 )
             }
+            if (state.paneCount <= 1) {
+                AddTabButton(isDark = isDark, onNew = state.onNew)
+            }
         }
-        AddTabButton(isDark = isDark, onNew = state.onNew)
+        if (state.paneCount > 1) {
+            AddTabButton(isDark = isDark, onNew = state.onNew)
+        }
     }
 }
 
