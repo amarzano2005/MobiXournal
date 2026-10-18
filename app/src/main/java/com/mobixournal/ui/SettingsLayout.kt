@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.dp
  * Grouping is the page's *order*: related controls sit in one card, and a reader can scan the
  * headers to find the one they want instead of reading every subtitle top to bottom.
  */
+import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
+
 @Composable
 fun SettingsGroup(
     title: String,
@@ -41,8 +44,10 @@ fun SettingsGroup(
         )
         Surface(
             shape = SettingsCardShape,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            modifier = Modifier.fillMaxWidth(),
+            color = rememberFloatingSurfaceColor(),
+            tonalElevation = 0.dp,
+            shadowElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
         ) {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), content = content)
         }

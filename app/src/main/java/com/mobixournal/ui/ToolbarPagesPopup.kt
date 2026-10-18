@@ -22,9 +22,9 @@ import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.automirrored.outlined.Toc
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -253,7 +253,7 @@ private fun CanvasScopeDialog(
     onNewDocuments: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Canvas: ${canvas.label}") },
         text = {

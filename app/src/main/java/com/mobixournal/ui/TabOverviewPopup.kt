@@ -16,13 +16,13 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
@@ -66,7 +66,7 @@ internal fun TabOverviewButton(tabs: TabsUiState) {
             tabs.preview(i, THUMB_WIDTH_PX) { bitmap -> if (i < thumbs.size) thumbs[i] = bitmap }
         }
     }
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = { open = false },
         confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
         title = { Text("Open tabs") },

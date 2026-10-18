@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,8 +67,10 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         null -> {
             Surface(
                 shape = SettingsCardShape,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.fillMaxWidth(),
+                color = rememberFloatingSurfaceColor(),
+                tonalElevation = 0.dp,
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     SettingsGroup("Touch gestures") {

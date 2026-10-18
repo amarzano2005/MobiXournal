@@ -2,13 +2,13 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.Uncompilable
+import com.mobixournal.ui.theme.FloatingDialog
 
 /**
  * What an export could not draw, said once, in the terms the user wrote it in: a symbol this build has
@@ -28,7 +28,7 @@ fun ExportGapsDialog(
     gaps: List<Uncompilable>,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(if (gaps.size == 1) "One thing could not be drawn" else "${gaps.size} things could not be drawn")

@@ -36,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
  * A macro-area of the settings: the four things the app's preferences are *about*, each owning the
@@ -352,8 +354,10 @@ private fun StackedSettings(
                     } else {
                         Surface(
                             shape = SettingsCardShape,
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            modifier = Modifier.fillMaxWidth(),
+                            color = rememberFloatingSurfaceColor(),
+                            tonalElevation = 0.dp,
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
                         ) {
                             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                                 val areas = SettingsArea.values()
@@ -408,8 +412,10 @@ private fun SectionRows(area: SettingsArea, onOpen: (SettingsSection) -> Unit) {
     SettingsNote(area.summary, Modifier.padding(start = 4.dp, bottom = 12.dp))
     Surface(
         shape = SettingsCardShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
+        color = rememberFloatingSurfaceColor(),
+        tonalElevation = 0.dp,
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             area.sections.forEachIndexed { index, entry ->
@@ -444,8 +450,10 @@ private fun SearchResultRows(
     }
     Surface(
         shape = SettingsCardShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
+        color = rememberFloatingSurfaceColor(),
+        tonalElevation = 0.dp,
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             results.forEachIndexed { index, entry ->
@@ -467,6 +475,7 @@ private fun SearchResultRows(
 @Composable
 private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable (PaddingValues) -> Unit) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text(title) },
@@ -475,6 +484,9 @@ private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable 
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                ),
             )
         },
     ) { padding -> body(padding) }

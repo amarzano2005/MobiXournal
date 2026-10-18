@@ -134,6 +134,7 @@ fun FloatingDialog(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     properties: DialogProperties = DialogProperties(),
+    icon: @Composable (() -> Unit)? = null,
     title: @Composable (() -> Unit)? = null,
     text: @Composable (() -> Unit)? = null,
     confirmButton: @Composable () -> Unit,
@@ -153,6 +154,7 @@ fun FloatingDialog(
             // but the composite still stacks the tint's alpha over the fill's and lands the panel a
             // shade more opaque than the token. Zero elevation keeps the material exact.
             tonalElevation = 0.dp,
+            icon = icon,
             title = title,
             text = text,
             confirmButton = confirmButton,

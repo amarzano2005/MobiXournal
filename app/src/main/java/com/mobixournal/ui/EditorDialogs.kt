@@ -23,9 +23,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -86,7 +86,7 @@ fun SaveAsDialog(
 ) {
     var name by remember { mutableStateOf(initialName) }
     var format by remember { mutableStateOf(initialFormat) }
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Save As") },
         text = {
@@ -139,7 +139,7 @@ fun ImportPdfDialog(
     onDismiss: () -> Unit,
 ) {
     var mode by remember { mutableStateOf(ImportPdfMode.APPEND) }
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text("Import PDF") },
         text = {
@@ -228,7 +228,7 @@ fun TextBoxDialog(
 
     // Outside the AlertDialog below: the HSV editor must outlive the row that opened it.
     CustomColorEditor(visible = editingColor, palette = palette, onDismiss = { editingColor = false })
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -607,7 +607,7 @@ fun PenParametersDialog(
     var minP by remember { mutableStateOf(minimumPressure) }
     var mult by remember { mutableStateOf(pressureMultiplier) }
 
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.widthIn(max = 380.dp),
         title = {
@@ -766,7 +766,7 @@ fun PageBookmarkDialog(
     var label by remember { mutableStateOf(existing?.label.orEmpty()) }
     var color by remember { mutableStateOf(existing?.color ?: initialColor) }
 
-    AlertDialog(
+    FloatingDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.widthIn(max = 360.dp),
         title = { Text("Bookmark page ${page + 1}", style = MaterialTheme.typography.titleMedium) },

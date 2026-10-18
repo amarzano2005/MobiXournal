@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -21,6 +20,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -134,7 +134,7 @@ fun BackupSection(
     }
 
     if (showResetDialog) {
-        AlertDialog(
+        FloatingDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text("Reset all settings?") },
             text = { Text("This will restore all preferences, colors, shortcuts, and toolbars to factory defaults.") },
