@@ -28,4 +28,13 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onSelect = { onChange(settings.copy(pdfCacheLimitMb = it)) },
         )
     }
+    SettingsGroup("Audio") {
+        SwitchRow(
+            title = "Save standalone audio recordings",
+            subtitle = "Automatically export an audio copy to the device's public media folder (Music / Recordings) " +
+                "upon completing a recording, in addition to binding it into the notebook.",
+            checked = settings.saveStandaloneAudio,
+            onCheckedChange = { onChange(settings.copy(saveStandaloneAudio = it)) },
+        )
+    }
 }

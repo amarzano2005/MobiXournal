@@ -51,9 +51,8 @@ class SourceStructureTest {
         // and the mirrored pane being handed the board's grid along with the document.
         "render/DrawingSurfaceView.kt" to 1851,
         "render/CircuitShapes.kt" to 1180,
-        // +6 deliberate: the new-document canvas geometry (NewDocumentCanvas), beside the format it
-        // pairs with, and its pref key on both sides of SettingsStore.
-        "ui/AppSettings.kt" to 1016,
+        // +5 deliberate: saveStandaloneAudio property and persistence key for standalone audio export.
+        "ui/AppSettings.kt" to 1021,
         "ui/EditorDialogs.kt" to 920,
     )
 

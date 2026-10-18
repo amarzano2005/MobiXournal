@@ -4,6 +4,9 @@
     <!-- Audio-annotated strokes: recording the .wav sidecar a stroke's fn/ts points into. Requested
          at runtime the first time the user hits Record; the app is fully usable without it. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
@@ -173,6 +176,11 @@
                 <data android:pathPattern=".*\\..*\\..*\\.webp" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".audio.AudioRecordingService"
+            android:foregroundServiceType="microphone"
+            android:exported="false" />
     </application>
 
 </manifest>

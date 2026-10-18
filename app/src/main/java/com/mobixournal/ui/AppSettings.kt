@@ -322,6 +322,8 @@ data class AppSettings(
      * folder we can both read and write — see [com.mobixournal.audio.AudioStore].
      */
     val audioFolderUri: String = "",
+    /** Save standalone audio recording file to device storage alongside embedding in document. */
+    val saveStandaloneAudio: Boolean = false,
     /** Which row of the canvas the always-visible page counter sits in. */
     val pageCounterVertical: PageCounterVertical = PageCounterVertical.BOTTOM,
     /** Which column of the canvas the always-visible page counter sits in. */
@@ -687,6 +689,7 @@ class SettingsStore(context: Context) {
             },
             topBarHidden = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_HIDDEN, null)).toSet(),
             audioFolderUri = prefs.getString(KEY_AUDIO_FOLDER, d.audioFolderUri) ?: d.audioFolderUri,
+            saveStandaloneAudio = prefs.getBoolean(KEY_SAVE_STANDALONE_AUDIO, d.saveStandaloneAudio),
             pageCounterVertical = enumOr(prefs.getString(KEY_PAGE_COUNTER_V, null), d.pageCounterVertical),
             pageCounterHorizontal =
                 enumOr(prefs.getString(KEY_PAGE_COUNTER_H, null), d.pageCounterHorizontal),
@@ -789,6 +792,7 @@ class SettingsStore(context: Context) {
         e.putString(KEY_TOP_BAR_ORDER, encodeTopBarIds(s.topBarOrder))
         e.putString(KEY_TOP_BAR_HIDDEN, encodeTopBarIds(s.topBarHidden))
         e.putString(KEY_AUDIO_FOLDER, s.audioFolderUri)
+        e.putBoolean(KEY_SAVE_STANDALONE_AUDIO, s.saveStandaloneAudio)
         e.putString(KEY_PAGE_COUNTER_V, s.pageCounterVertical.name)
         e.putString(KEY_PAGE_COUNTER_H, s.pageCounterHorizontal.name)
         e.putString(KEY_THEME_MODE, s.themeMode.name)
@@ -898,6 +902,7 @@ class SettingsStore(context: Context) {
         const val KEY_TOP_BAR_ORDER = "top_bar_order"
         const val KEY_TOP_BAR_HIDDEN = "top_bar_hidden"
         const val KEY_AUDIO_FOLDER = "audio_folder_uri"
+        const val KEY_SAVE_STANDALONE_AUDIO = "save_standalone_audio"
         const val KEY_PAGE_COUNTER_V = "page_counter_vertical"
         const val KEY_PAGE_COUNTER_H = "page_counter_horizontal"
         const val KEY_THEME_MODE = "theme_mode"

@@ -6,7 +6,9 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.view.Choreographer
 import androidx.core.content.ContextCompat
+import com.mobixournal.audio.AudioRecordingService
 import com.mobixournal.audio.AudioSession
+import com.mobixournal.audio.AudioStandaloneExporter
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.KaraokeFrameDriver
@@ -81,6 +83,7 @@ internal fun MainActivity.detachAudio() {
 /** The audio slot's current state, read fresh on every recomposition [MainActivity.audioTick] triggers. */
 internal fun MainActivity.audioUiState(): AudioUiState {
     audioTick.value // read so Compose re-invokes this when the session changes
+    val settings = settingsStore.load()
     return AudioUiState(
         recording = audio.isRecording,
         playing = audio.isPlaying,
@@ -88,6 +91,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         playheadMs = audio.playheadMs,
         durationMs = audio.clipDurationMs,
         folderChosen = audioFolder != null,
+        saveStandalone = settings.saveStandaloneAudio,
         onToggleRecord = ::toggleRecording,
         onResume = {
             audio.resume()
@@ -105,14 +109,23 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         },
         onScrub = ::scrubTo,
         onChooseFolder = { audioFolderLauncher.launch(null) },
+        onToggleSaveStandalone = { enabled ->
+            settingsStore.save(settingsStore.load().copy(saveStandaloneAudio = enabled))
+            audioTick.value++
+        },
     )
 }
 
 /** Stop a running recording, or ask for the microphone and start one. */
 internal fun MainActivity.toggleRecording() {
     if (audio.isRecording) {
+        AudioRecordingService.stop(this)
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "Nothing was recording")
+        if (file != null && settingsStore.load().saveStandaloneAudio) {
+            val exported = AudioStandaloneExporter.exportStandalone(this, file)
+            if (exported) toast("Standalone audio exported to Music/Recordings")
+        }
         pushAudioSidecars()
         return
     }
@@ -127,7 +140,15 @@ internal fun MainActivity.beginRecording() {
     // compressed stream, while a `.xopp` records the WAV sidecar the desktop plays
     // (`docs/audio-inking-sync.md`). A `.mobix` whose device cannot encode Opus records WAV too.
     val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
-    toast(if (name != null) "Recording — strokes will replay from here" else "Could not open the microphone")
+    if (name != null) {
+        AudioRecordingService.onStopRequested = {
+            runOnUiThread { if (audio.isRecording) toggleRecording() }
+        }
+        AudioRecordingService.start(this)
+        toast("Recording — strokes will replay from here")
+    } else {
+        toast("Could not open the microphone")
+    }
 }
 
 /**

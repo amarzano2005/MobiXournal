@@ -345,6 +345,22 @@ internal fun AudioPopupButton(state: AudioUiState) {
         }
         HorizontalDivider()
         DropdownMenuItem(
+            text = { Text("Save standalone audio") },
+            trailingIcon = {
+                androidx.compose.material3.Switch(
+                    checked = state.saveStandalone,
+                    onCheckedChange = { state.onToggleSaveStandalone(it) },
+                )
+            },
+            onClick = { state.onToggleSaveStandalone(!state.saveStandalone) },
+        )
+        Text(
+            text = "Exports audio file to Music/Recordings in addition to note binding.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp).width(220.dp),
+        )
+        HorizontalDivider()
+        DropdownMenuItem(
             text = { Text(if (state.folderChosen) "Change audio folder…" else "Choose audio folder…") },
             onClick = { state.onChooseFolder(); dismiss() },
         )
@@ -398,9 +414,11 @@ private fun timeLabel(ms: Int): String {
  * @property recording Whether the microphone is currently recording.
  * @property playing Whether audio playback is in progress.
  * @property folderChosen Whether the user has nominated a folder for audio sidecars.
+ * @property saveStandalone Whether standalone audio export is enabled.
  * @property onToggleRecord Callback to start or stop recording.
  * @property onStopPlayback Callback to stop playback.
  * @property onChooseFolder Callback to open the folder picker.
+ * @property onToggleSaveStandalone Callback to toggle standalone audio export.
  */
 data class AudioUiState(
     /** Whether the microphone is currently recording. */
@@ -415,6 +433,8 @@ data class AudioUiState(
     val durationMs: Int? = null,
     /** Whether the user has nominated a folder for audio sidecars. */
     val folderChosen: Boolean = false,
+    /** Whether standalone audio is saved into public storage on finish. */
+    val saveStandalone: Boolean = false,
     /** Callback to start or stop recording. */
     val onToggleRecord: () -> Unit = {},
     /** Callback to sound the held clip again from where it is. */
@@ -427,4 +447,6 @@ data class AudioUiState(
     val onScrub: (Int) -> Unit = {},
     /** Callback to open the folder picker. */
     val onChooseFolder: () -> Unit = {},
+    /** Callback to toggle standalone audio export. */
+    val onToggleSaveStandalone: (Boolean) -> Unit = {},
 )

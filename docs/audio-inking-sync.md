@@ -46,6 +46,14 @@ Rather than relying on vulnerable loose sidecars in user folders:
 - The audio is bound to the document and cannot be detached when sharing or syncing; a `.xopp`
   exported from it is the one shape that still needs a sidecar file on disk.
 
+### Background capture and standalone media export
+- **Background capture (`AudioRecordingService`)**: Android foreground service (`FOREGROUND_SERVICE_MICROPHONE`)
+  holding a partial wake lock and showing an ongoing notification with elapsed chronometer and Stop action.
+  Prevents OS microphone muting or capture termination when switching apps or locking the screen.
+- **Standalone export (`AudioStandaloneExporter`)**: Option (`saveStandaloneAudio` in settings and audio popup)
+  that automatically exports an independent copy of each completed recording into the device's public
+  `Music/MobiXournal` or `Recordings/MobiXournal` collection via MediaStore.
+
 ---
 
 ## Point-level telemetry mapping
