@@ -125,26 +125,26 @@ fun Modifier.liquidGlassSpringAnimation(
 ): Modifier {
     if (!enabled) return this
 
-    val scale = remember { Animatable(if (expanded) 0.75f else 1f) }
+    val scale = remember { Animatable(if (expanded) 0.35f else 1f) }
     val alpha = remember { Animatable(if (expanded) 0f else 1f) }
 
     LaunchedEffect(expanded) {
         if (expanded) {
-            scale.snapTo(0.75f)
+            scale.snapTo(0.35f)
             alpha.snapTo(0f)
             launch {
                 scale.animateTo(
                     targetValue = 1f,
                     animationSpec = spring(
-                        dampingRatio = 0.62f, // Bouncy Apple liquid spring with soft overshoot
-                        stiffness = 350f,
+                        dampingRatio = 0.52f, // Bouncy Apple liquid spring with visible ~10% overshoot and rebound
+                        stiffness = 500f,
                     ),
                 )
             }
             launch {
                 alpha.animateTo(
                     targetValue = 1f,
-                    animationSpec = tween(durationMillis = 150),
+                    animationSpec = tween(durationMillis = 60),
                 )
             }
         }
