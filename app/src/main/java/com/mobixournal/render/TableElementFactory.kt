@@ -64,7 +64,7 @@ internal object TableElementFactory {
         val height = rawH.coerceAtLeast(r * MIN_ROW_HEIGHT_PT)
         val colWidths = List(c) { width / c }
         val rowHeights = List(r) { height / r }
-        val cells = List(r) { List(c) { TableCell() } }
+        val cells = List(r) { rowIdx -> List(c) { TableCell(bold = hasHeader && rowIdx == 0) } }
         return TableElement(
             left = left,
             top = top,

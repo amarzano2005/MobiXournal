@@ -214,4 +214,24 @@ class TableCellInspectorAnchorTest {
         // bottom: 100 * 2 + 20 - 10 = 210
         assertEquals(210.0, rect.bottom, 1e-4)
     }
+
+    @Test
+    fun emptyCellsDoNotInheritFromPreviousCell() {
+        val table = TableElement(
+            left = 0.0,
+            top = 0.0,
+            colWidths = listOf(50.0, 50.0),
+            rowHeights = listOf(30.0),
+            cells = listOf(listOf(TableCell("Cell0"), TableCell(""))),
+        )
+        // Cell 0 has content
+        assertEquals("Cell0", table.cell(0, 0).text)
+        // Cell 1 is strictly empty
+        assertEquals("", table.cell(0, 1).text)
+
+        // When updating cell 0, cell 1 remains completely empty
+        val updated = TableElementFactory.updateCell(table, 0, 0, table.cell(0, 0).copy(text = "NewText"))
+        assertEquals("NewText", updated.cell(0, 0).text)
+        assertEquals("", updated.cell(0, 1).text)
+    }
 }

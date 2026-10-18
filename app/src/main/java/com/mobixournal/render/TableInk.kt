@@ -113,14 +113,12 @@ internal object TableInk {
         height: Double,
         rowIdx: Int,
     ): TextElement {
-        val isHeader = table.headerRow && rowIdx == 0
-        val isBold = cell.bold || isHeader
         val probe = InkPrimitives.text(
             content = cell.text,
             x = 0.0,
             y = 0.0,
             color = table.borderColor,
-            bold = isBold,
+            bold = cell.bold,
         )
         val box = ElementBounds.of(probe)
         val x = when (cell.align) {

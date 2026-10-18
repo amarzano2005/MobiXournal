@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -126,14 +128,26 @@ internal class TableCellInspectorState(
 }
 
 @Composable
-internal fun rememberTableCellInspectorState(cell: TableCell): TableCellInspectorState =
-    remember(cell) {
+internal fun rememberTableCellInspectorState(
+    tableId: String? = null,
+    row: Int = 0,
+    col: Int = 0,
+    cell: TableCell,
+): TableCellInspectorState {
+    val state = remember(tableId, row, col) {
         TableCellInspectorState(
             initialText = cell.text,
             initialAlign = cell.align,
             initialBold = cell.bold,
         )
     }
+    LaunchedEffect(tableId, row, col, cell.text, cell.align, cell.bold) {
+        state.text = cell.text
+        state.align = cell.align
+        state.bold = cell.bold
+    }
+    return state
+}
 
 /**
  * In-place floating inspector anchored to an active table cell for editing its text and style.
@@ -151,33 +165,9 @@ fun TableCellInspectorAnchor(
     val row = editing.row
     val col = editing.col
     val cell = table.cell(row, col)
-    val state = rememberTableCellInspectorState(cell)
+    val state = rememberTableCellInspectorState(table.id, row, col, cell)
 
     var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
-    val gapPx = with(LocalDensity.current) { 8.dp.roundToPx() }
-    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
-
-    val surface = pane.surface
-    val activeBox = surface?.let { s ->
-        s.selection?.pageIndex?.let { s.layout.boxes.getOrNull(it) } ?: s.layout.boxes.getOrNull(s.currentPage)
-    }
-    val cellPx = cellBoundsToViewPx(
-        boundsPt = editing.cellBoundsPt ?: com.mobixournal.render.TableDividers.cellBoundsPt(table, row, col),
-        pageBox = activeBox,
-        scrollX = surface?.scrollX ?: 0f,
-        scrollY = surface?.scrollY ?: 0f,
-    )
-
-    val offset = tableCellInspectorOffset(
-        cellLeft = cellPx?.left?.toFloat() ?: pane.selectionRect?.left,
-        cellTop = cellPx?.top?.toFloat() ?: pane.selectionRect?.top,
-        cellRight = cellPx?.right?.toFloat() ?: pane.selectionRect?.right,
-        cellBottom = cellPx?.bottom?.toFloat() ?: pane.selectionRect?.bottom,
-        inspectorSize = inspectorSize,
-        canvasSize = canvasSizePx,
-        gapPx = gapPx,
-        marginPx = marginPx,
-    )
 
     fun commitCurrentCell(): TableElement {
         val updatedCell = cell.copy(text = state.text, align = state.align, bold = state.bold)
@@ -199,9 +189,12 @@ fun TableCellInspectorAnchor(
         ui.editingTableCell = EditingTableCell(currentTable, nextR, nextC, nextBounds)
     }
 
+    fun onStyleChange() {
+        commitCurrentCell()
+    }
+
     FloatingSurface(
         modifier = modifier
-            .offset { offset }
             .onSizeChanged { inspectorSize = it }
             .pointerInput(Unit) {
                 detectTapGestures { /* Swallow taps to prevent them leaking to the canvas below */ }
@@ -213,6 +206,7 @@ fun TableCellInspectorAnchor(
             col = col,
             state = state,
             onNavigate = ::navigateTo,
+            onStyleChange = ::onStyleChange,
             onDone = ::applyAndDismiss,
             onDismiss = onDismiss,
         )
@@ -226,6 +220,7 @@ private fun TableCellInspectorContent(
     col: Int,
     state: TableCellInspectorState,
     onNavigate: (Int, Int) -> Unit,
+    onStyleChange: () -> Unit,
     onDone: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -245,7 +240,7 @@ private fun TableCellInspectorContent(
 
     Column(
         modifier = Modifier
-            .widthIn(min = 260.dp, max = 340.dp)
+            .widthIn(min = 280.dp, max = 340.dp)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -311,6 +306,7 @@ private fun TableCellInspectorContent(
             state = state,
             hasNext = hasNext,
             onNext = { advanceToNext() },
+            onStyleChange = onStyleChange,
             onDone = onDone,
         )
     }
@@ -321,6 +317,7 @@ private fun TableCellInspectorBottomBar(
     state: TableCellInspectorState,
     hasNext: Boolean,
     onNext: () -> Unit,
+    onStyleChange: () -> Unit,
     onDone: () -> Unit,
 ) {
     Row(
@@ -328,7 +325,7 @@ private fun TableCellInspectorBottomBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TableCellInspectorStyleButtons(state)
+        TableCellInspectorStyleButtons(state, onStyleChange)
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -352,53 +349,92 @@ private fun TableCellInspectorBottomBar(
 }
 
 @Composable
-private fun TableCellInspectorStyleButtons(state: TableCellInspectorState) {
+private fun TableCellInspectorStyleButtons(
+    state: TableCellInspectorState,
+    onStyleChange: () -> Unit,
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconToggleButton(
             checked = state.align == TableAlign.LEFT,
-            onCheckedChange = { state.align = TableAlign.LEFT },
-            modifier = Modifier.size(32.dp),
+            onCheckedChange = {
+                state.align = TableAlign.LEFT
+                onStyleChange()
+            },
+            modifier = Modifier
+                .size(32.dp)
+                .background(
+                    color = if (state.align == TableAlign.LEFT) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp),
+                ),
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.FormatAlignLeft,
                 contentDescription = "Left",
+                tint = if (state.align == TableAlign.LEFT) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
         IconToggleButton(
             checked = state.align == TableAlign.CENTER,
-            onCheckedChange = { state.align = TableAlign.CENTER },
-            modifier = Modifier.size(32.dp),
+            onCheckedChange = {
+                state.align = TableAlign.CENTER
+                onStyleChange()
+            },
+            modifier = Modifier
+                .size(32.dp)
+                .background(
+                    color = if (state.align == TableAlign.CENTER) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp),
+                ),
         ) {
             Icon(
                 Icons.Outlined.FormatAlignCenter,
                 contentDescription = "Center",
+                tint = if (state.align == TableAlign.CENTER) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
         IconToggleButton(
             checked = state.align == TableAlign.RIGHT,
-            onCheckedChange = { state.align = TableAlign.RIGHT },
-            modifier = Modifier.size(32.dp),
+            onCheckedChange = {
+                state.align = TableAlign.RIGHT
+                onStyleChange()
+            },
+            modifier = Modifier
+                .size(32.dp)
+                .background(
+                    color = if (state.align == TableAlign.RIGHT) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp),
+                ),
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.FormatAlignRight,
                 contentDescription = "Right",
+                tint = if (state.align == TableAlign.RIGHT) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }
         Spacer(Modifier.width(4.dp))
         IconToggleButton(
             checked = state.bold,
-            onCheckedChange = { state.bold = !state.bold },
-            modifier = Modifier.size(32.dp),
+            onCheckedChange = {
+                state.bold = !state.bold
+                onStyleChange()
+            },
+            modifier = Modifier
+                .size(32.dp)
+                .background(
+                    color = if (state.bold) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp),
+                ),
         ) {
             Icon(
                 Icons.Outlined.FormatBold,
                 contentDescription = "Bold",
+                tint = if (state.bold) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
         }

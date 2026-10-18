@@ -80,6 +80,7 @@ fun SelectionActionAnchor(
     val rect = pane.selectionRect
     val canPaste = canPasteOnCanvas(pane, ui)
     if (rect == null && !canPaste) return
+    if (ui.editingTableCell != null || ui.editingPlot != null) return
     val palette = rememberColorPaletteState(settings, onSettingsChange)
     var barSize by remember { mutableStateOf(IntSize.Zero) }
     val appear = rememberAppearAlpha(measured = barSize.width > 0)
