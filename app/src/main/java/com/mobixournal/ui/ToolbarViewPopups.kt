@@ -449,6 +449,8 @@ data class AudioUiState(
     val waveform: List<Float> = emptyList(),
     /** Active transcription for the playing clip if available. */
     val transcription: com.mobixournal.audio.AudioTranscription? = null,
+    /** Title or page context of the active audio clip. */
+    val clipTitle: String? = null,
     /** Whether the floating mini-player is visible. */
     val miniPlayerVisible: Boolean = false,
     /** Whether recording is currently paused. */

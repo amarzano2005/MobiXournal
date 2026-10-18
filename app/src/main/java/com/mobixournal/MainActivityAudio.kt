@@ -11,6 +11,7 @@ import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
 import com.mobixournal.audio.AudioStandaloneExporter
 import com.mobixournal.audio.AudioWaveformExtractor
+import com.mobixournal.audio.audioRef
 import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
@@ -43,7 +44,9 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
             else -> {
                 lastAudioRef = ref
                 miniPlayerVisible.value = true
+                scrollToAudioTimestamp(ref.startMs)
                 followRecording(view)
+                audioTick.value++
             }
         }
     }
@@ -151,11 +154,29 @@ internal fun MainActivity.audioUiState(): AudioUiState {
     }
     val duration = audio.clipDurationMs ?: lastDurationMs
 
+    val clipTitle = when {
+        audio.isRecording -> "Registrazione live"
+        activeClip != null -> {
+            val doc = surface?.toDocument()
+            val matchedPage = if (doc != null) {
+                com.mobixournal.audio.AudioInkAligner.findTimestampedStrokes(doc)
+                    .firstOrNull { (_, _, ref) ->
+                        val a = ref.filename.substringAfterLast('/').substringAfterLast('\\')
+                        val b = activeClip.substringAfterLast('/').substringAfterLast('\\')
+                        a.equals(b, ignoreCase = true)
+                    }?.first
+            } else null
+            if (matchedPage != null) "Pagina ${matchedPage + 1}" else "Audio"
+        }
+        else -> null
+    }
+
     return AudioUiState(
         recording = audio.isRecording,
         recordingPaused = audio.isRecordingPaused,
         playing = audio.isPlaying,
         clipOn = audio.nowPlaying != null,
+        clipTitle = clipTitle,
         playheadMs = audio.playheadMs ?: if (!audio.isPlaying && lastAudioRef != null) (lastDurationMs ?: 0) else 0,
         durationMs = duration,
         folderChosen = audioFolder != null,
@@ -263,6 +284,7 @@ internal fun MainActivity.beginRecording() {
     // The document's own format decides the codec: a `.mobix` bundles its audio, so it records the
     // compressed stream, while a `.xopp` records the WAV sidecar the desktop plays
     // (`docs/audio-inking-sync.md`). A `.mobix` whose device cannot encode Opus records WAV too.
+    requestNotificationPermissionIfNecessary()
     val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
     if (name != null) {
         AudioRecordingService.onStopRequested = {
@@ -382,12 +404,29 @@ internal fun MainActivity.pushAudioSidecars() {
 
 /** Find an audio recording candidate to play when autonomous playback is triggered. */
 internal fun MainActivity.findCandidateAudioRef(): AudioRef? {
+    val surfaceView = surface
+    val doc = surfaceView?.toDocument()
+
+    // 1. Check current page strokes first
+    if (doc != null) {
+        val curPageIndex = surfaceView.currentPage.coerceIn(0, (doc.pages.size - 1).coerceAtLeast(0))
+        val curPage = doc.pages.getOrNull(curPageIndex)
+        if (curPage != null) {
+            val pageFiles = curPage.layers.asSequence()
+                .flatMap { it.elements.asSequence() }
+                .filterIsInstance<com.mobixournal.format.model.Stroke>()
+                .mapNotNull { it.audioRef() }
+                .toList()
+            val available = pageFiles.firstOrNull { File(filesDir, "audio/${it.filename}").isFile }
+            if (available != null) return available
+        }
+    }
+
     val last = lastAudioRef
     if (last != null && File(filesDir, "audio/${last.filename}").isFile) {
         return AudioRef(last.filename, 0)
     }
 
-    val doc = surface?.toDocument()
     if (doc != null) {
         val docFiles = documentAudioFiles(doc)
         val available = docFiles.firstOrNull { File(filesDir, "audio/$it").isFile }
@@ -429,6 +468,7 @@ internal fun MainActivity.playAutonomousAudio() {
         if (audio.play(candidate)) {
             lastAudioRef = candidate
             miniPlayerVisible.value = true
+            scrollToAudioTimestamp(candidate.startMs)
             if (surfaceView != null) followRecording(surfaceView)
             audioTick.value++
         } else {

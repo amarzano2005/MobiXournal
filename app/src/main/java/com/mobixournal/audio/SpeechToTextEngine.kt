@@ -94,7 +94,10 @@ class SpeechToTextEngine(
         speechRecognizer?.let { return it }
         val recognizer = runCatching {
             SpeechRecognizer.createSpeechRecognizer(context)
-        }.getOrNull() ?: return null
+        }.getOrNull() ?: run {
+            android.util.Log.e("SpeechToTextEngine", "Failed to create SpeechRecognizer on this device")
+            return null
+        }
         recognizer.setRecognitionListener(createRecognitionListener())
         speechRecognizer = recognizer
         return recognizer
@@ -263,7 +266,22 @@ class SpeechToTextEngine(
 
     private fun handleRecognitionError(error: Int) {
         if (!isSessionActive || isPaused) return
-        android.util.Log.d("SpeechToTextEngine", "SpeechRecognizer error: $error")
+        val errorMsg = when (error) {
+            SpeechRecognizer.ERROR_AUDIO -> "ERROR_AUDIO ($error)"
+            SpeechRecognizer.ERROR_CLIENT -> "ERROR_CLIENT ($error)"
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "ERROR_INSUFFICIENT_PERMISSIONS ($error)"
+            SpeechRecognizer.ERROR_NETWORK -> "ERROR_NETWORK ($error)"
+            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT ($error)"
+            SpeechRecognizer.ERROR_NO_MATCH -> "ERROR_NO_MATCH ($error)"
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "ERROR_RECOGNIZER_BUSY ($error)"
+            SpeechRecognizer.ERROR_SERVER -> "ERROR_SERVER ($error)"
+            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "ERROR_SPEECH_TIMEOUT ($error)"
+            12 -> "ERROR_LANGUAGE_NOT_SUPPORTED (12)"
+            13 -> "ERROR_LANGUAGE_UNAVAILABLE (13)"
+            14 -> "ERROR_SERVER_DISCONNECTED (14)"
+            else -> "ERROR_UNKNOWN ($error)"
+        }
+        android.util.Log.w("SpeechToTextEngine", "SpeechRecognizer error: $errorMsg")
         flushPendingPartialIfAny()
 
         // Error 12 (ERROR_LANGUAGE_NOT_SUPPORTED) or 13 (ERROR_LANGUAGE_UNAVAILABLE): fall back to online.
@@ -284,7 +302,7 @@ class SpeechToTextEngine(
             scheduleRestart(100L, recreate = false)
         } else {
             val isBusy = error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
-            scheduleRestart(if (isBusy) 350L else 250L, recreate = true)
+            scheduleRestart(if (isBusy) 400L else 300L, recreate = true)
         }
     }
 

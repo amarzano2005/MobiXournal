@@ -77,6 +77,7 @@ fun AudioMiniPlayer(
     waveform: List<Float>,
     heatmap: List<Float> = emptyList(),
     transcription: AudioTranscription? = null,
+    clipTitle: String? = null,
     playbackSpeed: Float = 1.0f,
     onTogglePlay: () -> Unit,
     onSeek: (Int) -> Unit,
@@ -122,6 +123,7 @@ fun AudioMiniPlayer(
                 MiniPlayerHeader(
                     playheadMs = playheadMs,
                     durationMs = durationMs,
+                    clipTitle = clipTitle,
                     playbackSpeed = playbackSpeed,
                     showTranscript = showTranscript,
                     onToggleTranscript = { showTranscript = !showTranscript },
@@ -182,6 +184,7 @@ private fun PlayerDragHandle(onDrag: (Float, Float) -> Unit) {
 private fun MiniPlayerHeader(
     playheadMs: Int,
     durationMs: Int,
+    clipTitle: String?,
     playbackSpeed: Float,
     showTranscript: Boolean,
     onToggleTranscript: () -> Unit,
@@ -206,6 +209,19 @@ private fun MiniPlayerHeader(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
+            if (!clipTitle.isNullOrBlank()) {
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = clipTitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                )
+            }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {

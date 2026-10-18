@@ -420,6 +420,7 @@ fun EditorScreen(
             durationMs = audio.durationMs ?: 0,
             waveform = audio.waveform,
             transcription = audio.transcription,
+            clipTitle = audio.clipTitle,
             playbackSpeed = audio.playbackSpeed,
             onTogglePlay = audio.onPlayAutonomous,
             onSeek = audio.onScrub,
