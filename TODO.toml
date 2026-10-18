@@ -92,20 +92,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "insert-a-living-table-from-the-table-tool"
-title = "Insert a living table from the Table tool"
-description = "Make the Table tool author a living TableElement instead of the baked grid stroke it draws today, exactly as the graph dialog now inserts a living PlotElement through render/PlotElementFactory.kt (docs/mobix-elements.md). A table factory beside the plot one turns the drag the tool already computes (docs/drawing-tools.md) into the table origin plus its initial colWidths/rowHeights, so one function owns the conversion, the header row flag and the empty cell defaults, and the element lands where the user drew it. A .mobix stores the element natively and render/XoppSynthesis.kt compiles it to ink on .xopp export. Verify with JVM unit tests: a drag in gives a table whose colWidths/rowHeights sum to its bounds, and the element survives a write and read through MobixTableCodec."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 580
-created = 2026-10-13
-tags = ["table", "mobix"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "make-the-table-family-selectable-on-the-canvas"
 title = "Make the table family selectable on the canvas"
 description = "Give TableElement a real bounding box and mark it hit-testable in render/ElementBounds.kt, the way PlotElement already is; today the table, shape and circuit families answer an empty box and isHitTestable = false so a marquee cannot pick up something that has no editor yet (docs/mobix-elements.md). Then let the existing selection machinery move, resize and delete it: render/SelectionOps.kt already does exactly that for a plot, and a moved table must move its origin while colWidths/rowHeights stay put, because the grid is the authority and the bounds follow it. Cover marquee, tap, drag, resize, delete and undo in a test beside render/LivingEntitySelectionTest.kt. Verify with those JVM tests plus one emulator pass marquee-selecting a table and moving it."

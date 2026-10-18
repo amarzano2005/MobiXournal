@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "insert-a-living-table-from-the-table-tool"
+title = "Insert a living table from the Table tool"
+description = "Make the Table tool author a living TableElement instead of the baked grid stroke it draws today, exactly as the graph dialog now inserts a living PlotElement through render/PlotElementFactory.kt (docs/mobix-elements.md). A table factory beside the plot one turns the drag the tool already computes (docs/drawing-tools.md) into the table origin plus its initial colWidths/rowHeights, so one function owns the conversion, the header row flag and the empty cell defaults, and the element lands where the user drew it. A .mobix stores the element natively and render/XoppSynthesis.kt compiles it to ink on .xopp export. Verify with JVM unit tests: a drag in gives a table whose colWidths/rowHeights sum to its bounds, and the element survives a write and read through MobixTableCodec."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-18
+tags = ["table", "mobix"]
+
+[[task]]
 id = "anchored-flyout-inspector-for-the-function-plot-editor"
 title = "Anchored flyout inspector for the function plot editor"
 description = "Phase 3 of docs/ui-modernization.md names three dialogs to turn into anchored micro-inspectors: colour and width (its own task), the function plot and the table editor (whose editor lands with the table family). This one is the plot: with a single PlotElement selected, the edit path that today raises the modal ui/AdvancedFunctionGraphDialog.kt through the Edit plot action in the selection action bar (docs/mobix-elements.md) opens as an anchored inspector beside the selection, pre-filled from the element and applied through applyPlotEdit in render/PlotElementFactory.kt, so every field the dialog has no input for (samples, parameters, shadeIntegral, axisColor, id) survives and undo still works. The first insertion may keep the modal if anchoring would move the placement maths; record which in docs/ui-modernization.md. Verify on the emulator with a screenshot of the anchored inspector over a selected plot, plus a unit test that an edit applied through it round-trips."

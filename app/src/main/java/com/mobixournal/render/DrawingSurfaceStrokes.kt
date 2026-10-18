@@ -234,30 +234,19 @@ fun DrawingSurfaceView.insertTable(
     }
     val halfW = widthPt / 2.0
     val halfH = heightPt / 2.0
-    val pts = ShapeBuilder.build(
-        ShapeKind.TABLE,
-        cx - halfW, cy - halfH,
-        cx + halfW, cy + halfH,
-        nominalShapeWidthPt(),
-        rows, cols,
-        hasHeader,
+    val table = TableElementFactory.tableElementFor(
+        startX = cx - halfW,
+        startY = cy - halfH,
+        endX = cx + halfW,
+        endY = cy + halfH,
+        rows = rows,
+        cols = cols,
+        hasHeader = hasHeader,
+        borderColor = strokeColor(),
+        borderWidth = nominalShapeWidthPt(),
     )
-    if (pts.size >= 2) {
-        gestureStartDoc = doc
-        appendStroke(
-            target,
-            Stroke(
-                Tool.PEN,
-                strokeColor(),
-                "round",
-                pts,
-                true,
-                lineStyle = currentLineStyle,
-            ),
-        )
-        finishGesture()
-        render()
-    }
+    ElementEdits.addElement(doc, target, table) { resolvedActiveLayer(it) }
+        ?.let { commitElementEdit(it) }
 }
 
 internal fun DrawingSurfaceView.clearSpline() {
@@ -464,27 +453,10 @@ internal fun DrawingSurfaceView.commitCurrent() {
     val holdWasSnapped = holdSnapped
     holdSnapped = false
 
-    // A tap/click with the table tool places a default-sized table centered at the tapped point.
-    if (wasShaping && shapeKind == ShapeKind.TABLE && raw.size <= 2) {
-        val ex = raw.lastOrNull()?.x ?: shapeStartX
-        val ey = raw.lastOrNull()?.y ?: shapeStartY
-        if (hypot(ex - shapeStartX, ey - shapeStartY) < 6.0) {
-            val halfW = 100.0
-            val halfH = 60.0
-            val tablePts = ShapeBuilder.build(
-                ShapeKind.TABLE,
-                shapeStartX - halfW, shapeStartY - halfH,
-                shapeStartX + halfW, shapeStartY + halfH,
-                shapeWidthPt,
-                tableRows, tableCols, tableHeader,
-            )
-            appendStroke(
-                currentPage,
-                Stroke(tool, strokeColor(), "round", tablePts, true, lineStyle = currentLineStyle),
-            )
-            render()
-            return
-        }
+    // The table tool authors a living TableElement (on tap or drag) rather than a baked stroke.
+    if (wasShaping && shapeKind == ShapeKind.TABLE) {
+        commitTableInsertion(raw)
+        return
     }
 
     // Shape tools emit exact geometry — only freehand samples get thinned.
@@ -527,6 +499,42 @@ internal fun DrawingSurfaceView.commitCurrent() {
         // A dimension line carries its value: the measurement goes in as a text box of its own.
         if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
+    render()
+}
+
+private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {
+    val ex = raw.lastOrNull()?.x ?: shapeStartX
+    val ey = raw.lastOrNull()?.y ?: shapeStartY
+    val isTap = raw.size <= 2 && hypot(ex - shapeStartX, ey - shapeStartY) < 6.0
+    val table = if (isTap) {
+        val halfW = 100.0
+        val halfH = 60.0
+        TableElementFactory.tableElementFor(
+            startX = shapeStartX - halfW,
+            startY = shapeStartY - halfH,
+            endX = shapeStartX + halfW,
+            endY = shapeStartY + halfH,
+            rows = tableRows,
+            cols = tableCols,
+            hasHeader = tableHeader,
+            borderColor = strokeColor(),
+            borderWidth = shapeWidthPt,
+        )
+    } else {
+        TableElementFactory.tableElementFor(
+            startX = shapeStartX,
+            startY = shapeStartY,
+            endX = ex,
+            endY = ey,
+            rows = tableRows,
+            cols = tableCols,
+            hasHeader = tableHeader,
+            borderColor = strokeColor(),
+            borderWidth = shapeWidthPt,
+        )
+    }
+    ElementEdits.addElement(doc, currentPage, table) { resolvedActiveLayer(it) }
+        ?.let { commitElementEdit(it) }
     render()
 }
 
