@@ -9,12 +9,14 @@ import androidx.core.content.ContextCompat
 import com.mobixournal.audio.AudioRecordingService
 import com.mobixournal.audio.AudioSession
 import com.mobixournal.audio.AudioStandaloneExporter
+import com.mobixournal.audio.AudioWaveformExtractor
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.KaraokeFrames
 import com.mobixournal.render.karaokeState
 import com.mobixournal.ui.AudioUiState
+import java.io.File
 
 // --- audio: record onto strokes, replay from them, keep sidecars beside the .xopp -----------
 //
@@ -35,7 +37,10 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
         when {
             ref == null -> toast("That stroke has no recording")
             !audio.play(ref) -> toast("Recording not found: ${ref.filename}")
-            else -> followRecording(view)
+            else -> {
+                miniPlayerVisible.value = true
+                followRecording(view)
+            }
         }
     }
 }
@@ -84,6 +89,13 @@ internal fun MainActivity.detachAudio() {
 internal fun MainActivity.audioUiState(): AudioUiState {
     audioTick.value // read so Compose re-invokes this when the session changes
     val settings = settingsStore.load()
+    val playingFile = audio.nowPlaying?.let { File(filesDir, "audio/$it") }
+    val waveform = if (playingFile != null && playingFile.exists()) {
+        AudioWaveformExtractor.extract(playingFile)
+    } else {
+        emptyList()
+    }
+
     return AudioUiState(
         recording = audio.isRecording,
         playing = audio.isPlaying,
@@ -92,6 +104,9 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         durationMs = audio.clipDurationMs,
         folderChosen = audioFolder != null,
         saveStandalone = settings.saveStandaloneAudio,
+        playbackSpeed = audio.playbackSpeed,
+        waveform = waveform,
+        miniPlayerVisible = miniPlayerVisible.value && audio.nowPlaying != null,
         onToggleRecord = ::toggleRecording,
         onResume = {
             audio.resume()
@@ -105,12 +120,27 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         onStopPlayback = {
             audio.stopPlayback()
             karaokeDriver?.stop()
+            miniPlayerVisible.value = false
             audioTick.value++
         },
         onScrub = ::scrubTo,
+        onSkip = { deltaMs ->
+            val cur = audio.playheadMs ?: 0
+            val dur = audio.clipDurationMs ?: 0
+            val target = (cur + deltaMs).coerceIn(0, dur.coerceAtLeast(0))
+            scrubTo(target)
+        },
+        onSpeedChange = { speed ->
+            audio.playbackSpeed = speed
+            audioTick.value++
+        },
         onChooseFolder = { audioFolderLauncher.launch(null) },
         onToggleSaveStandalone = { enabled ->
             settingsStore.save(settingsStore.load().copy(saveStandaloneAudio = enabled))
+            audioTick.value++
+        },
+        onToggleMiniPlayer = {
+            miniPlayerVisible.value = !miniPlayerVisible.value
             audioTick.value++
         },
     )

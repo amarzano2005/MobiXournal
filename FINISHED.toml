@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "floating-glass-audio-mini-player-waveform-and-heatmap"
+title = "Floating Frosted-Glass Audio Mini-Player with Waveform and Writing Heatmap"
+description = "Create a modern, draggable frosted-glass mini-player pill (AudioMiniPlayer) featuring: real audio amplitude waveform rendering, interactive scrubbing with haptic feedback, a writing-density heatmap along the waveform showing where notes were authored, +-5s skip buttons, playback speed selector (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch compensation, and an inline live synchronized subtitle pill."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-18
+completed = 2026-10-18
+tags = ["audio", "ui", "waveform", "player"]
+
+[[task]]
 id = "on-device-speech-to-text-and-stroke-sync"
 title = "On-Device Speech-to-Text Transcription and Timestamp Alignment"
 description = "Integrate offline/on-device Speech-to-Text transcription with word-level and sentence-level timestamp segments (TranscriptionSegment(startTimeMs, endTimeMs, text)). Align transcribed words with pen stroke timestamps recorded in .mobix ink metadata. Index transcribed words into the editor's search engine (SearchControls), enabling unified search across both handwritten text and spoken audio."

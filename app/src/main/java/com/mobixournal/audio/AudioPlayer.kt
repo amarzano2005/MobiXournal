@@ -79,6 +79,24 @@ class AudioPlayer {
         return true
     }
 
+    /** Playback speed multiplier (e.g. 0.8f, 1.0f, 1.25f, 1.5f, 2.0f). */
+    var playbackSpeed: Float = 1.0f
+        set(value) {
+            field = value.coerceIn(0.25f, 4.0f)
+            applyPlaybackSpeed()
+        }
+
+    private fun applyPlaybackSpeed() {
+        val mp = player ?: return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            runCatching {
+                val params = mp.playbackParams
+                params.speed = playbackSpeed
+                mp.playbackParams = params
+            }
+        }
+    }
+
     /**
      * Play [file] from [startMs]. Returns false when the file can't be opened or decoded (a missing
      * sidecar is the common case), leaving any previous clip stopped.
@@ -93,6 +111,11 @@ class AudioPlayer {
             // Clamp: a `ts` past the end of a truncated sidecar would otherwise seek into nothing.
             mp.seekTo(startMs.coerceIn(0, mp.duration.coerceAtLeast(0)))
             mp.setOnCompletionListener { stop() }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && playbackSpeed != 1.0f) {
+                val params = mp.playbackParams
+                params.speed = playbackSpeed
+                mp.playbackParams = params
+            }
             mp.start()
         }.isSuccess
         if (!ok) {

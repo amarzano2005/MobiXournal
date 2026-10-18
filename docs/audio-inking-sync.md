@@ -130,12 +130,12 @@ During playback of a lecture or meeting:
 - As the audio timestamp reaches $t_{\text{abs}}(P_i)$, the stroke path animates smoothly forward in real time.
 - The active writing tip is decorated with a subtle pulsing glowing indicator.
 
-### 2. Bi-directional Audio-Tap (Interactive Scrubbing)
-- **Ink-to-Audio**: Tapping any word or mathematical formula with the Audio tool calculates the nearest
-  `StrokePoint`, queries its exact $t_{\text{abs}}$, and commands the audio player to seek immediately
-  to that millisecond.
-- **Audio-to-Ink**: Dragging the audio scrubber bar highlights the corresponding paragraph or drawing on the
-  canvas, keeping visual and auditory attention aligned.
+### 3. Floating frosted-glass mini-player (`AudioMiniPlayer`)
+- **HUD pill (`AudioMiniPlayer`)**: A modern, draggable frosted-glass pill floating over the canvas with real
+  amplitude waveform visualization, inking density heatmap, subtitle previews, +/- 5s skips, and speed selector
+  (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch preservation.
+- **Waveform extractor (`AudioWaveformExtractor`)**: Decodes normalized amplitude vectors from local audio recordings
+  with in-memory caching to avoid redundant file reads.
 
 ---
 

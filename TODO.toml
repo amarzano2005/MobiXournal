@@ -442,20 +442,6 @@ rebuild = false
 emulator_debug = true
 
 [[task]]
-id = "floating-glass-audio-mini-player-waveform-and-heatmap"
-title = "Floating Frosted-Glass Audio Mini-Player with Waveform and Writing Heatmap"
-description = "Create a modern, draggable frosted-glass mini-player pill (AudioMiniPlayer) featuring: real audio amplitude waveform rendering, interactive scrubbing with haptic feedback, a writing-density heatmap along the waveform showing where notes were authored, +-5s skip buttons, playback speed selector (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch compensation, and an inline live synchronized subtitle pill."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 840
-created = 2026-10-18
-tags = ["audio", "ui", "waveform", "player"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "tri-directional-touch-to-seek-audio-ink-transcript"
 title = "Tri-Directional Touch-to-Seek Synchronization (Strokes <-> Waveform <-> Transcript)"
 description = "Implement three-way interactive seeking: (1) touching any handwritten stroke on the canvas jumps audio playback and transcript to the exact instant it was drawn, with dynamic ghost/karaoke stroke illumination; (2) tapping any word in the transcript panel seeks audio playback and scrolls the canvas to the corresponding handwritten content; (3) scrubbing the waveform advances both the transcript and canvas viewport in real time."

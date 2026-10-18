@@ -135,6 +135,9 @@ class MainActivity : ComponentActivity() {
     /** Bumped whenever recording/playback state changes, so the Compose chrome re-reads it. */
     internal var audioTick = mutableStateOf(0)
 
+    /** Whether the floating frosted-glass audio mini player is visible. */
+    internal var miniPlayerVisible = mutableStateOf(false)
+
     /**
      * The frame loop following the clip that is playing ([KaraokeFrameDriver]), or null when none is: it
      * publishes the playhead onto the surface the recording was started from, and stops when the clip

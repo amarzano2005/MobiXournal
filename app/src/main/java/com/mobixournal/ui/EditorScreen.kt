@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -400,6 +402,22 @@ fun EditorScreen(
             pendingNewerAppConsentName = pendingNewerAppConsentName,
             onConfirmNewerAppConsent = onConfirmNewerAppConsent,
             onDismissNewerAppConsent = onDismissNewerAppConsent,
+        )
+
+        AudioMiniPlayer(
+            visible = audio.miniPlayerVisible && audio.clipOn,
+            playing = audio.playing,
+            playheadMs = audio.playheadMs ?: 0,
+            durationMs = audio.durationMs ?: 0,
+            waveform = audio.waveform,
+            transcription = audio.transcription,
+            playbackSpeed = audio.playbackSpeed,
+            onTogglePlay = { if (audio.playing) audio.onPause() else audio.onResume() },
+            onSeek = audio.onScrub,
+            onSkip = audio.onSkip,
+            onSpeedChange = audio.onSpeedChange,
+            onClose = audio.onToggleMiniPlayer,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp),
         )
 
         if (!settings.hasSeenOnboarding) {

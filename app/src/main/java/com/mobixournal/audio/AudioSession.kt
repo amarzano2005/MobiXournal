@@ -171,6 +171,14 @@ class AudioSession(
         nowPlaying = null
     }
 
+    /** Playback speed factor (e.g. 0.8f, 1.0f, 1.25f, 1.5f, 2.0f). */
+    var playbackSpeed: Float
+        get() = player.playbackSpeed
+        set(value) {
+            player.playbackSpeed = value
+            onStateChanged?.invoke()
+        }
+
     /**
      * Move playback to [ms], clamped to the clip's length, and answer the position it will be at — null
      * while nothing is sounding. What an audio-tap and the scrubber both end up calling.

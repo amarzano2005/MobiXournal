@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
@@ -340,6 +341,13 @@ internal fun AudioPopupButton(state: AudioUiState) {
             leadingIcon = { Icon(Icons.Outlined.Stop, contentDescription = null) },
             onClick = { state.onStopPlayback(); dismiss() },
         )
+        if (state.clipOn) {
+            DropdownMenuItem(
+                text = { Text(if (state.miniPlayerVisible) "Hide mini-player" else "Show mini-player") },
+                leadingIcon = { Icon(Icons.Outlined.GraphicEq, contentDescription = null) },
+                onClick = { state.onToggleMiniPlayer(); dismiss() },
+            )
+        }
         if (state.clipOn && state.durationMs != null && state.playheadMs != null) {
             AudioScrubber(state)
         }
@@ -435,6 +443,14 @@ data class AudioUiState(
     val folderChosen: Boolean = false,
     /** Whether standalone audio is saved into public storage on finish. */
     val saveStandalone: Boolean = false,
+    /** Current playback speed multiplier. */
+    val playbackSpeed: Float = 1.0f,
+    /** Extracted audio waveform amplitudes for the active clip. */
+    val waveform: List<Float> = emptyList(),
+    /** Active transcription for the playing clip if available. */
+    val transcription: com.mobixournal.audio.AudioTranscription? = null,
+    /** Whether the floating mini-player is visible. */
+    val miniPlayerVisible: Boolean = false,
     /** Callback to start or stop recording. */
     val onToggleRecord: () -> Unit = {},
     /** Callback to sound the held clip again from where it is. */
@@ -445,8 +461,14 @@ data class AudioUiState(
     val onStopPlayback: () -> Unit = {},
     /** Callback to move the playhead to the dragged position, in ms. */
     val onScrub: (Int) -> Unit = {},
+    /** Callback to skip forward/backward by [deltaMs]. */
+    val onSkip: (Int) -> Unit = {},
+    /** Callback to set the playback speed factor. */
+    val onSpeedChange: (Float) -> Unit = {},
     /** Callback to open the folder picker. */
     val onChooseFolder: () -> Unit = {},
     /** Callback to toggle standalone audio export. */
     val onToggleSaveStandalone: (Boolean) -> Unit = {},
+    /** Callback to toggle the mini-player's visibility. */
+    val onToggleMiniPlayer: () -> Unit = {},
 )
