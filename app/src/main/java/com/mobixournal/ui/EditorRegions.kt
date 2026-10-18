@@ -478,8 +478,9 @@ private fun SearchControls(pane: PaneState) {
         pane.searchCurrent = status.current
         pane.searchTotal = status.total
     }
+    val isDark = chromeIsDark()
+    val searchIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
     if (!pane.searchOpen) {
-        val isDark = chromeIsDark()
         val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
         Surface(
@@ -496,6 +497,7 @@ private fun SearchControls(pane: PaneState) {
                 Icon(
                     Icons.Outlined.Search,
                     contentDescription = "Search",
+                    tint = searchIconTint,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -555,7 +557,7 @@ private fun SearchControls(pane: PaneState) {
                 Icon(
                     Icons.Outlined.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = searchIconTint,
                     modifier = Modifier
                         .size(16.dp)
                         .padding(start = 2.dp),
