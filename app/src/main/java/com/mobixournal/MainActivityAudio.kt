@@ -15,6 +15,7 @@ import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.KaraokeFrameDriver
 import com.mobixournal.render.KaraokeFrames
 import com.mobixournal.render.karaokeState
+import com.mobixournal.render.scrollToContentBounds
 import com.mobixournal.ui.AudioUiState
 import java.io.File
 
@@ -53,9 +54,19 @@ internal fun MainActivity.attachAudio(view: DrawingSurfaceView) {
  * moving between the drag's own events, so a frame per vsync would repaint a page that has not changed
  * ([KaraokeFrameDriver.publishOnce]).
  */
+internal fun MainActivity.scrollToAudioTimestamp(ms: Int) {
+    val surfaceView = surface ?: return
+    val doc = surfaceView.toDocument() ?: return
+    val playing = audio.nowPlaying ?: return
+    val hits = com.mobixournal.audio.AudioInkAligner.findStrokesAtTime(doc, playing, ms)
+    val firstHit = hits.firstOrNull() ?: return
+    surfaceView.scrollToContentBounds(firstHit.first, firstHit.second)
+}
+
 internal fun MainActivity.scrubTo(ms: Int) {
     audio.seek(ms)
     karaokeDriver?.publishOnce()
+    scrollToAudioTimestamp(ms)
     audioTick.value++
 }
 
@@ -106,6 +117,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
         saveStandalone = settings.saveStandaloneAudio,
         playbackSpeed = audio.playbackSpeed,
         waveform = waveform,
+        transcription = activeTranscription.value,
         miniPlayerVisible = miniPlayerVisible.value && audio.nowPlaying != null,
         onToggleRecord = ::toggleRecording,
         onResume = {
@@ -150,6 +162,8 @@ internal fun MainActivity.audioUiState(): AudioUiState {
 internal fun MainActivity.toggleRecording() {
     if (audio.isRecording) {
         AudioRecordingService.stop(this)
+        speechEngine?.stopListening()
+        speechEngine = null
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "Nothing was recording")
         if (file != null && settingsStore.load().saveStandaloneAudio) {
@@ -175,9 +189,34 @@ internal fun MainActivity.beginRecording() {
             runOnUiThread { if (audio.isRecording) toggleRecording() }
         }
         AudioRecordingService.start(this)
+        startLiveSpeechTranscription(name)
         toast("Recording — strokes will replay from here")
     } else {
         toast("Could not open the microphone")
+    }
+}
+
+internal fun MainActivity.startLiveSpeechTranscription(filename: String) {
+    runCatching {
+        val engine = com.mobixournal.audio.SpeechToTextEngine(this)
+        if (engine.isAvailable()) {
+            val segments = mutableListOf<com.mobixournal.audio.TranscriptionSegment>()
+            engine.startListening(
+                listener = object : com.mobixournal.audio.SpeechToTextEngine.TranscriptionListener {
+                    override fun onSegmentRecognized(segment: com.mobixournal.audio.TranscriptionSegment) {
+                        segments.add(segment)
+                        activeTranscription.value = com.mobixournal.audio.AudioTranscription(
+                            audioFilename = filename,
+                            segments = segments.toList(),
+                        )
+                        audioTick.value++
+                    }
+                    override fun onError(error: String) {}
+                    override fun onFinished() {}
+                },
+            )
+            speechEngine = engine
+        }
     }
 }
 

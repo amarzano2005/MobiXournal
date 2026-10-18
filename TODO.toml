@@ -440,17 +440,3 @@ created = 2026-10-17
 tags = ["split", "rendering"]
 rebuild = false
 emulator_debug = true
-
-[[task]]
-id = "tri-directional-touch-to-seek-audio-ink-transcript"
-title = "Tri-Directional Touch-to-Seek Synchronization (Strokes <-> Waveform <-> Transcript)"
-description = "Implement three-way interactive seeking: (1) touching any handwritten stroke on the canvas jumps audio playback and transcript to the exact instant it was drawn, with dynamic ghost/karaoke stroke illumination; (2) tapping any word in the transcript panel seeks audio playback and scrolls the canvas to the corresponding handwritten content; (3) scrubbing the waveform advances both the transcript and canvas viewport in real time."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 850
-created = 2026-10-18
-tags = ["audio", "karaoke", "sync", "inking"]
-rebuild = true
-emulator_debug = true

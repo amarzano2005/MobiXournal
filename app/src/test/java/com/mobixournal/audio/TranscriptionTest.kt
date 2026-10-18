@@ -124,4 +124,76 @@ class TranscriptionTest {
         assertEquals(0, hits[0].pageIndex)
         assertEquals(50.0, hits[0].boxes[0].left, 0.01)
     }
+
+    @Test
+    fun triDirectionalSeekingAlignsStrokeBoundsWithAudioTimestamp() {
+        val stroke = Stroke(
+            tool = Tool.PEN,
+            color = -16777216,
+            capStyle = "round",
+            uniformWidth = true,
+            points = listOf(
+                StrokePoint(x = 100.0, y = 200.0, width = 2.0, dtMs = 0),
+                StrokePoint(x = 150.0, y = 220.0, width = 2.0, dtMs = 400),
+            ),
+            extraAttrs = mapOf("fn" to "lecture.ogg", "ts" to "10000"),
+        )
+        val page = Page(
+            width = 595.0,
+            height = 842.0,
+            background = com.mobixournal.format.model.Background.Solid(-1, "plain"),
+            layers = listOf(Layer(elements = listOf(stroke), name = "Layer 1")),
+        )
+        val doc = com.mobixournal.format.model.Document(pages = listOf(page))
+        val transcription = AudioTranscription(
+            audioFilename = "lecture.ogg",
+            segments = listOf(
+                TranscriptionSegment(9500, 10500, "formula di Eulero"),
+            ),
+        )
+
+        // (1) Audio playhead seeks stroke bounds on canvas:
+        val boundsHits = AudioInkAligner.findStrokesAtTime(doc, "lecture.ogg", 10200)
+        assertEquals(1, boundsHits.size)
+        assertEquals(0, boundsHits[0].first)
+        assertEquals(100.0, boundsHits[0].second.left, 0.01)
+        assertEquals(150.0, boundsHits[0].second.right, 0.01)
+
+        // (2) Transcript segment lookup at audio playhead:
+        val active = transcription.segmentAt(10200)
+        assertNotNull(active)
+        assertEquals("formula di Eulero", active?.text)
+    }
+
+    @Test
+    fun transcriptionRoundTripsThroughMobixPackaging() {
+        val transcription = AudioTranscription(
+            audioFilename = "clip_7a9f.ogg",
+            language = "it-IT",
+            segments = listOf(
+                TranscriptionSegment(0, 1500, "Introduzione"),
+                TranscriptionSegment(1500, 4200, "Primo teorema fondamentale"),
+            ),
+        )
+        val encodedJson = TranscriptionCodec.encode(transcription)
+        val payloadBytes = encodedJson.toByteArray(Charsets.UTF_8)
+
+        val mobixDoc = com.mobixournal.format.mobix.MobixDocument.of(
+            document = com.mobixournal.format.model.Document(pages = emptyList()),
+            appVersion = "2.0.0",
+            nowMillis = 1000L,
+            payloads = mapOf(com.mobixournal.format.mobix.MobixFormat.TRANSCRIPT_ENTRY to payloadBytes),
+        )
+
+        val plan = mobixDoc.encode(1000L)
+        val transcriptEntry = plan.entries.find { it.name == com.mobixournal.format.mobix.MobixFormat.TRANSCRIPT_ENTRY }
+        assertNotNull(transcriptEntry)
+
+        val decoded = TranscriptionCodec.decode(String(transcriptEntry!!.bytes, Charsets.UTF_8))
+        assertNotNull(decoded)
+        assertEquals("clip_7a9f.ogg", decoded?.audioFilename)
+        assertEquals("it-IT", decoded?.language)
+        assertEquals(2, decoded?.segments?.size)
+        assertEquals("Primo teorema fondamentale", decoded?.segments?.get(1)?.text)
+    }
 }

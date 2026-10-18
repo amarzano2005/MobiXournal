@@ -225,3 +225,20 @@ internal class BundledPageAssets(
         is Background.Solid -> "a background"
     }
 }
+
+/**
+ * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's
+ * for a picture. Memoised per file.
+ */
+internal fun backgroundBytesOf(pdf: File?, images: Map<String, File>): (Background) -> ByteArray? {
+    val read = HashMap<String, ByteArray?>()
+    fun bytesOf(file: File?): ByteArray? = file?.takeIf { it.isFile }
+        ?.let { read.getOrPut(it.path) { it.readBytes() } }
+    return { background ->
+        when (background) {
+            is Background.Pdf -> bytesOf(pdf)
+            is Background.Pixmap -> bytesOf(images[background.filename])
+            is Background.Solid -> null
+        }
+    }
+}

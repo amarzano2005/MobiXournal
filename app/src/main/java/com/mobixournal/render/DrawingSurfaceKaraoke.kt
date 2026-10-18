@@ -70,3 +70,15 @@ private fun DrawingSurfaceView.drawKaraokeStroke(
         }
     }
 }
+
+/**
+ * Center the canvas viewport on [bounds] on page or tile [pageIndex].
+ */
+fun DrawingSurfaceView.scrollToContentBounds(pageIndex: Int, bounds: Bounds) {
+    val box = chromeBoxFor(pageIndex) ?: return
+    val centerX = box.toViewX((bounds.left + bounds.right) / 2.0, 0f)
+    val centerY = box.toViewY((bounds.top + bounds.bottom) / 2.0, 0f)
+    viewport.scrollToX(centerX - width / 2f)
+    viewport.scrollToY(centerY - height / 2f)
+    render()
+}

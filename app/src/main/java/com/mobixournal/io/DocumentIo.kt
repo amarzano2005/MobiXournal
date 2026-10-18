@@ -279,6 +279,9 @@ class DocumentIo(
             openSessions.shape(mobixDoc)
             // …and that the reader backing it has to stay open for as long as the session holds it.
             openSessions.keep(mobixDoc.manifest.documentId, reader)
+            val transcript = entries.readBytes(MobixFormat.TRANSCRIPT_ENTRY)?.let {
+                com.mobixournal.audio.TranscriptionCodec.decode(String(it, Charsets.UTF_8))
+            }
 
             LoadedFile.Doc(
                 document = mobixDoc.toDocument(),
@@ -289,6 +292,7 @@ class DocumentIo(
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
                 canvasMode = mobixDoc.manifest.canvasMode,
+                transcription = transcript,
             )
         } catch (e: Throwable) {
             reader.close()
@@ -485,6 +489,7 @@ class DocumentIo(
         /** The bytes of the recording a stroke's `fn` names, or null when the store has none. */
         audio: (String) -> ByteArray? = { null },
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
+        transcription: com.mobixournal.audio.AudioTranscription? = null,
     ): Encoded {
         val out = staging.newFile("save")
         var uncompiled: List<Uncompilable> = emptyList()
@@ -511,6 +516,11 @@ class DocumentIo(
                     val chunkCoords = openSessions.chunkCoordsOf(document)
                     // …and the board geometry the file declared, which no page carries.
                     val canvas = openSessions.canvasOf(document)
+                    val carried = carriedAssets(document).toMutableMap()
+                    if (transcription != null) {
+                        carried[MobixFormat.TRANSCRIPT_ENTRY] =
+                            com.mobixournal.audio.TranscriptionCodec.encode(transcription).toByteArray(Charsets.UTF_8)
+                    }
                     if (source == null) {
                         // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
                         // again is the same document ([Document.documentId]).
@@ -523,7 +533,7 @@ class DocumentIo(
                             // names `assets/…` writes that reference back. Carry the bytes it points
                             // at out of the archive this document was opened from, or the new file
                             // names an entry it does not have ([carriedAssets]).
-                            payloads = carriedAssets(document),
+                            payloads = carried,
                             canvasMode = mode,
                             chunkCoords = chunkCoords,
                             canvas = canvas,
@@ -543,6 +553,7 @@ class DocumentIo(
                                 canvasMode = mode,
                                 chunkCoords = chunkCoords,
                                 canvas = canvas,
+                                payloads = carried,
                             )
                         }
                     }
@@ -657,28 +668,6 @@ class DocumentIo(
             }
         }
         return names
-    }
-
-    /**
-     * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's
-     * for a picture.
-     *
-     * Memoised per file, because the answer is asked once per *page*: a forty-page document over one
-     * PDF would otherwise read that PDF forty times on the way to storing it once
-     * ([MobixAssetSink] names a payload by the hash of its bytes, so the archive holds one entry either
-     * way — the reads are the waste).
-     */
-    private fun backgroundBytesOf(pdf: File?, images: Map<String, File>): (Background) -> ByteArray? {
-        val read = HashMap<String, ByteArray?>()
-        fun bytesOf(file: File?): ByteArray? = file?.takeIf { it.isFile }
-            ?.let { read.getOrPut(it.path) { it.readBytes() } }
-        return { background ->
-            when (background) {
-                is Background.Pdf -> bytesOf(pdf)
-                is Background.Pixmap -> bytesOf(images[background.filename])
-                is Background.Solid -> null
-            }
-        }
     }
 
     private companion object {

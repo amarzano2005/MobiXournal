@@ -65,6 +65,8 @@ sealed interface LoadedFile {
          * tab, and into the save.
          */
         val canvasMode: CanvasMode = CanvasMode.PAGINATED,
+        /** Synchronized speech-to-text transcript if bundled in .mobix. */
+        val transcription: com.mobixournal.audio.AudioTranscription? = null,
     ) : LoadedFile
 }
 

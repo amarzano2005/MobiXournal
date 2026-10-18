@@ -17,10 +17,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.outlined.FastRewind
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +52,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.mobixournal.audio.AudioTranscription
@@ -84,6 +88,7 @@ fun AudioMiniPlayer(
 
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    var showTranscript by remember { mutableStateOf(false) }
 
     val activeSubtitle = remember(playheadMs, transcription) {
         transcription?.segmentAt(playheadMs)?.text
@@ -116,6 +121,9 @@ fun AudioMiniPlayer(
                     playheadMs = playheadMs,
                     durationMs = durationMs,
                     playbackSpeed = playbackSpeed,
+                    hasTranscript = transcription != null && transcription.segments.isNotEmpty(),
+                    showTranscript = showTranscript,
+                    onToggleTranscript = { showTranscript = !showTranscript },
                     onSpeedChange = onSpeedChange,
                     onClose = onClose,
                 )
@@ -130,21 +138,15 @@ fun AudioMiniPlayer(
                     onSeek = onSeek,
                 )
 
-                // Subtitle preview line if available
-                if (!activeSubtitle.isNullOrBlank()) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = "“$activeSubtitle”",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
-                    )
-                }
+                // Subtitle preview line or interactive Transcript panel
+                SubtitleOrTranscriptSection(
+                    showTranscript = showTranscript,
+                    transcription = transcription,
+                    activeSubtitle = activeSubtitle,
+                    playheadMs = playheadMs,
+                    onSeek = onSeek,
+                    onOpenTranscript = { showTranscript = true },
+                )
 
                 Spacer(Modifier.height(8.dp))
                 MiniPlayerControls(
@@ -162,6 +164,9 @@ private fun MiniPlayerHeader(
     playheadMs: Int,
     durationMs: Int,
     playbackSpeed: Float,
+    hasTranscript: Boolean,
+    showTranscript: Boolean,
+    onToggleTranscript: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -185,20 +190,115 @@ private fun MiniPlayerHeader(
             )
         }
 
-        SpeedSelectorPill(
-            currentSpeed = playbackSpeed,
-            onSpeedChange = onSpeedChange,
-        )
-
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier.size(24.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Close,
-                contentDescription = "Close player",
-                modifier = Modifier.size(16.dp),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (hasTranscript) {
+                IconButton(
+                    onClick = onToggleTranscript,
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Subtitles,
+                        contentDescription = "Toggle transcript panel",
+                        tint = if (showTranscript) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+            }
+            SpeedSelectorPill(
+                currentSpeed = playbackSpeed,
+                onSpeedChange = onSpeedChange,
             )
+            Spacer(Modifier.width(6.dp))
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(24.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = "Close player",
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubtitleOrTranscriptSection(
+    showTranscript: Boolean,
+    transcription: AudioTranscription?,
+    activeSubtitle: String?,
+    playheadMs: Int,
+    onSeek: (Int) -> Unit,
+    onOpenTranscript: () -> Unit,
+) {
+    if (showTranscript && transcription != null && transcription.segments.isNotEmpty()) {
+        Spacer(Modifier.height(6.dp))
+        TranscriptPanel(
+            transcription = transcription,
+            playheadMs = playheadMs,
+            onSeek = onSeek,
+        )
+    } else if (!activeSubtitle.isNullOrBlank()) {
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "“$activeSubtitle”",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .clickable(onClick = onOpenTranscript)
+                .padding(horizontal = 8.dp, vertical = 3.dp),
+        )
+    }
+}
+
+@Composable
+private fun TranscriptPanel(
+    transcription: AudioTranscription,
+    playheadMs: Int,
+    onSeek: (Int) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 140.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(4.dp),
+    ) {
+        items(transcription.segments.size) { index ->
+            val segment = transcription.segments[index]
+            val isActive = playheadMs in segment.startTimeMs..segment.endTimeMs
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else Color.Transparent,
+                    )
+                    .clickable { onSeek(segment.startTimeMs) }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = timeFormat(segment.startTimeMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = segment.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
         }
     }
 }
@@ -337,7 +437,7 @@ private fun SpeedSelectorPill(
                 .padding(horizontal = 6.dp, vertical = 2.dp),
         )
 
-        androidx.compose.material3.DropdownMenu(
+        ToolbarMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {

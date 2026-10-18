@@ -137,6 +137,17 @@ During playback of a lecture or meeting:
 - **Waveform extractor (`AudioWaveformExtractor`)**: Decodes normalized amplitude vectors from local audio recordings
   with in-memory caching to avoid redundant file reads.
 
+### 4. Tri-directional touch-to-seek synchronization
+- **Direction 1 (Ink → Audio & Transcript)**: Tapping any handwritten stroke with audio references instantly
+  seeks the audio playhead to the point-precise timestamp, summons the floating mini-player HUD, drives
+  karaoke stroke illumination and glowing nib tips, and highlights the spoken transcript segment in real time.
+- **Direction 2 (Transcript → Audio & Canvas Viewport)**: Tapping any recognized phrase in the interactive
+  transcript panel seeks the audio playback to `startTimeMs`, updates the waveform scrubber, and auto-scrolls
+  the canvas viewport directly to the handwritten strokes written at that exact moment (`scrollToAudioTimestamp`).
+- **Direction 3 (Waveform Scrub → Viewport & Transcript)**: Dragging or tapping along the amplitude waveform
+  scrubber repositions the audio playhead, repaints karaoke states immediately via single vsync publish,
+  centers the canvas on corresponding handwriting, and continuously updates the active spoken subtitle.
+
 ---
 
 ## Exporting back to `.xopp` and PDF

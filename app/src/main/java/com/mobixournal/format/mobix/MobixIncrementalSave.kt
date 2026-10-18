@@ -80,6 +80,7 @@ internal object MobixIncrementalSave {
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
         chunkCoords: List<Pair<Int, Int>>? = null,
         canvas: MobixCanvasFile? = null,
+        payloads: Map<String, ByteArray> = emptyMap(),
     ): MobixIncrementalSaveStats {
         val reuse = MobixPageReuse.of(document.pages, source, canvasMode)
         val mobix = MobixDocument.of(
@@ -89,6 +90,7 @@ internal object MobixIncrementalSave {
             source = bridgeSource,
             reuse = reuse,
             canvasMode = canvasMode,
+            payloads = payloads,
             chunkCoords = chunkCoords,
             canvas = canvas,
         )

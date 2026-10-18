@@ -145,6 +145,12 @@ class MainActivity : ComponentActivity() {
      */
     internal var karaokeDriver: KaraokeFrameDriver? = null
 
+    /** Active speech-to-text transcription associated with the open document or current recording. */
+    internal val activeTranscription = mutableStateOf<com.mobixournal.audio.AudioTranscription?>(null)
+
+    /** On-device speech recognition engine active during recording sessions. */
+    internal var speechEngine: com.mobixournal.audio.SpeechToTextEngine? = null
+
     /** The active pane's open documents and which one is showing (see `com.mobixournal.tabs`). */
     internal val tabs: TabManager get() = pane.tabs
 
