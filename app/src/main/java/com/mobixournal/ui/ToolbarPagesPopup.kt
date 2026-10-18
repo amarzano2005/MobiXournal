@@ -200,9 +200,7 @@ private fun PageFormatDialogs(
             onExtent = callbacks.onCanvasExtent,
             onConfirm = { w, h, canvas ->
                 onOpen(false)
-                callbacks.onSaveAsDefault(w, h)
                 if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) {
-                    callbacks.onCanvasModeDefault(canvas)
                     callbacks.onCanvasMode(canvas)
                 }
                 when (canvas) {

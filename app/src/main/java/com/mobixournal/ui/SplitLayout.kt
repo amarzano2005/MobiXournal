@@ -10,7 +10,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -105,22 +105,18 @@ internal fun splitFractionAfterDrag(startFraction: Float, dragPx: Float, totalPx
     clampSplitFraction(startFraction + dragPx / totalPx.coerceAtLeast(1f))
 
 /**
- * Two panes side by side with a draggable divider down the middle.
+ * Two panes side by side with a draggable divider down the middle (or single-pane when [splitView] is false).
  *
- * [fraction] is where the **divider's centre** sits (0..1 of the whole width); dragging reports a new
- * value through [onFraction] so the caller owns the split position. Panes are measured from that
- * centre ([splitPaneSpans]), which keeps the drag one-to-one with the finger and the two halves the
- * widths the gesture asked for.
- *
- * The handle is a floating frosted capsule around an accent core, on a hairline that fades into the
- * page at both ends: nothing is drawn as a filled band, so the two sheets still read as two sheets.
- * It grows and lifts while dragged, and a double-tap puts it back at [SPLIT_EVEN_FRACTION].
+ * Uses a single [Row] with [onSizeChanged] rather than `BoxWithConstraints` (`SubcomposeLayout`) so that
+ * toggling [splitView] off never moves the first pane's `AndroidView` (`SurfaceView`) across a
+ * subcomposition boundary, ensuring it immediately expands back to the full width of the row.
  */
 @Composable
 fun SplitLayout(
     fraction: Float,
     onFraction: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    splitView: Boolean = true,
     first: @Composable (Modifier) -> Unit,
     second: @Composable (Modifier) -> Unit,
 ) {
@@ -131,19 +127,28 @@ fun SplitLayout(
     var dragging by remember { mutableStateOf(false) }
     var dragStart by remember { mutableStateOf(safeFraction) }
     var dragPx by remember { mutableFloatStateOf(0f) }
+    var totalWidthPx by remember { mutableFloatStateOf(1f) }
 
-    BoxWithConstraints(modifier = modifier) {
-        val density = LocalDensity.current
-        val totalPx = with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
-        val handlePx = with(density) { SPLIT_HANDLE_WIDTH.toPx() }
-        val (firstPx, secondPx) = splitPaneSpans(totalPx, safeFraction, handlePx)
+    val density = LocalDensity.current
+    val totalPx = totalWidthPx.coerceAtLeast(1f)
+    val handlePx = with(density) { SPLIT_HANDLE_WIDTH.toPx() }
+    val (firstPx, secondPx) = splitPaneSpans(totalPx, safeFraction, handlePx)
+    val firstWeight = firstPx.coerceAtLeast(1f)
+    val secondWeight = secondPx.coerceAtLeast(1f)
 
-        val dragState = rememberDraggableState { delta ->
-            dragPx += delta
-            latestOnFraction.value(splitFractionAfterDrag(dragStart, dragPx, totalPx))
-        }
-        Row(modifier = Modifier.fillMaxSize()) {
-            first(Modifier.fillMaxHeight().weight(firstPx))
+    val dragState = rememberDraggableState { delta ->
+        dragPx += delta
+        latestOnFraction.value(splitFractionAfterDrag(dragStart, dragPx, totalPx))
+    }
+    Row(
+        modifier = modifier
+            .fillMaxSize()
+            .onSizeChanged { size ->
+                if (size.width > 0) totalWidthPx = size.width.toFloat()
+            },
+    ) {
+        first(Modifier.fillMaxHeight().weight(if (splitView) firstWeight else 1f))
+        if (splitView) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -180,7 +185,7 @@ fun SplitLayout(
             ) {
                 SplitHandleLane(dragging = dragging)
             }
-            second(Modifier.fillMaxHeight().weight(secondPx))
+            second(Modifier.fillMaxHeight().weight(secondWeight))
         }
     }
 }

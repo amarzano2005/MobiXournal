@@ -28,6 +28,7 @@ import android.view.ViewTreeObserver
 
 /** Rebuild the page stack for the view's new extent and repaint it, on both sides of the resize. */
 internal fun DrawingSurfaceView.repaintAfterResize() {
+    holder.setSizeFromLayout()
     relayout()
     if (columns == 1) viewport.centerHorizontal()
     requestRender()
@@ -43,11 +44,13 @@ internal fun DrawingSurfaceView.repaintWhenSurfaceSettles() {
     val observer = viewTreeObserver
     if (!observer.isAlive) {
         post {
+            relayout()
             if (columns == 1) viewport.centerHorizontal()
             requestRender()
         }
         return
     }
+    postInvalidateOnAnimation()
     observer.addOnPreDrawListener(
         object : ViewTreeObserver.OnPreDrawListener {
             override fun onPreDraw(): Boolean {
@@ -57,6 +60,7 @@ internal fun DrawingSurfaceView.repaintWhenSurfaceSettles() {
                 // from inside it would publish this frame's buffer before the traversal committed the
                 // new one.
                 post {
+                    relayout()
                     if (columns == 1) viewport.centerHorizontal()
                     requestRender()
                 }

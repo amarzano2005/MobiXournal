@@ -416,8 +416,9 @@ internal fun MainActivity.toggleSplitView() {
     if (!on) {
         panes.forEach { snapshotActiveTab(it); it.persist() }
         activePane.value = 0
+    } else {
+        panes.forEach { it.surface?.keepScaleAcrossNextResize() }
     }
-    panes.forEach { it.surface?.keepScaleAcrossNextResize() }
     splitView.value = on
     panes.forEach { pane -> pane.surface?.post { pane.surface?.repaintAfterResize() } }
 }

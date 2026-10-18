@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,7 +98,7 @@ internal fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
  * size the user has settled on, and the two field strings that carry what they typed (kept separate
  * from the parsed size so a half-typed "20" does not become 20 mm on its way to 200).
  */
-private class PaperState(widthPt: Double, heightPt: Double) {
+internal class PaperState(widthPt: Double, heightPt: Double) {
     var unit by mutableStateOf(SizeUnit.MM)
     var widthPt by mutableStateOf(widthPt)
     var heightPt by mutableStateOf(heightPt)
@@ -107,6 +108,14 @@ private class PaperState(widthPt: Double, heightPt: Double) {
     fun resync() {
         widthText = fmtDim(unit.fromPt(widthPt))
         heightText = fmtDim(unit.fromPt(heightPt))
+    }
+
+    fun updateFromExternal(w: Double, h: Double) {
+        if (!matchesPageSize(widthPt, heightPt, w, h)) {
+            widthPt = w
+            heightPt = h
+            resync()
+        }
     }
 }
 
@@ -133,7 +142,10 @@ internal fun PageFormatDialog(
     val startHeightPt = if (canvasMode == CanvasMode.INFINITE_HORIZONTAL && extentPt != null) extentPt else initialHeightPt
     val paper = remember(startWidthPt, startHeightPt) { PaperState(startWidthPt, startHeightPt) }
     var canvas by remember(canvasMode) { mutableStateOf(NewDocumentCanvas.of(canvasMode)) }
-    val defaultPaper = remember(defaultWidthPt, defaultHeightPt) { PaperState(defaultWidthPt, defaultHeightPt) }
+    val defaultPaper = remember { PaperState(defaultWidthPt, defaultHeightPt) }
+    LaunchedEffect(defaultWidthPt, defaultHeightPt) {
+        defaultPaper.updateFromExternal(defaultWidthPt, defaultHeightPt)
+    }
     var defaultCanvasChoice by remember(defaultCanvas) { mutableStateOf(defaultCanvas) }
     var inDefaultSection by remember { mutableStateOf(false) }
 
@@ -142,7 +154,10 @@ internal fun PageFormatDialog(
         title = {
             if (inDefaultSection) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { inDefaultSection = false }) {
+                    IconButton(onClick = {
+                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
+                        inDefaultSection = false
+                    }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                     Spacer(Modifier.width(4.dp))
@@ -154,7 +169,17 @@ internal fun PageFormatDialog(
         },
         text = {
             if (inDefaultSection) {
-                DefaultFormatContent(defaultPaper, defaultCanvasChoice, onSelectCanvas = { defaultCanvasChoice = it })
+                DefaultFormatContent(
+                    defaultPaper = defaultPaper,
+                    defaultCanvas = defaultCanvasChoice,
+                    onSelectCanvas = {
+                        defaultCanvasChoice = it
+                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, it)
+                    },
+                    onPaperChanged = { w, h ->
+                        onSaveDefaultSettings(w, h, defaultCanvasChoice)
+                    },
+                )
             } else {
                 ActiveFormatContent(paper, canvas, onSelectCanvas = { canvas = it })
             }
@@ -162,7 +187,10 @@ internal fun PageFormatDialog(
         confirmButton = {
             if (inDefaultSection) {
                 DefaultFormatActionButtons(
-                    onBack = { inDefaultSection = false },
+                    onBack = {
+                        onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
+                        inDefaultSection = false
+                    },
                     onCancel = onDismiss,
                     onSave = {
                         onSaveDefaultSettings(defaultPaper.widthPt, defaultPaper.heightPt, defaultCanvasChoice)
@@ -173,7 +201,13 @@ internal fun PageFormatDialog(
                 ActiveFormatActionButtons(
                     onOpenDefaults = { inDefaultSection = true },
                     onCancel = onDismiss,
-                    onSaveAsDefault = { onSaveAsDefault(paper.widthPt, paper.heightPt) },
+                    onSaveAsDefault = {
+                        defaultPaper.widthPt = paper.widthPt
+                        defaultPaper.heightPt = paper.heightPt
+                        defaultPaper.resync()
+                        defaultCanvasChoice = canvas
+                        onSaveDefaultSettings(paper.widthPt, paper.heightPt, canvas)
+                    },
                     onSet = { onConfirm(paper.widthPt, paper.heightPt, canvas) },
                 )
             }
@@ -215,6 +249,7 @@ private fun DefaultFormatContent(
     defaultPaper: PaperState,
     defaultCanvas: NewDocumentCanvas,
     onSelectCanvas: (NewDocumentCanvas) -> Unit,
+    onPaperChanged: (Double, Double) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Default canvas", style = MaterialTheme.typography.labelMedium)
@@ -233,7 +268,7 @@ private fun DefaultFormatContent(
         )
         HorizontalDivider()
         Text("Default dimensions", style = MaterialTheme.typography.labelMedium)
-        PaperSection(defaultPaper, defaultCanvas)
+        PaperSection(defaultPaper, defaultCanvas, onChanged = onPaperChanged)
     }
 }
 
@@ -298,9 +333,10 @@ private fun DefaultFormatActionButtons(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PaperSection(
+internal fun PaperSection(
     paper: PaperState,
     canvas: NewDocumentCanvas,
+    onChanged: ((Double, Double) -> Unit)? = null,
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (preset in PAGE_PRESETS) {
@@ -311,6 +347,7 @@ private fun PaperSection(
                     paper.widthPt = preset.widthPt
                     paper.heightPt = preset.heightPt
                     paper.resync()
+                    onChanged?.invoke(paper.widthPt, paper.heightPt)
                 },
             )
         }
@@ -340,7 +377,8 @@ private fun PaperSection(
                 onText = { entered ->
                     paper.widthText = entered
                     entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
-                        paper.widthPt = paper.unit.toPt(it)
+                        paper.widthPt = paper.unit.toPt(it).coerceIn(72.0, 14400.0)
+                        onChanged?.invoke(paper.widthPt, paper.heightPt)
                     }
                 },
             )
@@ -351,6 +389,7 @@ private fun PaperSection(
                 paper.widthPt = paper.heightPt
                 paper.heightPt = w
                 paper.resync()
+                onChanged?.invoke(paper.widthPt, paper.heightPt)
             }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
         }
         if (showHeight) {
@@ -361,7 +400,8 @@ private fun PaperSection(
                 onText = { entered ->
                     paper.heightText = entered
                     entered.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }?.let {
-                        paper.heightPt = paper.unit.toPt(it)
+                        paper.heightPt = paper.unit.toPt(it).coerceIn(72.0, 14400.0)
+                        onChanged?.invoke(paper.widthPt, paper.heightPt)
                     }
                 },
             )

@@ -479,17 +479,14 @@ private fun EditorBody(
     val secondPane = remember { movableContentOf<Modifier> { paneAt(1, it) } }
     /** The drawing area: one pane, or both with a draggable bar between them. */
     val canvas: @Composable (Modifier) -> Unit = { canvasModifier ->
-        if (splitView) {
-            SplitLayout(
-                fraction = ui.splitFraction,
-                onFraction = { ui.splitFraction = it },
-                modifier = canvasModifier,
-                first = { firstPane(it) },
-                second = { secondPane(it) },
-            )
-        } else {
-            firstPane(canvasModifier)
-        }
+        SplitLayout(
+            fraction = ui.splitFraction,
+            onFraction = { ui.splitFraction = it },
+            modifier = canvasModifier,
+            splitView = splitView,
+            first = { firstPane(it) },
+            second = { secondPane(it) },
+        )
     }
     when {
         ui.fullPage -> Box(modifier = modifier) { canvas(Modifier.fillMaxSize()) }

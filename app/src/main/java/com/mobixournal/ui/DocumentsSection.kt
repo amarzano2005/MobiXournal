@@ -39,10 +39,5 @@ fun DocumentsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 "the companion plugin to open one. A Xournal++ document opens on the desktop as it is, " +
                 "with those entities drawn as ink: portable, but no longer editable as a formula.",
         )
-        SettingsNote(
-            "A document's canvas — fixed pages, or one of the infinite boards that grow as you scroll — " +
-                "is part of its page format, so it is chosen in the editor: Pages ▸ Page format. That " +
-                "dialog asks whether the choice applies to the open document or only to the next ones.",
-        )
     }
 }

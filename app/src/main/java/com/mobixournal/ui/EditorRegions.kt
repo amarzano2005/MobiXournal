@@ -1569,6 +1569,11 @@ fun EditorPaneView(
                             ui, index, onActivePane, onPickImage,
                             { latestSettings.value }, onSettingsChange,
                         )
+                        it.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+                            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                                it.repaintAfterResize()
+                            }
+                        }
                         // The diagnostics panel is fed straight from the canvas it reports on.
                         it.onPenDebug = { lines -> state.penDebugLines = lines }
                         state.surface = it
