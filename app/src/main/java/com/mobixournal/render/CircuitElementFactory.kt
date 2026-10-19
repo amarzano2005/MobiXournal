@@ -130,12 +130,11 @@ internal object CircuitElementFactory {
             val defaultLen = DEFAULT_LENGTH_PT
             Quad(defaultLen, startX, startY, 0.0)
         } else {
-            val effectiveLen = rawLen.coerceAtLeast(DEFAULT_LENGTH_PT / 2.0)
             val cx = (startX + endX) / 2.0
             val cy = (startY + endY) / 2.0
             val deg = Math.toDegrees(atan2(dy, dx))
             val normDeg = if (deg < 0.0) deg + 360.0 else deg
-            Quad(effectiveLen, cx, cy, normDeg)
+            Quad(rawLen, cx, cy, normDeg)
         }
 
         val pins = defaultPinsFor(symbol, len)

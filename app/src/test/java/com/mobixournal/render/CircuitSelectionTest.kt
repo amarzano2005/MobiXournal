@@ -114,4 +114,22 @@ class CircuitSelectionTest {
         assertEquals(0xFF00FF00.toInt(), restyled.strokeColor)
         assertEquals(3.5, restyled.strokeWidth, 1e-6)
     }
+
+    @Test
+    fun elementEditsReplacesCircuitElementInPlace() {
+        val resistor = sampleResistor(0.0)
+        val page = Page(
+            width = 612.0,
+            height = 792.0,
+            background = com.mobixournal.format.model.Background.Solid(0xFFFFFFFF.toInt(), "plain"),
+            layers = listOf(Layer(elements = listOf(resistor))),
+        )
+
+        val updated = resistor.copy(value = "10 kΩ", rotation = 90.0)
+        val editedPage = ElementEdits.replaceElementOn(page, resistor, updated)
+        assertNotNull("replacement succeeds", editedPage)
+        val replaced = editedPage!!.layers[0].elements[0] as CircuitElement
+        assertEquals("10 kΩ", replaced.value)
+        assertEquals(90.0, replaced.rotation, 1e-6)
+    }
 }

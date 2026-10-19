@@ -304,12 +304,31 @@ fun DrawingSurfaceView.replaceCircuitElement(old: CircuitElement, new: CircuitEl
     val before = doc
     val index = selection?.pageIndex
     if (index != null) {
-        windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
+        val replaced = windowEditPage(index) { page ->
+            ElementEdits.replaceElementOn(page, old, new)
+                ?: fallbackReplaceCircuitOn(page, new)
+                ?: page
+        }
+        if (replaced == null) return
     } else {
         doc = ElementEdits.replaceElement(doc, old, new) ?: return
     }
     history.record(before)
     notifyHistory()
+    reportSelectionRect()
     relayout()
     render()
+}
+
+internal fun DrawingSurfaceView.fallbackReplaceCircuitOn(page: Page, new: CircuitElement): Page? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val layer = page.layers.getOrNull(ref.layerIndex) ?: return null
+    val els = layer.elements.toMutableList()
+    if (ref.elementIndex !in els.indices) return null
+    els[ref.elementIndex] = new
+    val layers = page.layers.toMutableList()
+    layers[ref.layerIndex] = Layer(els, layer.name)
+    return page.copy(layers = layers)
 }

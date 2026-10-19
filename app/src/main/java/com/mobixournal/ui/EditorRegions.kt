@@ -1727,9 +1727,11 @@ fun EditorPaneView(
                 )
             }
             if (ui.editingCircuit != null) {
-                CircuitEditorDialog(
-                    ui = ui,
+                CircuitInspectorAnchor(
                     pane = state,
+                    ui = ui,
+                    canvasSizePx = canvasSizePx,
+                    modifier = Modifier.align(Alignment.TopStart),
                 )
             }
         }

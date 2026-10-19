@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import android.graphics.BitmapFactory
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
@@ -67,7 +68,8 @@ internal object ElementEdits {
         val layers = page.layers.map { layer ->
             val idx = layer.elements.indexOfFirst {
                 it === old || (oldId != null && com.mobixournal.format.model.ElementId.idOf(it) == oldId) ||
-                    (it is PlotElement && old is PlotElement && (it == old || (it.left == old.left && it.top == old.top && it.right == old.right && it.bottom == old.bottom)))
+                    (it is PlotElement && old is PlotElement && (it == old || (it.left == old.left && it.top == old.top && it.right == old.right && it.bottom == old.bottom))) ||
+                    (it is CircuitElement && old is CircuitElement && (it == old || (it.id != null && it.id == old.id) || (it.positionX == old.positionX && it.positionY == old.positionY && it.symbol == old.symbol)))
             }
             if (idx < 0) return@map layer
             changed = true
