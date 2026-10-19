@@ -85,7 +85,9 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.pdfbox.android)
     implementation(libs.mlkit.digital.ink)
-    implementation(libs.sherpa.onnx)
+    implementation(libs.sherpa.onnx) {
+        exclude(group = "com.github.k2-fsa.sherpa-onnx", module = "sherpa-onnx-jvm")
+    }
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
