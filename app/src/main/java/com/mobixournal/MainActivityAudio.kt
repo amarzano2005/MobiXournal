@@ -163,23 +163,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
     }
     val duration = if (activeClip != null) (audio.clipDurationMs ?: lastDurationMs) else null
 
-    val clipTitle = when {
-        audio.isRecording -> "Live recording"
-        activeClip != null -> {
-            val currentTabTitle = pane.tabs.active?.title?.takeIf { it.isNotBlank() } ?: "Document"
-            val doc = surface?.toDocument()
-            val matchedPage = if (doc != null) {
-                com.mobixournal.audio.AudioInkAligner.findTimestampedStrokes(doc)
-                    .firstOrNull { (_, _, ref) ->
-                        val a = ref.filename.substringAfterLast('/').substringAfterLast('\\')
-                        val b = activeClip.substringAfterLast('/').substringAfterLast('\\')
-                        a.equals(b, ignoreCase = true)
-                    }?.first
-            } else null
-            if (matchedPage != null) "$currentTabTitle • Page ${matchedPage + 1}" else currentTabTitle
-        }
-        else -> null
-    }
+    val clipTitle = resolveActiveClipTitle(activeClip)
 
     return AudioUiState(
         recording = audio.isRecording,
@@ -240,7 +224,35 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             audioTick.value++
         },
         onPlayAutonomous = ::playAutonomousAudio,
+        isWhisperInstalled = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this) != null,
+        onDownloadWhisper = { downloadWhisperModelOnDemand() },
+        onTranscribeActiveClip = {
+            val clip = activeClip?.let { File(filesDir, "audio/$it") }
+            if (clip != null && clip.isFile) {
+                transcribeDeferredAudio(clip)
+            } else {
+                toast("Nessuna registrazione audio attiva")
+            }
+        },
     )
+}
+
+private fun MainActivity.resolveActiveClipTitle(activeClip: String?): String? = when {
+    audio.isRecording -> "Live recording"
+    activeClip != null -> {
+        val currentTabTitle = pane.tabs.active?.title?.takeIf { it.isNotBlank() } ?: "Document"
+        val doc = surface?.toDocument()
+        val matchedPage = if (doc != null) {
+            com.mobixournal.audio.AudioInkAligner.findTimestampedStrokes(doc)
+                .firstOrNull { (_, _, ref) ->
+                    val a = ref.filename.substringAfterLast('/').substringAfterLast('\\')
+                    val b = activeClip.substringAfterLast('/').substringAfterLast('\\')
+                    a.equals(b, ignoreCase = true)
+                }?.first
+        } else null
+        if (matchedPage != null) "$currentTabTitle • Page ${matchedPage + 1}" else currentTabTitle
+    }
+    else -> null
 }
 
 /** Pause or resume the active recording. */
@@ -317,45 +329,57 @@ internal fun MainActivity.beginRecording() {
 }
 
 internal fun MainActivity.transcribeDeferredAudio(file: File) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-        transcriptionStatus.value = "Transcription requires Android 12+"
-        return
-    }
     val selectedLang = settingsStore.load().transcriptionLanguage
     val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
 
     isTranscribing.value = true
-    transcriptionStatus.value = "Analyzing audio..."
+    transcriptionStatus.value = "Avvio trascrizione..."
+    audioTick.value++
+
+    val availableModel = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this)
+    if (availableModel != null) {
+        startTranscriptionService(file, resolvedLang)
+    } else {
+        downloadWhisperAndTranscribe(file, resolvedLang)
+    }
+}
+
+private fun MainActivity.startTranscriptionService(file: File, resolvedLang: String) {
+    com.mobixournal.audio.AudioTranscriptionService.onProgressUpdated = { status, _, _ ->
+        runOnUiThread {
+            transcriptionStatus.value = status
+            audioTick.value++
+        }
+    }
+    com.mobixournal.audio.AudioTranscriptionService.onTranscriptionCompleted = { completedFile, transcript, statusMsg ->
+        runOnUiThread {
+            isTranscribing.value = false
+            if (transcript != null) {
+                commitTranscriptionSegments(completedFile, transcript.segments, resolvedLang)
+                transcriptionStatus.value = null
+                toast("Trascrizione completata: ${transcript.segments.size} segmenti sincronizzati")
+            } else {
+                transcriptionStatus.value = statusMsg
+                toast(statusMsg)
+            }
+            audioTick.value++
+        }
+    }
+    com.mobixournal.audio.AudioTranscriptionService.start(this, file, resolvedLang)
+}
+
+private fun MainActivity.downloadWhisperAndTranscribe(file: File, resolvedLang: String) {
+    transcriptionStatus.value = "Download Whisper Tiny (39 MB)... 0%"
     audioTick.value++
 
     lifecycleScope.launch(Dispatchers.IO) {
-        val pcmData = com.mobixournal.audio.AudioPcmExtractor.extract16kMonoPcm(file)
-        if (pcmData == null || pcmData.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                isTranscribing.value = false
-                transcriptionStatus.value = "Transcription unavailable"
-                audioTick.value++
-            }
-            return@launch
-        }
-
-        val chunks = com.mobixournal.audio.AudioVadSegmenter.segment(pcmData)
-        if (chunks.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                isTranscribing.value = false
-                transcriptionStatus.value = "No speech detected"
-                audioTick.value++
-            }
-            return@launch
-        }
-
-        val segments = com.mobixournal.audio.AudioChunkTranscriber.transcribeChunks(
-            context = this@transcribeDeferredAudio,
-            chunks = chunks,
-            language = resolvedLang,
-            onProgress = { current, total ->
+        val success = com.mobixournal.audio.WhisperModelManager.downloadModel(
+            context = this@downloadWhisperAndTranscribe,
+            modelType = com.mobixournal.audio.WhisperModelType.TINY,
+            onProgress = { _, _, ratio ->
+                val percent = (ratio * 100).toInt().coerceIn(0, 99)
                 runOnUiThread {
-                    transcriptionStatus.value = "Transcribing ($current/$total)..."
+                    transcriptionStatus.value = "Download Whisper Tiny ($percent%)..."
                     audioTick.value++
                 }
             },
@@ -363,13 +387,40 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
         )
 
         withContext(Dispatchers.Main) {
-            isTranscribing.value = false
-            if (segments.isNotEmpty()) {
-                commitTranscriptionSegments(file, segments, resolvedLang)
-                transcriptionStatus.value = null
+            if (success) {
+                toast("Whisper Tiny scaricato! Avvio trascrizione.")
+                startTranscriptionService(file, resolvedLang)
             } else {
-                transcriptionStatus.value = "No text recognized"
+                transcriptionStatus.value = "Uso riconoscimento di sistema..."
+                audioTick.value++
+                startTranscriptionService(file, resolvedLang)
             }
+        }
+    }
+}
+
+private fun MainActivity.downloadWhisperModelOnDemand() {
+    isTranscribing.value = true
+    transcriptionStatus.value = "Download Whisper Tiny (39 MB)... 0%"
+    audioTick.value++
+
+    lifecycleScope.launch(Dispatchers.IO) {
+        val success = com.mobixournal.audio.WhisperModelManager.downloadModel(
+            context = this@downloadWhisperModelOnDemand,
+            modelType = com.mobixournal.audio.WhisperModelType.TINY,
+            onProgress = { _, _, ratio ->
+                val percent = (ratio * 100).toInt().coerceIn(0, 99)
+                runOnUiThread {
+                    transcriptionStatus.value = "Download Whisper ($percent%)..."
+                    audioTick.value++
+                }
+            },
+        )
+
+        withContext(Dispatchers.Main) {
+            isTranscribing.value = false
+            transcriptionStatus.value = null
+            toast(if (success) "Modello Whisper Tiny installato con successo!" else "Download Whisper non riuscito")
             audioTick.value++
         }
     }

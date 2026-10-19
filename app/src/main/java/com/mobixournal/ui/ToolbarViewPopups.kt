@@ -487,4 +487,10 @@ data class AudioUiState(
     val onToggleMiniPlayer: () -> Unit = {},
     /** Callback to start or toggle autonomous audio playback. */
     val onPlayAutonomous: () -> Unit = {},
+    /** Whether an offline Whisper model is installed locally. */
+    val isWhisperInstalled: Boolean = false,
+    /** Callback to download the Whisper Tiny model on demand. */
+    val onDownloadWhisper: () -> Unit = {},
+    /** Callback to transcribe the currently active or selected audio recording. */
+    val onTranscribeActiveClip: () -> Unit = {},
 )

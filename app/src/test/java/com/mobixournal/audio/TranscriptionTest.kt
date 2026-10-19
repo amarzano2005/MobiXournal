@@ -246,4 +246,33 @@ class TranscriptionTest {
         assertTrue("Start of chunk 1 should be around 2900-3100ms but was ${chunks[1].startMs}", chunks[1].startMs in 2800..3200)
         assertEquals(6000, chunks[1].endMs)
     }
+
+    @Test
+    fun whisperModelTypeEnumsAndPathsAreCorrect() {
+        assertEquals("whisper-tiny", WhisperModelType.TINY.id)
+        assertEquals("tiny", WhisperModelType.TINY.prefix)
+        assertTrue(WhisperModelType.TINY.isTiny)
+        assertEquals(39, WhisperModelType.TINY.approximateSizeMb)
+
+        assertEquals("whisper-base", WhisperModelType.BASE.id)
+        assertEquals("base", WhisperModelType.BASE.prefix)
+        org.junit.Assert.assertFalse(WhisperModelType.BASE.isTiny)
+        assertEquals(75, WhisperModelType.BASE.approximateSizeMb)
+    }
+
+    @Test
+    fun whisperModelManagerDetectsEmptyOrMissingModel() {
+        val tempDir = java.nio.file.Files.createTempDirectory("whisper_test").toFile()
+        try {
+            val isTinyInstalled = WhisperModelManager.isModelInstalled(
+                context = object : android.content.ContextWrapper(null) {
+                    override fun getFilesDir(): java.io.File = tempDir
+                },
+                modelType = WhisperModelType.TINY,
+            )
+            org.junit.Assert.assertFalse(isTinyInstalled)
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
 }

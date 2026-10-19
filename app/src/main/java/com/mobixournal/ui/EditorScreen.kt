@@ -436,6 +436,7 @@ fun EditorScreen(
             onSkip = audio.onSkip,
             onSpeedChange = audio.onSpeedChange,
             onClose = audio.onStopPlayback,
+            onTranscribe = audio.onTranscribeActiveClip,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
 

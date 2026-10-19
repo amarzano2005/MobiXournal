@@ -298,22 +298,10 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
         )
     }
     HorizontalDivider()
-    DropdownMenuItem(
-        text = {
-            val currentLangName = SUPPORTED_TRANSCRIPTION_LANGUAGES.firstOrNull {
-                it.code == audio.transcriptionLanguage
-            }?.displayName ?: audio.transcriptionLanguage
-            Column {
-                Text("Lingua trascrizione")
-                Text(
-                    text = currentLangName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        },
-        leadingIcon = { Icon(Icons.Outlined.Subtitles, contentDescription = null) },
-        onClick = { showLanguageDialog = true },
+    AudioCapsuleTranscriptionItems(
+        audio = audio,
+        onShowLanguageDialog = { showLanguageDialog = true },
+        onDismiss = onDismiss,
     )
     HorizontalDivider()
     DropdownMenuItem(
@@ -342,6 +330,50 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
             },
         )
     }
+}
+
+@Composable
+private fun AudioCapsuleTranscriptionItems(
+    audio: AudioUiState,
+    onShowLanguageDialog: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = {
+            val currentLangName = SUPPORTED_TRANSCRIPTION_LANGUAGES.firstOrNull {
+                it.code == audio.transcriptionLanguage
+            }?.displayName ?: audio.transcriptionLanguage
+            Column {
+                Text("Lingua trascrizione")
+                Text(
+                    text = currentLangName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        },
+        leadingIcon = { Icon(Icons.Outlined.Subtitles, contentDescription = null) },
+        onClick = onShowLanguageDialog,
+    )
+    DropdownMenuItem(
+        text = {
+            Column {
+                Text("Motore Whisper offline")
+                Text(
+                    text = if (audio.isWhisperInstalled) "Modello pronto (ultra-veloce)" else "Tocca per scaricare (~39 MB)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (audio.isWhisperInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                )
+            }
+        },
+        leadingIcon = { Icon(Icons.Outlined.GraphicEq, contentDescription = null) },
+        onClick = {
+            if (!audio.isWhisperInstalled) {
+                audio.onDownloadWhisper()
+            }
+            onDismiss()
+        },
+    )
 }
 
 @Composable

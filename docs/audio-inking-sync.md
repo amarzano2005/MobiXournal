@@ -58,6 +58,12 @@ Rather than relying on vulnerable loose sidecars in user folders:
 - **Temporal transcript segments (`TranscriptionSegment`)**: Stores recognized speech with start and end timestamps
   in milliseconds (`startTimeMs`, `endTimeMs`, `text`, `confidence`), serialized in `.mobix` via
   `TranscriptionCodec` into `transcript.json`.
+- **On-device Whisper engine (`WhisperOfflineTranscriber` & `WhisperModelManager`)**: Offline automatic speech recognition
+  powered by `sherpa-onnx` ONNX Runtime int8 models (`whisper-tiny` ~39 MB, `whisper-base` ~75 MB). Runs locally at
+  $\sim 30\times$ real-time on CPU/NNPACK without network requests or microphone timeouts.
+- **Background execution (`AudioTranscriptionService`)**: Android foreground service (`FOREGROUND_SERVICE_DATA_SYNC`)
+  holding a partial wake lock with ongoing notification progress bar. Allows hour-long lectures to finish processing
+  in 1–2 minutes even when the device screen is locked or another application is active.
 - **Temporal ink alignment (`AudioInkAligner`)**: Correlates handwritten stroke telemetry (`startMs` + $\sum \Delta t$)
   with spoken audio segments. Tapping a stroke navigates directly to the exact spoken phrase; seeking in audio
   locates the bounding box of words written at that moment on the page canvas.

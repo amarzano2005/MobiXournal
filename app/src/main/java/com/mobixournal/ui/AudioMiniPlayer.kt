@@ -90,6 +90,7 @@ fun AudioMiniPlayer(
     onSkip: (Int) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onClose: () -> Unit,
+    onTranscribe: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     if (!visible) return
@@ -119,56 +120,102 @@ fun AudioMiniPlayer(
                 .floatingRim(16.dp)
                 .liquidGlassSpringAnimation(expanded = visible, origin = TransformOrigin(0.5f, 0.5f)),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                PlayerDragHandle { dx, dy ->
+            MiniPlayerBody(
+                playheadMs = playheadMs,
+                durationMs = durationMs,
+                waveform = waveform,
+                heatmap = heatmap,
+                transcription = transcription,
+                activeSubtitle = activeSubtitle,
+                clipTitle = clipTitle,
+                playbackSpeed = playbackSpeed,
+                isTranscribing = isTranscribing,
+                transcriptionStatus = transcriptionStatus,
+                playing = playing,
+                showTranscript = showTranscript,
+                onToggleTranscript = { showTranscript = !showTranscript },
+                onTogglePlay = onTogglePlay,
+                onSeek = onSeek,
+                onSkip = onSkip,
+                onSpeedChange = onSpeedChange,
+                onClose = onClose,
+                onTranscribe = onTranscribe,
+                onDrag = { dx, dy ->
                     offsetX += dx
                     offsetY += dy
-                }
-
-                MiniPlayerHeader(
-                    playheadMs = playheadMs,
-                    durationMs = durationMs,
-                    clipTitle = clipTitle,
-                    playbackSpeed = playbackSpeed,
-                    showTranscript = showTranscript,
-                    onToggleTranscript = { showTranscript = !showTranscript },
-                    onSpeedChange = onSpeedChange,
-                    onClose = onClose,
-                )
-
-                // Interactive Waveform & Heatmap
-                Spacer(Modifier.height(6.dp))
-                WaveformScrubber(
-                    waveform = waveform,
-                    heatmap = heatmap,
-                    playheadMs = playheadMs,
-                    durationMs = durationMs,
-                    onSeek = onSeek,
-                )
-
-                // Subtitle preview line or interactive Transcript panel
-                SubtitleOrTranscriptSection(
-                    showTranscript = showTranscript,
-                    transcription = transcription,
-                    activeSubtitle = activeSubtitle,
-                    playheadMs = playheadMs,
-                    isTranscribing = isTranscribing,
-                    transcriptionStatus = transcriptionStatus,
-                    onSeek = onSeek,
-                    onOpenTranscript = { showTranscript = true },
-                )
-
-                Spacer(Modifier.height(6.dp))
-                MiniPlayerControls(
-                    playing = playing,
-                    onTogglePlay = onTogglePlay,
-                    onSkip = onSkip,
-                )
-            }
+                },
+            )
         }
+    }
+}
+
+@Composable
+private fun MiniPlayerBody(
+    playheadMs: Int,
+    durationMs: Int,
+    waveform: List<Float>,
+    heatmap: List<Float>,
+    transcription: AudioTranscription?,
+    activeSubtitle: String?,
+    clipTitle: String?,
+    playbackSpeed: Float,
+    isTranscribing: Boolean,
+    transcriptionStatus: String?,
+    playing: Boolean,
+    showTranscript: Boolean,
+    onToggleTranscript: () -> Unit,
+    onTogglePlay: () -> Unit,
+    onSeek: (Int) -> Unit,
+    onSkip: (Int) -> Unit,
+    onSpeedChange: (Float) -> Unit,
+    onClose: () -> Unit,
+    onTranscribe: (() -> Unit)?,
+    onDrag: (Float, Float) -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        PlayerDragHandle(onDrag)
+
+        MiniPlayerHeader(
+            playheadMs = playheadMs,
+            durationMs = durationMs,
+            clipTitle = clipTitle,
+            playbackSpeed = playbackSpeed,
+            showTranscript = showTranscript,
+            onToggleTranscript = onToggleTranscript,
+            onSpeedChange = onSpeedChange,
+            onClose = onClose,
+        )
+
+        Spacer(Modifier.height(6.dp))
+        WaveformScrubber(
+            waveform = waveform,
+            heatmap = heatmap,
+            playheadMs = playheadMs,
+            durationMs = durationMs,
+            onSeek = onSeek,
+        )
+
+        SubtitleOrTranscriptSection(
+            showTranscript = showTranscript,
+            transcription = transcription,
+            activeSubtitle = activeSubtitle,
+            playheadMs = playheadMs,
+            isTranscribing = isTranscribing,
+            transcriptionStatus = transcriptionStatus,
+            onSeek = onSeek,
+            onOpenTranscript = onToggleTranscript,
+            onTranscribe = onTranscribe,
+        )
+
+        Spacer(Modifier.height(6.dp))
+        MiniPlayerControls(
+            playing = playing,
+            onTogglePlay = onTogglePlay,
+            onSkip = onSkip,
+        )
     }
 }
 
@@ -277,13 +324,16 @@ private fun SubtitleOrTranscriptSection(
     transcriptionStatus: String? = null,
     onSeek: (Int) -> Unit,
     onOpenTranscript: () -> Unit,
+    onTranscribe: (() -> Unit)? = null,
 ) {
     if (showTranscript) {
         Spacer(Modifier.height(4.dp))
         TranscriptPanel(
             transcription = transcription,
             playheadMs = playheadMs,
+            isTranscribing = isTranscribing,
             onSeek = onSeek,
+            onTranscribe = onTranscribe,
         )
     } else {
         Spacer(Modifier.height(4.dp))
@@ -337,23 +387,38 @@ private fun SubtitleOrTranscriptSection(
 private fun TranscriptPanel(
     transcription: AudioTranscription?,
     playheadMs: Int,
+    isTranscribing: Boolean = false,
     onSeek: (Int) -> Unit,
+    onTranscribe: (() -> Unit)? = null,
 ) {
     val segments = transcription?.segments.orEmpty()
     if (segments.isEmpty()) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                 .padding(8.dp),
-            contentAlignment = Alignment.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "No transcript available",
+                text = "Nessuna trascrizione disponibile",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )
+            if (onTranscribe != null && !isTranscribing) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Trascrivi con Whisper",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(onClick = onTranscribe)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+            }
         }
         return
     }
