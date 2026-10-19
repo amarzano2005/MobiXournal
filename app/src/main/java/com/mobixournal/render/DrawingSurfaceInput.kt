@@ -37,10 +37,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
         }
         MotionEvent.ACTION_MOVE -> {
             if (handTapCandidate) trackHandTapMove(event)
-            if (multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)) {
-                lastFocusX = focusX(event, skip = -1); lastFocusY = focusY(event, skip = -1)
-                lastSpan = spanOf(event)
-            }
+            multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
             trackPageDragArm(event)
             // A lifted page owns the gesture outright — no panning, drawing or erasing underneath it.
             if (overview.dragging) { pageDragMove(event); return true }
@@ -459,9 +456,16 @@ internal fun DrawingSurfaceView.beginScroll(event: MotionEvent) {
 }
 
 internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
-    if (multiTapCandidate && !multiTapMoved) return
     val fy = focusY(event, skip = -1)
     val fx = focusX(event, skip = -1)
+    val span = spanOf(event)
+    val spanChanged = lastSpan > 0f && kotlin.math.abs(span - lastSpan) > ViewConfiguration.get(context).scaledTouchSlop
+    if (multiTapCandidate && !multiTapMoved && !spanChanged) {
+        lastFocusY = fy
+        lastFocusX = fx
+        lastSpan = span
+        return
+    }
     // Pan gain: 1 tracks the finger one-to-one, <1 pans slower, >1 faster, 0 freezes the document.
     // The clamps are the viewport's, and they are **per mode** ([ViewportState.scrollBy]): a strip is
     // bounded on its one fixed axis and runs on in the other, a 2D board is bounded on neither, and a
@@ -471,7 +475,6 @@ internal fun DrawingSurfaceView.doScroll(event: MotionEvent) {
     lastFocusY = fy
     lastFocusX = fx
     // Two fingers also pinch-zoom: a change in span since the last frame scales zoom about the focus.
-    val span = spanOf(event)
     if (lastSpan > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX && span > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX) zoomAbout(fx, fy, span / lastSpan)
     lastSpan = span
     momentum.track(event.eventTime, fx, fy)
