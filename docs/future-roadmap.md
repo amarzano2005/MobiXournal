@@ -11,20 +11,20 @@ note-taking suite proceeds along **three strictly ordered strategic pillars**:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        STEP 1: NUOVO FORMATO NATIVO (.mobix)                           │
-│  Fondazione dati, container a streaming, entità viventi, matematica & audio            │
+│                           STEP 1: NEW NATIVE FORMAT (.mobix)                           │
+│  Data foundation, streaming container, living entities, math & audio                   │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │ Enables rich data & fast paging
                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   STEP 2: NUOVA INTERFACCIA GRAFICA MOBILE                             │
-│  Design leggero in vetro satinato, HUD radiale penna, snap-to-text, KaTeX/Typst        │
+│                         STEP 2: NEW MOBILE GRAPHICAL INTERFACE                         │
+│  Lightweight frosted glass, pen-tip radial HUD, snap-to-text, KaTeX/Typst              │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │ Shares KMP core & modernized tokens
                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                       STEP 3: SOFTWARE DESKTOP WORKSTATION                             │
-│  Compose Multiplatform + Skia GPU, ottimizzazione tavolette grafiche, ghiere & plugin  │
+│  Compose Multiplatform + Skia GPU, drawing-tablet tuning, dials & plugins              │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

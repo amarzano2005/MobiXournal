@@ -95,19 +95,19 @@ class AudioTranscriptionService : Service() {
     }
 
     private suspend fun processTranscription(file: File, lang: String) {
-        updateProgress("Estrazione audio...", 5, 100)
-        onProgressUpdated?.invoke("Estrazione audio...", 5, 100)
+        updateProgress("Extracting audio...", 5, 100)
+        onProgressUpdated?.invoke("Extracting audio...", 5, 100)
 
         val pcmData = AudioPcmExtractor.extract16kMonoPcm(file)
         if (pcmData == null || pcmData.isEmpty() || isCancelled) {
-            finishWithResult(file, null, "Estrazione audio non riuscita")
+            finishWithResult(file, null, "Audio extraction failed")
             return
         }
 
-        updateProgress("Rilevamento frasi (VAD)...", 10, 100)
+        updateProgress("Detecting speech (VAD)...", 10, 100)
         val chunks = AudioVadSegmenter.segment(pcmData)
         if (chunks.isEmpty() || isCancelled) {
-            finishWithResult(file, null, "Nessun parlato rilevato")
+            finishWithResult(file, null, "No speech detected")
             return
         }
 
@@ -119,7 +119,7 @@ class AudioTranscriptionService : Service() {
         }
 
         if (isCancelled || segments.isEmpty()) {
-            finishWithResult(file, null, if (isCancelled) "Trascrizione annullata" else "Nessun testo riconosciuto")
+            finishWithResult(file, null, if (isCancelled) "Transcription cancelled" else "No recognized text")
             return
         }
 
@@ -134,7 +134,7 @@ class AudioTranscriptionService : Service() {
             transcriptFile.writeText(TranscriptionCodec.encode(transcript))
         }
 
-        finishWithResult(file, transcript, "Trascrizione completata (${segments.size} segmenti)")
+        finishWithResult(file, transcript, "Transcription complete (${segments.size} segments)")
     }
 
     private fun transcribeWithWhisper(
@@ -176,7 +176,7 @@ class AudioTranscriptionService : Service() {
             language = lang,
             onProgress = { current, total ->
                 val percent = ((current * 100) / total).coerceIn(0, 100)
-                val status = "Trascrizione: $current/$total ($percent%)"
+                val status = "Transcribing: $current/$total ($percent%)"
                 updateProgress(status, current, total)
                 onProgressUpdated?.invoke(status, current, total)
             },
@@ -219,13 +219,13 @@ class AudioTranscriptionService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("Trascrizione appunti vocali")
+            .setContentTitle("Voice note transcription")
             .setContentText(text)
             .setProgress(total, current, total <= 0)
             .setContentIntent(pendingOpen)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Annulla", pendingCancel)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", pendingCancel)
             .build()
     }
 
@@ -240,7 +240,7 @@ class AudioTranscriptionService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("Trascrizione completata")
+            .setContentTitle("Transcription complete")
             .setContentText("$fileName • $summary")
             .setContentIntent(pendingOpen)
             .setAutoCancel(true)
@@ -281,10 +281,10 @@ class AudioTranscriptionService : Service() {
             val manager = getSystemService(NotificationManager::class.java) ?: return
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Trascrizione audio",
+                "Audio transcription",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Notifiche di avanzamento per la trascrizione audio in background"
+                description = "Progress notifications for background audio transcription"
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)

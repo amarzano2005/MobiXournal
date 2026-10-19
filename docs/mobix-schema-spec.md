@@ -75,7 +75,7 @@ These are the parts an implementation must get right; the rest is payload. All f
   "canvasMode": "PAGINATED",
   "created": 1775952000000,
   "modified": 1775955600000,
-  "title": "Analisi Matematica II - Appunti",
+  "title": "Mathematical Analysis II - Notes",
   "pages": [
     { "id": "pg_01", "entry": "pages/page-0001.json", "modified": 1775955600000, "sha256": "9f86d081…" }
   ],

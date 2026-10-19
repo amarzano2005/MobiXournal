@@ -89,13 +89,13 @@ end
 function exportSelectionToAnki()
   local sel = app.getDocumentSelection()
   if not sel then
-    app.uiAlert("Seleziona prima una casella di testo o un disegno!")
+    app.uiAlert("Select a text box or a drawing first!")
     return
   end
 
   local texts = sel.getTextElements()
   -- Process flashcard data and export
-  app.uiAlert("Esportate " .. #texts .. " carte per Anki!")
+  app.uiAlert("Exported " .. #texts .. " cards to Anki!")
 end
 ```
 

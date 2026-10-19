@@ -160,7 +160,7 @@ object AudioInkAligner {
                 TranscriptionSegment(
                     startTimeMs = ref.startMs,
                     endTimeMs = ref.startMs + dur,
-                    text = "Tratto #${idx + 1}",
+                    text = "Stroke #${idx + 1}",
                     confidence = 1.0,
                 )
             }

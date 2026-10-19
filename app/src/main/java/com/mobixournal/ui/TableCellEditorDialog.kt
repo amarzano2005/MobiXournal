@@ -177,12 +177,12 @@ private fun TableCellEditorHeader(
             ) {
                 Icon(
                     imageVector = Icons.Filled.DragIndicator,
-                    contentDescription = "Trascina popup",
+                    contentDescription = "Drag popup",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "Modifica tabella",
+                    text = "Edit table",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -199,7 +199,7 @@ private fun TableCellEditorHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TableDimensionStepper(
-                label = "Righe",
+                label = "Rows",
                 count = state.rowHeights.size,
                 canDecrement = state.rowHeights.size > 1,
                 canIncrement = state.rowHeights.size < 50,
@@ -207,7 +207,7 @@ private fun TableCellEditorHeader(
                 onIncrement = { state.addRow() },
             )
             TableDimensionStepper(
-                label = "Colonne",
+                label = "Columns",
                 count = state.colWidths.size,
                 canDecrement = state.colWidths.size > 1,
                 canIncrement = state.colWidths.size < 50,
@@ -257,7 +257,7 @@ private fun TableDimensionStepper(
         ) {
             Icon(
                 Icons.Outlined.Remove,
-                contentDescription = "Meno",
+                contentDescription = "Decrease",
                 modifier = Modifier.size(13.dp),
                 tint = if (canDecrement) scheme.onSurface else scheme.onSurface.copy(alpha = 0.38f),
             )
@@ -276,7 +276,7 @@ private fun TableDimensionStepper(
         ) {
             Icon(
                 Icons.Outlined.Add,
-                contentDescription = "Più",
+                contentDescription = "Increase",
                 modifier = Modifier.size(13.dp),
                 tint = if (canIncrement) scheme.onSurface else scheme.onSurface.copy(alpha = 0.38f),
             )
@@ -409,7 +409,7 @@ private fun TableCellEditorField(
 
 /**
  * One strip instead of two: the align/bold pills at the left (acting on the last-focused cell,
- * whose coordinates the strip names) and Annulla / Salva buttons at the right.
+ * whose coordinates the strip names) and Cancel / Save buttons at the right.
  */
 @Composable
 private fun TableCellEditorBottomBar(
@@ -453,19 +453,19 @@ private fun TableCellEditorBottomBar(
             TableCellEditorSegmentButton(
                 selected = active.align == TableAlign.LEFT,
                 imageVector = Icons.AutoMirrored.Outlined.FormatAlignLeft,
-                description = "Allinea a sinistra",
+                description = "Align left",
                 onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.LEFT) },
             )
             TableCellEditorSegmentButton(
                 selected = active.align == TableAlign.CENTER,
                 imageVector = Icons.Outlined.FormatAlignCenter,
-                description = "Allinea al centro",
+                description = "Align center",
                 onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.CENTER) },
             )
             TableCellEditorSegmentButton(
                 selected = active.align == TableAlign.RIGHT,
                 imageVector = Icons.AutoMirrored.Outlined.FormatAlignRight,
-                description = "Allinea a destra",
+                description = "Align right",
                 onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.RIGHT) },
             )
         }
@@ -478,10 +478,10 @@ private fun TableCellEditorBottomBar(
         Spacer(Modifier.weight(1f))
 
         TextButton(onClick = onCancel, contentPadding = PaddingValues(horizontal = 10.dp)) {
-            Text("Annulla", style = MaterialTheme.typography.labelMedium)
+            Text("Cancel", style = MaterialTheme.typography.labelMedium)
         }
         Button(onClick = onSave, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)) {
-            Text("Salva", style = MaterialTheme.typography.labelMedium)
+            Text("Save", style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -538,7 +538,7 @@ private fun TableCellEditorBoldButton(
     ) {
         Icon(
             imageVector = Icons.Outlined.FormatBold,
-            contentDescription = "Grassetto",
+            contentDescription = "Bold",
             modifier = Modifier.size(17.dp),
             tint = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
         )

@@ -1548,7 +1548,7 @@ private fun DrawingSurfaceView.bindEditorActions(
         if (remembered != settings.guidePose) onSettingsChange(settings.copy(guidePose = remembered))
     }
 
-    /** Passa alla PENNA con un colore fisso, mantenendo coerenti gli stati penna/evidenziatore. */
+    /** Switch to the PEN with a fixed colour, keeping the pen/highlighter state consistent. */
     fun switchToPen(color: Int) {
         val next = ui.switchToolTo(EditorTool.PEN, getSettings())
         ui.color = color
@@ -1563,7 +1563,7 @@ private fun DrawingSurfaceView.bindEditorActions(
         var consumed = false
         val hit: (String) -> Boolean = { it.isNotEmpty() && char.equals(it, ignoreCase = true) }
 
-        // Toggle penna ↔ gomma
+        // Toggle pen ↔ eraser
         if (!consumed && hit(settings.penEraserToggleKey)) {
             val newTool = if (ui.tool == EditorTool.PEN || ui.tool == EditorTool.HIGHLIGHTER) {
                 preferredEraser(settings.toolGroupSelections)
@@ -1574,21 +1574,21 @@ private fun DrawingSurfaceView.bindEditorActions(
             consumed = true
         }
 
-        // Toggle mano
+        // Toggle hand
         if (!consumed && hit(settings.handToggleKey)) {
             val newTool = if (ui.tool == EditorTool.HAND) EditorTool.PEN else EditorTool.HAND
             activateTool(newTool, ui, settings, onSettingsChange)
             consumed = true
         }
 
-        // Scorciatoia colore: un tasto per ogni colore della palette, ciascuno sulla penna.
+        // Colour shortcut: one key per palette colour, each switching to the pen.
         val color = settings.colorShortcutKeys.entries.firstOrNull { hit(it.value) }?.key
         if (!consumed && color != null) {
             switchToPen(color)
             consumed = true
         }
 
-        // Scorciatoia strumento: un tasto per ogni strumento, attivato come da rail o da barrel.
+        // Tool shortcut: one key per tool, activated the same way as from the rail or the barrel button.
         val target = settings.toolShortcutKeys.entries.firstOrNull { hit(it.value) }?.key
         if (!consumed && target != null) {
             activateTool(target, ui, settings, onSettingsChange)
@@ -1628,7 +1628,7 @@ fun EditorPaneView(
                 // The touch is about to reach the canvas, so the focused pane must already hold the
                 // tool and style the chrome is showing (see [applyLiveStyle]).
                 state.surface?.applyLiveStyle(ui)
-                // Richiedi il focus per ricevere i tasti solo se non stiamo modificando un elemento o cercando
+                // Request focus so key events arrive only when we are not editing an element or searching
                 if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null && !state.searchOpen) {
                     state.surface?.requestFocus()
                 }

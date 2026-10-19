@@ -347,6 +347,10 @@ fun TransferOverlay(label: String) {
         Surface(
             shape = MaterialTheme.shapes.large,
             color = rememberFloatingSurfaceColor(),
+            // The panel's fill is the floating glass, not a `colorScheme` role, so `contentColorFor`
+            // cannot resolve it and would leave the label at `LocalContentColor`'s black default —
+            // on the dark theme's charcoal glass that is black on black. Name the scheme's ink here.
+            contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 4.dp,
         ) {
             androidx.compose.foundation.layout.Row(

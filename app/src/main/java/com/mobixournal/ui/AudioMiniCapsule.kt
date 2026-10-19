@@ -140,7 +140,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
         }
         Icon(
             imageVector = if (isRecording) Icons.Outlined.Stop else Icons.Outlined.Mic,
-            contentDescription = if (isRecording) "Termina registrazione" else "Avvia registrazione audio",
+            contentDescription = if (isRecording) "Stop recording" else "Start audio recording",
             tint = iconTint,
             modifier = Modifier.size(16.dp),
         )
@@ -191,7 +191,7 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = if (isPaused) "Riprendi registrazione" else "Metti in pausa registrazione",
+            contentDescription = if (isPaused) "Resume recording" else "Pause recording",
             tint = iconTint,
             modifier = Modifier.size(16.dp),
         )
@@ -239,7 +239,7 @@ private fun PlayCapsuleButton(
             }
             Icon(
                 imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                contentDescription = if (audio.playing) "Metti in pausa riproduzione" else "Riproduci audio",
+                contentDescription = if (audio.playing) "Pause playback" else "Play audio",
                 tint = tint,
                 modifier = Modifier.size(16.dp),
             )
@@ -253,7 +253,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
 
     MenuHeading("Audio")
     DropdownMenuItem(
-        text = { Text(if (audio.recording) "Termina registrazione" else "Avvia registrazione") },
+        text = { Text(if (audio.recording) "Stop recording" else "Start recording") },
         leadingIcon = {
             Icon(
                 if (audio.recording) Icons.Outlined.Stop else Icons.Outlined.Mic,
@@ -264,7 +264,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     )
     if (audio.recording) {
         DropdownMenuItem(
-            text = { Text(if (audio.recordingPaused) "Riprendi registrazione" else "Metti in pausa") },
+            text = { Text(if (audio.recordingPaused) "Resume recording" else "Pause") },
             leadingIcon = {
                 Icon(
                     if (audio.recordingPaused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause,
@@ -276,7 +276,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     }
     if (audio.clipOn) {
         DropdownMenuItem(
-            text = { Text(if (audio.playing) "Metti in pausa riproduzione" else "Riprendi riproduzione") },
+            text = { Text(if (audio.playing) "Pause playback" else "Resume playback") },
             leadingIcon = {
                 Icon(
                     if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
@@ -286,13 +286,13 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
             onClick = { audio.onPlayAutonomous(); onDismiss() },
         )
         DropdownMenuItem(
-            text = { Text(if (audio.miniPlayerVisible) "Nascondi mini-player" else "Mostra mini-player") },
+            text = { Text(if (audio.miniPlayerVisible) "Hide mini-player" else "Show mini-player") },
             leadingIcon = { Icon(Icons.Outlined.GraphicEq, contentDescription = null) },
             onClick = { audio.onToggleMiniPlayer(); onDismiss() },
         )
     } else {
         DropdownMenuItem(
-            text = { Text("Riproduci audio") },
+            text = { Text("Play audio") },
             leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null) },
             onClick = { audio.onPlayAutonomous(); onDismiss() },
         )
@@ -305,7 +305,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     )
     HorizontalDivider()
     DropdownMenuItem(
-        text = { Text("Salva audio separato") },
+        text = { Text("Save separate audio") },
         trailingIcon = {
             Switch(
                 checked = audio.saveStandalone,
@@ -316,7 +316,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     )
     HorizontalDivider()
     DropdownMenuItem(
-        text = { Text(if (audio.folderChosen) "Cambia cartella audio…" else "Scegli cartella audio…") },
+        text = { Text(if (audio.folderChosen) "Change audio folder…" else "Choose audio folder…") },
         onClick = { audio.onChooseFolder(); onDismiss() },
     )
 
@@ -344,7 +344,7 @@ private fun AudioCapsuleTranscriptionItems(
                 it.code == audio.transcriptionLanguage
             }?.displayName ?: audio.transcriptionLanguage
             Column {
-                Text("Lingua trascrizione")
+                Text("Transcription language")
                 Text(
                     text = currentLangName,
                     style = MaterialTheme.typography.bodySmall,
@@ -358,9 +358,9 @@ private fun AudioCapsuleTranscriptionItems(
     DropdownMenuItem(
         text = {
             Column {
-                Text("Motore Whisper offline")
+                Text("Offline Whisper engine")
                 Text(
-                    text = if (audio.isWhisperInstalled) "Modello pronto (ultra-veloce)" else "Tocca per scaricare (~39 MB)",
+                    text = if (audio.isWhisperInstalled) "Model ready (ultra-fast)" else "Tap to download (~39 MB)",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (audio.isWhisperInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 )
@@ -408,7 +408,7 @@ private fun TranscriptionLanguageDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "Lingua Trascrizione Vocale",
+                    text = "Voice transcription language",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -435,7 +435,7 @@ private fun TranscriptionLanguageDialog(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End),
                 ) {
-                    Text("Chiudi")
+                    Text("Close")
                 }
             }
         }
@@ -502,7 +502,7 @@ private fun LanguagePackStatusCard(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = "Verifica pacchetto vocale...",
+                    text = "Checking voice pack...",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -526,7 +526,7 @@ private fun LanguagePackStatusCard(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "Pacchetto offline installato sul dispositivo",
+                        text = "Offline pack installed on this device",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Medium,
@@ -544,7 +544,7 @@ private fun LanguagePackStatusCard(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    text = "⚠️ Pacchetto offline non installato. Per trascrivere senza connessione, scarica il modello vocale.",
+                    text = "⚠️ Offline pack not installed. To transcribe without a connection, download the voice model.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFFE65100),
                 )
@@ -554,13 +554,13 @@ private fun LanguagePackStatusCard(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.align(Alignment.End),
                 ) {
-                    Text("Scarica pacchetto", fontSize = 12.sp, color = Color.White)
+                    Text("Download pack", fontSize = 12.sp, color = Color.White)
                 }
             }
         }
         else -> {
             Text(
-                text = "Trascrizione gestita tramite Google Speech Services",
+                text = "Transcription handled by Google Speech Services",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )

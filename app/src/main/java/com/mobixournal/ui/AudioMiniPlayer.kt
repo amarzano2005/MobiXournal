@@ -402,7 +402,7 @@ private fun TranscriptPanel(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Nessuna trascrizione disponibile",
+                text = "No transcription available",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
             )

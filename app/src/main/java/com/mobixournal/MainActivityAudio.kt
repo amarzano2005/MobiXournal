@@ -231,7 +231,7 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             if (clip != null && clip.isFile) {
                 transcribeDeferredAudio(clip)
             } else {
-                toast("Nessuna registrazione audio attiva")
+                toast("No active audio recording")
             }
         },
     )
@@ -333,7 +333,7 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
     val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
 
     isTranscribing.value = true
-    transcriptionStatus.value = "Avvio trascrizione..."
+    transcriptionStatus.value = "Starting transcription..."
     audioTick.value++
 
     val availableModel = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this)
@@ -357,7 +357,7 @@ private fun MainActivity.startTranscriptionService(file: File, resolvedLang: Str
             if (transcript != null) {
                 commitTranscriptionSegments(completedFile, transcript.segments, resolvedLang)
                 transcriptionStatus.value = null
-                toast("Trascrizione completata: ${transcript.segments.size} segmenti sincronizzati")
+                toast("Transcription complete: ${transcript.segments.size} segments synchronized")
             } else {
                 transcriptionStatus.value = statusMsg
                 toast(statusMsg)
@@ -388,10 +388,10 @@ private fun MainActivity.downloadWhisperAndTranscribe(file: File, resolvedLang: 
 
         withContext(Dispatchers.Main) {
             if (success) {
-                toast("Whisper Tiny scaricato! Avvio trascrizione.")
+                toast("Whisper Tiny downloaded! Starting transcription.")
                 startTranscriptionService(file, resolvedLang)
             } else {
-                transcriptionStatus.value = "Uso riconoscimento di sistema..."
+                transcriptionStatus.value = "Using system recognition..."
                 audioTick.value++
                 startTranscriptionService(file, resolvedLang)
             }
@@ -420,7 +420,7 @@ private fun MainActivity.downloadWhisperModelOnDemand() {
         withContext(Dispatchers.Main) {
             isTranscribing.value = false
             transcriptionStatus.value = null
-            toast(if (success) "Modello Whisper Tiny installato con successo!" else "Download Whisper non riuscito")
+            toast(if (success) "Whisper Tiny model installed successfully!" else "Whisper download failed")
             audioTick.value++
         }
     }

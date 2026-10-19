@@ -33,12 +33,12 @@ data class TranscriptionLanguage(
 )
 
 val SUPPORTED_TRANSCRIPTION_LANGUAGES = listOf(
-    TranscriptionLanguage("auto", "Predefinita di sistema"),
-    TranscriptionLanguage("it-IT", "Italiano (it-IT)"),
-    TranscriptionLanguage("en-US", "Inglese (en-US)"),
-    TranscriptionLanguage("es-ES", "Spagnolo (es-ES)"),
-    TranscriptionLanguage("fr-FR", "Francese (fr-FR)"),
-    TranscriptionLanguage("de-DE", "Tedesco (de-DE)"),
+    TranscriptionLanguage("auto", "System default"),
+    TranscriptionLanguage("it-IT", "Italian (it-IT)"),
+    TranscriptionLanguage("en-US", "English (en-US)"),
+    TranscriptionLanguage("es-ES", "Spanish (es-ES)"),
+    TranscriptionLanguage("fr-FR", "French (fr-FR)"),
+    TranscriptionLanguage("de-DE", "German (de-DE)"),
 )
 
 /** Resolves the concrete IETF language tag (e.g. `it-IT`) from a preference value. */

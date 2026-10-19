@@ -100,10 +100,10 @@ class AudioRecordingService : Service() {
             val manager = getSystemService(NotificationManager::class.java) ?: return
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Registrazione audio",
+                "Audio recording",
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                description = "Stato della registrazione audio in background"
+                description = "Background audio recording status"
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
@@ -133,13 +133,13 @@ class AudioRecordingService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(com.mobixournal.R.drawable.ic_launcher_monochrome)
-            .setContentTitle("Registrazione audio in corso")
-            .setContentText("MobiXournal sta registrando l'audio per i tuoi appunti")
+            .setContentTitle("Audio recording in progress")
+            .setContentText("MobiXournal is recording audio for your notes")
             .setOngoing(true)
             .setContentIntent(openPendingIntent)
             .setUsesChronometer(true)
             .setWhen(startTimeMs)
-            .addAction(android.R.drawable.ic_media_pause, "Interrompi", stopPendingIntent)
+            .addAction(android.R.drawable.ic_media_pause, "Stop", stopPendingIntent)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

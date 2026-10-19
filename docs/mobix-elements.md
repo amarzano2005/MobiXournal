@@ -242,7 +242,7 @@ can never cover it mid-edit.
 
 **Save** is the one commit point: the whole grid is swapped in through
 `DrawingSurfaceView.replaceTableElement` — one element edit, one undo step — and that is exactly
-what the canvas then draws. **Annulla** (and dismiss-on-back) closes without saving, so the
+what the canvas then draws. **Cancel** (and dismiss-on-back) closes without saving, so the
 pre-edit state never leaves the table in a half-committed shape; there is no per-keystroke
 commit inside the dialog at all.
 

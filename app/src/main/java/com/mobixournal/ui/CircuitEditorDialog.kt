@@ -163,8 +163,8 @@ private fun CircuitInspectorContent(
         OutlinedTextField(
             value = valueText,
             onValueChange = onValueTextChange,
-            label = { Text("Valore / Sigla") },
-            placeholder = { Text("es. 10 kΩ, Vcc, R1") },
+            label = { Text("Value / Label") },
+            placeholder = { Text("e.g. 10 kΩ, Vcc, R1") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -205,7 +205,7 @@ private fun CircuitInspectorHeader(
         ) {
             Icon(
                 imageVector = Icons.Default.DragIndicator,
-                contentDescription = "Trascina",
+                contentDescription = "Drag",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
@@ -218,7 +218,7 @@ private fun CircuitInspectorHeader(
         IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
             Icon(
                 Icons.Outlined.Close,
-                contentDescription = "Chiudi",
+                contentDescription = "Close",
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -237,14 +237,14 @@ private fun CircuitRotationControl(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
-            text = "Rotazione: ${rotation.roundToInt()}°",
+            text = "Rotation: ${rotation.roundToInt()}°",
             style = MaterialTheme.typography.bodyMedium,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onStraighten, modifier = Modifier.size(32.dp)) {
                 Icon(
                     Icons.Outlined.Straighten,
-                    contentDescription = "Raddrizza (90° multiplo)",
+                    contentDescription = "Straighten (multiple of 90°)",
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -252,7 +252,7 @@ private fun CircuitRotationControl(
             IconButton(onClick = onRotate, modifier = Modifier.size(32.dp)) {
                 Icon(
                     Icons.AutoMirrored.Outlined.RotateRight,
-                    contentDescription = "Ruota 90°",
+                    contentDescription = "Rotate 90°",
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -271,11 +271,11 @@ private fun CircuitInspectorActions(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TextButton(onClick = onDismiss) {
-            Text("Annulla")
+            Text("Cancel")
         }
         Spacer(Modifier.width(6.dp))
         Button(onClick = onSave) {
-            Text("Salva")
+            Text("Save")
         }
     }
 }

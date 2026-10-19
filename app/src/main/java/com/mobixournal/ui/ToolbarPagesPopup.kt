@@ -250,18 +250,18 @@ private fun CanvasModeChangeDialog(
 ) {
     FloatingDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Modalità Canvas") },
+        title = { Text("Canvas mode") },
         text = {
             Text(
-                "Non è possibile modificare il Canvas sulla pagina attuale.\n\n" +
-                    "Vuoi avviare una nuova pagina vuota col nuovo tipo di Canvas («${canvas.label}») oppure annullare l'operazione?",
+                "The canvas can't be changed on the current page.\n\n" +
+                    "Start a new blank page with the new canvas type («${canvas.label}»), or cancel the operation?",
             )
         },
         confirmButton = {
-            TextButton(onClick = onNewBlankPage) { Text("Nuova pagina vuota") }
+            TextButton(onClick = onNewBlankPage) { Text("New blank page") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annulla") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
 }
