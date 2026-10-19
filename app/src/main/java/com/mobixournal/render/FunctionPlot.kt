@@ -294,8 +294,6 @@ object FunctionPlot {
                 StrokePoint(leftPt, y, strokeWidthPt),
                 StrokePoint(leftPt + widthPt, y, strokeWidthPt),
             )
-            // The origin's number, so the axes say where they cross.
-            labels += PlotLabel("0", leftPt - X_LABEL_OFFSET_PT, y + Y_LABEL_OFFSET_PT)
         }
         if (xMin <= 0.0 && xMax >= 0.0) {
             val x = toX(0.0)

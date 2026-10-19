@@ -156,7 +156,6 @@ object MultiFunctionPlotter {
         if (yMin <= 0.0 && yMax >= 0.0) {
             val y = toY(0.0)
             strokes.add(listOf(StrokePoint(leftPt, y, strokeWidthPt), StrokePoint(leftPt + widthPt, y, strokeWidthPt)))
-            labels.add(PlotLabel("0", leftPt - 4.0, y + 4.0))
         }
         if (xMin <= 0.0 && xMax >= 0.0) {
             val x = toX(0.0)

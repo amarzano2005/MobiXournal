@@ -296,7 +296,7 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.PictureAsPdf,
                             contentDescription = "Export PDF",
-                            tint = Color.White,
+                            tint = Color(0xFFE53935),
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -309,7 +309,7 @@ fun EditorTopBar(
                     modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
                     IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Outlined.Save, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                     }
                 }
                 OverflowMenu(
