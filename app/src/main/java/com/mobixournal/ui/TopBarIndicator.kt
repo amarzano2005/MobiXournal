@@ -226,7 +226,7 @@ private fun ToolIndicatorFace(
                 Icon(
                     imageVector = toolDisplayIcon(ui.tool, triangleKind, trapezoidKind),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = Color.White,
                     // The dock's own glyph size, shared with the rail ([ToolIconSize]).
                     modifier = Modifier.size(ToolIconSize),
                 )

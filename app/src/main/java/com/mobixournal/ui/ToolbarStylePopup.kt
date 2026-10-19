@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 
@@ -87,7 +88,7 @@ internal fun LineStyleChips(lineStyle: LineStyle, onLineStyle: (LineStyle) -> Un
 @Composable
 internal fun ShapeRecognitionButton(enabled: Boolean, onEnabled: (Boolean) -> Unit) {
     val tint =
-        if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        if (enabled) MaterialTheme.colorScheme.primary else Color.White
     val slot = LocalRailSlotSize.current
     Box(
         modifier = Modifier

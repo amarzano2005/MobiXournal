@@ -321,7 +321,7 @@ private fun ToolGroupButton(
     onPick: (EditorTool) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
     val shape = RoundedCornerShape(10.dp)
     val buttonSize = LocalRailSlotSize.current
     Box {

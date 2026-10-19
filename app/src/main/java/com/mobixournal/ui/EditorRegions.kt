@@ -252,7 +252,7 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.VerticalSplit,
                             contentDescription = if (splitView) "Close split view" else "Split view",
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else Color.White,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -265,11 +265,23 @@ fun EditorTopBar(
                     modifier = Modifier.padding(horizontal = 4.dp).floatingRim(ModernTheme.capsuleCornerRadiusDp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { pane.surface?.undo() }, enabled = !pane.isReadOnly && pane.canUndo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = "Undo", modifier = Modifier.size(20.dp))
+                        val undoEnabled = !pane.isReadOnly && pane.canUndo
+                        val redoEnabled = !pane.isReadOnly && pane.canRedo
+                        IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.Undo,
+                                contentDescription = "Undo",
+                                tint = if (undoEnabled) Color.White else Color.White.copy(alpha = 0.38f),
+                                modifier = Modifier.size(20.dp),
+                            )
                         }
-                        IconButton(onClick = { pane.surface?.redo() }, enabled = !pane.isReadOnly && pane.canRedo, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Outlined.Redo, contentDescription = "Redo", modifier = Modifier.size(20.dp))
+                        IconButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.Redo,
+                                contentDescription = "Redo",
+                                tint = if (redoEnabled) Color.White else Color.White.copy(alpha = 0.38f),
+                                modifier = Modifier.size(20.dp),
+                            )
                         }
                     }
                 }
@@ -284,7 +296,7 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.PictureAsPdf,
                             contentDescription = "Export PDF",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = Color.White,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -297,7 +309,7 @@ fun EditorTopBar(
                     modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
                     IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Outlined.Save, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                 }
                 OverflowMenu(
@@ -482,7 +494,7 @@ private fun SearchControls(pane: PaneState) {
         pane.searchTotal = status.total
     }
     val isDark = chromeIsDark()
-    val searchIconTint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+    val searchIconTint = Color.White
     if (!pane.searchOpen) {
         val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
@@ -973,7 +985,7 @@ fun TopBarToolsRow(
                     } else if (item.id == "graph") {
                         val active = ui.showGraphDialog
                         val shape = RoundedCornerShape(8.dp)
-                        val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
@@ -1062,7 +1074,7 @@ private fun CompactSingleToolButton(
     active: Boolean,
     onClick: () -> Unit,
 ) {
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
     val shape = RoundedCornerShape(8.dp)
     Box(
         modifier = Modifier
@@ -1110,7 +1122,7 @@ private fun CompactShapeKindButton(
     onClick: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
     val shape = RoundedCornerShape(8.dp)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box {
@@ -1196,7 +1208,7 @@ private fun CompactTopBarToolButton(
     trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
 ) {
     var open by remember { mutableStateOf(false) }
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
     val shape = RoundedCornerShape(8.dp)
     Box {
         Box(

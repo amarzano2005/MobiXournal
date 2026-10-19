@@ -100,7 +100,7 @@ internal val LocalRailSlotScale = compositionLocalOf { 1f }
  * Call it inside the button's own [Box] (it aligns itself to the corner).
  */
 @Composable
-internal fun BoxScope.MenuChevron(tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+internal fun BoxScope.MenuChevron(tint: Color = Color.White) {
     Icon(
         Icons.Outlined.KeyboardArrowDown,
         contentDescription = null,
@@ -572,7 +572,7 @@ internal fun ToolbarPopupButton(
     content: @Composable (dismiss: () -> Unit) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val iconTint = tint ?: if (active) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    val iconTint = tint ?: if (active) MaterialTheme.colorScheme.primary else Color.White
     Box {
         val slotSize = LocalRailSlotSize.current
         Box(

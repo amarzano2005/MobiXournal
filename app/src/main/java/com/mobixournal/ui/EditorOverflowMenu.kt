@@ -100,6 +100,7 @@ internal fun OverflowMenu(
                 Icon(
                     Icons.Outlined.Menu,
                     contentDescription = "Menu",
+                    tint = Color.White,
                     modifier = Modifier.size(20.dp),
                 )
             }

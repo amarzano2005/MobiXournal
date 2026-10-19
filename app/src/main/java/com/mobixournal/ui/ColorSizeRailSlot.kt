@@ -164,7 +164,7 @@ private fun SlotChevron(open: () -> Unit, slot: Dp) {
         Icon(
             Icons.Outlined.KeyboardArrowDown,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = Color.White,
             modifier = Modifier.size(button * 0.7f),
         )
     }

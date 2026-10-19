@@ -215,7 +215,7 @@ internal fun GuidePopupButton(kind: GuideKind, onKind: (GuideKind) -> Unit) {
     ToolbarPopupButton(
         icon = guideButtonIcon(kind),
         contentDescription = "Drawing guides",
-        tint = if (active) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+        tint = if (active) MaterialTheme.colorScheme.primary else Color.White,
     ) { dismiss ->
         DrawingGuideMenuItems(selectedKind = kind, onKind = onKind, dismiss = dismiss)
     }
@@ -231,7 +231,7 @@ internal fun CompactGuidePopupButton(
 ) {
     var open by remember { mutableStateOf(false) }
     val active = kind != GuideKind.NONE
-    val tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
     val shape = RoundedCornerShape(8.dp)
     Box {
         Box(

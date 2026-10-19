@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -28,11 +30,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.render.PlotCurve
@@ -168,7 +173,9 @@ fun PlotInspectorAnchor(
     val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
     val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
 
-    val offset = plotInspectorOffset(
+    var dragDelta by remember(plot) { mutableStateOf(Offset.Zero) }
+
+    val baseOffset = plotInspectorOffset(
         selectionLeft = rect?.left,
         selectionTop = rect?.top,
         selectionRight = rect?.right,
@@ -178,6 +185,12 @@ fun PlotInspectorAnchor(
         gapPx = gapPx,
         marginPx = marginPx,
     )
+
+    val maxOffsetX = (canvasSizePx.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
+    val maxOffsetY = (canvasSizePx.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
+    val currentX = (baseOffset.x + dragDelta.x.roundToInt()).coerceIn(marginPx, maxOffsetX)
+    val currentY = (baseOffset.y + dragDelta.y.roundToInt()).coerceIn(marginPx, maxOffsetY)
+    val offset = IntOffset(currentX, currentY)
 
     val state = rememberPlotInspectorState(plot)
 
@@ -192,7 +205,15 @@ fun PlotInspectorAnchor(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            PlotInspectorHeader(onDismiss = onDismiss)
+            PlotInspectorHeader(
+                onDismiss = onDismiss,
+                modifier = Modifier.pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        dragDelta += dragAmount
+                    }
+                },
+            )
 
             PlotInspectorBody(state = state)
 
@@ -221,9 +242,12 @@ fun PlotInspectorAnchor(
 }
 
 @Composable
-private fun PlotInspectorHeader(onDismiss: () -> Unit) {
+private fun PlotInspectorHeader(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -231,6 +255,12 @@ private fun PlotInspectorHeader(onDismiss: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            Icon(
+                Icons.Filled.DragIndicator,
+                contentDescription = "Drag to move",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(18.dp),
+            )
             Icon(
                 Icons.AutoMirrored.Outlined.ShowChart,
                 contentDescription = null,

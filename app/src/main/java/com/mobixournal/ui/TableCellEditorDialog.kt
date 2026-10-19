@@ -28,6 +28,13 @@ import androidx.compose.material.icons.automirrored.outlined.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.outlined.FormatAlignRight
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.FormatAlignCenter
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.Button
@@ -98,12 +105,15 @@ fun TableCellEditorDialog(
         TableCellEditorState(table, initialFocus = editing.row to editing.col)
     }
 
+    var dragDelta by remember { mutableStateOf(Offset.Zero) }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         FloatingSurface(
             modifier = modifier
+                .offset { IntOffset(dragDelta.x.roundToInt(), dragDelta.y.roundToInt()) }
                 .widthIn(min = 320.dp, max = 560.dp)
                 .fillMaxWidth(0.92f)
                 .padding(horizontal = 12.dp, vertical = 16.dp)
@@ -113,7 +123,10 @@ fun TableCellEditorDialog(
                 modifier = Modifier.padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                TableCellEditorHeader(state)
+                TableCellEditorHeader(
+                    state = state,
+                    onDrag = { delta -> dragDelta += delta },
+                )
                 TableCellEditorGrid(
                     state = state,
                     modifier = Modifier
@@ -136,11 +149,21 @@ fun TableCellEditorDialog(
     }
 }
 
-/** Header with title, table dimension badge, and quick row/column add and remove steppers. */
+/** Header with title, drag handle, table dimension badge, and quick row/column add and remove steppers. */
 @Composable
-private fun TableCellEditorHeader(state: TableCellEditorState) {
+private fun TableCellEditorHeader(
+    state: TableCellEditorState,
+    onDrag: (Offset) -> Unit = {},
+) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    onDrag(dragAmount)
+                }
+            },
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
@@ -148,11 +171,22 @@ private fun TableCellEditorHeader(state: TableCellEditorState) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Modifica tabella",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.DragIndicator,
+                    contentDescription = "Trascina popup",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Modifica tabella",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             Text(
                 text = "${state.rowHeights.size}×${state.colWidths.size}",
                 style = MaterialTheme.typography.labelMedium,

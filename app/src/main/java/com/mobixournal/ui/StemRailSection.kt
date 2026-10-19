@@ -91,7 +91,7 @@ internal fun StemRailSection(
                     Icon(
                         entry.icon,
                         contentDescription = "STEM: ${entry.label}",
-                        tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (active) MaterialTheme.colorScheme.primary else Color.White,
                         modifier = Modifier.size(slot / 2),
                     )
                 }
@@ -126,7 +126,7 @@ internal fun StemRailSection(
                     Icon(
                         entry.icon,
                         contentDescription = "STEM: ${entry.label}",
-                        tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (active) MaterialTheme.colorScheme.primary else Color.White,
                         modifier = Modifier.size(slot / 2),
                     )
                 }
