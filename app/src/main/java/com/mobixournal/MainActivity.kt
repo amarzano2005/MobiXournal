@@ -118,6 +118,12 @@ class MainActivity : ComponentActivity() {
         get() = pane.pendingSaveName
         set(value) { pane.pendingSaveName = value }
 
+    /** True while open tabs are being restored asynchronously from TabStore. */
+    internal var isRestoringTabs: Boolean = false
+
+    /** A save URI waiting for tabs restoration to finish before landing on disk. */
+    internal var pendingSaveUri: Uri? = null
+
     /**
      * The sticky save format. "Save As" sets it; every later plain Save reuses it, so once you save
      * ZIPPED once, Save keeps writing ZIPPED. Opening a document adopts the format it was stored in.
@@ -258,7 +264,7 @@ class MainActivity : ComponentActivity() {
 
     internal val saveLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(XOPP_MIME)) { uri ->
-            uri?.let { saveDocument(it) }
+            uri?.let { handleSaveResult(it) }
         }
 
     /**
@@ -269,7 +275,7 @@ class MainActivity : ComponentActivity() {
      */
     internal val saveMobixLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(MOBIX_MIME)) { uri ->
-            uri?.let { saveDocument(it) }
+            uri?.let { handleSaveResult(it) }
         }
 
     private val importPdfLauncher =
@@ -489,7 +495,10 @@ class MainActivity : ComponentActivity() {
                         attachAudio(view)
                         // Restore is asynchronous now, so a file handed to us by another app is opened
                         // once the session is back — otherwise it would be shoved aside by the restore.
-                        restoreTabs(p) { openIncoming() }
+                        restoreTabs(p) {
+                            openIncoming()
+                            flushPendingSave()
+                        }
                     },
                     settings = settings,
                     onSettingsChange = {
@@ -587,6 +596,17 @@ class MainActivity : ComponentActivity() {
             ?.getInt(STATE_ACTIVE_PANE, 0)
             ?.takeIf { splitView.value && it in panes.indices }
             ?: 0
+        restorePendingSaveState(savedInstanceState)
+    }
+
+    private fun restorePendingSaveState(savedInstanceState: Bundle?) {
+        pendingSaveUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            savedInstanceState?.getParcelable(STATE_PENDING_SAVE_URI, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            savedInstanceState?.getParcelable(STATE_PENDING_SAVE_URI)
+        }
+        savedInstanceState?.getString(STATE_PENDING_SAVE_NAME)?.let { pendingSaveName = it }
     }
 
     /** Keep the split workspace (and the half in focus) across process death. */
@@ -594,6 +614,8 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_SPLIT_VIEW, splitView.value)
         outState.putInt(STATE_ACTIVE_PANE, activePane.value)
+        pendingSaveUri?.let { outState.putParcelable(STATE_PENDING_SAVE_URI, it) }
+        outState.putString(STATE_PENDING_SAVE_NAME, pendingSaveName)
     }
 
     /** Cache both panes' open tabs on the way to the background — the app may not come back. */
@@ -642,6 +664,8 @@ class MainActivity : ComponentActivity() {
         /** Saved-instance-state keys for the split workspace (see [onSaveInstanceState]). */
         private const val STATE_SPLIT_VIEW = "editor.splitView"
         private const val STATE_ACTIVE_PANE = "editor.activePane"
+        private const val STATE_PENDING_SAVE_URI = "editor.pendingSaveUri"
+        private const val STATE_PENDING_SAVE_NAME = "editor.pendingSaveName"
     }
 }
 

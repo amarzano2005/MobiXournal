@@ -146,21 +146,30 @@ internal fun MainActivity.snapshotActiveTab(p: EditorPane = pane) {
  * whatever it was showing for those few frames instead of freezing. A tab whose selection has
  * moved on by then is dropped: only the still-showing tab is painted.
  */
-internal fun MainActivity.show(tab: OpenTab, p: EditorPane = pane) {
-    if (tab.hydrated) return showTab(tab, p)
+internal fun MainActivity.show(tab: OpenTab, p: EditorPane = pane, then: () -> Unit = {}) {
+    if (tab.hydrated) {
+        showTab(tab, p)
+        then()
+        return
+    }
     Thread {
         val full = p.store.hydrate(tab)
         runOnUiThread {
-            if (p.tabs.active?.id != full.id) return@runOnUiThread
+            if (p.tabs.active?.id != full.id) {
+                then()
+                return@runOnUiThread
+            }
             if (!full.hydrated) {
                 // The snapshot exists but couldn't be parsed. Say so and leave it on disk untouched —
                 // the tab stays unhydrated so no later persist can overwrite it with a blank page.
                 toast(getString(R.string.restore_failed, tab.title))
+                then()
                 return@runOnUiThread
             }
             p.tabs.updateActive { if (it.id == full.id) full else it }
             showTab(full, p)
             tabsTick.value++
+            then()
         }
     }.start()
 }
@@ -376,10 +385,10 @@ internal fun MainActivity.restoreTabs(p: EditorPane, then: () -> Unit = {}) {
     // A pane that already has a session is being handed a *replacement* canvas (split view was
     // switched off and on again): put its showing document straight back onto the new surface.
     if (!p.tabs.isEmpty) {
-        p.tabs.active?.let { show(it, p) }
-        then()
+        p.tabs.active?.let { show(it, p, then) } ?: then()
         return
     }
+    isRestoringTabs = true
     // Reading the index and parsing the showing tab's snapshot is disk + gzip + XML work, so it
     // happens on a worker; only the (cheap) hand-off to the canvas runs on the main thread. Doing
     // it inline is what pushed the first frame past the ANR watchdog on a big restored session.
@@ -393,10 +402,21 @@ internal fun MainActivity.restoreTabs(p: EditorPane, then: () -> Unit = {}) {
                     session.tabs.forEach(p.tabs::open)
                     p.tabs.select(session.activeIndex)
                 }
-                p.tabs.active?.let { show(it, p) }
+                val active = p.tabs.active
+                if (active != null) {
+                    show(active, p) {
+                        isRestoringTabs = false
+                        then()
+                    }
+                } else {
+                    isRestoringTabs = false
+                    then()
+                }
                 tabsTick.value++
+            } else {
+                isRestoringTabs = false
+                then()
             }
-            then()
         }
     }.start()
 }

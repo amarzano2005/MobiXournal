@@ -74,7 +74,7 @@ internal fun MainActivity.openDocument(uri: Uri) {
             .onFailure {
                 toast("Open failed: ${it.message}")
                 tabs.close(created)
-                tabs.active?.let(::showTab)
+                tabs.active?.let { show(it) }
             }
         tabsTick.value++
         persistTabs()
@@ -281,7 +281,7 @@ internal fun MainActivity.loadDocument(
                         } else if (created >= 0) {
                             tabs.close(created)
                             if (tabs.isEmpty) tabs.open(blankTab())
-                            tabs.active?.let(::showTab)
+                            tabs.active?.let { show(it) }
                         }
                         tabsTick.value++
                         persistTabs()
@@ -469,12 +469,36 @@ internal fun MainActivity.insertPickedImage(uri: Uri) = runCatching {
 }.onFailure { toast("Image insert failed: ${it.message}") }
 
 /**
+ * Handle a URI returned from the system document picker. If tabs are still restoring or the active
+ * tab is not yet hydrated, defer saving until the active tab has finished loading onto the canvas.
+ */
+internal fun MainActivity.handleSaveResult(uri: Uri) {
+    if (isRestoringTabs || tabs.isEmpty || tabs.active?.hydrated == false || tabs.active?.opening == true) {
+        pendingSaveUri = uri
+    } else {
+        saveDocument(uri)
+    }
+}
+
+/** Execute a deferred save once tabs restoration and active tab hydration have completed. */
+internal fun MainActivity.flushPendingSave() {
+    val uri = pendingSaveUri ?: return
+    pendingSaveUri = null
+    saveDocument(uri)
+}
+
+/**
  * Write the current document to [uri] in the sticky [saveFormat]. Both formats are single files,
  * so both go through the plain CreateDocument picker:
  * - [SaveFormat.ORIGINAL] — gzip XML, PDF background left linked by path/URI (interchange-safe).
  * - [SaveFormat.ZIPPED] — a ZIP package with the PDF embedded (`domain="attach"`, `bg.pdf`).
  */
 internal fun MainActivity.saveDocument(uri: Uri) {
+    if (busy.value != null && busy.value?.startsWith("Saving") == true) return
+    if (tabs.isEmpty || tabs.active == null || tabs.active?.hydrated == false || tabs.active?.opening == true) {
+        if (isRestoringTabs) pendingSaveUri = uri
+        return
+    }
     if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
         toast("Document is read-only")
         return
@@ -486,24 +510,32 @@ internal fun MainActivity.saveDocument(uri: Uri) {
     // document froze the app silently and then showed the note only for the final write. Both steps
     // now run on the worker: tapping Save raises "Saving …" immediately and it stays up until the
     // bytes have actually landed.
+    val snapshot = view.toDocument()
+    // Safety net: if the live surface lost its state (e.g. freshly inflated) but the tab holds ink,
+    // recover the document from the tab rather than overwriting disk with a blank sheet.
+    val activeDoc = tabs.active?.document
+    val docHasContent = activeDoc != null && activeDoc.pages.any { p -> p.layers.any { l -> l.elements.isNotEmpty() } }
+    val viewHasContent = snapshot.pages.any { p -> p.layers.any { l -> l.elements.isNotEmpty() } }
+    val effectiveSnapshot = if (!viewHasContent && docHasContent) {
+        view.load(activeDoc!!)
+        activeDoc
+    } else {
+        snapshot
+    }
     // A `.mobix` names its pages and elements, so the ids have to be the *model's* own before the bytes
     // are written (see [DocumentIo.encode]): minting them inside the writer leaves the open document
     // unidentified, and the next save hands out a fresh set — which a merge or a sync client reads as
     // the whole page replaced. Adopting here, on the UI thread and before the snapshot, is what keeps
     // model and file in step; every save after the first finds nothing to adopt and costs nothing.
-    // **Which pages are asked for an id is the save's own answer** ([DocumentIo.identifyForSave]): the
-    // pages this write will build, not every page of the document — a page the archive already holds
-    // needs no id minted into it, and asking it for one would inflate it here, on the UI thread.
-    val snapshot = view.toDocument()
     // The geometry this write claims: the tab's, set by the open from the file it read and by [blankTab]
     // from Settings. A document this session opened keeps the mode its own file declares whatever this
     // says ([MobixOpenSessions.canvasModeOf]) — the two agree for anything the app itself opened, and
     // the file is the one to trust if they ever disagree.
     val canvasMode = tabs.active?.canvasMode ?: CanvasMode.PAGINATED
     val document = if (saveFormat == SaveFormat.MOBIX || canvasMode != CanvasMode.PAGINATED) {
-        view.adoptIdentity(io.identifyForSave(snapshot, uri, canvasMode))
+        view.adoptIdentity(io.identifyForSave(effectiveSnapshot, uri, canvasMode))
     } else {
-        snapshot
+        effectiveSnapshot
     }
     io.rememberBoardShape(document, view.canvasGeometry())
     val pdf = view.pdfSourceFile()
@@ -566,10 +598,13 @@ internal fun MainActivity.afterSaved(view: DrawingSurfaceView, uri: Uri, format:
  * share), and only fall back to asking for a location when we don't.
  */
 internal fun MainActivity.saveActiveTab() {
+    if (busy.value != null && busy.value?.startsWith("Saving") == true) return
+    if (tabs.isEmpty || tabs.active == null || tabs.active?.hydrated == false || tabs.active?.opening == true) return
     if (tabs.active?.isReadOnly == true || surface?.isReadOnly == true) {
         toast("Document is read-only")
         return
     }
+    snapshotActiveTab()
     val target = tabs.active?.uri?.let(Uri::parse)?.takeIf(io::isWritable)
     if (target != null) saveDocument(target) else launchSavePicker()
 }
@@ -584,6 +619,8 @@ internal fun MainActivity.saveActiveTab() {
  * choice rather than the picker's: the launcher only decides the name and the type the system sees.
  */
 internal fun MainActivity.launchSavePicker() {
+    snapshotActiveTab()
+    pane.persist()
     val name = suggestedSaveName()
     if (saveFormat == SaveFormat.MOBIX) saveMobixLauncher.launch(name) else saveLauncher.launch(name)
 }
@@ -614,6 +651,8 @@ internal fun MainActivity.documentHasAudio(view: DrawingSurfaceView): Boolean =
  * remember the file name, and open the single-file picker. Both formats write one file.
  */
 internal fun MainActivity.beginSaveAs(filename: String, format: SaveFormat) {
+    snapshotActiveTab()
+    pane.persist()
     saveFormat = format
     // The name field is free text, so whatever was typed goes through the same rule as a suggested
     // one: what lands on disk carries the suffix of the format the user just chose.
