@@ -99,7 +99,7 @@ internal fun PlotShadeInputs(state: PlotShadeState) {
                     onValueChange = state::editFrom,
                     label = { Text("shade from") },
                     singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).plotInputEcho("shade from", state.fromText),
                 )
                 OutlinedTextField(
                     value = state.toText,
@@ -107,7 +107,7 @@ internal fun PlotShadeInputs(state: PlotShadeState) {
                     label = { Text("shade to") },
                     singleLine = true,
                     isError = !state.ok,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).plotInputEcho("shade to", state.toText),
                 )
             }
         }

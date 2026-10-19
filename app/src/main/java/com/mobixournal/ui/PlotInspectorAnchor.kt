@@ -2,8 +2,10 @@ package com.mobixournal.ui
 
 import android.graphics.RectF
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
@@ -23,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -196,51 +199,65 @@ fun PlotInspectorAnchor(
     val offset = IntOffset(currentX, currentY)
 
     val state = rememberPlotInspectorState(plot)
+    val echo = remember(plot.id ?: plot.hashCode()) { PlotInputEchoState() }
 
-    FloatingSurface(
-        modifier = modifier
-            .offset { offset }
-            .onSizeChanged { inspectorSize = it }
-            .widthIn(min = 320.dp, max = 360.dp)
-            .padding(4.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            PlotInspectorHeader(
-                onDismiss = onDismiss,
-                modifier = Modifier.pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        dragDelta += dragAmount
-                    }
-                },
-            )
-
-            PlotInspectorBody(state = state)
-
-            PlotInspectorActions(
-                canApply = state.canApply,
-                onDismiss = onDismiss,
-                onApply = {
-                    val xMin = state.xMin ?: return@PlotInspectorActions
-                    val xMax = state.xMax ?: return@PlotInspectorActions
-                    val updated = PlotElementFactory.applyPlotEdit(
-                        original = plot,
-                        editedCurves = state.activeCurves,
-                        xMin = xMin,
-                        xMax = xMax,
-                        showCriticalPoints = state.showCriticalPoints,
-                        includeDerivative = state.includeDerivative,
-                        includeSummary = state.includeSummary,
-                        shadeIntegral = state.shade.value,
+    // The inspector keeps its own offset inside a full-size layer so the echo cell can sit at the
+    // canvas' bottom edge while the inspector stays anchored beside the plot.
+    Box(modifier = modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalPlotInputEcho provides echo) {
+            FloatingSurface(
+                modifier = Modifier
+                    .offset { offset }
+                    .onSizeChanged { inspectorSize = it }
+                    .widthIn(min = 320.dp, max = 360.dp)
+                    .padding(4.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    PlotInspectorHeader(
+                        onDismiss = onDismiss,
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                dragDelta += dragAmount
+                            }
+                        },
                     )
-                    surface?.replacePlotElement(plot, updated)
-                    ui.editingPlot = updated
-                },
-            )
+
+                    PlotInspectorBody(state = state)
+
+                    PlotInspectorActions(
+                        canApply = state.canApply,
+                        onDismiss = onDismiss,
+                        onApply = {
+                            val xMin = state.xMin ?: return@PlotInspectorActions
+                            val xMax = state.xMax ?: return@PlotInspectorActions
+                            val updated = PlotElementFactory.applyPlotEdit(
+                                original = plot,
+                                editedCurves = state.activeCurves,
+                                xMin = xMin,
+                                xMax = xMax,
+                                showCriticalPoints = state.showCriticalPoints,
+                                includeDerivative = state.includeDerivative,
+                                includeSummary = state.includeSummary,
+                                shadeIntegral = state.shade.value,
+                            )
+                            surface?.replacePlotElement(plot, updated)
+                            ui.editingPlot = updated
+                        },
+                    )
+                }
+            }
         }
+
+        PlotInputEchoBar(
+            state = echo,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
     }
 }
 

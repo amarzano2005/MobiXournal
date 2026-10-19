@@ -1735,7 +1735,7 @@ fun EditorPaneView(
                     pane = state,
                     ui = ui,
                     canvasSizePx = canvasSizePx,
-                    modifier = Modifier.align(Alignment.TopStart),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
             if (ui.editingTableCell != null) {

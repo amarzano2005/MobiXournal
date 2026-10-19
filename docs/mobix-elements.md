@@ -182,13 +182,18 @@ removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). Wh
 the selection action bar offers **Edit plot**, which opens the anchored micro-inspector `PlotInspectorAnchor` beside
 the selection on canvas, pre-filled with the element's curves, range, flags and shaded area; confirming applies the edits
 in place (`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog has no input for (`samples`,
-`parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. The dialog owns the
+`parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. Because the
+inspector is anchored, the on-screen keyboard can cover it; its focused field is therefore mirrored
+into a one-line cell pinned to the canvas' bottom edge above the IME (`ui/PlotInputEcho.kt`), which
+shows the same label and text as the field being typed in and disappears with the keyboard.
+The dialog owns the
 shaded integral area (`shadeIntegral`), whose from/to pair drives the wash, the integral the summary
 reports and the ink an export compiles ([math-engine.md](math-engine.md), section 3).
 The table is the second family to become editable: authored as a living `TableElement` by the table tool
 (`render/TableElementFactory.kt`), given its real grid bounding box and hit-testability by `render/ElementBounds.kt`,
 and moved and resized by `render/SelectionOps.kt` (where a move shifts its origin and keeps `colWidths`/`rowHeights`
-authoritative, while handles rescale the grid columns and rows).
+authoritative, while handles rescale the grid columns and rows, leaving the rule thickness alone —
+a resize stretches geometry, never ink: `docs/selection.md`).
 
 The circuit component is the third family: authored as a living `CircuitElement` by circuit tools
 (`render/CircuitElementFactory.kt`), given its rotated stroke bounding box and hit-testability by

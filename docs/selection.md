@@ -55,9 +55,9 @@ inflated rectangle. Beyond move/delete, the outline carries **eight resize handl
 both factors being the pointer's distance ratio), and the four **edge midpoints** stretch **one axis
 only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring travel from the opposite
 edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
-widened without being made taller. A per-axis stretch scales stroke widths (and text sizes) by the
-**geometric mean** `sqrt(sx·sy)`: of the two axes neither is the right one for a scalar, and the mean
-keeps the ink in proportion to the box it fills. Their grab radius is capped at a **third** of the
+widened without being made taller. A resize stretches **geometry, not ink**: stroke widths are
+carried through untouched (a longer arrow is not a fatter one), while text sizes follow the scale
+because letters are the figure there. Their grab radius is capped at a **third** of the
 selection's on-screen size (`DrawingSurfaceDefaults.handleHitRadius`), because a fixed 30 px radius
 swallows a small selection whole — every touch inside it lands within 30 px of a handle, turning an
 intended *move* into a resize. A third is the largest cap that leaves the middle a move: the four

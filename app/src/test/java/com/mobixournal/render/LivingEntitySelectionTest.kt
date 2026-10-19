@@ -169,6 +169,53 @@ class LivingEntitySelectionTest {
         assertEquals(80.0, resized.height, 1e-9)
         assertEquals(table.cells, resized.cells)
         assertEquals(table.id, resized.id)
+        assertEquals("a resized table keeps its rule thickness", table.borderWidth, resized.borderWidth, 1e-9)
+    }
+
+    @Test
+    fun resizePlotScalesItsBoxButKeepsEveryCurveStrokeWidth() {
+        val plot = samplePlot()
+        val pages = listOf(testPage(Layer(listOf(plot))))
+
+        val resized = SelectionOps.scaleXY(
+            pages = pages,
+            pageIndex = 0,
+            refs = setOf(ElementRef(0, 0)),
+            sx = 2.0,
+            sy = 0.5,
+            anchorX = 0.0,
+            anchorY = 0.0,
+        )[0].layers[0].elements[0] as PlotElement
+
+        assertEquals("the plot's box follows the resize", 200.0, resized.left, 1e-9)
+        assertEquals("the plot's box follows the resize", 50.0, resized.top, 1e-9)
+        assertEquals("the mathematical range is untouched", plot.xMin, resized.xMin, 1e-9)
+        assertEquals("the mathematical range is untouched", plot.xMax, resized.xMax, 1e-9)
+        assertEquals(
+            "a bigger diagram has longer axes, not thicker ink",
+            plot.curves.map { it.strokeWidth },
+            resized.curves.map { it.strokeWidth },
+        )
+    }
+
+    @Test
+    fun resizeCircuitMovesItsPinsButKeepsTheStrokeWidth() {
+        val circuit = sampleCircuit()
+        val pages = listOf(testPage(Layer(listOf(circuit))))
+
+        val resized = SelectionOps.scaleXY(
+            pages = pages,
+            pageIndex = 0,
+            refs = setOf(ElementRef(0, 0)),
+            sx = 2.0,
+            sy = 2.0,
+            anchorX = 0.0,
+            anchorY = 0.0,
+        )[0].layers[0].elements[0] as CircuitElement
+
+        assertEquals(100.0, resized.positionX, 1e-9)
+        assertEquals(100.0, resized.positionY, 1e-9)
+        assertEquals("a bigger component keeps its symbol's line weight", circuit.strokeWidth, resized.strokeWidth, 1e-9)
     }
 
     @Test

@@ -413,6 +413,8 @@ private fun RangeInputs(
     onXMaxChange: (String) -> Unit,
     rangeOk: Boolean,
 ) {
+    val minLabel = if (isCartesian) "x min" else "t min"
+    val maxLabel = if (isCartesian) "x max" else "t max"
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -420,17 +422,17 @@ private fun RangeInputs(
         OutlinedTextField(
             value = xMinText,
             onValueChange = onXMinChange,
-            label = { Text(if (isCartesian) "x min" else "t min") },
+            label = { Text(minLabel) },
             singleLine = true,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).plotInputEcho(minLabel, xMinText),
         )
         OutlinedTextField(
             value = xMaxText,
             onValueChange = onXMaxChange,
-            label = { Text(if (isCartesian) "x max" else "t max") },
+            label = { Text(maxLabel) },
             singleLine = true,
             isError = !rangeOk,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).plotInputEcho(maxLabel, xMaxText),
         )
     }
 }
@@ -475,13 +477,14 @@ private fun CurveRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ColorCircle(color = curve.color, onSelect = { curve.color = it })
+            val fieldLabel = "f${index + 1}(x)"
             OutlinedTextField(
                 value = curve.source,
                 onValueChange = { curve.source = it },
-                label = { Text("f${index + 1}(x)") },
+                label = { Text(fieldLabel) },
                 singleLine = true,
                 isError = compiled == null,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).plotInputEcho(fieldLabel, curve.source),
             )
             if (canDelete) {
                 IconButton(onClick = onDelete) {
@@ -579,14 +582,14 @@ private fun ParametricInputs(
             onValueChange = onXChange,
             label = { Text("x(t)") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().plotInputEcho("x(t)", paramX),
         )
         OutlinedTextField(
             value = paramY,
             onValueChange = onYChange,
             label = { Text("y(t)") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().plotInputEcho("y(t)", paramY),
         )
     }
 }
