@@ -79,7 +79,7 @@ class LivingEntitySelectionTest {
     )
 
     @Test
-    fun tableAndPlotAreHitTestableWhileShapeAndCircuitRemainNonHitTestable() {
+    fun tablePlotAndCircuitAreHitTestableWhileShapeRemainsNonHitTestable() {
         val plot = samplePlot()
         val table = sampleTable()
         val shape = sampleShape()
@@ -87,8 +87,8 @@ class LivingEntitySelectionTest {
 
         assertTrue("PlotElement must be hit-testable", ElementBounds.isHitTestable(plot))
         assertTrue("TableElement must be hit-testable", ElementBounds.isHitTestable(table))
+        assertTrue("CircuitElement must be hit-testable", ElementBounds.isHitTestable(circuit))
         assertFalse("ParametricShapeElement must not be hit-testable", ElementBounds.isHitTestable(shape))
-        assertFalse("CircuitElement must not be hit-testable", ElementBounds.isHitTestable(circuit))
 
         val halfBorder = table.borderWidth / 2.0
         val expectedTableBounds = Bounds(
@@ -99,7 +99,8 @@ class LivingEntitySelectionTest {
         )
         assertEquals(expectedTableBounds, ElementBounds.of(table))
         assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(shape))
-        assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(circuit))
+        val circuitBounds = ElementBounds.of(circuit)
+        assertTrue("Circuit bounds must be non-empty", circuitBounds.width > 0.0 && circuitBounds.height > 0.0)
     }
 
     @Test

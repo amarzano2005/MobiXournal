@@ -188,7 +188,6 @@ class ElementBoundsTest {
                 black,
                 id = "shp_1",
             ),
-            CircuitElement("RESISTOR_IEEE", 100.0, 100.0, id = "ckt_1"),
         )
 
         for (element in others) {
