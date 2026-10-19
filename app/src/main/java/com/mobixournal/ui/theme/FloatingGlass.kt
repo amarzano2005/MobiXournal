@@ -61,10 +61,11 @@ internal fun Modifier.floatingRim(
     cornerRadius: Dp = ModernTheme.panelCornerRadiusDp,
 ): Modifier {
     val rim = rememberMenuRimColor()
-    return drawWithContent {
-        drawContent()
-        drawFloatingRim(cornerRadius.toPx(), rim)
-    }
+    return liquidGlassSpecularRim(
+        cornerRadius = cornerRadius,
+        rim = rim,
+        enabled = LocalLiquidGlassShaders.current,
+    )
 }
 
 /** [floatingRim]'s stroke, for a surface that already holds its own ink and radius. */
@@ -183,6 +184,7 @@ fun FloatingSurface(
             .shadow(shadowElevation, shape, clip = false)
             .clip(shape)
             .background(rememberFloatingSurfaceColor())
+            .liquidGlassLensBevel(ModernTheme.panelCornerRadiusDp)
             .floatingRim(),
     ) {
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
@@ -225,6 +227,7 @@ fun FloatingDialog(
             onDismissRequest = onDismissRequest,
             containerColor = surface,
             modifier = modifier
+                .liquidGlassLensBevel(ModernTheme.panelCornerRadiusDp)
                 .floatingRim()
                 .liquidGlassSpringAnimation(expanded = true, origin = TransformOrigin(0.5f, 0.5f)),
             properties = properties,

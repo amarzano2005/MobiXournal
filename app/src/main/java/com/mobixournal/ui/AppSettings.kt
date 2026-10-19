@@ -366,6 +366,8 @@ data class AppSettings(
     val multiFingerShortcuts: Boolean = true,
     /** Enable Apple-style fluid spring & scale opening animations for popups, menus, and dialogs. */
     val liquidGlassAnimations: Boolean = true,
+    /** Enable hardware-accelerated AGSL liquid glass optical refraction and specular highlights on Android 13+. */
+    val liquidGlassShaders: Boolean = true,
     /** Whether the user has seen or dismissed the first-launch onboarding popup. */
     val hasSeenOnboarding: Boolean = false,
 ) {
@@ -706,6 +708,7 @@ class SettingsStore(context: Context) {
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
             multiFingerShortcuts = prefs.getBoolean(KEY_MULTI_FINGER_SHORTCUTS, d.multiFingerShortcuts),
             liquidGlassAnimations = prefs.getBoolean(KEY_LIQUID_GLASS_ANIMATIONS, d.liquidGlassAnimations),
+            liquidGlassShaders = prefs.getBoolean(KEY_LIQUID_GLASS_SHADERS, d.liquidGlassShaders),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
         ).sanitized()
     }
@@ -820,6 +823,7 @@ class SettingsStore(context: Context) {
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
         e.putBoolean(KEY_MULTI_FINGER_SHORTCUTS, s.multiFingerShortcuts)
         e.putBoolean(KEY_LIQUID_GLASS_ANIMATIONS, s.liquidGlassAnimations)
+        e.putBoolean(KEY_LIQUID_GLASS_SHADERS, s.liquidGlassShaders)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
         e.apply()
     }
@@ -922,6 +926,7 @@ class SettingsStore(context: Context) {
         const val KEY_PDF_CACHE_LIMIT = "pdf_cache_limit_mb"
         const val KEY_MULTI_FINGER_SHORTCUTS = "multi_finger_shortcuts"
         const val KEY_LIQUID_GLASS_ANIMATIONS = "liquid_glass_animations"
+        const val KEY_LIQUID_GLASS_SHADERS = "liquid_glass_shaders"
 
         /** Per-slot SharedPreferences key for the [i]th configurable pen width. */
         fun keyPenWidth(i: Int): String = "pen_width_$i"

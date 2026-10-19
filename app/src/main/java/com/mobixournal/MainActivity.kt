@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.mobixournal.ui.theme.LocalLiquidGlassAnimations
+import com.mobixournal.ui.theme.LocalLiquidGlassShaders
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
@@ -434,7 +435,10 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(initialSettings.also(::applySettingsToLayers))
             }
             XoppTheme(darkTheme = settings.themeMode.isDark(), dynamicColor = settings.dynamicColor) {
-                CompositionLocalProvider(LocalLiquidGlassAnimations provides settings.liquidGlassAnimations) {
+                CompositionLocalProvider(
+                    LocalLiquidGlassAnimations provides settings.liquidGlassAnimations,
+                    LocalLiquidGlassShaders provides settings.liquidGlassShaders,
+                ) {
                     EditorScreen(
                     onOpen = { openLauncher.launch(arrayOf("*/*")) },
                     onSave = { saveActiveTab() },
