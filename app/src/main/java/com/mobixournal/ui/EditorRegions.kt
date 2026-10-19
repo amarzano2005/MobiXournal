@@ -93,6 +93,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.render.BarrelDoubleAction
 import com.mobixournal.render.DrawingSurfaceView
@@ -252,7 +253,7 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.VerticalSplit,
                             contentDescription = if (splitView) "Close split view" else "Split view",
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else Color.White,
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else Color(0xFFA0A0A0),
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -494,7 +495,7 @@ private fun SearchControls(pane: PaneState) {
         pane.searchTotal = status.total
     }
     val isDark = chromeIsDark()
-    val searchIconTint = Color.White
+    val searchIconTint = Color(0xFFA0A0A0)
     if (!pane.searchOpen) {
         val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
@@ -544,9 +545,14 @@ private fun SearchControls(pane: PaneState) {
     }
 
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(pane.searchOpen, pane.searchIndexing) {
-        if (pane.searchOpen && !pane.searchIndexing) {
-            runCatching { focusRequester.requestFocus() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    LaunchedEffect(pane.searchOpen) {
+        if (pane.searchOpen) {
+            pane.surface?.clearFocus()
+            runCatching {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            }
         }
     }
 
@@ -590,13 +596,21 @@ private fun SearchControls(pane: PaneState) {
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = {
+                    keyboardController?.hide()
                     pane.surface?.nextSearchHit()?.let(::apply)
                 }),
                 modifier = Modifier
-                    .widthIn(min = 80.dp, max = 150.dp)
+                    .widthIn(min = 90.dp, max = 160.dp)
                     .focusRequester(focusRequester),
                 decorationBox = { inner ->
-                    Box(contentAlignment = Alignment.CenterStart) {
+                    Box(
+                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier.clickable {
+                            pane.surface?.clearFocus()
+                            focusRequester.requestFocus()
+                            keyboardController?.show()
+                        },
+                    ) {
                         if (pane.searchQuery.isEmpty()) {
                             Text(
                                 if (pane.searchIndexing) "Loading text..." else "Search document...",
@@ -651,6 +665,8 @@ private fun SearchControls(pane: PaneState) {
                     pane.searchQuery = ""
                     pane.surface?.cancelIndexing()
                     pane.surface?.clearSearch()?.let(::apply) ?: apply(SearchStatus())
+                    keyboardController?.hide()
+                    pane.surface?.requestFocus()
                 },
                 modifier = Modifier.size(28.dp),
             ) {
@@ -1612,8 +1628,8 @@ fun EditorPaneView(
                 // The touch is about to reach the canvas, so the focused pane must already hold the
                 // tool and style the chrome is showing (see [applyLiveStyle]).
                 state.surface?.applyLiveStyle(ui)
-                // Richiedi il focus per ricevere i tasti solo se non stiamo modificando un elemento
-                if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null) {
+                // Richiedi il focus per ricevere i tasti solo se non stiamo modificando un elemento o cercando
+                if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null && !state.searchOpen) {
                     state.surface?.requestFocus()
                 }
             }

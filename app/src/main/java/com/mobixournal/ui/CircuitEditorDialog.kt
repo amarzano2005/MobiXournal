@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.RotateRight
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,6 +44,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.render.replaceCircuitElement
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
+import kotlin.math.round
 import kotlin.math.roundToInt
 
 /**
@@ -105,49 +107,76 @@ fun CircuitInspectorAnchor(
             .liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f))
             .onSizeChanged { inspectorSize = it },
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CircuitInspectorHeader(
-                symbol = circuit.symbol,
-                onDismiss = onDismiss,
-                onDrag = { dragDelta += it },
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            OutlinedTextField(
-                value = valueText,
-                onValueChange = { valueText = it },
-                label = { Text("Valore / Sigla") },
-                placeholder = { Text("es. 10 kΩ, Vcc, R1") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            CircuitRotationControl(
-                rotation = rotation,
-                onRotate = {
-                    val nextRot = (rotation + 90.0) % 360.0
-                    rotation = nextRot
-                    val updated = circuit.copy(
-                        value = valueText.ifBlank { null },
-                        rotation = nextRot,
-                    )
-                    surface?.replaceCircuitElement(circuit, updated)
-                    ui.editingCircuit = updated
-                },
-            )
-            CircuitInspectorActions(
-                onDismiss = onDismiss,
-                onSave = {
-                    val updated = circuit.copy(
-                        value = valueText.ifBlank { null },
-                        rotation = rotation,
-                    )
-                    surface?.replaceCircuitElement(circuit, updated)
-                    onDismiss()
-                },
-            )
-        }
+        CircuitInspectorContent(
+            circuit = circuit,
+            valueText = valueText,
+            onValueTextChange = { valueText = it },
+            rotation = rotation,
+            onRotate = {
+                val nextRot = (rotation + 90.0) % 360.0
+                rotation = nextRot
+                val updated = circuit.copy(value = valueText.ifBlank { null }, rotation = nextRot)
+                surface?.replaceCircuitElement(circuit, updated)
+                ui.editingCircuit = updated
+            },
+            onStraighten = {
+                val straight = (round(rotation / 90.0) * 90.0) % 360.0
+                val nextRot = if (straight < 0.0) straight + 360.0 else straight
+                rotation = nextRot
+                val updated = circuit.copy(value = valueText.ifBlank { null }, rotation = nextRot)
+                surface?.replaceCircuitElement(circuit, updated)
+                ui.editingCircuit = updated
+            },
+            onDismiss = onDismiss,
+            onSave = {
+                val updated = circuit.copy(value = valueText.ifBlank { null }, rotation = rotation)
+                surface?.replaceCircuitElement(circuit, updated)
+                onDismiss()
+            },
+            onDrag = { dragDelta += it },
+        )
+    }
+}
+
+@Composable
+private fun CircuitInspectorContent(
+    circuit: CircuitElement,
+    valueText: String,
+    onValueTextChange: (String) -> Unit,
+    rotation: Double,
+    onRotate: () -> Unit,
+    onStraighten: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+    onDrag: (Offset) -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        CircuitInspectorHeader(
+            symbol = circuit.symbol,
+            onDismiss = onDismiss,
+            onDrag = onDrag,
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        OutlinedTextField(
+            value = valueText,
+            onValueChange = onValueTextChange,
+            label = { Text("Valore / Sigla") },
+            placeholder = { Text("es. 10 kΩ, Vcc, R1") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        CircuitRotationControl(
+            rotation = rotation,
+            onRotate = onRotate,
+            onStraighten = onStraighten,
+        )
+        CircuitInspectorActions(
+            onDismiss = onDismiss,
+            onSave = onSave,
+        )
     }
 }
 
@@ -200,6 +229,7 @@ private fun CircuitInspectorHeader(
 private fun CircuitRotationControl(
     rotation: Double,
     onRotate: () -> Unit,
+    onStraighten: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -210,12 +240,22 @@ private fun CircuitRotationControl(
             text = "Rotazione: ${rotation.roundToInt()}°",
             style = MaterialTheme.typography.bodyMedium,
         )
-        IconButton(onClick = onRotate, modifier = Modifier.size(32.dp)) {
-            Icon(
-                Icons.AutoMirrored.Outlined.RotateRight,
-                contentDescription = "Ruota 90°",
-                modifier = Modifier.size(18.dp),
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onStraighten, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Outlined.Straighten,
+                    contentDescription = "Raddrizza (90° multiplo)",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+            IconButton(onClick = onRotate, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.AutoMirrored.Outlined.RotateRight,
+                    contentDescription = "Ruota 90°",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }
