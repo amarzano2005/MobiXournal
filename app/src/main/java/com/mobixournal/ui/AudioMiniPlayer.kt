@@ -409,7 +409,7 @@ private fun TranscriptPanel(
             if (onTranscribe != null && !isTranscribing) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Trascrivi con Whisper",
+                    text = "Transcribe with Whisper",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,

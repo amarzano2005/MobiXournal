@@ -224,8 +224,6 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             audioTick.value++
         },
         onPlayAutonomous = ::playAutonomousAudio,
-        isWhisperInstalled = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this) != null,
-        onDownloadWhisper = { downloadWhisperModelOnDemand() },
         onTranscribeActiveClip = {
             val clip = activeClip?.let { File(filesDir, "audio/$it") }
             if (clip != null && clip.isFile) {
@@ -395,33 +393,6 @@ private fun MainActivity.downloadWhisperAndTranscribe(file: File, resolvedLang: 
                 audioTick.value++
                 startTranscriptionService(file, resolvedLang)
             }
-        }
-    }
-}
-
-private fun MainActivity.downloadWhisperModelOnDemand() {
-    isTranscribing.value = true
-    transcriptionStatus.value = "Download Whisper Tiny (39 MB)... 0%"
-    audioTick.value++
-
-    lifecycleScope.launch(Dispatchers.IO) {
-        val success = com.mobixournal.audio.WhisperModelManager.downloadModel(
-            context = this@downloadWhisperModelOnDemand,
-            modelType = com.mobixournal.audio.WhisperModelType.TINY,
-            onProgress = { _, _, ratio ->
-                val percent = (ratio * 100).toInt().coerceIn(0, 99)
-                runOnUiThread {
-                    transcriptionStatus.value = "Download Whisper ($percent%)..."
-                    audioTick.value++
-                }
-            },
-        )
-
-        withContext(Dispatchers.Main) {
-            isTranscribing.value = false
-            transcriptionStatus.value = null
-            toast(if (success) "Whisper Tiny model installed successfully!" else "Whisper download failed")
-            audioTick.value++
         }
     }
 }

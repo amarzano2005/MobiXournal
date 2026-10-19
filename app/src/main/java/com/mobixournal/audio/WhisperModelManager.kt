@@ -20,14 +20,14 @@ enum class WhisperModelType(
 ) {
     TINY(
         id = "whisper-tiny",
-        displayName = "Whisper Tiny (Consigliato, ~39 MB)",
+        displayName = "Whisper Tiny (Recommended, ~39 MB)",
         prefix = "tiny",
         approximateSizeMb = 39,
         isTiny = true,
     ),
     BASE(
         id = "whisper-base",
-        displayName = "Whisper Base (Alta precisione, ~75 MB)",
+        displayName = "Whisper Base (High accuracy, ~75 MB)",
         prefix = "base",
         approximateSizeMb = 75,
         isTiny = false,

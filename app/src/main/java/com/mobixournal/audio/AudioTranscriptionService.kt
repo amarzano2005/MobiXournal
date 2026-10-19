@@ -155,7 +155,7 @@ class AudioTranscriptionService : Service() {
                 chunks = chunks,
                 onProgress = { current, total ->
                     val percent = ((current * 100) / total).coerceIn(0, 100)
-                    val status = "Whisper: frase $current di $total ($percent%)"
+                    val status = "Whisper: sentence $current of $total ($percent%)"
                     updateProgress(status, current, total)
                     onProgressUpdated?.invoke(status, current, total)
                 },

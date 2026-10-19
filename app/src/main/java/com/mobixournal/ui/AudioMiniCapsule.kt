@@ -301,7 +301,6 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     AudioCapsuleTranscriptionItems(
         audio = audio,
         onShowLanguageDialog = { showLanguageDialog = true },
-        onDismiss = onDismiss,
     )
     HorizontalDivider()
     DropdownMenuItem(
@@ -336,7 +335,6 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
 private fun AudioCapsuleTranscriptionItems(
     audio: AudioUiState,
     onShowLanguageDialog: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
     DropdownMenuItem(
         text = {
@@ -354,25 +352,6 @@ private fun AudioCapsuleTranscriptionItems(
         },
         leadingIcon = { Icon(Icons.Outlined.Subtitles, contentDescription = null) },
         onClick = onShowLanguageDialog,
-    )
-    DropdownMenuItem(
-        text = {
-            Column {
-                Text("Offline Whisper engine")
-                Text(
-                    text = if (audio.isWhisperInstalled) "Model ready (ultra-fast)" else "Tap to download (~39 MB)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (audio.isWhisperInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                )
-            }
-        },
-        leadingIcon = { Icon(Icons.Outlined.GraphicEq, contentDescription = null) },
-        onClick = {
-            if (!audio.isWhisperInstalled) {
-                audio.onDownloadWhisper()
-            }
-            onDismiss()
-        },
     )
 }
 

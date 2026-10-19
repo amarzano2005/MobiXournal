@@ -61,7 +61,9 @@ Rather than relying on vulnerable loose sidecars in user folders:
   `TranscriptionCodec` into `transcript.json`.
 - **On-device Whisper engine (`WhisperOfflineTranscriber` & `WhisperModelManager`)**: Offline automatic speech recognition
   powered by `sherpa-onnx` ONNX Runtime int8 models (`whisper-tiny` ~39 MB, `whisper-base` ~75 MB). Runs locally at
-  $\sim 30\times$ real-time on CPU/NNPACK without network requests or microphone timeouts.
+  $\sim 30\times$ real-time on CPU/NNPACK without network requests or microphone timeouts. The first
+  transcription downloads `whisper-tiny` automatically (with visible progress), so transcription needs no
+  manual model setup; when no model is present the service falls back to the platform recognizer.
 - **Background execution (`AudioTranscriptionService`)**: Android foreground service (`FOREGROUND_SERVICE_DATA_SYNC`)
   holding a partial wake lock with ongoing notification progress bar. Allows hour-long lectures to finish processing
   in 1–2 minutes even when the device screen is locked or another application is active.
