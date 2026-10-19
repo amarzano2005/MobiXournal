@@ -33,13 +33,14 @@ Rather than relying on vulnerable loose sidecars in user folders:
   referenced twice is stored once: a save and an open go through
   `MobixAssetSink.add(bytes, AssetKind.AUDIO)` and `io/BundledPageAssets.kt` respectively.
 - **The container is the one the bytes are in**, and the extension says which. A `.mobix` document
-  records **Ogg/Opus** (`audio/OpusAudioRecorder.kt`: 48 kHz mono, 32 kbps, `MediaCodec`'s `audio/opus`
-  into the platform's Ogg muxer), so its recordings are `aud_<sha256>.ogg` — $\approx 15\text{ MB}$ an
+  records compressed audio: **Ogg/Opus** (`audio/OpusAudioRecorder.kt`: 48 kHz mono, 32 kbps, `MediaCodec`'s `audio/opus`
+  into the platform's Ogg muxer) with universal **M4A/AAC** fallback (`audio/AacAudioRecorder.kt`: 44.1 kHz mono, 32 kbps,
+  `audio/mp4a-latm` into MP4 muxer), so its recordings are `aud_<sha256>.ogg` or `aud_<sha256>.m4a` — $\approx 15\text{ MB}$ an
   hour against $> 300\text{ MB}$ of WAV. A `.xopp` document records 16-bit mono RIFF/WAVE, because its
-  audio leaves as a sidecar desktop Xournal++ plays, and a `.mobix` on a device without the Ogg muxer or
-  the Opus encoder falls back to that same WAV path. Nothing is ever transcoded or renamed: an `.ogg`
+  audio leaves as a sidecar desktop Xournal++ plays, and a `.mobix` on a device without any compressed encoder
+  falls back to that same WAV path. Nothing is ever transcoded or renamed: an `.ogg`
   stream from another writer keeps `.ogg`, and the sniffed container is what an entry is named after
-  (`MobixAssetSink.suffixFor` — `RIFF`/`WAVE` -> `wav`, `OggS` -> `ogg`).
+  (`MobixAssetSink.suffixFor` — `RIFF`/`WAVE` -> `wav`, `OggS` -> `ogg`, `ftyp` -> `m4a`).
 - On open, the recording is adopted into the app's audio store when **the page that names it is read**
   (`io/BundledPageAssets.kt`), under the sidecar name the stroke carries — so playback needs nothing
   beside the file, and the `.xopp` export still names that sidecar and pushes a copy out for it.

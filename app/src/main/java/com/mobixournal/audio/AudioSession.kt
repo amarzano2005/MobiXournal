@@ -28,6 +28,7 @@ class AudioSession(
 
     private val wav = AudioRecorder()
     private val opus = OpusAudioRecorder()
+    private val aac = AacAudioRecorder()
     private val player = AudioPlayer()
     private val store = AudioStore(context)
 
@@ -35,11 +36,13 @@ class AudioSession(
     var currentFile: String? = null
         private set
 
-    /** True while the microphone is being captured — whichever of the two encoders took it. */
-    val isRecording: Boolean get() = wav.isRecording || opus.isRecording
+    /** True while the microphone is being captured — whichever of the encoders took it. */
+    val isRecording: Boolean get() = wav.isRecording || opus.isRecording || aac.isRecording
 
     /** True while recording is active but paused. */
-    val isRecordingPaused: Boolean get() = (opus.isRecording && opus.isPaused) || (wav.isRecording && wav.isPaused)
+    val isRecordingPaused: Boolean get() = (opus.isRecording && opus.isPaused) ||
+        (aac.isRecording && aac.isPaused) ||
+        (wav.isRecording && wav.isPaused)
 
     /** True while a clip is sounding — false while one is merely held (a pause, or a scrub). */
     val isPlaying: Boolean get() = player.isSounding
@@ -58,9 +61,10 @@ class AudioSession(
 
     /** Optional listener receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)` while recording. */
     var onPcmData: ((ByteArray, Int, Int) -> Unit)?
-        get() = opus.onPcmData ?: wav.onPcmData
+        get() = opus.onPcmData ?: aac.onPcmData ?: wav.onPcmData
         set(value) {
             opus.onPcmData = value
+            aac.onPcmData = value
             wav.onPcmData = value
         }
 
@@ -86,18 +90,23 @@ class AudioSession(
      * (denied permission, no mic, another app holding it) — the caller reports that to the user.
      *
      * @param compressed whether the document this recording belongs to is written as a `.mobix`, whose
-     *   container bundles the audio and can afford the Opus codec. A `.xopp` records WAV instead, and
-     *   so does a `.mobix` whose device has no Ogg muxer or no Opus encoder ([OpusAudioRecorder.start]
-     *   refusing is the fallback, not an error).
+     *   container bundles the audio and can afford compressed codecs (Opus, AAC fallback). A `.xopp` records
+     *   WAV instead, and so does a `.mobix` whose device has neither Opus nor AAC encoders available.
      */
     fun startRecording(compressed: Boolean = false): String? {
         if (isRecording) return currentFile
         if (compressed) {
-            val name = audioFileName(clock(), extension = OpusAudioRecorder.CONTAINER_SUFFIX)
-            if (opus.start(store.local(name))) {
-                currentFile = name
+            val opusName = audioFileName(clock(), extension = OpusAudioRecorder.CONTAINER_SUFFIX)
+            if (opus.start(store.local(opusName))) {
+                currentFile = opusName
                 onStateChanged?.invoke()
-                return name
+                return opusName
+            }
+            val aacName = audioFileName(clock(), extension = AacAudioRecorder.CONTAINER_SUFFIX)
+            if (aac.start(store.local(aacName))) {
+                currentFile = aacName
+                onStateChanged?.invoke()
+                return aacName
             }
         }
         val name = audioFileName(clock())
@@ -110,7 +119,11 @@ class AudioSession(
     /** Pause recording if currently recording and not already paused. */
     fun pauseRecording(): Boolean {
         if (!isRecording || isRecordingPaused) return false
-        if (opus.isRecording) opus.pause() else wav.pause()
+        when {
+            opus.isRecording -> opus.pause()
+            aac.isRecording -> aac.pause()
+            else -> wav.pause()
+        }
         onStateChanged?.invoke()
         return true
     }
@@ -118,14 +131,22 @@ class AudioSession(
     /** Resume recording if currently paused. */
     fun resumeRecording(): Boolean {
         if (!isRecording || !isRecordingPaused) return false
-        if (opus.isRecording) opus.resume() else wav.resume()
+        when {
+            opus.isRecording -> opus.resume()
+            aac.isRecording -> aac.resume()
+            else -> wav.resume()
+        }
         onStateChanged?.invoke()
         return true
     }
 
     /** Finish the recording and return the file written, or null if none was running. */
     fun stopRecording(): File? {
-        val file = (if (opus.isRecording) opus.stop() else wav.stop()) ?: return null
+        val file = when {
+            opus.isRecording -> opus.stop()
+            aac.isRecording -> aac.stop()
+            else -> wav.stop()
+        } ?: return null
         currentFile = null
         onStateChanged?.invoke()
         return file
@@ -139,6 +160,7 @@ class AudioSession(
         val name = currentFile ?: return null
         val elapsed = when {
             opus.isRecording -> opus.elapsedMs()
+            aac.isRecording -> aac.elapsedMs()
             wav.isRecording -> wav.elapsedMs()
             else -> return null
         }

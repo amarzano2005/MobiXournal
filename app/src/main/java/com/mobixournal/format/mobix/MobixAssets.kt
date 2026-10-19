@@ -85,6 +85,7 @@ internal class MobixAssetSink {
                 tag(0, "RIFF") && tag(8, "WEBP") -> "webp"
                 tag(0, "RIFF") && tag(8, "WAVE") -> "wav"
                 tag(0, "OggS") -> "ogg"
+                tag(4, "ftyp") -> "m4a"
                 else -> "bin"
             }
         }
