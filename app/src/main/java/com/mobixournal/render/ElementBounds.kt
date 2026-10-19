@@ -79,10 +79,10 @@ object ElementBounds {
      */
     fun isHitTestable(element: Element): Boolean = when (element) {
         is RawElement -> false
-        // Plot and Table are living entities with selection and move support (`docs/mobix-elements.md`).
-        // The other two keep an empty box and are not hit-testable until their respective editors land.
-        is PlotElement, is TableElement -> true
-        is ParametricShapeElement, is CircuitElement -> false
+        // Plot, Table and Circuit are living entities with selection and move support (`docs/mobix-elements.md`).
+        // The remaining one (parametricShape) keeps an empty box and is not hit-testable until its editor lands.
+        is PlotElement, is TableElement, is CircuitElement -> true
+        is ParametricShapeElement -> false
         is Stroke -> element.points.isNotEmpty()
         else -> true
     }
@@ -98,12 +98,13 @@ object ElementBounds {
         is TexImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is PlotElement -> plotBounds(element)
         is TableElement -> tableBounds(element)
+        is CircuitElement -> circuitBounds(element)
         // An element we don't model has no geometry we can trust; the empty box keeps it out of
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
-        // The other living entities carry their own geometry (a shape's vertices) and are
-        // drawn through it, but their box stays deliberately empty until their editors land (`docs/mobix-elements.md`).
-        is ParametricShapeElement, is CircuitElement -> Bounds(0.0, 0.0, 0.0, 0.0)
+        // The other living entity (parametricShape) carries its own geometry and is
+        // drawn through it, but its box stays deliberately empty until its editor lands (`docs/mobix-elements.md`).
+        is ParametricShapeElement -> Bounds(0.0, 0.0, 0.0, 0.0)
     }
 
     private fun tableBounds(t: TableElement): Bounds {
@@ -139,5 +140,38 @@ object ElementBounds {
         val h = lines.size * t.size * TEXT_LINE_H
         val w = (lines.maxOfOrNull { it.length } ?: 1) * t.size * TEXT_CHAR_W
         return Bounds(t.x, t.y, t.x + w, t.y + h)
+    }
+
+    private fun circuitBounds(c: CircuitElement): Bounds {
+        val ink = CircuitInk.ink(c)
+        if (ink.isNullOrEmpty()) {
+            val half = CircuitInk.DEFAULT_LENGTH_PT / 2.0
+            return Bounds(c.positionX - half, c.positionY - half, c.positionX + half, c.positionY + half)
+        }
+        var left = Double.MAX_VALUE
+        var top = Double.MAX_VALUE
+        var right = -Double.MAX_VALUE
+        var bottom = -Double.MAX_VALUE
+        for (el in ink) {
+            when (el) {
+                is Stroke -> {
+                    val sb = strokeBounds(el)
+                    if (sb.left < left) left = sb.left
+                    if (sb.top < top) top = sb.top
+                    if (sb.right > right) right = sb.right
+                    if (sb.bottom > bottom) bottom = sb.bottom
+                }
+                is TextElement -> {
+                    val tb = textBounds(el)
+                    if (tb.left < left) left = tb.left
+                    if (tb.top < top) top = tb.top
+                    if (tb.right > right) right = tb.right
+                    if (tb.bottom > bottom) bottom = tb.bottom
+                }
+                else -> Unit
+            }
+        }
+        return if (left <= right && top <= bottom) Bounds(left, top, right, bottom)
+        else Bounds(c.positionX, c.positionY, c.positionX, c.positionY)
     }
 }

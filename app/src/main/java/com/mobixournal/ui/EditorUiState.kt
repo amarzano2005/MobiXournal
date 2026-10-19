@@ -74,6 +74,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var editingPlot by mutableStateOf<com.mobixournal.format.model.PlotElement?>(null)
     /** The existing [TableElement] cell being edited in place, or null when none is. */
     var editingTableCell by mutableStateOf<EditingTableCell?>(null)
+    /** The existing [CircuitElement] being edited in place, or null when none is. */
+    var editingCircuit by mutableStateOf<com.mobixournal.format.model.CircuitElement?>(null)
     /**
      * The page whose **bookmark editor** is open (0-based), or null when none is. Opening it for a
      * page that has no bookmark adds one; opening it for a bookmarked page edits or deletes that one.

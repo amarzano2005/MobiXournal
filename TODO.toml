@@ -78,62 +78,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "living-circuit-editor"
-title = "Living circuit editor: select it, edit symbol and value in place, wire pins"
-description = "The third family in the one-at-a-time sequence of docs/mobix-elements.md. The model is written and tested - format/mobix/MobixCircuitCodec.kt, with render/CircuitInk.kt drawing the symbol; symbol names an open key set so an unrecognised kind stays a matter for the library; a component has no bounds in the file at all, because its outline is the library outline and a copy of it could go stale; pins are magnetic anchors relative to position and before rotation, with an optional connectedTo net, and a component with no pins is a plain symbol. What is missing is everything the plot family got: creation from the existing circuit tool (EditorTool.RESISTOR and its family, which draw static glyph strokes today like the table tool), a box that does not lie once rotation is applied, a selection action bar entry, and an in-place editor for the symbol, the value text and the pin wiring. Investigate those and add the task-level children. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 610
-created = 2026-10-13
-tags = ["circuit", "mobix"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "insert-a-living-circuit-from-the-circuit-tool"
-title = "Insert a living circuit from the circuit tool"
-description = "Make the circuit tool author a living CircuitElement instead of a static glyph stroke, mirroring the plot (render/PlotElementFactory.kt) and the table factory of this epic. The factory takes the placement the tool already computes plus the symbol picked from the library render/CircuitInk.kt draws, and emits position, rotation, stroke colour and width together with the pin anchors that belong to the symbol, which are relative to position and before rotation and carry no net until one is wired (docs/mobix-elements.md). The symbol key set stays open: a build that does not know a symbol says so rather than inventing ink for it. Verify with JVM unit tests: a placement in gives the expected symbol and pins, an unknown symbol is refused rather than drawn, and the element survives a write and read through MobixCircuitCodec."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 620
-created = 2026-10-13
-tags = ["circuit", "mobix"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "make-the-circuit-family-selectable-on-the-canvas"
-title = "Make the circuit family selectable on the canvas"
-description = "render/ElementBounds.kt answers an empty box and isHitTestable = false for the circuit family today (docs/mobix-elements.md), so nothing can select one. Derive the box from the symbol library outline with position and rotation applied - a component has no bounds in the file, so this box is always computed and never stored - and hand it to the existing selection machinery so a component can be tap-picked, marqueed over, moved, rotated and deleted (render/SelectionOps.kt, with the plot as the precedent). A rotated symbol must be pickable exactly where its outline sits, so the box maths is what the tests pin. Verify with JVM unit tests on the box under rotation plus one emulator pass selecting and rotating a component."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 630
-created = 2026-10-13
-tags = ["circuit"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "edit-a-circuits-symbol-value-and-pin-nets-in-place"
-title = "Edit a circuit symbol, value and pin nets in place"
-description = "The circuit editing surface (docs/mobix-elements.md): a tap on a selected component opens an in-place editor offering the symbol library, the value text (for example 10 kohm) and the drawn stroke style, while dragging a pin snaps it magnetically onto another pin and writes connectedTo with the net, which is dropped again when the pin is pulled free. The editor draws through render/LivingInk.kt so screen, SVG and PDF stay in step, keeps every field it has no input for, and is fully undoable. Magnetic snapping is geometry plus a distance threshold, so it belongs in a pure, unit-tested function rather than in the view. Verify on the emulator with a stylus: place two components, snap a pin, rename a value, release the pin, undo, and check logcat."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 640
-created = 2026-10-13
-tags = ["circuit", "mobix"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "shape-perfection-engine-with-300ms-pen-dwell-recognition"
 title = "Shape perfection engine: dwell recognition and living vertex handles"
 description = "docs/shape-perfection-engine.md specifies the shape engine: a dwell trigger (tip travelling under 3.0 pt for 300 ms before touch-up, with an exponential moving average cancelling micro-jitter), a multi-class classifier reading curvature profile, aspect ratio, closure and vertex angles against the documented invariants (line with regression R2 above 0.96, circle closing within 10 percent with radial variance under 0.08, rectangle corners within 10 degrees of a right angle, triangle angles summing to 180), and a living ParametricShapeElement with draggable vertex handles. Investigate the gap - the dwell constants, which classes the recogniser can already name, how a recognised shape becomes a living element instead of ink, and what the selection and handle machinery must learn - then add the task-level children. Produce tasks, not code."

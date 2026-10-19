@@ -11,6 +11,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.view.MotionEvent
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
@@ -271,6 +272,35 @@ fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
  * keeps the same layer, z-order, and id, and repaints.
  */
 fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
+    val before = doc
+    val index = selection?.pageIndex
+    if (index != null) {
+        windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
+    } else {
+        doc = ElementEdits.replaceElement(doc, old, new) ?: return
+    }
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
+/**
+ * Returns the currently selected [CircuitElement] if the active selection consists of exactly one circuit component.
+ */
+fun DrawingSurfaceView.singleSelectedCircuit(): CircuitElement? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? CircuitElement
+}
+
+/**
+ * Replace [old] circuit element with [new] in place: records history for undo,
+ * keeps the same layer, z-order, and id, and repaints.
+ */
+fun DrawingSurfaceView.replaceCircuitElement(old: CircuitElement, new: CircuitElement) {
     val before = doc
     val index = selection?.pageIndex
     if (index != null) {

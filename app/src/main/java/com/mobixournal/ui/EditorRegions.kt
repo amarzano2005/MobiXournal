@@ -1724,8 +1724,12 @@ fun EditorPaneView(
                 TableCellEditorDialog(
                     ui = ui,
                     pane = state,
-                    // A fixed modal dialog: it positions, sizes and pads itself in the window —
-                    // no canvas anchoring, no external sizing to feed it.
+                )
+            }
+            if (ui.editingCircuit != null) {
+                CircuitEditorDialog(
+                    ui = ui,
+                    pane = state,
                 )
             }
         }

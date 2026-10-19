@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import android.view.MotionEvent
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
@@ -258,7 +259,8 @@ internal class SelectionGestureController(
     fun isAllStrokes(sel: ActiveSelection): Boolean {
         val page = pageAt(sel.pageIndex) ?: return false
         return sel.refs.isNotEmpty() && sel.refs.all {
-            page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) is Stroke
+            val el = page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex)
+            el is Stroke || el is CircuitElement
         }
     }
 

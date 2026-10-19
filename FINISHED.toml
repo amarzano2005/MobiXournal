@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "edit-a-circuits-symbol-value-and-pin-nets-in-place"
+title = "Edit a circuit symbol, value and pin nets in place"
+description = "The circuit editing surface (docs/mobix-elements.md): a tap on a selected component opens an in-place editor offering the symbol library, the value text (for example 10 kohm) and the drawn stroke style, while dragging a pin snaps it magnetically onto another pin and writes connectedTo with the net, which is dropped again when the pin is pulled free. The editor draws through render/LivingInk.kt so screen, SVG and PDF stay in step, keeps every field it has no input for, and is fully undoable. Magnetic snapping is geometry plus a distance threshold, so it belongs in a pure, unit-tested function rather than in the view. Verify on the emulator with a stylus: place two components, snap a pin, rename a value, release the pin, undo, and check logcat."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-19
+tags = ["circuit", "mobix"]
+
+[[task]]
+id = "make-the-circuit-family-selectable-on-the-canvas"
+title = "Make the circuit family selectable on the canvas"
+description = "render/ElementBounds.kt answers an empty box and isHitTestable = false for the circuit family today (docs/mobix-elements.md), so nothing can select one. Derive the box from the symbol library outline with position and rotation applied - a component has no bounds in the file, so this box is always computed and never stored - and hand it to the existing selection machinery so a component can be tap-picked, marqueed over, moved, rotated and deleted (render/SelectionOps.kt, with the plot as the precedent). A rotated symbol must be pickable exactly where its outline sits, so the box maths is what the tests pin. Verify with JVM unit tests on the box under rotation plus one emulator pass selecting and rotating a component."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-19
+tags = ["circuit"]
+
+[[task]]
+id = "insert-a-living-circuit-from-the-circuit-tool"
+title = "Insert a living circuit from the circuit tool"
+description = "Make the circuit tool author a living CircuitElement instead of a static glyph stroke, mirroring the plot (render/PlotElementFactory.kt) and the table factory of this epic. The factory takes the placement the tool already computes plus the symbol picked from the library render/CircuitInk.kt draws, and emits position, rotation, stroke colour and width together with the pin anchors that belong to the symbol, which are relative to position and before rotation and carry no net until one is wired (docs/mobix-elements.md). The symbol key set stays open: a build that does not know a symbol says so rather than inventing ink for it. Verify with JVM unit tests: a placement in gives the expected symbol and pins, an unknown symbol is refused rather than drawn, and the element survives a write and read through MobixCircuitCodec."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-19
+tags = ["circuit", "mobix"]
+
+[[task]]
+id = "living-circuit-editor"
+title = "Living circuit editor: select it, edit symbol and value in place, wire pins"
+description = "The third family in the one-at-a-time sequence of docs/mobix-elements.md. The model is written and tested - format/mobix/MobixCircuitCodec.kt, with render/CircuitInk.kt drawing the symbol; symbol names an open key set so an unrecognised kind stays a matter for the library; a component has no bounds in the file at all, because its outline is the library outline and a copy of it could go stale; pins are magnetic anchors relative to position and before rotation, with an optional connectedTo net, and a component with no pins is a plain symbol. What is missing is everything the plot family got: creation from the existing circuit tool (EditorTool.RESISTOR and its family, which draw static glyph strokes today like the table tool), a box that does not lie once rotation is applied, a selection action bar entry, and an in-place editor for the symbol, the value text and the pin wiring. Investigate those and add the task-level children. Produce tasks, not code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-19
+tags = ["circuit", "mobix"]
+
+[[task]]
 id = "compact-glass-table-editor-dialog"
 title = "Compact the table editor dialog and dress it in the shared floating glass material"
 description = "The fixed whole-table editor dialog now wears the same frosted-glass material as the rest of the floating chrome: FloatingSurface (shared fill, rim, panel corner radius) with the family's liquid-glass spring entry, capped at 380dp instead of a full-screen card. Compact layout: one-line header (title + rows x cols), denser cell grid (max 300dp), and a single bottom strip merging the align/bold pills (acting on the last-focused cell, now labelled RxC) with Annulla/Salva. Also fixed a latent Kotlin visibility violation in TranscriptionCodec (public encodeNode exposing the internal JsonNode.Obj, now internal). Full testDebugUnitTest suite green."

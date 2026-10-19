@@ -185,17 +185,22 @@ in place (`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog h
 `parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. The dialog owns the
 shaded integral area (`shadeIntegral`), whose from/to pair drives the wash, the integral the summary
 reports and the ink an export compiles ([math-engine.md](math-engine.md), section 3).
-The other three families follow one at a time, each when its own editor lands ([future-roadmap.md](future-roadmap.md), Step 2).
 The table is the second family to become editable: authored as a living `TableElement` by the table tool
 (`render/TableElementFactory.kt`), given its real grid bounding box and hit-testability by `render/ElementBounds.kt`,
 and moved and resized by `render/SelectionOps.kt` (where a move shifts its origin and keeps `colWidths`/`rowHeights`
 authoritative, while handles rescale the grid columns and rows).
 
-Until their respective editors land, the remaining two living entities (shape, circuit) are
+The circuit component is the third family: authored as a living `CircuitElement` by circuit tools
+(`render/CircuitElementFactory.kt`), given its rotated stroke bounding box and hit-testability by
+`render/ElementBounds.kt`, moved, rotated, and restyled by `render/SelectionOps.kt`, and edited in place via
+`ui/CircuitEditorDialog.kt` (symbol picker, value text, stroke width, rotation, color, and pin connectivity with
+magnetic pin snapping via `render/CircuitSnapping.kt`).
+
+Until its respective editor lands, the remaining living entity (parametric shape) is
 **visible but not selectable**. `ElementBounds` answers an empty box (0,0,0,0) and `isHitTestable = false`
-for them — a real box would let a marquee pick up something whose geometry has no editor yet — so a
-marquee, move or delete leaves them alone. The `.xopp` synthesis export compiles all four into the same
-ink before a file leaves the app ([mobix-format.md](mobix-format.md)).
+for it — a real box would let a marquee pick up something whose geometry has no editor yet — so a
+marquee, move or delete leaves it alone. The `.xopp` synthesis export compiles living entities into
+standard `.xopp` ink before a file leaves the app ([mobix-format.md](mobix-format.md)).
 
 ### Table (`table`)
 

@@ -24,6 +24,7 @@ import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
+import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.render.singleSelectedPlot
 import com.mobixournal.render.singleSelectedTable
 import kotlin.math.roundToInt
@@ -80,7 +81,7 @@ fun SelectionActionAnchor(
     val rect = pane.selectionRect
     val canPaste = canPasteOnCanvas(pane, ui)
     if (rect == null && !canPaste) return
-    if (ui.editingTableCell != null || ui.editingPlot != null) return
+    if (ui.editingTableCell != null || ui.editingPlot != null || ui.editingCircuit != null) return
     val palette = rememberColorPaletteState(settings, onSettingsChange)
     var barSize by remember { mutableStateOf(IntSize.Zero) }
     val appear = rememberAppearAlpha(measured = barSize.width > 0)
@@ -121,6 +122,12 @@ fun SelectionActionAnchor(
         onEditTable = {
             surface?.singleSelectedTable()?.let { table ->
                 ui.editingTableCell = EditingTableCell(table, 0, 0)
+            }
+        },
+        canEditCircuit = surface?.singleSelectedCircuit() != null,
+        onEditCircuit = {
+            surface?.singleSelectedCircuit()?.let { circuit ->
+                ui.editingCircuit = circuit
             }
         },
         modifier = modifier

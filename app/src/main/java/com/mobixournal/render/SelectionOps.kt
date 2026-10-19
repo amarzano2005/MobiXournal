@@ -61,8 +61,12 @@ object SelectionOps {
         is TableElement -> element.copy(
             left = element.left + dx, top = element.top + dy,
         )
+        // CircuitElement translates its position anchor while pins move with it.
+        is CircuitElement -> element.copy(
+            positionX = element.positionX + dx, positionY = element.positionY + dy,
+        )
         // The remaining living entities keep their geometry untouched until their editors land.
-        is ParametricShapeElement, is CircuitElement -> element
+        is ParametricShapeElement -> element
     }
 
     /**
@@ -176,8 +180,20 @@ object SelectionOps {
                     rowHeights = newRowHeights,
                 )
             }
+            is CircuitElement -> {
+                val newX = element.positionX * sx + dx
+                val newY = element.positionY * sy + dy
+                val scaledPins = element.pins.map {
+                    it.copy(relX = it.relX * sx, relY = it.relY * sy)
+                }
+                element.copy(
+                    positionX = newX,
+                    positionY = newY,
+                    pins = scaledPins,
+                )
+            }
             // The remaining living entities keep their geometry untouched until their editors land.
-            is ParametricShapeElement, is CircuitElement -> element
+            is ParametricShapeElement -> element
         }
     }
 
@@ -246,6 +262,20 @@ object SelectionOps {
                 StrokePoint(px + rx * c - ry * s, py + rx * s + ry * c, it.width)
             })
         }
+        is CircuitElement -> {
+            val c = cos(angle); val s = sin(angle)
+            val rx = element.positionX - px
+            val ry = element.positionY - py
+            val newX = px + rx * c - ry * s
+            val newY = py + rx * s + ry * c
+            val deg = Math.toDegrees(angle)
+            val newRot = (element.rotation + deg) % 360.0
+            element.copy(
+                positionX = newX,
+                positionY = newY,
+                rotation = if (newRot < 0.0) newRot + 360.0 else newRot,
+            )
+        }
         else -> element
     }
 
@@ -288,10 +318,14 @@ object SelectionOps {
         is TextElement -> if (color != null) element.copy(color = color) else element
         is TexImageElement -> if (color != null) element.copy(color = color) else element
         is ImageElement -> element
-        is RawElement -> element
+        is CircuitElement -> {
+            var e = if (color != null) element.copy(strokeColor = color) else element
+            if (widthPt != null) e = e.copy(strokeWidth = widthPt)
+            e
+        }
         // A living entity's colour is part of its own record (a plot's curves, a table's rules), not a
         // single style this op could set, so it is left alone rather than half-restyled.
-        is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> element
+        is TableElement, is PlotElement, is ParametricShapeElement, is RawElement -> element
     }
 
     /**

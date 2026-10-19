@@ -443,6 +443,16 @@ internal fun DrawingSurfaceView.commitCurrent() {
         commitTableInsertion(raw ?: emptyList())
         return
     }
+    if (shaping && shapeKind?.let { CircuitElementFactory.isCircuitKind(it) } == true) {
+        val kind = shapeKind!!
+        current = null
+        currentStrokes = null
+        shaping = false
+        cancelHoldSnap()
+        holdSnapped = false
+        commitCircuitInsertion(kind)
+        return
+    }
 
     val multi = currentStrokes
     if (multi != null) {
@@ -544,6 +554,21 @@ private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {
         )
     }
     ElementEdits.addElement(doc, currentPage, table) { resolvedActiveLayer(it) }
+        ?.let { commitElementEdit(it) }
+    render()
+}
+
+private fun DrawingSurfaceView.commitCircuitInsertion(kind: ShapeKind) {
+    val circuit = CircuitElementFactory.circuitElementFor(
+        symbol = kind.name,
+        startX = shapeStartX,
+        startY = shapeStartY,
+        endX = shapeEndX,
+        endY = shapeEndY,
+        strokeColor = strokeColor(),
+        strokeWidth = shapeWidthPt,
+    ) ?: return
+    ElementEdits.addElement(doc, currentPage, circuit) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }
     render()
 }

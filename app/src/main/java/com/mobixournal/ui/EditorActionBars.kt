@@ -90,6 +90,8 @@ fun SelectionActionBar(
     onEditPlot: () -> Unit = {},
     canEditTable: Boolean = false,
     onEditTable: () -> Unit = {},
+    canEditCircuit: Boolean = false,
+    onEditCircuit: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // The one floating surface: the menus' fill and the menus' *edge* ([FloatingSurface]), at the
@@ -108,6 +110,9 @@ fun SelectionActionBar(
                 }
                 if (canEditTable) {
                     BarIconButton("Edit table", Icons.Outlined.Edit, onEditTable)
+                }
+                if (canEditCircuit) {
+                    BarIconButton("Edit circuit", Icons.Outlined.Edit, onEditCircuit)
                 }
                 BarIconButton("Cut", Icons.Outlined.ContentCut, onCut)
                 BarIconButton("Copy", Icons.Outlined.ContentCopy, onCopy)
