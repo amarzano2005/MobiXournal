@@ -156,10 +156,12 @@ and the width it is laid at is the pen slot the figure tool uses (`AppSettings.s
 above). **Resizing** that figure afterwards is a different act: dragging a selection handle stretches the
 *geometry* and leaves every vertex's width alone (`SelectionOps.affineXY(..., scaleWidth = false)`), so an
 arrow made twice as long is twice as long and exactly as thin, and a figure shrunk to annotate a detail
-does not collapse into a smear. Lengthening an arrow therefore never fattens it, and the same holds for
-the V heads of arrows, the axes of the coordinate diagram and every other figure — the head's own size
-still follows the figure's length (`ShapeBuilder.ARROW_HEAD_FRACTION`, clamped), because that is part of
-the geometry.
+does not collapse into a smear. Lengthening an arrow therefore never fattens it **or enlarges its
+head**: the V heads of arrows, the axes of the coordinate diagram and every other figure keep the size
+they were drawn with while the shaft lengthens (`StrokeStretch`, which recognises the repeated-tip V
+`ShapeBuilder` writes). The head's length is chosen only when the figure is first laid down
+(`ShapeBuilder.ARROW_HEAD_FRACTION`, clamped); stretching it afterwards moves the head with the tip
+but leaves the barbs where they were, so the result reads as a longer arrow, not a bigger one.
 
 The one case where the width *does* follow the scale is **re-homing** ink onto another page's frame
 (`affineXY`'s default `scaleWidth = true`): that is a change of units, not a resize, and a stroke that
