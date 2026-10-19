@@ -7,6 +7,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.io.canvasGeometryOf
 import com.mobixournal.io.rememberCanvasMode
 import com.mobixournal.panes.EditorPane
+import com.mobixournal.render.DrawingSurfaceDefaults
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
@@ -279,11 +280,14 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
 }
 
 /** Open a fresh blank document in a new tab of [p] and switch to it. */
-internal fun MainActivity.newTab(p: EditorPane = pane) {
+internal fun MainActivity.newTab(
+    p: EditorPane = pane,
+    canvasMode: CanvasMode = newDocumentCanvas,
+) {
     // The "+" belongs to a lane, so the new document opens — and the tools land — in that pane.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
-    p.tabs.open(blankTab(p))
+    p.tabs.open(blankTab(p, canvasMode))
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
     p.persist()
@@ -316,13 +320,30 @@ internal fun MainActivity.newTab(p: EditorPane = pane) {
  * read only by an export — its cut length — so it keeps the default paper rather than inheriting a screen
  * height, and a 2D board covers the canvas by construction and so keeps it too.
  */
-internal fun MainActivity.blankTab(p: EditorPane = pane): OpenTab = OpenTab(
-    TabStore.newId(),
-    MainActivity.UNTITLED,
-    blankDocument(),
-    format = newDocumentFormat,
-    canvasMode = newDocumentCanvas,
-)
+internal fun MainActivity.blankTab(
+    p: EditorPane = pane,
+    canvasMode: CanvasMode = newDocumentCanvas,
+): OpenTab {
+    val format = if (canvasMode != CanvasMode.PAGINATED) {
+        com.mobixournal.format.SaveFormat.MOBIX
+    } else {
+        newDocumentFormat
+    }
+    val surface = p.surface
+    val panePt = if (surface != null && surface.width > 0 && surface.height > 0) {
+        Pair(surface.width.toDouble(), surface.height.toDouble())
+    } else {
+        Pair(DrawingSurfaceDefaults.defaultPageWidth, DrawingSurfaceDefaults.defaultPageHeight)
+    }
+    val doc = boundToPane(blankDocument(), canvasMode, panePt)
+    return OpenTab(
+        TabStore.newId(),
+        MainActivity.UNTITLED,
+        doc,
+        format = format,
+        canvasMode = canvasMode,
+    )
+}
 
 /**
  * [document] with the fixed side of [mode]'s strip set to the pane's own extent — the one number a
@@ -437,46 +458,14 @@ internal fun MainActivity.toggleSplitView() {
 }
 
 /**
- * Re-shape the **showing** document onto [mode]'s canvas geometry — the page-format dialog's "this
- * document" answer.
+ * Starts a fresh blank page/tab with [mode]'s canvas geometry.
  *
- * Only a document that has never been written to a file may change shape. A `.mobix` that came from
- * disk keeps the geometry its own `canvas.json` declares, because moving its parts between `pages/`
- * and `chunks/` converts the file rather than recording a preference (`docs/mobix-format.md`), and a
- * silent conversion is exactly what the format policy refuses; the dialog says so instead of doing
- * it. For an unsaved document the shape is still the tab's ([OpenTab.canvasMode]) — the record the
- * next save is written from — so the change is a re-show, with no file involved: a page list becomes
- * the strip of chunks its pages already imply, and a board goes back to the pages its cells stand
- * for.
+ * Called when the user confirms the canvas mode change popup:
+ * because modifying the canvas geometry on the current page is not possible,
+ * a new blank document opens on the chosen canvas mode.
  */
 internal fun MainActivity.applyCanvasModeToDocument(mode: NewDocumentCanvas) {
-    val p = pane
-    val tab = p.tabs.active ?: return
-    val next = mode.mode
-    if (next == tab.canvasMode) return
-    // The live edits are only in the canvas until it is snapshotted, and the re-show reloads the tab.
-    snapshotActiveTab(p)
-    val nextFormat = if (next != CanvasMode.PAGINATED && tab.format != com.mobixournal.format.SaveFormat.MOBIX) {
-        com.mobixournal.format.SaveFormat.MOBIX
-    } else {
-        tab.format
-    }
-    p.tabs.updateActive { current ->
-        val wPt = com.mobixournal.render.DrawingSurfaceDefaults.defaultPageWidth
-        val hPt = com.mobixournal.render.DrawingSurfaceDefaults.defaultPageHeight
-        val reshaped = current.document.copy(
-            pages = current.document.pages.map { it.copy(width = wPt, height = hPt) },
-        )
-        io.rememberCanvasMode(reshaped, next)
-        current.copy(
-            format = nextFormat,
-            canvasMode = next,
-            document = reshaped,
-        )
-    }
-    p.tabs.active?.let { show(it, p) }
-    tabsTick.value++
-    p.persist()
+    newTab(pane, mode.mode)
 }
 
 /** The file name behind a `content://` URI, for the tab's label. Falls back to `UNTITLED`. */

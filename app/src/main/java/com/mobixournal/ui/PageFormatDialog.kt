@@ -86,7 +86,7 @@ internal fun pageSizeLabel(widthPt: Double, heightPt: Double): String {
  * The two belong together because they answer one question — *what is a page of this document* — and
  * because a geometry is not a per-app preference: a document is written in the shape it was created
  * in, so the choice is made here, next to the paper it replaces, and asked about on confirm
- * ([CanvasScopeDialog]). The paper half is hidden for a board ([sized] false), which has no page to
+ * ([CanvasModeChangeDialog]). The paper half is hidden for a board ([sized] false), which has no page to
  * measure; the geometry half is always there, so a board can be turned back into pages.
  *
  * [onConfirm] reports the paper **and** the chosen geometry; the caller decides whether the paper is

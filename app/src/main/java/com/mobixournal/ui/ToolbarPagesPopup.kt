@@ -200,18 +200,20 @@ private fun PageFormatDialogs(
             onExtent = callbacks.onCanvasExtent,
             onConfirm = { w, h, canvas ->
                 onOpen(false)
-                if (canvas != NewDocumentCanvas.of(callbacks.canvasMode)) {
-                    callbacks.onCanvasMode(canvas)
-                }
-                when (canvas) {
-                    NewDocumentCanvas.PAGINATED -> {
-                        if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
-                    }
-                    NewDocumentCanvas.INFINITE_VERTICAL, NewDocumentCanvas.INFINITE_2D -> {
-                        callbacks.onCanvasExtent(w)
-                    }
-                    NewDocumentCanvas.INFINITE_HORIZONTAL -> {
-                        callbacks.onCanvasExtent(h)
+                val currentCanvas = NewDocumentCanvas.of(callbacks.canvasMode)
+                if (canvas != currentCanvas) {
+                    onPending(canvas)
+                } else {
+                    when (canvas) {
+                        NewDocumentCanvas.PAGINATED -> {
+                            if (callbacks.pageSize != null) callbacks.onPageSize(w, h)
+                        }
+                        NewDocumentCanvas.INFINITE_VERTICAL, NewDocumentCanvas.INFINITE_2D -> {
+                            callbacks.onCanvasExtent(w)
+                        }
+                        NewDocumentCanvas.INFINITE_HORIZONTAL -> {
+                            callbacks.onCanvasExtent(h)
+                        }
                     }
                 }
             },
@@ -224,57 +226,42 @@ private fun PageFormatDialogs(
         )
     }
     pending?.let { chosen ->
-        CanvasScopeDialog(
+        CanvasModeChangeDialog(
             canvas = chosen,
-            editable = callbacks.canvasEditable,
-            onThisDocument = { callbacks.onCanvasMode(chosen); onPending(null) },
-            onNewDocuments = { callbacks.onCanvasModeDefault(chosen); onPending(null) },
+            onNewBlankPage = {
+                onPending(null)
+                callbacks.onCanvasMode(chosen)
+            },
             onDismiss = { onPending(null) },
         )
     }
 }
 
 /**
- * "This document, or the next ones?" — the second half of choosing a canvas geometry, asked every
- * time because the two answers write in different places.
- *
- * **This document** changes the shape the open document is drawn (and saved) in, and is offered only
- * while the document is still unsaved ([ToolbarPagesCallbacks.canvasEditable]): a `.mobix` that came
- * from a file keeps the geometry its own `canvas.json` declares, because moving its parts between
- * `pages/` and `chunks/` is a conversion of the file, not a preference
- * (`docs/infinite-canvas.md`). **New documents** only moves the default, exactly as Settings' own
- * control does.
+ * Dialog opened when setting a new canvas mode from an active page.
+ * Prompts the user to start a new blank page with the selected canvas mode
+ * or cancel the operation, as modifying the canvas geometry on the current page is not possible.
  */
 @Composable
-private fun CanvasScopeDialog(
+private fun CanvasModeChangeDialog(
     canvas: NewDocumentCanvas,
-    editable: Boolean,
-    onThisDocument: () -> Unit,
-    onNewDocuments: () -> Unit,
+    onNewBlankPage: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     FloatingDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Canvas: ${canvas.label}") },
+        title = { Text("Modalità Canvas") },
         text = {
             Text(
-                if (editable) {
-                    "Change this document, or only the ones you create from now on?"
-                } else {
-                    "This document keeps the canvas it was saved with — a saved document's geometry " +
-                        "is part of its file. The choice will apply to the documents you create from " +
-                        "now on (and Save As can write this one out as a new document)."
-                },
+                "Non è possibile modificare il Canvas sulla pagina attuale.\n\n" +
+                    "Vuoi avviare una nuova pagina vuota col nuovo tipo di Canvas («${canvas.label}») oppure annullare l'operazione?",
             )
         },
         confirmButton = {
-            TextButton(onClick = onThisDocument, enabled = editable) { Text("This document") }
+            TextButton(onClick = onNewBlankPage) { Text("Nuova pagina vuota") }
         },
         dismissButton = {
-            Row {
-                TextButton(onClick = onNewDocuments) { Text("New documents only") }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-            }
+            TextButton(onClick = onDismiss) { Text("Annulla") }
         },
     )
 }
