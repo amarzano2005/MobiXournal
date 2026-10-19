@@ -2,11 +2,13 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -567,48 +569,77 @@ private fun TableCellEditorBottomBar(
     val active = state.cells.getOrNull(state.currentRow)?.getOrNull(state.currentCol) ?: TableCell()
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "R${state.currentRow + 1}·C${state.currentCol + 1}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Box(
+            modifier = Modifier
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(6.dp),
+                )
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "R${state.currentRow + 1}·C${state.currentCol + 1}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Spacer(Modifier.width(2.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TableCellEditorStyleIconButton(
+                selected = active.align == TableAlign.LEFT,
+                imageVector = Icons.AutoMirrored.Outlined.FormatAlignLeft,
+                description = "Allinea a sinistra",
+                onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.LEFT) },
+            )
+            TableCellEditorStyleIconButton(
+                selected = active.align == TableAlign.CENTER,
+                imageVector = Icons.Outlined.FormatAlignCenter,
+                description = "Allinea al centro",
+                onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.CENTER) },
+            )
+            TableCellEditorStyleIconButton(
+                selected = active.align == TableAlign.RIGHT,
+                imageVector = Icons.AutoMirrored.Outlined.FormatAlignRight,
+                description = "Allinea a destra",
+                onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.RIGHT) },
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(18.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         )
-        TableCellEditorStyleIconButton(
-            selected = active.align == TableAlign.LEFT,
-            imageVector = Icons.AutoMirrored.Outlined.FormatAlignLeft,
-            description = "Allinea a sinistra",
-            onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.LEFT) },
-        )
-        TableCellEditorStyleIconButton(
-            selected = active.align == TableAlign.CENTER,
-            imageVector = Icons.Outlined.FormatAlignCenter,
-            description = "Allinea al centro",
-            onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.CENTER) },
-        )
-        TableCellEditorStyleIconButton(
-            selected = active.align == TableAlign.RIGHT,
-            imageVector = Icons.AutoMirrored.Outlined.FormatAlignRight,
-            description = "Allinea a destra",
-            onClick = { state.setAlign(state.currentRow, state.currentCol, TableAlign.RIGHT) },
-        )
+
         TableCellEditorStyleIconButton(
             selected = active.bold,
             imageVector = Icons.Outlined.FormatBold,
             description = "Grassetto",
             onClick = { state.toggleBold(state.currentRow, state.currentCol) },
         )
+
         Spacer(Modifier.weight(1f))
+
         TextButton(
             onClick = onCancel,
-            contentPadding = PaddingValues(horizontal = 8.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp),
         ) {
             Text("Annulla", style = MaterialTheme.typography.labelMedium)
         }
         Button(
             onClick = onSave,
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
         ) {
             Text("Salva", style = MaterialTheme.typography.labelMedium)
         }
@@ -626,7 +657,7 @@ private fun TableCellEditorStyleIconButton(
         checked = selected,
         onCheckedChange = { onClick() },
         modifier = Modifier
-            .size(28.dp)
+            .size(32.dp)
             .background(
                 color = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                 shape = RoundedCornerShape(8.dp),
@@ -635,7 +666,7 @@ private fun TableCellEditorStyleIconButton(
         Icon(
             imageVector = imageVector,
             contentDescription = description,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
             tint = if (selected) {
                 MaterialTheme.colorScheme.onPrimaryContainer
             } else {
