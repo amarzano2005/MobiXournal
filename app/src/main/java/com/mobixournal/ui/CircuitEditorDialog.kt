@@ -94,8 +94,8 @@ fun CircuitInspectorAnchor(
         ),
     )
 
-    var valueText by remember(circuit) { mutableStateOf(circuit.value ?: "") }
-    var rotation by remember(circuit) { mutableDoubleStateOf(circuit.rotation) }
+    var valueText by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.value ?: "") }
+    var rotation by remember(circuit.id ?: circuit.hashCode()) { mutableDoubleStateOf(circuit.rotation) }
 
     FloatingSurface(
         modifier = modifier
@@ -125,7 +125,16 @@ fun CircuitInspectorAnchor(
             )
             CircuitRotationControl(
                 rotation = rotation,
-                onRotate = { rotation = (rotation + 90.0) % 360.0 },
+                onRotate = {
+                    val nextRot = (rotation + 90.0) % 360.0
+                    rotation = nextRot
+                    val updated = circuit.copy(
+                        value = valueText.ifBlank { null },
+                        rotation = nextRot,
+                    )
+                    surface?.replaceCircuitElement(circuit, updated)
+                    ui.editingCircuit = updated
+                },
             )
             CircuitInspectorActions(
                 onDismiss = onDismiss,

@@ -1612,8 +1612,10 @@ fun EditorPaneView(
                 // The touch is about to reach the canvas, so the focused pane must already hold the
                 // tool and style the chrome is showing (see [applyLiveStyle]).
                 state.surface?.applyLiveStyle(ui)
-                // Richiedi il focus per ricevere i tasti
-                state.surface?.requestFocus()
+                // Richiedi il focus per ricevere i tasti solo se non stiamo modificando un elemento
+                if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null) {
+                    state.surface?.requestFocus()
+                }
             }
         },
     ) {

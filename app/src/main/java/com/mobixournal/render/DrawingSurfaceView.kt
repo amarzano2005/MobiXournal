@@ -1602,7 +1602,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * untouched and the shape endpoint would land nowhere near a ruled node).
      */
     internal fun snappedPoint(box: PageBox, x: Double, y: Double): Pair<Double, Double> =
-        if (snapToGrid) Snapping.lattice(box.page.background, box.page.width).snap(x, y) else x to y
+        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid)
 
     // --- the setsquare / compass guide: place it, drag it, and rule drawn points against it -------
 

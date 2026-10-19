@@ -507,12 +507,17 @@ internal fun DrawingSurfaceView.commitCurrent() {
         snapped = shape != null || holdWasSnapped
         shape ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
     }
-    if (pts.size >= 2) {
+    val finalPts = pageAt(currentPage)?.let { p ->
+        if (wasShaping || snapped) {
+            CircuitSnapping.snapStrokeEndpoints(pts, CircuitSnapping.collectAllTargets(p))
+        } else pts
+    } ?: pts
+    if (finalPts.size >= 2) {
         // Highlighter and geometric shapes are constant-width → store a single width; the freehand
         // pen keeps its per-vertex pressure. The live line-style is baked in so it round-trips.
         val uniform = tool == Tool.HIGHLIGHTER || wasShaping || snapped
         val stroke = Stroke(
-            tool, strokeColor(), "round", pts, uniform,
+            tool, strokeColor(), "round", finalPts, uniform,
             lineStyle = currentLineStyle,
         )
         appendStroke(currentPage, stroke)

@@ -412,9 +412,14 @@ internal class SelectionGestureController(
     fun moveSelectTo(viewX: Float, viewY: Float) = moveTo(viewX, viewY)
 
     private fun moveTo(viewX: Float, viewY: Float) = transform { sel, start, box ->
+        val rawDx = box.toPtX(viewX, viewport.scrollX) - moveStartPtX
+        val rawDy = box.toPtY(viewY, viewport.scrollY) - moveStartPtY
+        val (dx, dy) = CircuitSnapping.snapTranslation(
+            start.pages.getOrNull(sel.pageIndex), sel.refs, rawDx, rawDy,
+        )
         SelectionOps.translate(
             start.pages, sel.pageIndex, sel.refs,
-            box.toPtX(viewX, viewport.scrollX) - moveStartPtX, box.toPtY(viewY, viewport.scrollY) - moveStartPtY,
+            dx, dy,
         )
     }
 
