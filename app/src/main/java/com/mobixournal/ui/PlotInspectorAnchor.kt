@@ -173,13 +173,16 @@ fun PlotInspectorAnchor(
     val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
     val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
 
-    var dragDelta by remember(plot) { mutableStateOf(Offset.Zero) }
+    val initialAnchorRect = remember(plot.id ?: plot.hashCode()) { rect }
+    val effectiveRect = initialAnchorRect ?: rect
+
+    var dragDelta by remember(plot.id ?: plot.hashCode()) { mutableStateOf(Offset.Zero) }
 
     val baseOffset = plotInspectorOffset(
-        selectionLeft = rect?.left,
-        selectionTop = rect?.top,
-        selectionRight = rect?.right,
-        selectionBottom = rect?.bottom,
+        selectionLeft = effectiveRect?.left,
+        selectionTop = effectiveRect?.top,
+        selectionRight = effectiveRect?.right,
+        selectionBottom = effectiveRect?.bottom,
         inspectorSize = inspectorSize,
         canvasSize = canvasSizePx,
         gapPx = gapPx,
