@@ -439,11 +439,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onPlace: ((PlaceKind, Placement) -> Unit)? = null
     /** Notified when a double-tap lands on a table cell: (table, row, col) — the editor opens fixed, so it needs no geometry. */
     var onTableCellDoubleTap: ((TableElement, Int, Int) -> Unit)? = null
-    internal var lastTableTapTime = 0L
-    internal var lastTableTapX = 0f
-    internal var lastTableTapY = 0f
-    internal var lastTableTapRow = -1
-    internal var lastTableTapCol = -1
+    /** Notified when a double-tap lands on a living plot: (plot). */
+    var onPlotDoubleTap: ((com.mobixournal.format.model.PlotElement) -> Unit)? = null
     /** Notified when the Hand tool receives a centre double-tap, so the editor can toggle full-page (chrome-hidden) view. */
     var onToggleFullPage: (() -> Unit)? = null
     /**

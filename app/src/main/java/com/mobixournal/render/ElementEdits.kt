@@ -5,6 +5,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TextElement
 
 /**
@@ -65,7 +66,8 @@ internal object ElementEdits {
         val oldId = com.mobixournal.format.model.ElementId.idOf(old)
         val layers = page.layers.map { layer ->
             val idx = layer.elements.indexOfFirst {
-                it === old || (oldId != null && com.mobixournal.format.model.ElementId.idOf(it) == oldId)
+                it === old || (oldId != null && com.mobixournal.format.model.ElementId.idOf(it) == oldId) ||
+                    (it is PlotElement && old is PlotElement && (it == old || (it.left == old.left && it.top == old.top && it.right == old.right && it.bottom == old.bottom)))
             }
             if (idx < 0) return@map layer
             changed = true

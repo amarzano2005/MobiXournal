@@ -10,10 +10,13 @@
  */
 package com.mobixournal.render
 
+import android.view.MotionEvent
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
+import kotlin.math.hypot
 
 /**
  * Insert a **plotted function** on the visible page as one undoable edit: the graph's frame, axes,
@@ -163,4 +166,49 @@ fun DrawingSurfaceView.insertPlotElement(
     )
     ElementEdits.addElement(doc, index, element) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }
+}
+
+private var lastPlotTapTime = 0L
+private var lastPlotTapX = 0f
+private var lastPlotTapY = 0f
+private var lastPlotTapPlot: PlotElement? = null
+
+/**
+ * Detect double-tap on a living [PlotElement] to trigger in-place plot editing.
+ */
+internal fun DrawingSurfaceView.tryPlotDoubleTap(event: MotionEvent): Boolean {
+    val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return false
+    val xPt = box.toPtX(event.x, scrollX)
+    val yPt = box.toPtY(event.y, scrollY)
+    val page = pageAt(box.index) ?: return false
+    var targetRef: ElementRef? = null
+    var targetPlot: PlotElement? = null
+    for ((lIdx, layer) in page.layers.withIndex()) {
+        for ((eIdx, el) in layer.elements.withIndex()) {
+            if (el is PlotElement && xPt in el.left..el.right && yPt in el.top..el.bottom) {
+                targetRef = ElementRef(lIdx, eIdx)
+                targetPlot = el
+            }
+        }
+    }
+    val plot = targetPlot ?: return false
+    val now = event.eventTime
+    val isDouble = now - lastPlotTapTime <= doubleTapTimeoutMs &&
+        hypot(event.x - lastPlotTapX, event.y - lastPlotTapY) <= doubleTapSlopPx &&
+        lastPlotTapPlot === plot
+    lastPlotTapTime = if (isDouble) 0L else now
+    lastPlotTapX = event.x
+    lastPlotTapY = event.y
+    lastPlotTapPlot = plot
+    if (isDouble) {
+        targetRef?.let { ref ->
+            selection = ActiveSelection(box.index, setOf(ref))
+            onSelectionChanged?.invoke(true)
+            reportSelectionRect()
+            render()
+        }
+        onPlotDoubleTap?.invoke(plot)
+        return true
+    }
+    return false
 }

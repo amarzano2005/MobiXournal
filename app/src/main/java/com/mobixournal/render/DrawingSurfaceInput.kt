@@ -156,6 +156,8 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     if (kind == PointerKind.FINGER && guideDrag.begin(event, pointerIndex)) return
     // Double-tap on a table cell opens in-place cell editing.
     if (tryTableCellDoubleTap(event)) return
+    // Double-tap on a living plot opens in-place plot editing.
+    if (tryPlotDoubleTap(event)) return
     // Touching a slider anchored to an active plot adjusts the parameter — never a stroke.
     if (gestures.tryBeginSlide(event)) return
     // Touching a divider line inside an active table resizes that column or row.
@@ -190,6 +192,12 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         GestureIntent.IGNORE -> Unit
     }
 }
+
+private var lastTableTapTime = 0L
+private var lastTableTapX = 0f
+private var lastTableTapY = 0f
+private var lastTableTapRow = -1
+private var lastTableTapCol = -1
 
 private fun DrawingSurfaceView.tryTableCellDoubleTap(event: MotionEvent): Boolean {
     val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return false

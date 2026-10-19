@@ -89,17 +89,26 @@ internal fun plotInspectorOffset(
  * Mutable editing state backing the anchored plot inspector.
  */
 internal class PlotInspectorState(
-    var modeTab: Int,
+    initialModeTab: Int,
     val curves: MutableList<CurveEditorState>,
-    var paramX: String,
-    var paramY: String,
-    var xMinText: String,
-    var xMaxText: String,
-    var showCriticalPoints: Boolean,
-    var includeDerivative: Boolean,
-    var includeSummary: Boolean,
+    initialParamX: String,
+    initialParamY: String,
+    initialXMinText: String,
+    initialXMaxText: String,
+    initialShowCriticalPoints: Boolean,
+    initialIncludeDerivative: Boolean,
+    initialIncludeSummary: Boolean,
     val shade: PlotShadeState,
 ) {
+    var modeTab by mutableStateOf(initialModeTab)
+    var paramX by mutableStateOf(initialParamX)
+    var paramY by mutableStateOf(initialParamY)
+    var xMinText by mutableStateOf(initialXMinText)
+    var xMaxText by mutableStateOf(initialXMaxText)
+    var showCriticalPoints by mutableStateOf(initialShowCriticalPoints)
+    var includeDerivative by mutableStateOf(initialIncludeDerivative)
+    var includeSummary by mutableStateOf(initialIncludeSummary)
+
     val xMin: Double? get() = xMinText.toDoubleOrNull()
     val xMax: Double? get() = xMaxText.toDoubleOrNull()
     val rangeOk: Boolean get() = xMin != null && xMax != null && xMax!! > xMin!!
@@ -114,41 +123,27 @@ internal class PlotInspectorState(
 @Composable
 internal fun rememberPlotInspectorState(plot: PlotElement): PlotInspectorState {
     val isParametric = plot.curves.any { it.kind == PlotKind.PARAMETRIC }
-    var modeTab by remember(plot) { mutableStateOf(if (isParametric) 1 else 0) }
-
-    val curves = remember(plot) {
-        mutableStateListOf<CurveEditorState>().apply {
-            addAll(createInitialCurveList(isParametric, plot.curves.map { c ->
-                PlotCurve(c.source, c.color, c.lineStyle, "f", c.kind, c.sourceY)
-            }))
-        }
-    }
-
     val initialParam = plot.curves.firstOrNull { it.kind == PlotKind.PARAMETRIC }
-    var paramX by remember(plot) { mutableStateOf(initialParam?.source ?: "cos(x)") }
-    var paramY by remember(plot) { mutableStateOf(initialParam?.sourceY ?: "sin(x)") }
-
-    var xMinText by remember(plot) { mutableStateOf(formatRangeNumber(plot.xMin)) }
-    var xMaxText by remember(plot) { mutableStateOf(formatRangeNumber(plot.xMax)) }
-    var showCriticalPoints by remember(plot) { mutableStateOf(plot.showCriticalPoints) }
-    var includeDerivative by remember(plot) { mutableStateOf(plot.includeDerivative) }
-    var includeSummary by remember(plot) { mutableStateOf(plot.summaryText != null) }
-
     val shade = remember(plot) {
         PlotShadeState(plot.shadeIntegral, plot.xMin, plot.xMax)
     }
 
-    return remember(plot, modeTab, paramX, paramY, xMinText, xMaxText, showCriticalPoints, includeDerivative, includeSummary, shade) {
+    return remember(plot) {
+        val curves = mutableStateListOf<CurveEditorState>().apply {
+            addAll(createInitialCurveList(isParametric, plot.curves.map { c ->
+                PlotCurve(c.source, c.color, c.lineStyle, "f", c.kind, c.sourceY)
+            }))
+        }
         PlotInspectorState(
-            modeTab = modeTab,
+            initialModeTab = if (isParametric) 1 else 0,
             curves = curves,
-            paramX = paramX,
-            paramY = paramY,
-            xMinText = xMinText,
-            xMaxText = xMaxText,
-            showCriticalPoints = showCriticalPoints,
-            includeDerivative = includeDerivative,
-            includeSummary = includeSummary,
+            initialParamX = initialParam?.source ?: "cos(x)",
+            initialParamY = initialParam?.sourceY ?: "sin(x)",
+            initialXMinText = formatRangeNumber(plot.xMin),
+            initialXMaxText = formatRangeNumber(plot.xMax),
+            initialShowCriticalPoints = plot.showCriticalPoints,
+            initialIncludeDerivative = plot.includeDerivative,
+            initialIncludeSummary = plot.summaryText != null,
             shade = shade,
         )
     }

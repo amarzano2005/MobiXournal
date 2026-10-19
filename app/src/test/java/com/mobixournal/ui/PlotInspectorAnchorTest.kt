@@ -12,6 +12,7 @@ import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -199,5 +200,70 @@ class PlotInspectorAnchorTest {
         assertEquals(updated.parameters, nonNullDecoded.parameters)
         assertEquals(updated.axisColor, nonNullDecoded.axisColor)
         assertEquals(updated.id, nonNullDecoded.id)
+    }
+
+    @Test
+    fun plotInspectorStateTracksFieldChangesAndComputesActiveCurvesAndCanApply() {
+        val curves = mutableListOf(CurveEditorState("sin(x)"))
+        val shade = PlotShadeState(null, -10.0, 10.0)
+        val state = PlotInspectorState(
+            initialModeTab = 0,
+            curves = curves,
+            initialParamX = "cos(t)",
+            initialParamY = "sin(t)",
+            initialXMinText = "-10",
+            initialXMaxText = "10",
+            initialShowCriticalPoints = false,
+            initialIncludeDerivative = false,
+            initialIncludeSummary = false,
+            shade = shade,
+        )
+
+        // Initial state
+        assertTrue(state.rangeOk)
+        assertTrue(state.canApply)
+        assertEquals(1, state.activeCurves.size)
+        assertEquals("sin(x)", state.activeCurves.single().source)
+
+        // Mutating xMin and xMax
+        state.xMinText = "5"
+        state.xMaxText = "2"
+        assertFalse(state.rangeOk)
+        assertFalse(state.canApply)
+
+        state.xMaxText = "15"
+        assertTrue(state.rangeOk)
+        assertTrue(state.canApply)
+
+        // Switch to parametric mode
+        state.modeTab = 1
+        assertEquals(1, state.activeCurves.size)
+        assertEquals(PlotKind.PARAMETRIC, state.activeCurves.single().kind)
+        assertEquals("cos(t)", state.activeCurves.single().source)
+        assertEquals("sin(t)", state.activeCurves.single().sourceY)
+
+        // Mutating parametric inputs
+        state.paramX = "2*cos(t)"
+        state.paramY = "3*sin(t)"
+        assertEquals("2*cos(t)", state.activeCurves.single().source)
+        assertEquals("3*sin(t)", state.activeCurves.single().sourceY)
+
+        // Invalid formula disables canApply
+        state.paramX = "2*cos(t+++"
+        assertFalse(state.canApply)
+
+        // Switch back to cartesian mode
+        state.modeTab = 0
+        state.curves.first().source = "x^2 - 4"
+        assertTrue(state.canApply)
+        assertEquals("x^2 - 4", state.activeCurves.single().source)
+
+        // Mutating boolean flags
+        state.showCriticalPoints = true
+        state.includeDerivative = true
+        state.includeSummary = true
+        assertTrue(state.showCriticalPoints)
+        assertTrue(state.includeDerivative)
+        assertTrue(state.includeSummary)
     }
 }

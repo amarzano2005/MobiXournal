@@ -1506,6 +1506,10 @@ private fun DrawingSurfaceView.bindEditorActions(
         onActivePane(index)
         ui.editingTableCell = EditingTableCell(table, row, col)
     }
+    onPlotDoubleTap = { plot ->
+        onActivePane(index)
+        ui.editingPlot = plot
+    }
     // Remember where an instrument was posed, so it comes back there after a restart. Only the
     // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the
     // page. Writing only on a real change also keeps the place/restore pass from echoing a settings

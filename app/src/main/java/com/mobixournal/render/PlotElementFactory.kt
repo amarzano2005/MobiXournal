@@ -328,7 +328,7 @@ internal object PlotElementFactory {
                 thetaMax = xMax.takeIf { curve.kind == PlotKind.POLAR },
             )
         }
-        val box = PlotBox(original.left, original.top, original.right, original.bottom)
+        val box = PlotBox(original.left, original.top, original.right - original.left, original.bottom - original.top)
         val summary = if (includeSummary) {
             summaryFor(
                 curves = editedCurves,

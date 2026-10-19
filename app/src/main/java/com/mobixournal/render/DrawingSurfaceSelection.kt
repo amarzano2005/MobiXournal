@@ -12,6 +12,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.view.MotionEvent
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TableElement
 
@@ -225,7 +227,12 @@ fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
     // whole-document search (a plot opened from the overlay, with nothing selected).
     val index = selection?.pageIndex
     if (index != null) {
-        windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
+        val replaced = windowEditPage(index) { page ->
+            ElementEdits.replaceElementOn(page, old, new)
+                ?: fallbackReplacePlotOn(page, new)
+                ?: page
+        }
+        if (replaced == null) return
     } else {
         doc = ElementEdits.replaceElement(doc, old, new) ?: return
     }
@@ -233,6 +240,19 @@ fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
     notifyHistory()
     relayout()
     render()
+}
+
+internal fun DrawingSurfaceView.fallbackReplacePlotOn(page: Page, new: PlotElement): Page? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val layer = page.layers.getOrNull(ref.layerIndex) ?: return null
+    if (layer.elements.getOrNull(ref.elementIndex) !is PlotElement) return null
+    val layers = page.layers.toMutableList()
+    val els = layer.elements.toMutableList()
+    els[ref.elementIndex] = new
+    layers[ref.layerIndex] = Layer(els, layer.name)
+    return page.copy(layers = layers)
 }
 
 /**
