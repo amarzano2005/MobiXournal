@@ -144,6 +144,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Open** and **Closed Switches**, a **Transformer** (two coupled windings with core bars) and a **Junction** dot, alongside the passive components above.
 - **Relational Database Tables**:
   - Interactive grid tables with dynamic row and column counters. The row counter counts **data** rows only; the optional header stacks one extra row above them instead of consuming a data row.
+  - In-place cell editor popup on double-tap or selection bar with row/column steppers, scrollable wide-grid support, Tab/Enter keyboard navigation (with auto-expansion on the last cell), and alignment/bold styling.
   - Optional **Relational Header** format (double line dividing attribute columns from data rows).
   - Drag to size or 1-tap center on viewport.
 - **LaTeX Math Formulae**:

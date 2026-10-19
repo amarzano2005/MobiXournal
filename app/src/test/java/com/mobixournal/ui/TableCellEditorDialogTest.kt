@@ -111,4 +111,88 @@ class TableCellEditorDialogTest {
         assertTrue("bold set", bolded[0][0].bold)
         assertEquals("alignment kept from the previous step", TableAlign.CENTER, bolded[0][0].align)
     }
+
+    @Test
+    fun rowAddedAndRemovedPreserveInvariants() {
+        val originalGrid = editorCellsOf(sampleTable())
+        val originalHeights = listOf(30.0, 40.0)
+
+        val (addedGrid, addedHeights) = rowAdded(originalGrid, originalHeights)
+        assertEquals("3 rows after add", 3, addedGrid.size)
+        assertEquals("3 heights after add", 3, addedHeights.size)
+        assertEquals("new row inherits cols", 3, addedGrid[2].size)
+        assertEquals("new row is empty cells", "", addedGrid[2][0].text)
+        assertEquals("new height inherits last row", 40.0, addedHeights[2], 0.001)
+
+        val (removedGrid, removedHeights) = rowRemoved(addedGrid, addedHeights)
+        assertEquals("2 rows after remove", 2, removedGrid.size)
+        assertEquals("2 heights after remove", 2, removedHeights.size)
+
+        // Refuses to remove when down to 1 row
+        val (singleGrid, singleHeights) = rowRemoved(listOf(listOf(TableCell("Only"))), listOf(30.0))
+        assertEquals("1 row kept", 1, singleGrid.size)
+        assertEquals("1 height kept", 1, singleHeights.size)
+    }
+
+    @Test
+    fun columnAddedAndRemovedPreserveInvariants() {
+        val originalGrid = editorCellsOf(sampleTable())
+        val originalWidths = listOf(60.0, 70.0, 80.0)
+
+        val (addedGrid, addedWidths) = columnAdded(originalGrid, originalWidths)
+        assertEquals("4 columns in widths", 4, addedWidths.size)
+        assertTrue("every row has 4 columns", addedGrid.all { it.size == 4 })
+        assertEquals("new column has empty text", "", addedGrid[0][3].text)
+        assertEquals("new width inherits last column", 80.0, addedWidths[3], 0.001)
+
+        val (removedGrid, removedWidths) = columnRemoved(addedGrid, addedWidths)
+        assertEquals("3 columns in widths after remove", 3, removedWidths.size)
+        assertTrue("every row has 3 columns after remove", removedGrid.all { it.size == 3 })
+
+        // Refuses to remove when down to 1 column
+        val (singleGrid, singleWidths) = columnRemoved(listOf(listOf(TableCell("A"))), listOf(50.0))
+        assertEquals("1 col kept", 1, singleWidths.size)
+        assertEquals("1 col in cells kept", 1, singleGrid[0].size)
+    }
+
+    @Test
+    fun applyEditedTableUpdatesGeometryAndCells() {
+        val table = sampleTable()
+        val newCells = listOf(
+            listOf(TableCell("1"), TableCell("2")),
+            listOf(TableCell("3"), TableCell("4")),
+            listOf(TableCell("5"), TableCell("6")),
+        )
+        val newHeights = listOf(20.0, 20.0, 20.0)
+        val newWidths = listOf(50.0, 50.0)
+
+        val updated = applyEditedTable(table, newCells, newHeights, newWidths)
+
+        assertEquals(3, updated.rowHeights.size)
+        assertEquals(2, updated.colWidths.size)
+        assertEquals("1", updated.cell(0, 0).text)
+        assertEquals("6", updated.cell(2, 1).text)
+        assertEquals(table.id, updated.id)
+        assertEquals(table.borderColor, updated.borderColor)
+    }
+
+    @Test
+    fun stateCellNavigationMovesAndAddsRowOnLastCell() {
+        val table = sampleTable()
+        val state = TableCellEditorState(table, initialFocus = 0 to 0)
+
+        state.moveToNextCell(0, 0)
+        assertEquals("moves to col 1", 0 to 1, state.currentRow to state.currentCol)
+
+        state.moveToNextCell(0, 2)
+        assertEquals("wraps to row 1 col 0", 1 to 0, state.currentRow to state.currentCol)
+
+        state.moveToPrevCell(1, 0)
+        assertEquals("wraps back to row 0 col 2", 0 to 2, state.currentRow to state.currentCol)
+
+        // At last cell (row 1, col 2), moveToNextCell auto-adds a row
+        state.moveToNextCell(1, 2, autoAddRow = true)
+        assertEquals("added row: 3 rows now", 3, state.rowHeights.size)
+        assertEquals("focus moved to new row 2 col 0", 2 to 0, state.currentRow to state.currentCol)
+    }
 }

@@ -229,8 +229,10 @@ The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialo
 anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app
 draws edge-to-edge, so `adjustResize` gives it nothing to clamp against) and could only edit one
 cell at a time. Opened by a double tap on a cell or by **Edit table** in the selection bar, the
-dialog shows every cell's text at once in the table's own shape, with align/bold acting on the
-last-focused cell. Nothing tracks the canvas: the dialog is a fixed surface, so the keyboard
+dialog shows every cell's text at once in the table's own shape with horizontal and vertical
+scrolling for wide grids, steppers to add/remove rows and columns, keyboard navigation (Tab,
+Shift+Tab, Enter) with automatic row expansion on the final cell, and align/bold acting on the
+focused cell. Nothing tracks the canvas: the dialog is a fixed surface, so the keyboard
 can never cover it mid-edit.
 
 **Save** is the one commit point: the whole grid is swapped in through

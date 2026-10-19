@@ -45,9 +45,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.render.TableElementFactory
 import com.mobixournal.render.replaceTableElement
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
@@ -61,17 +77,99 @@ internal fun editorCellsOf(table: TableElement): List<List<TableCell>> =
         List(table.colWidths.size) { c -> table.cell(r, c) }
     }
 
+/** Adds a row to the grid and row heights. */
+internal fun rowAdded(
+    cells: List<List<TableCell>>,
+    rowHeights: List<Double>,
+    afterRow: Int? = null,
+    defaultHeight: Double = TableElementFactory.MIN_ROW_HEIGHT_PT,
+): Pair<List<List<TableCell>>, List<Double>> {
+    val cols = if (cells.isNotEmpty()) cells[0].size else 1
+    val newRow = List(cols) { TableCell() }
+    val insertIdx = if (afterRow != null) (afterRow + 1).coerceIn(0, cells.size) else cells.size
+    val newCells = cells.toMutableList().also { it.add(insertIdx, newRow) }
+    val newHeights = rowHeights.toMutableList().also {
+        val h = rowHeights.getOrNull(afterRow ?: (rowHeights.size - 1)) ?: defaultHeight
+        it.add(insertIdx, h)
+    }
+    return newCells to newHeights
+}
+
+/** Removes a row from the grid and row heights (minimum 1 row kept). */
+internal fun rowRemoved(
+    cells: List<List<TableCell>>,
+    rowHeights: List<Double>,
+    atRow: Int? = null,
+): Pair<List<List<TableCell>>, List<Double>> {
+    if (cells.size <= 1 || rowHeights.size <= 1) return cells to rowHeights
+    val removeIdx = if (atRow != null) atRow.coerceIn(0, cells.size - 1) else cells.size - 1
+    val newCells = cells.toMutableList().also { it.removeAt(removeIdx) }
+    val newHeights = rowHeights.toMutableList().also { it.removeAt(removeIdx) }
+    return newCells to newHeights
+}
+
+/** Adds a column to every row in the grid and col widths. */
+internal fun columnAdded(
+    cells: List<List<TableCell>>,
+    colWidths: List<Double>,
+    afterCol: Int? = null,
+    defaultWidth: Double = TableElementFactory.MIN_COL_WIDTH_PT,
+): Pair<List<List<TableCell>>, List<Double>> {
+    val insertIdx = if (afterCol != null) (afterCol + 1).coerceIn(0, colWidths.size) else colWidths.size
+    val newCells = cells.map { row ->
+        row.toMutableList().also { it.add(insertIdx, TableCell()) }
+    }
+    val newWidths = colWidths.toMutableList().also {
+        val w = colWidths.getOrNull(afterCol ?: (colWidths.size - 1)) ?: defaultWidth
+        it.add(insertIdx, w)
+    }
+    return newCells to newWidths
+}
+
+/** Removes a column from every row in the grid and col widths (minimum 1 column kept). */
+internal fun columnRemoved(
+    cells: List<List<TableCell>>,
+    colWidths: List<Double>,
+    atCol: Int? = null,
+): Pair<List<List<TableCell>>, List<Double>> {
+    if (colWidths.size <= 1) return cells to colWidths
+    val removeIdx = if (atCol != null) atCol.coerceIn(0, colWidths.size - 1) else colWidths.size - 1
+    val newCells = cells.map { row ->
+        if (removeIdx in row.indices) row.toMutableList().also { it.removeAt(removeIdx) } else row
+    }
+    val newWidths = colWidths.toMutableList().also { it.removeAt(removeIdx) }
+    return newCells to newWidths
+}
+
+/**
+ * Commits an edited cell grid and geometry onto [original] in one step — one element swap, one undo entry.
+ * Turns into a no-op (returns [original]) if the edited grid is not rectangular in [rowHeights] and [colWidths],
+ * so a malformed edit session can never corrupt a table.
+ */
+internal fun applyEditedTable(
+    original: TableElement,
+    editedCells: List<List<TableCell>>,
+    rowHeights: List<Double>,
+    colWidths: List<Double>,
+): TableElement {
+    val rectangular = editedCells.size == rowHeights.size &&
+        rowHeights.isNotEmpty() && colWidths.isNotEmpty() &&
+        editedCells.all { it.size == colWidths.size }
+    if (!rectangular) return original
+    return original.copy(
+        cells = editedCells,
+        rowHeights = rowHeights,
+        colWidths = colWidths,
+    )
+}
+
 /**
  * Commits an edited cell grid onto [original] in one step — one element swap, one undo entry.
  * Turns into a no-op (returns [original]) if the edited grid is not rectangular in the original's
  * dimensions, so a malformed edit session can never corrupt a table.
  */
-internal fun applyEditedCells(original: TableElement, edited: List<List<TableCell>>): TableElement {
-    val rectangular = edited.size == original.rowHeights.size &&
-        edited.all { it.size == original.colWidths.size }
-    if (!rectangular) return original
-    return original.copy(cells = edited)
-}
+internal fun applyEditedCells(original: TableElement, edited: List<List<TableCell>>): TableElement =
+    applyEditedTable(original, edited, original.rowHeights, original.colWidths)
 
 /** Replaces one cell's text, leaving every other cell — and the target's own styling — alone. */
 internal fun cellTextEdited(
@@ -110,10 +208,13 @@ internal fun cellStyled(
  * grid lives only in this session: **Save** commits it onto the table wholesale, closing without
  * saving throws it away — there is no half-committed state in between.
  */
-internal class TableCellEditorState(initial: TableElement) {
+internal class TableCellEditorState(initial: TableElement, initialFocus: Pair<Int, Int> = 0 to 0) {
     var cells by mutableStateOf(editorCellsOf(initial))
-    var currentRow by mutableStateOf(0)
-    var currentCol by mutableStateOf(0)
+    var rowHeights by mutableStateOf(initial.rowHeights)
+    var colWidths by mutableStateOf(initial.colWidths)
+    var currentRow by mutableStateOf(initialFocus.first.coerceIn(0, (initial.rowHeights.size - 1).coerceAtLeast(0)))
+    var currentCol by mutableStateOf(initialFocus.second.coerceIn(0, (initial.colWidths.size - 1).coerceAtLeast(0)))
+    var focusedCell by mutableStateOf<Pair<Int, Int>?>(currentRow to currentCol)
 
     fun setText(row: Int, col: Int, text: String) {
         cells = cellTextEdited(cells, row, col, text)
@@ -126,6 +227,72 @@ internal class TableCellEditorState(initial: TableElement) {
     fun toggleBold(row: Int, col: Int) {
         val now = cells.getOrNull(row)?.getOrNull(col)?.bold ?: return
         cells = cellStyled(cells, row, col, bold = !now)
+    }
+
+    fun addRow(afterRow: Int? = null) {
+        val (newCells, newHeights) = rowAdded(cells, rowHeights, afterRow)
+        cells = newCells
+        rowHeights = newHeights
+        val targetRow = if (afterRow != null) afterRow + 1 else newCells.size - 1
+        currentRow = targetRow.coerceIn(0, newCells.size - 1)
+        focusedCell = currentRow to currentCol
+    }
+
+    fun removeRow(atRow: Int? = null) {
+        if (rowHeights.size <= 1) return
+        val (newCells, newHeights) = rowRemoved(cells, rowHeights, atRow)
+        cells = newCells
+        rowHeights = newHeights
+        currentRow = currentRow.coerceIn(0, newCells.size - 1)
+        focusedCell = currentRow to currentCol
+    }
+
+    fun addColumn(afterCol: Int? = null) {
+        val (newCells, newWidths) = columnAdded(cells, colWidths, afterCol)
+        cells = newCells
+        colWidths = newWidths
+        val targetCol = if (afterCol != null) afterCol + 1 else newWidths.size - 1
+        currentCol = targetCol.coerceIn(0, newWidths.size - 1)
+        focusedCell = currentRow to currentCol
+    }
+
+    fun removeColumn(atCol: Int? = null) {
+        if (colWidths.size <= 1) return
+        val (newCells, newWidths) = columnRemoved(cells, colWidths, atCol)
+        cells = newCells
+        colWidths = newWidths
+        currentCol = currentCol.coerceIn(0, newWidths.size - 1)
+        focusedCell = currentRow to currentCol
+    }
+
+    fun moveToNextCell(row: Int, col: Int, autoAddRow: Boolean = true) {
+        val totalCols = colWidths.size
+        val totalRows = rowHeights.size
+        if (totalCols == 0 || totalRows == 0) return
+        val isLastCell = row == totalRows - 1 && col == totalCols - 1
+        if (isLastCell && autoAddRow) {
+            addRow()
+            currentRow = totalRows
+            currentCol = 0
+            focusedCell = currentRow to currentCol
+            return
+        }
+        val nextCol = (col + 1) % totalCols
+        val nextRow = if (nextCol == 0) (row + 1) % totalRows else row
+        currentRow = nextRow
+        currentCol = nextCol
+        focusedCell = nextRow to nextCol
+    }
+
+    fun moveToPrevCell(row: Int, col: Int) {
+        val totalCols = colWidths.size
+        val totalRows = rowHeights.size
+        if (totalCols == 0 || totalRows == 0) return
+        val prevCol = if (col - 1 < 0) totalCols - 1 else col - 1
+        val prevRow = if (col - 1 < 0) (if (row - 1 < 0) totalRows - 1 else row - 1) else row
+        currentRow = prevRow
+        currentCol = prevCol
+        focusedCell = prevRow to prevCol
     }
 }
 
@@ -148,7 +315,9 @@ fun TableCellEditorDialog(
 ) {
     val editing = ui.editingTableCell ?: return
     val table = editing.table
-    val state = remember(table.id ?: table.hashCode()) { TableCellEditorState(table) }
+    val state = remember(table.id ?: table.hashCode()) {
+        TableCellEditorState(table, initialFocus = editing.row to editing.col)
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -156,7 +325,8 @@ fun TableCellEditorDialog(
     ) {
         FloatingSurface(
             modifier = modifier
-                .widthIn(max = 380.dp)
+                .widthIn(min = 320.dp, max = 560.dp)
+                .fillMaxWidth(0.92f)
                 .padding(horizontal = 12.dp, vertical = 16.dp)
                 .liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f)),
         ) {
@@ -164,10 +334,9 @@ fun TableCellEditorDialog(
                 modifier = Modifier.padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                TableCellEditorHeader(table)
+                TableCellEditorHeader(state)
                 TableCellEditorGrid(
                     state = state,
-                    initialCell = editing.row to editing.col,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 300.dp),
@@ -176,7 +345,7 @@ fun TableCellEditorDialog(
                     state = state,
                     onCancel = onDismiss,
                     onSave = {
-                        val updated = applyEditedCells(table, state.cells)
+                        val updated = applyEditedTable(table, state.cells, state.rowHeights, state.colWidths)
                         if (updated != table) {
                             pane.surface?.replaceTableElement(table, updated)
                         }
@@ -188,52 +357,116 @@ fun TableCellEditorDialog(
     }
 }
 
-/** One compact line: the edit affordance on the left, the grid's shape on the right. */
+/** Header with title, table dimension badge, and quick row/column add and remove steppers. */
 @Composable
-private fun TableCellEditorHeader(table: TableElement) {
-    Row(
+private fun TableCellEditorHeader(state: TableCellEditorState) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            text = "Modifica tabella",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = "${table.rowHeights.size}×${table.colWidths.size}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Modifica tabella",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "${state.rowHeights.size}×${state.colWidths.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text("Righe:", style = MaterialTheme.typography.labelMedium)
+                IconButton(
+                    onClick = { state.removeRow() },
+                    enabled = state.rowHeights.size > 1,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(Icons.Outlined.Remove, contentDescription = "Rimuovi riga", modifier = Modifier.size(16.dp))
+                }
+                Text("${state.rowHeights.size}", style = MaterialTheme.typography.bodyMedium)
+                IconButton(
+                    onClick = { state.addRow() },
+                    enabled = state.rowHeights.size < 50,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = "Aggiungi riga", modifier = Modifier.size(16.dp))
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text("Colonne:", style = MaterialTheme.typography.labelMedium)
+                IconButton(
+                    onClick = { state.removeColumn() },
+                    enabled = state.colWidths.size > 1,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(Icons.Outlined.Remove, contentDescription = "Rimuovi colonna", modifier = Modifier.size(16.dp))
+                }
+                Text("${state.colWidths.size}", style = MaterialTheme.typography.bodyMedium)
+                IconButton(
+                    onClick = { state.addColumn() },
+                    enabled = state.colWidths.size < 50,
+                    modifier = Modifier.size(28.dp),
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = "Aggiungi colonna", modifier = Modifier.size(16.dp))
+                }
+            }
+        }
     }
 }
 
-/** Every row and every cell of the session grid, scrollable vertically, tappable per cell. */
+/** Every row and every cell of the session grid, scrollable both horizontally and vertically. */
 @Composable
 private fun TableCellEditorGrid(
     state: TableCellEditorState,
-    initialCell: Pair<Int, Int>,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        state.cells.forEachIndexed { row, rowCells ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                rowCells.forEachIndexed { col, cell ->
-                    TableCellEditorField(
-                        state = state,
-                        row = row,
-                        col = col,
-                        cell = cell,
-                        focusOnEnter = (row to col) == initialCell,
-                        modifier = Modifier.weight(1f),
-                    )
+    BoxWithConstraints(modifier = modifier) {
+        val minCellWidth = 84.dp
+        val spacing = 4.dp
+        val numCols = state.colWidths.size
+        val totalSpacing = spacing * (numCols - 1).coerceAtLeast(0)
+        val availableForCells = maxWidth - totalSpacing
+        val naturalCellWidth = if (numCols > 0) availableForCells / numCols else minCellWidth
+        val cellWidth = maxOf(minCellWidth, naturalCellWidth)
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .horizontalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+        ) {
+            state.cells.forEachIndexed { row, rowCells ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(spacing),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    rowCells.forEachIndexed { col, cell ->
+                        TableCellEditorField(
+                            state = state,
+                            row = row,
+                            col = col,
+                            cell = cell,
+                            modifier = Modifier.width(cellWidth),
+                        )
+                    }
                 }
             }
         }
@@ -246,23 +479,63 @@ private fun TableCellEditorField(
     row: Int,
     col: Int,
     cell: TableCell,
-    focusOnEnter: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(cell.text) { if (focusOnEnter) focusRequester.requestFocus() }
+    LaunchedEffect(state.focusedCell) {
+        if (state.focusedCell == row to col) {
+            try {
+                focusRequester.requestFocus()
+            } catch (_: Throwable) {}
+        }
+    }
     OutlinedTextField(
         value = cell.text,
         onValueChange = { text -> state.setText(row, col, text) },
         modifier = modifier
             .focusRequester(focusRequester)
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.Tab -> {
+                            if (event.isShiftPressed) {
+                                state.moveToPrevCell(row, col)
+                            } else {
+                                state.moveToNextCell(row, col)
+                            }
+                            true
+                        }
+                        Key.Enter -> {
+                            state.moveToNextCell(row, col)
+                            true
+                        }
+                        else -> false
+                    }
+                } else {
+                    false
+                }
+            }
             .onFocusChanged {
                 if (it.isFocused) {
                     state.currentRow = row
                     state.currentCol = col
+                    state.focusedCell = row to col
                 }
             },
         singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.None,
+            autoCorrect = false,
+            imeAction = if (row == state.rowHeights.size - 1 && col == state.colWidths.size - 1) {
+                ImeAction.Done
+            } else {
+                ImeAction.Next
+            },
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { state.moveToNextCell(row, col) },
+            onDone = { state.moveToNextCell(row, col) },
+        ),
         shape = RoundedCornerShape(10.dp),
         textStyle = MaterialTheme.typography.bodySmall.copy(
             fontWeight = if (cell.bold) FontWeight.Bold else FontWeight.Normal,
