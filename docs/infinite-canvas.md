@@ -165,7 +165,7 @@ What the app does with this geometry today, so the mode is not a format the edit
   `defaultPaper` into the new manifest.
 - **A document is born on one, chosen with its page format.** The geometry is the second half of the one
   question a document asks about itself, beside its paper (and its format,
-  [mobix-format.md](mobix-format.md) → *Which format a document is written in*): **Pages ▸ Page format…**
+  [mobix-format.md](mobix-format.md) → *Which format a document is written in*): **Pages ▸ Page format**
   (`ui/ToolbarPagesPopup.kt` → `PageFormatDialog`) shows the four geometries — *Paged*, *Infinite
   vertical*, *Infinite horizontal*, *Infinite board* — beside the A4/Letter presets, because the two
   answer one question: *what is a page of this document*. On confirm the dialog **asks where the choice
@@ -264,7 +264,7 @@ stack, and every one of them is a place where "almost a page" would have been wr
 ### Opening a board fits the screen and expands on scroll
 
 **Opening an infinite canvas fits it to cover the entire screen (`fitBoardIfPending`) and expands progressively as you scroll (`expandBoardOnScroll`).**
-- **Canvas mode and immediate dimension configuration in `Pages ▸ Page format…`**: Selecting any of the four modes (*Paged*, *Infinite vertical*, *Infinite horizontal*, *Infinite board*) inside `PageFormatDialog` immediately switches the dialog's dimension controls to match that mode (paper presets and width/height for *Paged*; **Fixed width** or **Fixed height** for infinite strips) so the user can configure the dimensions before confirming with **Set**.
+- **Canvas mode and immediate dimension configuration in `Pages ▸ Page format`**: Selecting any of the four modes (*Paged*, *Infinite vertical*, *Infinite horizontal*, *Infinite board*) inside `PageFormatDialog` immediately switches the dialog's dimension controls to match that mode (paper presets and width/height for *Paged*; **Fixed width** or **Fixed height** for infinite strips) so the user can configure the dimensions before confirming with **Set**.
 - **Full-screen fit on open**: When a board opens, `fitBoardIfPending()` fits the fixed axis (`widthPt` for `INFINITE_VERTICAL`, `heightPt` for `INFINITE_HORIZONTAL`) to cover 100% of the viewport (`fitBoardZoom()`) and seeds the infinite axis so the sheet fills the entire screen from the first frame.
 - **Progressive expansion on scroll**: Every pan or scroll step (`scrollViewportBy`) invokes `expandBoardOnScroll()`, extending `board.geometry` along the mode's infinite axis (`heightPt` for `INFINITE_VERTICAL`, `widthPt` for `INFINITE_HORIZONTAL`, or both for `INFINITE_2D`) to cover the newly scrolled viewport extent.
 

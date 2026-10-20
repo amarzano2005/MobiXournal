@@ -49,17 +49,17 @@ style + `config` pair — real paper the desktop renders too — while **Cornell
 Xournal++ version has, is drawn instead: its three rules land as ordinary strokes on a layer named
 after the template, so it round-trips like any ink and can be deleted by deleting the layer.
 
-## The Sheet section of the Pages menu (`SheetSection`)
+## The page-background dialog (`PageBackgroundDialog`)
 
-**The sheet's graphics (`SheetSection`).** They live in the **Pages** menu, at its foot after the page
-format row, because how a page looks and which page it is are the same errand — the rail's separate
-Background slot was the same button twice one level apart. The three sections are ordered as the sheet
+**The sheet's graphics (`PageBackgroundDialog`).** The **Pages** menu carries one row for them, right
+under **Page format**, and the row opens this dialog — a submenu of its own, like the format one, so a
+menu of page commands never turns into a wall of paper chips. The three groups are ordered as the sheet
 is set up — *what it is* (paper style), *how it is ruled* (rule spacing), then a finished template over
-the top (stationery) — and each is **one line**: the six styles are chips you scroll along rather than
-six stacked menu rows, and the spacing chips carry the custom millimetre field at the end of their own
-row. The stacked list had buried spacing and stationery below the fold for what is a single either/or
-choice. A section that can't apply (spacing on a PDF-backed page) says so in a `MenuHint` line instead
-of a disabled item, which would claim a whole row to state only that.
+the top (stationery) — and each is **one flowing row**: the six styles are chips that wrap rather than
+six stacked rows, and the spacing chips carry the custom millimetre field at the end of their own row.
+The stacked list had buried spacing and stationery below the fold for what is a single either/or
+choice. A group that can't apply (spacing on a PDF-backed page) says so in a line of its own instead of
+a row of disabled chips, which would claim space to state only that.
 
 ## Add/remove page
 

@@ -15,10 +15,10 @@ Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawin
 There is **one layout**, and each bar has one job. The Main Toolbar is the vertical docked capsule
 (Left or Right, per `ToolbarPosition`) of **writing tools only**: pen, highlighter, eraser, pan, select,
 text/pictures, vertical space, and the colour & size, layers, zoom and pages panels — **pages** being
-the whole page errand (navigation, columns, format, and a **Sheet** section for paper style, rule
-spacing and stationery). The Secondary Toolbar is the one home of the **STEM tools** (figures, function
-graph, table, circuits, logic, chemistry, guides), because a rail slot for them was the same button
-twice on one screen; audio and playback live on the audio capsule, shape recognition is a Settings toggle.
+the whole page errand: navigation, columns, format, and a row onto the page-background dialog for paper,
+rule spacing and stationery. The Secondary Toolbar is the one home of the **STEM tools** (figures,
+function graph, table, circuits, logic, chemistry, guides), because a rail slot for them was the same
+button twice on one screen; audio and playback live on the audio capsule, shape recognition is a toggle.
 
 The rail's edge is not a placement menu but the **handedness** answer: a right hand writes from the left,
 so `ToolbarPosition.LEFT` is the default and `RIGHT` is its mirror — and those are the two values it has,
@@ -321,11 +321,11 @@ place. Per surface:
   content is unbounded, so a thumb fraction of "how far down" is a number about nothing, and the canvas reports
   the viewport as its whole extent — the report a short document makes — so the thumb hides itself.
 - **The Pages menu** (`ui/ToolbarPagesPopup.kt`) becomes a **tiles** reading: which tile you are looking at,
-  and how many there are — plus the one row about the *document* rather than its parts, **Page format…**,
-  which names the geometry a board is in, carries the strip's own **Fixed width/height** bound
-  ([infinite-canvas.md](infinite-canvas.md) → *The bound on the non-infinite axis*) and is the way back
-  to pages. Every other row addresses a page and a board has none: adding or removing one would rewrite
-  the chunk grid the file names its parts by, so those rows are gone rather than disabled. The
+  and how many there are — plus the rows about the *document* rather than its parts, **Page format**
+  (geometry and the strip's **Fixed width/height** bound, [infinite-canvas.md](infinite-canvas.md) →
+  *The bound on the non-infinite axis*) and **Page background** (its paper and ruling). Format is also
+  the way back to pages. Every other row addresses a page and a board has none: adding or removing one
+  would rewrite the chunk grid the file names its parts by, so those rows are gone rather than disabled. The
   **pages-per-row grid and its edit mode** are inert on a board for the same reason (the board pass
   replaces the page stack, so `columns` changes nothing on screen) and are not offered.
 - **Bookmarks** are not offered on a board. A bookmark is a page flag drawn on the page it belongs to, and the

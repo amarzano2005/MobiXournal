@@ -41,9 +41,9 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  * settings list cannot offer them back (see [TOOL_GROUPS] and [TOP_BAR_ITEMS]).
  *
  * The **Background** position is retired: paper style, ruling spacing and stationery are the same
- * errand as the page's own size and navigation, so they live in the **Pages** menu's Sheet section
- * (see [ToolbarPagesCallbacks]) rather than in a slot of their own. A saved rail order that names
- * `background` simply drops it, as with every other retired id.
+ * errand as the page's own size and navigation, so the **Pages** menu carries one row that opens
+ * [PageBackgroundDialog] (see [ToolbarPagesCallbacks]) rather than a rail slot of its own. A saved
+ * rail order that names `background` simply drops it, as with every other retired id.
  *
  * **Colour & size** (id `favorites`) sits directly under **Highlighter** and covers the whole errand:
  * the three colours you keep coming back to as a stack of dots, and the chevron beside them onto every

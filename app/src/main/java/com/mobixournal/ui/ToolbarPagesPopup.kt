@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Bookmark
@@ -60,7 +61,7 @@ private fun BookmarkItems(callbacks: ToolbarPagesCallbacks, dismiss: () -> Unit)
     val current = callbacks.bookmarks.firstOrNull { it.page == callbacks.currentPage }
     MenuHeading("Bookmarks")
     DropdownMenuItem(
-        text = { Text(if (current == null) "Bookmark this page…" else "Edit bookmark…") },
+        text = { Text(if (current == null) "Bookmark this page" else "Edit bookmark") },
         leadingIcon = {
             Icon(
                 if (current == null) Icons.Outlined.BookmarkBorder else Icons.Outlined.Bookmark,
@@ -102,6 +103,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var open by remember { mutableStateOf(false) }
     var sizing by remember { mutableStateOf(false) }
     var contents by remember { mutableStateOf(false) }
+    var sheet by remember { mutableStateOf(false) }
     // A geometry picked in the page-format dialog, waiting on "this document or new documents only".
     var pendingCanvas by remember { mutableStateOf<NewDocumentCanvas?>(null) }
     val board = callbacks.board
@@ -112,6 +114,9 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     ) { dismiss ->
         if (isInfinite) {
             PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
+            // A board has no page list, but it does have a sheet: its paper and ruling are still
+            // settable, so the row travels with the format one rather than vanishing with the pages.
+            PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
             return@ToolbarPopupButton
         }
         PageNavRow(callbacks.pageCount, callbacks.currentPage, callbacks.onGoToPage, dismiss)
@@ -150,17 +155,9 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         OverviewModeRow(callbacks.pageColumns, callbacks.pagesEditMode, callbacks.onPagesEditMode)
         HorizontalDivider()
         PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
-        HorizontalDivider()
-        // The sheet's own graphics, at the foot of the same menu: paper, ruling spacing and stationery
-        // are how *this* page looks — the same errand as its size, which is why the rail's separate
-        // Background slot is gone rather than duplicated here.
-        SheetSection(
-            style = callbacks.backgroundStyle,
-            config = callbacks.backgroundConfig,
-            onStyle = { callbacks.onBackgroundStyle(it); dismiss() },
-            onConfig = { callbacks.onBackgroundConfig(it) },
-            onStationery = { callbacks.onStationery(it); dismiss() },
-        )
+        // The sheet's graphics are the other question about the page — so they are the one row that
+        // opens a dialog of their own, like Page format, instead of stacking three chip rows in here.
+        PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
     }
     val outline = callbacks.outline
     if (contents && outline != null) {
@@ -170,6 +167,15 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
             onDismiss = { contents = false },
         )
     }
+    PageBackgroundDialog(
+        open = sheet,
+        style = callbacks.backgroundStyle,
+        config = callbacks.backgroundConfig,
+        onStyle = callbacks.onBackgroundStyle,
+        onConfig = callbacks.onBackgroundConfig,
+        onStationery = { callbacks.onStationery(it); sheet = false },
+        onDone = { sheet = false },
+    )
     PageFormatDialogs(
         callbacks = callbacks,
         open = sizing,
@@ -278,7 +284,7 @@ private fun CanvasModeChangeDialog(
 }
 
 /**
- * The **Page format…** row — the paper's size as its trailing hint on a page list, and the canvas
+ * The **Page format** row — the paper's size as its trailing hint on a page list, and the canvas
  * geometry's name on a board (which has no paper to label). The one entry point into the page-format
  * dialog from both geometries.
  */
@@ -289,7 +295,7 @@ private fun PageFormatRow(
     dismiss: () -> Unit,
 ) {
     DropdownMenuItem(
-        text = { Text("Page format…") },
+        text = { Text("Page format") },
         leadingIcon = { Icon(Icons.Outlined.AspectRatio, contentDescription = null) },
         trailingIcon = {
             // On a page list the useful fact is the paper; on a board there is no page to measure, so
@@ -302,6 +308,21 @@ private fun PageFormatRow(
             }
         },
         onClick = { openSize(); dismiss() },
+    )
+}
+
+/**
+ * The **Page background** row: the entry point into [PageBackgroundDialog], carrying the live paper
+ * style as its trailing hint so the menu says which sheet is under the page. Kept to one row on
+ * purpose — the dialog is the submenu, and a menu of page commands is not the place for paper chips.
+ */
+@Composable
+private fun PageBackgroundRow(callbacks: ToolbarPagesCallbacks, open: () -> Unit, dismiss: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text("Page background") },
+        leadingIcon = { Icon(Icons.Outlined.GridOn, contentDescription = null) },
+        trailingIcon = { paperStyleLabel(callbacks.backgroundStyle)?.let { Text(it) } },
+        onClick = { open(); dismiss() },
     )
 }
 
