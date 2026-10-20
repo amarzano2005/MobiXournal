@@ -232,12 +232,16 @@ private fun rememberInspectorPlacement(
             }
         },
         dragBy = { delta ->
-            placement = draggedInspectorOffset(
-                start = placement ?: IntOffset.Zero,
-                delta = delta,
-                inspectorSize = inspectorSize,
-                canvasSize = canvasSizePx,
-            )
+            // Only a placed panel can be dragged: before the first measurement it is not drawn yet,
+            // and moving it from an invented origin would just be a jump.
+            placement?.let { current ->
+                placement = draggedInspectorOffset(
+                    start = current,
+                    delta = delta,
+                    inspectorSize = inspectorSize,
+                    canvasSize = canvasSizePx,
+                )
+            }
         },
     )
 }

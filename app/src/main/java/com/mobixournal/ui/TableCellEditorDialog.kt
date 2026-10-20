@@ -150,16 +150,11 @@ private fun TableCellEditorHeader(state: TableCellEditorState) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = "Edit table",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Text(
+                text = "Edit table",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
             Text(
                 text = "${state.rowHeights.size}×${state.colWidths.size}",
                 style = MaterialTheme.typography.labelMedium,
