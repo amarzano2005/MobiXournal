@@ -70,6 +70,7 @@ import com.mobixournal.render.TableElementFactory
 import com.mobixournal.render.replaceTableElement
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
+import com.mobixournal.ui.theme.rememberClosingArgument
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 
 
@@ -95,7 +96,9 @@ fun TableCellEditorDialog(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = { ui.editingTableCell = null },
 ) {
-    val editing = ui.editingTableCell ?: return
+    // Held past the flag: the editor is kept composed for its closing animation, and by then the
+    // state that opened it is already null.
+    val editing = rememberClosingArgument(ui.editingTableCell) ?: return
     val table = editing.table
     val state = remember(table.id ?: table.hashCode()) {
         TableCellEditorState(table, initialFocus = editing.row to editing.col)
