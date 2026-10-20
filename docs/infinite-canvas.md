@@ -48,13 +48,13 @@ persisted natively in `.mobix` (documented in [mobix-schema-spec.md](mobix-schem
 
 ### Fitting a board to the screen
 
-`fitBoardIfPending` fits a **strip** to the canvas it is on and shows its **whole bound**: the locked
-axis is fitted *inside* the view and never magnified past 100% (`boardFitZoom` = min(1, viewport /
-bound)). The earlier reading — zoom up until the bound *covered* the screen — made the number in the
-page-format dialog invisible: a 100 mm strip came back at 484%, filling the pane with an endless-looking
-subdivided grid whose paper edge sat off-screen, which reads exactly like "the size I set was ignored".
-Showing the bound whole keeps the typed millimetres true, and leaves the pane-sized default (a bound
-equal to the screen) at 100%, covering the canvas as before.
+`fitBoardIfPending` makes a **strip's bound fill the canvas**: the least magnification at which the
+locked axis reaches both edges (`boardFitZoom` = viewport / bound, never below 100%). A 100 mm strip on
+a 1248 px canvas opens at 440%, the paper edge exactly on the screen's — no band of desk down the side,
+which would be an "infinite" canvas with a visible empty margin. A bound **larger** than the view already
+covers it, so it stays at 100% and the view pans across it (`BoardViewport.contentExtent`) rather than
+shrinking the paper to fit: the written millimetres keep their own scale. A pane-sized bound — the
+default — has nothing to magnify and opens at 100%.
 
 The fit belongs to the **extent it was computed for** (`BoardCanvas.fittedTo`): the tab strip arriving a
 frame after the document, a rotation or the split toggle re-fits for the canvas the board is actually on,
@@ -291,7 +291,7 @@ stack, and every one of them is a place where "almost a page" would have been wr
 
 **Opening an infinite canvas shows its whole bound at its own size (`fitBoardIfPending`) and expands progressively as you scroll (`expandBoardOnScroll`).**
 - **Canvas mode and immediate dimension configuration in `Pages ▸ Page format`**: Selecting any of the four modes (*Paged*, *Infinite vertical*, *Infinite horizontal*, *Infinite board*) inside `PageFormatDialog` immediately switches the dialog's dimension controls to match that mode (paper presets and width/height for *Paged*; **Fixed width** or **Fixed height** for infinite strips) so the user can configure the dimensions before confirming with **Set**.
-- **The whole bound on open**: When a board opens, `fitBoardIfPending()` fits the fixed axis (`widthPt` for `INFINITE_VERTICAL`, `heightPt` for `INFINITE_HORIZONTAL`) *inside* the viewport and never above 100% (`boardFitZoom()`), so a bound typed in the dialog is shown at the size it names, and a bound equal to the pane still fills the screen. It also seeds the infinite axis so the sheet covers the running direction from the first frame, and it re-runs when the view's own extent changes until the user takes the zoom by hand.
+- **The sheet fills the screen on open**: When a board opens, `fitBoardIfPending()` magnifies the fixed axis (`widthPt` for `INFINITE_VERTICAL`, `heightPt` for `INFINITE_HORIZONTAL`) just enough for it to reach both edges of the viewport and no further (`boardFitZoom()`), never dropping below 100% — a bound larger than the pane is scrolled, not shrunk. It also seeds the infinite axis so the sheet covers the running direction from the first frame, it re-runs when the view's own extent changes (so the fit is exact rather than computed against the first frame's canvas) until the user takes the zoom by hand, and **Reset zoom** hands the fit back.
 - **Progressive expansion on scroll**: Every pan or scroll step (`scrollViewportBy`) invokes `expandBoardOnScroll()`, extending `board.geometry` along the mode's infinite axis (`heightPt` for `INFINITE_VERTICAL`, `widthPt` for `INFINITE_HORIZONTAL`, or both for `INFINITE_2D`) to cover the newly scrolled viewport extent.
 
 ### Spatial query and culling

@@ -159,14 +159,16 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
 }
 
 /**
- * The zoom factor a **board** opens at, from the board's geometry and the canvas's own extent.
+ * The zoom factor a **board** opens at, from the board's geometry and the canvas's own extent: the
+ * **least** magnification at which a strip's bound reaches both edges of the view.
  *
- * A strip shows its whole bound: the locked axis is fitted **inside** the view and never magnified
- * past 100%. The earlier reading — zoom *up* until the bound covered the screen — made the number in
- * the page-format dialog invisible: a 100 mm strip came back at 484%, filling the pane with an
- * endless-looking grid whose paper edge sat off-screen, which reads exactly like "the size I set was
- * ignored". Showing the bound whole is the one reading that keeps the typed millimetres true, and it
- * leaves the pane-sized default (a bound equal to the screen) at 100%, covering the canvas as before.
+ * A strip's bound is a paper edge, and paper that ends before the screen does leaves a band of desk
+ * down the side: "infinite" canvas with a visible empty margin, and — worse — a size the user typed
+ * that then reads as *ignored*. So the bound **covers** the view (`viewport / bound`), and only the
+ * part needed to do it: a 100 mm strip on a 1248 px canvas opens at 440%, not at 100% with 77% of the
+ * screen in grey. The zoom is never below 100% either — a bound **larger** than the view already
+ * covers it, so it is shown at its own size and scrolled across rather than shrunk to fit (the written
+ * millimetres stay legible, and `BoardViewport.contentExtent` already let the view pan the whole bound).
  *
  * A page list is not a board and answers 100%; so does [CanvasMode.INFINITE_2D], whose
  * `widthPt`/`heightPt` are the size an **export** would slice — grown by [expandBoardOnScroll] as the
@@ -190,10 +192,9 @@ internal fun boardFitZoom(
     }
     val (extentPt, viewPx) = bound
     if (extentPt <= 0.0) return 1f
-    val fit = viewPx / extentPt
-    // Never magnify: a bound smaller than the canvas is drawn at its own size, with desk around it,
-    // which is how the dialled-in dimension stays legible.
-    return fit.coerceAtMost(1.0).toFloat().coerceIn(ViewportState.MIN_ZOOM, 1f)
+    val cover = viewPx / extentPt
+    // Up to the bound's own size when it is the smaller of the two, and never past the zoom range.
+    return cover.coerceAtLeast(1.0).toFloat().coerceIn(1f, ViewportState.MAX_ZOOM)
 }
 
 /** The zoom factor at which this canvas's board opens ([boardFitZoom]), read from its live view. */

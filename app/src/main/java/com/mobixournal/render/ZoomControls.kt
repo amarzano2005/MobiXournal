@@ -3,7 +3,8 @@
  * plus the one rule a *board* adds to them.
  *
  * A page opens at 100% and a board opens **fitted** ([fitBoardZoom]): the sheet, as the page-format
- * dialog sized it, whole on the screen. That fit is a measurement of the canvas, so it has to follow
+ * dialog sized it, filling the screen — never shrunk below its own size, and never left with a margin
+ * of desk down the side. That fit is a measurement of the canvas, so it has to follow
  * the canvas: the tab strip arriving a frame after the document, a rotation or the split toggle all
  * hand the view a different extent, and a fit computed once against the first one is a zoom nobody can
  * explain. [BoardCanvas.fittedTo] makes the fit re-run when the extent moves; [BoardCanvas.autoFit]
