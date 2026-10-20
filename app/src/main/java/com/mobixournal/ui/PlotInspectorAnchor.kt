@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -94,6 +95,30 @@ internal fun plotInspectorOffset(
 }
 
 /**
+ * Where a **freely dragged** inspector goes: [start] moved by [delta], brought back inside the canvas.
+ *
+ * A drag works on the panel's **absolute** position, never on a delta re-measured from the anchor
+ * every frame. That distinction is what made the old inspector feel broken: a delta added to an
+ * anchor that was itself already clamped at an edge reproduced the same clamped position, so the
+ * panel "wouldn't move"; and every re-anchor — an Apply replacing the element with its edited
+ * copy, the panel growing a curve row, the viewport resizing — pulled it back out from under the
+ * hand. Once a drag has taken the position, the position is the panel's own.
+ */
+internal fun draggedInspectorOffset(
+    start: IntOffset,
+    delta: Offset,
+    inspectorSize: IntSize,
+    canvasSize: IntSize,
+): IntOffset {
+    val maxX = (canvasSize.width - inspectorSize.width).coerceAtLeast(0)
+    val maxY = (canvasSize.height - inspectorSize.height).coerceAtLeast(0)
+    return IntOffset(
+        (start.x + delta.x.roundToInt()).coerceIn(0, maxX),
+        (start.y + delta.y.roundToInt()).coerceIn(0, maxY),
+    )
+}
+
+/**
  * Mutable editing state backing the anchored plot inspector.
  */
 internal class PlotInspectorState(
@@ -129,14 +154,14 @@ internal class PlotInspectorState(
 }
 
 @Composable
-internal fun rememberPlotInspectorState(plot: PlotElement): PlotInspectorState {
+internal fun rememberPlotInspectorState(plot: PlotElement, session: Int = 0): PlotInspectorState {
     val isParametric = plot.curves.any { it.kind == PlotKind.PARAMETRIC }
     val initialParam = plot.curves.firstOrNull { it.kind == PlotKind.PARAMETRIC }
-    val shade = remember(plot) {
+    val shade = remember(session) {
         PlotShadeState(plot.shadeIntegral, plot.xMin, plot.xMax)
     }
 
-    return remember(plot) {
+    return remember(session) {
         val curves = mutableStateListOf<CurveEditorState>().apply {
             addAll(createInitialCurveList(isParametric, plot.curves.map { c ->
                 PlotCurve(c.source, c.color, c.lineStyle, "f", c.kind, c.sourceY)
@@ -158,6 +183,66 @@ internal fun rememberPlotInspectorState(plot: PlotElement): PlotInspectorState {
 }
 
 /**
+ * Where the inspector sits and how it is moved: the panel's own offset (null until it has been
+ * measured, which is also when it starts being drawn) plus the two callbacks that own it.
+ */
+private class InspectorPlacement(
+    val offset: IntOffset?,
+    /** Hand to the surface: the first size it reports becomes the placement's basis. */
+    val measured: (IntSize) -> Unit,
+    /** Hand to the drag handle: an absolute move of the panel, bounded by the canvas. */
+    val dragBy: (Offset) -> Unit,
+)
+
+/**
+ * The inspector's placement, taken **once per open** ([session]) and then owned by the panel.
+ *
+ * The position is settled on the first measured frame — beside [anchorRect], or centred when the
+ * editor was opened without a selection — and after that only a drag changes it. Re-deriving it from
+ * the anchor every frame is exactly what made the panel unusable before: an Apply replaces the
+ * element with its edited copy, the surface grows a curve row, the viewport resizes, and each of
+ * those recomputed the anchor and teleported the panel out from under the finger.
+ */
+@Composable
+private fun rememberInspectorPlacement(
+    session: Int,
+    anchorRect: RectF?,
+    canvasSizePx: IntSize,
+    gapPx: Int,
+    marginPx: Int,
+): InspectorPlacement {
+    var inspectorSize by remember(session) { mutableStateOf(IntSize.Zero) }
+    var placement by remember(session) { mutableStateOf<IntOffset?>(null) }
+
+    return InspectorPlacement(
+        offset = placement,
+        measured = { size ->
+            inspectorSize = size
+            if (placement == null) {
+                placement = plotInspectorOffset(
+                    selectionLeft = anchorRect?.left,
+                    selectionTop = anchorRect?.top,
+                    selectionRight = anchorRect?.right,
+                    selectionBottom = anchorRect?.bottom,
+                    inspectorSize = size,
+                    canvasSize = canvasSizePx,
+                    gapPx = gapPx,
+                    marginPx = marginPx,
+                )
+            }
+        },
+        dragBy = { delta ->
+            placement = draggedInspectorOffset(
+                start = placement ?: IntOffset.Zero,
+                delta = delta,
+                inspectorSize = inspectorSize,
+                canvasSize = canvasSizePx,
+            )
+        },
+    )
+}
+
+/**
  * The anchored micro-inspector for an existing living plot on the canvas.
  */
 @Composable
@@ -172,34 +257,22 @@ fun PlotInspectorAnchor(
     val surface = pane.surface
     val rect = pane.selectionRect
 
-    var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
     val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
     val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
 
-    val initialAnchorRect = remember(plot.id ?: plot.hashCode()) { rect }
-    val effectiveRect = initialAnchorRect ?: rect
-
-    var dragDelta by remember(plot.id ?: plot.hashCode()) { mutableStateOf(Offset.Zero) }
-
-    val baseOffset = plotInspectorOffset(
-        selectionLeft = effectiveRect?.left,
-        selectionTop = effectiveRect?.top,
-        selectionRight = effectiveRect?.right,
-        selectionBottom = effectiveRect?.bottom,
-        inspectorSize = inspectorSize,
-        canvasSize = canvasSizePx,
+    // The anchor is read **once per open**: the panel belongs beside the plot the editor was opened on,
+    // not wherever the selection happens to have wandered since.
+    val anchorRect = remember(ui.plotInspectorSession) { rect }
+    val placement = rememberInspectorPlacement(
+        session = ui.plotInspectorSession,
+        anchorRect = anchorRect,
+        canvasSizePx = canvasSizePx,
         gapPx = gapPx,
         marginPx = marginPx,
     )
 
-    val maxOffsetX = (canvasSizePx.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
-    val maxOffsetY = (canvasSizePx.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
-    val currentX = (baseOffset.x + dragDelta.x.roundToInt()).coerceIn(marginPx, maxOffsetX)
-    val currentY = (baseOffset.y + dragDelta.y.roundToInt()).coerceIn(marginPx, maxOffsetY)
-    val offset = IntOffset(currentX, currentY)
-
-    val state = rememberPlotInspectorState(plot)
-    val echo = remember(plot.id ?: plot.hashCode()) { PlotInputEchoState() }
+    val state = rememberPlotInspectorState(plot, ui.plotInspectorSession)
+    val echo = remember(ui.plotInspectorSession) { PlotInputEchoState() }
 
     // The inspector keeps its own offset inside a full-size layer so the echo cell can sit at the
     // canvas' bottom edge while the inspector stays anchored beside the plot.
@@ -207,8 +280,11 @@ fun PlotInspectorAnchor(
         CompositionLocalProvider(LocalPlotInputEcho provides echo) {
             FloatingSurface(
                 modifier = Modifier
-                    .offset { offset }
-                    .onSizeChanged { inspectorSize = it }
+                    // Drawn only once the panel knows where it goes, so it never flashes in the
+                    // middle of the canvas and then hops to its anchor.
+                    .alpha(if (placement.offset == null) 0f else 1f)
+                    .offset { placement.offset ?: IntOffset.Zero }
+                    .onSizeChanged(placement.measured)
                     .widthIn(min = 320.dp, max = 360.dp)
                     .padding(4.dp),
             ) {
@@ -218,10 +294,10 @@ fun PlotInspectorAnchor(
                 ) {
                     PlotInspectorHeader(
                         onDismiss = onDismiss,
-                        modifier = Modifier.pointerInput(Unit) {
+                        modifier = Modifier.pointerInput(canvasSizePx) {
                             detectDragGestures { change, dragAmount ->
                                 change.consume()
-                                dragDelta += dragAmount
+                                placement.dragBy(dragAmount)
                             }
                         },
                     )

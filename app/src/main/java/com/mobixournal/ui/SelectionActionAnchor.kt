@@ -115,7 +115,7 @@ fun SelectionActionAnchor(
         canEditPlot = surface?.singleSelectedPlot() != null,
         onEditPlot = {
             surface?.singleSelectedPlot()?.let { plot ->
-                ui.editingPlot = plot
+                ui.openPlotInspector(plot)
             }
         },
         canEditTable = surface?.singleSelectedTable() != null,

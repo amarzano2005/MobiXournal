@@ -182,7 +182,13 @@ removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). Wh
 the selection action bar offers **Edit plot**, which opens the anchored micro-inspector `PlotInspectorAnchor` beside
 the selection on canvas, pre-filled with the element's curves, range, flags and shaded area; confirming applies the edits
 in place (`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog has no input for (`samples`,
-`parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. Because the
+`parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. The panel is
+**freely draggable and owns its place**: it is anchored once, beside the plot it was opened on, and after
+that only the user moves it — an Apply (which replaces the element with its edited copy), a curve row
+appearing or the viewport changing never re-anchors or teleports it, and its editing state is keyed to
+the *open* rather than to the element, so what was typed survives an Apply. Its drag is an absolute
+move bounded by the canvas, not a delta re-measured from the anchor, so it can always be moved even
+when it already sits against an edge. Because the
 inspector is anchored, the on-screen keyboard can cover it; its focused field is therefore mirrored
 into a one-line cell pinned to the canvas' bottom edge above the IME (`ui/PlotInputEcho.kt`), which
 shows the same label and text as the field being typed in and disappears with the keyboard.
@@ -238,7 +244,8 @@ the one box that has a stored half and a derived half.
 The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
 anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app
 draws edge-to-edge, so `adjustResize` gives it nothing to clamp against) and could only edit one
-cell at a time. Opened by a double tap on a cell or by **Edit table** in the selection bar, the
+cell at a time. Fixed is literal: the dialog has no drag handle and nothing about the canvas may
+shift it, so the cell under the stylus stays where the last tap left it. Opened by a double tap on a cell or by **Edit table** in the selection bar, the
 dialog shows every cell's text at once in the table's own shape with horizontal and vertical
 scrolling for wide grids, steppers to add/remove rows and columns, keyboard navigation (Tab,
 Shift+Tab, Enter) with automatic row expansion on the final cell, and align/bold acting on the

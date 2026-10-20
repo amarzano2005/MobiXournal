@@ -1536,7 +1536,7 @@ private fun DrawingSurfaceView.bindEditorActions(
     }
     onPlotDoubleTap = { plot ->
         onActivePane(index)
-        ui.editingPlot = plot
+        ui.openPlotInspector(plot)
     }
     // Remember where an instrument was posed, so it comes back there after a restart. Only the
     // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the

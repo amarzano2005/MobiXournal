@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "give-the-plot-inspector-a-position-of-its-own-instead-of-a-delta-on-its-anchor"
+title = "Give the plot inspector a position of its own instead of a delta on its anchor"
+description = "PlotInspectorAnchor re-derived its position from the anchor every frame (baseOffset + dragDelta), so a drag from an edge-clamped anchor reproduced the same clamped spot (the panel would not move) and any re-anchor (Apply replacing the plot, a curve row appearing, a viewport resize) teleported the panel; its editing state was also keyed to the element, so Apply threw away focus and typing. Take the placement once per open, move it absolutely with draggedInspectorOffset, keep the editing state keyed to a new EditorUiState.plotInspectorSession, and hide the panel until it is measured."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-20
+completed = 2026-10-20
+tags = []
+
+[[task]]
+id = "keep-the-table-editor-fixed-drop-the-leftover-drag-on-its-header"
+title = "Keep the table editor fixed: drop the leftover drag on its header"
+description = "The fixed table dialog (ui/TableCellEditorDialog.kt) still carried a drag handle and an offset dragDelta on its header, so the panel could be nudged away from the cells it edits and every doc that describes it as fixed was wrong. Remove the drag state, the pointerInput, the DragIndicator affordance and the unused imports."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-20
+completed = 2026-10-20
+tags = []
+
+[[task]]
 id = "land-a-living-element-edit-on-the-page-that-holds-it"
 title = "Land a living-element edit on the page that holds it"
 description = "replacePlotElement / replaceTableElement / replaceCircuitElement used selection?.pageIndex as the page to edit. An editor can outlive the selection that opened it (a double-tap on a plot or a table cell does not select the element, and the selection may belong to another page), so the edit either landed on the wrong page or found nothing there and was dropped without a word — the 'quick edit sometimes applies, sometimes not' report. Fix: ElementEdits.findOn(page, element) plus DrawingSurfaceView.pageIndexHolding(element) resolve the page that actually holds the element (selected page first, then a scan), and the three replace* helpers edit through it; ElementEdits.replaceElementOn now rewrites only the first layer that holds the element, matching by identity, id, or the family's own geometry (sameElement), so a rebuilt copy from a dialog is found. Tests: ElementEditsTest (findOn by id and by geometry) and the PageWindowTest seam tests."

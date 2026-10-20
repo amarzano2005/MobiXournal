@@ -28,13 +28,6 @@ import androidx.compose.material.icons.automirrored.outlined.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.outlined.FormatAlignRight
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.FormatAlignCenter
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.offset
-import androidx.compose.material.icons.filled.DragIndicator
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntOffset
-import kotlin.math.roundToInt
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.Button
@@ -46,10 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,6 +78,11 @@ import com.mobixournal.ui.theme.liquidGlassSpringAnimation
  * entry spring) instead of a full-width material card. Save applies the whole grid to the table
  * in a single `replaceTableElement` (one undo step).
  *
+ * **Fixed means fixed**: the panel cannot be dragged, nudged or re-anchored — it opens centred and
+ * stays centred until it closes. Nothing about the canvas (a move, a resize, the selection
+ * changing, a keystroke re-laying the grid out) may shift it, so the cell under the stylus is
+ * always where the last tap left it (`docs/mobix-elements.md`).
+ *
  * Opened by **Edit table** on a selected table (`SelectionActionAnchor`) or a double-tap on a
  * cell (`DrawingSurfaceInput`); the tapped (or first) cell starts focused. Align/bold act on the
  * cell the user last focused (`TableCellEditorState.current*`).
@@ -105,15 +100,12 @@ fun TableCellEditorDialog(
         TableCellEditorState(table, initialFocus = editing.row to editing.col)
     }
 
-    var dragDelta by remember { mutableStateOf(Offset.Zero) }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         FloatingSurface(
             modifier = modifier
-                .offset { IntOffset(dragDelta.x.roundToInt(), dragDelta.y.roundToInt()) }
                 .widthIn(min = 320.dp, max = 560.dp)
                 .fillMaxWidth(0.92f)
                 .padding(horizontal = 12.dp, vertical = 16.dp)
@@ -123,10 +115,7 @@ fun TableCellEditorDialog(
                 modifier = Modifier.padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                TableCellEditorHeader(
-                    state = state,
-                    onDrag = { delta -> dragDelta += delta },
-                )
+                TableCellEditorHeader(state = state)
                 TableCellEditorGrid(
                     state = state,
                     modifier = Modifier
@@ -149,21 +138,11 @@ fun TableCellEditorDialog(
     }
 }
 
-/** Header with title, drag handle, table dimension badge, and quick row/column add and remove steppers. */
+/** Header with title, table dimension badge, and quick row/column add and remove steppers. */
 @Composable
-private fun TableCellEditorHeader(
-    state: TableCellEditorState,
-    onDrag: (Offset) -> Unit = {},
-) {
+private fun TableCellEditorHeader(state: TableCellEditorState) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    onDrag(dragAmount)
-                }
-            },
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
@@ -175,12 +154,6 @@ private fun TableCellEditorHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Filled.DragIndicator,
-                    contentDescription = "Drag popup",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(18.dp),
-                )
                 Text(
                     text = "Edit table",
                     style = MaterialTheme.typography.titleSmall,

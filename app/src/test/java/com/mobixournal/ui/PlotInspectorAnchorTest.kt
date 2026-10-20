@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import android.graphics.RectF
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.mobixournal.format.mobix.MobixPlotCodec
@@ -22,7 +23,9 @@ import org.junit.Test
  *
  * Covers:
  *  1. [plotInspectorOffset] geometry: positioning beside the selection (preferring right, falling back
- *     to left, clamping to canvas bounds).
+ *     to left, clamping to canvas bounds), and [draggedInspectorOffset]: a drag moves the panel by the
+ *     gesture's own delta from wherever it is, so a panel already sitting against an edge keeps
+ *     moving instead of reproducing the clamped position it started from.
  *  2. Edit application round-trip via [PlotElementFactory.applyPlotEdit]: ensuring edited fields update
  *     while unedited fields ([PlotElement.samples], [PlotElement.parameters], [PlotElement.axisColor],
  *     [PlotElement.extraAttrs], [PlotElement.id]) survive the edit and survive a write/read round trip
@@ -117,6 +120,74 @@ class PlotInspectorAnchorTest {
 
         // Centered fallback: (1200 - 340) / 2 = 430, (800 - 400) / 2 = 200
         assertEquals(IntOffset(x = 430, y = 200), offset)
+    }
+
+    @Test
+    fun dragMovesTheInspectorByTheGestureDelta() {
+        val moved = draggedInspectorOffset(
+            start = IntOffset(612, 200),
+            delta = Offset(30f, -40f),
+            inspectorSize = IntSize(340, 400),
+            canvasSize = IntSize(1920, 1080),
+        )
+
+        assertEquals(IntOffset(642, 160), moved)
+    }
+
+    @Test
+    fun dragAccumulatesAcrossOneGesture() {
+        // One finger-down is a stream of deltas: each step starts where the last one left the panel,
+        // never back at the anchor.
+        var position = IntOffset(100, 100)
+        repeat(3) {
+            position = draggedInspectorOffset(
+                start = position,
+                delta = Offset(12f, 10f),
+                inspectorSize = IntSize(340, 400),
+                canvasSize = IntSize(1920, 1080),
+            )
+        }
+
+        assertEquals(IntOffset(136, 130), position)
+    }
+
+    @Test
+    fun dragCannotCarryTheInspectorOffTheCanvas() {
+        val moved = draggedInspectorOffset(
+            start = IntOffset(612, 200),
+            delta = Offset(5000f, 5000f),
+            inspectorSize = IntSize(340, 400),
+            canvasSize = IntSize(1920, 1080),
+        )
+
+        assertEquals(IntOffset(1920 - 340, 1080 - 400), moved)
+    }
+
+    @Test
+    fun dragPastTheTopLeftPinsToTheCanvasOrigin() {
+        val moved = draggedInspectorOffset(
+            start = IntOffset(612, 200),
+            delta = Offset(-5000f, -5000f),
+            inspectorSize = IntSize(340, 400),
+            canvasSize = IntSize(1920, 1080),
+        )
+
+        assertEquals(IntOffset(0, 0), moved)
+    }
+
+    @Test
+    fun panelTallerThanTheCanvasStaysPinnedVerticallyButStillSlides() {
+        // The old model added the drag to an anchor that was already clamped, so this panel could not
+        // be moved at all; a panel that does not fit is pinned on the axis that does not fit and free
+        // on the axis that does.
+        val moved = draggedInspectorOffset(
+            start = IntOffset(100, 0),
+            delta = Offset(50f, -80f),
+            inspectorSize = IntSize(340, 500),
+            canvasSize = IntSize(800, 300),
+        )
+
+        assertEquals(IntOffset(150, 0), moved)
     }
 
     @Test

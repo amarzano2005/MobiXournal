@@ -72,6 +72,15 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     var showGraphDialog by mutableStateOf(false)
     /** The existing [PlotElement] being edited in the graph dialog, or null when creating a new one. */
     var editingPlot by mutableStateOf<com.mobixournal.format.model.PlotElement?>(null)
+    /**
+     * Which **open** of the plot inspector this is — bumped by [openPlotInspector], never by an edit.
+     *
+     * The inspector's editing state and its position are keyed to this, not to the element: an
+     * **Apply** replaces [editingPlot] with the edited copy, and keying anything visual to the
+     * element made the panel throw away what was typed and jump back to its anchor mid-edit.
+     */
+    var plotInspectorSession by mutableStateOf(0)
+        private set
     /** The existing [TableElement] cell being edited in place, or null when none is. */
     var editingTableCell by mutableStateOf<EditingTableCell?>(null)
     /** The existing [CircuitElement] being edited in place, or null when none is. */
@@ -166,6 +175,12 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
             else -> Unit
         }
         return saved
+    }
+
+    /** Open the anchored plot inspector on [plot] as a **fresh** session (new state, anchored anew). */
+    fun openPlotInspector(plot: com.mobixournal.format.model.PlotElement) {
+        editingPlot = plot
+        plotInspectorSession++
     }
 
     /** The pane the toolbar and overlays drive. */
