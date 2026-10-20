@@ -92,7 +92,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.TableElement
-import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.QuickAction
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
@@ -1480,21 +1480,21 @@ private fun DrawingSurfaceView.bindEditorActions(
     onSettingsChange: (AppSettings) -> Unit,
 ) {
     onToggleFullPage = { ui.fullPage = !ui.fullPage }
-    onBarrelDoubleClick = { action ->
+    onQuickAction = { action ->
         when (action) {
             // The eraser the rail's slot stands for — whole-stroke by default — so the button lands on
             // the eraser the user actually uses instead of a fixed one.
-            BarrelDoubleAction.TOGGLE_ERASER -> {
+            QuickAction.TOGGLE_ERASER -> {
                 val previous = ui.tool
                 ui.toggleTool(preferredEraser(getSettings().toolGroupSelections))
                 activateTool(ui.tool, ui, getSettings(), onSettingsChange, previous)
             }
-            BarrelDoubleAction.TOGGLE_SELECT -> {
+            QuickAction.TOGGLE_SELECT -> {
                 val previous = ui.tool
                 ui.toggleTool(EditorTool.SELECT)
                 activateTool(ui.tool, ui, getSettings(), onSettingsChange, previous)
             }
-            BarrelDoubleAction.TOGGLE_FULL_PAGE -> {
+            QuickAction.TOGGLE_FULL_PAGE -> {
                 ui.fullPage = !ui.fullPage
                 applyTool(ui.tool)
             }
@@ -1666,12 +1666,13 @@ fun EditorPaneView(
                     modifier = Modifier.matchParentSize(),
                 )
             }
-            // Corner is user-configurable (Appearance settings); the default is bottom-right. The
-            // zoom badge rides directly above the page badge and shares its look, so the pair reads as
-            // one stack; tapping the zoom one puts the view back at 100%.
+            // The badges take the canvas edge opposite the Main Toolbar (see
+            // [pageCounterAlignment]), so they never sit under the tools or the writing hand. The zoom
+            // badge rides directly above the page badge and shares its look, so the pair reads as one
+            // stack; tapping the zoom one puts the view back at 100%.
             Column(
                 modifier = Modifier
-                    .align(pageCounterAlignment(settings.pageCounterVertical, settings.pageCounterHorizontal))
+                    .align(pageCounterAlignment(settings.toolbarPosition))
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {

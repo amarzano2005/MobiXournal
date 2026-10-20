@@ -172,7 +172,8 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
         barrelDoubleAction = s.barrelDoubleAction,
     )
     showHover = s.showHover
-    multiFingerShortcuts = s.multiFingerShortcuts
+    fingerTaps.twoFingerTapAction = s.twoFingerTapAction
+    fingerTaps.threeFingerTapAction = s.threeFingerTapAction
     pressureEnabled = s.pressureEnabled
     pressureMultiplier = s.pressureMultiplier
     minimumPressure = s.minimumPressure

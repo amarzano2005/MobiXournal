@@ -31,13 +31,17 @@ import com.mobixournal.ui.theme.DialogPresence
 import kotlin.math.roundToInt
 
 /**
- * The figure (shape) tools: the default size a new figure starts at, and the order / visibility of
- * the rail's **Shapes** submenu.
+ * The figure (shape) tools: the default size a new figure starts at, and each tool's default
+ * variant.
  *
  * The default size lives here because a figure is drawn at its set width with **no** pressure, while
  * a pen stroke thins with pressure — so with the pen's pressure sensitivity on, a figure can read
  * thicker than a light pen stroke. Picking a smaller slot here closes that gap; switching pressure
  * sensitivity off (under **Stylus**) makes the pen draw at the set width too, so the two match exactly.
+ *
+ * Which figures the Shapes submenu shows, and in what order, is **not** here: it is the Secondary
+ * Toolbar's own subject, so it lives once under **Toolbar** (see `ToolbarSection`) rather than being
+ * edited from two places.
  */
 @Composable
 fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
@@ -45,7 +49,6 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Triangle") { TriangleGeometry(settings, onChange) }
     SettingsGroup("Trapezoid") { TrapezoidGeometry(settings, onChange) }
     SettingsGroup("Table") { TableDefaults(settings, onChange) }
-    SettingsGroup("Figures shown") { FigureList(settings, onChange) }
 }
 
 /** The pen width slot a new figure starts at. */
@@ -199,35 +202,4 @@ private fun CustomAnglesRow(summary: String, onEdit: () -> Unit) {
             Text("Customize angles")
         }
     }
-}
-
-/**
- * Which figures the Shapes submenu and the Secondary Toolbar offer, and in what order. A reorder or
- * hide here is written through to the Secondary Toolbar's own order/hidden lists.
- */
-@Composable
-private fun FigureList(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote(
-        "The geometric figures offered in the Secondary Toolbar and shapes menu. Switch a figure off " +
-            "to hide it, or press and hold a row and drag it to reorder.",
-    )
-    ReorderableRowList(
-        items = orderedShapeTools(settings.shapeOrder).map { RailItem(it.name, it.label) },
-        hidden = settings.shapeHidden,
-        onOrder = { newShapeOrder ->
-            val figureTopBarIds = newShapeOrder.mapNotNull { name ->
-                runCatching { EditorTool.valueOf(name) }.getOrNull()?.let { FIGURE_TOOL_TO_TOP_BAR_ID[it] }
-            }
-            val nonFigureTopBarIds = settings.topBarOrder.filterNot { it in TOP_BAR_ID_TO_FIGURE_TOOL }
-            val newTopBarOrder = figureTopBarIds + nonFigureTopBarIds
-            onChange(settings.copy(shapeOrder = newShapeOrder, topBarOrder = newTopBarOrder))
-        },
-        onHidden = { newShapeHidden ->
-            val hiddenTopBarIds = newShapeHidden.mapNotNull { name ->
-                runCatching { EditorTool.valueOf(name) }.getOrNull()?.let { FIGURE_TOOL_TO_TOP_BAR_ID[it] }
-            }.toSet()
-            val newTopBarHidden = (settings.topBarHidden - TOP_BAR_ID_TO_FIGURE_TOOL.keys) + hiddenTopBarIds
-            onChange(settings.copy(shapeHidden = newShapeHidden, topBarHidden = newTopBarHidden))
-        },
-    )
 }

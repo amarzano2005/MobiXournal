@@ -68,6 +68,34 @@ class ShortcutKeysTest {
     }
 
     @Test
+    fun `colour shortcuts follow the palette, including a newly added colour`() {
+        // The rows come from the palette, not from the map: a colour added under Settings → Colors (or
+        // from the canvas pop-up) appears at once, with an empty field waiting for its key.
+        val palette = listOf(XOPP_BLACK, XOPP_RED, 0xFF0A0B0C.toInt())
+        val rows = colourShortcutRows(palette, mapOf(XOPP_RED to "2"))
+        assertEquals(
+            listOf(XOPP_BLACK to "", XOPP_RED to "2", 0xFF0A0B0C.toInt() to ""),
+            rows,
+        )
+    }
+
+    @Test
+    fun `redefining a palette colour carries its shortcut over`() {
+        val keys = mapOf(XOPP_RED to "2", XOPP_BLACK to "b")
+        val moved = rekeyColorShortcut(keys, XOPP_RED, 0xFF123456.toInt())
+        assertEquals(mapOf(0xFF123456.toInt() to "2", XOPP_BLACK to "b"), moved)
+        // A slot with nothing assigned, or a redefine to the same colour, is left alone.
+        assertEquals(keys, rekeyColorShortcut(keys, 0xFF00FF00.toInt(), XOPP_RED))
+        assertEquals(keys, rekeyColorShortcut(keys, XOPP_RED, XOPP_RED))
+    }
+
+    @Test
+    fun `colour shortcut rows keep palette order and drop duplicates`() {
+        val rows = colourShortcutRows(listOf(XOPP_RED, XOPP_BLACK, XOPP_RED), mapOf(XOPP_BLACK to "b"))
+        assertEquals(listOf(XOPP_RED to "", XOPP_BLACK to "b"), rows)
+    }
+
+    @Test
     fun `resolveKeyString extracts characters, digits, numpad and space`() {
         assertEquals("B", resolveKeyString(unicodeChar = 'b'.code, displayLabel = 'b', keyCode = 30))
         assertEquals("E", resolveKeyString(unicodeChar = 0, displayLabel = 'E', keyCode = 33))

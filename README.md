@@ -232,7 +232,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - Reorder, hide, or show buttons in both the Main Toolbar and Secondary Toolbar under **Settings → Toolbar**.
 - **Navigation & Scrolling**:
   - Configurable momentum scrolling (linear, quadratic, cubic, exponential curves) and panning sensitivity.
-  - **Touch gesture shortcuts**: a **two-finger tap undoes** and a **three-finger tap redoes**, anywhere on the canvas — no trip to the toolbar with the stylus in hand. Switch them off under **Settings → Shortcuts → Gestures** if a finger tap is not how you want to undo.
+  - **Finger gesture shortcuts**: a still **two-finger tap** undoes and a still **three-finger tap** redoes by default, anywhere on the canvas — no trip to the toolbar with the stylus in hand. Choose what each tap does under **Settings → Input → Finger gestures** (undo, redo, toggle eraser, toggle select, full-page view, or off), so a tap never does something you did not pick.
   - Distraction-free **Full-Page View** (double-tap canvas center with Hand tool to hide all chrome).
   - A hairline scroll thumb flush with the canvas edge (drag it to jump, with a page-number bubble while you drag); persistent page counter and zoom indicator (tap to reset to 100%).
 - **Theming & Backups**:

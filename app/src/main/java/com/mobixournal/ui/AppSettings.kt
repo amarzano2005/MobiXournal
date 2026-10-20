@@ -2,7 +2,7 @@ package com.mobixournal.ui
 
 import android.content.Context
 import com.mobixournal.render.BarrelAction
-import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.QuickAction
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Momentum
 import com.mobixournal.render.MomentumCurve
@@ -29,34 +29,6 @@ enum class ToolbarPosition(val label: String) {
     /** Rail down the **left** edge, buttons in a vertical column: the edge a **right** hand writes from. */
     LEFT("Left"),
     /** Rail down the **right** edge, buttons in a vertical column: the edge a **left** hand writes from. */
-    RIGHT("Right"),
-}
-
-/**
- * Which row of the canvas the "page X of Y" badge sits in.
- *
- * Paired with [PageCounterHorizontal] to place the badge in any of the nine positions on the canvas.
- */
-enum class PageCounterVertical(val label: String) {
-    /** Badge aligned to the top edge of the canvas. */
-    TOP("Top"),
-    /** Badge centered vertically on the canvas. */
-    CENTER("Center"),
-    /** Badge aligned to the bottom edge of the canvas. */
-    BOTTOM("Bottom"),
-}
-
-/**
- * Which column of the canvas the "page X of Y" badge sits in.
- *
- * Paired with [PageCounterVertical] to place the badge in any of the nine positions on the canvas.
- */
-enum class PageCounterHorizontal(val label: String) {
-    /** Badge aligned to the left edge of the canvas. */
-    LEFT("Left"),
-    /** Badge centered horizontally on the canvas. */
-    CENTER("Center"),
-    /** Badge aligned to the right edge of the canvas. */
     RIGHT("Right"),
 }
 
@@ -103,6 +75,8 @@ enum class ThemeMode(val label: String) {
  * @property momentum How far a released pan keeps gliding — the momentum-strength factor (0 = off, 1 = normal).
  * @property momentumCurve The velocity→coast response shape for momentum (linear … exponential).
  * @property panSensitivity How far the document moves per unit of pan travel (0 = frozen, 1 = one-to-one, >1 = faster).
+ * @property twoFingerTapAction What a still two-finger tap on the canvas runs — undo by default.
+ * @property threeFingerTapAction What a still three-finger tap runs — redo by default.
  * @property toolbarPosition Which vertical edge of the editor the tool rail is docked to.
  * @property penColors The pen palette every colour picker draws from, in display order — seeded with
  *   [PEN_COLORS] (desktop Xournal++) and editable under **Settings → Colors**. Sanitised to a
@@ -126,8 +100,6 @@ enum class ThemeMode(val label: String) {
  * @property railOrder The rail's button positions in display order, by [RailItem.id]. Empty means the factory order.
  * @property railHidden The [RailItem.id]s the user has hidden from the rail. Empty means everything is shown.
  * @property audioFolderUri The persisted `OpenDocumentTree` URI of the folder audio sidecars are kept in (empty = none nominated).
- * @property pageCounterVertical Which row of the canvas the always-visible page counter sits in.
- * @property pageCounterHorizontal Which column of the canvas the always-visible page counter sits in.
  * @property themeMode Light, dark, or follow the system — applied to the whole app's Material 3 scheme.
  * @property dynamicColor Whether to use Android 12+ dynamic colours from the wallpaper (Material You).
  * @property toolShortcutKeys Per-tool keyboard shortcut, keyed by [EditorTool]; empty/absent means disabled.
@@ -162,7 +134,7 @@ data class AppSettings(
     /** What the stylus primary barrel-button does while held. */
     val barrelAction: BarrelAction = BarrelAction.ERASE,
     /** What a rapid double-click of that button does (recognised only with the tip off the glass). */
-    val barrelDoubleAction: BarrelDoubleAction = BarrelDoubleAction.UNDO,
+    val barrelDoubleAction: QuickAction = QuickAction.UNDO,
     /** Show a preview ring where a hovering stylus will land. */
     val showHover: Boolean = true,
     /**
@@ -310,10 +282,6 @@ data class AppSettings(
     val saveStandaloneAudio: Boolean = false,
     /** BCP-47 language tag for transcription ("auto", "it-IT", "en-US", etc.). */
     val transcriptionLanguage: String = "auto",
-    /** Which row of the canvas the always-visible page counter sits in. */
-    val pageCounterVertical: PageCounterVertical = PageCounterVertical.BOTTOM,
-    /** Which column of the canvas the always-visible page counter sits in. */
-    val pageCounterHorizontal: PageCounterHorizontal = PageCounterHorizontal.RIGHT,
     /** Light, dark, or follow the system — applied to the whole app's Material 3 scheme. */
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** Whether to use Android 12+ dynamic colours from the wallpaper (Material You). */
@@ -346,8 +314,10 @@ data class AppSettings(
      * oldest-first once the folder exceeds this; a dropped generated PDF simply regenerates.
      */
     val pdfCacheLimitMb: Int = DEFAULT_PDF_CACHE_LIMIT_MB,
-    /** Whether a **two-finger tap** undoes and a **three-finger tap** redoes. On by default. */
-    val multiFingerShortcuts: Boolean = true,
+    /** What a still **two-finger tap** on the canvas runs; [QuickAction.NONE] turns it off. */
+    val twoFingerTapAction: QuickAction = QuickAction.UNDO,
+    /** What a still **three-finger tap** on the canvas runs; [QuickAction.NONE] turns it off. */
+    val threeFingerTapAction: QuickAction = QuickAction.REDO,
     /** Whether the user has seen or dismissed the first-launch onboarding popup. */
     val hasSeenOnboarding: Boolean = false,
 ) {
@@ -559,6 +529,9 @@ class SettingsStore(context: Context) {
 
     fun load(): AppSettings {
         val d = AppSettings()
+        // An install from before the two taps were configurable carries one on/off switch instead.
+        // Its "off" becomes both taps off; its "on" (or absence) keeps the defaults they replaced.
+        val legacyTaps = prefs.getBoolean(KEY_MULTI_FINGER_SHORTCUTS, true)
         return AppSettings(
             defaultPageWidthPt = prefs.getFloat(KEY_DEFAULT_PAGE_WIDTH, d.defaultPageWidthPt.toFloat()).toDouble(),
             defaultPageHeightPt = prefs.getFloat(KEY_DEFAULT_PAGE_HEIGHT, d.defaultPageHeightPt.toFloat()).toDouble(),
@@ -664,9 +637,6 @@ class SettingsStore(context: Context) {
             audioFolderUri = prefs.getString(KEY_AUDIO_FOLDER, d.audioFolderUri) ?: d.audioFolderUri,
             saveStandaloneAudio = prefs.getBoolean(KEY_SAVE_STANDALONE_AUDIO, d.saveStandaloneAudio),
             transcriptionLanguage = prefs.getString(KEY_TRANSCRIPTION_LANGUAGE, d.transcriptionLanguage) ?: d.transcriptionLanguage,
-            pageCounterVertical = enumOr(prefs.getString(KEY_PAGE_COUNTER_V, null), d.pageCounterVertical),
-            pageCounterHorizontal =
-                enumOr(prefs.getString(KEY_PAGE_COUNTER_H, null), d.pageCounterHorizontal),
             themeMode = enumOr(prefs.getString(KEY_THEME_MODE, null), d.themeMode),
             dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, d.dynamicColor),
             toolShortcutKeys = loadToolShortcutKeys(),
@@ -676,7 +646,14 @@ class SettingsStore(context: Context) {
             selectedPenPresetId = prefs.getString(KEY_SELECTED_PEN_PRESET, "default") ?: "default",
             textImportLimitMb = prefs.getInt(KEY_TEXT_IMPORT_LIMIT, d.textImportLimitMb).coerceAtLeast(1),
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
-            multiFingerShortcuts = prefs.getBoolean(KEY_MULTI_FINGER_SHORTCUTS, d.multiFingerShortcuts),
+            twoFingerTapAction = enumOr(
+                prefs.getString(KEY_TWO_FINGER_TAP, null),
+                if (legacyTaps) d.twoFingerTapAction else QuickAction.NONE,
+            ),
+            threeFingerTapAction = enumOr(
+                prefs.getString(KEY_THREE_FINGER_TAP, null),
+                if (legacyTaps) d.threeFingerTapAction else QuickAction.NONE,
+            ),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
         ).sanitized()
     }
@@ -770,8 +747,6 @@ class SettingsStore(context: Context) {
         e.putString(KEY_AUDIO_FOLDER, s.audioFolderUri)
         e.putBoolean(KEY_SAVE_STANDALONE_AUDIO, s.saveStandaloneAudio)
         e.putString(KEY_TRANSCRIPTION_LANGUAGE, s.transcriptionLanguage)
-        e.putString(KEY_PAGE_COUNTER_V, s.pageCounterVertical.name)
-        e.putString(KEY_PAGE_COUNTER_H, s.pageCounterHorizontal.name)
         e.putString(KEY_THEME_MODE, s.themeMode.name)
         e.putBoolean(KEY_DYNAMIC_COLOR, s.dynamicColor)
         e.putString(KEY_TOOL_SHORTCUTS, encodeToolShortcuts(s.toolShortcutKeys))
@@ -791,11 +766,19 @@ class SettingsStore(context: Context) {
         e.putString(KEY_SELECTED_PEN_PRESET, s.selectedPenPresetId)
         e.putInt(KEY_TEXT_IMPORT_LIMIT, s.textImportLimitMb)
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
-        e.putBoolean(KEY_MULTI_FINGER_SHORTCUTS, s.multiFingerShortcuts)
+        e.putString(KEY_TWO_FINGER_TAP, s.twoFingerTapAction.name)
+        e.putString(KEY_THREE_FINGER_TAP, s.threeFingerTapAction.name)
+        // Retired with the per-tap actions: the one switch it carried is now the two actions' own
+        // `NONE`, so a save clears the value an older install still holds.
+        e.remove(KEY_MULTI_FINGER_SHORTCUTS)
         // Both retired: the spring animation is the app's own motion language and the AGSL optics are
         // gone, so a save clears the preferences an older install still carries.
         e.remove(KEY_LIQUID_GLASS_ANIMATIONS)
         e.remove(KEY_LIQUID_GLASS_SHADERS)
+        // The badge now derives its corner from the rail's side, so the two axes it used to be
+        // placed by are retired with their preferences.
+        e.remove(KEY_PAGE_COUNTER_V)
+        e.remove(KEY_PAGE_COUNTER_H)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
         e.apply()
     }
@@ -889,6 +872,8 @@ class SettingsStore(context: Context) {
         const val KEY_AUDIO_FOLDER = "audio_folder_uri"
         const val KEY_SAVE_STANDALONE_AUDIO = "save_standalone_audio"
         const val KEY_TRANSCRIPTION_LANGUAGE = "transcription_language"
+        /** Retired — the badge's corner is derived from the rail's side, never stored; kept only so
+         * a save clears the values an older install still carries. */
         const val KEY_PAGE_COUNTER_V = "page_counter_vertical"
         const val KEY_PAGE_COUNTER_H = "page_counter_horizontal"
         const val KEY_THEME_MODE = "theme_mode"
@@ -900,7 +885,10 @@ class SettingsStore(context: Context) {
         const val KEY_SELECTED_PEN_PRESET = "selected_pen_preset_id"
         const val KEY_TEXT_IMPORT_LIMIT = "text_import_limit_mb"
         const val KEY_PDF_CACHE_LIMIT = "pdf_cache_limit_mb"
+        /** Retired: the two taps carry their own actions now (see [KEY_TWO_FINGER_TAP]). */
         const val KEY_MULTI_FINGER_SHORTCUTS = "multi_finger_shortcuts"
+        const val KEY_TWO_FINGER_TAP = "two_finger_tap_action"
+        const val KEY_THREE_FINGER_TAP = "three_finger_tap_action"
         const val KEY_LIQUID_GLASS_ANIMATIONS = "liquid_glass_animations"
         const val KEY_LIQUID_GLASS_SHADERS = "liquid_glass_shaders"
 

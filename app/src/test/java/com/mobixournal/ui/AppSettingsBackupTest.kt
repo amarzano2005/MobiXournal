@@ -2,7 +2,7 @@ package com.mobixournal.ui
 
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.BarrelAction
-import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.QuickAction
 import com.mobixournal.render.MomentumCurve
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,7 +25,7 @@ class AppSettingsBackupTest {
         val original = AppSettings(
             fingerDraws = true,
             barrelAction = BarrelAction.SELECT,
-            barrelDoubleAction = BarrelDoubleAction.REDO,
+            barrelDoubleAction = QuickAction.REDO,
             showHover = false,
             pressureEnabled = false,
             pressureMultiplier = 1.8f,
@@ -45,6 +45,8 @@ class AppSettingsBackupTest {
             momentum = 0.5f,
             momentumCurve = MomentumCurve.LINEAR,
             panSensitivity = 1.5f,
+            twoFingerTapAction = QuickAction.TOGGLE_ERASER,
+            threeFingerTapAction = QuickAction.NONE,
             toolbarPosition = ToolbarPosition.RIGHT,
             newDocumentFormat = NewDocumentFormat.XOPP,
             penColors = listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0xFFFF0000.toInt()),
@@ -74,8 +76,6 @@ class AppSettingsBackupTest {
             topBarOrder = listOf("line", "spline", "table"),
             topBarHidden = setOf("guides"),
             audioFolderUri = "content://test/folder",
-            pageCounterVertical = PageCounterVertical.TOP,
-            pageCounterHorizontal = PageCounterHorizontal.LEFT,
             themeMode = ThemeMode.DARK,
             dynamicColor = false,
             toolShortcutKeys = mapOf(EditorTool.PEN to "p", EditorTool.ERASER to "e"),
@@ -119,6 +119,28 @@ class AppSettingsBackupTest {
             ToolbarPosition.RIGHT,
             AppSettingsBackup.fromJson("""{"version": 1, "toolbarPosition": "RIGHT"}""").toolbarPosition,
         )
+    }
+
+    /**
+     * The finger taps used to share one on/off switch. A backup carrying it still has to import: its
+     * "off" means both taps off, its "on" (or its absence) leaves the defaults the switch replaced.
+     */
+    @Test
+    fun `a backup with the retired finger-tap switch imports as tap actions`() {
+        val off = AppSettingsBackup.fromJson("""{"version": 1, "multiFingerShortcuts": false}""")
+        assertEquals(QuickAction.NONE, off.twoFingerTapAction)
+        assertEquals(QuickAction.NONE, off.threeFingerTapAction)
+
+        val on = AppSettingsBackup.fromJson("""{"version": 1, "multiFingerShortcuts": true}""")
+        assertEquals(QuickAction.UNDO, on.twoFingerTapAction)
+        assertEquals(QuickAction.REDO, on.threeFingerTapAction)
+
+        // Written by this build: no retired key, and both actions travel as their own names.
+        val current = AppSettingsBackup.fromJson(
+            AppSettingsBackup.toJson(AppSettings(twoFingerTapAction = QuickAction.TOGGLE_SELECT)),
+        )
+        assertEquals(QuickAction.TOGGLE_SELECT, current.twoFingerTapAction)
+        assertEquals(QuickAction.REDO, current.threeFingerTapAction)
     }
 
     @Test

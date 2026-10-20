@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,8 +35,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
@@ -74,15 +80,6 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
             ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    SettingsGroup("Touch gestures") {
-                        SwitchRow(
-                            title = "Two-finger tap undo / three-finger tap redo",
-                            subtitle = "A quick, still tap with two fingers undoes; with three it redoes. " +
-                                "A pan is unaffected, and the fingers must not travel.",
-                            checked = settings.multiFingerShortcuts,
-                            onCheckedChange = { onChange(settings.copy(multiFingerShortcuts = it)) },
-                        )
-                    }
                     val pages = ShortcutSubpage.values()
                     pages.forEachIndexed { index, page ->
                         SectionRow(title = page.title, summary = page.summary) {
@@ -122,10 +119,11 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             SubpageHeader(active.title) { subpage = null }
             SettingsGroup("Colours") {
                 SettingsNote(
-                    "One key for every pen colour in your palette (Settings → Colors) — selecting the pen in that swatch.",
+                    "One key for every pen colour in your palette (Settings → Colors) — selecting the pen in " +
+                        "that swatch. The list is the palette itself, so a colour you add joins it here at once.",
                 )
-                for (color in settings.penColors) {
-                    KeySettingField(colorDisplayName(color), settings.colorShortcutKeys[color].orEmpty()) {
+                for ((color, key) in colourShortcutRows(settings.penColors, settings.colorShortcutKeys)) {
+                    KeySettingField(colorDisplayName(color), key, swatch = color) {
                         onChange(settings.copy(colorShortcutKeys = settings.colorShortcutKeys.with(color, it)))
                     }
                 }
@@ -165,15 +163,35 @@ private fun Map<EditorTool, String>.with(tool: EditorTool, key: String): Map<Edi
 private fun Map<Int, String>.with(color: Int, key: String): Map<Int, String> =
     if (key.isEmpty()) this - color else this + (color to key)
 
-/** A single-character key field; clearing it disables the shortcut it belongs to. */
+/**
+ * The colour-shortcut rows: **one per swatch in the palette, in palette order**, each carrying the key
+ * it is bound to (empty while unassigned).
+ *
+ * Derived from [colors] rather than from [keys] on purpose: the palette is the user's list, so adding
+ * a colour under Settings → Colors — or from the canvas's Colour & size pop-up — gives it a row here
+ * automatically, with an empty field waiting for its key. Building the rows from the shortcut map
+ * instead would make a new colour invisible until a key happened to exist for it, which is the one
+ * order in which the two lists could disagree. Duplicates are dropped, matching the palette's own
+ * de-duplicated append.
+ */
+internal fun colourShortcutRows(colors: List<Int>, keys: Map<Int, String>): List<Pair<Int, String>> =
+    colors.distinct().map { color -> color to keys[color].orEmpty() }
+
+/**
+ * A single-character key field; clearing it disables the shortcut it belongs to. When [swatch] is set
+ * the field leads with that colour's circle, so a colour row is recognisable as a colour at a glance.
+ */
 @Composable
 private fun KeySettingField(
     label: String,
     value: String,
+    swatch: Int? = null,
     onValueChange: (String) -> Unit,
 ) {
     var text by remember(value) { mutableStateOf(value) }
     var detecting by remember { mutableStateOf(false) }
+    val leading: (@Composable () -> Unit)? =
+        if (swatch != null) ({ ShortcutColorDot(swatch) }) else null
 
     OutlinedTextField(
         value = text,
@@ -182,6 +200,7 @@ private fun KeySettingField(
             onValueChange(text)
         },
         label = { Text(label) },
+        leadingIcon = leading,
         supportingText = { Text("Any key: letter, number or symbol. Empty = disabled.") },
         singleLine = true,
         trailingIcon = {
@@ -221,6 +240,18 @@ private fun KeySettingField(
             onDismiss = { detecting = false },
         )
     }
+}
+
+/** A colour's own circle, drawn like the palette's swatches: filled, with a hairline that keeps white visible. */
+@Composable
+private fun ShortcutColorDot(color: Int) {
+    Box(
+        modifier = Modifier
+            .size(18.dp)
+            .clip(CircleShape)
+            .background(Color(color))
+            .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), CircleShape),
+    )
 }
 
 /** Modal dialog that listens for the next key press (keyboard or tablet express key) to assign it. */

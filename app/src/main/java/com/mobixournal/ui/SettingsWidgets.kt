@@ -1,7 +1,6 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,11 +15,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
@@ -115,38 +111,6 @@ fun <T> OptionGroup(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Start,
             )
-        }
-    }
-}
-
-/** A labelled drop-down menu over an enum's values. */
-@Composable
-fun <T> DropdownRow(
-    label: String,
-    options: List<T>,
-    selected: T,
-    optionLabel: (T) -> String,
-    onSelect: (T) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Box {
-            OutlinedButton(onClick = { open = true }) { Text(optionLabel(selected)) }
-            // The app's one menu material (see [ToolbarMenu]): settings drop-downs wear the same
-            // fill and corner as the toolbars', so the app never shows two kinds of pop-up.
-            ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(optionLabel(option)) },
-                        onClick = { open = false; onSelect(option) },
-                    )
-                }
-            }
         }
     }
 }

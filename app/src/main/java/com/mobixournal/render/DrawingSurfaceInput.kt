@@ -105,15 +105,19 @@ internal fun DrawingSurfaceView.handleGenericMotion(event: MotionEvent): Boolean
 }
 
 /**
- * If the gesture that just ended was a still, quick two- or three-finger tap, run its shortcut
- * (two fingers → Undo, three → Redo) and return true.
+ * If the gesture that just ended was a still, quick two- or three-finger tap, run the action the
+ * user gave that tap (Settings → Input → Finger gestures) and return true when it did anything.
  */
-internal fun DrawingSurfaceView.finishMultiFingerTap(event: MotionEvent): Boolean =
-    when (multiTap.onUp(event.eventTime)) {
-        MultiFingerTapAction.UNDO -> { undo(); true }
-        MultiFingerTapAction.REDO -> { redo(); true }
-        MultiFingerTapAction.NONE -> false
-    }
+internal fun DrawingSurfaceView.finishMultiFingerTap(event: MotionEvent): Boolean {
+    val action = fingerTapQuickAction(
+        multiTap.onUp(event.eventTime),
+        fingerTaps.twoFingerTapAction,
+        fingerTaps.threeFingerTapAction,
+    )
+    if (action == QuickAction.NONE) return false
+    runQuickAction(action)
+    return true
+}
 
 /** The hover preview's state machine; null means "not ours" and falls through to [SurfaceView]. */
 internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
@@ -398,7 +402,7 @@ internal fun DrawingSurfaceView.pressBarrelButton(eventTime: Long, firmwareClick
 internal fun DrawingSurfaceView.runBarrelClickAction() {
     val action = inputSettings.barrelDoubleAction
     notePenDebug("CLICK -> " + action.name.lowercase().replace('_', ' '))
-    runBarrelDoubleAction(action)
+    runQuickAction(action)
 }
 
 /** The barrel button was let go (a key-up): the held modifier is over. */
@@ -427,18 +431,21 @@ internal fun DrawingSurfaceView.trackBarrelClicks(event: MotionEvent) {
     if (changed && hovering) render()
     // Only a press *edge* is a click: a held button repeats its bit on every hover move.
     if (!changed || !barrelButton.held || !barrelClicks.press(event.eventTime)) return
-    runBarrelDoubleAction(inputSettings.barrelDoubleAction)
+    runQuickAction(inputSettings.barrelDoubleAction)
 }
 
-/** Run the configured barrel double-click action. */
-internal fun DrawingSurfaceView.runBarrelDoubleAction(action: BarrelDoubleAction) {
+/**
+ * Run a [QuickAction] — the one executor behind both the barrel double-click and the canvas's
+ * two/three-finger taps, so the same choice behaves the same whichever gesture asked for it.
+ */
+internal fun DrawingSurfaceView.runQuickAction(action: QuickAction) {
     when (action) {
-        BarrelDoubleAction.NONE -> Unit
-        BarrelDoubleAction.UNDO -> undo()
-        BarrelDoubleAction.REDO -> redo()
+        QuickAction.NONE -> Unit
+        QuickAction.UNDO -> undo()
+        QuickAction.REDO -> redo()
         // TOGGLE_ERASER / TOGGLE_SELECT / TOGGLE_FULL_PAGE are applied by the editor, which owns the
         // UI state a toggle needs; the surface just reports the action.
-        else -> onBarrelDoubleClick?.invoke(action)
+        else -> onQuickAction?.invoke(action)
     }
 }
 

@@ -168,4 +168,18 @@ private fun PaletteHint(text: String) {
     )
 }
 
+/**
+ * [keys] with [from]'s shortcut moved onto [to] — a palette row's key follows the swatch when the
+ * user redefines its colour, rather than staying behind on a colour the palette no longer offers.
+ *
+ * Lives beside the palette because it is a palette edit, not a shortcut-codec concern: the shortcut
+ * list is derived from the palette, so the two move together. A slot with no key, or a redefine to
+ * the same colour, comes back unchanged.
+ */
+fun rekeyColorShortcut(keys: Map<Int, String>, from: Int, to: Int): Map<Int, String> {
+    if (from == to) return keys
+    val key = keys[from] ?: return keys
+    return (keys - from) + ((to or 0xFF000000.toInt()) to key)
+}
+
 

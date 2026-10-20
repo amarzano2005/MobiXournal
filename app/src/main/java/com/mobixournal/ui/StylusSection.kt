@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.BarrelAction
-import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.QuickAction
 import com.mobixournal.render.StrokePrecision
 
 /**
@@ -66,9 +66,9 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
         subtitle = "Action for a rapid double-click of the side-button, with the tip off the glass. " +
             "A pen whose own firmware reports that double-click as a single click (the Honor Choice " +
             "Pencil does) runs this on each click instead.",
-        options = BarrelDoubleAction.values().toList(),
+        options = QuickAction.values().toList(),
         selected = settings.barrelDoubleAction,
-        label = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercase) },
+        label = { quickActionLabel(it) },
         onSelect = { onChange(settings.copy(barrelDoubleAction = it)) },
     )
 }

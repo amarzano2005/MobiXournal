@@ -4,7 +4,7 @@ import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.json.JsonParser
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.render.BarrelAction
-import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.QuickAction
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.MomentumCurve
 import com.mobixournal.render.StrokePrecision
@@ -116,8 +116,6 @@ object AppSettingsBackup {
             .append(settings.topBarHidden.joinToString(", ") { "\"${escape(it)}\"" })
             .append("],\n")
         b.append("  \"audioFolderUri\": \"").append(escape(settings.audioFolderUri)).append("\",\n")
-        b.append("  \"pageCounterVertical\": \"").append(settings.pageCounterVertical.name).append("\",\n")
-        b.append("  \"pageCounterHorizontal\": \"").append(settings.pageCounterHorizontal.name).append("\",\n")
         b.append("  \"themeMode\": \"").append(settings.themeMode.name).append("\",\n")
         b.append("  \"dynamicColor\": ").append(settings.dynamicColor).append(",\n")
         b.append("  \"toolShortcutKeys\": {")
@@ -155,7 +153,8 @@ object AppSettingsBackup {
         b.append("  \"selectedPenPresetId\": \"").append(escape(settings.selectedPenPresetId)).append("\",\n")
         b.append("  \"textImportLimitMb\": ").append(settings.textImportLimitMb).append(",\n")
         b.append("  \"pdfCacheLimitMb\": ").append(settings.pdfCacheLimitMb).append(",\n")
-        b.append("  \"multiFingerShortcuts\": ").append(settings.multiFingerShortcuts).append(",\n")
+        b.append("  \"twoFingerTapAction\": \"").append(settings.twoFingerTapAction.name).append("\",\n")
+        b.append("  \"threeFingerTapAction\": \"").append(settings.threeFingerTapAction.name).append("\",\n")
         b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append("\n")
         b.append("}\n")
         return b.toString()
@@ -244,12 +243,16 @@ object AppSettingsBackup {
             PenPreset(id, name, minP, mult)
         } ?: fallback.penPresets
 
+        // A backup from before the taps were configurable carries one on/off switch instead of the
+        // two actions: its "off" imports as both taps off, its "on" (or absence) as the fallback.
+        val legacyFingerTaps = root.getBool("multiFingerShortcuts", true)
+
         return AppSettings(
             defaultPageWidthPt = root.getDouble("defaultPageWidthPt", fallback.defaultPageWidthPt),
             defaultPageHeightPt = root.getDouble("defaultPageHeightPt", fallback.defaultPageHeightPt),
             fingerDraws = root.getBool("fingerDraws", fallback.fingerDraws),
             barrelAction = readEnum("barrelAction", BarrelAction.values(), fallback.barrelAction),
-            barrelDoubleAction = readEnum("barrelDoubleAction", BarrelDoubleAction.values(), fallback.barrelDoubleAction),
+            barrelDoubleAction = readEnum("barrelDoubleAction", QuickAction.values(), fallback.barrelDoubleAction),
             showHover = root.getBool("showHover", fallback.showHover),
             pressureEnabled = root.getBool("pressureEnabled", fallback.pressureEnabled),
             pressureMultiplier = root.getFloat("pressureMultiplier", fallback.pressureMultiplier),
@@ -321,8 +324,6 @@ object AppSettingsBackup {
             topBarOrder = root.getStrList("topBarOrder") ?: fallback.topBarOrder,
             topBarHidden = root.getStrList("topBarHidden")?.toSet() ?: fallback.topBarHidden,
             audioFolderUri = root.getStr("audioFolderUri", fallback.audioFolderUri),
-            pageCounterVertical = readEnum("pageCounterVertical", PageCounterVertical.values(), fallback.pageCounterVertical),
-            pageCounterHorizontal = readEnum("pageCounterHorizontal", PageCounterHorizontal.values(), fallback.pageCounterHorizontal),
             themeMode = readEnum("themeMode", ThemeMode.values(), fallback.themeMode),
             dynamicColor = root.getBool("dynamicColor", fallback.dynamicColor),
             toolShortcutKeys = toolShortcutKeys,
@@ -332,7 +333,16 @@ object AppSettingsBackup {
             selectedPenPresetId = root.getStr("selectedPenPresetId", fallback.selectedPenPresetId),
             textImportLimitMb = root.getInt("textImportLimitMb", fallback.textImportLimitMb),
             pdfCacheLimitMb = root.getInt("pdfCacheLimitMb", fallback.pdfCacheLimitMb),
-            multiFingerShortcuts = root.getBool("multiFingerShortcuts", fallback.multiFingerShortcuts),
+            twoFingerTapAction = readEnum(
+                "twoFingerTapAction",
+                QuickAction.values(),
+                if (legacyFingerTaps) fallback.twoFingerTapAction else QuickAction.NONE,
+            ),
+            threeFingerTapAction = readEnum(
+                "threeFingerTapAction",
+                QuickAction.values(),
+                if (legacyFingerTaps) fallback.threeFingerTapAction else QuickAction.NONE,
+            ),
             hasSeenOnboarding = root.getBool("hasSeenOnboarding", fallback.hasSeenOnboarding),
         ).sanitized()
     }

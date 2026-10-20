@@ -6,9 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests for [MultiFingerTapDetector]: two-finger tap (Undo) and three-finger tap (Redo),
- * ensuring centroid shifts and release lift-off jitter never disqualify legitimate taps while
- * real pans and pinches are reliably excluded.
+ * Unit tests for [MultiFingerTapDetector]: how many fingers a still tap held, ensuring centroid
+ * shifts and release lift-off jitter never disqualify legitimate taps while real pans and pinches
+ * are reliably excluded — plus [fingerTapQuickAction], the user's choice of what each tap runs.
  */
 class MultiFingerTapDetectorTest {
 
@@ -16,7 +16,7 @@ class MultiFingerTapDetectorTest {
     private val slop = 20f
 
     @Test
-    fun `two finger still tap fires UNDO`() {
+    fun `two finger still tap reports TWO_FINGER`() {
         // Finger 0 lands at (100, 100)
         detector.onDown(time = 1000L, x = 100f, y = 100f, pointerId = 0, touchSlop = slop)
         // Finger 1 lands at (200, 100) 20ms later
@@ -43,11 +43,11 @@ class MultiFingerTapDetectorTest {
 
         // Finger 1 lifts 15ms later
         val action = detector.onUp(time = 1100L)
-        assertEquals(MultiFingerTapAction.UNDO, action)
+        assertEquals(FingerTap.TWO_FINGER, action)
     }
 
     @Test
-    fun `three finger still tap fires REDO`() {
+    fun `three finger still tap reports THREE_FINGER`() {
         detector.onDown(time = 1000L, x = 100f, y = 100f, pointerId = 0, touchSlop = slop)
         detector.onPointerDown(time = 1015L, x = 200f, y = 100f, pointerId = 1, pointerCount = 2)
         detector.onPointerDown(time = 1030L, x = 300f, y = 100f, pointerId = 2, pointerCount = 3)
@@ -58,7 +58,7 @@ class MultiFingerTapDetectorTest {
         detector.onPointerUp(pointerId = 0)
         detector.onPointerUp(pointerId = 1)
         val action = detector.onUp(time = 1120L)
-        assertEquals(MultiFingerTapAction.REDO, action)
+        assertEquals(FingerTap.THREE_FINGER, action)
     }
 
     @Test
@@ -66,7 +66,7 @@ class MultiFingerTapDetectorTest {
         detector.onDown(time = 1000L, x = 100f, y = 100f, pointerId = 0, touchSlop = slop)
         assertFalse("Single finger never arms multi-tap candidate", detector.candidate)
         val action = detector.onUp(time = 1050L)
-        assertEquals(MultiFingerTapAction.NONE, action)
+        assertEquals(FingerTap.NONE, action)
     }
 
     @Test
@@ -78,7 +78,7 @@ class MultiFingerTapDetectorTest {
 
         assertFalse(detector.candidate)
         val action = detector.onUp(time = 1100L)
-        assertEquals(MultiFingerTapAction.NONE, action)
+        assertEquals(FingerTap.NONE, action)
     }
 
     @Test
@@ -100,7 +100,7 @@ class MultiFingerTapDetectorTest {
 
         detector.onPointerUp(pointerId = 0)
         val action = detector.onUp(time = 1100L)
-        assertEquals(MultiFingerTapAction.NONE, action)
+        assertEquals(FingerTap.NONE, action)
     }
 
     @Test
@@ -120,7 +120,7 @@ class MultiFingerTapDetectorTest {
 
         detector.onPointerUp(pointerId = 0)
         val action = detector.onUp(time = 1450L)
-        assertEquals(MultiFingerTapAction.NONE, action)
+        assertEquals(FingerTap.NONE, action)
     }
 
     @Test
@@ -143,18 +143,42 @@ class MultiFingerTapDetectorTest {
         assertFalse("Move checks are frozen during lift-off", detector.moved)
 
         val action = detector.onUp(time = 1100L)
-        assertEquals(MultiFingerTapAction.UNDO, action)
+        assertEquals(FingerTap.TWO_FINGER, action)
     }
 
     @Test
-    fun `shortcuts disabled never triggers UNDO or REDO`() {
+    fun `shortcuts disabled never reports a tap`() {
         detector.shortcutsEnabled = false
         detector.onDown(time = 1000L, x = 100f, y = 100f, pointerId = 0, touchSlop = slop)
         detector.onPointerDown(time = 1020L, x = 200f, y = 100f, pointerId = 1, pointerCount = 2)
 
         assertFalse(detector.candidate)
         val action = detector.onUp(time = 1100L)
-        assertEquals(MultiFingerTapAction.NONE, action)
+        assertEquals(FingerTap.NONE, action)
+    }
+
+    @Test
+    fun `each tap runs the action the user gave it`() {
+        // Whole point of splitting the detector from the action: the same still tap can mean undo,
+        // redo or nothing at all, and the mapping is total over the three counts.
+        assertEquals(QuickAction.UNDO, fingerTapQuickAction(FingerTap.TWO_FINGER, QuickAction.UNDO, QuickAction.REDO))
+        assertEquals(QuickAction.REDO, fingerTapQuickAction(FingerTap.THREE_FINGER, QuickAction.UNDO, QuickAction.REDO))
+        assertEquals(
+            QuickAction.TOGGLE_ERASER,
+            fingerTapQuickAction(FingerTap.TWO_FINGER, QuickAction.TOGGLE_ERASER, QuickAction.TOGGLE_FULL_PAGE),
+        )
+        assertEquals(
+            QuickAction.TOGGLE_FULL_PAGE,
+            fingerTapQuickAction(FingerTap.THREE_FINGER, QuickAction.TOGGLE_ERASER, QuickAction.TOGGLE_FULL_PAGE),
+        )
+    }
+
+    @Test
+    fun `a switched-off tap does nothing, whichever the other tap does`() {
+        assertEquals(QuickAction.NONE, fingerTapQuickAction(FingerTap.TWO_FINGER, QuickAction.NONE, QuickAction.REDO))
+        assertEquals(QuickAction.NONE, fingerTapQuickAction(FingerTap.THREE_FINGER, QuickAction.UNDO, QuickAction.NONE))
+        // A single finger (or any disqualified gesture) is never a quick action at all.
+        assertEquals(QuickAction.NONE, fingerTapQuickAction(FingerTap.NONE, QuickAction.UNDO, QuickAction.REDO))
     }
 
     @Test

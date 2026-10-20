@@ -201,11 +201,10 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var eraseY = 0f
     internal var scrolling = false
 
-    /** Multi-finger tap shortcut detector (two fingers → Undo, three → Redo). */
     internal val multiTap = MultiFingerTapDetector()
-    var multiFingerShortcuts: Boolean
-        get() = multiTap.shortcutsEnabled
-        set(value) { multiTap.shortcutsEnabled = value }
+
+    /** The taps' actions; both `NONE` disarms [multiTap] (see [FingerTapSettings]). */
+    internal val fingerTaps = FingerTapSettings(multiTap)
     internal val multiTapCandidate: Boolean get() = multiTap.candidate
     internal val multiTapMoved: Boolean get() = multiTap.moved
     internal val multiTapMaxPointers: Int get() = multiTap.maxPointers
@@ -445,11 +444,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Notified when the Hand tool receives a centre double-tap, so the editor can toggle full-page (chrome-hidden) view. */
     var onToggleFullPage: (() -> Unit)? = null
     /**
-     * Notified with the configured [BarrelDoubleAction] when the stylus barrel button is
-     * double-clicked. Undo/redo are applied here on the surface; the tool/chrome flips need the
-     * editor's state, so they are handed out through this callback.
+     * Notified with the configured [QuickAction] when a gesture that hands its work to the editor
+     * ends: the stylus barrel button double-clicked, or a two/three-finger tap on the canvas. Undo
+     * and redo are applied here on the surface; the tool/chrome flips need the editor's state, so
+     * they are handed out through this callback.
      */
-    var onBarrelDoubleClick: ((BarrelDoubleAction) -> Unit)? = null
+    var onQuickAction: ((QuickAction) -> Unit)? = null
 
     var tool: Tool = Tool.PEN
     var colorArgb: Int = AndroidColor.BLACK

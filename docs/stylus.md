@@ -80,8 +80,8 @@ toolbar":
    and it only ever sees *edges*: both streams a pen can report its button on pass through the one
    latch first, so a single press reported twice (a motion bit *and* a key event) is one edge, not a
    pair,
-   and runs the configured `BarrelDoubleAction` (undo/redo on the surface; the tool and full-page
-   toggles are handed to `EditorScreen` through `onBarrelDoubleClick`).
+   and runs the configured `QuickAction` (undo/redo on the surface; the tool and full-page
+   toggles are handed to `EditorScreen` through `onQuickAction`).
 3. **Finger-draw gate.** With the Settings **"finger draws"** toggle off, a finger **always pans** and
    actuates no tool at all — pen, highlighter, eraser, text, selection and placement all become
    stylus-only. Palm-safe writing on non-stylus devices. It is **off by default** on a first launch
@@ -299,18 +299,27 @@ visual rate.
 
 ## Two- and three-finger tap gestures
 
-**Multi-touch gesture shortcuts: tap with two fingers to undo, three to redo.** The tap tracker
-already used for the double-tap gesture keeps a per-gesture high-water mark of concurrent pointers
-(`multiTapMaxPointers`), so a gesture that never drew, panned or zoomed can be classified by **how
-many** fingers it held: two → `undo()`, three → `redo()` on the release that takes the last finger
-off the canvas. The count has to survive the lift order (`ACTION_POINTER_UP` while one finger stays
-down), and the whole gesture is disqualified the moment a pointer moves past the slop
-(`multiTapMoved`) or the pinch/scroll paths take it. The two actions are the surface's own
-`undo()`/`redo()`, so the history, the toolbar buttons and the barrel-button shortcuts stay one
-implementation. Both gestures hang off the one **`AppSettings.multiFingerShortcuts`** switch (on by
-default, round-tripped by the settings backup and offered in **Settings → Shortcuts → Gestures**),
-because a finger tap that silently rewrites the document is exactly the kind of thing a user must be
-able to turn off.
+**Finger gestures: a still two-finger tap and a still three-finger tap, each running the action the
+user picked** — undo and redo by default. The tap tracker already used for the double-tap gesture
+keeps a per-gesture high-water mark of concurrent pointers (`multiTapMaxPointers`), so a gesture
+that never drew, panned or zoomed is classified by **how many** fingers it held: `FingerTap`
+(`TWO_FINGER`, `THREE_FINGER`) on the release that takes the last finger off the canvas. The count
+has to survive the lift order (`ACTION_POINTER_UP` while one finger stays down), and the whole
+gesture is disqualified the moment a pointer moves past the slop (`multiTapMoved`) or the
+pinch/scroll paths take it — so a pan or a pinch never fires a tap.
+
+**Detection and meaning are separate.** The detector stops at the finger count; the action comes from
+`FingerTapSettings.twoFingerTapAction` / `threeFingerTapAction` (the same `QuickAction` vocabulary the
+barrel's double-click uses: `NONE`, `UNDO`, `REDO`, `TOGGLE_ERASER`, `TOGGLE_SELECT`,
+`TOGGLE_FULL_PAGE`), resolved by the pure `fingerTapQuickAction()` and run by the surface's one
+`runQuickAction()`. Undo and redo are the surface's own, so history, toolbar buttons and the barrel
+shortcut stay one implementation; the tool/chrome toggles go to the editor through `onQuickAction`.
+Both choices live in **Settings → Input → Finger gestures**, are round-tripped by the settings backup,
+and are saved as `twoFingerTapAction` / `threeFingerTapAction`. With both set to `NONE` the detector is
+disarmed entirely, because a finger tap that silently rewrites the document is exactly the kind of
+thing a user must be able to turn off. An install from before this choice carried one
+`multiFingerShortcuts` switch: its **off** loads as both taps `NONE`, its on (or absence) as the
+defaults, and a save clears the retired key.
 
 ## Telemetry: stored, never drawn
 

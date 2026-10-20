@@ -46,15 +46,11 @@ class SettingsStoreTest {
         val original = AppSettings(
             themeMode = ThemeMode.DARK,
             dynamicColor = false,
-            pageCounterVertical = PageCounterVertical.TOP,
-            pageCounterHorizontal = PageCounterHorizontal.LEFT,
         )
         store.save(original)
 
         val loaded = store.load()
         assertEquals(ThemeMode.DARK, loaded.themeMode)
         assertEquals(false, loaded.dynamicColor)
-        assertEquals(PageCounterVertical.TOP, loaded.pageCounterVertical)
-        assertEquals(PageCounterHorizontal.LEFT, loaded.pageCounterHorizontal)
     }
 }

@@ -65,18 +65,29 @@ enum class BarrelAction {
 }
 
 /**
- * What a *rapid double-click* of the stylus barrel button invokes — a user setting distinct from the
- * held [BarrelAction]. The two never collide: the held action is decided at pointer-down (the tip is
- * on the glass), while a double-click is a button-only gesture recognised by [BarrelClickDetector].
+ * An **eyes-free quick action**, chosen in Settings for a gesture that carries no ink of its own.
+ *
+ * Two gestures pick from this one vocabulary, because they mean the same thing to a writer — "do a
+ * thing without leaving the canvas":
+ *
+ * - a *rapid double-click* of the stylus barrel button, recognised by [BarrelClickDetector] — a
+ *   button-only gesture distinct from the held [BarrelAction], since the held action is decided at
+ *   pointer-down with the tip on the glass; and
+ * - a still **two- or three-finger tap** on the canvas, recognised by
+ *   [MultiFingerTapDetector] (Settings → Input → **Finger gestures**).
+ *
+ * One enum rather than two keeps the two settings from drifting into different choices, and keeps
+ * the editor's own handler ([onQuickAction][com.mobixournal.render.DrawingSurfaceView.onQuickAction])
+ * the single place a toggle is applied.
  */
-enum class BarrelDoubleAction {
-    /** Ignore double-clicks entirely. */
+enum class QuickAction {
+    /** Ignore the gesture entirely: a tap does nothing, a double-click does nothing. */
     NONE,
 
-    /** Undo the last edit (the default — the most-wanted eyes-free action). */
+    /** Undo the last edit (the default for both a barrel double-click and a two-finger tap). */
     UNDO,
 
-    /** Redo the last undone edit. */
+    /** Redo the last undone edit (the default for a three-finger tap). */
     REDO,
 
     /** Flip between the eraser and the previous drawing tool. */
@@ -208,7 +219,7 @@ data class InputSettings(
     /** What the stylus primary barrel-button invokes while held. */
     val barrelAction: BarrelAction = BarrelAction.ERASE,
     /** What a rapid double-click of that same button invokes. */
-    val barrelDoubleAction: BarrelDoubleAction = BarrelDoubleAction.UNDO,
+    val barrelDoubleAction: QuickAction = QuickAction.UNDO,
 )
 
 /**

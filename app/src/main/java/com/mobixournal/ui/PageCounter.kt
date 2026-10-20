@@ -37,27 +37,18 @@ internal fun tileLabel(cell: Pair<Int, Int>): String = "${cell.first}, ${cell.se
 fun zoomLabel(zoom: Float): String = "${(zoom * 100).roundToInt()}%"
 
 /**
- * The badge's corner as a Compose [Alignment], from the two configured axes (Appearance settings).
+ * The badges' corner as a Compose [Alignment]: the bottom row of the canvas, on the edge **opposite
+ * the Main Toolbar**.
+ *
+ * There is no placement setting behind this any more. The rail owns one vertical edge already, so
+ * the only side that is actually free is the other one — and it is also the side the writing hand is
+ * not on, which is the whole point of a handedness choice: dock the rail left (right-handed) and the
+ * badges go bottom-right; dock it right (left-handed) and they move bottom-left to match. One rule,
+ * and the pair never sits under the tools or under the palm.
  */
-fun pageCounterAlignment(
-    vertical: PageCounterVertical,
-    horizontal: PageCounterHorizontal,
-): Alignment = when (vertical) {
-    PageCounterVertical.TOP -> when (horizontal) {
-        PageCounterHorizontal.LEFT -> Alignment.TopStart
-        PageCounterHorizontal.CENTER -> Alignment.TopCenter
-        PageCounterHorizontal.RIGHT -> Alignment.TopEnd
-    }
-    PageCounterVertical.CENTER -> when (horizontal) {
-        PageCounterHorizontal.LEFT -> Alignment.CenterStart
-        PageCounterHorizontal.CENTER -> Alignment.Center
-        PageCounterHorizontal.RIGHT -> Alignment.CenterEnd
-    }
-    PageCounterVertical.BOTTOM -> when (horizontal) {
-        PageCounterHorizontal.LEFT -> Alignment.BottomStart
-        PageCounterHorizontal.CENTER -> Alignment.BottomCenter
-        PageCounterHorizontal.RIGHT -> Alignment.BottomEnd
-    }
+fun pageCounterAlignment(toolbarPosition: ToolbarPosition): Alignment = when (toolbarPosition) {
+    ToolbarPosition.LEFT -> Alignment.BottomEnd
+    ToolbarPosition.RIGHT -> Alignment.BottomStart
 }
 
 /**

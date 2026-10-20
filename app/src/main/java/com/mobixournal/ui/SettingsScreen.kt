@@ -58,8 +58,8 @@ enum class SettingsArea(
     /** Input devices and the keys that stand in for them: stylus behaviour and shortcuts. */
     INPUT(
         "Input",
-        "Stylus pressure, barrel buttons, hover, and keyboard shortcuts.",
-        listOf(SettingsSection.STYLUS, SettingsSection.SHORTCUTS),
+        "Stylus pressure, barrel buttons, hover, finger gestures, and keyboard shortcuts.",
+        listOf(SettingsSection.STYLUS, SettingsSection.GESTURES, SettingsSection.SHORTCUTS),
     ),
     /** What the drawing tools do and what they draw with: tool behaviour, figures, palette. */
     DRAWING(
@@ -70,7 +70,7 @@ enum class SettingsArea(
     /** How the app looks and how the canvas is navigated: toolbars, theme, panning. */
     INTERFACE(
         "Interface",
-        "Toolbar layout, theme and page counter, momentum and panning.",
+        "Toolbar layout, theme, momentum and panning.",
         listOf(SettingsSection.TOOLBAR, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
     ),
     /** The app itself: what it writes, how much it may store, how its settings move, what it is. */
@@ -119,10 +119,10 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "main toolbar position left right handed left-handed right-handed buttons order hide show " +
             "reorder rail secondary top bar figures",
     ),
-    /** Figures: the default figure size and the Shapes submenu's figures and order. */
+    /** Figures: the default figure size and each figure tool's default variant. */
     FIGURES(
         "Figures",
-        "Default figure size, and the Shapes submenu's figures and order.",
+        "Default figure size, and each figure tool's default variant.",
         "figure size width shapes submenu triangle trapezoid scalene angles rectangle ellipse " +
             "spline arrow table circuit logic guides",
     ),
@@ -132,6 +132,13 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Add, edit or remove the swatches every colour picker offers.",
         "colour color palette swatch favourite favorite custom hex pen highlighter add remove " +
             "restore default theme",
+    ),
+    /** Finger gestures: what a still two- and three-finger tap on the canvas does. */
+    GESTURES(
+        "Finger gestures",
+        "What a still two-finger tap and a still three-finger tap do.",
+        "finger gestures touch two finger tap double tap three triple tap undo redo toggle eraser " +
+            "select full page multitouch multi-touch tap",
     ),
     /** Keyboard shortcuts: one key per tool and per pen colour. */
     SHORTCUTS(
@@ -144,14 +151,14 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Navigation",
         "Momentum scrolling and panning sensitivity.",
         "momentum scroll scrolling glide inertia pan panning sensitivity speed zoom full page " +
-            "page counter scrollbar",
+            "scrollbar",
     ),
-    /** Appearance: theme mode, wallpaper colours and page counter position. */
+    /** Appearance: theme mode and wallpaper colours. */
     APPEARANCE(
         "Appearance",
-        "Theme, wallpaper colours, and page counter position.",
+        "Theme and wallpaper colours.",
         "appearance interface theme dark light system dynamic color colour " +
-            "material you wallpaper page counter badge position",
+            "material you wallpaper",
     ),
     /**
      * Documents: the format a new document is written in — the standing answer to the question the
@@ -393,6 +400,7 @@ private fun SectionBody(
 ) {
     when (section) {
         SettingsSection.STYLUS -> StylusSection(settings, onChange)
+        SettingsSection.GESTURES -> FingerGesturesSection(settings, onChange)
         SettingsSection.EDITOR -> EditorSection(settings, onChange)
         SettingsSection.TOOLBAR -> ToolbarSection(settings, onChange)
         SettingsSection.FIGURES -> FiguresSection(settings, onChange)

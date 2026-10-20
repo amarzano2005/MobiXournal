@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.ui.Alignment
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -52,6 +53,14 @@ class PageCounterTest {
     fun `an unmeasurable label or slot is left alone`() {
         assertEquals(14f, fittedLabelSp(14f, 0f, 66f), 0.001f)
         assertEquals(14f, fittedLabelSp(14f, 78f, 0f), 0.001f)
+    }
+
+    @Test
+    fun `the badges take the edge opposite the rail`() {
+        // A left-docked rail (right-handed writing) leaves the right edge free, and the mirror for a
+        // left hand. There is no placement setting behind this, so this is the whole contract.
+        assertEquals(Alignment.BottomEnd, pageCounterAlignment(ToolbarPosition.LEFT))
+        assertEquals(Alignment.BottomStart, pageCounterAlignment(ToolbarPosition.RIGHT))
     }
 
     @Test

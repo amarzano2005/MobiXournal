@@ -15,7 +15,7 @@ import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.BarrelClickDetector
-import com.mobixournal.render.BarrelDoubleAction
+import com.mobixournal.render.QuickAction
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.InputSettings
@@ -99,7 +99,7 @@ class StylusInputTest {
     @Test
     fun vendorKeyClickRunsTheDoubleClickAction() = onView { view ->
         view.tool = Tool.PEN
-        view.inputSettings = InputSettings(barrelDoubleAction = BarrelDoubleAction.UNDO)
+        view.inputSettings = InputSettings(barrelDoubleAction = QuickAction.UNDO)
         drawLine(view, MotionEvent.TOOL_TYPE_STYLUS)
         assertEquals(1, strokesOf(view).size)
 
@@ -121,7 +121,7 @@ class StylusInputTest {
     @Test
     fun heldVendorKeyClickStillErases() = onView { view ->
         view.tool = Tool.PEN
-        view.inputSettings = InputSettings(barrelAction = BarrelAction.ERASE, barrelDoubleAction = BarrelDoubleAction.NONE)
+        view.inputSettings = InputSettings(barrelAction = BarrelAction.ERASE, barrelDoubleAction = QuickAction.NONE)
         drawLine(view, MotionEvent.TOOL_TYPE_STYLUS)
         assertEquals(1, strokesOf(view).size)
 
@@ -135,7 +135,7 @@ class StylusInputTest {
     @Test
     fun barrelDoubleClickWhileHoveringUndoes() = onView { view ->
         view.tool = Tool.PEN
-        view.inputSettings = InputSettings(barrelDoubleAction = BarrelDoubleAction.UNDO)
+        view.inputSettings = InputSettings(barrelDoubleAction = QuickAction.UNDO)
         drawLine(view, MotionEvent.TOOL_TYPE_STYLUS)
         assertEquals(1, strokesOf(view).size)
 
@@ -147,7 +147,7 @@ class StylusInputTest {
     @Test
     fun slowBarrelClicksDoNotUndo() = onView { view ->
         view.tool = Tool.PEN
-        view.inputSettings = InputSettings(barrelDoubleAction = BarrelDoubleAction.UNDO)
+        view.inputSettings = InputSettings(barrelDoubleAction = QuickAction.UNDO)
         drawLine(view, MotionEvent.TOOL_TYPE_STYLUS)
 
         hoverClick(view)

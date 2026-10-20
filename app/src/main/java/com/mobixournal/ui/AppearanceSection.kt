@@ -2,7 +2,7 @@ package com.mobixournal.ui
 
 import androidx.compose.runtime.Composable
 
-/** Appearance: which Material 3 colour scheme the app's chrome is painted with, and canvas badges. */
+/** Appearance: which Material 3 colour scheme the app's chrome is painted with. */
 @Composable
 fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Theme") {
@@ -21,23 +21,6 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             subtitle = "On Android 12+ takes colours from your wallpaper. Off uses the app's fixed blue.",
             checked = settings.dynamicColor,
             onCheckedChange = { onChange(settings.copy(dynamicColor = it)) },
-        )
-    }
-    SettingsGroup("Page counter") {
-        SettingsNote("Which corner of the canvas the always-visible \"page X of Y\" badge sits in.")
-        DropdownRow(
-            label = "Vertical",
-            options = PageCounterVertical.values().toList(),
-            selected = settings.pageCounterVertical,
-            optionLabel = { it.label },
-            onSelect = { onChange(settings.copy(pageCounterVertical = it)) },
-        )
-        DropdownRow(
-            label = "Horizontal",
-            options = PageCounterHorizontal.values().toList(),
-            selected = settings.pageCounterHorizontal,
-            optionLabel = { it.label },
-            onSelect = { onChange(settings.copy(pageCounterHorizontal = it)) },
         )
     }
 }

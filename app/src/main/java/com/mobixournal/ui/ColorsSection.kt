@@ -109,8 +109,15 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                         settings.copy(penColors = (settings.penColors + newColor).distinct())
                     } else {
                         val replaced = settings.penColors.toMutableList()
+                        val previous = replaced[editing]
                         replaced[editing] = newColor
-                        settings.copy(penColors = replaced.distinct())
+                        settings.copy(
+                            penColors = replaced.distinct(),
+                            // The row's shortcut belongs to the slot, not to the old colour: redefine
+                            // the swatch and its key follows, instead of pointing at a colour that is
+                            // no longer in the palette.
+                            colorShortcutKeys = rekeyColorShortcut(settings.colorShortcutKeys, previous, newColor),
+                        )
                     },
                 )
                 editing = -1

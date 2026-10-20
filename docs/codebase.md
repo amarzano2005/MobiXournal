@@ -248,7 +248,7 @@ app/
       SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure)
       VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
                              #   snapping the gap to the ruling when snapping is on (pure)
-      InputClassifier.kt     # pointer kind + button + active tool + settings -> gesture intent (pure)
+      InputClassifier.kt     # pointer kind + button + active tool + settings -> gesture intent (pure); MultiFingerTapDetector.kt: a still 2/3-finger tap's finger count, FingerTapSettings.kt: the action each tap was given (pure)
       PressureCurve.kt       # pressure -> width multiplier + sensitivity presets (pure)
       Fling.kt               # decelerating two-axis momentum-scroll kinematics (pure)
       VelocityEstimator.kt   # pan release-velocity from a trailing sample window (pure)
@@ -295,13 +295,13 @@ app/
       ToolGroups.kt          # the rail's tool groups + their persisted per-slot selections (pure)
       RailItems.kt           # the rail's button positions + their persisted order/hidden set (pure)
       ScrollThumb.kt         # right-edge PDF-style scroll thumb: drag to page fast, faint-when-idle, page bubble
-      PageCounter.kt         # always-visible "page X of Y" badge (its corner is a setting) + the zoom badge above it (tap = reset to 100%)
+      PageCounter.kt         # always-visible "page X of Y" badge, in the corner opposite the Main Toolbar, + the zoom badge above it (tap = reset to 100%)
       SettingsScreen.kt      # settings: side menu + sections on a wide screen, pushed index on a narrow one
       SettingsSidebar.kt     # the wide screen's permanent side menu (search field + the four areas)
       SettingsSearch.kt      # which sections answer a query, by title/summary/alias keywords (pure)
       SettingsWidgets.kt     # the shared settings controls (switches, option groups, key fields)
-      ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour
-      AppearanceSection.kt   # the Appearance page: theme mode, dynamic theme, modern interface switch
+      ShortcutsSection.kt    # the Shortcuts page: the two toggles + one key per tool and per pen colour; FingerGesturesSection.kt: the Finger gestures page (what a still two- and three-finger tap runs)
+      AppearanceSection.kt   # the Appearance page: theme mode and wallpaper (dynamic) colours
       BackupSection.kt       # the Backup page: JSON export/import/reset via Storage Access Framework; an import is refused unless it is a compatible backup
       AboutSection.kt        # the About page and the links it sends people to
       AppSettings.kt         # AppSettings model + SettingsStore (SharedPreferences persistence)

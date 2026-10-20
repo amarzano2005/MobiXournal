@@ -3,16 +3,34 @@ package com.mobixournal.render
 import kotlin.math.hypot
 
 /**
- * Result of a completed multi-finger touch gesture.
+ * How many fingers a completed, still tap held.
+ *
+ * The detector stops here: which action a two- or three-finger tap runs is the user's choice
+ * (Settings → Input → **Finger gestures**), resolved by [fingerTapQuickAction]. Keeping the two
+ * apart is what lets the same tap mean undo, redo, a tool toggle or nothing without the gesture
+ * recogniser knowing anything about the editor.
  */
-enum class MultiFingerTapAction {
+enum class FingerTap {
     NONE,
-    UNDO,
-    REDO,
+    TWO_FINGER,
+    THREE_FINGER,
 }
 
 /**
- * Pure detector for two-finger (Undo) and three-finger (Redo) tap shortcuts.
+ * The [QuickAction] a completed [tap] runs, under the user's two- and three-finger choices.
+ *
+ * Pure and total: every combination of the three resolves to exactly one action, so the surface has
+ * no branch of its own to get wrong.
+ */
+fun fingerTapQuickAction(tap: FingerTap, twoFinger: QuickAction, threeFinger: QuickAction): QuickAction =
+    when (tap) {
+        FingerTap.NONE -> QuickAction.NONE
+        FingerTap.TWO_FINGER -> twoFinger
+        FingerTap.THREE_FINGER -> threeFinger
+    }
+
+/**
+ * Pure detector for still two- and three-finger taps.
  *
  * Tracks individual touch contacts across pointers so that centroid shifts upon pointer addition
  * or removal never falsely count as movement, and freezes movement tracking once fingers begin
@@ -108,15 +126,15 @@ class MultiFingerTapDetector(
         }
     }
 
-    /** All pointers have lifted (ACTION_UP). Evaluate whether the gesture was a shortcut tap. */
-    fun onUp(time: Long): MultiFingerTapAction {
-        if (!candidate || moved) return MultiFingerTapAction.NONE
-        if (time - startTime > timeoutMs) return MultiFingerTapAction.NONE
+    /** All pointers have lifted (ACTION_UP). Evaluate whether the gesture was a finger tap. */
+    fun onUp(time: Long): FingerTap {
+        if (!candidate || moved) return FingerTap.NONE
+        if (time - startTime > timeoutMs) return FingerTap.NONE
         candidate = false
         return when (maxPointers) {
-            2 -> MultiFingerTapAction.UNDO
-            3 -> MultiFingerTapAction.REDO
-            else -> MultiFingerTapAction.NONE
+            2 -> FingerTap.TWO_FINGER
+            3 -> FingerTap.THREE_FINGER
+            else -> FingerTap.NONE
         }
     }
 
