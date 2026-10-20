@@ -156,9 +156,9 @@ one pref, so slots survive a restart) and activates the tool in the same gesture
 `decodeToolGroupSelections()` both drop non-member entries, so a stale pref degrades to the group's
 first tool rather than facing a slot at a tool that has since moved. `startingTool()` resolves the
 opening tool as `defaultTool`'s **group selection**, so the rail's face and the live tool agree on
-launch. The **Figures** list in settings includes all geometric figures (`FIGURE_TOOLS` in `ToolGroups.kt`, including simple line and rectangle): `orderedShapeTools()` and
-`visibleShapeTools()` read `AppSettings.shapeOrder` / `shapeHidden` (tool names, encoded like the rail
-ids) and the **Figures** settings section edits them with the same drag/toggle list the Toolbar
+launch. The **Figures** list in settings includes all geometric figures (`FIGURE_TOOLS` in `ToolGroups.kt`, including simple line and rectangle): `orderedShapeTools()` reads
+`AppSettings.shapeOrder` (tool names, encoded like the rail ids) and the **Figures** settings section
+edits that order and `shapeHidden` with the same drag/toggle list the Toolbar
 section uses (`ReorderableRowList`), keeping visibility and order in sync with the secondary top bar (`visibleTopBarItems` filters items hidden in either `topBarHidden` or `shapeHidden`). The same section owns the **default figure size**
 (`AppSettings.defaultShapeSlot`, an index into `penWidths`). That default exists because a figure is
 drawn at its set width with no pressure while the pen thins with pressure, so with pressure on a
