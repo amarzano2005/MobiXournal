@@ -39,6 +39,7 @@ import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
@@ -221,7 +222,7 @@ private fun ToolGroupButton(
     onPick: (EditorTool) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
+    val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
     val shape = RoundedCornerShape(10.dp)
     val buttonSize = LocalRailSlotSize.current
     Box {

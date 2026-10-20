@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.GuideKind
+import com.mobixournal.ui.theme.rememberChromeInk
 
 /** Outline glyph for the technical Setsquare (30/60/90 triangle ruler). */
 val SetsquareIcon: ImageVector by lazy {
@@ -218,7 +219,7 @@ internal fun CompactGuidePopupButton(
 ) {
     var open by remember { mutableStateOf(false) }
     val active = kind != GuideKind.NONE
-    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
+    val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
     val shape = RoundedCornerShape(8.dp)
     Box {
         Box(

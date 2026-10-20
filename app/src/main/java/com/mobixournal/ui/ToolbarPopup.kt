@@ -60,6 +60,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
+import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
@@ -98,7 +99,7 @@ internal val LocalRailSlotScale = compositionLocalOf { 1f }
  * Call it inside the button's own [Box] (it aligns itself to the corner).
  */
 @Composable
-internal fun BoxScope.MenuChevron(tint: Color = Color.White) {
+internal fun BoxScope.MenuChevron(tint: Color = rememberChromeInk()) {
     Icon(
         Icons.Outlined.KeyboardArrowDown,
         contentDescription = null,
@@ -531,7 +532,7 @@ internal fun ToolbarPopupButton(
     content: @Composable (dismiss: () -> Unit) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val iconTint = tint ?: if (active) MaterialTheme.colorScheme.primary else Color.White
+    val iconTint = tint ?: if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
     Box {
         val slotSize = LocalRailSlotSize.current
         Box(

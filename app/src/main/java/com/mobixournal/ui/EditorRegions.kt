@@ -112,6 +112,7 @@ import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
+import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
@@ -254,8 +255,9 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.VerticalSplit,
                             contentDescription = if (splitView) "Close split view" else "Split view",
-                            // White like the undo/redo pair beside it: the grey read as disabled.
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else Color.White,
+                            // The chrome's ink like the undo/redo pair beside it (white on the dark
+                            // glass, near-black on the light one): the grey read as disabled.
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else rememberChromeInk(),
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -268,13 +270,14 @@ fun EditorTopBar(
                     modifier = Modifier.padding(horizontal = 4.dp).floatingRim(ModernTheme.capsuleCornerRadiusDp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val chromeInk = rememberChromeInk()
                         val undoEnabled = !pane.isReadOnly && pane.canUndo
                         val redoEnabled = !pane.isReadOnly && pane.canRedo
                         IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
                             Icon(
                                 Icons.AutoMirrored.Outlined.Undo,
                                 contentDescription = "Undo",
-                                tint = if (undoEnabled) Color.White else Color.White.copy(alpha = 0.38f),
+                                tint = if (undoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -282,7 +285,7 @@ fun EditorTopBar(
                             Icon(
                                 Icons.AutoMirrored.Outlined.Redo,
                                 contentDescription = "Redo",
-                                tint = if (redoEnabled) Color.White else Color.White.copy(alpha = 0.38f),
+                                tint = if (redoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -497,8 +500,8 @@ private fun SearchControls(pane: PaneState) {
         pane.searchTotal = status.total
     }
     val isDark = chromeIsDark()
-    // White like the rest of the top bar's glyphs — the grey read as a disabled control.
-    val searchIconTint = Color.White
+    // The chrome's ink, like the rest of the top bar's glyphs — the grey read as a disabled control.
+    val searchIconTint = rememberChromeInk()
     if (!pane.searchOpen) {
         val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
@@ -979,7 +982,7 @@ fun TopBarToolsRow(
                     } else if (item.id == "graph") {
                         val active = ui.showGraphDialog
                         val shape = RoundedCornerShape(8.dp)
-                        val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
+                        val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
@@ -1068,7 +1071,7 @@ private fun CompactSingleToolButton(
     active: Boolean,
     onClick: () -> Unit,
 ) {
-    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
+    val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
     val shape = RoundedCornerShape(8.dp)
     Box(
         modifier = Modifier
@@ -1116,7 +1119,7 @@ private fun CompactShapeKindButton(
     onClick: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
+    val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
     val shape = RoundedCornerShape(8.dp)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box {
@@ -1202,7 +1205,7 @@ private fun CompactTopBarToolButton(
     trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
 ) {
     var open by remember { mutableStateOf(false) }
-    val tint = if (active) MaterialTheme.colorScheme.primary else Color.White
+    val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
     val shape = RoundedCornerShape(8.dp)
     Box {
         Box(

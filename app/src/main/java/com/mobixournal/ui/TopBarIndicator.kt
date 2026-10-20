@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -226,7 +227,7 @@ private fun ToolIndicatorFace(
                 Icon(
                     imageVector = toolDisplayIcon(ui.tool, triangleKind, trapezoidKind),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = rememberChromeInk(),
                     // The dock's own glyph size, shared with the rail ([ToolIconSize]).
                     modifier = Modifier.size(ToolIconSize),
                 )

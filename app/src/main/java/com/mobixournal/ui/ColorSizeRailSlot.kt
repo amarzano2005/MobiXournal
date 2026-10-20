@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.rememberChromeInk
 
 /**
  * The rail's **Colour & size** slot: the whole stroke story in one place, in the two parts a stroke
@@ -164,7 +165,7 @@ private fun SlotChevron(open: () -> Unit, slot: Dp) {
         Icon(
             Icons.Outlined.KeyboardArrowDown,
             contentDescription = null,
-            tint = Color.White,
+            tint = rememberChromeInk(),
             modifier = Modifier.size(button * 0.7f),
         )
     }

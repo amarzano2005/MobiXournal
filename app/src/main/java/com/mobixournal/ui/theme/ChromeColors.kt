@@ -86,6 +86,20 @@ fun rememberGlassSurfaceColor(): Color = ModernTheme.glassSurface(chromeIsDark()
 fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(chromeIsDark())
 
 /**
+ * The **chrome's own ink**: the colour every glyph and label inside a bar, the rail, a dock or a menu
+ * is drawn in — white on the dark theme's glass, the dark surface ink (#1B212F) on the light theme's.
+ *
+ * It exists because a bare `Color.White` is theme-blind: on the dark glass it is right, and on the
+ * light theme it painted the rail's tools, the undo/redo pair, the search and the overflow menu's
+ * glyphs white on white — the chrome's icons simply disappeared when the user switched to the light
+ * theme. Anything drawn *on the glass* takes this; anything drawn on an **accent** fill (a primary
+ * button, the recording capsule, a coloured chip) keeps `onPrimary`/white, because that fill is dark
+ * in both themes.
+ */
+@Composable
+fun rememberChromeInk(): Color = if (chromeIsDark()) Color.White else MaterialTheme.colorScheme.onSurface
+
+/**
  * The **plate** colour: the opaque neutral step for a surface *inside* a floating one — the function
  * dialog's mode-selector track, a thumbnail well, a caption strip. `surfaceContainer`:
  * [NeutralContainerLight] in the light theme, [NeutralContainerDark] in the dark one.
