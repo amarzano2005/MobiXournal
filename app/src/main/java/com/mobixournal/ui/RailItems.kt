@@ -28,7 +28,6 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
     RailItem("favorites", "Colour & size"),
     RailItem("layers", "Layers"),
     RailItem("zoom", "Zoom"),
-    RailItem("background", "Background"),
     RailItem("pages", "Pages"),
 )
 
@@ -37,9 +36,14 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  * and the order the rail draws them. The drawing tools reached for most sit at the top (pen,
  * highlighter, colour & size, eraser), then the rest of the tools, then the popup panels.
  *
- * The rail is **writing tools only**: audio, play object, shape recognition, drawing guides and every
- * STEM slot that duplicates the Secondary Toolbar are deliberately absent, so the settings list cannot
- * offer them back (see [TOOL_GROUPS] and [TOP_BAR_ITEMS]).
+ * The rail is **writing tools only**: audio, play object, shape recognition, drawing guides, the sheet
+ * background and every STEM slot that duplicates the Secondary Toolbar are deliberately absent, so the
+ * settings list cannot offer them back (see [TOOL_GROUPS] and [TOP_BAR_ITEMS]).
+ *
+ * The **Background** position is retired: paper style, ruling spacing and stationery are the same
+ * errand as the page's own size and navigation, so they live in the **Pages** menu's Sheet section
+ * (see [ToolbarPagesCallbacks]) rather than in a slot of their own. A saved rail order that names
+ * `background` simply drops it, as with every other retired id.
  *
  * **Colour & size** (id `favorites`) sits directly under **Highlighter** and covers the whole errand:
  * the three colours you keep coming back to as a stack of dots, and the chevron beside them onto every
@@ -52,7 +56,7 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  */
 private val FACTORY_RAIL_ORDER: List<String> = listOf(
     "pen", "highlighter", "favorites", "eraser", "pan", "select",
-    "text", "insert", "vspace", "zoom", "pages", "background", "layers",
+    "text", "insert", "vspace", "zoom", "pages", "layers",
 )
 
 /**

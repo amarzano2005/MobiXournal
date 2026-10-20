@@ -85,7 +85,7 @@ class RailItemsTest {
         assertEquals(
             listOf(
                 "pen", "highlighter", "favorites", "eraser", "pan", "select",
-                "text", "insert", "vspace", "zoom", "pages", "background", "layers",
+                "text", "insert", "vspace", "zoom", "pages", "layers",
             ),
             ids,
         )
@@ -126,6 +126,15 @@ class RailItemsTest {
         assertTrue(visibleRailItems(listOf("audio", "play", "shapes", "zoom"), emptySet()).none {
             it.id == "audio" || it.id == "play" || it.id == "shapes"
         })
+    }
+
+    @Test
+    fun `the retired background slot is gone, folded into the pages menu`() {
+        // Paper style, ruling spacing and stationery are the page's own look, so they ride the Pages
+        // menu's Sheet section instead of costing a rail slot of their own.
+        assertTrue(RAIL_ITEMS.none { it.id == "background" })
+        assertTrue(visibleRailItems(listOf("background", "zoom"), emptySet()).none { it.id == "background" })
+        assertEquals(emptyList<String>(), decodeRailIds("background"))
     }
 
     @Test

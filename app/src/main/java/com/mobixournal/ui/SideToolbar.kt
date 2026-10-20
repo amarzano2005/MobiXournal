@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import com.mobixournal.render.Stationery
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.ModernTheme
@@ -70,11 +69,6 @@ fun SideToolbar(
     onZoomOut: () -> Unit,
     onZoomReset: () -> Unit,
     pageCallbacks: ToolbarPagesCallbacks,
-    backgroundStyle: String?,
-    onBackgroundStyle: (String) -> Unit,
-    backgroundConfig: String? = null,
-    onBackgroundConfig: (String?) -> Unit = {},
-    onStationery: (Stationery) -> Unit = {},
     railOrder: List<String> = emptyList(),
     railHidden: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
@@ -106,13 +100,6 @@ fun SideToolbar(
                 )
                 "layers" -> LayersPopupButton(layerCallbacks)
                 "zoom" -> ZoomPopupButton(zoom, onZoomIn, onZoomOut, onZoomReset)
-                "background" -> BackgroundPopupButton(
-                    backgroundStyle,
-                    backgroundConfig,
-                    onBackgroundStyle,
-                    onBackgroundConfig,
-                    onStationery,
-                )
                 "pages" -> PagesPopupButton(pageCallbacks)
             }
         }

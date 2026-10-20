@@ -6,6 +6,7 @@ import com.mobixournal.render.BoardReading
 import com.mobixournal.render.GuideKind
 import com.mobixournal.render.LayerInfo
 import com.mobixournal.render.PdfOutline
+import com.mobixournal.render.Stationery
 
 /**
  * Grouped layer-management callbacks for the toolbar. Replaces the 10 individual layer parameters
@@ -95,6 +96,18 @@ data class ToolbarPagesCallbacks(
     val canvasExtentPt: Double? = null,
     /** Set the bound on the non-infinite axis; only meaningful while [canvasEditable]. */
     val onCanvasExtent: (Double) -> Unit = {},
+    /**
+     * The page in view's paper style (`plain`, `lined`, `graph`, …), or null on a PDF/pixmap page that
+     * has no solid sheet to re-rule. Drives the Pages menu's **Sheet** section, which is where the rail's
+     * retired Background slot went.
+     */
+    val backgroundStyle: String? = null,
+    val onBackgroundStyle: (String) -> Unit = {},
+    /** The page's ruling parameters (`<background config=…>`), i.e. the detail the style is ruled at. */
+    val backgroundConfig: String? = null,
+    val onBackgroundConfig: (String?) -> Unit = {},
+    /** Lay a finished template (Cornell, music stave, …) over the page. */
+    val onStationery: (Stationery) -> Unit = {},
 )
 
 /**

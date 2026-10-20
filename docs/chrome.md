@@ -14,11 +14,11 @@ Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawin
 
 There is **one layout**, and each bar has one job. The Main Toolbar is the vertical docked capsule
 (Left or Right, per `ToolbarPosition`) of **writing tools only**: pen, highlighter, eraser, pan, select,
-text/pictures, vertical space, and the colour & size, guides, layers, zoom, background and pages panels.
-The Secondary Toolbar in the top bar is the one home of the **STEM tools** (figures, function graph,
-table, circuits, logic, chemistry, guides) — a rail slot for them was the same button twice on one
-screen, so the slot was removed rather than hidden, and there is no "hide the duplicates" shortcut to
-offer. Audio and playback live on the audio capsule; shape recognition is a Settings toggle.
+text/pictures, vertical space, and the colour & size, layers, zoom and pages panels — **pages** being
+the whole page errand (navigation, columns, format, and a **Sheet** section for paper style, rule
+spacing and stationery). The Secondary Toolbar is the one home of the **STEM tools** (figures, function
+graph, table, circuits, logic, chemistry, guides), because a rail slot for them was the same button
+twice on one screen; audio and playback live on the audio capsule, shape recognition is a Settings toggle.
 
 The rail's edge is not a placement menu but the **handedness** answer: a right hand writes from the left,
 so `ToolbarPosition.LEFT` is the default and `RIGHT` is its mirror — and those are the two values it has,
@@ -172,8 +172,8 @@ selects the new colour — the row scrolls so the menu's height never changes wi
 the three tip sizes as one bar of small boxes (`WidthSlotBar`) and line style as one row of chips
 (`LineStyleChips`). **Which positions the rail shows, and in what order**, is data too
 (`RailItems.kt`):
-`RAIL_ITEMS` names every position — every writing tool group plus the Colour/Layers/Zoom/
-Background/Pages panels — in an explicit factory order
+`RAIL_ITEMS` names every position — every writing tool group plus the Colour/Layers/Zoom/Pages
+panels — in an explicit factory order
 (`FACTORY_RAIL_ORDER`): the drawing tools reached for most first (pen, highlighter, colour & size,
 eraser), then the rest of the tools and panels, with the page-level panels trailing the rail
 (audio, play object, shape recognition, guides and STEM slots live elsewhere). `SideToolbar` renders

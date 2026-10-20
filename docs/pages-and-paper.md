@@ -49,9 +49,11 @@ style + `config` pair — real paper the desktop renders too — while **Cornell
 Xournal++ version has, is drawn instead: its three rules land as ordinary strokes on a layer named
 after the template, so it round-trips like any ink and can be deleted by deleting the layer.
 
-## The page-background chooser (`BackgroundPopupButton`)
+## The Sheet section of the Pages menu (`SheetSection`)
 
-**The page-background chooser (`BackgroundPopupButton`).** The three sections are ordered as the sheet
+**The sheet's graphics (`SheetSection`).** They live in the **Pages** menu, at its foot after the page
+format row, because how a page looks and which page it is are the same errand — the rail's separate
+Background slot was the same button twice one level apart. The three sections are ordered as the sheet
 is set up — *what it is* (paper style), *how it is ruled* (rule spacing), then a finished template over
 the top (stationery) — and each is **one line**: the six styles are chips you scroll along rather than
 six stacked menu rows, and the spacing chips carry the custom millimetre field at the end of their own

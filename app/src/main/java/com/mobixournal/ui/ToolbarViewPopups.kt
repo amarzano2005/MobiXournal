@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.GraphicEq
-import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -160,54 +159,50 @@ private val BACKGROUND_STYLES: List<Pair<String, String>> = listOf(
 private val RULE_SPACING_MM = listOf(2.0, 3.0, 5.0, 7.0, 10.0)
 
 /**
- * The page-background chooser, in three short sections: the current page's paper style
+ * The **Sheet** section of the Pages menu: the current page's paper style
  * (plain/lined/ruled/graph/dotted/isometric), the **spacing** its ruling is ruled at, and the
- * stationery presets.
+ * stationery presets — one button for the page, whether the errand is how it looks or which one it is
+ * (the rail's separate Background slot is retired).
  *
- * Each section is a single row — the styles are chips you scroll along rather than six stacked menu
- * items — so the whole chooser stays short instead of burying spacing and stationery under a list of
- * paper names. The sections run from what the sheet *is* (style) to how it is *ruled* (spacing) to a
+ * Each part is a single row — the styles are chips you scroll along rather than six stacked menu
+ * items — so the section stays short instead of burying spacing and stationery under a list of
+ * paper names. They run from what the sheet *is* (style) to how it is *ruled* (spacing) to a
  * finished template over the top (stationery), which is the order they are set in.
  *
  * [style] and [config] are the current page's, or null when the page is a PDF/pixmap (no solid sheet
  * to re-rule) — in which case the paper and spacing controls are disabled. Spacing is written as
  * desktop's own `r1` parameter ([BackgroundRuling]), so a page ruled at 7 mm reopens at 7 mm on the
  * desktop rather than silently reverting to the default.
+ *
+ * It is a plain section rather than a button carrying a menu: its caller ([PagesPopupButton]) owns
+ * the menu it sits in, and its style and stationery picks are the caller's to dismiss.
  */
 @Composable
-internal fun BackgroundPopupButton(
+internal fun SheetSection(
     style: String?,
     config: String?,
-    onBackgroundStyle: (String) -> Unit,
-    onBackgroundConfig: (String?) -> Unit,
+    onStyle: (String) -> Unit,
+    onConfig: (String?) -> Unit,
     onStationery: (Stationery) -> Unit,
 ) {
     val ruling = remember(config) { BackgroundRuling.parse(config) }
-    ToolbarPopupButton(
-        icon = Icons.Outlined.GridOn,
-        contentDescription = "Page background",
-    ) { dismiss ->
-        MenuHeading("Paper")
-        PaperStyleRow(style) { value ->
-            onBackgroundStyle(value)
-            dismiss()
-        }
-        MenuHeading("Rule spacing")
-        RuleSpacingRow(style, ruling) { mm ->
-            onBackgroundConfig(ruling.withPt(BackgroundRuling.KEY_SPACING, mm * PageTemplates.MM_PT).text())
-        }
-        HorizontalDivider()
-        MenuHeading("Stationery")
-        PopupChipRow {
-            for (kind in Stationery.entries) {
-                FilterChip(
-                    selected = false,
-                    enabled = style != null || kind == Stationery.CORNELL,
-                    onClick = { onStationery(kind); dismiss() },
-                    label = { Text(kind.label) },
-                    modifier = Modifier.padding(end = 6.dp),
-                )
-            }
+    MenuHeading("Paper")
+    PaperStyleRow(style, onStyle)
+    MenuHeading("Rule spacing")
+    RuleSpacingRow(style, ruling) { mm ->
+        onConfig(ruling.withPt(BackgroundRuling.KEY_SPACING, mm * PageTemplates.MM_PT).text())
+    }
+    HorizontalDivider()
+    MenuHeading("Stationery")
+    PopupChipRow {
+        for (kind in Stationery.entries) {
+            FilterChip(
+                selected = false,
+                enabled = style != null || kind == Stationery.CORNELL,
+                onClick = { onStationery(kind) },
+                label = { Text(kind.label) },
+                modifier = Modifier.padding(end = 6.dp),
+            )
         }
     }
 }

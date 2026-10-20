@@ -150,6 +150,17 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         OverviewModeRow(callbacks.pageColumns, callbacks.pagesEditMode, callbacks.onPagesEditMode)
         HorizontalDivider()
         PageFormatRow(callbacks, openSize = { sizing = true }, dismiss = dismiss)
+        HorizontalDivider()
+        // The sheet's own graphics, at the foot of the same menu: paper, ruling spacing and stationery
+        // are how *this* page looks — the same errand as its size, which is why the rail's separate
+        // Background slot is gone rather than duplicated here.
+        SheetSection(
+            style = callbacks.backgroundStyle,
+            config = callbacks.backgroundConfig,
+            onStyle = { callbacks.onBackgroundStyle(it); dismiss() },
+            onConfig = { callbacks.onBackgroundConfig(it) },
+            onStationery = { callbacks.onStationery(it); dismiss() },
+        )
     }
     val outline = callbacks.outline
     if (contents && outline != null) {

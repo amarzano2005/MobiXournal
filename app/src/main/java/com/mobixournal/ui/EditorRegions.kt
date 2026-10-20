@@ -784,11 +784,6 @@ fun EditorToolbar(
         onZoomOut = { surface?.zoomOut() },
         onZoomReset = { surface?.resetZoom() },
         pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, surface, onCanvasMode),
-        backgroundStyle = pane.backgroundStyle,
-        onBackgroundStyle = { surface?.setPageBackgroundStyle(it) },
-        backgroundConfig = pane.backgroundConfig,
-        onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
-        onStationery = { surface?.applyStationery(it) },
     )
 }
 
@@ -1383,6 +1378,12 @@ private fun toolbarPagesCallbacks(
         onBookmarkPage = { ui.bookmarkPage = it },
         outline = pane.outline,
         onGoToPdfPage = { surface?.goToPdfPage(it) },
+        // The sheet's graphics ride the page menu, so its style is the page in view's own.
+        backgroundStyle = pane.backgroundStyle,
+        onBackgroundStyle = { surface?.setPageBackgroundStyle(it) },
+        backgroundConfig = pane.backgroundConfig,
+        onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
+        onStationery = { surface?.applyStationery(it) },
     )
 }
 
