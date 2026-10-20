@@ -46,16 +46,25 @@ internal fun rowRemoved(
     return newCells to newHeights
 }
 
-/** Adds a column to every row in the grid and col widths. */
+/**
+ * Adds a column to every row in the grid and col widths.
+ *
+ * The new cell in the **header row** is bold whenever the table was authored with a header
+ * ([headerRow]) or its first row already reads as one (any cell bold) — a column added mid-edit must
+ * arrive wearing the same header as the columns beside it, instead of landing plain next to bold ones.
+ * Every other row's new cell is plain, and the caller's own styling is otherwise untouched.
+ */
 internal fun columnAdded(
     cells: List<List<TableCell>>,
     colWidths: List<Double>,
     afterCol: Int? = null,
     defaultWidth: Double = TableElementFactory.MIN_COL_WIDTH_PT,
+    headerRow: Boolean = false,
 ): Pair<List<List<TableCell>>, List<Double>> {
     val insertIdx = if (afterCol != null) (afterCol + 1).coerceIn(0, colWidths.size) else colWidths.size
-    val newCells = cells.map { row ->
-        row.toMutableList().also { it.add(insertIdx, TableCell()) }
+    val header = headerRow || cells.firstOrNull()?.any { it.bold } == true
+    val newCells = cells.mapIndexed { row, cellsInRow ->
+        cellsInRow.toMutableList().also { it.add(insertIdx, TableCell(bold = header && row == 0)) }
     }
     val newWidths = colWidths.toMutableList().also {
         it.add(insertIdx, colWidths.getOrNull(afterCol ?: (colWidths.size - 1)) ?: defaultWidth)
@@ -148,6 +157,8 @@ internal fun cellStyled(
 internal class TableCellEditorState(initial: TableElement, initialFocus: Pair<Int, Int> = 0 to 0) {
     var cells by mutableStateOf(editorCellsOf(initial))
     var rowHeights by mutableStateOf(initial.rowHeights)
+    /** The table's own header-row flag, carried through so an added column can honour it. */
+    val headerRow: Boolean = initial.headerRow
     var colWidths by mutableStateOf(initial.colWidths)
     var currentRow by mutableStateOf(initialFocus.first.coerceIn(0, (initial.rowHeights.size - 1).coerceAtLeast(0)))
     var currentCol by mutableStateOf(initialFocus.second.coerceIn(0, (initial.colWidths.size - 1).coerceAtLeast(0)))
@@ -185,7 +196,7 @@ internal class TableCellEditorState(initial: TableElement, initialFocus: Pair<In
     }
 
     fun addColumn(afterCol: Int? = null) {
-        val (newCells, newWidths) = columnAdded(cells, colWidths, afterCol)
+        val (newCells, newWidths) = columnAdded(cells, colWidths, afterCol, headerRow = headerRow)
         cells = newCells
         colWidths = newWidths
         val targetCol = if (afterCol != null) afterCol + 1 else newWidths.size - 1

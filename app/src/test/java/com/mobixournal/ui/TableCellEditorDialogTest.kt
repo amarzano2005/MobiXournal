@@ -4,6 +4,7 @@ import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -153,6 +154,33 @@ class TableCellEditorDialogTest {
         val (singleGrid, singleWidths) = columnRemoved(listOf(listOf(TableCell("A"))), listOf(50.0))
         assertEquals("1 col kept", 1, singleWidths.size)
         assertEquals("1 col in cells kept", 1, singleGrid[0].size)
+    }
+
+    @Test
+    fun addedColumnWearsTheTablesHeader() {
+        // A header table: the new column's first-row cell is bold, every other new cell is plain.
+        val headerGrid = listOf(
+            listOf(TableCell("x", bold = true), TableCell("y", bold = true)),
+            listOf(TableCell("1"), TableCell("2")),
+        )
+        val (gridWithHeader, _) = columnAdded(headerGrid, listOf(60.0, 60.0))
+        assertTrue("header cell of the added column is bold", gridWithHeader[0][2].bold)
+        assertFalse("body cell of the added column stays plain", gridWithHeader[1][2].bold)
+
+        // The element's own flag is enough, even before anything has been typed into row 0.
+        val blankGrid = List(2) { List(2) { TableCell() } }
+        val (gridByFlag, _) = columnAdded(blankGrid, listOf(60.0, 60.0), headerRow = true)
+        assertTrue("headerRow makes the new header cell bold", gridByFlag[0][2].bold)
+
+        // A plain table stays plain: adding a column must not invent a header.
+        val (plainGrid, _) = columnAdded(blankGrid, listOf(60.0, 60.0))
+        assertFalse("no header, no bold", plainGrid[0][2].bold)
+
+        // Inserted in the middle, the bold cell is still the row-0 one.
+        val (middleGrid, widths) = columnAdded(headerGrid, listOf(60.0, 70.0), afterCol = 0)
+        assertEquals(3, widths.size)
+        assertTrue("inserted header cell is bold", middleGrid[0][1].bold)
+        assertFalse("inserted body cell is plain", middleGrid[1][1].bold)
     }
 
     @Test

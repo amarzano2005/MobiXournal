@@ -249,7 +249,9 @@ shift it, so the cell under the stylus stays where the last tap left it. Opened 
 dialog shows every cell's text at once in the table's own shape with horizontal and vertical
 scrolling for wide grids, steppers to add/remove rows and columns, keyboard navigation (Tab,
 Shift+Tab, Enter) with automatic row expansion on the final cell, and align/bold acting on the
-focused cell. Nothing tracks the canvas: the dialog is a fixed surface, so the keyboard
+focused cell. A column added mid-edit arrives with its **header cell already bold** whenever the
+table has a header row (`headerRow`, or a first row whose cells are bold), so a new column never
+lands plain beside a bold header. Nothing tracks the canvas: the dialog is a fixed surface, so the keyboard
 can never cover it mid-edit.
 
 **Save** is the one commit point: the whole grid is swapped in through
