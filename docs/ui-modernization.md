@@ -77,7 +77,7 @@ mobile and desktop.
 ## Mobile and Tablet ergonomics
 
 ```text
-Tablet Portrait / Landscape:   - **The PDF actions wear the document red**: *Import PDF* and *Export PDF* in the overflow menu are outlined in `DocumentRed` (`#E53935`, the same red as the recording dot) instead of the primary blue the menu's other buttons use, so the PDF row reads as the PDF row at a glance; *Page as PNG* / *Page as SVG* stay blue.
+Tablet Portrait / Landscape:   - **The menu's action rows are glass tiles, and the PDF actions wear the document red**: *New / Open / Save / Save As* keep the icon-and-label quick actions, while *Import PDF*, *Export PDF*, *Page as PNG* and *Page as SVG* are **glass tiles** (`GlassActionButton`) instead of outlined Material buttons lying flat on the glass. A tile has **no fill of its own**: it lays only light over the menu's glass — a sheen brightest along the top edge and fading to nothing at the bottom — closed by the family's hairline rim (`Modifier.floatingRim`), so what shows through a tile is the same frosted backdrop showing through the menu. (An 85%-opaque fill was the first attempt and read as a grey button pasted on glass: two stacked panes, not one.) The tint is the only difference between the rows: the two PDF actions are inked in `DocumentRed` (`#E53935`, the same red as the recording dot) **without any red outline**, and the two page exports in the primary accent, so the PDF row still reads as the PDF row at a glance.
    - Rail on one vertical edge, chosen once in settings (AppSettings.toolbarPosition, Left / Right):
   * a band in its own lane beside the canvas, never a bar over the page;
   * comfortable palm clearance for left- and right-handed stylus users.

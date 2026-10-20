@@ -1,12 +1,11 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,14 +29,12 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -58,14 +56,67 @@ import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
- * The PDF row's ink: [DocumentRed] on the label and glyph, with a hairline of the same red on the
- * outline — so the pair reads as the PDF row rather than as two more blue buttons.
+ * One **glass tile** of the overflow menu's action rows.
+ *
+ * The file and PDF actions used to be plain `OutlinedButton`s, which on a frosted menu read as flat
+ * Material controls lying on the glass rather than as panes cut from it. A tile is the menu's own
+ * material: the glass fill, a vertical sheen from the top edge (the light the bar and the menu are
+ * lit by) and the family's hairline rim ([floatingRim]) — so the tile looks translucent *because* the
+ * menu behind it is, which is what makes the row feel like glass rather than like buttons.
+ *
+ * The tint is the caller's: [DocumentRed] for the two PDF actions, the primary accent for the page
+ * exports. Disabled tiles fade the tint instead of dropping the fill, so the row keeps its shape.
  */
 @Composable
-private fun pdfActionColors() = ButtonDefaults.outlinedButtonColors(contentColor = DocumentRed)
-
-@Composable
-private fun pdfActionBorder() = BorderStroke(1.dp, DocumentRed.copy(alpha = 0.55f))
+private fun GlassActionButton(
+    icon: ImageVector,
+    label: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val dark = chromeIsDark()
+    val shape = RoundedCornerShape(14.dp)
+    val alpha = if (enabled) 1f else 0.38f
+    // **No fill of its own.** The tile is a *pane*, not a chip: it lays only light over the menu's
+    // glass — a sheen that is brightest along the top edge and fades to nothing by the bottom — so
+    // what shows through the tile is the same frosted backdrop showing through the menu. A solid glass
+    // fill (the first attempt) stacked a second 85% opaque layer on the menu and read as a grey button
+    // pasted on glass, the opposite of the effect.
+    val sheenTop = Color.White.copy(alpha = if (dark) 0.12f else 0.70f)
+    val sheenMid = Color.White.copy(alpha = if (dark) 0.045f else 0.30f)
+    val sheenBottom = Color.White.copy(alpha = if (dark) 0.012f else 0.10f)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(sheenTop, sheenMid, sheenBottom)))
+            // The family's hairline, bright at the top and faint at the bottom: the specular edge that
+            // tells the eye this is a pane of glass rather than a lighter rectangle.
+            .floatingRim(14.dp)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 9.dp, horizontal = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = tint.copy(alpha = alpha),
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint.copy(alpha = alpha),
+            )
+        }
+    }
+}
 
 /**
  * The top-bar overflow ("hamburger") menu: the glass button that opens it and the panel itself —
@@ -164,30 +215,22 @@ internal fun OverflowMenu(
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                GlassActionButton(
+                    icon = Icons.Outlined.PictureAsPdf,
+                    label = "Import PDF",
+                    tint = DocumentRed,
+                    enabled = !isReadOnly,
                     onClick = { open = false; onImportPdf() },
-                    enabled = !isReadOnly,
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    colors = pdfActionColors(),
-                    border = pdfActionBorder(),
-                ) {
-                    Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Import PDF", style = MaterialTheme.typography.labelMedium)
-                }
-                OutlinedButton(
+                )
+                GlassActionButton(
+                    icon = Icons.Outlined.PictureAsPdf,
+                    label = "Export PDF",
+                    tint = DocumentRed,
+                    enabled = !isReadOnly,
                     onClick = { open = false; onExportPdf() },
-                    enabled = !isReadOnly,
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    colors = pdfActionColors(),
-                    border = pdfActionBorder(),
-                ) {
-                    Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Export PDF", style = MaterialTheme.typography.labelMedium)
-                }
+                )
             }
 
             // Export the active page alone, as a shareable raster image or a scalable vector file.
@@ -197,26 +240,22 @@ internal fun OverflowMenu(
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
+                GlassActionButton(
+                    icon = Icons.Outlined.Image,
+                    label = "Page as PNG",
+                    tint = MaterialTheme.colorScheme.primary,
+                    enabled = !isReadOnly,
                     onClick = { open = false; onExportPagePng() },
-                    enabled = !isReadOnly,
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Page as PNG", style = MaterialTheme.typography.labelMedium)
-                }
-                OutlinedButton(
+                )
+                GlassActionButton(
+                    icon = Icons.Outlined.Image,
+                    label = "Page as SVG",
+                    tint = MaterialTheme.colorScheme.primary,
+                    enabled = !isReadOnly,
                     onClick = { open = false; onExportPageSvg() },
-                    enabled = !isReadOnly,
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Page as SVG", style = MaterialTheme.typography.labelMedium)
-                }
+                )
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
