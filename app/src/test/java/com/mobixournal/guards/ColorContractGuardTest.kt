@@ -417,7 +417,6 @@ class ColorContractGuardTest {
             "app/src/main/java/com/mobixournal/ui/EditorOverflowMenu.kt",
             "app/src/main/java/com/mobixournal/ui/SideToolbar.kt",
             "app/src/main/java/com/mobixournal/ui/TopBarIndicator.kt",
-            "app/src/main/java/com/mobixournal/ui/StemRailSection.kt",
             "app/src/main/java/com/mobixournal/ui/TabStrip.kt",
         )
         for (relPath in checkedFiles) {

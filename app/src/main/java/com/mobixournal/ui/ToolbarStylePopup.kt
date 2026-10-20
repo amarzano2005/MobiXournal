@@ -74,38 +74,3 @@ internal fun LineStyleChips(lineStyle: LineStyle, onLineStyle: (LineStyle) -> Un
     }
 }
 
-/**
- * Shape recognition as a one-tap rail slot: no pop-up, the tap flips it and the slot tints like a
- * tool button while it's on, so a freehand circle can be snapped to a real one (or not) without
- * leaving the page for Settings. Backed by the same persisted `recognizeShapes` setting.
- *
- * The face is a **magic wand** (`AutoFixHigh`), not the triangle the button used to share with the
- * Triangle *tool*: a wand is what "the app tidies up what I drew" looks like, and it can no longer
- * be mistaken for a tool that draws triangles. The Guides slot beside it carries a ruler, so the
- * two adjacent slots read as "tidy the drawing up" vs. "rule it out" instead of as two identical
- * triangles.
- */
-@Composable
-internal fun ShapeRecognitionButton(enabled: Boolean, onEnabled: (Boolean) -> Unit) {
-    val tint =
-        if (enabled) MaterialTheme.colorScheme.primary else Color.White
-    val slot = LocalRailSlotSize.current
-    Box(
-        modifier = Modifier
-            .size(slot)
-            .clip(CircleShape)
-            .then(
-                if (enabled) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-                else Modifier,
-            )
-            .clickable { onEnabled(!enabled) },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.Outlined.AutoFixHigh,
-            contentDescription = if (enabled) "Shape recognition on" else "Shape recognition off",
-            tint = tint,
-            modifier = Modifier.size(slot / 2),
-        )
-    }
-}

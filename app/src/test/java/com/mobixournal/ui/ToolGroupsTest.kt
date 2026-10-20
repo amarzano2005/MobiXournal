@@ -10,14 +10,41 @@ import org.junit.Test
 class ToolGroupsTest {
 
     @Test
-    fun `every tool belongs to exactly one group`() {
-        val uiTools = EditorTool.entries.filterNot {
-            it == EditorTool.TEXT_SELECT || it == EditorTool.BG_SELECT
-        }
-        for (tool in uiTools) {
-            assertEquals("group count for $tool", 1, TOOL_GROUPS.count { tool in it.tools })
+    fun `every writing tool belongs to exactly one rail group`() {
+        for (tool in WRITING_RAIL_TOOLS) {
+            assertEquals("rail group count for $tool", 1, TOOL_GROUPS.count { tool in it.tools })
             assertNotNull(groupOf(tool))
         }
+    }
+
+    @Test
+    fun `the STEM tools are not rail slots but keep their top-bar families`() {
+        // Their one home is the Secondary Toolbar in the top bar; a rail group for them would be the
+        // second copy of the same buttons on one screen.
+        for (tool in listOf(
+            EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.ELLIPSE, EditorTool.TRIANGLE,
+            EditorTool.ARROW, EditorTool.TABLE, EditorTool.RESISTOR, EditorTool.BJT_NPN,
+            EditorTool.AND_GATE, EditorTool.CHEM_BENZENE, EditorTool.PLAY_OBJECT,
+        )) {
+            assertEquals("no rail group for $tool", 0, TOOL_GROUPS.count { tool in it.tools })
+        }
+        // ... and the top bar still resolves its family buttons through those groups.
+        assertEquals("circuit", secondaryToolGroup("circuit")?.id)
+        assertEquals("circuit_active", secondaryToolGroup("circuit_active")?.id)
+        assertEquals("logic", secondaryToolGroup("logic")?.id)
+        assertEquals("chemistry", secondaryToolGroup("chemistry")?.id)
+        assertEquals("arrow", secondaryToolGroup("arrow")?.id)
+        assertNotNull("the transistor family is still a picker", groupOf(EditorTool.BJT_NPN))
+        assertEquals(null, secondaryToolGroup("zoom"))
+    }
+
+    private companion object {
+        /** The tools the rail offers: the writing/selection/authoring set, nothing else. */
+        val WRITING_RAIL_TOOLS = listOf(
+            EditorTool.PEN, EditorTool.HIGHLIGHTER, EditorTool.ERASER, EditorTool.ERASER_WHOLE,
+            EditorTool.HAND, EditorTool.SELECT, EditorTool.LASSO_SELECT,
+            EditorTool.TEXT, EditorTool.TEXIMAGE, EditorTool.IMAGE, EditorTool.VERTICAL_SPACE,
+        )
     }
 
     @Test
@@ -54,44 +81,17 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `line and rectangle each get a single-tool slot`() {
-        val line = groupOf(EditorTool.LINE)!!
-        assertEquals(listOf(EditorTool.LINE), line.tools)
-        val rectangle = groupOf(EditorTool.RECTANGLE)!!
-        assertEquals(listOf(EditorTool.RECTANGLE), rectangle.tools)
-    }
-
-    @Test
-    fun `the shapes group defaults to the ellipse`() {
-        val shapes = groupOf(EditorTool.ELLIPSE)!!
-        assertEquals(EditorTool.ELLIPSE, shapes.tools.first())
-        assertEquals(EditorTool.ELLIPSE, shapes.selected(emptyMap()))
-        // The STEM figures share that slot.
-        assertTrue(
-            listOf(
-                EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.COORDINATE_AXIS,
-                EditorTool.SPLINE,
-            ).all { it in shapes.tools }
-        )
-    }
-
-    @Test
-    fun `the arrows group defaults to the arrow`() {
-        val arrows = groupOf(EditorTool.ARROW)!!
-        assertEquals("arrow", arrows.id)
-        assertEquals(EditorTool.ARROW, arrows.tools.first())
-        // The measuring arrow shares the slot: it is an arrow with a gap for the value.
-        assertEquals(
-            listOf(EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
-            arrows.tools,
-        )
+    fun `the single-member slots are plain buttons`() {
+        for (tool in listOf(EditorTool.HAND, EditorTool.IMAGE, EditorTool.VERTICAL_SPACE)) {
+            assertEquals("$tool has a slot of its own", listOf(tool), groupOf(tool)?.tools)
+        }
     }
 
     @Test
     fun `selection defaults to the first member`() {
-        val shapes = groupOf(EditorTool.ELLIPSE)!!
-        assertEquals(EditorTool.ELLIPSE, shapes.selected(emptyMap()))
-        assertEquals(EditorTool.TRIANGLE, shapes.selected(mapOf(shapes.id to EditorTool.TRIANGLE)))
+        val text = groupOf(EditorTool.TEXT)!!
+        assertEquals(EditorTool.TEXT, text.selected(emptyMap()))
+        assertEquals(EditorTool.TEXIMAGE, text.selected(mapOf(text.id to EditorTool.TEXIMAGE)))
     }
 
     @Test
@@ -112,11 +112,11 @@ class ToolGroupsTest {
 
     @Test
     fun `corrupt or stale preference entries are dropped`() {
-        val shapes = groupOf(EditorTool.ELLIPSE)!!
+        val text = groupOf(EditorTool.TEXT)!!
         val pen = groupOf(EditorTool.PEN)!!
         // TRIANGLE is not a member of the pen group, so that entry has to be dropped too.
-        val raw = "nosuchgroup:PEN,${shapes.id}:NOSUCHTOOL,${pen.id}:TRIANGLE,${shapes.id}:TRIANGLE,junk"
-        assertEquals(mapOf(shapes.id to EditorTool.TRIANGLE), decodeToolGroupSelections(raw))
+        val raw = "nosuchgroup:PEN,${text.id}:NOSUCHTOOL,${pen.id}:TRIANGLE,${text.id}:TEXIMAGE,junk"
+        assertEquals(mapOf(text.id to EditorTool.TEXIMAGE), decodeToolGroupSelections(raw))
     }
 
     @Test
@@ -150,24 +150,11 @@ class ToolGroupsTest {
 
     @Test
     fun `similar members share a picker row`() {
-        val active = groupOf(EditorTool.BJT_NPN)!!
-        val rows = pickerRows(active.pickerLayout, active.tools)
-        assertTrue(
-            "the two transistors share a row",
-            rows.any { EditorTool.BJT_NPN in it && EditorTool.BJT_PNP in it },
-        )
-        assertTrue(
-            "the diode family shares a row",
-            rows.any { row ->
-                row.containsAll(listOf(EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE))
-            },
-        )
-        assertTrue(
-            "the two sources share a row",
-            rows.any { row ->
-                row.containsAll(listOf(EditorTool.DC_SOURCE, EditorTool.CURRENT_SOURCE))
-            },
-        )
+        // The mechanism the STEM pickers were laid out with; the rail keeps it for any future group.
+        val members = listOf(EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.ELLIPSE)
+        val rows = pickerRows(listOf(listOf(EditorTool.LINE, EditorTool.RECTANGLE)), members)
+        assertEquals(listOf(EditorTool.LINE, EditorTool.RECTANGLE), rows.first())
+        assertEquals(listOf(EditorTool.ELLIPSE), rows.drop(1).flatten())
     }
 
     @Test
@@ -212,32 +199,21 @@ class ToolGroupsTest {
     }
 
     @Test
-    fun `the shapes slot declares no layout and wraps the user's order`() {
-        val shapes = groupOf(EditorTool.ELLIPSE)!!
-        assertTrue("the Shapes slot is user-ordered, so it declares no grouping", shapes.pickerLayout.isEmpty())
-        val ordered = listOf(
-            EditorTool.HEXAGON, EditorTool.TRIANGLE,
-            EditorTool.ELLIPSE, EditorTool.SPLINE,
-        )
-        assertEquals(
-            listOf(
-                listOf(EditorTool.HEXAGON, EditorTool.TRIANGLE, EditorTool.ELLIPSE),
-                listOf(EditorTool.SPLINE),
-            ),
-            pickerRows(shapes.pickerLayout, ordered),
-        )
+    fun `a group with no layout wraps its members`() {
+        val text = groupOf(EditorTool.TEXT)!!
+        assertTrue("the Text slot declares no grouping", text.pickerLayout.isEmpty())
+        assertEquals(listOf(listOf(EditorTool.TEXT, EditorTool.TEXIMAGE)), pickerRows(text.pickerLayout, text.tools))
     }
 
     @Test
     fun `a hidden member drops out of its declared row without unseating the rest`() {
-        val active = groupOf(EditorTool.BJT_NPN)!!
-        val members = active.tools - EditorTool.LED
-        val rows = pickerRows(active.pickerLayout, members)
-        assertEquals(members.toSet(), rows.flatten().toSet())
-        assertTrue(rows.none { EditorTool.LED in it })
+        val members = listOf(EditorTool.LINE, EditorTool.RECTANGLE, EditorTool.ELLIPSE)
+        val rows = pickerRows(listOf(listOf(EditorTool.LINE, EditorTool.RECTANGLE)), members - EditorTool.RECTANGLE)
+        assertEquals(members.toSet() - EditorTool.RECTANGLE, rows.flatten().toSet())
+        assertTrue(rows.none { EditorTool.RECTANGLE in it })
         assertEquals(
-            "the diode row closes up instead of leaving a gap",
-            listOf(EditorTool.DIODE, EditorTool.ZENER_DIODE),
+            "the row closes up instead of leaving a gap",
+            listOf(EditorTool.LINE),
             rows.first(),
         )
     }

@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "make-the-rail-writing-tools-only-and-retire-the-compact-layout"
+title = "Make the rail writing-tools-only and retire the Compact layout"
+description = "Remove audio, play object and shape recognition from the Main Toolbar, and every STEM slot that duplicated the Secondary Toolbar; remove the Hide-tools-already-in-the-Secondary-Toolbar button; delete StemRailSection; split the STEM families into SECONDARY_TOOL_GROUPS so the top bar keeps its circuit/logic/chemistry pickers; delete ToolbarLayout.COMPACT and its settings entry, dropping the persisted pref on save; animate the Settings screen open with liquidGlassSpringAnimation; update docs (chrome, ui-modernization, roadmap, testing, codebase, README) and the rail/group tests."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-20
+completed = 2026-10-20
+tags = []
+
+[[task]]
+id = "bold-header-cell-for-a-table-column-added-mid-edit"
+title = "Bold header cell for a table column added mid-edit"
+description = "columnAdded gave every new cell a plain TableCell, so a column inserted into a table with a header row landed with a plain header beside bold ones. Pass the element's headerRow (or a first row already bold) and bold the new row-0 cell; covered by TableCellEditorDialogTest."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-20
+completed = 2026-10-20
+tags = []
+
+[[task]]
 id = "give-the-plot-inspector-a-position-of-its-own-instead-of-a-delta-on-its-anchor"
 title = "Give the plot inspector a position of its own instead of a delta on its anchor"
 description = "PlotInspectorAnchor re-derived its position from the anchor every frame (baseOffset + dragDelta), so a drag from an edge-clamped anchor reproduced the same clamped spot (the panel would not move) and any re-anchor (Apply replacing the plot, a curve row appearing, a viewport resize) teleported the panel; its editing state was also keyed to the element, so Apply threw away focus and typing. Take the placement once per open, move it absolutely with draggedInspectorOffset, keep the editing state keyed to a new EditorUiState.plotInspectorSession, and hide the panel until it is measured."

@@ -84,7 +84,7 @@ change can see what will fail it:
   XML theme declarations for `statusBarColor` and `navigationBarColor` use transparent values, ensuring
   the full-bleed canvas reaches the device edges without opaque system bar bands.
 - **`ChromeGeometryGuardTest`** (`guards/`) — validates that the chrome bands and canvas partition the window
-  across all layout combinations (Standard Left/Right, Compact, Full-page) without overlapping, and that
+  across all layout combinations (rail docked Left and Right, and Full-page) without overlapping, and that
   the header is a single continuous full-width Surface whose column contains both the tools and tabs.
 - **`FormatDriftTest`** (`format/`) — the `.xopp` mapping the docs describe against what the writers
   emit, so the format documentation cannot drift from the code.

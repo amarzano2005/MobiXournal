@@ -12,24 +12,27 @@ outermost, i.e. under the thumb), and a
 **☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As,
 Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
 
-The app chrome provides two configurable layout modes (`ToolbarLayout` in `AppSettings`):
-- **Standard (`DEFAULT`)**: The Main Toolbar is docked along the vertical edge (Left or Right, per `ToolbarPosition`) as a vertical floating capsule for classic writing tools, paired with the Secondary Toolbar in the top bar containing all STEM tools.
-- **Compact (`COMPACT`)**: A unified floating horizontal toolbar docked at the bottom center containing primary writing tools plus 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`); the secondary toolbar in the top bar is hidden, displaying only the document title.
+There is **one layout**, and each bar has one job. The Main Toolbar is the vertical docked capsule
+(Left or Right, per `ToolbarPosition`) of **writing tools only**: pen, highlighter, eraser, pan, select,
+text/pictures, vertical space, and the colour & size, guides, layers, zoom, background and pages panels.
+The Secondary Toolbar in the top bar is the one home of the **STEM tools** (figures, function graph,
+table, circuits, logic, chemistry, guides) — a rail slot for them was the same button twice on one
+screen, so the slot was removed rather than hidden, and there is no "hide the duplicates" shortcut to
+offer. Audio and playback live on the audio capsule; shape recognition is a Settings toggle.
 
 The rail's edge is not a placement menu but the **handedness** answer: a right hand writes from the left,
 so `ToolbarPosition.LEFT` is the default and `RIGHT` is its mirror — and those are the two values it has,
-because the `TOP`/`BOTTOM` centre dockings were retired (2026-10-13: the header owns the top band and a
-toolbar along the bottom is what Compact *means*, so neither could be drawn as anything but a second bar).
+because the `TOP`/`BOTTOM` centre dockings were retired (2026-10-13: the header owns the top band, so a
+centre docking could only be drawn as a second bar over the page).
 First launch asks it as **which hand writes**, each answer carrying a miniature of the editor with the rail
 on the edge that hand implies, and the settings picker later offers the two edges under **Settings →
 Interface → Toolbar**. A stored or imported `TOP`/`BOTTOM` ages into `LEFT` in the readers
 (`AppSettings.load`, `AppSettingsBackup.fromNode`), so an install from that era still opens with a rail it
 can place. The tour that asks it is owned by [`stylus.md`](stylus.md#first-launch-onboarding).
 
-The chrome never sits **on** the page: the header (the top bar and, inside it, the row of document tabs),
-the rail's lane and (in Compact) the bottom band each take a band of their own and the canvas takes what
-is left, which is what makes the whole visible page writable — the layout is described under _The frame
-around the page_, below.
+The chrome never sits **on** the page: the header (top bar plus its tabs row) and the rail's lane each
+take a band of their own and the canvas takes what is left, so the whole visible page stays writable —
+see _The frame around the page_, below.
 
 `orderedTopBarItems` places a slot the saved order doesn't name (one added since that order was written) at its **factory
 position** — just ahead of the next factory item the order does name — rather than appending it past
@@ -98,7 +101,7 @@ the two can never disagree.
 ## Chrome styling: the Material 3 floating dock
 
 Chrome styling is one design, with no switch: the Material 3 floating dock.
-- The Main Toolbar fill is translucent (`rememberToolbarColor()` at 88% alpha) with a 1dp hairline at 25% alpha, and it opens with a **1-tap STEM section** (`StemRailSection`, `ui/StemRailSection.kt`): f(x) (opens the graph dialog), Geometry, Table, Circuit — one tap each, no sub-menus, grouped in an accent-tinted capsule between hairline dividers. Pinned by `StemRailSectionTest`.
+- The Main Toolbar fill is translucent (`rememberToolbarColor()` at 88% alpha) with a 1dp hairline at 25% alpha, and it carries **no STEM section**: the f(x)/Geometry/Table/Circuit shortcuts and the figures live in the Secondary Toolbar, their one home (see the layout note at the top of this page). The slot list is pinned by `RailItemsTest`.
 - The Main Toolbar renders as a floating dock surface (`SideToolbarModernWidth` = 56dp) with rounded corners (`20.dp`), tonal elevation (`3.dp`), shadow elevation (`4.dp`), subtle border, and squircle tool buttons (`12.dp`) at the rail's own whole-slot sizing (44dp slots, grown by a few percent when that hides a sliver of the next one); the Secondary Toolbar in the top bar renders as an adaptive floating dock surface (`40.dp` height) enclosing the visible figure tools with rounded corners (`20.dp`), tonal and shadow elevation, dynamically adapting its width to the number of visible figures, and not drawn at all while none are visible — and every glyph in it, the guides slot and the indicator face included, is drawn at the rail's own size (`ToolIconSize`, half a rail slot), because these vectors scale their stroke with the icon and a smaller glyph there is *thinner ink* beside the rail rather than a lighter style (`ToolGlyphWeightTest`); the **active tool indicator** is the dock's own **end cap** (`ActiveToolIndicator`), grey running flush into the dock's rounded border, `TOP_BAR_DOCK_HEIGHT` (40dp) tall with `TOP_BAR_DOCK_CORNER` (`20.dp`), the dock's tonal and shadow elevation and hairline border, its face (`ToolIndicatorFace`) showing the selected tool, colour and stroke width with no thickness bar beside the size letter, tapping it opening the Colour & size pop-up, and its grey the `surfaceContainerHighest` role — a surface step, never the accent `primaryContainer` a picked tool button wears; the style it replaced — the indicator standing **outside** the dock as a button of its own (`StandaloneToolIndicator`) in the top bar's leading slot, the corner between the rail's column and the dock, sized so a left-docked rail's dock starts on the document tab strip's own line, and trailing the dock when the rail is docked right (`standaloneIndicatorSlot`, pinned by `IndicatorSlotTest`) — is kept behind the `INDICATOR_AS_DOCK_CAP` constant as a one-flip restore path. The cap is the style in force because the standalone pill's fixed width is exactly the rail's own column (`TOP_BAR_INDICATOR_WIDTH`), so it sits flush against the *screen's* left edge; as the cap the indicator starts clear of both the edge and the rail, and the run still reads rail → indicator → figures; the top bar uses `TOP_BAR_ROW_HEIGHT` (52dp) with a grouped undo/redo pill container (`18.dp`), a compact quick Export PDF button followed by the accent-tonal Save button (so Save sits outermost), and active document title chip; tabs use 38dp height with pill chips (`14.dp`); page counter and zoom badges use frosted rounded pills (`14.dp`); floating action bars use rounded capsules.
 Each rail button owns its own `DropdownMenu`, so the pop-up
 is anchored to that button (opening to the right of the rail) rather than filling the screen. Every
@@ -134,7 +137,7 @@ buttons** rather than one full-width row each, with related tools sharing a row:
 grouping in `ToolGroup.pickerLayout` and `pickerRows()` resolves it against the members actually shown
 (so the diode family, the two transistors and the two sources sit together, each inverted logic gate
 beside its twin, and any member a layout doesn't name still wraps three to a row rather than going
-missing; the user-ordered Shapes slot declares no grouping at all, so its order is preserved). The two
+missing; a family that declares no grouping at all, like the top bar's Shapes, keeps its own order). The two
 figures that ship in several geometric **kinds** rather than a group — the triangle and the trapezoid,
 whose secondary-toolbar buttons carry a variant submenu — get the same row treatment from
 `ToolVariantPicker` (`ToolbarPopup.kt`), which lays the kinds out through the pure `variantRows()`
@@ -197,20 +200,16 @@ right edge, so a stylus can still draw over the page's right margin everywhere b
 thumb is a **2dp neutral-grey capsule** (`rememberScrollThumbColor`, the theme's secondary ink
 rather than the accent blue) sitting **flush against the pane's edge**, faint when idle, brightening
 after a scroll and brightest while dragged, with a page-number bubble beside it. Nothing is drawn
-*in* the bar: there is no grip bulge and no inset, so it reads as a hairline at the sheet's edge
-rather than as a control lying on the page, and it never covers a line of the ruling. It is a pure navigation affordance — no `.xopp` state, so nothing
-round-trips.
+*in* the bar — no grip bulge, no inset — so it reads as a hairline at the sheet's edge rather than a
+control lying on the page, and it never covers a line of the ruling; it is pure navigation, with no
+`.xopp` state, so nothing round-trips.
 
 ## The frame around the page: the chrome's bands, and the canvas's rest
 
-**The chrome is laid out beside the page, never on it.** The header band, the rail's lane and (in
-Compact) the bottom band are rows of the layout, and the canvas — an `AndroidView`-hosted
-`DrawingSurfaceView` — is handed what is left:
-
-- `EditorScreen` is a `Column`: the header first, `EditorBody` in the weight that remains.
-- `EditorBody` is a `Row` in Standard — the rail's lane (exactly `SideToolbarModernTotalWidth`, the edge
-  `AppSettings.toolbarPosition` names) and the canvas taking the weight — or a `Column` in Compact: the
-  canvas, then the horizontal dock's band above the navigation-bar inset.
+**The chrome is laid out beside the page, never on it**: the header band and the rail's lane are rows of
+the layout, and the canvas (`DrawingSurfaceView`) is handed what is left. `EditorScreen` is a `Column`
+(header first, `EditorBody` in the weight that remains); `EditorBody` is a `Row` of the rail's lane
+(exactly `SideToolbarModernTotalWidth`, the edge `AppSettings.toolbarPosition` names) and the canvas.
 - the **document tabs** are the header's own second row, inside the bar's surface (`EditorTopBar`), so no
   row of the chrome ends on an edge the row beside it does not share. Their chips are inset by the rail's
   lane plus their 8dp lead-in (`TAB_STRIP_LEAD_IN`), which keeps them over the canvas and on the figures'
@@ -222,8 +221,8 @@ Compact) the bottom band are rows of the layout, and the canvas — an `AndroidV
   [data-path.md](data-path.md)) — so each half's chips, numbered pane
   badge and "+" sit over that half for every divider position — not only at 50/50. The focused pane's
   badge is accent-filled and the other is outlined; touching a lane focuses its pane, and its "+" opens
-  the new document there. Compact has one row and no room for two lanes, so it keeps the focused pane's
-  strip in the title slot, badge included.
+  the new document there. A caller with no settings to read has one row and no room for two lanes, so it
+  keeps the focused pane's strip in the title slot, badge included.
 
 **The split's divider is furniture, not a bar.** It is a hairline rule (`RULE_WIDTH`) that **fades into
 the sheet at both ends** — a vertical gradient, transparent → rule → transparent — with a **floating
@@ -284,8 +283,9 @@ the rail's lane and at 114dp over the page, a 38dp step with the chips starting 
 rows' heights are `TOP_BAR_ROW_HEIGHT` (52dp,
 `ui/TopBarIndicator.kt`) for the tools — padded by `statusBarsPadding()`, a device value, deliberately not
 part of the constant — and `TAB_STRIP_HEIGHT` (`ui/TabStrip.kt`, 38dp) for the tabs; the lane therefore
-starts below the header's *whole* height, not below the bar's row of it. In Compact the tabs ride in the
-bar's **title** slot instead — the same slab, one row, because the dock holds the tools there.
+starts below the header's *whole* height, not below the bar's row of it. A caller with no settings
+to read (a preview) keeps the tabs in the bar's **title** slot instead — the same slab, one row, because
+there is no second row to give them.
 
 ## A saved toolbar order is not a stale one
 

@@ -33,19 +33,6 @@ enum class ToolbarPosition(val label: String) {
 }
 
 /**
- * Layout option for the app chrome toolbars.
- *
- * [DEFAULT]: Main Toolbar for primary writing tools + Secondary Toolbar in top bar with all STEM tools.
- * [COMPACT]: Main Toolbar with writing tools + 4 compact STEM elements (hides Secondary Toolbar in top bar).
- */
-enum class ToolbarLayout(val label: String) {
-    /** Standard: Main Toolbar (Left/Right) for writing + Secondary Toolbar in top bar with all STEM tools. */
-    DEFAULT("Standard"),
-    /** Compact: Floating bottom toolbar with main writing tools + 4 compact STEM slots (hides top secondary bar). */
-    COMPACT("Compact"),
-}
-
-/**
  * Which row of the canvas the "page X of Y" badge sits in.
  *
  * Paired with [PageCounterHorizontal] to place the badge in any of the nine positions on the canvas.
@@ -232,8 +219,6 @@ data class AppSettings(
     val panSensitivity: Float = PanSensitivity.NORMAL,
     /** Which vertical edge of the editor the Main Toolbar is docked to. */
     val toolbarPosition: ToolbarPosition = ToolbarPosition.LEFT,
-    /** Layout mode: DEFAULT (main writing toolbar + secondary STEM toolbar in top bar) or COMPACT (4 STEM tools in main toolbar, hiding secondary top bar). */
-    val toolbarLayout: ToolbarLayout = ToolbarLayout.DEFAULT,
     /** Horizontal offset (dp) of the STEM satellite from its default anchor in split layout mode. */
     val stemSatelliteOffsetX: Float = 0f,
     /** Vertical offset (dp) of the STEM satellite from its default anchor in split layout mode. */
@@ -307,11 +292,10 @@ data class AppSettings(
      */
     val railOrder: List<String> = emptyList(),
     /**
-     * The [RailItem.id]s the user has hidden from the Main Toolbar. The factory default hides the
-     * geometric figure groups already shown in the Secondary Toolbar (see [DEFAULT_RAIL_HIDDEN]),
-     * so the two toolbars avoid redundancy out of the box.
+     * The [RailItem.id]s the user has hidden from the Main Toolbar. Nothing is hidden out of the
+     * box: the rail offers writing tools only, so there is no duplicated STEM slot left to hide.
      */
-    val railHidden: Set<String> = DEFAULT_RAIL_HIDDEN,
+    val railHidden: Set<String> = emptySet(),
     /** The Secondary Toolbar's button positions in display order. Empty falls back to factory default. */
     val topBarOrder: List<String> = DEFAULT_TOP_BAR_ORDER,
     /** The button ids the user has hidden from the Secondary Toolbar. */
@@ -525,15 +509,6 @@ data class AppSettings(
         const val DEFAULT_TABLE_COLS: Int = 3
         const val DEFAULT_TABLE_HEADER: Boolean = false
 
-        /**
-         * Main Toolbar items hidden by default — the geometric figures and drawing tools the
-         * Secondary Toolbar already shows (line, rectangle, shape, arrow, table, circuit, circuit_active, logic, chemistry, guides).
-         * Hides them from the Main Toolbar to avoid redundancy, since the Secondary Toolbar is always shown.
-         * The user can re-enable any of them in **Settings → Toolbar → Main Toolbar buttons**.
-         */
-        val DEFAULT_RAIL_HIDDEN: Set<String> = setOf(
-            "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "chemistry", "guides",
-        )
         const val TABLE_DIMENSION_MIN: Int = 1
         const val TABLE_DIMENSION_MAX: Int = 50
 
@@ -625,7 +600,6 @@ class SettingsStore(context: Context) {
             // the default — LEFT, the rail's own home — so a legacy install still opens with a rail the
             // app can draw (docs/chrome.md).
             toolbarPosition = enumOr(prefs.getString(KEY_TOOLBAR_POSITION, null), d.toolbarPosition),
-            toolbarLayout = enumOr(prefs.getString(KEY_TOOLBAR_LAYOUT, null), d.toolbarLayout),
             stemSatelliteOffsetX = prefs.getFloat(KEY_STEM_SATELLITE_OFFSET_X, d.stemSatelliteOffsetX),
             stemSatelliteOffsetY = prefs.getFloat(KEY_STEM_SATELLITE_OFFSET_Y, d.stemSatelliteOffsetY),
             penColors = decodePenColors(prefs.getString(KEY_PEN_COLORS, null), d.penColors),
@@ -768,7 +742,9 @@ class SettingsStore(context: Context) {
         e.putString(KEY_MOMENTUM_CURVE, s.momentumCurve.name)
         e.putFloat(KEY_PAN_SENSITIVITY, s.panSensitivity)
         e.putString(KEY_TOOLBAR_POSITION, s.toolbarPosition.name)
-        e.putString(KEY_TOOLBAR_LAYOUT, s.toolbarLayout.name)
+        // The Compact layout is gone: drop the pref an older install wrote instead of leaving a
+        // setting behind that nothing reads.
+        e.remove(KEY_TOOLBAR_LAYOUT)
         e.putFloat(KEY_STEM_SATELLITE_OFFSET_X, s.stemSatelliteOffsetX)
         e.putFloat(KEY_STEM_SATELLITE_OFFSET_Y, s.stemSatelliteOffsetY)
         e.putString(KEY_PEN_COLORS, encodePenColors(s.penColors))
@@ -875,6 +851,10 @@ class SettingsStore(context: Context) {
         const val KEY_MOMENTUM_CURVE = "momentum_curve"
         const val KEY_PAN_SENSITIVITY = "pan_sensitivity"
         const val KEY_TOOLBAR_POSITION = "toolbar_position"
+        /**
+         * Retired: the Compact layout the app no longer offers. Named only so a save can drop a value
+         * an older install still carries — the rail is always the vertical one now.
+         */
         const val KEY_TOOLBAR_LAYOUT = "toolbar_layout"
         const val KEY_STEM_SATELLITE_OFFSET_X = "stem_satellite_offset_x"
         const val KEY_STEM_SATELLITE_OFFSET_Y = "stem_satellite_offset_y"

@@ -276,7 +276,7 @@ app/
       SideToolbar.kt         # Main Toolbar (rail): the shell + tool-group slots; each pop-up is a Toolbar*.kt below
       EditorTool.kt          # the editor's tool modes + their labels/icons (pure)
       ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
-      ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog; ToolbarStylePopup.kt: shared line-style chips + the shape-recognition toggle
+      ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog; ToolbarStylePopup.kt: shared line-style chips
       ToolGlyphs.kt          # custom rail glyphs (hollow rectangle, rhombus, trapezoid, square); Material has no outline variants
       CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
       DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs

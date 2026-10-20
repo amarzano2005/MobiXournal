@@ -38,6 +38,8 @@ import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.tracePenParameters
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
+import androidx.compose.ui.graphics.TransformOrigin
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
@@ -284,13 +286,12 @@ fun EditorScreen(
      */
     onCanvasModeForDocument: (NewDocumentCanvas) -> Unit = {},
     /** The rail/toolbar content; defaults to [EditorToolbar]. */
-    paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit = { ui, pane, settings, onSettingsChange, audio ->
+    paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit = { ui, pane, settings, onSettingsChange, _ ->
         EditorToolbar(
             ui = ui,
             pane = pane,
             settings = settings,
             onSettingsChange = onSettingsChange,
-            audio = audio,
             onCanvasMode = onCanvasModeForDocument,
         )
     },
@@ -391,6 +392,10 @@ fun EditorScreen(
                 settings = settings,
                 onChange = onSettingsChange,
                 onBack = { ui.showSettings = false },
+                // The same opening every other surface the chrome puts on screen wears — the spring
+                // scale and fade of `liquidGlassSpringAnimation` — so Settings does not snap in while
+                // every menu and inspector around it springs.
+                modifier = Modifier.liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f)),
             )
         }
 
@@ -540,31 +545,19 @@ private fun EditorBody(
             second = { secondPane(it) },
         )
     }
-    when {
-        ui.fullPage -> Box(modifier = modifier) { canvas(Modifier.fillMaxSize()) }
-
-        settings.toolbarLayout == ToolbarLayout.COMPACT -> {
-            // The horizontal dock in a band of its own along the bottom edge, above the nav-bar inset.
-            // The band's height is the rail's own (its shell carries the padding), and the canvas ends
-            // where the band begins.
-            Column(modifier = modifier) {
-                canvas(Modifier.weight(1f).fillMaxWidth())
-                Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) { toolbar() }
-            }
-        }
-
-        else -> {
-            // The vertical rail as a lane down the chosen edge, the canvas taking the rest. The lane is
-            // the rail's own width ([SideToolbarModernTotalWidth]) and it starts at the **header's** bottom
-            // edge — the bar plus the row of document tabs inside it — so the rail hangs directly under the
-            // whole header and nothing overlaps anything. That is what costs the rail's spacing budget the
-            // tab row; see `RailSizing.kt`.
-            val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
-            Row(modifier = modifier) {
-                if (railOnLeft) RailLane(toolbar)
-                canvas(Modifier.weight(1f).fillMaxHeight())
-                if (!railOnLeft) RailLane(toolbar)
-            }
+    if (ui.fullPage) {
+        Box(modifier = modifier) { canvas(Modifier.fillMaxSize()) }
+    } else {
+        // The vertical rail as a lane down the chosen edge, the canvas taking the rest. The lane is
+        // the rail's own width ([SideToolbarModernTotalWidth]) and it starts at the **header's** bottom
+        // edge — the bar plus the row of document tabs inside it — so the rail hangs directly under the
+        // whole header and nothing overlaps anything. That is what costs the rail's spacing budget the
+        // tab row; see `RailSizing.kt`.
+        val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
+        Row(modifier = modifier) {
+            if (railOnLeft) RailLane(toolbar)
+            canvas(Modifier.weight(1f).fillMaxHeight())
+            if (!railOnLeft) RailLane(toolbar)
         }
     }
 }

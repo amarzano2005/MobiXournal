@@ -25,8 +25,8 @@ class RailItemsTest {
 
     @Test
     fun `a partial order keeps its items first and appends the rest`() {
-        val ordered = orderedRailItems(listOf("pages", "rectangle"))
-        assertEquals(listOf("pages", "rectangle"), ordered.take(2).map { it.id })
+        val ordered = orderedRailItems(listOf("pages", "pen"))
+        assertEquals(listOf("pages", "pen"), ordered.take(2).map { it.id })
         assertEquals(RAIL_ITEMS.size, ordered.size)
         assertEquals(RAIL_ITEMS.toSet(), ordered.toSet())
     }
@@ -62,16 +62,21 @@ class RailItemsTest {
 
     @Test
     fun `ids round-trip through encode and decode`() {
-        val ids = listOf("pages", "line", "zoom")
+        val ids = listOf("pages", "zoom", "pen")
         assertEquals(ids, decodeRailIds(encodeRailIds(ids)))
         assertEquals(emptyList<String>(), decodeRailIds(null))
-        assertEquals(listOf("line"), decodeRailIds("line,gone"))
+        assertEquals(listOf("zoom"), decodeRailIds("zoom,gone"))
     }
 
     @Test
-    fun `line, rectangle, shapes group, arrows and table each have a rail slot`() {
+    fun `the STEM slots live on the Secondary Toolbar only`() {
+        // The rail is writing tools only: a figure, circuit, logic, chemistry or table slot here would
+        // be the second copy of a button the top bar already shows.
         val ids = RAIL_ITEMS.map { it.id }
-        assertTrue(listOf("line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic").all { it in ids })
+        assertTrue(
+            listOf("line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic", "chemistry")
+                .none { it in ids },
+        )
     }
 
     @Test
@@ -80,9 +85,7 @@ class RailItemsTest {
         assertEquals(
             listOf(
                 "pen", "highlighter", "favorites", "eraser", "pan", "select",
-                "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
-                "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic",
-                "chemistry", "guides",
+                "text", "insert", "vspace", "guides", "zoom", "pages", "background", "layers",
             ),
             ids,
         )
@@ -113,11 +116,16 @@ class RailItemsTest {
     }
 
     @Test
-    fun `shape recognition has a rail slot that is not a tool group`() {
-        assertTrue(RAIL_ITEMS.any { it.id == "shapes" })
-        assertEquals(null, toolGroupForRailItem("shapes"))
-        // Existing installs stored an order without it; it must still appear on the rail.
-        assertTrue(visibleRailItems(listOf("pages", "zoom"), emptySet()).any { it.id == "shapes" })
+    fun `the retired audio, play-object and shape-recognition slots are gone`() {
+        // All three left the rail: audio and playback live on the audio capsule, and shape recognition
+        // is a Settings toggle. A saved order still naming them must degrade to a rail without them.
+        for (id in listOf("audio", "play", "shapes")) {
+            assertTrue("$id is not a rail position", RAIL_ITEMS.none { it.id == id })
+            assertEquals(emptyList<String>(), decodeRailIds(id))
+        }
+        assertTrue(visibleRailItems(listOf("audio", "play", "shapes", "zoom"), emptySet()).none {
+            it.id == "audio" || it.id == "play" || it.id == "shapes"
+        })
     }
 
     @Test

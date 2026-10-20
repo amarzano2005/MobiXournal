@@ -26,20 +26,21 @@ data class RailItem(
  */
 val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
     RailItem("favorites", "Colour & size"),
-    RailItem("shapes", "Shape recognition"),
     RailItem("guides", "Guides"),
     RailItem("layers", "Layers"),
     RailItem("zoom", "Zoom"),
     RailItem("background", "Background"),
     RailItem("pages", "Pages"),
-    RailItem("audio", "Audio"),
 )
 
 /**
  * Every rail position in factory order, by id — the order the Toolbar settings screen lists them in
  * and the order the rail draws them. The drawing tools reached for most sit at the top (pen,
- * highlighter, colour & size, eraser), then the rest of the tools, then the popup panels, with the
- * rarer controls (shape recognition, guides) trailing the rail.
+ * highlighter, colour & size, eraser), then the rest of the tools, then the popup panels.
+ *
+ * The rail is **writing tools only**: audio, play object, shape recognition and every STEM slot that
+ * duplicates the Secondary Toolbar are deliberately absent, so the settings list cannot offer them
+ * back (see [TOOL_GROUPS]).
  *
  * **Colour & size** (id `favorites`) sits directly under **Highlighter** and covers the whole errand:
  * the three colours you keep coming back to as a stack of dots, and the chevron beside them onto every
@@ -52,9 +53,7 @@ val PANEL_RAIL_ITEMS: List<RailItem> = listOf(
  */
 private val FACTORY_RAIL_ORDER: List<String> = listOf(
     "pen", "highlighter", "favorites", "eraser", "pan", "select",
-    "text", "insert", "vspace", "zoom", "pages", "background", "layers", "audio", "play", "shapes",
-    "line", "rectangle", "shape", "arrow", "table", "circuit", "circuit_active", "logic",
-    "chemistry", "guides",
+    "text", "insert", "vspace", "guides", "zoom", "pages", "background", "layers",
 )
 
 /**

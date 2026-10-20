@@ -201,6 +201,7 @@ fun SettingsScreen(
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var area by remember { mutableStateOf<SettingsArea?>(null) }
     var section by remember { mutableStateOf<SettingsSection?>(null) }
@@ -208,7 +209,7 @@ fun SettingsScreen(
     // Recomputed only when the query changes: a filter over eleven keyword lists, not per recomposition.
     val results = remember(query) { settingsSearchResults(query) }
 
-    BoxWithConstraints {
+    BoxWithConstraints(modifier = modifier) {
         val twoPane = maxWidth >= SETTINGS_TWO_PANE_MIN_WIDTH
 
         // Settings is composed after the editor, so this handler outranks the editor's: the system back

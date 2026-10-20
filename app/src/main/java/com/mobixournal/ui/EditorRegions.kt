@@ -171,12 +171,10 @@ fun EditorTopBar(
     // side of it. A row of *this* bar cannot notch: it spans the width the bar spans. The rail's lane
     // therefore starts below the whole slab (see [EditorBody]), which is what the rail's own spacing budget
     // pays for — `RailSizing.kt` counts the tab row in.
-    val tabsInline = settings == null ||
-        onSettingsChange == null ||
-        settings.toolbarLayout == ToolbarLayout.COMPACT
+    // A caller with no settings to read has nowhere to put a second row, so its tabs stay in the
+    // title slot; the editor itself gives them a strip of their own under the tools.
+    val tabsInline = settings == null || onSettingsChange == null
     val tabsUnderTheTools = !tabsInline && !ui.fullPage
-    // In Compact the tabs ride in the title slot, where there is no room for two lanes: the focused
-    // pane's strip is drawn there, and its badge still says which half it belongs to.
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
     Surface(
         color = glassColor,
@@ -741,7 +739,6 @@ fun EditorToolbar(
     pane: PaneState,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
-    audio: AudioUiState,
     modifier: Modifier = Modifier,
     /** Applied to the showing document when the page-format dialog picks a new canvas geometry. */
     onCanvasMode: (NewDocumentCanvas) -> Unit = {},
@@ -757,11 +754,8 @@ fun EditorToolbar(
             // becoming the pen's width.
             surface?.activateTool(tool, ui, settings, onSettingsChange)
         },
-        audio = audio,
         railOrder = settings.railOrder,
         railHidden = settings.railHidden,
-        shapeOrder = settings.shapeOrder,
-        shapeHidden = settings.shapeHidden,
         toolGroupSelections = settings.toolGroupSelections,
         onToolGroupPick = { group, picked ->
             // Re-facing the slot and activating the tool are one settings write, both built on the
@@ -785,11 +779,6 @@ fun EditorToolbar(
                 onSettingsChange(assignFavorite(settings, colorOwner, index, color))
             },
         ),
-        recognizeShapes = settings.recognizeShapes,
-        onRecognizeShapes = {
-            surface?.recognizeShapes = it
-            onSettingsChange(settings.copy(recognizeShapes = it))
-        },
         guideKind = settings.guideKind,
         onGuideKind = {
             onSettingsChange(settings.copy(guideKind = it, guidePose = null))
@@ -806,12 +795,6 @@ fun EditorToolbar(
         backgroundConfig = pane.backgroundConfig,
         onBackgroundConfig = { surface?.setPageBackgroundConfig(it) },
         onStationery = { surface?.applyStationery(it) },
-        onShowGraph = { ui.showGraphDialog = true },
-        horizontal = settings.toolbarLayout == ToolbarLayout.COMPACT,
-        showStemSection = settings.toolbarLayout == ToolbarLayout.COMPACT,
-        triangleKind = settings.triangleKind,
-        trapezoidKind = settings.trapezoidKind,
-        showGraphDialog = ui.showGraphDialog,
     )
 }
 
@@ -979,7 +962,7 @@ fun TopBarToolsRow(
                         onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
                     )
                 } else {
-                    val group = toolGroupForRailItem(item.id)
+                    val group = secondaryToolGroup(item.id)
                     if (group != null) {
                         CompactTopBarToolButton(
                             group = group,

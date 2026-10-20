@@ -122,19 +122,27 @@ class AppSettingsBackupTest {
     }
 
     @Test
-    fun `round-trips all toolbar layouts and satellite offsets`() {
-        for (layout in ToolbarLayout.values()) {
-            val settings = AppSettings(
-                toolbarLayout = layout,
-                stemSatelliteOffsetX = -120.5f,
-                stemSatelliteOffsetY = 45.0f,
-            )
-            val json = AppSettingsBackup.toJson(settings)
-            val restored = AppSettingsBackup.fromJson(json)
-            assertEquals(layout, restored.toolbarLayout)
-            assertEquals(-120.5f, restored.stemSatelliteOffsetX, 0.001f)
-            assertEquals(45.0f, restored.stemSatelliteOffsetY, 0.001f)
-        }
+    fun `round-trips the satellite offsets`() {
+        val settings = AppSettings(
+            stemSatelliteOffsetX = -120.5f,
+            stemSatelliteOffsetY = 45.0f,
+        )
+        val json = AppSettingsBackup.toJson(settings)
+        val restored = AppSettingsBackup.fromJson(json)
+        assertEquals(-120.5f, restored.stemSatelliteOffsetX, 0.001f)
+        assertEquals(45.0f, restored.stemSatelliteOffsetY, 0.001f)
+    }
+
+    @Test
+    fun `a backup carrying the retired compact layout still loads`() {
+        // The Compact layout is gone (the rail is always the vertical one), so its key is simply
+        // unknown now: a backup an older build wrote must still load, and the rail ids it names that
+        // no longer exist on the rail are dropped by the decoder.
+        val restored = AppSettingsBackup.fromJson(
+            """{"version": 1, "toolbarLayout": "COMPACT", "railHidden": ["zoom", "line", "audio"]}""",
+        )
+        assertEquals(setOf("zoom", "line", "audio"), restored.railHidden)
+        assertEquals(ToolbarPosition.LEFT, restored.toolbarPosition)
     }
 
     @Test

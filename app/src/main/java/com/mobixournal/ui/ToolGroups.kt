@@ -18,8 +18,7 @@ data class ToolGroup(
     /**
      * Which members share a **picker row**, in display order — the transistor pair, the diode family,
      * the two sources. Empty means the picker simply wraps [tools] [PICKER_ROW_SIZE] to a row, which
-     * is what a group whose members have no kinship worth expressing (the Shapes slot, whose order the
-     * user controls) wants.
+     * is what a group whose members have no kinship worth expressing wants.
      */
     val pickerLayout: List<List<EditorTool>> = emptyList(),
 )
@@ -67,12 +66,14 @@ const val VARIANT_ROW_SIZE = 2
 fun variantRows(count: Int): List<List<Int>> = (0 until maxOf(count, 0)).chunked(VARIANT_ROW_SIZE)
 
 /**
- * The rail's tool slots, in display order. Every [EditorTool] belongs to exactly one group; a group
- * with a single member (line, rectangle, pan) is just a plain button with nothing to pick.
+ * The rail's tool slots, in display order: **writing tools only**. A group with a single member (pan,
+ * vertical space) is just a plain button with nothing to pick.
  *
- * Line and Rectangle get a slot of their own because they are the shapes users reach for most; every
- * other figure shares one Shapes slot, whose face defaults to the **ellipse** (the circle) — the
- * figure a hand-drawn shape most often means.
+ * The geometric figures and the STEM families (circuits, logic, chemistry, table) are **not** rail
+ * slots: their one home is the Secondary Toolbar in the top bar, and offering them here as well was
+ * two rows of the same buttons on one screen ([SECONDARY_TOOL_GROUPS] is where they live).
+ * `settings.railOrder` therefore names only the ids below — anything else it still carries from an
+ * older install is dropped by `decodeRailIds`, so no stale preference can bring a duplicated slot back.
  *
  * Some slots use membership to express what used to be a separate mode menu: the eraser's
  * partial-vs-whole-stroke choice and the marquee's rectangle-vs-lasso-vs-text choice are each just
@@ -84,13 +85,35 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup("pen", "Pen", listOf(EditorTool.PEN)),
     ToolGroup("highlighter", "Highlighter", listOf(EditorTool.HIGHLIGHTER)),
     ToolGroup("eraser", "Eraser", listOf(EditorTool.ERASER_WHOLE, EditorTool.ERASER)),
+    ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
+    ToolGroup(
+        "select", "Select",
+        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
+        pickerLayout = listOf(
+            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
+        ),
+    ),
+    // Text authoring lives in a slot of its own (below), so Insert is only about pictures.
+    ToolGroup("insert", "Insert", listOf(EditorTool.IMAGE)),
+    ToolGroup("text", "Text", listOf(EditorTool.TEXT, EditorTool.TEXIMAGE)),
+    ToolGroup("vspace", "Vertical space", listOf(EditorTool.VERTICAL_SPACE)),
+)
+
+/**
+ * The STEM families the **Secondary Toolbar** in the top bar draws, one slot per family with its
+ * picker: the figures, the arrows, the table, the two circuit halves, logic gates and chemistry.
+ *
+ * They are not rail positions ([TOOL_GROUPS] is writing tools only) but they are still tool *groups*:
+ * the top bar resolves a `circuit`/`logic`/`chemistry`/`arrow` button through [secondaryToolGroup], and
+ * the family's members are what that button's menu offers.
+ */
+val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup("line", "Line", listOf(EditorTool.LINE)),
     ToolGroup("rectangle", "Rectangle", listOf(EditorTool.RECTANGLE)),
     ToolGroup(
         "shape", "Shapes",
         listOf(
             EditorTool.ELLIPSE,
-            // The STEM figures (see [ShapeKind] / [ShapeBuilder]).
             EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.RHOMBUS, EditorTool.TRAPEZOID,
             EditorTool.PENTAGON, EditorTool.HEXAGON,
             EditorTool.SPLINE, EditorTool.COORDINATE_AXIS,
@@ -124,8 +147,7 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.TRANSFORMER,
         ),
         // The diode family together; the amplifiers and the two transistors (which are read as a
-        // pair) together; then the two sources; then the transformer, which joins the sources in
-        // the "energy" row.
+        // pair) together; then the two sources, with the transformer in the "energy" row.
         pickerLayout = listOf(
             listOf(EditorTool.DIODE, EditorTool.LED, EditorTool.ZENER_DIODE),
             listOf(EditorTool.OPAMP, EditorTool.BJT_NPN, EditorTool.BJT_PNP),
@@ -139,8 +161,7 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.NAND_GATE, EditorTool.NOR_GATE, EditorTool.XOR_GATE,
             EditorTool.XNOR_GATE, EditorTool.BUFFER_GATE,
         ),
-        // Each gate beside its inverted twin, which is how the family is read; the buffer joins the
-        // NOT gate on the "plain gate" row.
+        // Each gate beside its inverted twin; the buffer joins the NOT gate on the "plain gate" row.
         pickerLayout = listOf(
             listOf(EditorTool.AND_GATE, EditorTool.NAND_GATE),
             listOf(EditorTool.OR_GATE, EditorTool.NOR_GATE),
@@ -154,35 +175,21 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
             EditorTool.CHEM_BENZENE, EditorTool.CHEM_BOND_SINGLE,
             EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE,
         ),
-        // Aromatic ring first as the signature chemistry emblem, then bonds in order.
         pickerLayout = listOf(
             listOf(EditorTool.CHEM_BENZENE, EditorTool.CHEM_BOND_SINGLE),
             listOf(EditorTool.CHEM_BOND_DOUBLE, EditorTool.CHEM_BOND_TRIPLE),
         ),
     ),
-    ToolGroup("pan", "Pan", listOf(EditorTool.HAND)),
-    ToolGroup(
-        "select", "Select",
-        listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
-        pickerLayout = listOf(
-            listOf(EditorTool.SELECT, EditorTool.LASSO_SELECT),
-        ),
-    ),
-    // Text authoring lives in a slot of its own (below), so Insert is only about pictures.
-    ToolGroup("insert", "Insert", listOf(EditorTool.IMAGE)),
-    ToolGroup("text", "Text", listOf(EditorTool.TEXT, EditorTool.TEXIMAGE)),
-    ToolGroup("vspace", "Vertical space", listOf(EditorTool.VERTICAL_SPACE)),
-    ToolGroup("play", "Play object", listOf(EditorTool.PLAY_OBJECT)),
 )
 
+/** Every tool group in the app — the rail's and the Secondary Toolbar's. */
+val ALL_TOOL_GROUPS: List<ToolGroup> = TOOL_GROUPS + SECONDARY_TOOL_GROUPS
+
+/** The Secondary Toolbar's group behind [id], or null when that button is not a family. */
+fun secondaryToolGroup(id: String): ToolGroup? = SECONDARY_TOOL_GROUPS.firstOrNull { it.id == id }
+
 /** The group [tool] belongs to, or null if it is somehow ungrouped. */
-fun groupOf(tool: EditorTool): ToolGroup? = TOOL_GROUPS.firstOrNull { tool in it.tools }
-
-/** The id of the Shapes slot's group — the submenu the Figures settings section reorders. */
-const val SHAPE_GROUP_ID = "shape"
-
-/** The group behind the Shapes slot. */
-val SHAPE_GROUP: ToolGroup = TOOL_GROUPS.first { it.id == SHAPE_GROUP_ID }
+fun groupOf(tool: EditorTool): ToolGroup? = ALL_TOOL_GROUPS.firstOrNull { tool in it.tools }
 
 /**
  * All geometric figure tools available in the app (including simple line and rectangle).
@@ -215,10 +222,6 @@ fun orderedShapeTools(order: List<String>): List<EditorTool> {
     val listed = order.distinct().mapNotNull { byName[it] }
     return listed + all.filterNot { it in listed }
 }
-
-/** [orderedShapeTools] minus the members the user has hidden. */
-fun visibleShapeTools(order: List<String>, hidden: Set<String>): List<EditorTool> =
-    orderedShapeTools(order).filterNot { it.name in hidden }
 
 /** Encode a tool-name list for SharedPreferences: comma-separated. */
 fun encodeToolNames(names: Collection<String>): String = names.joinToString(",")
@@ -295,7 +298,7 @@ fun decodeToolGroupSelections(raw: String?): Map<String, EditorTool> {
     if (raw.isNullOrBlank()) return emptyMap()
     return raw.split(',').mapNotNull { entry ->
         val (id, name) = entry.split(':', limit = 2).takeIf { it.size == 2 } ?: return@mapNotNull null
-        val group = TOOL_GROUPS.firstOrNull { it.id == id.trim() } ?: return@mapNotNull null
+        val group = ALL_TOOL_GROUPS.firstOrNull { it.id == id.trim() } ?: return@mapNotNull null
         val tool = runCatching { enumValueOf<EditorTool>(name.trim()) }.getOrNull() ?: return@mapNotNull null
         if (tool in group.tools) group.id to tool else null
     }.toMap()

@@ -66,7 +66,7 @@ toward a lightweight, content-first creative tool.
 1. **Modern Design System**: [ui-modernization.md](ui-modernization.md) replaces rigid toolbars with:
    - Translucent frosted glass capsules (1px hairline borders, $85\%$ blur opacity).
    - Pure OLED black dark mode (`#000000`) and crisp $1.5\text{ dp}$ monoline line-art iconography.
-   - Layout options: Standard (vertical rail in its own lane + header STEM dock) and Compact (unified bottom band).
+   - One layout, two jobs: the vertical rail in its own lane (writing tools) and the header STEM dock.
    - Pen-Tip Radial HUD (pie menu) summoned by barrel button for rapid color, width, and tool switching.
    - Universal shortcut and individual custom color remapping (every tool and custom HEX color slot remappable).
 2. **Auto-Shape Perfection**: [shape-perfection-engine.md](shape-perfection-engine.md) provides $300\text{ ms}$

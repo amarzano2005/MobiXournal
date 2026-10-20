@@ -65,8 +65,6 @@ fun SideToolbar(
     styleCallbacks: ToolbarStyleCallbacks,
     /** The Colour & size slot's two ternas of favourite colours and what a tap or a long-press does. */
     favoritesCallbacks: ToolbarFavoritesCallbacks,
-    recognizeShapes: Boolean = true,
-    onRecognizeShapes: (Boolean) -> Unit = {},
     guideKind: GuideKind,
     onGuideKind: (GuideKind) -> Unit,
     layerCallbacks: ToolbarLayerCallbacks,
@@ -80,46 +78,19 @@ fun SideToolbar(
     backgroundConfig: String? = null,
     onBackgroundConfig: (String?) -> Unit = {},
     onStationery: (Stationery) -> Unit = {},
-    audio: AudioUiState = AudioUiState(),
     railOrder: List<String> = emptyList(),
     railHidden: Set<String> = emptySet(),
-    /** The Shapes submenu's members in display order and the ones hidden (Figures settings). */
-    shapeOrder: List<String> = emptyList(),
-    shapeHidden: Set<String> = emptySet(),
-    /** Opens the function-plot dialog (the STEM section's f(x) button). */
-    onShowGraph: () -> Unit = {},
-    horizontal: Boolean = false,
-    showStemSection: Boolean = true,
-    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
-    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
-    showGraphDialog: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val items = visibleRailItems(railOrder, railHidden).filterNot { it.id == "audio" || it.id == "play" }
-    ToolbarShell(
-        slotCount = items.size + (if (showStemSection) STEM_ENTRY_COUNT else 0),
-        horizontal = horizontal,
-        modifier = modifier,
-    ) {
-        if (showStemSection) {
-            StemRailSection(tool, onTool, onShowGraph, horizontal = horizontal, showGraphDialog = showGraphDialog)
-        }
+    val items = visibleRailItems(railOrder, railHidden)
+    ToolbarShell(slotCount = items.size, modifier = modifier) {
         for (item in items) {
             val group = toolGroupForRailItem(item.id)
             if (group != null) {
                 ToolGroupButton(
                     group = group,
-                    // Only the Shapes slot's submenu is user-ordered; if every member is hidden the
-                    // slot falls back to the factory list so it can never become a dead button.
-                    members = if (group.id == SHAPE_GROUP_ID) {
-                        visibleShapeTools(shapeOrder, shapeHidden).ifEmpty { group.tools }
-                    } else {
-                        group.tools
-                    },
                     selected = group.selected(toolGroupSelections),
                     active = tool in group.tools,
-                    triangleKind = triangleKind,
-                    trapezoidKind = trapezoidKind,
                     onTool = onTool,
                     // One callback for the whole pick: the slot's new face and the tool activation
                     // are a single settings write. Split in two they would both start from the same
@@ -136,7 +107,6 @@ fun SideToolbar(
                     favorites = favoritesCallbacks,
                     style = styleCallbacks,
                 )
-                "shapes" -> ShapeRecognitionButton(recognizeShapes, onRecognizeShapes)
                 "guides" -> GuidePopupButton(guideKind, onGuideKind)
                 "layers" -> LayersPopupButton(layerCallbacks)
                 "zoom" -> ZoomPopupButton(zoom, onZoomIn, onZoomOut, onZoomReset)
@@ -148,13 +118,12 @@ fun SideToolbar(
                     onStationery,
                 )
                 "pages" -> PagesPopupButton(pageCallbacks)
-                "audio" -> AudioPopupButton(audio)
             }
         }
     }
 }
 
-/** The floating rail's width (or height when horizontal): 40dp buttons + 6dp padding each side = 52dp. */
+/** The floating rail's width: 40dp buttons + 6dp padding each side = 52dp. */
 val SideToolbarModernWidth = 52.dp
 /** Margin around the modern floating rail. */
 val SideToolbarModernPadding = 6.dp
@@ -178,7 +147,7 @@ internal val SideToolbarModernSlot = ModernTheme.compactButtonSizeDp
 internal val ToolIconSize: Dp = SideToolbarModernSlot / 2
 
 /**
- * The rail's shell: a column or row of slots, sized so that it never shows half a button.
+ * The rail's shell: a column of slots, sized so that it never shows half a button.
  *
  * Sized as a floating glass capsule with ModernTheme tokens (16dp corner radius, 1px hairline border
  * at 10-15% alpha, backdrop blur at 85-90% opacity, 40dp buttons), so ruling and PDF content underneath
@@ -188,7 +157,6 @@ internal val ToolIconSize: Dp = SideToolbarModernSlot / 2
 private fun ToolbarShell(
     /** The visible slot count — the adaptive pitch's one input it cannot read off the layout. */
     slotCount: Int,
-    horizontal: Boolean,
     modifier: Modifier,
     buttons: @Composable () -> Unit,
 ) {
@@ -197,86 +165,37 @@ private fun ToolbarShell(
     val glassColor = rememberGlassSurfaceColor()
     val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
-    if (horizontal) {
-        BoxWithConstraints(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = SideToolbarModernOuterPadding,
-                    vertical = SideToolbarModernPadding,
-                ),
-            contentAlignment = Alignment.Center,
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(
+                horizontal = SideToolbarModernPadding,
+                vertical = SideToolbarModernOuterPadding,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        val scale = railContentScale(
+            availableHeightDp = maxHeight.value,
+            slotCount = slotCount,
+            slotDp = baseSlot.value,
+            spacingDp = RailSpacing.value,
+            paddingDp = RailColumnPadding.value,
+        )
+        CompositionLocalProvider(
+            LocalRailSlotSize provides baseSlot * scale,
+            LocalRailSlotScale provides scale,
         ) {
-            val scale = railContentScale(
-                availableHeightDp = maxWidth.value,
-                slotCount = slotCount,
-                slotDp = baseSlot.value,
-                spacingDp = RailSpacing.value,
-                paddingDp = RailColumnPadding.value,
-            )
-            CompositionLocalProvider(
-                LocalRailSlotSize provides baseSlot * scale,
-                LocalRailSlotScale provides scale,
+            Surface(
+                modifier = Modifier.width(SideToolbarModernWidth).floatingRim(ModernTheme.capsuleCornerRadiusDp),
+                shape = ModernTheme.capsuleShape,
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 6.dp,
             ) {
-                Surface(
-                    modifier = Modifier.height(SideToolbarModernWidth).floatingRim(ModernTheme.capsuleCornerRadiusDp),
-                    shape = ModernTheme.capsuleShape,
-                    color = glassColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 6.dp,
-                ) {
-                    RailRow(scale) { buttons() }
-                }
-            }
-        }
-    } else {
-        BoxWithConstraints(
-            modifier = modifier
-                .fillMaxHeight()
-                .padding(
-                    horizontal = SideToolbarModernPadding,
-                    vertical = SideToolbarModernOuterPadding,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            val scale = railContentScale(
-                availableHeightDp = maxHeight.value,
-                slotCount = slotCount,
-                slotDp = baseSlot.value,
-                spacingDp = RailSpacing.value,
-                paddingDp = RailColumnPadding.value,
-            )
-            CompositionLocalProvider(
-                LocalRailSlotSize provides baseSlot * scale,
-                LocalRailSlotScale provides scale,
-            ) {
-                Surface(
-                    modifier = Modifier.width(SideToolbarModernWidth).floatingRim(ModernTheme.capsuleCornerRadiusDp),
-                    shape = ModernTheme.capsuleShape,
-                    color = glassColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 6.dp,
-                ) {
-                    RailColumn(scale) { buttons() }
-                }
+                RailColumn(scale) { buttons() }
             }
         }
     }
-}
-
-/**
- * The rail's scrolling row when docked to TOP or BOTTOM.
- */
-@Composable
-private fun RailRow(scale: Float, buttons: @Composable () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxHeight()
-            .padding(horizontal = RailColumnPadding, vertical = 6.dp)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(RailSpacing * scale),
-        verticalAlignment = Alignment.CenterVertically,
-    ) { buttons() }
 }
 
 /**
@@ -315,8 +234,6 @@ private fun ToolGroupButton(
     members: List<EditorTool> = group.tools,
     selected: EditorTool,
     active: Boolean,
-    triangleKind: TriangleKind = TriangleKind.ISOSCELES,
-    trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
     onTool: (EditorTool) -> Unit,
     onPick: (EditorTool) -> Unit,
 ) {
@@ -341,7 +258,7 @@ private fun ToolGroupButton(
             // Half the slot — [ToolIconSize] at scale 1, and a little more when the rail's adaptive
             // pitch grows the whole slot to swallow the strip it could not fit.
             Icon(
-                toolDisplayIcon(selected, triangleKind, trapezoidKind),
+                selected.icon,
                 contentDescription = "Tool: ${selected.label}",
                 tint = tint,
                 modifier = Modifier.size(buttonSize / 2),

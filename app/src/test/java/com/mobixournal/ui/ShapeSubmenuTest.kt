@@ -27,10 +27,12 @@ class ShapeSubmenuTest {
         assertEquals(FIGURE_TOOLS.size, ordered.size)
     }
 
-    @Test fun hiddenMembersAreDroppedFromTheVisibleSubmenu() {
-        val visible = visibleShapeTools(emptyList(), setOf("PENTAGON", "HEXAGON"))
-        assertEquals(FIGURE_TOOLS.size - 2, visible.size)
-        assertTrue(visible.none { it.name == "PENTAGON" || it.name == "HEXAGON" })
+    @Test fun hiddenFiguresAreDroppedFromTheSecondaryToolbar() {
+        // The Shapes submenu is gone with the rail's figure slots; the hidden set still governs what
+        // the top bar's Secondary Toolbar draws.
+        val visible = visibleTopBarItems(emptyList(), emptySet(), setOf("PENTAGON", "HEXAGON"))
+        assertTrue(visible.isNotEmpty())
+        assertTrue(visible.none { it.id == "pentagon" || it.id == "hexagon" })
     }
 
     @Test fun simpleLineAndRectangleAreInTheFigures() {

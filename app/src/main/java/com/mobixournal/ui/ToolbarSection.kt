@@ -14,29 +14,22 @@ import androidx.compose.ui.unit.dp
  * Toolbar layout: where the Main Toolbar is docked, and which buttons the Main and Secondary
  * toolbars show in what order. The Secondary Toolbar is always on screen — there is no switch to hide
  * it; emptying it is done by switching its buttons off.
+ *
+ * There is **one layout**: the vertical rail plus the STEM row in the top bar. The rail offers
+ * writing tools only, so there is no "hide the duplicates" shortcut to offer either.
  */
 @Composable
 fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Main Toolbar") {
         OptionGroup(
-            title = "Layout",
-            subtitle = "Standard: main writing toolbar (left/right) + secondary STEM toolbar in top bar. Compact: bottom toolbar with main + 4 STEM tools (hides top bar).",
-            options = ToolbarLayout.values().toList(),
-            selected = settings.toolbarLayout,
+            title = "Position",
+            subtitle = "The edge the Main Toolbar docks to: the one opposite your writing hand — " +
+                "Left for a right hand (the default), Right for a left hand.",
+            options = listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
+            selected = if (settings.toolbarPosition == ToolbarPosition.RIGHT) ToolbarPosition.RIGHT else ToolbarPosition.LEFT,
             label = { it.label },
-            onSelect = { onChange(settings.copy(toolbarLayout = it)) },
+            onSelect = { onChange(settings.copy(toolbarPosition = it)) },
         )
-        if (settings.toolbarLayout == ToolbarLayout.DEFAULT) {
-            OptionGroup(
-                title = "Position",
-                subtitle = "The edge the Main Toolbar docks to: the one opposite your writing hand — " +
-                    "Left for a right hand (the default), Right for a left hand.",
-                options = listOf(ToolbarPosition.LEFT, ToolbarPosition.RIGHT),
-                selected = if (settings.toolbarPosition == ToolbarPosition.RIGHT) ToolbarPosition.RIGHT else ToolbarPosition.LEFT,
-                label = { it.label },
-                onSelect = { onChange(settings.copy(toolbarPosition = it)) },
-            )
-        }
     }
     SettingsGroup("Main Toolbar buttons") {
         MainToolbarButtons(settings, onChange)
@@ -46,7 +39,7 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 }
 
-/** The Main Toolbar's reorderable button list, plus the shortcut that hides what the Secondary shows. */
+/** The Main Toolbar's reorderable button list. */
 @Composable
 private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsNote(
@@ -59,18 +52,6 @@ private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) ->
         onOrder = { onChange(settings.copy(railOrder = it)) },
         onHidden = { onChange(settings.copy(railHidden = it)) },
     )
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.End,
-    ) {
-        OutlinedButton(
-            onClick = {
-                onChange(settings.copy(railHidden = settings.railHidden + AppSettings.DEFAULT_RAIL_HIDDEN))
-            },
-        ) {
-            Text("Hide tools already in the Secondary Toolbar")
-        }
-    }
 }
 
 /**

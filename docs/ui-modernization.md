@@ -38,7 +38,7 @@ mobile and desktop.
   instead of chunky drop shadows or filled cards.
 - **Glass in bands, never over the page**: the toolbars are translucent frosted capsules (backdrop blur at
   $85\text{--}90\%$ opacity, $1\text{ px}$ hairline at $12\%$ alpha) that live in **bands of their own** —
-  the header across the top, the rail's lane down one edge, the dock's band at the bottom in Compact — so
+  the header across the top and the rail's lane down one edge — so
   what the glass reveals is the **desk** the page lies on, not the page. A translucent bar *on* the sheet
   hides the ink under it and swallows the stylus there, and the strip it covers is the top of the sheet,
   where a hand reaches first (the layout is [chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
@@ -108,15 +108,13 @@ them with a thumb or index finger without lifting or moving the pen.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-The system formally supports two ergonomic layout modes in settings (`ToolbarLayout`):
+There is **one** layout, and each bar has one job (`docs/chrome.md`):
 
-### Standard Layout Mode
-- **Main Toolbar (Left / Right)**: the vertical glass capsule in a lane of its own along the edge (left or right per user handedness, a band and never a bar over the page), containing the primary handwriting and drawing tools (pen, highlighter, eraser, selection, favorites, layers, pages, zoom). Those are the only two dockings: the `TOP`/`BOTTOM` centre positions are retired (2026-10-13), since the header owns the top band and a bar along the bottom is what Compact means (`docs/chrome.md`).
-- **Secondary STEM Toolbar (header)**: the glass dock in the header's tools row, containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides), with the document tabs as the row under it — one slab, one closing edge.
+### The rail: writing tools
+- **Main Toolbar (Left / Right)**: the vertical glass capsule in a lane of its own along the edge (left or right per user handedness, a band and never a bar over the page), containing the primary handwriting and drawing tools (pen, highlighter, eraser, pan, select, text, pictures, vertical space, favourites, guides, layers, pages, zoom, background). Those are the only two dockings: the `TOP`/`BOTTOM` centre positions are retired (2026-10-13).
 
-### Compact Layout Mode
-- **Unified Bottom Toolbar**: a horizontal glass band along the bottom edge, above the navigation-bar inset, combining the primary drawing tools and the 4 compact 1-tap STEM slots (`[f(x)]`, `[Geometry]`, `[Table]`, `[Circuit]`).
-- **Clean Header**: the secondary toolbar is gone from the header, which carries the document tabs instead — the canvas keeps everything the header does not spend.
+### The header: STEM tools
+- **Secondary STEM Toolbar (header)**: the glass dock in the header's tools row, containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides), with the document tabs as the row under it — one slab, one closing edge. It is their **only** home: duplicating them on the rail cost a second copy of the same buttons, and the audio, play-object and shape-recognition slots left the rail for the audio capsule and the Settings toggle respectively.
 
 ---
 
@@ -270,8 +268,8 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
      **beside** the canvas, in bands, not as a floating bar over it: the rail is not draggable and docks to
      a vertical edge only, and the header carries the document tabs as its second row (the principle above).
    - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width), standing in a lane exactly that wide whose height begins below the **whole** header; its gap and padding budget (`RailSizing.kt`) is what keeps every slot whole and on screen without a scroll.
-   - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge, the header band above, the dock's band at the bottom in Compact — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
-   - **1-tap STEM rail section**: Direct 1-tap buttons for Plot (`f(x)`), Geometry/Shapes, Table, and Audio with dedicated hairline dividers.
+   - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge and the header band above — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
+   - **Settings opens with the app's own spring**: the settings screen is an overlay on the still-composed editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector, instead of snapping in.
 3. **Phase 3: Contextual Micro-Inspectors & Pen-Tip Radial HUD** (active in Step 2 `TODO.toml`):
    - **Chrome & system bar guards** (`guard-the-system-bars-as-one-transparent-contract`, `guard-the-chrome-bands-as-one-geometry-contract`): mechanical test suites pinning edge-to-edge transparency and layout band partitioning.
    - **Pen-Tip Radial HUD** (`summon-and-anchor-the-pen-tip-radial-hud`, `draw-the-radial-hud-as-glass-chrome`, `track-the-flick-and-commit-a-colour-width-or-tool`): barrel-button summoned pie menu rendered as frosted glass at the nib with flick-and-commit presets.
