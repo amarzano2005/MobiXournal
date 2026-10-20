@@ -52,8 +52,24 @@ internal class BoardCanvas(
     var geometry: CanvasGeometry = geometry
         internal set
 
-    /** True once this board has been fitted to cover the view on its initial layout. */
-    internal var fittedToScreen: Boolean = false
+    /**
+     * The view extent the opening fit was last computed for, or null while it has not run.
+     *
+     * The extent is what the fit is **of** — "the sheet, on the screen we have" — so a canvas that
+     * changes size (the tab strip arriving a frame after the document, a rotated window, the split
+     * toggle) re-fits for the screen it now has. This is the whole fix for a board that opened a few
+     * percent too large: its first frame was a taller canvas than the one it ended up on, and a fit
+     * computed once, against a stale extent, is a zoom nobody can explain.
+     */
+    internal var fittedTo: Pair<Int, Int>? = null
+
+    /**
+     * True while the **fit** still owns the zoom: a resize re-fits, and the user's own zoom
+     * ([DrawingSurfaceView.setZoom], [DrawingSurfaceView.zoomAbout]) takes that ownership away — the
+     * factor they chose is a decision about the document, not a measurement of the pane, and a resize
+     * must not undo it. **Reset zoom** hands it back.
+     */
+    internal var autoFit: Boolean = true
 
     /** The cells the board occupies, in document order — the file's own, plus the ones written here. */
     val grid = BoardGrid(geometry.chunkCoords, geometry.mode)
@@ -143,32 +159,66 @@ internal fun DrawingSurfaceView.setInfiniteCanvas(geometry: CanvasGeometry?) {
 }
 
 /**
- * The zoom factor at which the board's configured width/height covers the entire viewport.
+ * The zoom factor a **board** opens at, from the board's geometry and the canvas's own extent.
+ *
+ * A strip shows its whole bound: the locked axis is fitted **inside** the view and never magnified
+ * past 100%. The earlier reading — zoom *up* until the bound covered the screen — made the number in
+ * the page-format dialog invisible: a 100 mm strip came back at 484%, filling the pane with an
+ * endless-looking grid whose paper edge sat off-screen, which reads exactly like "the size I set was
+ * ignored". Showing the bound whole is the one reading that keeps the typed millimetres true, and it
+ * leaves the pane-sized default (a bound equal to the screen) at 100%, covering the canvas as before.
+ *
+ * A page list is not a board and answers 100%; so does [CanvasMode.INFINITE_2D], whose
+ * `widthPt`/`heightPt` are the size an **export** would slice — grown by [expandBoardOnScroll] as the
+ * view travels — so fitting to them made the zoom depend on how far the board had been scrolled when it
+ * was last saved.
+ *
+ * Pure (no view, no Android types) so the arithmetic is unit-tested on the JVM.
  */
+internal fun boardFitZoom(
+    mode: CanvasMode,
+    widthPt: Double,
+    heightPt: Double,
+    viewWidthPx: Int,
+    viewHeightPx: Int,
+): Float {
+    if (viewWidthPx <= 0 || viewHeightPx <= 0) return 1f
+    val bound = when (mode) {
+        CanvasMode.INFINITE_VERTICAL -> widthPt to viewWidthPx
+        CanvasMode.INFINITE_HORIZONTAL -> heightPt to viewHeightPx
+        CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> return 1f
+    }
+    val (extentPt, viewPx) = bound
+    if (extentPt <= 0.0) return 1f
+    val fit = viewPx / extentPt
+    // Never magnify: a bound smaller than the canvas is drawn at its own size, with desk around it,
+    // which is how the dialled-in dimension stays legible.
+    return fit.coerceAtMost(1.0).toFloat().coerceIn(ViewportState.MIN_ZOOM, 1f)
+}
+
+/** The zoom factor at which this canvas's board opens ([boardFitZoom]), read from its live view. */
 internal fun DrawingSurfaceView.fitBoardZoom(): Float {
     val board = board ?: return 1f
-    if (width <= 0 || height <= 0) return 1f
-    return when (board.geometry.mode) {
-        CanvasMode.INFINITE_VERTICAL, CanvasMode.INFINITE_2D -> {
-            val wPt = board.geometry.widthPt
-            if (wPt > 0.0) (width / wPt).toFloat().coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM) else 1f
-        }
-        CanvasMode.INFINITE_HORIZONTAL -> {
-            val hPt = board.geometry.heightPt
-            if (hPt > 0.0) (height / hPt).toFloat().coerceIn(ViewportState.MIN_ZOOM, ViewportState.MAX_ZOOM) else 1f
-        }
-        CanvasMode.PAGINATED -> 1f
-    }
+    val g = board.geometry
+    return boardFitZoom(g.mode, g.widthPt, g.heightPt, width, height)
 }
 
 /**
- * Fit the newly opened board so it covers the entire screen from the start, and seed its initial
- * expanded extent once the surface has non-zero dimensions.
+ * Fit the board to the canvas it is on, and **keep** it fitted while the canvas keeps its word: called
+ * from every layout pass, it re-fits only when the view's extent moved (see [BoardCanvas.fittedTo]) or
+ * the fit has never run, and only while the fit still owns the zoom ([BoardCanvas.autoFit]).
+ *
+ * The opening fit also seeds the running axis, so the sheet spans the screen from the first frame
+ * instead of starting at the default paper's width.
  */
 internal fun DrawingSurfaceView.fitBoardIfPending() {
     val board = board ?: return
-    if (board.fittedToScreen || width <= 0 || height <= 0) return
-    board.fittedToScreen = true
+    if (width <= 0 || height <= 0) return
+    if (!board.autoFit) return
+    val extent = width to height
+    if (board.fittedTo == extent) return
+    val opening = board.fittedTo == null
+    board.fittedTo = extent
     val viewW = width.toDouble()
     val viewH = height.toDouble()
     if ((board.geometry.mode == CanvasMode.INFINITE_VERTICAL || board.geometry.mode == CanvasMode.INFINITE_2D) && board.geometry.widthPt <= 0.0) {
@@ -177,9 +227,13 @@ internal fun DrawingSurfaceView.fitBoardIfPending() {
     if ((board.geometry.mode == CanvasMode.INFINITE_HORIZONTAL || board.geometry.mode == CanvasMode.INFINITE_2D) && board.geometry.heightPt <= 0.0) {
         board.geometry = board.geometry.copy(heightPt = viewH)
     }
+    // A re-fit keeps its place: `zoomTo` holds the point at the viewport centre, so a resize does not
+    // throw the writing out of view the way "back to (0, 0)" would. Only the opening starts at the origin.
+    if (opening) {
+        scrollX = 0f
+        scrollY = 0f
+    }
     viewport.zoomTo(fitBoardZoom()) {}
-    scrollX = 0f
-    scrollY = 0f
     expandBoardOnScroll()
     pushExtentToViewport()
     viewport.clamp()
@@ -274,6 +328,10 @@ internal fun DrawingSurfaceView.setBoardFixedExtent(pt: Double) {
         }
     }
     if (width > 0 && height > 0) {
+        // The new bound is a size the user just asked for: show all of it again, even if they had
+        // taken the zoom over themselves before.
+        board.autoFit = true
+        board.fittedTo = width to height
         viewport.zoomTo(fitBoardZoom()) {}
         expandBoardOnScroll()
         onZoomChanged?.invoke(zoom)

@@ -107,7 +107,10 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     var contents by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
     // A geometry picked in the page-format dialog, waiting on "this document or new documents only".
+    // The fixed width/height the dialog was showing rides along: a strip created from this answer has
+    // to be born on the bound the user just typed, not on the pane's own extent.
     var pendingCanvas by remember { mutableStateOf<NewDocumentCanvas?>(null) }
+    var pendingExtent by remember { mutableStateOf<Double?>(null) }
     val board = callbacks.board
     val isInfinite = callbacks.canvasMode != CanvasMode.PAGINATED
     ToolbarPopupButton(
@@ -188,7 +191,8 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         board = board,
         onOpen = { sizing = it },
         pending = pendingCanvas,
-        onPending = { pendingCanvas = it },
+        pendingExtent = pendingExtent,
+        onPending = { canvas, extent -> pendingCanvas = canvas; pendingExtent = extent },
     )
 }
 
@@ -207,7 +211,9 @@ private fun PageFormatDialogs(
     board: BoardReading?,
     onOpen: (Boolean) -> Unit,
     pending: NewDocumentCanvas?,
-    onPending: (NewDocumentCanvas?) -> Unit,
+    /** The fixed width/height the dialog had when the geometry was picked, for the new document. */
+    pendingExtent: Double?,
+    onPending: (NewDocumentCanvas?, Double?) -> Unit,
 ) {
     DialogPresence(open) {
         PageFormatDialog(
@@ -225,7 +231,16 @@ private fun PageFormatDialogs(
                 onOpen(false)
                 val currentCanvas = NewDocumentCanvas.of(callbacks.canvasMode)
                 if (canvas != currentCanvas) {
-                    onPending(canvas)
+                    // The bound travels with the choice: on a vertical strip or a 2D board it is the
+                    // dialog's *width*, on a horizontal one its *height*, and a page list has none.
+                    onPending(
+                        canvas,
+                        when (canvas) {
+                            NewDocumentCanvas.INFINITE_VERTICAL, NewDocumentCanvas.INFINITE_2D -> w
+                            NewDocumentCanvas.INFINITE_HORIZONTAL -> h
+                            NewDocumentCanvas.PAGINATED -> null
+                        },
+                    )
                 } else {
                     when (canvas) {
                         NewDocumentCanvas.PAGINATED -> {
@@ -254,10 +269,10 @@ private fun PageFormatDialogs(
         CanvasModeChangeDialog(
             canvas = chosen,
             onNewBlankPage = {
-                onPending(null)
-                callbacks.onCanvasMode(chosen)
+                onPending(null, null)
+                callbacks.onCanvasMode(chosen, pendingExtent)
             },
-            onDismiss = { onPending(null) },
+            onDismiss = { onPending(null, null) },
         )
     }
 }

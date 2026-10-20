@@ -472,7 +472,7 @@ class MainActivity : ComponentActivity() {
                         pendingImagePlacement = placement
                         pickImageLauncher.launch(arrayOf("image/*"))
                     },
-                    onCanvasModeForDocument = { mode -> applyCanvasModeToDocument(mode) },
+                    onCanvasModeForDocument = { mode, extentPt -> applyCanvasModeToDocument(mode, extentPt) },
                     onSurfaceCreated = { index, view ->
                         val p = panes[index]
                         p.surface = view

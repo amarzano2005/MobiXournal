@@ -1217,27 +1217,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     fun columns(): Int = columns
 
-    // --- zoom ----------------------------------------------------------------------------------
-
-    fun zoomIn() = setZoom(zoom * DrawingSurfaceDefaults.ZOOM_STEP)
-    fun zoomOut() = setZoom(zoom / DrawingSurfaceDefaults.ZOOM_STEP)
-    fun resetZoom() = setZoom(if (board != null) fitBoardZoom() else 1f)
-
-    /** Set the zoom factor (clamped), keeping the point at the viewport centre roughly fixed. */
-    private fun setZoom(target: Float) {
-        if (!viewport.zoomTo(target, ::relayout)) return
-        render()
-        onZoomChanged?.invoke(zoom)
-    }
-
-    /**
-     * Multiply the zoom by [factor] (clamped) while keeping the content point under the viewport
-     * pixel ([focusVx], [focusVy]) fixed — the anchor for pinch-zoom. Unlike [setZoom] this does not
-     * render; the pan frame that drives it renders once at the end. No-op if the clamp bites.
-     */
-    internal fun zoomAbout(focusVx: Float, focusVy: Float, factor: Float) {
-        if (viewport.zoomAbout(focusVx, focusVy, factor, ::relayout)) onZoomChanged?.invoke(zoom)
-    }
+    // --- zoom: `render/ZoomControls.kt` ---------------------------------------------------------
 
     // --- pages ---------------------------------------------------------------------------------
 

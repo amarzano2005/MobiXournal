@@ -85,8 +85,13 @@ data class ToolbarPagesCallbacks(
      * `docs/mobix-format.md` refuses to do behind the user's back.
      */
     val canvasEditable: Boolean = false,
-    /** The page-format dialog chose a new geometry for this document. */
-    val onCanvasMode: (NewDocumentCanvas) -> Unit = {},
+    /**
+     * The page-format dialog chose a new geometry for this document, with the **fixed extent** it was
+     * showing (a strip's width or height in pt; null for a page list). The extent is the one the new
+     * document is born on: a strip must keep the paper the user just sized in the dialog rather than
+     * silently take the pane's own width.
+     */
+    val onCanvasMode: (NewDocumentCanvas, Double?) -> Unit = { _, _ -> },
     /** The dialog chose a geometry for documents created from now on (Settings' own default). */
     val onCanvasModeDefault: (NewDocumentCanvas) -> Unit = {},
     /**

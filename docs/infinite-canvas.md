@@ -46,6 +46,27 @@ persisted natively in `.mobix` (documented in [mobix-schema-spec.md](mobix-schem
   it has no bound at all.
 - Ideal for mind mapping, brainstorming, and complex geometric graphs.
 
+### Fitting a board to the screen
+
+`fitBoardIfPending` fits a **strip** to the canvas it is on and shows its **whole bound**: the locked
+axis is fitted *inside* the view and never magnified past 100% (`boardFitZoom` = min(1, viewport /
+bound)). The earlier reading — zoom up until the bound *covered* the screen — made the number in the
+page-format dialog invisible: a 100 mm strip came back at 484%, filling the pane with an endless-looking
+subdivided grid whose paper edge sat off-screen, which reads exactly like "the size I set was ignored".
+Showing the bound whole keeps the typed millimetres true, and leaves the pane-sized default (a bound
+equal to the screen) at 100%, covering the canvas as before.
+
+The fit belongs to the **extent it was computed for** (`BoardCanvas.fittedTo`): the tab strip arriving a
+frame after the document, a rotation or the split toggle re-fits for the canvas the board is actually on,
+which is what stops a board from opening a few percent too large and hiding the edge the user just set.
+The first fit takes the zoom; from then on the user owns it (`BoardCanvas.autoFit`) — a pinch or the
+＋/− controls stop the tracking (`render/ZoomControls.kt`), so a resize cannot spend the factor they
+chose, and **Reset zoom** hands the fit back.
+
+A **2D board locks nothing and opens at 100%**: its `widthPt`/`heightPt` are the extent an export would
+slice, grown by `expandBoardOnScroll` as the view travels, so fitting to them made the opening zoom
+depend on how far the board had been scrolled before it was last saved.
+
 ### The bound on the non-infinite axis
 
 The locked dimension of a strip is a real number in `canvas.json` (`widthPt` for a vertical strip,
@@ -53,11 +74,16 @@ The locked dimension of a strip is a real number in `canvas.json` (`widthPt` for
 (`ViewportState` clamps that axis to the sheet's own extent, `BoardViewport.contentExtent`). Three rules
 make it behave the way paper does:
 
-- **A board is born the size of the pane.** A sheet whose width is A4 because a printer might one day
-  see it is a narrow band of paper on a 2400 px screen — infinite paper that visibly ends a quarter of
-  the way across. So a document created in a strip mode is born with the pane's own extent as its bound
-  (`MainActivity.blankTab` → `paneExtentPt`), and the sheet covers the canvas the moment it opens. The
-  running axis is unbounded from the first frame, so scrolling simply continues the same sheet.
+- **A board is born the size of the pane — or of the bound the dialog named.** A sheet whose width is
+  A4 because a printer might one day see it is a narrow band of paper on a 2400 px screen — infinite
+  paper that visibly ends a quarter of the way across. So a document created in a strip mode is born
+  with the pane's own extent as its bound (`MainActivity.blankTab` → `paneExtentPt`), and the sheet
+  covers the canvas the moment it opens. The running axis is unbounded from the first frame, so
+  scrolling simply continues the same sheet. The one thing that overrides the pane is a **bound typed
+  in the page-format dialog**: when the chosen geometry is *new rather than this document*, the fixed
+  width (or height) the dialog was showing travels with the answer (`onCanvasMode(mode, extentPt)` →
+  `blankTab(fixedExtentPt)`) and the new board is born on it — the screen is only the fallback. It is
+  clamped to the paper range exactly as the live setter is, so the two paths cannot disagree.
 - **The bound is settable a priori**, in the page-format dialog: *Pages ▸ Page format ▸ Fixed width* (or
   *Fixed height*), in millimetres like the paper beside it. It applies at once — the sheet, the scroll
   clamp and the cells' own pages all move off the one value — and it is offered only while the document
@@ -261,11 +287,11 @@ stack, and every one of them is a place where "almost a page" would have been wr
   board has no chunk for creates the chunk, because the element it is about to insert needs a page to
   live on. Every other path leaves an empty cell empty: drawing, erasing and panning create nothing.
 
-### Opening a board fits the screen and expands on scroll
+### Opening a board shows its bound and expands on scroll
 
-**Opening an infinite canvas fits it to cover the entire screen (`fitBoardIfPending`) and expands progressively as you scroll (`expandBoardOnScroll`).**
+**Opening an infinite canvas shows its whole bound at its own size (`fitBoardIfPending`) and expands progressively as you scroll (`expandBoardOnScroll`).**
 - **Canvas mode and immediate dimension configuration in `Pages ▸ Page format`**: Selecting any of the four modes (*Paged*, *Infinite vertical*, *Infinite horizontal*, *Infinite board*) inside `PageFormatDialog` immediately switches the dialog's dimension controls to match that mode (paper presets and width/height for *Paged*; **Fixed width** or **Fixed height** for infinite strips) so the user can configure the dimensions before confirming with **Set**.
-- **Full-screen fit on open**: When a board opens, `fitBoardIfPending()` fits the fixed axis (`widthPt` for `INFINITE_VERTICAL`, `heightPt` for `INFINITE_HORIZONTAL`) to cover 100% of the viewport (`fitBoardZoom()`) and seeds the infinite axis so the sheet fills the entire screen from the first frame.
+- **The whole bound on open**: When a board opens, `fitBoardIfPending()` fits the fixed axis (`widthPt` for `INFINITE_VERTICAL`, `heightPt` for `INFINITE_HORIZONTAL`) *inside* the viewport and never above 100% (`boardFitZoom()`), so a bound typed in the dialog is shown at the size it names, and a bound equal to the pane still fills the screen. It also seeds the infinite axis so the sheet covers the running direction from the first frame, and it re-runs when the view's own extent changes until the user takes the zoom by hand.
 - **Progressive expansion on scroll**: Every pan or scroll step (`scrollViewportBy`) invokes `expandBoardOnScroll()`, extending `board.geometry` along the mode's infinite axis (`heightPt` for `INFINITE_VERTICAL`, `widthPt` for `INFINITE_HORIZONTAL`, or both for `INFINITE_2D`) to cover the newly scrolled viewport extent.
 
 ### Spatial query and culling

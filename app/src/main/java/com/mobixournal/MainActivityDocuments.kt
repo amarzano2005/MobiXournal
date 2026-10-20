@@ -15,6 +15,7 @@ import com.mobixournal.io.pdfNameFor
 import com.mobixournal.io.saveNameFor
 import com.mobixournal.io.xoppNameFor
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.resetZoom
 import com.mobixournal.render.ImageImport
 import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.PdfImport

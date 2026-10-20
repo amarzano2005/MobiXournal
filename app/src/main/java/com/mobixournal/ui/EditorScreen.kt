@@ -287,7 +287,7 @@ fun EditorScreen(
      * "new documents only", is a settings write the toolbar makes itself). The activity owns the tabs,
      * so it is the one that can re-shape the open document.
      */
-    onCanvasModeForDocument: (NewDocumentCanvas) -> Unit = {},
+    onCanvasModeForDocument: (NewDocumentCanvas, Double?) -> Unit = { _, _ -> },
     /** The rail/toolbar content; defaults to [EditorToolbar]. */
     paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit = { ui, pane, settings, onSettingsChange, _ ->
         EditorToolbar(

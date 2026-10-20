@@ -340,9 +340,9 @@ place. Per surface:
   the grid it opened with, which for a cell created since is a wrong place rather than a missing one.
 - **The tools the board cannot carry out say so.** The page-shaped gestures — the rubber band and its
   clipboard, the background-region copy, PDF text selection, the vertical-space drag — are refused on the
-  canvas with one message (`DrawingSurfaceView.onBoardBlocked`, "Infinite canvases are drawing only for
-  now") instead of half-working on a tile grid; the rail keeps offering their tools, and the refusal is what
-  the user sees. Drawing, the eraser, the placement tools and undo/redo work, in the tile's own coordinates.
+  canvas with one message (`DrawingSurfaceView.onBoardBlocked`, `infinite_canvas_only_drawing`) that names
+  what *does* work before what does not; the rail keeps offering their tools, and the refusal is what the
+  user sees. Drawing, the eraser, the placement tools and undo/redo work, in the tile's own coordinates.
 
 ## Settings: two shapes, one set of areas
 

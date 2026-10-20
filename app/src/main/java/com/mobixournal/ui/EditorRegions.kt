@@ -104,6 +104,9 @@ import com.mobixournal.render.clearPenDebug
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBoardFixedExtent
 import com.mobixournal.render.setPenDebug
+import com.mobixournal.render.resetZoom
+import com.mobixournal.render.zoomIn
+import com.mobixournal.render.zoomOut
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
@@ -741,7 +744,7 @@ fun EditorToolbar(
     onSettingsChange: (AppSettings) -> Unit,
     modifier: Modifier = Modifier,
     /** Applied to the showing document when the page-format dialog picks a new canvas geometry. */
-    onCanvasMode: (NewDocumentCanvas) -> Unit = {},
+    onCanvasMode: (NewDocumentCanvas, Double?) -> Unit = { _, _ -> },
 ) {
     val surface = pane.surface
     SideToolbar(
@@ -1325,7 +1328,7 @@ private fun toolbarPagesCallbacks(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     surface: DrawingSurfaceView?,
-    onCanvasMode: (NewDocumentCanvas) -> Unit,
+    onCanvasMode: (NewDocumentCanvas, Double?) -> Unit,
 ): ToolbarPagesCallbacks {
     var liveSettings = settings
     return ToolbarPagesCallbacks(

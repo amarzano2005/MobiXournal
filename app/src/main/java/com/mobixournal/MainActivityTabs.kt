@@ -292,11 +292,12 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
 internal fun MainActivity.newTab(
     p: EditorPane = pane,
     canvasMode: CanvasMode = newDocumentCanvas,
+    fixedExtentPt: Double? = null,
 ) {
     // The "+" belongs to a lane, so the new document opens — and the tools land — in that pane.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
-    p.tabs.open(blankTab(p, canvasMode))
+    p.tabs.open(blankTab(p, canvasMode, fixedExtentPt))
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
     p.persist()
@@ -317,13 +318,16 @@ internal fun MainActivity.newTab(
  * coordinates come from the page index, `MobixDocument.of`), so the same blank sheet is a page in one
  * geometry and chunk `(0, 0)` in another.
  *
- * **A strip is born the size of the pane.** On a page list the sheet's size is the paper — A4 is A4
- * because a printer will see it — but an infinite canvas has no printer in its future until an export,
- * and a strip drawn at A4 width on a 2400 px screen is a narrow band of paper with grey down both sides:
- * "infinite" paper that visibly ends a quarter of the way across. So the **bound** of a strip is the
- * pane's own extent in pt (px at 100%, which is what the sheet's scale is): the sheet covers the whole
- * canvas the moment it opens, scrolling adds more of it, and the page-format dialog is where that number
- * is changed afterwards.
+ * **A strip is born the size of the pane, unless the page format named a bound.** On a page list the
+ * sheet's size is the paper — A4 is A4 because a printer will see it — but an infinite canvas has no
+ * printer in its future until an export, and a strip drawn at A4 width on a 2400 px screen is a narrow
+ * band of paper with grey down both sides: "infinite" paper that visibly ends a quarter of the way
+ * across. So the **bound** of a strip is its [fixedExtentPt] — the fixed width (or height) the
+ * page-format dialog was showing when the geometry was chosen — and only when that names nothing does
+ * the pane's own extent in pt (px at 100%, which is what the sheet's scale is) stand in: the sheet
+ * covers the whole canvas the moment it opens, scrolling adds more of it, and the page-format dialog is
+ * where that number is changed afterwards. A width typed in the dialog that created the document would
+ * otherwise be thrown away by the very screen that collected it.
  *
  * Only the *locked* axis moves. The running one carries no size of the sheet (it goes on forever) and is
  * read only by an export — its cut length — so it keeps the default paper rather than inheriting a screen
@@ -332,6 +336,7 @@ internal fun MainActivity.newTab(
 internal fun MainActivity.blankTab(
     p: EditorPane = pane,
     canvasMode: CanvasMode = newDocumentCanvas,
+    fixedExtentPt: Double? = null,
 ): OpenTab {
     val format = if (canvasMode != CanvasMode.PAGINATED) {
         com.mobixournal.format.SaveFormat.MOBIX
@@ -344,7 +349,7 @@ internal fun MainActivity.blankTab(
     } else {
         Pair(DrawingSurfaceDefaults.defaultPageWidth, DrawingSurfaceDefaults.defaultPageHeight)
     }
-    val doc = boundToPane(blankDocument(), canvasMode, panePt)
+    val doc = boundToPane(blankDocument(), canvasMode, panePt, fixedExtentPt)
     return OpenTab(
         TabStore.newId(),
         MainActivity.UNTITLED,
@@ -355,8 +360,9 @@ internal fun MainActivity.blankTab(
 }
 
 /**
- * [document] with the fixed side of [mode]'s strip set to the pane's own extent — the one number a
- * board's birth (and its conversion, [applyCanvasModeToDocument]) takes from the screen.
+ * [document] with the fixed side of [mode]'s strip set to [fixedExtentPt] — the width (or height) the
+ * page-format dialog was showing — falling back to the pane's own extent when it names none, which is
+ * the one number a board's birth (and its conversion, [applyCanvasModeToDocument]) takes from the screen.
  *
  * Applied to **every** page, so a document converted into a strip has all its cells on the same sheet
  * (they share one bound: the axis is a property of the board, not of a tile), and left alone for a page
@@ -368,12 +374,22 @@ internal fun boundToPane(
     document: Document,
     mode: CanvasMode,
     panePt: Pair<Double, Double>,
-): Document = when (mode) {
-    CanvasMode.INFINITE_VERTICAL ->
-        document.copy(pages = document.pages.map { it.copy(width = panePt.first) })
-    CanvasMode.INFINITE_HORIZONTAL ->
-        document.copy(pages = document.pages.map { it.copy(height = panePt.second) })
-    CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> document
+    fixedExtentPt: Double? = null,
+): Document {
+    // Clamped exactly as the live setter is (`setBoardFixedExtent`): a bound outside the paper range
+    // would make the fit-to-screen zoom absurd in one direction or the band invisible in the other.
+    fun bound(fallback: Double): Double =
+        (fixedExtentPt ?: fallback).coerceIn(
+            DrawingSurfaceDefaults.PAGE_SIZE_MIN_PT,
+            DrawingSurfaceDefaults.PAGE_SIZE_MAX_PT,
+        )
+    return when (mode) {
+        CanvasMode.INFINITE_VERTICAL ->
+            document.copy(pages = document.pages.map { it.copy(width = bound(panePt.first)) })
+        CanvasMode.INFINITE_HORIZONTAL ->
+            document.copy(pages = document.pages.map { it.copy(height = bound(panePt.second)) })
+        CanvasMode.PAGINATED, CanvasMode.INFINITE_2D -> document
+    }
 }
 
 /**
@@ -484,8 +500,11 @@ internal fun MainActivity.toggleSplitView() {
  * because modifying the canvas geometry on the current page is not possible,
  * a new blank document opens on the chosen canvas mode.
  */
-internal fun MainActivity.applyCanvasModeToDocument(mode: NewDocumentCanvas) {
-    newTab(pane, mode.mode)
+internal fun MainActivity.applyCanvasModeToDocument(
+    mode: NewDocumentCanvas,
+    fixedExtentPt: Double? = null,
+) {
+    newTab(pane, mode.mode, fixedExtentPt)
 }
 
 /** The file name behind a `content://` URI, for the tab's label. Falls back to `UNTITLED`. */

@@ -2,6 +2,7 @@ package com.mobixournal
 
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Document
+import com.mobixournal.render.DrawingSurfaceDefaults
 import com.mobixournal.render.blankPage
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -12,8 +13,9 @@ import org.junit.Test
  * A sheet whose width is A4 because a printer might one day see it is a narrow band of paper on a
  * 2400 px screen — infinite paper that visibly ends a quarter of the way across — so a strip is born
  * (and is converted, `applyCanvasModeToDocument`) with its locked side set to the pane's extent in pt,
- * which at 100% zoom is the rectangle the sheet has to cover ([boundToPane]). This is the pure half of
- * that rule, so the screen-vs-paper decision is pinned on the JVM rather than only on a device.
+ * which at 100% zoom is the rectangle the sheet has to cover ([boundToPane]) — unless the page-format
+ * dialog was showing a bound of its own, which wins. This is the pure half of that rule, so the
+ * screen-vs-paper-vs-dialog decision is pinned on the JVM rather than only on a device.
  *
  * The paper is written out rather than taken from the app's default: that default is a global a test
  * may have moved, and this test is about the *pane's* extent replacing it.
@@ -50,6 +52,27 @@ class BlankBoardBindingTest {
         // A 2D board covers the canvas by construction and locks nothing, so there is no side to take
         // from the screen and no bound invented for it.
         assertEquals(pages.pages[0], boundToPane(pages, CanvasMode.INFINITE_2D, 2432.0 to 1372.0).pages[0])
+    }
+
+    @Test
+    fun `a bound named in the page-format dialog beats the pane's own extent`() {
+        // The dialog is where the sheet's width is typed, so the document created from that answer has
+        // to be born on it — the pane's extent is only the fallback when nothing was named.
+        val bound = boundToPane(document(), CanvasMode.INFINITE_VERTICAL, 2432.0 to 1372.0, 297.64)
+        assertEquals(297.64, bound.pages[0].width, 0.001)
+
+        val strip = boundToPane(document(), CanvasMode.INFINITE_HORIZONTAL, 2432.0 to 1372.0, 148.5)
+        assertEquals(148.5, strip.pages[0].height, 0.001)
+    }
+
+    @Test
+    fun `a named bound is clamped to the paper range`() {
+        // Same clamp the live setter applies, so an absurd number in the dialog cannot make the fit
+        // zoom meaningless (0 pt) or the band invisible (a kilometre).
+        val tiny = boundToPane(document(), CanvasMode.INFINITE_VERTICAL, 2432.0 to 1372.0, 1.0)
+        assertEquals(DrawingSurfaceDefaults.PAGE_SIZE_MIN_PT, tiny.pages[0].width, 0.001)
+        val huge = boundToPane(document(), CanvasMode.INFINITE_VERTICAL, 2432.0 to 1372.0, 1_000_000.0)
+        assertEquals(DrawingSurfaceDefaults.PAGE_SIZE_MAX_PT, huge.pages[0].width, 0.001)
     }
 
     @Test
