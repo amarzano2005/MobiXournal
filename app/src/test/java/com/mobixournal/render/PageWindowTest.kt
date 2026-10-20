@@ -5,8 +5,13 @@ import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.mobix.TrackedEntrySource
+import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.EditedPages
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.TableCell
+import com.mobixournal.format.model.TableElement
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -190,6 +195,128 @@ class PageWindowTest {
         } finally {
             window.reset()
         }
+    }
+
+    /**
+     * A page written **straight into the document** (an element placement, a slider drag) must survive
+     * the next edit through the window. The window's overlay keeps the page it last edited; if nothing
+     * tells it the document moved on, the next gesture rebuilds the page from that stale copy and the
+     * element the user just placed is gone again — the "I placed a circuit, then touched it with the
+     * pen and it vanished" bug, and the reason a table cell edit looked like it did nothing.
+     */
+    @Test
+    fun aPageWrittenStraightIntoTheDocumentIsNotDroppedByTheNextWindowEdit() {
+        val base = SyntheticNotebook.pages(3)
+        val window = PageWindow(PageSource.of(base))
+
+        // The window's own edit (a line drawn on page 1): the overlay now holds page 1.
+        val drawn = window.edit(1) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(1.0))).first
+        }!!
+        assertEquals(2, elements(drawn))
+
+        // A placement written straight into the document, as `ElementEdits.addElement(doc, …)` does.
+        val placed = SelectionOps.addToTopLayerOn(drawn, listOf(SyntheticNotebook.stroke(2.0))).first
+        val documentPages = base.toMutableList().also { it[1] = placed }
+        window.followDocument(documentPages)
+
+        // The next edit through the window starts from the document's page: both elements are still there.
+        val touched = window.edit(1) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(3.0))).first
+        }!!
+        assertEquals(4, elements(touched))
+        assertEquals(4, elements(window.page(1)))
+    }
+
+    @Test
+    fun followDocumentLeavesPagesTheDocumentDidNotReplaceInHand() {
+        // A document opened page by page: its page list is an `EditedPages` view that says which
+        // indices a write replaced, so following it neither re-reads nor drops the others.
+        val base = SyntheticNotebook.pages(3)
+        val window = PageWindow(PageSource.of(base))
+        val edited = window.edit(2) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(1.0))).first
+        }!!
+        val placed = SelectionOps.addToTopLayerOn(edited, listOf(SyntheticNotebook.stroke(2.0))).first
+        window.followDocument(EditedPages.of(base, 2, placed))
+
+        val touched = window.edit(2) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(3.0))).first
+        }!!
+        assertEquals(4, elements(touched))
+    }
+
+    /**
+     * The reported shape of the circuit bug: a component is **attached to a wire** (the wire is a
+     * window edit, the component a placement written straight into the document), and the next pen
+     * touch on that page used to rebuild the page from the window's pre-placement copy — the component
+     * simply vanished under the pen.
+     */
+    @Test
+    fun aPlacedCircuitSurvivesThePenStrokeThatFollowsIt() {
+        val base = SyntheticNotebook.pages(2)
+        val window = PageWindow(PageSource.of(base))
+
+        // The wire the component is attached to: drawn first, so the window holds this page.
+        val drawn = window.edit(0) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(1.0))).first
+        }!!
+
+        // The component, placed the way `commitCircuitInsertion` places it: straight into the document.
+        val circuit = CircuitElementFactory.circuitElementFor(
+            symbol = ShapeKind.RESISTOR.name, startX = 40.0, startY = 40.0, endX = 88.0, endY = 40.0,
+        )!!
+        val placed = ElementEdits.addElementOn(drawn, circuit) { 0 }
+        window.followDocument(listOf(placed) + base.drop(1))
+
+        // A pen stroke lands on the page through the window (the touch that used to lose it).
+        val touched = window.edit(0) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(2.0))).first
+        }!!
+        assertTrue(
+            "the placed component must still be on the page",
+            touched.layers.any { layer -> layer.elements.any { it is CircuitElement } },
+        )
+    }
+
+    /**
+     * The reported shape of the table bug: the table was placed straight into the document, so its
+     * cell edit ran against a copy of the page the window had kept since before the placement — no
+     * table there, so the edit was silently dropped and the value never changed.
+     */
+    @Test
+    fun aTableCellEditLandsAfterTheTableWasPlacedStraightIntoTheDocument() {
+        val base = SyntheticNotebook.pages(2)
+        val window = PageWindow(PageSource.of(base))
+        val drawn = window.edit(0) { page ->
+            SelectionOps.addToTopLayerOn(page, listOf(SyntheticNotebook.stroke(1.0))).first
+        }!!
+
+        val table = TableElementFactory.tableElementFor(20.0, 20.0, 260.0, 180.0, rows = 2, cols = 2)
+        val placed = ElementEdits.addElementOn(drawn, table) { 0 }
+        window.followDocument(listOf(placed) + base.drop(1))
+
+        // Save from the cell editor: the whole grid is swapped onto the element the page now holds.
+        val edited = table.copy(cells = listOf(listOf(TableCell("42"), TableCell()), listOf(TableCell(), TableCell())))
+        val afterEdit = window.edit(0) { page ->
+            ElementEdits.replaceElementOn(page, table, edited) ?: page
+        }
+        assertNotNull("the cell edit must land on the table", afterEdit)
+        val onPage = afterEdit!!.layers.flatMap { it.elements }.filterIsInstance<TableElement>().single()
+        assertEquals("42", onPage.cell(0, 0).text)
+    }
+
+    @Test
+    fun followDocumentDropsTheEditOfAPageTheDocumentNoLongerHas() {
+        val base = SyntheticNotebook.pages(3)
+        val window = PageWindow(PageSource.of(base))
+        window.edit(2) { page -> SelectionOps.deleteOn(page, setOf(ElementRef(0, 0))) }
+        assertEquals(setOf(2), window.dirtyIndices)
+
+        // A page-list edit shrank the document: index 2 is not a page any more, so the window cannot
+        // keep claiming an edit there.
+        window.followDocument(base.take(2))
+        assertTrue(window.isClean)
     }
 
     @Test

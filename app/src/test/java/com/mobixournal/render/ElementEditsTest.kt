@@ -4,6 +4,8 @@ import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.TableCell
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -65,6 +67,38 @@ class ElementEditsTest {
     @Test fun replaceElementIsNullWhenTheElementIsAbsent() {
         val d = doc(page(Layer(listOf(text("kept")))))
         assertNull(ElementEdits.replaceElement(d, text("absent"), null))
+    }
+
+    private fun table(id: String?, left: Double = 10.0) = TableElement(
+        left = left,
+        top = 10.0,
+        colWidths = listOf(30.0),
+        rowHeights = listOf(20.0),
+        id = id,
+    )
+
+    /**
+     * An editable living element is often a **rebuilt copy** of the one on the page (a dialog hands
+     * back a `copy`), so finding it cannot rely on the instance: the id and the geometry must both
+     * land the edit on it — this is the lookup that keeps a table cell edit from quietly doing nothing.
+     */
+    @Test fun findOnFollowsAnElementRebuiltWithTheSameId() {
+        val onPage = table(id = "tbl_1")
+        val rebuilt = onPage.copy(cells = listOf(listOf(TableCell("edited"))))
+        val p = page(Layer(listOf(text("keep"))), Layer(listOf(rebuilt)))
+
+        assertEquals(ElementRef(1, 0), ElementEdits.findOn(p, onPage))
+        assertNull(ElementEdits.findOn(page(Layer(listOf(text("other")))), onPage))
+    }
+
+    @Test fun findOnFallsBackToTheGeometryOfAnElementThatHasNoId() {
+        val onPage = table(id = null)
+        val samePlace = table(id = null)
+        val elsewhere = table(id = null, left = 60.0)
+        val p = page(Layer(listOf(onPage)))
+
+        assertEquals(ElementRef(0, 0), ElementEdits.findOn(p, samePlace))
+        assertNull(ElementEdits.findOn(p, elsewhere))
     }
 
     @Test fun pickTextReturnsTheTopMostHit() {

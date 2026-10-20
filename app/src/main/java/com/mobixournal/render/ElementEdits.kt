@@ -4,9 +4,11 @@ import android.graphics.BitmapFactory
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 
 /**
@@ -61,23 +63,60 @@ internal object ElementEdits {
     /**
      * [replaceElement] for **one page**: replace [old] on [page], or null when it is not on it. This
      * is the one a page window calls, so finding an element to edit never walks the document.
+     *
+     * Only the first layer that holds it is rewritten: an element is in one layer, and matching by
+     * geometry means a *second* element could look like it, so a page-wide sweep would swap both.
      */
     fun replaceElementOn(page: Page, old: Element, new: Element?): Page? {
-        var changed = false
-        val oldId = com.mobixournal.format.model.ElementId.idOf(old)
-        val layers = page.layers.map { layer ->
-            val idx = layer.elements.indexOfFirst {
-                it === old || (oldId != null && com.mobixournal.format.model.ElementId.idOf(it) == oldId) ||
-                    (it is PlotElement && old is PlotElement && (it == old || (it.left == old.left && it.top == old.top && it.right == old.right && it.bottom == old.bottom))) ||
-                    (it is CircuitElement && old is CircuitElement && (it == old || (it.id != null && it.id == old.id) || (it.positionX == old.positionX && it.positionY == old.positionY && it.symbol == old.symbol)))
-            }
-            if (idx < 0) return@map layer
-            changed = true
-            val els = layer.elements.toMutableList()
-            if (new == null) els.removeAt(idx) else els[idx] = new
-            Layer(els, layer.name)
+        val ref = findOn(page, old) ?: return null
+        val layer = page.layers[ref.layerIndex]
+        val elements = layer.elements.toMutableList()
+        if (new == null) elements.removeAt(ref.elementIndex) else elements[ref.elementIndex] = new
+        val layers = page.layers.toMutableList()
+        layers[ref.layerIndex] = Layer(elements, layer.name)
+        return page.copy(layers = layers)
+    }
+
+    /**
+     * Where [element] sits on [page] — its layer and its index there — or null when this page does not
+     * hold it. This is the lookup a command uses to find the page an element is on before swapping it
+     * ([DrawingSurfaceView.replacePlotElement] and its siblings): a selection can move to another page
+     * while an editor for the element is open, and an edit must land where its element is.
+     */
+    fun findOn(page: Page, element: Element): ElementRef? {
+        for ((layerIndex, layer) in page.layers.withIndex()) {
+            val elementIndex = layer.elements.indexOfFirst { sameElement(it, element) }
+            if (elementIndex >= 0) return ElementRef(layerIndex, elementIndex)
         }
-        return if (changed) page.copy(layers = layers) else null
+        return null
+    }
+
+    /**
+     * Whether [candidate] **is** [old]: the same instance, the same id, or — for the families whose
+     * placement can hand back a rebuilt copy — the same place on the page.
+     *
+     * Identity and id are the honest answers (an element's id is minted once and never re-minted, the
+     * model's own rule), and they cover every element this build authored. The geometry comparison is
+     * what still finds an element whose id never arrived (an older document), and it is deliberately
+     * last and per-family: two different elements cannot occupy the very same box or the very same
+     * component position.
+     */
+    fun sameElement(candidate: Element, old: Element): Boolean {
+        if (candidate === old) return true
+        val oldId = ElementId.idOf(old)
+        if (oldId != null && ElementId.idOf(candidate) == oldId) return true
+        return when {
+            candidate is PlotElement && old is PlotElement ->
+                candidate == old || (candidate.left == old.left && candidate.top == old.top &&
+                    candidate.right == old.right && candidate.bottom == old.bottom)
+            candidate is TableElement && old is TableElement ->
+                candidate == old || (candidate.left == old.left && candidate.top == old.top &&
+                    candidate.width == old.width && candidate.height == old.height)
+            candidate is CircuitElement && old is CircuitElement ->
+                candidate == old || (candidate.positionX == old.positionX &&
+                    candidate.positionY == old.positionY && candidate.symbol == old.symbol)
+            else -> false
+        }
     }
 
     /** The top-most text box on [pageIndex] whose (approximate) bounds contain the point, or null. */

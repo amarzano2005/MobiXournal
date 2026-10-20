@@ -218,34 +218,49 @@ fun DrawingSurfaceView.singleSelectedPlot(): PlotElement? {
 }
 
 /**
+ * The page that holds [element], or null when no page does.
+ *
+ * The selected page is tried first — that is the element's page in the usual case, and it costs one
+ * page read. The scan behind it exists because an editor can outlive the selection that opened it (the
+ * selection moves to another page while a plot, table or circuit dialog stays open); an edit is about
+ * the element, so it lands on the page that holds it rather than on "whatever page is selected now".
+ * The scan materialises pages on the way, so it only runs when the selected page came back empty.
+ */
+internal fun DrawingSurfaceView.pageIndexHolding(element: Element): Int? {
+    val sel = selection
+    if (sel != null && pageAt(sel.pageIndex)?.let { ElementEdits.findOn(it, element) } != null) {
+        return sel.pageIndex
+    }
+    for (index in 0 until pageSource.pageCount) {
+        val page = pageAt(index) ?: continue
+        if (ElementEdits.findOn(page, element) != null) return index
+    }
+    return null
+}
+
+/**
  * Replace [old] plot element with [new] in place: records history for undo,
  * keeps the same layer, z-order, and id, and repaints.
  */
 fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
     val before = doc
-    // The page is known whenever the plot is the selected one, which is the usual case: edit it
-    // through the page window, so only that page is touched. Without a selection fall back to the
-    // whole-document search (a plot opened from the overlay, with nothing selected).
-    val index = selection?.pageIndex
-    if (index != null) {
-        val replaced = windowEditPage(index) { page ->
-            ElementEdits.replaceElementOn(page, old, new)
-                ?: fallbackReplacePlotOn(page, new)
-                ?: page
-        }
-        if (replaced == null) return
-    } else {
-        doc = ElementEdits.replaceElement(doc, old, new) ?: return
+    val index = pageIndexHolding(old) ?: return
+    val replaced = windowEditPage(index) { page ->
+        ElementEdits.replaceElementOn(page, old, new)
+            ?: fallbackReplacePlotOn(page, index, new)
+            ?: page
     }
+    if (replaced == null) return
     history.record(before)
     notifyHistory()
     relayout()
     render()
 }
 
-internal fun DrawingSurfaceView.fallbackReplacePlotOn(page: Page, new: PlotElement): Page? {
+internal fun DrawingSurfaceView.fallbackReplacePlotOn(page: Page, pageIndex: Int, new: PlotElement): Page? {
     val sel = selection ?: return null
-    if (sel.refs.size != 1) return null
+    // The selection's ref only addresses a plot on the page the selection is on.
+    if (sel.pageIndex != pageIndex || sel.refs.size != 1) return null
     val ref = sel.refs.first()
     val layer = page.layers.getOrNull(ref.layerIndex) ?: return null
     if (layer.elements.getOrNull(ref.elementIndex) !is PlotElement) return null
@@ -273,12 +288,8 @@ fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
  */
 fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
     val before = doc
-    val index = selection?.pageIndex
-    if (index != null) {
-        windowEditPage(index) { ElementEdits.replaceElementOn(it, old, new) ?: it } ?: return
-    } else {
-        doc = ElementEdits.replaceElement(doc, old, new) ?: return
-    }
+    val index = pageIndexHolding(old) ?: return
+    windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
     history.record(before)
     notifyHistory()
     relayout()
@@ -302,17 +313,13 @@ fun DrawingSurfaceView.singleSelectedCircuit(): CircuitElement? {
  */
 fun DrawingSurfaceView.replaceCircuitElement(old: CircuitElement, new: CircuitElement) {
     val before = doc
-    val index = selection?.pageIndex
-    if (index != null) {
-        val replaced = windowEditPage(index) { page ->
-            ElementEdits.replaceElementOn(page, old, new)
-                ?: fallbackReplaceCircuitOn(page, new)
-                ?: page
-        }
-        if (replaced == null) return
-    } else {
-        doc = ElementEdits.replaceElement(doc, old, new) ?: return
+    val index = pageIndexHolding(old) ?: return
+    val replaced = windowEditPage(index) { page ->
+        ElementEdits.replaceElementOn(page, old, new)
+            ?: fallbackReplaceCircuitOn(page, index, new)
+            ?: page
     }
+    if (replaced == null) return
     history.record(before)
     notifyHistory()
     reportSelectionRect()
@@ -320,9 +327,9 @@ fun DrawingSurfaceView.replaceCircuitElement(old: CircuitElement, new: CircuitEl
     render()
 }
 
-internal fun DrawingSurfaceView.fallbackReplaceCircuitOn(page: Page, new: CircuitElement): Page? {
+internal fun DrawingSurfaceView.fallbackReplaceCircuitOn(page: Page, pageIndex: Int, new: CircuitElement): Page? {
     val sel = selection ?: return null
-    if (sel.refs.size != 1) return null
+    if (sel.pageIndex != pageIndex || sel.refs.size != 1) return null
     val ref = sel.refs.first()
     val layer = page.layers.getOrNull(ref.layerIndex) ?: return null
     val els = layer.elements.toMutableList()

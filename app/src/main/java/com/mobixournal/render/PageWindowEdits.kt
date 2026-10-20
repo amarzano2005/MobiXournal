@@ -1,7 +1,21 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.withPage
+
+/**
+ * Tell the page window that the document replaced pages **behind its back**.
+ *
+ * Most edits already go through [windowEditPage], which keeps the window's own copy in step. A few
+ * write a page straight into the model instead — an element placement built from `Document.pages`, a
+ * parameter slider's drag, an element swap on the selected page — and those must not leave the window
+ * describing the page they replaced: the *next* gesture would rebuild that page from the stale copy
+ * and silently drop the write (a placed circuit vanishing under the pen, a table edit doing nothing).
+ * The document is the truth, so `DrawingSurfaceView.doc`'s setter — the one place every edit lands —
+ * calls this, which makes any such write safe whether or not its author knew about the window.
+ */
+internal fun DrawingSurfaceView.syncPageWindow(document: Document) = pageWindow.followDocument(document.pages)
 
 /**
  * Drop the page window's kept pages and cached pages: the document was replaced wholesale (a load,

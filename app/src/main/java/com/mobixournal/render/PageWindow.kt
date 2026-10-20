@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Document
+import com.mobixournal.format.model.EditedPages
 import com.mobixournal.format.model.Page
 import java.util.Collections
 
@@ -160,6 +161,48 @@ internal class PageWindow(
         overlay.clear()
         cache.clear()
         pinned.clear()
+    }
+
+    /**
+     * Re-point the window at [pages], the page list the document holds **now**.
+     *
+     * Every page write is supposed to go through [edit] or [set], and when it does the overlay holds
+     * the very page the document holds, so this finds nothing to do. A write that does not — a
+     * placement helper that builds its page from `Document.pages`, a slider drag, an element swap on
+     * the selected page — leaves the overlay (and any cached page) describing the page the document
+     * had *before* it, and the next edit through the window would rebuild the page from that stale
+     * copy and silently drop the write: the element the user just placed is gone again.
+     *
+     * So the document is the truth and the window follows it: a page the document replaced is taken
+     * over, a page it did not replace is left in hand (and never even indexed, so a reader-backed
+     * document is not inflated by this check), and an index the document no longer has is dropped (a
+     * page-list edit; [reset] is the fuller answer a structural change calls).
+     *
+     * @param pages The document's own page list, as `Document.pages` answers it.
+     */
+    @Synchronized
+    fun followDocument(pages: List<Page>) {
+        if (overlay.isEmpty() && cache.isEmpty()) return
+        // An `EditedPages` view says exactly which indices a write replaced; anything else is a plain
+        // list, where every index is a list read.
+        val replaced = (pages as? EditedPages)?.editedIndices
+        for (index in overlay.keys.toList()) {
+            if (index !in pages.indices) {
+                overlay.remove(index)
+                continue
+            }
+            if (replaced != null && index !in replaced) continue
+            val written = pages[index]
+            if (written !== overlay[index]) overlay[index] = written
+        }
+        for (index in cache.keys.toList()) {
+            if (index !in pages.indices) {
+                cache.remove(index)
+                continue
+            }
+            if (replaced != null && index !in replaced) continue
+            if (pages[index] !== cache[index]) cache.remove(index)
+        }
     }
 
     /**

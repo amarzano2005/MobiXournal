@@ -114,7 +114,11 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   what lets undo and redo find it). `PageWindow.pin` holds a page for as long as a live gesture keeps
   re-reading it. A **wholesale replacement** of the document — a load, undo/redo, a mirrored pane, a
   page-list edit — calls `resetPageWindow()`, because the overlay then describes pages the document no
-  longer has. The element ops expose a **one-page core** beside their document-wide form —
+  longer has. Between those two, the document is the truth and the window **follows** it:
+  `PageWindow.followDocument` runs from the `DrawingSurfaceView.doc` setter — the one place every edit
+  lands — so a page written straight into the model (an element placement, a slider drag, an element
+  swap on the selected page) cannot leave the overlay describing the page it replaced, which would let
+  the *next* gesture rebuild the page from that stale copy and silently drop the write. The element ops expose a **one-page core** beside their document-wide form —
   `ElementEdits.replaceElementOn` against `replaceElement`, and
   `SelectionOps.deleteOn`/`addToTopLayerOn`/`moveOnto` — so a caller that knows the page (the text
   editor remembers its target's page, a plot's slider edits the selected page) never searches the

@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "land-a-living-element-edit-on-the-page-that-holds-it"
+title = "Land a living-element edit on the page that holds it"
+description = "replacePlotElement / replaceTableElement / replaceCircuitElement used selection?.pageIndex as the page to edit. An editor can outlive the selection that opened it (a double-tap on a plot or a table cell does not select the element, and the selection may belong to another page), so the edit either landed on the wrong page or found nothing there and was dropped without a word — the 'quick edit sometimes applies, sometimes not' report. Fix: ElementEdits.findOn(page, element) plus DrawingSurfaceView.pageIndexHolding(element) resolve the page that actually holds the element (selected page first, then a scan), and the three replace* helpers edit through it; ElementEdits.replaceElementOn now rewrites only the first layer that holds the element, matching by identity, id, or the family's own geometry (sameElement), so a rebuilt copy from a dialog is found. Tests: ElementEditsTest (findOn by id and by geometry) and the PageWindowTest seam tests."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-20
+completed = 2026-10-20
+tags = ["render", "living-elements"]
+
+[[task]]
+id = "keep-the-page-window-following-every-page-write"
+title = "Keep the page window following every page write"
+description = "The page window (render/PageWindow.kt) is a view of the document, but only edits that go through windowEditPage kept it in step: an element placement (commitTableInsertion, commitCircuitInsertion, insertPlotElement, text/LaTeX), a parameter slider's drag and an element swap all write the page straight into Document.pages, leaving the window's overlay (and its read cache, which a board fills) describing the page they replaced. The next gesture through the window rebuilt the page from that stale copy and silently dropped the write. Reported symptoms: a circuit attached to a wire vanished as soon as the pen touched the page, a table cell edit looked like it did nothing, and a plot edit 'sometimes' landed. Fix: PageWindow.followDocument(pages) re-points the overlay/cache at the document's current pages (and drops indices the document no longer has), called from the DrawingSurfaceView.doc setter via syncPageWindow (render/PageWindowEdits.kt) so every write is safe whether or not its author knew about the window. Verified by PageWindowTest (a placed circuit surviving the following stroke, a table cell edit landing after a straight placement, followDocument leaving untouched pages in hand) plus the full JVM suite; docs/data-path.md (The page window) states the contract."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-20
+completed = 2026-10-20
+tags = ["render", "page-window"]
+
+[[task]]
 id = "edit-a-circuits-symbol-value-and-pin-nets-in-place"
 title = "Edit a circuit symbol, value and pin nets in place"
 description = "The circuit editing surface (docs/mobix-elements.md): a tap on a selected component opens an in-place editor offering the symbol library, the value text (for example 10 kohm) and the drawn stroke style, while dragging a pin snaps it magnetically onto another pin and writes connectedTo with the net, which is dropped again when the pin is pulled free. The editor draws through render/LivingInk.kt so screen, SVG and PDF stay in step, keeps every field it has no input for, and is fully undoable. Magnetic snapping is geometry plus a distance threshold, so it belongs in a pure, unit-tested function rather than in the view. Verify on the emulator with a stylus: place two components, snap a pin, rename a value, release the pin, undo, and check logcat."

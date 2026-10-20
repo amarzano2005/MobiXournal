@@ -80,6 +80,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         set(value) {
             if (value === docValue) return
             docValue = value
+            syncPageWindow(value)
             // A board's cells follow its page list, and this is the one place every edit lands: an
             // undo or a redo moves the pages, so the grid has to move with them or a chunk would keep a
             // coordinate its page no longer sits at ([BoardGrid.fit]).
