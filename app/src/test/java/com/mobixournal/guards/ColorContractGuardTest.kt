@@ -164,8 +164,8 @@ class ColorContractGuardTest {
         val text = file.readText()
         assertTrue(
             "the pop-up's fill must be the bars' own glass at the floating alpha: " +
-                "`val toolbar = rememberFloatingSurfaceColor()`",
-            text.contains("val toolbar = rememberFloatingSurfaceColor()"),
+                "`color = rememberFloatingSurfaceColor()`",
+            text.contains("color = rememberFloatingSurfaceColor()"),
         )
         assertFalse(
             "…and must not fall back to the surfaceContainer role it used to read",

@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,11 +66,11 @@ internal fun Modifier.floatingRim(
     cornerRadius: Dp = ModernTheme.panelCornerRadiusDp,
 ): Modifier {
     val rim = rememberMenuRimColor()
-    return liquidGlassSpecularRim(
-        cornerRadius = cornerRadius,
-        rim = rim,
-        enabled = LocalLiquidGlassShaders.current,
-    )
+    val radiusPx = with(LocalDensity.current) { cornerRadius.toPx() }
+    return drawWithContent {
+        drawContent()
+        drawFloatingRim(radiusPx, rim)
+    }
 }
 
 /** [floatingRim]'s stroke, for a surface that already holds its own ink and radius. */
@@ -115,9 +116,6 @@ internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
 /** The rim's thickness — one hairline, drawn inside the surface's edge. */
 internal val MENU_RIM_WIDTH = 1.dp
 
-/** CompositionLocal providing the liquid glass spring opening animation preference. */
-val LocalLiquidGlassAnimations = compositionLocalOf { true }
-
 /**
  * How long a floating surface takes to **draw back** when it closes: the closing spring settles in
  * about 200 ms and the fade lands at 170 ms, so the window is held for 230 ms — long enough for the
@@ -133,18 +131,15 @@ const val FLOATING_EXIT_MS = 230
 val LocalFloatingSurfaceClosing = compositionLocalOf { false }
 
 /**
- * Apple-style liquid glass opening animation for popups, menus, and dialogs.
- * Smoothly expands from [expanded] state with a fluid, organic spring bounce and alpha fade-in.
- * Can be disabled by user preference via [LocalLiquidGlassAnimations].
+ * Apple-style liquid glass opening and closing animation for popups, menus, and dialogs: a fluid,
+ * organic spring on the scale with an alpha fade. Always on — it is the app's own motion language,
+ * not a preference, so there is no switch to turn it off.
  */
 @Composable
 fun Modifier.liquidGlassSpringAnimation(
     expanded: Boolean = true,
-    enabled: Boolean = LocalLiquidGlassAnimations.current,
     origin: TransformOrigin = TransformOrigin(0f, 0f),
 ): Modifier {
-    if (!enabled) return this
-
     val scale = remember { Animatable(if (expanded) 0.82f else 1f) }
     val alpha = remember { Animatable(if (expanded) 0f else 1f) }
 
@@ -220,7 +215,6 @@ fun FloatingSurface(
             .shadow(shadowElevation, shape, clip = false)
             .clip(shape)
             .background(rememberFloatingSurfaceColor())
-            .liquidGlassLensBevel(ModernTheme.panelCornerRadiusDp)
             .floatingRim(),
     ) {
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
@@ -263,7 +257,6 @@ fun FloatingDialog(
             onDismissRequest = onDismissRequest,
             containerColor = surface,
             modifier = modifier
-                .liquidGlassLensBevel(ModernTheme.panelCornerRadiusDp)
                 .floatingRim()
                 .liquidGlassSpringAnimation(
                     expanded = !LocalFloatingSurfaceClosing.current,

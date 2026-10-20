@@ -348,10 +348,6 @@ data class AppSettings(
     val pdfCacheLimitMb: Int = DEFAULT_PDF_CACHE_LIMIT_MB,
     /** Whether a **two-finger tap** undoes and a **three-finger tap** redoes. On by default. */
     val multiFingerShortcuts: Boolean = true,
-    /** Enable Apple-style fluid spring & scale opening animations for popups, menus, and dialogs. */
-    val liquidGlassAnimations: Boolean = true,
-    /** Enable hardware-accelerated AGSL liquid glass optical refraction and specular highlights on Android 13+. */
-    val liquidGlassShaders: Boolean = true,
     /** Whether the user has seen or dismissed the first-launch onboarding popup. */
     val hasSeenOnboarding: Boolean = false,
 ) {
@@ -681,8 +677,6 @@ class SettingsStore(context: Context) {
             textImportLimitMb = prefs.getInt(KEY_TEXT_IMPORT_LIMIT, d.textImportLimitMb).coerceAtLeast(1),
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
             multiFingerShortcuts = prefs.getBoolean(KEY_MULTI_FINGER_SHORTCUTS, d.multiFingerShortcuts),
-            liquidGlassAnimations = prefs.getBoolean(KEY_LIQUID_GLASS_ANIMATIONS, d.liquidGlassAnimations),
-            liquidGlassShaders = prefs.getBoolean(KEY_LIQUID_GLASS_SHADERS, d.liquidGlassShaders),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
         ).sanitized()
     }
@@ -798,8 +792,10 @@ class SettingsStore(context: Context) {
         e.putInt(KEY_TEXT_IMPORT_LIMIT, s.textImportLimitMb)
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
         e.putBoolean(KEY_MULTI_FINGER_SHORTCUTS, s.multiFingerShortcuts)
-        e.putBoolean(KEY_LIQUID_GLASS_ANIMATIONS, s.liquidGlassAnimations)
-        e.putBoolean(KEY_LIQUID_GLASS_SHADERS, s.liquidGlassShaders)
+        // Both retired: the spring animation is the app's own motion language and the AGSL optics are
+        // gone, so a save clears the preferences an older install still carries.
+        e.remove(KEY_LIQUID_GLASS_ANIMATIONS)
+        e.remove(KEY_LIQUID_GLASS_SHADERS)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
         e.apply()
     }

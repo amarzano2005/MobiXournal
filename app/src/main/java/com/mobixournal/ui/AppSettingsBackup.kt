@@ -156,8 +156,6 @@ object AppSettingsBackup {
         b.append("  \"textImportLimitMb\": ").append(settings.textImportLimitMb).append(",\n")
         b.append("  \"pdfCacheLimitMb\": ").append(settings.pdfCacheLimitMb).append(",\n")
         b.append("  \"multiFingerShortcuts\": ").append(settings.multiFingerShortcuts).append(",\n")
-        b.append("  \"liquidGlassAnimations\": ").append(settings.liquidGlassAnimations).append(",\n")
-        b.append("  \"liquidGlassShaders\": ").append(settings.liquidGlassShaders).append(",\n")
         b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append("\n")
         b.append("}\n")
         return b.toString()
@@ -335,8 +333,6 @@ object AppSettingsBackup {
             textImportLimitMb = root.getInt("textImportLimitMb", fallback.textImportLimitMb),
             pdfCacheLimitMb = root.getInt("pdfCacheLimitMb", fallback.pdfCacheLimitMb),
             multiFingerShortcuts = root.getBool("multiFingerShortcuts", fallback.multiFingerShortcuts),
-            liquidGlassAnimations = root.getBool("liquidGlassAnimations", fallback.liquidGlassAnimations),
-            liquidGlassShaders = root.getBool("liquidGlassShaders", fallback.liquidGlassShaders),
             hasSeenOnboarding = root.getBool("hasSeenOnboarding", fallback.hasSeenOnboarding),
         ).sanitized()
     }

@@ -27,20 +27,21 @@ class ToolbarMenuGuardTest {
     private val menuCall = Regex("""\bDropdownMenu\s*\(""")
 
     @Test
-    fun onlyTheWrapperThatDefinesToolbarMenuCallsDropdownMenu() {
+    fun noRawDropdownMenuAnywhere() {
+        // Every menu is a `Popup` of the app's own now — the Material menu was the fallback for the old
+        // "animations off" setting, and with that switch gone there is no reason for one to exist. A
+        // stray `DropdownMenu(` would bring back a paler, squarer panel with Material's motion.
         val offenders = mainSources().filter { menuCall.containsMatchIn(it.readText()) }
-
         assertEquals(
             "a pop-up must be built with ToolbarMenu(...), not a raw DropdownMenu(...) — " +
                 "callers found: ${offenders.map { it.path }}",
-            1,
+            0,
             offenders.size,
         )
-        val owner = offenders.single()
+        val owner = mainSources().first { it.readText().contains("fun ToolbarMenu(") }
         assertTrue(
-            "the one file calling DropdownMenu must be the wrapper itself (${owner.path}), so it " +
-                "must define `fun ToolbarMenu(`",
-            owner.readText().contains("fun ToolbarMenu("),
+            "the wrapper itself must not fall back to the Material menu either (${owner.path})",
+            !menuCall.containsMatchIn(owner.readText()),
         )
     }
 

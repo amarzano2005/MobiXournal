@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -59,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import com.mobixournal.ui.theme.LocalLiquidGlassAnimations
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
@@ -113,36 +111,22 @@ internal fun BoxScope.MenuChevron(tint: Color = Color.White) {
 }
 
 /**
- * The toolbar's own [DropdownMenu] — every pop-up the toolbars open is cut from the **same material
- * as the bars themselves**: [rememberFloatingSurfaceColor], the one fill every floating surface in the
- * app wears (the bars' glass with the see-through turned down), and their own [TOP_BAR_DOCK_CORNER]
- * for its corners,
- * so a menu reads as part of the bar it hangs from instead of a paler, squarer panel floating over it.
+ * The toolbar's own pop-up — every menu the toolbars open is cut from the **same material as the bars
+ * themselves**: [rememberFloatingSurfaceColor], the one fill every floating surface in the app wears,
+ * and their own [TOP_BAR_DOCK_CORNER] for its corners, so a menu reads as part of the bar it hangs from
+ * instead of a paler, squarer panel floating over it.
  *
- * That fill used to be [rememberToolbarColor] (`surfaceContainer`) while the bars painted the glass,
- * which is what left every light-theme pop-up the *baseline lavender* `#F3EDF7` — a violet-tinted
- * panel beside a near-white bar, and the one place a colour outside the black/grey/blue palette could
- * still reach the screen. One function for both is what makes "the menu is the bar's material" a
- * property of the code instead of a claim in a comment.
+ * It is a [Popup] of our own rather than a Material `DropdownMenu` because none of that is a parameter
+ * the Material menu exposes: its fill, its tint wash, its corner and its elevation all come from menu
+ * tokens. Owning the panel is what lets the fill be exact (no tint step over it), the corner be the
+ * dock's own, the edge be the chrome's hairline, and the panel arrive and leave on the app's spring
+ * ([liquidGlassSpringAnimation]) — the one motion every floating surface in the app shares.
  *
- * Neither the fill nor the corner is a parameter this Material3 version exposes — both overloads of
- * [DropdownMenu] in 1.2.1 stop at the offset, the scroll state and `PopupProperties` — so this takes
- * the two levers the ambient [MaterialTheme] does leave, and only inside this scope:
+ * Routing every toolbar menu through here is what keeps the whole chrome on one colour and one corner:
+ * a stray raw `DropdownMenu` brings the paler, squarer panel back (`ToolbarMenuGuardTest` fails the
+ * build on one).
  *
- * - `surface` is what `MenuTokens.ContainerColor` resolves to, sitting deliberately one step **paler**
- *   than the rail and the dock. `surfaceTint` is the second half of that: a menu's container carries
- *   `MenuTokens.ContainerElevation` (3dp), painted as an ~8% wash of `surfaceTint` over the fill, so
- *   setting the fill alone still left the pop-up a tint step off the toolbar. Pinning the tint to the
- *   same colour makes the wash a no-op and the fill exact.
- * - `MenuTokens.ContainerShape` resolves to `Shapes.extraSmall` — M3's 4dp menu corner, far squarer
- *   than the 20dp dock the menu hangs under. Re-shaping that one role rounds the menu to the chrome's
- *   own corner; nothing outside this menu sees the override.
- *
- * Routing every toolbar menu through here is what keeps the whole chrome on one colour and one
- * corner: a stray raw [DropdownMenu] brings the paler, squarer panel back (see
- * `ToolbarMenuGuardTest`, which fails the build on one).
- *
- * On top of that material the menu carries an **edge of its own**, because the fill that ties a
+ * The menu also carries an **edge of its own**, because the fill that ties a
  * pop-up to its bar is also what lets it dissolve into the surface it hangs over: the toolbars sit
  * in the same grey as the canvas desk, and a menu opened from the bar lands on that same grey with
  * nothing between them. The cue is a hairline drawn around the panel in [rememberMenuRimColor] — the
@@ -163,57 +147,32 @@ internal fun ToolbarMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val useLiquid = LocalLiquidGlassAnimations.current
-    if (useLiquid) {
-        if (expanded) {
-            var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
-            val density = LocalDensity.current
-            val positionProvider = remember(density) {
-                ToolbarPopupPositionProvider(density = density) { origin ->
-                    transformOrigin = origin
-                }
-            }
-            Popup(
-                onDismissRequest = onDismissRequest,
-                popupPositionProvider = positionProvider,
-                properties = PopupProperties(focusable = true),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
-                    color = rememberFloatingSurfaceColor(),
-                    shadowElevation = 8.dp,
-                    modifier = modifier
-                        .floatingRim()
-                        .liquidGlassSpringAnimation(expanded = true, origin = transformOrigin),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(vertical = 8.dp)
-                            .width(IntrinsicSize.Max)
-                            .verticalScroll(rememberScrollState()),
-                        content = content,
-                    )
-                }
-            }
+    if (!expanded) return
+    var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
+    val density = LocalDensity.current
+    val positionProvider = remember(density) {
+        ToolbarPopupPositionProvider(density = density) { origin ->
+            transformOrigin = origin
         }
-    } else {
-        val toolbar = rememberFloatingSurfaceColor()
-        val scheme = MaterialTheme.colorScheme
-        val shapes = MaterialTheme.shapes
-        MaterialTheme(
-            colorScheme = scheme.copy(
-                surface = toolbar,
-                surfaceTint = Color.Transparent,
-                surfaceContainer = toolbar,
-                surfaceContainerHigh = toolbar,
-                surfaceContainerHighest = toolbar,
-            ),
-            shapes = shapes.copy(extraSmall = RoundedCornerShape(TOP_BAR_DOCK_CORNER)),
+    }
+    Popup(
+        onDismissRequest = onDismissRequest,
+        popupPositionProvider = positionProvider,
+        properties = PopupProperties(focusable = true),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(TOP_BAR_DOCK_CORNER),
+            color = rememberFloatingSurfaceColor(),
+            shadowElevation = 8.dp,
+            modifier = modifier
+                .floatingRim()
+                .liquidGlassSpringAnimation(expanded = true, origin = transformOrigin),
         ) {
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = onDismissRequest,
-                modifier = modifier.floatingRim(),
+            Column(
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .width(IntrinsicSize.Max)
+                    .verticalScroll(rememberScrollState()),
                 content = content,
             )
         }

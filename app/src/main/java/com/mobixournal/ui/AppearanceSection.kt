@@ -22,20 +22,6 @@ fun AppearanceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             checked = settings.dynamicColor,
             onCheckedChange = { onChange(settings.copy(dynamicColor = it)) },
         )
-        SettingsDivider()
-        SwitchRow(
-            title = "Liquid glass animations",
-            subtitle = "Fluid spring scale and fade animations when opening menus, popups, and dialogs.",
-            checked = settings.liquidGlassAnimations,
-            onCheckedChange = { onChange(settings.copy(liquidGlassAnimations = it)) },
-        )
-        SettingsDivider()
-        SwitchRow(
-            title = "Liquid glass optical shaders",
-            subtitle = "Hardware-accelerated optical refraction and directional highlights on Android 13+.",
-            checked = settings.liquidGlassShaders,
-            onCheckedChange = { onChange(settings.copy(liquidGlassShaders = it)) },
-        )
     }
     SettingsGroup("Page counter") {
         SettingsNote("Which corner of the canvas the always-visible \"page X of Y\" badge sits in.")
