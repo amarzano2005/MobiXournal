@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,13 +57,13 @@ import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
- * One **glass tile** of the overflow menu's action rows.
+ * One **glass tile** of the overflow menu's action rows — a miniature of the toolbars' capsule.
  *
  * The file and PDF actions used to be plain `OutlinedButton`s, which on a frosted menu read as flat
- * Material controls lying on the glass rather than as panes cut from it. A tile is the menu's own
- * material: the glass fill, a vertical sheen from the top edge (the light the bar and the menu are
- * lit by) and the family's hairline rim ([floatingRim]) — so the tile looks translucent *because* the
- * menu behind it is, which is what makes the row feel like glass rather than like buttons.
+ * Material controls lying on the glass rather than as panes cut from it. A tile borrows the recipe the
+ * dock and the rail are built from: the glass fill, a cast shadow, a sheen along the lit top edge and
+ * the family's hairline rim ([floatingRim]) — so a menu row looks like chrome the app already has,
+ * just smaller, rather than like a second kind of button inside a menu.
  *
  * The tint is the caller's: [DocumentRed] for the two PDF actions, the primary accent for the page
  * exports. Disabled tiles fade the tint instead of dropping the fill, so the row keeps its shape.
@@ -77,23 +78,23 @@ private fun GlassActionButton(
     onClick: () -> Unit,
 ) {
     val dark = chromeIsDark()
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
     val alpha = if (enabled) 1f else 0.38f
-    // **No fill of its own.** The tile is a *pane*, not a chip: it lays only light over the menu's
-    // glass — a sheen that is brightest along the top edge and fades to nothing by the bottom — so
-    // what shows through the tile is the same frosted backdrop showing through the menu. A solid glass
-    // fill (the first attempt) stacked a second 85% opaque layer on the menu and read as a grey button
-    // pasted on glass, the opposite of the effect.
-    val sheenTop = Color.White.copy(alpha = if (dark) 0.12f else 0.70f)
-    val sheenMid = Color.White.copy(alpha = if (dark) 0.045f else 0.30f)
-    val sheenBottom = Color.White.copy(alpha = if (dark) 0.012f else 0.10f)
+    // **The toolbars' own recipe**, shrunk to a tile: the dock's glass fill (`rememberGlassSurfaceColor`),
+    // a small cast shadow (the bar itself carries 6 dp), a sheen along the top edge where the light
+    // falls, and the family's hairline rim. A tile therefore reads as a miniature dock laid on the
+    // menu — raised glass — instead of a Material control, or a bare lighter rectangle.
+    // Strong enough to lift the tile a shade **above** the menu's own glass — the way the dock sits above
+    // the desk — instead of letting the fill read as a recess.
+    val sheenTop = Color.White.copy(alpha = if (dark) 0.17f else 0.62f)
+    val sheenBottom = Color.White.copy(alpha = if (dark) 0.035f else 0.08f)
     Box(
         modifier = modifier
+            .shadow(3.dp, shape)
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(sheenTop, sheenMid, sheenBottom)))
-            // The family's hairline, bright at the top and faint at the bottom: the specular edge that
-            // tells the eye this is a pane of glass rather than a lighter rectangle.
-            .floatingRim(14.dp)
+            .background(rememberGlassSurfaceColor())
+            .background(Brush.verticalGradient(listOf(sheenTop, sheenBottom)))
+            .floatingRim(12.dp)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 9.dp, horizontal = 6.dp),
         contentAlignment = Alignment.Center,
