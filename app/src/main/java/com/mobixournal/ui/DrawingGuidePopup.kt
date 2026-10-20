@@ -162,7 +162,8 @@ private fun GuideOptionMenuItem(
 }
 
 /**
- * Menu content for the Drawing Guides pop-up, shared by [GuidePopupButton] and [CompactGuidePopupButton].
+ * Menu content for the Drawing Guides pop-up, opened by [CompactGuidePopupButton] in the Secondary
+ * Toolbar (the rail no longer offers a guides slot).
  * Categorized into Off, Geometric Instruments, and Page Snapping Lattices, with dedicated icons.
  */
 @Composable
@@ -207,22 +208,8 @@ internal fun DrawingGuideMenuItems(
 }
 
 /**
- * Rail popup button for drawing guides.
- */
-@Composable
-internal fun GuidePopupButton(kind: GuideKind, onKind: (GuideKind) -> Unit) {
-    val active = kind != GuideKind.NONE
-    ToolbarPopupButton(
-        icon = guideButtonIcon(kind),
-        contentDescription = "Drawing guides",
-        tint = if (active) MaterialTheme.colorScheme.primary else Color.White,
-    ) { dismiss ->
-        DrawingGuideMenuItems(selectedKind = kind, onKind = onKind, dismiss = dismiss)
-    }
-}
-
-/**
- * Secondary top-bar compact button for drawing guides.
+ * Secondary top-bar compact button for drawing guides — the only entry point now that the rail's
+ * writing-tools-only face dropped its guides slot.
  */
 @Composable
 internal fun CompactGuidePopupButton(

@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import com.mobixournal.render.GuideKind
 import com.mobixournal.render.Stationery
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
@@ -65,8 +64,6 @@ fun SideToolbar(
     styleCallbacks: ToolbarStyleCallbacks,
     /** The Colour & size slot's two ternas of favourite colours and what a tap or a long-press does. */
     favoritesCallbacks: ToolbarFavoritesCallbacks,
-    guideKind: GuideKind,
-    onGuideKind: (GuideKind) -> Unit,
     layerCallbacks: ToolbarLayerCallbacks,
     zoom: Float,
     onZoomIn: () -> Unit,
@@ -107,7 +104,6 @@ fun SideToolbar(
                     favorites = favoritesCallbacks,
                     style = styleCallbacks,
                 )
-                "guides" -> GuidePopupButton(guideKind, onGuideKind)
                 "layers" -> LayersPopupButton(layerCallbacks)
                 "zoom" -> ZoomPopupButton(zoom, onZoomIn, onZoomOut, onZoomReset)
                 "background" -> BackgroundPopupButton(

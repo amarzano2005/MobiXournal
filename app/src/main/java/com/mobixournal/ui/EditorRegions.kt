@@ -3,7 +3,6 @@ package com.mobixournal.ui
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import com.mobixournal.format.mobix.CanvasMode
-import com.mobixournal.render.GuideKind
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import androidx.compose.material.icons.outlined.Edit
@@ -779,11 +778,6 @@ fun EditorToolbar(
                 onSettingsChange(assignFavorite(settings, colorOwner, index, color))
             },
         ),
-        guideKind = settings.guideKind,
-        onGuideKind = {
-            onSettingsChange(settings.copy(guideKind = it, guidePose = null))
-            surface?.placeGuide(it)
-        },
         layerCallbacks = toolbarLayerCallbacks(surface, pane),
         zoom = pane.zoom,
         onZoomIn = { surface?.zoomIn() },

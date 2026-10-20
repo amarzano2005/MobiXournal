@@ -85,7 +85,7 @@ class RailItemsTest {
         assertEquals(
             listOf(
                 "pen", "highlighter", "favorites", "eraser", "pan", "select",
-                "text", "insert", "vspace", "guides", "zoom", "pages", "background", "layers",
+                "text", "insert", "vspace", "zoom", "pages", "background", "layers",
             ),
             ids,
         )

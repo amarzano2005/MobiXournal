@@ -172,12 +172,12 @@ selects the new colour — the row scrolls so the menu's height never changes wi
 the three tip sizes as one bar of small boxes (`WidthSlotBar`) and line style as one row of chips
 (`LineStyleChips`). **Which positions the rail shows, and in what order**, is data too
 (`RailItems.kt`):
-`RAIL_ITEMS` names every position — every tool group plus the Colour/Shape-recognition/
-Guides/Layers/Zoom/Background/Pages/Audio panels — in an explicit factory order
+`RAIL_ITEMS` names every position — every writing tool group plus the Colour/Layers/Zoom/
+Background/Pages panels — in an explicit factory order
 (`FACTORY_RAIL_ORDER`): the drawing tools reached for most first (pen, highlighter, colour & size,
-eraser), then the rest of the tools and panels, with the rarer controls (shape recognition,
-guides) trailing the rail. `SideToolbar` renders `visibleRailItems(railOrder, railHidden)`,
-dispatching each id to its group button or panel. The Toolbar settings section edits those two prefs
+eraser), then the rest of the tools and panels, with the page-level panels trailing the rail
+(audio, play object, shape recognition, guides and STEM slots live elsewhere). `SideToolbar` renders
+`visibleRailItems(railOrder, railHidden)`. The Toolbar settings section edits those two prefs
 (`AppSettings.railOrder`, a comma-separated id list, and `railHidden`, the same encoding for the
 switched-off ids); a row is reordered by **long-press drag** (`detectDragGesturesAfterLongPress`),
 which steps `moveRailItem()` one place each time the finger crosses a row height, so the list
