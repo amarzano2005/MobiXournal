@@ -158,13 +158,25 @@ above). **Resizing** that figure afterwards is a different act: dragging a selec
 arrow made twice as long is twice as long and exactly as thin, and a figure shrunk to annotate a detail
 does not collapse into a smear. Lengthening an arrow therefore never fattens it **or enlarges its
 head**: the V heads of arrows, the axes of the coordinate diagram and every other figure keep the size
-they were drawn with while the shaft lengthens (`StrokeStretch`, which recognises the repeated-tip V
-`ShapeBuilder` writes). That recognition is deliberately tolerant — the two barbs may differ by up to a
-tenth, and the tip counts as repeated within a thousandth of a point — because the committed stroke is
-not always the builder's own (the endpoint snap moves the stroke's last vertex, which on an arrow is a
-barb) and a head that stops being recognised is a head that starts growing again. The head's length is chosen only when the figure is first laid down
-(`ShapeBuilder.ARROW_HEAD_FRACTION`, clamped); stretching it afterwards moves the head with the tip
-but leaves the barbs where they were, so the result reads as a longer arrow, not a bigger one.
+they were drawn with while the shaft lengthens.
+
+**A head is sized by the pen, not by the shaft.** `FigureGeometry` — the one home of the three headed
+figures (arrow, double arrow, coordinate diagram) — gives every head `6 × strokeWidth` pt, floored at
+10 pt and capped at 30 pt, with the single further clamp that a head may never take more than 45% of
+its own shaft. Two things follow that the previous fraction-of-the-shaft rule got wrong: arrows of
+different lengths drawn with one pen now wear the *same* head (a short arrow is no longer a dart), and
+both axes of a coordinate diagram wear one equal head instead of each sizing its own from its own
+length — a wide, flat drag used to come out with a big x head above a tiny y head. The V opens at 48°.
+
+**Resizing re-emits the figure, it does not stretch it.** `FigureRedraw` reads a committed stroke back
+into its anchors — tail and tip, or the origin and the two axis tips — plus the head length and opening
+angle, then rebuilds the whole figure through `FigureGeometry` at the transformed anchors. So a resize
+by 1.0 returns the stroke bit for bit, repeated resizes cannot accumulate drift, and a one-axis stretch
+turns the head with the shaft without flattening it. The read is deliberately tolerant — the two barbs
+may differ by up to a tenth, and the tip counts as repeated within a thousandth of a point — because
+the committed stroke is not always the builder's own (the endpoint snap moves the stroke's last vertex,
+which on an arrow is a barb), and a head that stops being recognised is a head that starts growing
+again.
 
 The one case where the width *does* follow the scale is **re-homing** ink onto another page's frame
 (`affineXY`'s default `scaleWidth = true`): that is a change of units, not a resize, and a stroke that

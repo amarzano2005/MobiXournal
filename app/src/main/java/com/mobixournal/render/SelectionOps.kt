@@ -126,8 +126,8 @@ object SelectionOps {
      * @param dx Translation X in points.
      * @param dy Translation Y in points.
      * @param scaleWidth Whether a stroke's width follows the scale (see above). A resize gesture
-     *   (`false`) also leaves each recognised arrowhead at its drawn size — only the shaft
-     *   lengthens ([StrokeStretch]); re-homing ink (`true`) scales the whole drawing, heads included.
+     *   (`false`) also leaves each headed figure at its drawn size — only the shaft lengthens
+     *   ([FigureRedraw]); re-homing ink (`true`) scales the whole drawing, heads included.
      * @return Transformed element, or unchanged if unmodelled.
      */
     fun affineXY(
@@ -147,7 +147,7 @@ object SelectionOps {
                         StrokePoint(it.x * sx + dx, it.y * sy + dy, it.width * ink)
                     }
                 } else {
-                    StrokeStretch.stretch(element.points, sx, sy, dx, dy)
+                    FigureRedraw.stretch(element.points, sx, sy, dx, dy)
                 },
             )
             is TextElement -> element.copy(
@@ -244,9 +244,9 @@ object SelectionOps {
         val dx = anchorX * (1.0 - sx)
         val dy = anchorY * (1.0 - sy)
         // A resize stretches the figure, not its ink: the geometry scales and every stroke keeps the
-        // width it was drawn with, so an arrow made longer stays as thin as it was, and its head
-        // stays at the drawn size while only the shaft lengthens (`docs/stylus.md` → *A figure is
-        // resized, not thickened*, `StrokeStretch`).
+        // width it was drawn with, so an arrow made longer stays as thin as it was, and a headed
+        // figure is re-emitted with the head it was drawn with (`docs/stylus.md` → *A figure is
+        // resized, not thickened*, `FigureRedraw`).
         return mapPage(pages, pageIndex) { li, ei, el ->
             if (ElementRef(li, ei) in refs) affineXY(el, sx, sy, dx, dy, scaleWidth = false) else el
         }

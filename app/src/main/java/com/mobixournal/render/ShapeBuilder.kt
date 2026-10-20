@@ -2,7 +2,6 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.StrokePoint
 import kotlin.math.PI
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -33,12 +32,6 @@ enum class ShapeKind {
  * unit-testable on the JVM ([ShapeBuilderTest]). All points carry the same constant [widthPt].
  */
 object ShapeBuilder {
-
-    /** Length of an arrowhead barb relative to the shaft, and its opening half-angle. */
-    private const val ARROW_HEAD_FRACTION = 0.18
-    private const val ARROW_HEAD_MIN_PT = 8.0
-    private const val ARROW_HEAD_MAX_PT = 28.0
-    private val ARROW_HALF_ANGLE = Math.toRadians(28.0)
 
     /** How many segments approximate an ellipse (more when it's larger, clamped for sanity). */
     private const val ELLIPSE_MIN_SEGMENTS = 24
@@ -167,67 +160,63 @@ object ShapeBuilder {
         val midY = (sy + ey) / 2.0
         val leftGap = p(midX - ux * gapHalf, midY - uy * gapHalf, w)
         val rightGap = p(midX + ux * gapHalf, midY + uy * gapHalf, w)
-        val left = head(ex, ey, sx, sy, len, w).reversed() + leftGap
-        val right = listOf(rightGap) + head(sx, sy, ex, ey, len, w)
+        // The heads are the pen's own size — and the stroke's width, not the span's: an earlier
+        // version passed the span as the point width, which drew the whole dimension as one fat band.
+        val headPt = FigureGeometry.headPt(w, len)
+        val left = head(ex, ey, sx, sy, w, headPt).reversed() + leftGap
+        val right = listOf(rightGap) + head(sx, sy, ex, ey, w, headPt)
         return listOf(left, right)
     }
 
     private fun line(sx: Double, sy: Double, ex: Double, ey: Double, w: Double) =
         listOf(p(sx, sy, w), p(ex, ey, w))
 
-    /** A shaft plus a V-shaped head, traced as one polyline (barb, tip, barb) so it's one stroke. */
-    private fun arrow(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> {
-        val len = hypot(ex - sx, ey - sy)
-        if (len == 0.0) return line(sx, sy, ex, ey, w)
-        return listOf(p(sx, sy, w)) + head(sx, sy, ex, ey, len, w)
-    }
-
     /**
-     * A shaft with a head at *both* ends. Traced as one polyline: the tail head is drawn first
-     * (walking back out to the tail tip), then the shaft, then the tip head — so it stays one stroke.
+     * A shaft plus a V-shaped head, as one stroke — [FigureGeometry]'s arrow, whose head is sized by
+     * the pen rather than by the shaft (see that file for why).
      */
-    private fun doubleArrow(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> {
-        val len = hypot(ex - sx, ey - sy)
-        if (len == 0.0) return line(sx, sy, ex, ey, w)
-        return head(ex, ey, sx, sy, len, w).reversed() + head(sx, sy, ex, ey, len, w)
-    }
+    private fun arrow(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> =
+        FigureGeometry.arrow(sx, sy, ex, ey, w)
+
+    /** A head at *both* ends of one shaft, still a single stroke. */
+    private fun doubleArrow(sx: Double, sy: Double, ex: Double, ey: Double, w: Double): List<StrokePoint> =
+        FigureGeometry.doubleArrow(sx, sy, ex, ey, w)
 
     /**
-     * The V-shaped head for a shaft pointing from (sx,sy) to the tip (ex,ey): tip, barb, tip, barb.
-     * The caller prefixes/joins these so the whole arrow stays a single polyline.
-     */
-    private fun head(
-        sx: Double, sy: Double, ex: Double, ey: Double, len: Double, w: Double,
-    ): List<StrokePoint> {
-        val size = (len * ARROW_HEAD_FRACTION).coerceIn(ARROW_HEAD_MIN_PT, ARROW_HEAD_MAX_PT)
-        val dir = atan2(ey - sy, ex - sx)
-        val left = dir + PI - ARROW_HALF_ANGLE
-        val right = dir + PI + ARROW_HALF_ANGLE
-        return listOf(
-            p(ex, ey, w),
-            p(ex + size * cos(left), ey + size * sin(left), w),
-            p(ex, ey, w),
-            p(ex + size * cos(right), ey + size * sin(right), w),
-        )
-    }
-
-    /**
-     * A pair of arrowed axes meeting at the drag's start: y runs vertically to the drag's end
-     * height, x runs horizontally to its end width. Traced as one polyline — y tip (with head)
-     * down to the origin, then out to the x tip (with head) — so it round-trips as a single stroke.
+     * A pair of arrowed axes meeting at the drag's start: y runs vertically to the drag's end height,
+     * x runs horizontally to its end width, and both heads are the same size — one pen, one head.
      */
     private fun coordinateAxis(
         sx: Double, sy: Double, ex: Double, ey: Double, w: Double,
     ): List<StrokePoint> {
         val yLen = kotlin.math.abs(ey - sy)
         val xLen = kotlin.math.abs(ex - sx)
-        if (yLen == 0.0 && xLen == 0.0) return line(sx, sy, ex, ey, w)
         // Axes point away from the origin in whichever direction the drag went.
         val yTip = sy + if (ey <= sy) -yLen else yLen
         val xTip = sx + if (ex >= sx) xLen else -xLen
-        val yHead = if (yLen == 0.0) emptyList() else head(sx, sy, sx, yTip, yLen, w)
-        val xHead = if (xLen == 0.0) emptyList() else head(sx, sy, xTip, sy, xLen, w)
-        return yHead.reversed() + p(sx, sy, w) + xHead
+        return FigureGeometry.axes(
+            originX = sx, originY = sy,
+            xTipX = xTip, xTipY = sy,
+            yTipX = sx, yTipY = yTip,
+            widthPt = w,
+        )
+    }
+
+    /**
+     * A V-shaped head — `tip, barb, tip, barb` — for the dimensioning arrow, which needs a head at
+     * each end of a **gapped** shaft and so cannot use [FigureGeometry.doubleArrow] directly.
+     */
+    private fun head(
+        sx: Double, sy: Double, ex: Double, ey: Double,
+        w: Double, size: Double,
+    ): List<StrokePoint> {
+        val head = FigureGeometry.barbs(sx, sy, ex, ey, size)
+        return listOf(
+            p(head.tip.x, head.tip.y, w),
+            p(head.a.x, head.a.y, w),
+            p(head.tip.x, head.tip.y, w),
+            p(head.b.x, head.b.y, w),
+        )
     }
 
     /** A closed rectangle from the drag's bounding box (corners in order, back to the start). */

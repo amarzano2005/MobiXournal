@@ -219,7 +219,7 @@ app/
       StrokeHitTester.kt     # whole-stroke eraser point-to-stroke hit geometry (pure)
       StrokeEraser.kt        # partial eraser: split a stroke into surviving pieces (pure)
       PageEraser.kt          # eraser applied to a page: mode, tip size, hidden-layer skip (pure)
-      ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list (pure)
+      ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list; headed figures delegate to FigureGeometry.kt (pen-sized heads) and are re-emitted by FigureRedraw.kt on resize (pure)
       TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
       TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
       FunctionPlot.kt        # f(x): expression parser, sampling, and the plot's page geometry (pure, tested)

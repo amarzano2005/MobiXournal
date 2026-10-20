@@ -162,7 +162,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
   - **Triangles with Variants & Custom Angles**: Submenu with 4 geometric kinds: **Equilateral** (default, equal sides/angles), **Right-angled**, **Isosceles**, and **Scalene** with fully customizable interior angles (A, B, C; sum = 180°) and live preview. Each kind is drawn as its own outline beside its name in the submenu, so the four triangles are told apart by shape as well as by label.
   - **Trapezoid with Variants & Custom Angles**: Submenu with 3 kinds: **Isosceles** (default, shorter base centred over the longer one), **Right-angled** (one leg perpendicular to the bases), and **Scalene** with its two base angles customizable — unequal angles give unequal legs, i.e. four different sides — with live preview. As with the triangles, each kind carries a small outline of the shape it draws beside its name. The figure is always fitted inside its drag, and its angles are what is kept exactly.
   - **Cartesian Coordinate Axes**: Instant oriented X/Y coordinate systems.
-  - **Vectors**: Single and double-ended arrows for force diagrams and dimensioning.
+  - **Vectors**: Single and double-ended arrows for force diagrams and dimensioning. A head is sized by the pen, not by the arrow's length: every arrow and both axes of a coordinate system drawn with one pen wear the same head, so a page of them looks drawn by one hand — and resizing one lengthens its shaft without touching its head.
   - **Parametric Splines**: Multi-point smooth curves with interactive tangent handles.
 - **Virtual Drafting Instruments**:
   - **Setsquare (30°/60°/90°)**: Movable drafting triangle with edge snapping for straight lines.
