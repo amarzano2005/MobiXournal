@@ -97,9 +97,13 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 
     DialogPresence(editing in 0..settings.penColors.size) {
-        val isNew = editing == settings.penColors.size
+        // Held past the flag, like the favourites' subject: the picker is still composed for its
+        // exit after `editing` has gone back to -1, and reading that live indexed the palette at -1.
+        val index = rememberClosingArgument(editing.takeIf { it in 0..settings.penColors.size })
+            ?: return@DialogPresence
+        val isNew = index == settings.penColors.size
         val initial = if (isNew) settings.customColor ?: AppSettings.DEFAULT_CUSTOM_COLOR
-        else settings.penColors[editing]
+        else settings.penColors[index]
         CustomColorPickerDialog(
             initial = initial,
             palette = settings.penColors,
@@ -109,8 +113,8 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                         settings.copy(penColors = (settings.penColors + newColor).distinct())
                     } else {
                         val replaced = settings.penColors.toMutableList()
-                        val previous = replaced[editing]
-                        replaced[editing] = newColor
+                        val previous = replaced[index]
+                        replaced[index] = newColor
                         settings.copy(
                             penColors = replaced.distinct(),
                             // The row's shortcut belongs to the slot, not to the old colour: redefine
