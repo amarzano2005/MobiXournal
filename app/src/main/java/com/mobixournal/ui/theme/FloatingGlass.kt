@@ -119,10 +119,11 @@ internal val MENU_RIM_WIDTH = 1.dp
 val LocalLiquidGlassAnimations = compositionLocalOf { true }
 
 /**
- * How long a floating surface takes to **draw back** when it closes — the dual of the 110 ms entrance
- * fade, a touch slower so the eye registers the panel leaving rather than blinking out.
+ * How long a floating surface takes to **draw back** when it closes: the closing spring settles in
+ * about 200 ms and the fade lands at 170 ms, so the window is held for 230 ms — long enough for the
+ * exit to read (a shorter hold played it out in ~8 frames, which looked exactly like a snap).
  */
-const val FLOATING_EXIT_MS = 130
+const val FLOATING_EXIT_MS = 230
 
 /**
  * Whether the floating surface being composed is on its way **out**. [DialogPresence] provides it while
@@ -167,19 +168,21 @@ fun Modifier.liquidGlassSpringAnimation(
                 )
             }
         } else {
-            // The closing half, run backwards: it draws back to the same 0.82 scale and fades out. No
-            // spring here — the exit is a fixed [FLOATING_EXIT_MS] so the host that keeps the surface
-            // composed knows exactly when the window may go.
+            // The closing half, run backwards: it draws back to the same 0.82 scale and fades out. Both
+            // land inside [FLOATING_EXIT_MS], the hold the host keeps the window for — a spring that
+            // settled later would have its tail cut off by the window going away.
             launch {
+                // A spring on the way out too, so the panel reads as drawing back rather than as being
+                // cut: lightly damped, so it settles in ~200 ms without a visible bounce.
                 scale.animateTo(
                     targetValue = 0.82f,
-                    animationSpec = tween(durationMillis = FLOATING_EXIT_MS, easing = FastOutSlowInEasing),
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 850f),
                 )
             }
             launch {
                 alpha.animateTo(
                     targetValue = 0f,
-                    animationSpec = tween(durationMillis = FLOATING_EXIT_MS, easing = FastOutSlowInEasing),
+                    animationSpec = tween(durationMillis = 170, easing = FastOutSlowInEasing),
                 )
             }
         }
