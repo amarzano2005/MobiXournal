@@ -77,8 +77,8 @@ mobile and desktop.
 ## Mobile and Tablet ergonomics
 
 ```text
-Tablet Portrait / Landscape:
-- Rail on one vertical edge, chosen once in settings (AppSettings.toolbarPosition, Left / Right):
+Tablet Portrait / Landscape:   - **The PDF actions wear the document red**: *Import PDF* and *Export PDF* in the overflow menu are outlined in `DocumentRed` (`#E53935`, the same red as the recording dot) instead of the primary blue the menu's other buttons use, so the PDF row reads as the PDF row at a glance; *Page as PNG* / *Page as SVG* stay blue.
+   - Rail on one vertical edge, chosen once in settings (AppSettings.toolbarPosition, Left / Right):
   * a band in its own lane beside the canvas, never a bar over the page;
   * comfortable palm clearance for left- and right-handed stylus users.
 - Compact layout: the same tools as a horizontal band along the bottom edge, above the nav-bar inset.
@@ -271,6 +271,7 @@ The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([M
    - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width), standing in a lane exactly that wide whose height begins below the **whole** header; its gap and padding budget (`RailSizing.kt`) is what keeps every slot whole and on screen without a scroll.
    - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge and the header band above — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
    - **Settings opens with the app's own spring**: the settings screen is an overlay on the still-composed editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector, instead of snapping in.
+   - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own monoline icon, drawn in a tinted disc at the head of its row (`SectionRow`) — a list of twelve text rows is read at a glance, and the same glyph follows the row into the search results. The glyph is part of the enum, so a new section cannot be added without one.
    - **Dialogs leave the way they arrived**: a dialog is its own window, so Compose tore it down the instant its flag cleared — the entrance spring played in full and the panel vanished mid-frame. `DialogPresence(visible)` holds the window composed for `FLOATING_EXIT_MS` (230 ms) while the surface runs the animation backwards (same 0.82 scale as a `0.85/850` spring, a 170 ms fade, `LocalFloatingSurfaceClosing`), and `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one (`flag != null`). The hold is what the eye needs: at the first take, 130 ms, the panel left in about eight frames and read as no animation at all. Every floating dialog — the editor's, the pages menu's, the settings pickers' — is gated that way.
 3. **Phase 3: Contextual Micro-Inspectors & Pen-Tip Radial HUD** (active in Step 2 `TODO.toml`):
    - **Chrome & system bar guards** (`guard-the-system-bars-as-one-transparent-contract`, `guard-the-chrome-bands-as-one-geometry-contract`): mechanical test suites pinning edge-to-edge transparency and layout band partitioning.

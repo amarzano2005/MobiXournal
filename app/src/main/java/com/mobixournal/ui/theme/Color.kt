@@ -28,6 +28,16 @@ val PurpleDark = Color(0xFFC084FC)
 /** Brand secondary / guide accent; default Amber (#FFFFB300). */
 val Amber = Color(0xFFFFB300)
 
+/**
+ * The pixel-document red (#E53935) — the PDF actions' colour in the top-bar menu.
+ *
+ * The menu's file actions are blue like every other control; the two that are about a **PDF** (import
+ * the pages of one, write the document out as one) wear this red instead, so the row reads as the
+ * PDF row at a glance and not as two more ordinary buttons. It is the same red as the recording dot,
+ * which is the one red the chrome already used.
+ */
+val DocumentRed = Color(0xFFE53935)
+
 // --- Formal Semantic Chrome Palette (docs/ui-modernization.md) ---
 
 /** True OLED Black canvas and desk background for dark mode (#000000). */

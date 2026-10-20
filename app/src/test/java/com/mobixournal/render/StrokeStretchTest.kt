@@ -114,4 +114,57 @@ class StrokeStretchTest {
         // The barbs are still mirrored about the shaft.
         assertEquals(stretched[2].y, -stretched[4].y, 1e-9)
     }
+
+    @Test
+    fun aDiagonalArrowKeepsItsHeadToo() {
+        // The head is found from the vertices, not from a horizontal assumption: an arrow drawn at 45°
+        // has to stretch exactly like a flat one, or half the figures on a real page behave differently.
+        val original = ShapeBuilder.build(ShapeKind.ARROW, 20.0, 30.0, 120.0, 130.0, 2.0)
+        val doubled = resize(original, 2.0, 2.0)
+
+        val headBefore = distance(original[1], original[2])
+        assertEquals(headBefore, distance(doubled[1], doubled[2]), 1e-9)
+        assertEquals(headBefore, distance(doubled[1], doubled[4]), 1e-9)
+        // The tip travelled to twice its offset, so the shaft is longer and the head did not grow.
+        assertEquals(240.0, doubled[1].x, 1e-9)
+        assertEquals(260.0, doubled[1].y, 1e-9)
+    }
+
+    @Test
+    fun aHeadWithSlightlyUnevenBarbsIsStillRecognised() {
+        // The endpoint snap moves a stroke's last point, which on an arrow is one barb; a head whose
+        // barbs end up a few percent apart is still that arrow's head, and must not start growing.
+        val built = ShapeBuilder.build(ShapeKind.ARROW, 0.0, 0.0, 100.0, 0.0, 2.0)
+        val skewed = built.toMutableList()
+        val tip = built[1]
+        val last = skewed[skewed.lastIndex]
+        // 6% longer than its twin, in its own direction — what a snap of the stroke's last point does.
+        skewed[skewed.lastIndex] = last.copy(
+            x = tip.x + (last.x - tip.x) * 1.06,
+            y = tip.y + (last.y - tip.y) * 1.06,
+        )
+
+        val stretched = resize(skewed, 2.0, 2.0)
+
+        assertEquals(18.0, distance(stretched[1], stretched[2]), 1e-9)
+        assertEquals(
+            "a snapped barb keeps the length it had",
+            18.0 * 1.06,
+            distance(stretched[1], stretched[4]),
+            1e-9,
+        )
+    }
+
+    @Test
+    fun resizingTwiceDoesNotLetTheHeadCreepUp() {
+        // A drag is recomputed from the gesture-start snapshot every frame, and a second drag starts
+        // from the first one's result: if the rule were approximate, the head would grow a little each
+        // time instead of never.
+        val original = ShapeBuilder.build(ShapeKind.ARROW, 0.0, 0.0, 100.0, 0.0, 2.0)
+        val once = resize(original, 1.5, 1.5)
+        val twice = resize(once, 1.5, 1.5)
+
+        assertEquals(18.0, distance(twice[1], twice[2]), 1e-9)
+        assertEquals(18.0, distance(twice[1], twice[4]), 1e-9)
+    }
 }

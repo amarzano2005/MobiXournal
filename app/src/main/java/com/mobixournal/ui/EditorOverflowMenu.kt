@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -50,10 +51,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
+
+/**
+ * The PDF row's ink: [DocumentRed] on the label and glyph, with a hairline of the same red on the
+ * outline — so the pair reads as the PDF row rather than as two more blue buttons.
+ */
+@Composable
+private fun pdfActionColors() = ButtonDefaults.outlinedButtonColors(contentColor = DocumentRed)
+
+@Composable
+private fun pdfActionBorder() = BorderStroke(1.dp, DocumentRed.copy(alpha = 0.55f))
 
 /**
  * The top-bar overflow ("hamburger") menu: the glass button that opens it and the panel itself —
@@ -157,6 +169,8 @@ internal fun OverflowMenu(
                     enabled = !isReadOnly,
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    colors = pdfActionColors(),
+                    border = pdfActionBorder(),
                 ) {
                     Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
@@ -167,6 +181,8 @@ internal fun OverflowMenu(
                     enabled = !isReadOnly,
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    colors = pdfActionColors(),
+                    border = pdfActionBorder(),
                 ) {
                     Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))

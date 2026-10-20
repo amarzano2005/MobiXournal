@@ -22,13 +22,21 @@ import kotlin.math.hypot
 internal object StrokeStretch {
 
     /** Points closer than this are the same point; `ShapeBuilder` repeats a tip exactly. */
-    private const val SAME_POINT_PT = 1e-6
+    private const val SAME_POINT_PT = 1e-3
 
     /** A head shorter than this is noise, not a decoration worth protecting. */
     private const val MIN_BARB_PT = 2.0
 
-    /** The two barbs of one head must be this close in length (relative) to count as a V. */
-    private const val BARB_LENGTH_TOLERANCE = 0.02
+    /**
+     * How far apart the two barbs of one head may be (relative) and still be one V.
+     *
+     * `ShapeBuilder` draws them equal, but the committed stroke is not always the builder's own: the
+     * endpoint snap can move the stroke's **last** point — which on an arrow is a barb — and a head
+     * that stops being recognised is a head that starts growing with the shaft again, which is the
+     * exact bug this class exists to prevent. Wide enough to survive that, narrow enough that the
+     * shaft and a barb are never mistaken for a pair (they are an order of magnitude apart).
+     */
+    private const val BARB_LENGTH_TOLERANCE = 0.10
 
     /** Below this cross product (relative to the barb lengths) the "V" is a straight line. */
     private const val MIN_V_OPENING = 0.05

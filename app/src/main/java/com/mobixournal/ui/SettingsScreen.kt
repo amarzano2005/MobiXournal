@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -13,11 +14,28 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Input
+import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material.icons.outlined.SpaceDashboard
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.ViewSidebar
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -35,6 +53,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
@@ -54,24 +74,29 @@ enum class SettingsArea(
     val title: String,
     val summary: String,
     val sections: List<SettingsSection>,
+    /** The glyph on the area's row, so a list of four reads at a glance. */
+    val icon: ImageVector,
 ) {
     /** Input devices and the keys that stand in for them: stylus behaviour and shortcuts. */
     INPUT(
         "Input",
         "Stylus pressure, barrel buttons, hover, finger gestures, and keyboard shortcuts.",
         listOf(SettingsSection.STYLUS, SettingsSection.GESTURES, SettingsSection.SHORTCUTS),
+        Icons.Outlined.Input,
     ),
     /** What the drawing tools do and what they draw with: tool behaviour, figures, palette. */
     DRAWING(
         "Drawing",
         "Default tool, snapping, figure sizes and shapes, and the pen palette.",
         listOf(SettingsSection.EDITOR, SettingsSection.FIGURES, SettingsSection.COLORS),
+        Icons.Outlined.Draw,
     ),
     /** How the app looks and how the canvas is navigated: toolbars, theme, panning. */
     INTERFACE(
         "Interface",
         "Toolbar layout, theme, momentum and panning.",
         listOf(SettingsSection.TOOLBAR, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
+        Icons.Outlined.SpaceDashboard,
     ),
     /** The app itself: what it writes, how much it may store, how its settings move, what it is. */
     APP(
@@ -83,6 +108,7 @@ enum class SettingsArea(
             SettingsSection.BACKUP,
             SettingsSection.ABOUT,
         ),
+        Icons.Outlined.Apps,
     ),
 }
 
@@ -97,13 +123,20 @@ enum class SettingsArea(
  *   (including the near-miss ones: "dark", "wallpaper", "megabytes"…). [SettingsSearchTest] pins a
  *   handful of them to their sections, which is what keeps a list from rotting as its page changes.
  */
-enum class SettingsSection(val title: String, val summary: String, val keywords: String) {
+enum class SettingsSection(
+    val title: String,
+    val summary: String,
+    val keywords: String,
+    /** The glyph the section's row carries, so a list of sections is read at a glance. */
+    val icon: ImageVector,
+) {
     /** Stylus and finger input settings: pressure curve, barrel buttons, hover, finger drawing. */
     STYLUS(
         "Stylus",
         "Finger drawing, hover preview, barrel button, pressure feel.",
         "pressure multiplier minimum floor barrel button double tap hover preview palm rejection " +
             "finger drawing touch eraser tip stylus pen presets diagnostics thickness",
+        Icons.Outlined.Draw,
     ),
     /** Editor behaviour: default tool, shape recognition, snapping to grid or angles. */
     EDITOR(
@@ -111,6 +144,7 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Default tool and snapping to the grid or to 15° rotations.",
         "default tool startup snapping snap grid ruling rotation angle degrees shape recognition " +
             "recognizer layer pages",
+        Icons.Outlined.Tune,
     ),
     /** Toolbar configuration: which buttons appear in the Main and Secondary Toolbars and their order. */
     TOOLBAR(
@@ -118,6 +152,7 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Main Toolbar position and buttons, and Secondary Toolbar (figures) configuration.",
         "main toolbar position left right handed left-handed right-handed buttons order hide show " +
             "reorder rail secondary top bar figures",
+        Icons.Outlined.ViewSidebar,
     ),
     /** Figures: the default figure size and each figure tool's default variant. */
     FIGURES(
@@ -125,6 +160,7 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Default figure size, and each figure tool's default variant.",
         "figure size width shapes submenu triangle trapezoid scalene angles rectangle ellipse " +
             "spline arrow table circuit logic guides",
+        Icons.Outlined.Category,
     ),
     /** Colors: the pen palette every colour picker offers. */
     COLORS(
@@ -132,6 +168,7 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Add, edit or remove the swatches every colour picker offers.",
         "colour color palette swatch favourite favorite custom hex pen highlighter add remove " +
             "restore default theme",
+        Icons.Outlined.Palette,
     ),
     /** Finger gestures: what a still two- and three-finger tap on the canvas does. */
     GESTURES(
@@ -139,12 +176,14 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "What a still two-finger tap and a still three-finger tap do.",
         "finger gestures touch two finger tap double tap three triple tap undo redo toggle eraser " +
             "select full page multitouch multi-touch tap",
+        Icons.Outlined.TouchApp,
     ),
     /** Keyboard shortcuts: one key per tool and per pen colour. */
     SHORTCUTS(
         "Shortcuts",
         "One key each to jump straight to a tool or a pen colour.",
         "shortcut key keyboard hardware expresskey tablet remote button detect assignment",
+        Icons.Outlined.Keyboard,
     ),
     /** Navigation: momentum scrolling strength and panning sensitivity. */
     NAVIGATION(
@@ -152,6 +191,7 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Momentum scrolling and panning sensitivity.",
         "momentum scroll scrolling glide inertia pan panning sensitivity speed zoom full page " +
             "scrollbar",
+        Icons.Outlined.PanTool,
     ),
     /** Appearance: theme mode and wallpaper colours. */
     APPEARANCE(
@@ -159,6 +199,7 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "Theme and wallpaper colours.",
         "appearance interface theme dark light system dynamic color colour " +
             "material you wallpaper",
+        Icons.Outlined.DarkMode,
     ),
     /**
      * Documents: the format a new document is written in — the standing answer to the question the
@@ -169,24 +210,28 @@ enum class SettingsSection(val title: String, val summary: String, val keywords:
         "The format a new document is written in.",
         "document format default format default new document mobix xopp xournal++ desktop " +
             "interchange file type extension save as living graph table flattened portable",
+        Icons.Outlined.Description,
     ),
     /** Storage: text import limit and PDF cache budget. */
     STORAGE(
         "Storage",
         "How big a text file may be imported, and how much cache to keep.",
         "storage limit size text import markdown plain text megabytes cache pdf prune disk space",
+        Icons.Outlined.Storage,
     ),
     /** Backup: export or import settings to and from a JSON file. */
     BACKUP(
         "Backup",
         "Export or import your settings to and from a JSON file.",
         "backup export import json file restore reset settings transfer migrate",
+        Icons.Outlined.Backup,
     ),
     /** About: version, licence, source, and support links. */
     ABOUT(
         "About",
         "Version, licence, source code, and how to support the work.",
         "about version build number licence license gpl source code github support donate credits",
+        Icons.Outlined.Info,
     ),
 }
 
@@ -370,7 +415,7 @@ private fun StackedSettings(
                             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                                 val areas = SettingsArea.values()
                                 areas.forEachIndexed { index, entry ->
-                                    SectionRow(entry.title, entry.summary) { onArea(entry) }
+                                    SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
                                     if (index < areas.size - 1) {
                                         SettingsDivider()
                                     }
@@ -428,7 +473,7 @@ private fun SectionRows(area: SettingsArea, onOpen: (SettingsSection) -> Unit) {
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             area.sections.forEachIndexed { index, entry ->
-                SectionRow(entry.title, entry.summary) { onOpen(entry) }
+                SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
                 if (index < area.sections.size - 1) {
                     SettingsDivider()
                 }
@@ -470,6 +515,7 @@ private fun SearchResultRows(
                 SectionRow(
                     title = entry.title,
                     summary = if (where == null) entry.summary else "$where · ${entry.summary}",
+                    icon = entry.icon,
                 ) { onOpen(entry) }
                 if (index < results.size - 1) {
                     SettingsDivider()
@@ -501,9 +547,22 @@ private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable 
     ) { padding -> body(padding) }
 }
 
-/** One tappable row on a list page: the entry's name, what it covers, and a chevron. */
+/**
+ * One tappable row on a list page: the entry's glyph (when it has one), its name, what it covers, and
+ * a chevron.
+ *
+ * The glyph sits in a tinted disc rather than bare on the surface: the rows are a plain list of text
+ * otherwise, and at a glance a disc is what tells two neighbouring sections apart before the title is
+ * read. [icon] is null for a page that has no glyph of its own (a shortcut sheet's list, an area
+ * reached from search), and the row then starts at the text exactly as it used to.
+ */
 @Composable
-internal fun SectionRow(title: String, summary: String, onClick: () -> Unit) {
+internal fun SectionRow(
+    title: String,
+    summary: String,
+    icon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -511,6 +570,23 @@ internal fun SectionRow(title: String, summary: String, onClick: () -> Unit) {
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+        }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

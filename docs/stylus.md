@@ -159,7 +159,10 @@ arrow made twice as long is twice as long and exactly as thin, and a figure shru
 does not collapse into a smear. Lengthening an arrow therefore never fattens it **or enlarges its
 head**: the V heads of arrows, the axes of the coordinate diagram and every other figure keep the size
 they were drawn with while the shaft lengthens (`StrokeStretch`, which recognises the repeated-tip V
-`ShapeBuilder` writes). The head's length is chosen only when the figure is first laid down
+`ShapeBuilder` writes). That recognition is deliberately tolerant — the two barbs may differ by up to a
+tenth, and the tip counts as repeated within a thousandth of a point — because the committed stroke is
+not always the builder's own (the endpoint snap moves the stroke's last vertex, which on an arrow is a
+barb) and a head that stops being recognised is a head that starts growing again. The head's length is chosen only when the figure is first laid down
 (`ShapeBuilder.ARROW_HEAD_FRACTION`, clamped); stretching it afterwards moves the head with the tip
 but leaves the barbs where they were, so the result reads as a longer arrow, not a bigger one.
 

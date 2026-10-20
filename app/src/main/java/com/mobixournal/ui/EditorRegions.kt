@@ -254,7 +254,8 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.VerticalSplit,
                             contentDescription = if (splitView) "Close split view" else "Split view",
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else Color(0xFFA0A0A0),
+                            // White like the undo/redo pair beside it: the grey read as disabled.
+                            tint = if (splitView) MaterialTheme.colorScheme.primary else Color.White,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -496,7 +497,8 @@ private fun SearchControls(pane: PaneState) {
         pane.searchTotal = status.total
     }
     val isDark = chromeIsDark()
-    val searchIconTint = Color(0xFFA0A0A0)
+    // White like the rest of the top bar's glyphs — the grey read as a disabled control.
+    val searchIconTint = Color.White
     if (!pane.searchOpen) {
         val glassColor = rememberGlassSurfaceColor()
         val hairlineColor = ModernTheme.hairlineBorder(isDark)
