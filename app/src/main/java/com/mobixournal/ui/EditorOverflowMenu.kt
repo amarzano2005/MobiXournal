@@ -5,7 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Menu
@@ -30,8 +33,6 @@ import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,24 +50,61 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
- * One **glass tile** of the overflow menu's action rows — a miniature of the toolbars' capsule.
+ * One **glass pane** of the overflow menu — a miniature of the toolbars' capsule.
  *
- * The file and PDF actions used to be plain `OutlinedButton`s, which on a frosted menu read as flat
- * Material controls lying on the glass rather than as panes cut from it. A tile borrows the recipe the
- * dock and the rail are built from: the glass fill, a cast shadow, a sheen along the lit top edge and
- * the family's hairline rim ([floatingRim]) — so a menu row looks like chrome the app already has,
- * just smaller, rather than like a second kind of button inside a menu.
+ * The menu's actions used to be plain `OutlinedButton`s and `FilterChip`s, which on a frosted menu read
+ * as flat Material controls lying on the glass rather than as panes cut from it. A pane borrows the
+ * recipe the dock and the rail are built from: the dock's glass fill (`rememberGlassSurfaceColor`), a
+ * small cast shadow (the bar itself carries 6 dp), a sheen along the lit top edge — strong enough to
+ * lift the pane a shade **above** the menu's own glass, the way the dock sits above the desk, instead
+ * of letting the equal-alpha fill read as a recess — and the family's hairline rim ([floatingRim]). So a
+ * menu row looks like chrome the app already has, only smaller.
+ *
+ * [wash] is an optional tint laid over the glass (a selected preset), [padding] the inner breathing
+ * room; everything else about the pane is fixed, so no row of the menu can invent its own glass.
+ */
+@Composable
+private fun GlassPane(
+    modifier: Modifier = Modifier,
+    corner: Dp = 12.dp,
+    shadowElevation: Dp = 3.dp,
+    padding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = 6.dp),
+    wash: Color? = null,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val dark = chromeIsDark()
+    val shape = RoundedCornerShape(corner)
+    val sheenTop = Color.White.copy(alpha = if (dark) 0.17f else 0.62f)
+    val sheenBottom = Color.White.copy(alpha = if (dark) 0.035f else 0.08f)
+    Box(
+        modifier = modifier
+            .shadow(shadowElevation, shape)
+            .clip(shape)
+            .background(rememberGlassSurfaceColor())
+            .background(Brush.verticalGradient(listOf(sheenTop, sheenBottom)))
+            .then(if (wash != null) Modifier.background(wash) else Modifier)
+            .floatingRim(corner)
+            .padding(padding),
+        contentAlignment = Alignment.Center,
+        content = content,
+    )
+}
+
+/**
+ * A pane carrying a glyph and a label — the PDF and page-export actions.
  *
  * The tint is the caller's: [DocumentRed] for the two PDF actions, the primary accent for the page
- * exports. Disabled tiles fade the tint instead of dropping the fill, so the row keeps its shape.
+ * exports. A disabled pane fades its ink instead of dropping the glass, so the row keeps its shape.
  */
 @Composable
 private fun GlassActionButton(
@@ -77,28 +115,8 @@ private fun GlassActionButton(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val dark = chromeIsDark()
-    val shape = RoundedCornerShape(12.dp)
     val alpha = if (enabled) 1f else 0.38f
-    // **The toolbars' own recipe**, shrunk to a tile: the dock's glass fill (`rememberGlassSurfaceColor`),
-    // a small cast shadow (the bar itself carries 6 dp), a sheen along the top edge where the light
-    // falls, and the family's hairline rim. A tile therefore reads as a miniature dock laid on the
-    // menu — raised glass — instead of a Material control, or a bare lighter rectangle.
-    // Strong enough to lift the tile a shade **above** the menu's own glass — the way the dock sits above
-    // the desk — instead of letting the fill read as a recess.
-    val sheenTop = Color.White.copy(alpha = if (dark) 0.17f else 0.62f)
-    val sheenBottom = Color.White.copy(alpha = if (dark) 0.035f else 0.08f)
-    Box(
-        modifier = modifier
-            .shadow(3.dp, shape)
-            .clip(shape)
-            .background(rememberGlassSurfaceColor())
-            .background(Brush.verticalGradient(listOf(sheenTop, sheenBottom)))
-            .floatingRim(12.dp)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 9.dp, horizontal = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
+    GlassPane(modifier = modifier.clickable(enabled = enabled, onClick = onClick)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -117,6 +135,57 @@ private fun GlassActionButton(
             )
         }
     }
+}
+
+/**
+ * A **glass preset chip**: the pen presets wear the same pane as the PDF actions rather than a Material
+ * [androidx.compose.material3.FilterChip], so the menu has one kind of button all the way down.
+ *
+ * The live preset is the one the accent writes and the one the accent washes, so "which pen am I
+ * holding" is readable without hunting for a check mark.
+ */
+@Composable
+private fun GlassPresetChip(
+    name: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val ink = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk()
+    GlassPane(
+        corner = 10.dp,
+        shadowElevation = 2.dp,
+        padding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+        wash = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else null,
+        modifier = Modifier.clickable(onClick = onClick),
+    ) {
+        Text(
+            name,
+            style = MaterialTheme.typography.labelMedium,
+            color = ink,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * The **rule between two parts of the menu** — the file/PDF actions, the pen, the app.
+ *
+ * A Material [HorizontalDivider] was invisible here: its outline variant is darker than the glass it
+ * would sit on, so the menu read as one undivided column. This is the chrome's own hairline instead,
+ * feathered to nothing at both ends the way the panel's rim is, so it separates the parts without
+ * turning into a box edge.
+ */
+@Composable
+private fun MenuRule() {
+    val ink = rememberChromeInk().copy(alpha = 0.22f)
+    val clear = ink.copy(alpha = 0f)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .height(1.dp)
+            .background(Brush.horizontalGradient(listOf(clear, ink, clear))),
+    )
 }
 
 /**
@@ -164,7 +233,7 @@ internal fun OverflowMenu(
                 Icon(
                     Icons.Outlined.Menu,
                     contentDescription = "Menu",
-                    tint = Color.White,
+                    tint = rememberChromeInk(),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -259,9 +328,10 @@ internal fun OverflowMenu(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            MenuRule()
 
-            // Pen Subsection
+            // Pen Subsection: the heading is the chrome's own ink, with the section's glyph beside it,
+            // and the pen-parameters button on the far end in the same ink.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -269,13 +339,20 @@ internal fun OverflowMenu(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Icon(
+                        Icons.Outlined.Draw,
+                        contentDescription = null,
+                        tint = rememberChromeInk(),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         "Pen",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = rememberChromeInk(),
+                        modifier = Modifier.weight(1f),
                     )
                     IconButton(
                         onClick = { open = false; onOpenPenParameters() },
@@ -283,7 +360,8 @@ internal fun OverflowMenu(
                     ) {
                         Icon(
                             Icons.Outlined.Tune,
-                            contentDescription = "Pen parameters",
+                            contentDescription = "Pen settings",
+                            tint = rememberChromeInk(),
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -292,24 +370,27 @@ internal fun OverflowMenu(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 2.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         settings.penPresets.forEach { preset ->
-                            val isSelected = preset.id == settings.selectedPenPresetId
-                            FilterChip(
-                                selected = isSelected,
+                            GlassPresetChip(
+                                name = preset.name,
+                                selected = preset.id == settings.selectedPenPresetId,
                                 onClick = {
                                     open = false
                                     onSelectPenPreset(preset)
                                 },
-                                label = { Text(preset.name, style = MaterialTheme.typography.bodySmall, maxLines = 1) },
                             )
                         }
                     }
                     Spacer(Modifier.height(4.dp))
                 }
+                // No horizontal padding of its own: the row's glyph sits on the same left edge as the
+                // **Pen** heading's glyph above it, so the section reads as one column. Its ink stays
+                // the secondary grey it has always been — this row is a setting, not the heading.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -318,19 +399,28 @@ internal fun OverflowMenu(
                             open = false
                             onTogglePenDiagnostics()
                         }
-                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         Icons.Outlined.BugReport,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = if (penDiagnostics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (penDiagnostics) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         if (penDiagnostics) "Hide pen diagnostics" else "Pen diagnostics",
                         style = MaterialTheme.typography.bodyMedium,
+                        color = if (penDiagnostics) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     if (penDiagnostics) {
@@ -344,12 +434,14 @@ internal fun OverflowMenu(
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            MenuRule()
 
             // Settings
             DropdownMenuItem(
-                text = { Text("Settings") },
-                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                text = { Text("Settings", color = rememberChromeInk()) },
+                leadingIcon = {
+                    Icon(Icons.Outlined.Settings, contentDescription = null, tint = rememberChromeInk())
+                },
                 onClick = { open = false; onSettings() },
             )
         }
