@@ -22,9 +22,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import com.mobixournal.ui.theme.FloatingDialog
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +37,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.PageThumbnail
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.FloatingDialog
 
 /** How wide each preview is rasterised — a grid cell at typical tablet density. */
 private const val THUMB_WIDTH_PX = 240
@@ -57,7 +58,6 @@ internal fun TabOverviewButton(tabs: TabsUiState) {
     IconButton(onClick = { tabs.onOverview(); open = true }) {
         Icon(Icons.Outlined.GridView, contentDescription = "Tab overview")
     }
-    if (!open) return
     // One slot per tab, filled in as each preview lands. Keyed on the tab count so a tab opened or
     // closed while the grid is up doesn't leave the previews shifted off their titles.
     val thumbs = remember(tabs.titles.size) { mutableStateListOf<Bitmap?>().apply { repeat(tabs.titles.size) { add(null) } } }
@@ -66,23 +66,25 @@ internal fun TabOverviewButton(tabs: TabsUiState) {
             tabs.preview(i, THUMB_WIDTH_PX) { bitmap -> if (i < thumbs.size) thumbs[i] = bitmap }
         }
     }
-    FloatingDialog(
-        onDismissRequest = { open = false },
-        confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
-        title = { Text("Open tabs") },
-        text = {
-            LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 120.dp)) {
-                itemsIndexed(tabs.titles) { index, title ->
-                    TabOverviewCell(
-                        title = title,
-                        thumbnail = thumbs.getOrNull(index),
-                        active = index == tabs.activeIndex,
-                        onClick = { open = false; tabs.onSelect(index) },
-                    )
+    DialogPresence(open) {
+        FloatingDialog(
+            onDismissRequest = { open = false },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
+            title = { Text("Open tabs") },
+            text = {
+                LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 120.dp)) {
+                    itemsIndexed(tabs.titles) { index, title ->
+                        TabOverviewCell(
+                            title = title,
+                            thumbnail = thumbs.getOrNull(index),
+                            active = index == tabs.activeIndex,
+                            onClick = { open = false; tabs.onSelect(index) },
+                        )
+                    }
                 }
-            }
-        },
-    )
+            },
+        )
+    }
 }
 
 /** One tab in the grid: its page preview (or a blank card) above its title. */

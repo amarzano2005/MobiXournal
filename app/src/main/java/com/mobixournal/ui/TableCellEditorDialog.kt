@@ -69,6 +69,7 @@ import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.TableElementFactory
 import com.mobixournal.render.replaceTableElement
 import com.mobixournal.ui.theme.FloatingSurface
+import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 
 
@@ -109,7 +110,10 @@ fun TableCellEditorDialog(
                 .widthIn(min = 320.dp, max = 560.dp)
                 .fillMaxWidth(0.92f)
                 .padding(horizontal = 12.dp, vertical = 16.dp)
-                .liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f)),
+                .liquidGlassSpringAnimation(
+                    expanded = !LocalFloatingSurfaceClosing.current,
+                    origin = TransformOrigin(0.5f, 0.5f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(10.dp),

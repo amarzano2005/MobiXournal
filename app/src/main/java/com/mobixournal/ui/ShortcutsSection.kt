@@ -1,7 +1,5 @@
 package com.mobixournal.ui
 
-import com.mobixournal.ui.theme.floatingRim
-import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -43,6 +41,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
  * The keyboard shortcuts, apart from the input behaviours they used to sit among: the two toggles,
@@ -209,7 +210,7 @@ private fun KeySettingField(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     )
 
-    if (detecting) {
+    DialogPresence(detecting) {
         KeyDetectionDialog(
             label = label,
             onKeyDetected = { detected ->

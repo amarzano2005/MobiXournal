@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.mobixournal.ui.theme.DialogPresence
 
 /** Xournal++ palette colour `#000000` (black) — the pen a fresh document starts with. */
 internal val XOPP_BLACK: Int = 0xFF000000.toInt()
@@ -143,7 +144,7 @@ internal fun ColorSizePopup(
         onDismiss = { editing = false },
         onRedefine = callbacks.onRedefineCustom,
     )
-    if (adding) {
+    DialogPresence(adding) {
         CustomColorPickerDialog(
             initial = callbacks.palette.custom ?: AppSettings.DEFAULT_CUSTOM_COLOR,
             palette = callbacks.palette.colors,
@@ -155,7 +156,7 @@ internal fun ColorSizePopup(
             onDismiss = { adding = false },
         )
     }
-    if (editingSlot in callbacks.widthSlots.indices) {
+    DialogPresence(editingSlot in callbacks.widthSlots.indices) {
         WidthSlotSliderDialog(
             label = PEN_WIDTH_LABELS[editingSlot],
             initial = callbacks.widthSlots[editingSlot],

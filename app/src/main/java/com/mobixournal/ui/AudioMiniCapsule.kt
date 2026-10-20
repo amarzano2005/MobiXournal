@@ -2,7 +2,6 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import com.mobixournal.ui.theme.floatingRim
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -56,8 +55,10 @@ import com.mobixournal.audio.LanguagePackStatus
 import com.mobixournal.audio.SUPPORTED_TRANSCRIPTION_LANGUAGES
 import com.mobixournal.audio.checkSpeechLanguagePack
 import com.mobixournal.audio.triggerSpeechLanguageDownload
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
@@ -319,7 +320,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
         onClick = { audio.onChooseFolder(); onDismiss() },
     )
 
-    if (showLanguageDialog) {
+    DialogPresence(showLanguageDialog) {
         TranscriptionLanguageDialog(
             currentLanguage = audio.transcriptionLanguage,
             onLanguageSelected = { audio.onLanguageChange(it) },

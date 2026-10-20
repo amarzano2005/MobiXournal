@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
+import com.mobixournal.ui.theme.DialogPresence
 import kotlin.math.roundToInt
 
 /**
@@ -109,7 +110,7 @@ private fun Stepper(label: String, value: Int, noun: String, onValue: (Int) -> U
 @Composable
 private fun TriangleGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
-    if (showDialog) {
+    DialogPresence(showDialog) {
         ScaleneAnglesDialog(
             angleA = settings.scaleneAngleA,
             angleB = settings.scaleneAngleB,
@@ -149,7 +150,7 @@ private fun TriangleGeometry(settings: AppSettings, onChange: (AppSettings) -> U
 @Composable
 private fun TrapezoidGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
-    if (showDialog) {
+    DialogPresence(showDialog) {
         TrapezoidAnglesDialog(
             angleA = settings.trapezoidAngleA,
             angleB = settings.trapezoidAngleB,

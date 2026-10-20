@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.render.replaceCircuitElement
 import com.mobixournal.ui.theme.FloatingSurface
+import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.round
 import kotlin.math.roundToInt
@@ -104,7 +105,10 @@ fun CircuitInspectorAnchor(
             .offset { finalOffset }
             .widthIn(min = 240.dp, max = 290.dp)
             .padding(4.dp)
-            .liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f))
+            .liquidGlassSpringAnimation(
+                    expanded = !LocalFloatingSurfaceClosing.current,
+                    origin = TransformOrigin(0.5f, 0.5f),
+                )
             .onSizeChanged { inspectorSize = it },
     ) {
         CircuitInspectorContent(

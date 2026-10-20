@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.rememberClosingArgument
 
 /**
  * The pen palette and favourite colours:
@@ -79,7 +81,9 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         }
     }
 
-    favoriteEditing?.let { (tool, index) ->
+    DialogPresence(favoriteEditing != null) {
+        // Held past the flag so the picker still knows which dot it is editing while it closes.
+        val (tool, index) = rememberClosingArgument(favoriteEditing) ?: return@DialogPresence
         val terna = if (tool == EditorTool.HIGHLIGHTER) settings.highlighterFavorites else settings.penFavorites
         CustomColorPickerDialog(
             initial = terna.getOrElse(index) { settings.customColor ?: AppSettings.DEFAULT_CUSTOM_COLOR },
@@ -92,7 +96,7 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         )
     }
 
-    if (editing in 0..settings.penColors.size) {
+    DialogPresence(editing in 0..settings.penColors.size) {
         val isNew = editing == settings.penColors.size
         val initial = if (isNew) settings.customColor ?: AppSettings.DEFAULT_CUSTOM_COLOR
         else settings.penColors[editing]

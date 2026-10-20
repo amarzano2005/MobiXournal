@@ -10,12 +10,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -32,6 +34,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -115,6 +119,19 @@ internal val MENU_RIM_WIDTH = 1.dp
 val LocalLiquidGlassAnimations = compositionLocalOf { true }
 
 /**
+ * How long a floating surface takes to **draw back** when it closes — the dual of the 110 ms entrance
+ * fade, a touch slower so the eye registers the panel leaving rather than blinking out.
+ */
+const val FLOATING_EXIT_MS = 130
+
+/**
+ * Whether the floating surface being composed is on its way **out**. [DialogPresence] provides it while
+ * a dialog plays its closing half, so [liquidGlassSpringAnimation] can run the animation backwards
+ * before the window is taken away.
+ */
+val LocalFloatingSurfaceClosing = compositionLocalOf { false }
+
+/**
  * Apple-style liquid glass opening animation for popups, menus, and dialogs.
  * Smoothly expands from [expanded] state with a fluid, organic spring bounce and alpha fade-in.
  * Can be disabled by user preference via [LocalLiquidGlassAnimations].
@@ -147,6 +164,22 @@ fun Modifier.liquidGlassSpringAnimation(
                 alpha.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(durationMillis = 110, easing = FastOutSlowInEasing),
+                )
+            }
+        } else {
+            // The closing half, run backwards: it draws back to the same 0.82 scale and fades out. No
+            // spring here — the exit is a fixed [FLOATING_EXIT_MS] so the host that keeps the surface
+            // composed knows exactly when the window may go.
+            launch {
+                scale.animateTo(
+                    targetValue = 0.82f,
+                    animationSpec = tween(durationMillis = FLOATING_EXIT_MS, easing = FastOutSlowInEasing),
+                )
+            }
+            launch {
+                alpha.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = FLOATING_EXIT_MS, easing = FastOutSlowInEasing),
                 )
             }
         }
@@ -229,7 +262,10 @@ fun FloatingDialog(
             modifier = modifier
                 .liquidGlassLensBevel(ModernTheme.panelCornerRadiusDp)
                 .floatingRim()
-                .liquidGlassSpringAnimation(expanded = true, origin = TransformOrigin(0.5f, 0.5f)),
+                .liquidGlassSpringAnimation(
+                    expanded = !LocalFloatingSurfaceClosing.current,
+                    origin = TransformOrigin(0.5f, 0.5f),
+                ),
             properties = properties,
             // No tonal wash: with `surface` and `surfaceTint` the same colour the RGB would survive it,
             // but the composite still stacks the tint's alpha over the fill's and lands the panel a
@@ -242,4 +278,64 @@ fun FloatingDialog(
             dismissButton = dismissButton,
         )
     }
+}
+
+/**
+ * Keeps a dialog's content **composed** for as long as its closing animation takes.
+ *
+ * A dialog lives in its own window, and Compose tears that window down the instant the caller stops
+ * composing it — so a `visible` flag that flips to false used to make the panel vanish mid-frame while
+ * its *opening* spring played in full. [DialogPresence] is the missing half: it watches the flag, tells
+ * the surface inside that it is closing ([LocalFloatingSurfaceClosing], which
+ * [liquidGlassSpringAnimation] reads as "expanded = false"), waits out [FLOATING_EXIT_MS], and only
+ * then lets the content go.
+ *
+ * Callers gate a dialog with it instead of `if (visible) { … }`:
+ *
+ * ```
+ * DialogPresence(ui.showSaveAs) { SaveAsDialog(…) }
+ * ```
+ *
+ * Nothing else about the dialog changes — it still composes immediately when the flag turns true, and
+ * the scrim still swallows taps for the exit's ~130 ms, which is the interval in which the panel is
+ * visibly leaving.
+ */
+@Composable
+fun DialogPresence(visible: Boolean, content: @Composable () -> Unit) {
+    var shown by remember { mutableStateOf(visible) }
+    var closing by remember { mutableStateOf(false) }
+    LaunchedEffect(visible) {
+        if (visible) {
+            shown = true
+            closing = false
+        } else if (shown) {
+            closing = true
+            delay(FLOATING_EXIT_MS.toLong())
+            shown = false
+            closing = false
+        }
+    }
+    if (shown) {
+        CompositionLocalProvider(LocalFloatingSurfaceClosing provides closing) { content() }
+    }
+}
+
+/**
+ * The subject of a dialog gated on a nullable state (`flag != null`).
+ *
+ * [DialogPresence] keeps a dialog composed while it closes, and by then the flag has already cleared —
+ * so the dialog needs the value it was opened *with*, not the one the state holds now. This holds the
+ * last non-null one for exactly as long as that composition lives: no state write, so it cannot loop a
+ * recomposition, and the value is forgotten the moment the window really goes.
+ */
+@Composable
+fun <T : Any> rememberClosingArgument(value: T?): T? {
+    val held = remember { HeldValue<T>() }
+    if (value != null) held.value = value
+    return held.value
+}
+
+/** A plain cell [rememberClosingArgument] writes into — deliberately not snapshot state. */
+private class HeldValue<T> {
+    var value: T? = null
 }

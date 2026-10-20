@@ -22,7 +22,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -35,6 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.FloatingDialog
+import com.mobixournal.ui.theme.rememberClosingArgument
 
 /**
  * A compact, scrollable row of pen parameter presets.
@@ -160,8 +162,9 @@ fun PenPresetsRow(
         }
     }
 
-    if (renameTarget != null) {
-        val target = renameTarget!!
+    DialogPresence(renameTarget != null) {
+        // Held past the flag so the dialog still names the preset it is renaming while it closes.
+        val target = rememberClosingArgument(renameTarget) ?: return@DialogPresence
         val targetIdx = presets.indexOf(target)
         RenamePenPresetDialog(
             preset = target,
@@ -190,7 +193,7 @@ fun PenPresetsRow(
         )
     }
 
-    if (showAddDialog) {
+    DialogPresence(showAddDialog) {
         NewPenPresetDialog(
             onConfirm = { name ->
                 val newPreset = PenPreset(

@@ -23,6 +23,7 @@ import com.mobixournal.render.BackgroundRuling
 import com.mobixournal.render.BackgroundRulings
 import com.mobixournal.render.PageTemplates
 import com.mobixournal.render.Stationery
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingDialog
 import kotlin.math.abs
 
@@ -81,42 +82,45 @@ internal fun PageBackgroundDialog(
     onStationery: (Stationery) -> Unit,
     onDone: () -> Unit,
 ) {
-    if (!open) return
-    val ruling = remember(config) { BackgroundRuling.parse(config) }
-    FloatingDialog(
-        onDismissRequest = onDone,
-        title = { Text("Page background") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel("Paper")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for ((value, label) in BACKGROUND_STYLES) {
-                        FilterChip(
-                            selected = value == style,
-                            enabled = style != null,
-                            onClick = { onStyle(value) },
-                            label = { Text(label) },
-                        )
+    // Held open for its own closing animation: the flag clears on Done, and the panel still has to
+    // draw back rather than blink out.
+    DialogPresence(open) {
+        val ruling = remember(config) { BackgroundRuling.parse(config) }
+        FloatingDialog(
+            onDismissRequest = onDone,
+            title = { Text("Page background") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SectionLabel("Paper")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for ((value, label) in BACKGROUND_STYLES) {
+                            FilterChip(
+                                selected = value == style,
+                                enabled = style != null,
+                                onClick = { onStyle(value) },
+                                label = { Text(label) },
+                            )
+                        }
+                    }
+                    SectionLabel("Rule spacing")
+                    RuleSpacingChips(style, ruling, onConfig)
+                    HorizontalDivider()
+                    SectionLabel("Stationery")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (kind in Stationery.entries) {
+                            FilterChip(
+                                selected = false,
+                                enabled = style != null || kind == Stationery.CORNELL,
+                                onClick = { onStationery(kind) },
+                                label = { Text(kind.label) },
+                            )
+                        }
                     }
                 }
-                SectionLabel("Rule spacing")
-                RuleSpacingChips(style, ruling, onConfig)
-                HorizontalDivider()
-                SectionLabel("Stationery")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for (kind in Stationery.entries) {
-                        FilterChip(
-                            selected = false,
-                            enabled = style != null || kind == Stationery.CORNELL,
-                            onClick = { onStationery(kind) },
-                            label = { Text(kind.label) },
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDone) { Text("Done") } },
-    )
+            },
+            confirmButton = { TextButton(onClick = onDone) { Text("Done") } },
+        )
+    }
 }
 
 /** A heading naming one group of the dialog's controls. */

@@ -20,7 +20,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.FloatingDialog
 
 /**
  * Backup and restore settings: export current configuration to a JSON file or import
@@ -133,7 +134,7 @@ fun BackupSection(
         }
     }
 
-    if (showResetDialog) {
+    DialogPresence(showResetDialog) {
         FloatingDialog(
             onDismissRequest = { showResetDialog = false },
             title = { Text("Reset all settings?") },

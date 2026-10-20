@@ -1,6 +1,5 @@
 package com.mobixournal.ui
 
-import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -20,29 +19,32 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.ImportPdfMode
+import com.mobixournal.render.PlotCurve
+import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.TrapezoidKind
-import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.TriangleKind
+import com.mobixournal.render.Uncompilable
+import com.mobixournal.render.cancelSpline
 import com.mobixournal.render.captureBackgroundRegion
 import com.mobixournal.render.clearBackgroundRegion
 import com.mobixournal.render.clearSelection
-import com.mobixournal.render.cutBackgroundRegion
 import com.mobixournal.render.clearTextSelection
 import com.mobixournal.render.copySelection
 import com.mobixournal.render.copyTextSelection
-import com.mobixournal.render.cancelSpline
+import com.mobixournal.render.cutBackgroundRegion
 import com.mobixournal.render.cutSelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
 import com.mobixournal.render.finishSpline
 import com.mobixournal.render.insertPlot
 import com.mobixournal.render.insertPlotElement
-import com.mobixournal.render.PlotCurve
-import com.mobixournal.render.PlotElementFactory
-import com.mobixournal.render.replacePlotElement
 import com.mobixournal.render.insertTable
+import com.mobixournal.render.replacePlotElement
 import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.undoLastSplineNode
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.rememberClosingArgument
+import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
  * Everything layered over the canvas: the contextual *mode* bars along the bottom edge (the element
@@ -79,7 +81,10 @@ fun BoxScope.EditorOverlays(
 
     SelectionOverlays(ui, pane, barModifier, settings, onSettingsChange)
 
-    ui.textPlacement?.let { placement ->
+    DialogPresence(ui.textPlacement != null) {
+        // The placement outlives the flag, so the dialog still knows what it is editing while it closes.
+        val placement = rememberClosingArgument(ui.textPlacement)
+        if (placement == null) return@DialogPresence
         val existing = placement.existing
         val defaults = ui.textDefaults
         TextBoxDialog(
@@ -104,21 +109,22 @@ fun BoxScope.EditorOverlays(
             onDismiss = { surface?.cancelTextEdit(); ui.textPlacement = null },
         )
     }
-    ui.texPlacement?.let { placement ->
+    DialogPresence(ui.texPlacement != null) {
+        val placement = rememberClosingArgument(ui.texPlacement) ?: return@DialogPresence
         LatexDialog(
             initial = "",
             onConfirm = { latex -> surface?.insertTex(placement, latex, ui.color); ui.texPlacement = null },
             onDismiss = { ui.texPlacement = null },
         )
     }
-    if (ui.showImportPdf) {
+    DialogPresence(ui.showImportPdf) {
         ImportPdfDialog(
             merging = surface?.hasPdfBackground() == true,
             onConfirm = { mode -> ui.showImportPdf = false; onImportPdf(mode) },
             onDismiss = { ui.showImportPdf = false },
         )
     }
-    if (ui.showSaveAs) {
+    DialogPresence(ui.showSaveAs) {
         SaveAsDialog(
             initialName = currentSaveName(),
             initialFormat = currentSaveFormat(),
@@ -126,17 +132,25 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showSaveAs = false },
         )
     }
-    if (exportGaps.isNotEmpty()) {
-        ExportGapsDialog(gaps = exportGaps, onDismiss = onDismissExportGaps)
+    DialogPresence(exportGaps.isNotEmpty()) {
+        // Held so the gaps the dialog lists stay put for the closing animation: the caller clears the
+        // list the moment the user acknowledges it.
+        val gaps = rememberClosingArgument(exportGaps.takeIf { it.isNotEmpty() }) ?: return@DialogPresence
+        ExportGapsDialog(gaps = gaps, onDismiss = onDismissExportGaps)
     }
-    if (pendingNewerAppConsentName != null) {
-        NewerAppConsentDialog(
-            name = pendingNewerAppConsentName,
-            onConfirm = onConfirmNewerAppConsent,
-            onDismiss = onDismissNewerAppConsent,
-        )
+    DialogPresence(pendingNewerAppConsentName != null) {
+        // Held so the dialog keeps its subject while it closes: the flag clears on the answer, and the
+        // window is still playing its way out.
+        val name = rememberClosingArgument(pendingNewerAppConsentName)
+        if (name != null) {
+            NewerAppConsentDialog(
+                name = name,
+                onConfirm = onConfirmNewerAppConsent,
+                onDismiss = onDismissNewerAppConsent,
+            )
+        }
     }
-    if (ui.showScaleneAnglesDialog) {
+    DialogPresence(ui.showScaleneAnglesDialog) {
         ScaleneAnglesDialog(
             angleA = settings.scaleneAngleA,
             angleB = settings.scaleneAngleB,
@@ -155,7 +169,7 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showScaleneAnglesDialog = false },
         )
     }
-    if (ui.showTrapezoidAnglesDialog) {
+    DialogPresence(ui.showTrapezoidAnglesDialog) {
         TrapezoidAnglesDialog(
             angleA = settings.trapezoidAngleA,
             angleB = settings.trapezoidAngleB,
@@ -172,8 +186,10 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.showTrapezoidAnglesDialog = false },
         )
     }
-    if (ui.showGraphDialog) {
-        val targetPlot = ui.editingPlot
+    DialogPresence(ui.showGraphDialog) {
+        // Held so an editor opened on a plot still edits *that* plot while it closes, rather than
+        // slipping back to the "new plot" face mid-fade.
+        val targetPlot = rememberClosingArgument(ui.editingPlot)
         AdvancedFunctionGraphDialog(
             initialCurves = targetPlot?.let { p ->
                 p.curves.map { c ->
@@ -230,9 +246,11 @@ fun BoxScope.EditorOverlays(
             },
         )
     }
-    ui.bookmarkPage?.let { page ->
+    DialogPresence(ui.bookmarkPage != null) {
         // Bookmarks are app-side navigation state (see PageBookmarks): the dialog only says what the
-        // list became, and the pane persists it against the document it is showing.
+        // list became, and the pane persists it against the document it is showing. The page being
+        // bookmarked is held past the flag so the dialog keeps it while it closes.
+        val page = rememberClosingArgument(ui.bookmarkPage) ?: return@DialogPresence
         val existing = pane.bookmarks.firstOrNull { it.page == page }
         PageBookmarkDialog(
             page = page,
@@ -249,7 +267,7 @@ fun BoxScope.EditorOverlays(
             onDismiss = { ui.bookmarkPage = null },
         )
     }
-    if (ui.showPenParametersDialog) {
+    DialogPresence(ui.showPenParametersDialog) {
         PenParametersDialog(
             minimumPressure = settings.minimumPressure,
             pressureMultiplier = settings.pressureMultiplier,

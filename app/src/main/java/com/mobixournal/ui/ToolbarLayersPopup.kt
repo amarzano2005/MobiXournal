@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.LayerInfo
+import com.mobixournal.ui.theme.DialogPresence
 
 /**
  * The layer manager: a top-down list of the visible page's layers, each row toggling visibility,
@@ -72,7 +73,7 @@ internal fun LayersPopupButton(callbacks: ToolbarLayerCallbacks) {
             onClick = { callbacks.onAddLayer(); dismiss() },
         )
     }
-    if (renaming >= 0) {
+    DialogPresence(renaming >= 0) {
         RenameDialog(
             title = "Rename layer",
             label = "Layer name",

@@ -3,10 +3,10 @@ package com.mobixournal.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -14,15 +14,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
@@ -36,10 +37,11 @@ import com.mobixournal.render.Placement
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.tracePenParameters
-import com.mobixournal.ui.theme.rememberChromeColor
-import com.mobixournal.ui.theme.rememberGlassSurfaceColor
-import androidx.compose.ui.graphics.TransformOrigin
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
+import com.mobixournal.ui.theme.rememberChromeColor
+import com.mobixournal.ui.theme.rememberClosingArgument
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
  * Push an [EditorTool] onto the surface: the three drawing tools set [Tool]; Hand toggles pan mode;
@@ -445,12 +447,17 @@ fun EditorScreen(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
 
-        if (pendingAudioOverwriteClip != null) {
-            AudioOverwriteConsentDialog(
-                existingClip = pendingAudioOverwriteClip,
-                onConfirm = onConfirmAudioOverwrite,
-                onDismiss = onDismissAudioOverwrite,
-            )
+        DialogPresence(pendingAudioOverwriteClip != null) {
+            // Held so the dialog keeps naming the clip while it closes: the flag clears on the answer,
+            // and the window is still playing its way out.
+            val clip = rememberClosingArgument(pendingAudioOverwriteClip)
+            if (clip != null) {
+                AudioOverwriteConsentDialog(
+                    existingClip = clip,
+                    onConfirm = onConfirmAudioOverwrite,
+                    onDismiss = onDismissAudioOverwrite,
+                )
+            }
         }
 
         GlassToastHost(
@@ -459,7 +466,7 @@ fun EditorScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
-        if (!settings.hasSeenOnboarding) {
+        DialogPresence(!settings.hasSeenOnboarding) {
             OnboardingDialog(
                 onDismiss = {
                     onSettingsChange(settings.copy(hasSeenOnboarding = true))

@@ -9,23 +9,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Toc
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AspectRatio
+import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.automirrored.outlined.Toc
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import com.mobixournal.ui.theme.FloatingDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,6 +45,9 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.FloatingDialog
+import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.abs
 
 /**
@@ -160,12 +162,16 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         PageBackgroundRow(callbacks, open = { sheet = true }, dismiss = dismiss)
     }
     val outline = callbacks.outline
-    if (contents && outline != null) {
-        PdfContentsDialog(
-            outline = outline,
-            onGoToPdfPage = callbacks.onGoToPdfPage,
-            onDismiss = { contents = false },
-        )
+    DialogPresence(contents && outline != null) {
+        // The tree survives the flag: closing clears `contents`, and the dialog is still on its way out.
+        val tree = rememberClosingArgument(outline)
+        if (tree != null) {
+            PdfContentsDialog(
+                outline = tree,
+                onGoToPdfPage = callbacks.onGoToPdfPage,
+                onDismiss = { contents = false },
+            )
+        }
     }
     PageBackgroundDialog(
         open = sheet,
@@ -203,7 +209,7 @@ private fun PageFormatDialogs(
     pending: NewDocumentCanvas?,
     onPending: (NewDocumentCanvas?) -> Unit,
 ) {
-    if (open) {
+    DialogPresence(open) {
         PageFormatDialog(
             initialWidthPt = callbacks.pageSize?.first ?: callbacks.defaultPageSize.first,
             initialHeightPt = callbacks.pageSize?.second ?: callbacks.defaultPageSize.second,
@@ -242,7 +248,9 @@ private fun PageFormatDialogs(
             onDismiss = { onOpen(false) },
         )
     }
-    pending?.let { chosen ->
+    DialogPresence(pending != null) {
+        // The chosen geometry is held past the flag so the question keeps naming it while it closes.
+        val chosen = rememberClosingArgument(pending) ?: return@DialogPresence
         CanvasModeChangeDialog(
             canvas = chosen,
             onNewBlankPage = {

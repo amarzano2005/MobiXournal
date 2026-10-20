@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.DialogPresence
 
 /**
  * The colour state every picker in the app shares — the editable custom slot, both persisted in
@@ -122,13 +123,14 @@ fun CustomColorEditor(
     onDismiss: () -> Unit,
     onRedefine: (Int) -> Unit = { palette.redefineCustom(it) },
 ) {
-    if (!visible) return
-    CustomColorPickerDialog(
-        initial = palette.custom ?: AppSettings.DEFAULT_CUSTOM_COLOR,
-        palette = palette.colors,
-        onConfirm = { newColor -> onRedefine(newColor); onDismiss() },
-        onDismiss = onDismiss,
-    )
+    DialogPresence(visible) {
+        CustomColorPickerDialog(
+            initial = palette.custom ?: AppSettings.DEFAULT_CUSTOM_COLOR,
+            palette = palette.colors,
+            onConfirm = { newColor -> onRedefine(newColor); onDismiss() },
+            onDismiss = onDismiss,
+        )
+    }
 }
 
 /**
