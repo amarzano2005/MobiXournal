@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,7 +71,14 @@ internal fun ZoomPopupButton(zoom: Float, onZoomIn: () -> Unit, onZoomOut: () ->
             // would put the slot straight back to the size the rail's adaptive pitch shrank it out of.
             val slot = LocalRailSlotSize.current
             val label = zoomLabel(zoom)
-            val textStyle = LocalTextStyle.current.copy(fontFeatureSettings = "tnum")
+            // Bold like the rest of the rail's faces: every other slot is a stroked glyph, and a
+            // hairline percentage beside them read as a lighter tool rather than a value. The weight
+            // rides on the style rather than on the Text alone, so the measurement `fittedLabelSp`
+            // shrinks against is the width the bold glyphs really take.
+            val textStyle = LocalTextStyle.current.copy(
+                fontFeatureSettings = "tnum",
+                fontWeight = FontWeight.Bold,
+            )
             val measurer = rememberTextMeasurer()
             val baseSp = ZOOM_LABEL.value * LocalRailSlotScale.current
             val measured = measurer.measure(
