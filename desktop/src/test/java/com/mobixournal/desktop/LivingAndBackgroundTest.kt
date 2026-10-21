@@ -87,7 +87,7 @@ class LivingAndBackgroundTest {
         assertTrue("and reports nothing it could not draw", compiled.uncompiled.isEmpty())
         assertTrue("the grid is drawn with strokes", compiled.elements.any { it is Stroke })
 
-        val picture = render(page(solid(), listOf(table)))
+        val picture = render(page(solid(), listOf(table)), name = "living-table")
         assertTrue("the table's grid was painted", darkPixels(picture) > 0)
     }
 
@@ -104,7 +104,7 @@ class LivingAndBackgroundTest {
         val compiled = LivingInk.of(triangle)
         assertTrue("a shape compiles to ink", compiled.elements.isNotEmpty())
 
-        val picture = render(page(solid(), listOf(triangle)))
+        val picture = render(page(solid(), listOf(triangle)), name = "living-shape")
         assertTrue("the shape's outline was painted", darkPixels(picture) > 0)
     }
 
@@ -129,7 +129,7 @@ class LivingAndBackgroundTest {
         val backdrop = PageBackdrop(bundled = { null }, documentDir = temp.root)
         val page = page(Background.Pixmap(domain = "absolute", filename = picture.absolutePath), listOf(ink()))
 
-        val pixels = render(page, backdrop)
+        val pixels = render(page, backdrop, "background-pixmap")
         val image = ImageIO.read(pixels.file)
         // The sheet is the picture now: a pixel away from the stroke must be the picture's own blue.
         val sample = image.getRGB(4, 4) and 0xFFFFFF
@@ -153,7 +153,7 @@ class LivingAndBackgroundTest {
             emptyList(),
         )
 
-        val image = ImageIO.read(render(page, backdrop).file)
+        val image = ImageIO.read(render(page, backdrop, "background-bundled").file)
         assertEquals("the bundled bytes are what was drawn", 0xE03030, image.getRGB(4, 4) and 0xFFFFFF)
     }
 
@@ -163,7 +163,7 @@ class LivingAndBackgroundTest {
         val backdrop = PageBackdrop(bundled = { null }, documentDir = temp.root)
         val page = page(Background.Pdf(filename = pdf.absolutePath, pageNo = 0, domain = "absolute"), listOf(ink()))
 
-        val picture = render(page, backdrop)
+        val picture = render(page, backdrop, "background-pdf")
         val image = ImageIO.read(picture.file)
         // The PDF's own page is a light-grey rectangle; the top-left corner is outside the ink diagonal.
         val sample = image.getRGB(4, 4) and 0xFFFFFF
@@ -176,7 +176,7 @@ class LivingAndBackgroundTest {
         val backdrop = PageBackdrop(bundled = { null }, documentDir = temp.root)
         val page = page(Background.Pdf(filename = "/nowhere/gone.pdf", pageNo = 0, domain = "absolute"), listOf(ink()))
 
-        val image = ImageIO.read(render(page, backdrop).file)
+        val image = ImageIO.read(render(page, backdrop, "background-missing").file)
         assertEquals("a page with no resolvable picture stays white paper", 0xFFFFFF, image.getRGB(4, 4) and 0xFFFFFF)
     }
 
@@ -184,8 +184,12 @@ class LivingAndBackgroundTest {
 
     private class Rendered(val file: File, val width: Int, val height: Int)
 
+    /**
+     * Renders [page] and keeps the PNG under `build/desktop-render/` as well: a visual feature that can
+     * only be described in prose is hard to review, and a window cannot be photographed from a test.
+     */
     @OptIn(ExperimentalComposeUiApi::class)
-    private fun render(page: Page, backdrop: PageBackdrop? = null): Rendered {
+    private fun render(page: Page, backdrop: PageBackdrop? = null, name: String = "page"): Rendered {
         val width = page.width.toInt()
         val height = page.height.toInt()
         val scene = ImageComposeScene(width = width, height = height, density = Density(1f)) {
@@ -199,6 +203,8 @@ class LivingAndBackgroundTest {
         assertNotNull("Skia produced a PNG", png)
         val out = temp.newFile("render-${System.nanoTime()}.png")
         out.writeBytes(png!!)
+        val kept = File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }
+        out.copyTo(kept, overwrite = true)
         return Rendered(out, width, height)
     }
 
