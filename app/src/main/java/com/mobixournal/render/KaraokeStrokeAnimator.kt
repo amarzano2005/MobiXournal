@@ -2,7 +2,7 @@ package com.mobixournal.render
 
 import android.graphics.Canvas
 import android.graphics.Paint
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import kotlin.math.hypot

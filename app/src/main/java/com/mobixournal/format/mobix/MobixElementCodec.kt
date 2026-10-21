@@ -18,7 +18,7 @@ import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 
 /**
  * The `.mobix` element codec: one JSON object per element of the app's own model

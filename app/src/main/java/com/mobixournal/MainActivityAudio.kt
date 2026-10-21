@@ -19,7 +19,7 @@ import com.mobixournal.audio.AudioSession
 import com.mobixournal.audio.AudioStandaloneExporter
 import com.mobixournal.audio.AudioWaveformExtractor
 import com.mobixournal.audio.WavWriter
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.documentAudioFiles
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.render.DrawingSurfaceView

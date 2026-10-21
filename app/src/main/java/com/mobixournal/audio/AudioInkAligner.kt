@@ -2,6 +2,7 @@ package com.mobixournal.audio
 
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.HandwritingRecognizer
 import kotlin.math.abs

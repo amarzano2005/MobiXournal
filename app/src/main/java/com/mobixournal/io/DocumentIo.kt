@@ -3,7 +3,7 @@ package com.mobixournal.io
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.format.FileKind
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.Xopp

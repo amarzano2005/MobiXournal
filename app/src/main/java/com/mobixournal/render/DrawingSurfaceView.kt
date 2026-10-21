@@ -13,7 +13,7 @@ import android.view.SurfaceView
 import android.view.ViewConfiguration
 import androidx.annotation.VisibleForTesting
 import com.mobixournal.audio.AudioRef
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.XoppColor.withAlpha

@@ -2,7 +2,7 @@ package com.mobixournal.io
 
 import android.content.ContentResolver
 import com.mobixournal.audio.AudioRef
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.json.JsonWriter

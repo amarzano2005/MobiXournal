@@ -6,7 +6,7 @@
 package com.mobixournal.render
 
 import android.view.MotionEvent
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.XoppColor.withAlpha

@@ -1,6 +1,6 @@
 package com.mobixournal.io
 
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.model.Background

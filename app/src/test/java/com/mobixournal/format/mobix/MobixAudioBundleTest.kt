@@ -1,7 +1,7 @@
 package com.mobixournal.format.mobix
 
 import com.mobixournal.audio.AudioRef
-import com.mobixournal.audio.audioRef
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.withAudio
 import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.json.JsonParser
