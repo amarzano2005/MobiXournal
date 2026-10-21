@@ -326,13 +326,23 @@ picked where its handles are not.
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
-a wire drawn with the line tool and a component being placed or moved are pulled onto a nearby **pin**,
-and only on a page that actually holds a circuit. While a connector is armed every pin is marked with
-a small ring (and the pin the live gesture has caught fills in), so the target can be seen before the
-wire is drawn; the magnet's reach is `SNAP_THRESHOLD_PT` in page points with a floor of `SNAP_REACH_PX`
-screen pixels, so a zoomed-out page can still be wired. Ink is never a target — not a pen stroke however
-straight, and not another wire's end — so drawing next to a line can never create a connection the user
-did not ask for. Ordinary figures — rectangles, bonds, the chemist's ring, a recognised freehand shape —
+a wire drawn with the line tool and a component being placed or moved are pulled onto a nearby **pin**.
+While a connector is armed every pin is marked with a small ring (and the pin the live gesture has caught
+fills in), so the target can be seen before the wire is drawn; the magnet's reach is `SNAP_THRESHOLD_PT`
+in page points with a floor of `SNAP_REACH_PX` screen pixels, so a zoomed-out page can still be wired.
+
+A **component being placed** aims at one more thing: the ends of the **wires already on the page**
+(`collectPlacementTargets`), because a pin meeting a wire's end is the joint the magnet exists to make —
+the same joint as a wire drawn onto a pin, seen from the other side. Without it the connection closed only
+when the component happened to be placed *first*: a wire drawn before the part it feeds never met it.
+Only a wire's ends are offered, and only to a component, so a symbol is never pulled onto ink lying beside
+it. The line tool still aims at pins alone, and a pen stroke is never a target for anyone, however
+straight: drawing next to a line can never create a connection the user did not ask for.
+
+Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
+stylus: `previewTargets` runs the factory's placement rule on the live drag, so the rings the user lines
+up against a wire end are the pins the commit mints (a tap previews the default-size part it drops).
+Ordinary figures — rectangles, bonds, the chemist's ring, a recognised freehand shape —
 keep exactly the geometry drawn; their only optional pull is the page ruling under *Snap to grid*
 (`render/CircuitSnapping.kt`, `render/CircuitElementFactory.kt`). A circuit with no `pins` is a plain symbol —
 the shape library's own drawings need no connectivity to be edited as a shape. A component has **no

@@ -129,6 +129,27 @@ internal object CircuitElementFactory {
         strokeColor: Int = CircuitElement.DEFAULT_INK,
         strokeWidth: Double = 1.0,
         value: String? = null,
+    ): CircuitElement? = placedElementFor(symbol, startX, startY, endX, endY, strokeColor, strokeWidth, value)
+        ?.copy(id = ElementId.mint(ElementId.CIRCUIT))
+
+    /**
+     * The same geometry as [circuitElementFor] with **no identity** — what the drag in progress is
+     * about to become.
+     *
+     * The live preview asks it for the pins a component would have at the current pointer, so the
+     * rings the user lines up on screen are the pins the commit actually mints: one call, one
+     * spelling of "a tap is the default length, a drag spans the two ends". Minting an id per frame
+     * would be pointless garbage, which is why this half carries none.
+     */
+    fun placedElementFor(
+        symbol: String,
+        startX: Double,
+        startY: Double,
+        endX: Double,
+        endY: Double,
+        strokeColor: Int = CircuitElement.DEFAULT_INK,
+        strokeWidth: Double = 1.0,
+        value: String? = null,
     ): CircuitElement? {
         val kind = ShapeKind.entries.firstOrNull { it.name == symbol } ?: return null
         if (!isCircuitKind(kind)) return null
@@ -159,7 +180,7 @@ internal object CircuitElementFactory {
             strokeWidth = strokeWidth,
             value = value,
             pins = pins,
-            id = ElementId.mint(ElementId.CIRCUIT),
+            id = null,
         )
     }
 

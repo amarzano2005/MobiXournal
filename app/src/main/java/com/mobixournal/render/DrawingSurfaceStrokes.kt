@@ -40,7 +40,7 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
             box,
             box.toPtX(event.getX(pointerIndex), scrollX),
             box.toPtY(event.getY(pointerIndex), scrollY),
-            magnetic = shapeKind?.let(CircuitElementFactory::isConnectorKind) == true,
+            shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
         )
         val (sx, sy) = guided(box, gx, gy)
         shapeStartX = sx
@@ -71,7 +71,7 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
             box,
             box.toPtX(event.getX(pointerIndex), scrollX),
             box.toPtY(event.getY(pointerIndex), scrollY),
-            magnetic = shapeKind?.let(CircuitElementFactory::isConnectorKind) == true,
+            shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
         )
         val (ex, ey) = guided(box, gx, gy)
         shapeEndX = ex
@@ -575,21 +575,6 @@ private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {
         )
     }
     ElementEdits.addElement(doc, currentPage, table) { resolvedActiveLayer(it) }
-        ?.let { commitElementEdit(it) }
-    render()
-}
-
-private fun DrawingSurfaceView.commitCircuitInsertion(kind: ShapeKind) {
-    val circuit = CircuitElementFactory.circuitElementFor(
-        symbol = kind.name,
-        startX = shapeStartX,
-        startY = shapeStartY,
-        endX = shapeEndX,
-        endY = shapeEndY,
-        strokeColor = strokeColor(),
-        strokeWidth = shapeWidthPt,
-    ) ?: return
-    ElementEdits.addElement(doc, currentPage, circuit) { resolvedActiveLayer(it) }
         ?.let { commitElementEdit(it) }
     render()
 }

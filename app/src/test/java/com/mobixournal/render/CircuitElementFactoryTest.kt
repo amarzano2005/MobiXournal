@@ -144,6 +144,23 @@ class CircuitElementFactoryTest {
         assertEquals(0.0, tapped.rotation, 1e-6)
     }
 
+    /**
+     * The live preview and the commit must not drift apart: [CircuitElementFactory.placedElementFor]
+     * is this same placement with no identity, so the rings a drag shows are the pins that get saved.
+     * The preview never enters a document, which is why it carries no id at all.
+     */
+    @Test
+    fun theLivePreviewIsTheSamePlacementWithoutAnIdentity() {
+        val preview = CircuitElementFactory.placedElementFor("OPAMP", 10.0, 20.0, 90.0, 50.0)!!
+        val committed = CircuitElementFactory.circuitElementFor("OPAMP", 10.0, 20.0, 90.0, 50.0)!!
+        assertNull("a preview element is never saved, so it has no id", preview.id)
+        assertNotNull(committed.id)
+        assertEquals(committed.positionX, preview.positionX, 1e-9)
+        assertEquals(committed.positionY, preview.positionY, 1e-9)
+        assertEquals(committed.rotation, preview.rotation, 1e-9)
+        assertEquals(committed.pins, preview.pins)
+    }
+
     @Test
     fun unknownSymbolIsRefusedRatherThanDrawn() {
         val unknown = CircuitElementFactory.circuitElementFor(

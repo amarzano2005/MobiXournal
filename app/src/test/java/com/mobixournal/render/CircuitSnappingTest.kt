@@ -1,7 +1,13 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin
+import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -349,5 +355,114 @@ class CircuitSnappingTest {
         assertEquals(50.0, snapped.first().y, 1e-6)
         assertEquals(200.0, snapped.last().x, 1e-6)
         assertEquals(50.0, snapped.last().y, 1e-6)
+    }
+
+    // --- placing a component: aiming at a wire that is already drawn --------------------------
+
+    private fun wirePage(stroke: Stroke) = Page(
+        width = 612.0,
+        height = 792.0,
+        background = Background.Solid(-1, "plain"),
+        layers = listOf(Layer(listOf(stroke))),
+    )
+
+    private fun wire(x1: Double, y1: Double, x2: Double, y2: Double) = Stroke(
+        Tool.PEN,
+        0xFF000000.toInt(),
+        "round",
+        listOf(StrokePoint(x1, y1, 1.0), StrokePoint(x2, y2, 1.0)),
+        true,
+    )
+
+    /**
+     * The flow that used to fail: **the wire is drawn first, then the part is placed on its end.**
+     * A pin could only ever be a target, never the seeker's own end, so the two never met — the magnet
+     * quiet on a page whose only circuit was the one still under the stylus.
+     */
+    @Test
+    fun aComponentBeingPlacedAimsAtAFinishedWiresEnd() {
+        val page = wirePage(wire(50.0, 50.0, 200.0, 50.0))
+        // The wire's ends are only offered to a component being placed, never to a wire.
+        assertEquals(0, CircuitSnapping.collectAllTargets(page).size)
+        val placement = CircuitSnapping.collectPlacementTargets(page)
+        assertEquals(2, placement.size)
+        assertTrue(placement.all { it.pinId == "wire-end" })
+
+        val (x, y) = CircuitSnapping.snapPoint(
+            page, 203.0, 52.0, snapToGrid = false, magnetic = true, scale = 1f, targets = placement,
+        )
+        assertEquals("the drag end lands on the wire's end", 200.0, x, 1e-6)
+        assertEquals(50.0, y, 1e-6)
+
+        // The line tool is unchanged: it aims at pins only, so it is not pulled onto a wire's end.
+        val (wx, wy) = CircuitSnapping.snapPoint(page, 203.0, 52.0, snapToGrid = false, magnetic = true)
+        assertEquals(203.0, wx, 1e-6)
+        assertEquals(52.0, wy, 1e-6)
+    }
+
+    /**
+     * Not every stroke end is a terminal: only a **wire** ([CircuitSnapping.isWire]) is a connector, so a
+     * triangle's corner or a rectangle's edge never attracts the part being placed.
+     */
+    @Test
+    fun onlyAWiresEndIsOfferedToAPlacedComponent() {
+        val figure = Stroke(
+            Tool.PEN,
+            0xFF000000.toInt(),
+            "round",
+            listOf(
+                StrokePoint(50.0, 50.0, 1.0),
+                StrokePoint(150.0, 50.0, 1.0),
+                StrokePoint(100.0, 120.0, 1.0),
+                StrokePoint(50.0, 50.0, 1.0),
+            ),
+            true,
+        )
+        assertEquals(0, CircuitSnapping.collectPlacementTargets(wirePage(figure)).size)
+    }
+
+    /**
+     * What the live preview shows is what the commit mints: the preview's pins come from the factory's
+     * own placement rule, so a ring the user lined up against a wire end is a pin that exists after
+     * lift-off — not an estimate near it.
+     */
+    @Test
+    fun thePinsThePreviewShowsAreThePinsTheComponentGets() {
+        val preview = CircuitSnapping.previewTargets(ShapeKind.RESISTOR, 100.0, 100.0, 200.0, 100.0)
+        assertEquals(listOf("p1", "p2"), preview.map { it.pinId })
+        assertEquals(100.0, preview[0].absX, 1e-6)
+        assertEquals(200.0, preview[1].absX, 1e-6)
+
+        val committed = CircuitElementFactory.circuitElementFor("RESISTOR", 100.0, 100.0, 200.0, 100.0)!!
+        val committedPins = CircuitSnapping.collectTargets(listOf(committed))
+        assertEquals(committedPins.map { it.pinId }, preview.map { it.pinId })
+        for ((p, c) in preview.zip(committedPins)) {
+            assertEquals(p.absX, c.absX, 1e-9)
+            assertEquals(p.absY, c.absY, 1e-9)
+        }
+
+        // A drag shorter than a tap's threshold previews the default-size part a tap would drop,
+        // centred on the finger: those are the pins a tap mints too.
+        val tap = CircuitSnapping.previewTargets(ShapeKind.RESISTOR, 300.0, 300.0, 300.5, 300.0)
+        assertEquals(300.0 - CircuitElementFactory.DEFAULT_LENGTH_PT / 2, tap[0].absX, 1e-6)
+        assertEquals(300.0 + CircuitElementFactory.DEFAULT_LENGTH_PT / 2, tap[1].absX, 1e-6)
+    }
+
+    /**
+     * The whole point, end to end: a resistor dragged onto the end of a wire that was drawn **before**
+     * it keeps its pin exactly on that end once committed, so the joint is closed and not a hairline
+     * short of one.
+     */
+    @Test
+    fun aComponentPlacedOnAFinishedWireKeepsItsPinOnTheWire() {
+        val page = wirePage(wire(50.0, 50.0, 200.0, 50.0))
+        val targets = CircuitSnapping.collectPlacementTargets(page)
+        val (endX, endY) = CircuitSnapping.snapPoint(
+            page, 198.0, 53.0, snapToGrid = false, magnetic = true, scale = 1f, targets = targets,
+        )
+        val circuit = CircuitElementFactory.circuitElementFor("RESISTOR", 100.0, 50.0, endX, endY)!!
+        val p2 = CircuitSnapping.pinAbsolutePosition(circuit, circuit.pins.last())
+        assertEquals("the far pin sits on the wire's end", 200.0, p2.first, 1e-9)
+        assertEquals(50.0, p2.second, 1e-9)
     }
 }

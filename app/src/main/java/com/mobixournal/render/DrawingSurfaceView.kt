@@ -1572,12 +1572,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     /**
-     * ([x], [y]) pt for a shape gesture, on [box]'s ruling when the setting is on — and on a circuit pin
-     * only for a **connector** ([magnetic]: a wire or a placed component). The joint snap, so an
-     * isometric sheet resolves both coordinates at once.
+     * ([x], [y]) pt for a shape gesture, on [box]'s ruling when the setting is on — and on a nearby
+     * target only for a gesture that has one ([targets], from [CircuitSnapping.gestureTargets]). The
+     * joint snap, so an isometric sheet resolves both coordinates at once.
      */
-    internal fun snappedPoint(box: PageBox, x: Double, y: Double, magnetic: Boolean) =
-        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid, magnetic, box.scale)
+    internal fun snappedPoint(box: PageBox, x: Double, y: Double, targets: List<CircuitSnapping.PinTarget>? = null) =
+        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid, targets != null, box.scale, targets)
 
     // --- the setsquare / compass guide: place it, drag it, and rule drawn points against it -------
 

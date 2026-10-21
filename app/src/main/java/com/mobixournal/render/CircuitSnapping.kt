@@ -121,6 +121,67 @@ object CircuitSnapping {
         )
 
     /**
+     * Everything a **component being placed** may join: the page's pins, plus both ends of every wire
+     * already drawn ([isWire]).
+     *
+     * A wire is a connector, so a pin meeting a wire's end is the very joint the magnet exists to make
+     * — the same joint as a wire drawn onto a pin, seen from the other side. Without the wire's ends in
+     * the target list the connection only closed when the component happened to be placed **first**:
+     * draw the wire, then drop the resistor on its end, and the two never met. Only a component asks
+     * for these targets, and only a wire's *ends* are offered, so a symbol is still never pulled onto
+     * any ink lying beside it.
+     */
+    fun collectPlacementTargets(page: Page): List<PinTarget> {
+        val pins = collectAllTargets(page)
+        val wires = buildList {
+            for (layer in page.layers) {
+                for (element in layer.elements) {
+                    val stroke = element as? Stroke ?: continue
+                    if (!isWire(stroke)) continue
+                    val first = stroke.points.first()
+                    val last = stroke.points.last()
+                    add(PinTarget(null, "wire-end", first.x, first.y, null))
+                    add(PinTarget(null, "wire-end", last.x, last.y, null))
+                }
+            }
+        }
+        return pins + wires
+    }
+
+    /**
+     * What the shape [kind] being drawn may magnetise to, or null when nothing may pull it.
+     *
+     * A **wire** aims at pins ([collectAllTargets]); a **component being placed** aims at pins *and* at
+     * the ends of wires already on the page ([collectPlacementTargets]) — a wire drawn before the part
+     * it feeds used to leave the two unjoined, because a pin could only ever be the target and never the
+     * seeker's own end. Everything else — a rectangle, a bond, the chemist's ring — gets null, so free
+     * ink is never pulled off the user's hand.
+     */
+    fun gestureTargets(kind: ShapeKind, page: Page): List<PinTarget>? = when {
+        CircuitElementFactory.isCircuitKind(kind) -> collectPlacementTargets(page)
+        CircuitElementFactory.isConnectorKind(kind) -> collectAllTargets(page)
+        else -> null
+    }
+
+    /**
+     * Where the pins of the component being dragged from ([startX], [startY]) to ([endX], [endY])
+     * would land — the rings the live preview draws, and the points its magnet aims with.
+     *
+     * It is [CircuitElementFactory]'s own placement rule (a tap is the default length, a drag spans
+     * the two ends), so what is shown while placing is what the commit mints.
+     */
+    fun previewTargets(
+        kind: ShapeKind,
+        startX: Double,
+        startY: Double,
+        endX: Double,
+        endY: Double,
+    ): List<PinTarget> = CircuitElementFactory
+        .placedElementFor(kind.name, startX, startY, endX, endY)
+        ?.let { collectTargets(listOf(it)) }
+        .orEmpty()
+
+    /**
      * Whether [stroke] is a **wire** — a single straight segment (the line tool's own two points, or a
      * straight line carrying redundant collinear vertices from a `.xopp`). A closed figure (triangle,
      * arrow, chemistry ring) has vertices that do not lie on one line, so it is ink, never a connector:
@@ -150,6 +211,10 @@ object CircuitSnapping {
      *
      * [scale] is the view's page-points-to-pixels factor and sets how far the magnet reaches
      * ([thresholdFor]); it defaults to 100%, the reach of a page with no zoom to read.
+     *
+     * [targets] replaces the page's pins for a gesture whose reach is wider — a component being
+     * placed aims at [collectPlacementTargets] (pins and wire ends) instead. A caught target is
+     * returned as-is, so the magnet still beats the ruling under *Snap to grid*.
      */
     fun snapPoint(
         page: Page,
@@ -158,9 +223,10 @@ object CircuitSnapping {
         snapToGrid: Boolean,
         magnetic: Boolean = false,
         scale: Float = 1f,
+        targets: List<PinTarget>? = null,
     ): Pair<Double, Double> {
         if (magnetic) {
-            val snap = findSnapTarget(x, y, collectAllTargets(page), thresholdFor(scale))
+            val snap = findSnapTarget(x, y, targets ?: collectAllTargets(page), thresholdFor(scale))
             if (snap != null) return snap.absX to snap.absY
         }
         return if (snapToGrid) Snapping.lattice(page.background, page.width).snap(x, y) else x to y
