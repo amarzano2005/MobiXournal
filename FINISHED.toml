@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "share-the-ink-geometry-between-shells"
+title = "Share the ink geometry between the Android and desktop painters"
+description = "Extract the platform-free ink math out of `app/src/main/java/com/mobixournal/render/StrokePainter.kt` into `mobix-core` (package `com.mobixournal.render`, e.g. `InkGeometry.kt`): the highlighter alpha constant (0x78), `uniform(pts)`, `bandWidth(pts)`, `renderColor(tool, color)` and `dashIntervalsPt(style, widthPt)`, plus a taper-outline builder that returns the polygon in PAGE POINTS (a list of points or quads — no android.graphics.Path, no Compose types); the caller applies scale and offset. `StrokePainter` then calls that object for the rules and constants it uses, and `desktop/src/main/java/com/mobixournal/desktop/PageInk.kt` calls the same object instead of its own copies, so the taper, the highlighter band and the dash pattern are defined once. Add JVM tests in `mobix-core` for the outline (a straight line keeps its width, a taper narrows where width is smaller, the polygon closes) and for the dash intervals. Verify: `:app:testDebugUnitTest`, `:desktop:test` still paints ink on page 1 of udiff.xopp, and the new tests. Record in docs/rendering.md that this geometry is shared and lives in mobix-core."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
+id = "move-paper-geometry-into-mobix-core"
+title = "Move the paper geometry into mobix-core"
+description = "Move `app/src/main/java/com/mobixournal/render/BackgroundGrid.kt` and `render/BackgroundRuling.kt` plus their tests (`app/src/test/java/com/mobixournal/render/Background*Test.kt`) into `mobix-core`, keeping the `com.mobixournal.render` package so no call site changes. Both files are documented as Android-free geometry/parsing; verify that before moving by grepping their imports. Then delete the `com/mobixournal/render/BackgroundGrid.kt` entry from the source-set filter in `desktop/build.gradle.kts` (the desktop module now gets the object from `mobix-core`), and add `implementation(project(\":mobix-core\"))` to `app` if the task above did not already. Update docs/codebase.md and the Status section of docs/desktop-workstation.md. Verify: `:app:testDebugUnitTest`, `:desktop:test`, and grep that neither file remains under `app/src/main`."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
+id = "create-the-mobix-core-module"
+title = "Create mobix-core with the model, JSON and .xopp layers"
+description = "Delivered: `mobix-core` is a kotlin-jvm module (jvmToolchain 21, jvmTarget 17) that holds `format/model` (Document/Page/Element, ids, EditedPages/withPage), `format/xml`, `format/json`, the `.xopp` layer (Xopp, XoppReader/Writer, XoppZip, XoppColor, SaveFormat, FileKind, FontDescription) and 20 of its suites; `app` depends on it and the desktop module consumes it instead of compiling sources. Deliberately public after the split: JsonNode/JsonParser/JsonWriter and JsonNode.toJson (the app's settings backup, transcription codec and .mobix codecs read them) and EditedPages/withPage (the model's own edit primitive). SourceStructureTest now walks both `app/src/main` and `mobix-core/src/main`, so the 700/100 budgets survived the split. NOT moved: the native `.mobix` engine (`format/mobix`, 30 files) — the app's io/ and render/ layers consume ~30 of its internal declarations, so publishing them all would freeze implementation detail as API; that work is the scope `extract-the-mobix-streaming-api-into-mobix-core`. Verified with :mobix-core:test (20 suites), :desktop:test (headless page render), :app:testDebugUnitTest (whole app suite + guards)."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
 id = "make-the-rail-writing-tools-only-and-retire-the-compact-layout"
 title = "Make the rail writing-tools-only and retire the Compact layout"
 description = "Remove audio, play object and shape recognition from the Main Toolbar, and every STEM slot that duplicated the Secondary Toolbar; remove the Hide-tools-already-in-the-Secondary-Toolbar button; delete StemRailSection; split the STEM families into SECONDARY_TOOL_GROUPS so the top bar keeps its circuit/logic/chemistry pickers; delete ToolbarLayout.COMPACT and its settings entry, dropping the persisted pref on save; animate the Settings screen open with liquidGlassSpringAnimation; update docs (chrome, ui-modernization, roadmap, testing, codebase, README) and the rail/group tests."

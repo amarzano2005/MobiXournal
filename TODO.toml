@@ -316,51 +316,9 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "create-the-mobix-core-module"
-title = "Create mobix-core and move the format package into it"
-description = "Create a `mobix-core` Gradle module (kotlin-jvm, jvmToolchain(21), same package names) and move `app/src/main/java/com/mobixournal/format/**` (51 files) to `mobix-core/src/main/java/com/mobixournal/format/`, together with every test under `app/src/test/java/com/mobixournal/format/**`. Because `internal` is module-scoped in Kotlin, the tests move WITH the code instead of the declarations being made public. Wire `settings.gradle.kts` (include(\":mobix-core\")), a new `mobix-core/build.gradle.kts` (kotlin-jvm plugin, `testImplementation(libs.junit)`, no Android plugin), `app/build.gradle.kts` (`implementation(project(\":mobix-core\"))`, keep the debug unit-test resources block) and `desktop/build.gradle.kts` (depend on `:mobix-core`; delete the `com/mobixournal/format/**` entry from the source-set filter, keep BackgroundGrid.kt until its own task). Update the repository layout in docs/codebase.md and the Status section of docs/desktop-workstation.md (the desktop module now consumes a real module, not a source directory). Verify: `./gradlew :app:testDebugUnitTest` (whole suite + DocsGuardTest/SourceStructureTest), `./gradlew :desktop:test`, `:app:compileDebugKotlin`, and confirm `app/src/main` no longer contains a `format` directory."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 910
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "move-paper-geometry-into-mobix-core"
-title = "Move the paper geometry into mobix-core"
-description = "Move `app/src/main/java/com/mobixournal/render/BackgroundGrid.kt` and `render/BackgroundRuling.kt` plus their tests (`app/src/test/java/com/mobixournal/render/Background*Test.kt`) into `mobix-core`, keeping the `com.mobixournal.render` package so no call site changes. Both files are documented as Android-free geometry/parsing; verify that before moving by grepping their imports. Then delete the `com/mobixournal/render/BackgroundGrid.kt` entry from the source-set filter in `desktop/build.gradle.kts` (the desktop module now gets the object from `mobix-core`), and add `implementation(project(\":mobix-core\"))` to `app` if the task above did not already. Update docs/codebase.md and the Status section of docs/desktop-workstation.md. Verify: `:app:testDebugUnitTest`, `:desktop:test`, and grep that neither file remains under `app/src/main`."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 920
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "share-the-ink-geometry-between-shells"
-title = "Share the ink geometry between the Android and desktop painters"
-description = "Extract the platform-free ink math out of `app/src/main/java/com/mobixournal/render/StrokePainter.kt` into `mobix-core` (package `com.mobixournal.render`, e.g. `InkGeometry.kt`): the highlighter alpha constant (0x78), `uniform(pts)`, `bandWidth(pts)`, `renderColor(tool, color)` and `dashIntervalsPt(style, widthPt)`, plus a taper-outline builder that returns the polygon in PAGE POINTS (a list of points or quads — no android.graphics.Path, no Compose types); the caller applies scale and offset. `StrokePainter` then calls that object for the rules and constants it uses, and `desktop/src/main/java/com/mobixournal/desktop/PageInk.kt` calls the same object instead of its own copies, so the taper, the highlighter band and the dash pattern are defined once. Add JVM tests in `mobix-core` for the outline (a straight line keeps its width, a taper narrows where width is smaller, the polygon closes) and for the dash intervals. Verify: `:app:testDebugUnitTest`, `:desktop:test` still paints ink on page 1 of udiff.xopp, and the new tests. Record in docs/rendering.md that this geometry is shared and lives in mobix-core."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 930
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-open-mobix-and-zipped-xopp"
 title = "Desktop preview: open .mobix and zipped .xopp"
-description = "`desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt` opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths the app already owns: .mobix through `format/mobix/MobixDocument` (manifest + pages; a viewer needs no asset extraction) and a ZIP .xopp through `format/XoppZip`, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). Keep DocumentLoader’s failure messages honest for anything still unsupported. Verify with `:desktop:test`: load a saved .mobix fixture and the ZIP .xopp fixture the format tests already use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass needed."
+description = "`desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt` opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths: .mobix through the public API produced by `extract-the-mobix-streaming-api-into-mobix-core` (paged read, no asset extraction needed for a viewer) and a ZIP .xopp through `format/XoppZip`, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). BLOCKED BY that scope: today those types are internal to `app`, so the desktop module cannot call them. Keep DocumentLoader’s failure messages honest for anything still unsupported. Verify with :desktop:test: load a saved .mobix fixture and the ZIP .xopp fixture the format tests use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass."
 status = "active"
 level = "task"
 category = "feature"
@@ -478,6 +436,20 @@ level = "scope"
 category = "feature"
 urgency = "low"
 order = 1020
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "extract-the-mobix-streaming-api-into-mobix-core"
+title = "Design and extract the .mobix streaming API into mobix-core (scope)"
+description = "Task `create-the-mobix-core-module` moved the model, JSON and .xopp layers out of `app`; the native `.mobix` engine stayed because the app consumes its internals. Evidence from that split: `app` uses ~30 internal declarations of `format/mobix` — MobixEntrySource, MobixPagedReader, MobixSavePlan, MobixPageReuse, MobixIncrementalSave, MobixMergeEngine/Result, MobixConflictDetector, MobixManifest, MobixCanvasFile, MobixChunk, MobixDocument, MobixMetaBlock/Claim/Digest, PageSource, PageSize, MobixPart, MobixAssetSource and the mobix JSON helpers — across io/DocumentIo.kt, io/CanvasGeometry.kt, io/MobixOpenSessions.kt, io/BundledPageAssets.kt, render/PageStacker, PageWindow, PageWindowEdits, ChunkTileManager, CanvasPageSource, DocumentSearch, BoardInk, DrawingSurfaceBoard, XoppSynthesis and audio/TranscriptionCodec. Publishing all of that would freeze implementation detail as API, so design the boundary instead. Investigate and add task-level children for: (1) the public surface a shell needs — open a .mobix page by page (a public page source), save incrementally over a file, merge, read manifest/canvas metadata — named types with KDoc, sized to those operations and no more; (2) whether the app's consumers can stay put on that surface, or whether the streaming engine (reader + save plan + merge + page reuse) should move wholesale into `mobix-core` while DocumentIo keeps the Android/SAF file policy; (3) the test move: the 22 suites under `app/src/test/java/com/mobixournal/format/mobix` plus the app-coupled ones (MobixAudioBundleTest, MobixMetaBlockTest, MobixPagedOpenBenchmarkTest, MobixRecordingStreamingTest, MobixXoppSizeBenchmarkTest, PixmapBackgroundRoundTripTest, XoppZipTest, DocumentPagesTest); (4) the desktop consumer (`desktop-open-mobix-and-zipped-xopp`) using the same surface. Done means the tasks exist with file-level instructions; no code."
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "normal"
+order = 935
 created = 2026-10-21
 tags = []
 rebuild = false
