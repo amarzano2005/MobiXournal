@@ -290,7 +290,7 @@ emulator_debug = false
 [[task]]
 id = "step-3-desktop-workstation"
 title = "Step 3 — Desktop workstation program (epic)"
-description = "Step 3 of docs/future-roadmap.md, defined across docs/desktop-workstation.md and the desktop section of docs/ui-modernization.md: MobiXournal Desktop, a native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the Android editor on a graphics tablet, optimised for 21:9 monitors and 144 Hz, with bimanual shortcuts, a property inspector for living entities and tablet rotary-dial support. A read-only viewer already ships in desktop/ with headless render tests. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the window chrome is the app's own glass on a true-black desk (NOT Mica), the drawing tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is a plain kotlin-jvm module that both shells depend on. Phases, in execution order: (A) shared core - mobix-core plus ink and paper geometry (done); (B) complete reader - .mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom/pan, the decided chrome, both tool placements (rail and ribbon open); (C) KMP module split (desktop-kmp-module-split) then editing - pressure inking, eraser, selection, undo, Save and Save As under the sticky format policy, in-place living-entity editors, images and import, page management and search, layer visibility; (D) graphics-tablet and rotary-dial hardware; (E) 21:9 layout and 144 Hz render pacing, with the settings window that exposes them (desktop-settings-and-status-ui); (F) living-entity property inspector and PDF/SVG export; (G) MSI installer and CI artifact. Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
+description = "Step 3 of docs/future-roadmap.md, defined across docs/desktop-workstation.md and the desktop section of docs/ui-modernization.md: MobiXournal Desktop, a native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the Android editor on a graphics tablet, optimised for 21:9 monitors and 144 Hz, with bimanual shortcuts, a property inspector for living entities and tablet rotary-dial support. A read-only viewer already ships in desktop/ with headless render tests. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the window chrome is the app's own glass on a true-black desk (NOT Mica), the drawing tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is a plain kotlin-jvm module that both shells depend on. Phases, in execution order: (A) shared core - mobix-core plus ink and paper geometry (done); (B) complete reader - .mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom/pan, the decided chrome, both tool placements (rail and ribbon open); (C) KMP module split (desktop-kmp-module-split) then editing - pressure inking, eraser, selection, undo, Save and Save As under the sticky format policy, in-place living-entity editors, images and import, page management and search, layer visibility; (D) graphics-tablet and rotary-dial hardware; (E) 21:9 layout and 144 Hz render pacing, with the settings window that exposes them (desktop-settings-and-status-ui); (F) living-entity property inspector and PDF/SVG export; (G) MSI installer and CI artifact. Parity scopes added 2026-10-21, each broken down when picked up: colour and width palette, shape perfection / text / math, PDF annotation and outline, pen-tip radial HUD, audio replay, infinite canvas, multiple windows and monitors, light theme and header extras, and desktop-guards-and-ci (structure budget and CI job for desktop/). Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
 status = "active"
 level = "epic"
 category = "feature"
@@ -330,6 +330,20 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "desktop-guards-and-ci"
+title = "Desktop: structure guards and CI test job"
+description = "Two holes in the mechanical guards. (1) SourceStructureTest (app/src/test/java/com/mobixournal/guards/) budgets app/src/main and mobix-core/src/main (700-line files, 100-line functions) but not desktop/src/main, where DesktopShell.kt is already 449 lines: add the desktop source root next to the two existing ones with the same fail-loudly-if-missing check, and record any legacy ceiling in the test rather than raising the budget. (2) .github/workflows/build.yml runs only ./gradlew testDebugUnitTest and assembleDebug, so the desktop suite (:desktop:test, which renders headlessly) never runs in CI: add a job that runs :desktop:test on a windows-latest runner (the desktop is Windows-only) with JDK 21, uploading desktop/build/desktop-render/ as an artifact. Verify: run SourceStructureTest locally and see it fail when a test file in desktop/ is temporarily padded past 700 lines, then pass again; run :desktop:test locally. Document both in docs/testing.md."
+status = "active"
+level = "task"
+category = "test"
+urgency = "normal"
+order = 996
+created = 2026-10-21
+tags = ["desktop", "ci"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "desktop-editing-undo-and-save"
 title = "Desktop editing, undo and save (scope)"
 description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
@@ -358,9 +372,51 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "desktop-colour-and-width-palette"
+title = "Desktop: colour and stroke-width palette (scope)"
+description = "docs/ui-modernization.md section 3 gives every desktop tool favourite colours 1/2/3 on keys 1-3, remappable HEX slots (Alt+1..), stroke width up/down on ] and [, and the shared colour picker (docs/colours.md). None of it is in a desktop task. Investigate how the Android palette state and picker (colours.md, ui/) can move into mobix-core or be reimplemented, where the desktop surfaces them (rail or ribbon flyout, inspector, the Settings window of desktop-settings-and-status-ui), and add tasks. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1006
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-shape-text-and-math-tools"
+title = "Desktop: shape perfection, text boxes and math blocks (scope)"
+description = "Desktop editing parity for three Android engines: (1) 300 ms hold-to-perfect shapes (docs/shape-perfection-engine.md) - whether the recogniser is platform-free enough for mobix-core; (2) the text box tool (X) and markdown text (docs/text-and-markdown.md); (3) MathBlockElement typesetting with KaTeX and Typst (docs/latex-typst-rendering.md): first whether the desktop viewer already draws a math block through LivingInk, and what an offline compiler on a JVM costs (the Android core is task embedded-katex-and-typst-offline-compilation-core). Add task-level children, in dependency order. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1007
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-annotation"
+title = "Desktop: PDF annotation and outline (scope)"
+description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it. Investigate for desktop (PDFBox, not pdfbox-android): PDF text selection, the snap-to-text magnetic highlighter (docs/pdf-annotation-engine.md, docs/pdf.md), the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there) and where each engine lives today. Add task-level children. Export is in desktop-inspector-and-export. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1008
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "desktop-tablet-and-dial-input"
 title = "Desktop graphics tablet and rotary dial input (scope)"
-description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md), WINDOWS 11 ONLY (decision 2026-10-21, no Linux or macOS). Nothing about real tablet pressure on desktop is proven yet: Compose Desktop exposes PointerInputChange.pressure, but whether it carries a graphics-tablet value through Windows Ink or Wintab is unknown, and talking to those APIs from the JVM is new work for this repo. Investigate and add tasks for: (1) a measuring spike that logs the raw pressure, tilt and azimuth the JVM receives on this Windows host, with the concrete library or API chosen (JNA + Wintab, Windows Ink WM_POINTER, AWT) and a pass/fail criterion; (2) the input abstraction the editor consumes, so mouse and tablet are two backends; (3) aspect-ratio lock and window-bounded mapping for screenless tablets; (4) the tablet's ROTARY DIAL or touch ring (owner requirement): events mapped to continuous zoom at the cursor, stroke width with a diameter-ring preview, and radial-HUD navigation, including whether the driver delivers the ring as mouse-wheel or key events (cheapest path) or only through Wintab ExpressKeys; (5) honest fallback behaviour when no tablet is present. Record the chosen backend in docs/desktop-workstation.md. Produce tasks, no code."
+description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md), WINDOWS 11 ONLY (decision 2026-10-21, no Linux or macOS). Nothing about real tablet pressure on desktop is proven yet: Compose Desktop exposes PointerInputChange.pressure, but whether it carries a graphics-tablet value through Windows Ink or Wintab is unknown, and talking to those APIs from the JVM is new work for this repo. Investigate and add tasks for: (1) a measuring spike that logs the raw pressure, tilt and azimuth the JVM receives on this Windows host, with the concrete library or API chosen (JNA + Wintab, Windows Ink WM_POINTER, AWT) and a pass/fail criterion; (2) the input abstraction the editor consumes, so mouse and tablet are two backends; (3) aspect-ratio lock and window-bounded mapping for screenless tablets; (4) the tablet's ROTARY DIAL or touch ring (owner requirement): events mapped to continuous zoom at the cursor, stroke width with a diameter-ring preview, and radial-HUD navigation, including whether the driver delivers the ring as mouse-wheel or key events (cheapest path) or only through Wintab ExpressKeys; (4b) the tablet's ExpressKeys and pen barrel buttons mapped to the same remappable actions as the keyboard shortcuts; (5) honest fallback behaviour when no tablet is present. Record the chosen backend in docs/desktop-workstation.md. Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
@@ -368,6 +424,20 @@ urgency = "low"
 order = 1010
 created = 2026-10-21
 tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pen-tip-radial-hud"
+title = "Desktop: pen-tip radial HUD (scope)"
+description = "The radial HUD of docs/ui-modernization.md (summoned by a barrel button under the nib, dismissed on release, holds the user's swatches first, then widths, then tools) exists on desktop only as a word in the tablet scope. Investigate after the tablet spike: how the barrel button reaches the JVM (Windows Ink or Wintab, desktop-tablet-and-dial-input), whether the HUD's geometry and selection logic can be shared with Android as pure Kotlin in mobix-core, the dial's role in it, and the mouse fallback (a key or a middle click). Add task-level children. Depends on desktop-tablet-and-dial-input and the Android HUD. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1011
+created = 2026-10-21
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
@@ -388,7 +458,7 @@ emulator_debug = false
 [[task]]
 id = "desktop-144hz-render-pacing"
 title = "Desktop: 144 Hz render pacing and ink latency (scope)"
-description = "Make desktop/ render and ink at the monitor's real refresh rate (target 144 Hz, 6.9 ms frame budget) on Windows 11 with Skiko over DirectX 12. Investigate and add tasks for: (1) a frame-time measuring harness on udiff.xopp (6 pages, ~4000 strokes) with a pass/fail criterion; (2) vsync aligned frame loop and how Compose Desktop exposes the display refresh rate; (3) dirty-rect invalidation so a live stroke repaints only its bounding box, never the whole page; (4) ink latency - coalescing pointer samples and predicting the stroke head; (5) cached page and thumbnail layers so scroll and zoom do not re-raster. The 144 Hz result can only be verified on the owner's monitor; unit tests cover the dirty-rect and coalescing logic. Document in docs/desktop-workstation.md. Produce tasks, no code."
+description = "Make desktop/ render and ink at the monitor's real refresh rate (target 144 Hz, 6.9 ms frame budget) on Windows 11 with Skiko over DirectX 12. Investigate and add tasks for: (0) FIRST, which Skiko backend this machine actually uses (DirectX 12 or OpenGL/software - Compose Desktop does not guarantee DirectX 12; check the SKIKO_RENDER_API setting and log the active API), and whether the page should be painted through a direct Skia canvas layer instead of composables only, which is what the dirty-rect needs; (1) a frame-time measuring harness on udiff.xopp (6 pages, ~4000 strokes) with a pass/fail criterion; (2) vsync aligned frame loop and how Compose Desktop exposes the display refresh rate; (3) dirty-rect invalidation so a live stroke repaints only its bounding box, never the whole page; (4) ink latency - coalescing pointer samples and predicting the stroke head; (5) cached page and thumbnail layers so scroll and zoom do not re-raster. The 144 Hz result can only be verified on the owner's monitor; unit tests cover the dirty-rect and coalescing logic. Document in docs/desktop-workstation.md. Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
@@ -396,6 +466,20 @@ urgency = "high"
 order = 1014
 created = 2026-10-21
 tags = ["desktop", "performance"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-audio-replay"
+title = "Desktop: audio playback and karaoke replay (scope)"
+description = "Documents carry audio the desktop cannot play: a .mobix bundles Opus, a .xopp has a WAV sidecar, and every stroke records its audio timestamp (docs/audio-inking-sync.md, docs/audio.md). Investigate JVM playback (javax.sound plus an Opus decoder, or a small native library), the Y audio tap/replay key, karaoke replay of strokes, scrubbing from the timeline and from the tablet dial, and whether recording on desktop is wanted at all. Add task-level children. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1016
+created = 2026-10-21
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
@@ -428,6 +512,20 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "desktop-infinite-canvas-view"
+title = "Desktop: infinite canvas viewing and editing (scope)"
+description = "docs/infinite-canvas.md defines vertical, horizontal and 2D board modes with spatial chunking. Find out what the desktop viewer does today with a board document (a .mobix in INFINITE_2D mode, device fixtures from DeviceFixturesTest), whether chunks stream, how pan and zoom work without page edges, and what the pages-spread layout of desktop-ultrawide-21x9-layout means for a board. Add task-level children. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1023
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "desktop-layer-visibility-and-isometric-paper"
 title = "Desktop: layer visibility toggles and isometric paper"
 description = "In desktop/ add (1) an eye toggle per layer in the sidebar's layer list that hides and shows the layer on the page and in thumbnails without changing the document, kept per tab; (2) isometric paper in the shared paper geometry used by the Android editor (mobix-core ruling code) so both shells draw the same grid. Files: the sidebar layer list and the page painter under desktop/src/main, the paper geometry in mobix-core. Verify: a unit test that a hidden layer is absent from the rendered pixels and a headless render of isometric paper compared with the shared ruling output. Document in docs/desktop-workstation.md."
@@ -442,6 +540,20 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "desktop-multi-window-and-monitors"
+title = "Desktop: multiple windows and monitors (scope)"
+description = "docs/multi-window-workspace.md lists desktop multi-monitor use. Investigate a second desktop window on another monitor showing the same document (shared state, per-window zoom, undo scoped per document) and dragging a tab out into its own window, with the Windows 21:9 main monitor plus a secondary one in mind. Reuse the shared document-state design from the Android multi-window work; do not start a second model. Add task-level children. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1025
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "desktop-images-and-import"
 title = "Desktop: images as elements and content import (scope)"
 description = "Today desktop/ shows images only as page backgrounds. Add images as movable, resizable page elements, and import of sketches, PDFs and text (paste and drag onto the page) into the document under the sticky format policy, bundling the bytes in .mobix assets and as sidecar or embedded data in .xopp. Investigate what the Android image and PDF import paths (io/, render/) can be reused, how a dropped file becomes an element, and add task-level children. Produce tasks, no code."
@@ -450,6 +562,20 @@ level = "scope"
 category = "feature"
 urgency = "normal"
 order = 1026
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-light-theme-and-header-extras"
+title = "Desktop: light theme and header extras (scope)"
+description = "docs/desktop-workstation.md and ui-modernization.md say the desktop is dark-first and the light theme waits until the tokens cover it, and the header drawing lists a document path breadcrumb, a search field, Share and Settings. Break down: (1) light-theme tokens for the glass, desk and sheet, with a setting and the system default; (2) the breadcrumb for the open document's path; (3) the search field wired to desktop-page-management-and-search; (4) Share (reveal in Explorer, export, copy path); (5) the Settings entry opening desktop-settings-and-status-ui. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1027
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
