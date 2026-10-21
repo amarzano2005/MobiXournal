@@ -40,6 +40,7 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
             box,
             box.toPtX(event.getX(pointerIndex), scrollX),
             box.toPtY(event.getY(pointerIndex), scrollY),
+            magnetic = shapeKind?.let(CircuitElementFactory::isConnectorKind) == true,
         )
         val (sx, sy) = guided(box, gx, gy)
         shapeStartX = sx
@@ -70,6 +71,7 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
             box,
             box.toPtX(event.getX(pointerIndex), scrollX),
             box.toPtY(event.getY(pointerIndex), scrollY),
+            magnetic = shapeKind?.let(CircuitElementFactory::isConnectorKind) == true,
         )
         val (ex, ey) = guided(box, gx, gy)
         shapeEndX = ex
@@ -507,8 +509,12 @@ internal fun DrawingSurfaceView.commitCurrent() {
         snapped = shape != null || holdWasSnapped
         shape ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
     }
+    // The magnetic pin snap is a connector gesture: a wire drawn with the line tool (components and
+    // tables commit above). A recognised freehand figure, or any other shape tool, is the user's own
+    // geometry and is never pulled onto a nearby pin or stroke end.
+    val magnetise = wasShaping && shapeKind?.let(CircuitElementFactory::isConnectorKind) == true
     val finalPts = pageAt(currentPage)?.let { p ->
-        if (wasShaping || snapped) {
+        if (magnetise) {
             CircuitSnapping.snapStrokeEndpoints(pts, CircuitSnapping.collectAllTargets(p))
         } else pts
     } ?: pts

@@ -49,7 +49,9 @@ class SourceStructureTest {
         // reported instead of a page), the part-in-view reads the layer panel and a tab snapshot need
         // (currentPageIndex / visiblePageIndex over the grid), the search jump through the chrome box,
         // and the mirrored pane being handed the board's grid along with the document.
-        "render/DrawingSurfaceView.kt" to 1829,
+        // -6: the shape-endpoint snap takes an explicit connector switch rather than carrying the
+        // stale duplicate doc block it had.
+        "render/DrawingSurfaceView.kt" to 1823,
         "render/CircuitShapes.kt" to 1180,
         // +5 deliberate: transcriptionLanguage setting for speech recognition language choice.
         "ui/AppSettings.kt" to 997,

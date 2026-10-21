@@ -5,6 +5,7 @@ import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -18,6 +19,9 @@ object CircuitSnapping {
 
     /** Distance threshold in points within which two pins magnetically snap. */
     const val SNAP_THRESHOLD_PT: Double = 14.0
+
+    /** How far a wire's intermediate vertices may sit off its own straight segment, in points. */
+    private const val WIRE_STRAIGHTNESS_PT: Double = 1.0
 
     /** Represents a magnetic snapping candidate pin on the page. */
     data class PinTarget(
@@ -75,23 +79,25 @@ object CircuitSnapping {
     }
 
     /**
-     * Collects all pin targets from circuits on [page], along with endpoints of 2-point wire strokes,
-     * excluding pins belonging to [excludeCircuitId].
+     * Collects all pin targets from circuits on [page], along with the endpoints of wire strokes
+     * ([isWire]), excluding pins belonging to [excludeCircuitId].
+     *
+     * Wire endpoints are only targets on a page that actually holds a circuit: the magnet exists to
+     * join a wire to a component, so on a page with no components there is nothing to join and plain
+     * lines must not be pulled onto each other.
      */
     fun collectAllTargets(page: Page, excludeCircuitId: String? = null): List<PinTarget> {
         val out = mutableListOf<PinTarget>()
         val circuits = page.layers.flatMap { it.elements.filterIsInstance<CircuitElement>() }
         out.addAll(collectTargets(circuits, excludeCircuitId))
+        if (circuits.isEmpty()) return out
         for (layer in page.layers) {
             for (element in layer.elements) {
-                if (element is Stroke && element.points.size >= 2) {
-                    val isLine = element.points.size in 2..4
-                    if (isLine) {
-                        val first = element.points.first()
-                        val last = element.points.last()
-                        out += PinTarget(null, "stroke_start", first.x, first.y, null)
-                        out += PinTarget(null, "stroke_end", last.x, last.y, null)
-                    }
+                if (element is Stroke && isWire(element)) {
+                    val first = element.points.first()
+                    val last = element.points.last()
+                    out += PinTarget(null, "stroke_start", first.x, first.y, null)
+                    out += PinTarget(null, "stroke_end", last.x, last.y, null)
                 }
             }
         }
@@ -99,19 +105,45 @@ object CircuitSnapping {
     }
 
     /**
-     * Snaps a page point ([x], [y]) to the nearest circuit pin or wire endpoint on [page].
-     * If no pin target is within [thresholdPt], falls back to paper grid lattice snapping if [snapToGrid] is true.
+     * Whether [stroke] is a **wire** — a single straight segment (the line tool's own two points, or a
+     * straight line carrying redundant collinear vertices from a `.xopp`). A closed figure (triangle,
+     * arrow, chemistry ring) has vertices that do not lie on one line, so it is ink, never a terminal:
+     * the magnet must not treat a sketch's corners as connection points.
+     */
+    fun isWire(stroke: Stroke): Boolean {
+        if (stroke.points.size !in 2..4) return false
+        val first = stroke.points.first()
+        val last = stroke.points.last()
+        val dx = last.x - first.x
+        val dy = last.y - first.y
+        val len = hypot(dx, dy)
+        // A closed stroke ends where it started: a figure, not a wire.
+        if (len < 1e-6) return false
+        return stroke.points.all { p ->
+            abs((p.x - first.x) * dy - (p.y - first.y) * dx) / len <= WIRE_STRAIGHTNESS_PT
+        }
+    }
+
+    /**
+     * Snaps a page point ([x], [y]) for a shape-tool gesture.
+     *
+     * [magnetic] is the connector switch: only a wire (line tool) or a placed component asks for it.
+     * Every other figure keeps its exact dragged geometry, and only the paper ruling can move it when
+     * [snapToGrid] is on. Without that gate the magnet fired on every rectangle, ellipse and chemistry
+     * bond drawn near an existing stroke.
      */
     fun snapPoint(
         page: Page,
         x: Double,
         y: Double,
         snapToGrid: Boolean,
+        magnetic: Boolean = false,
         thresholdPt: Double = SNAP_THRESHOLD_PT,
     ): Pair<Double, Double> {
-        val targets = collectAllTargets(page)
-        val snap = findSnapTarget(x, y, targets, thresholdPt)
-        if (snap != null) return snap.absX to snap.absY
+        if (magnetic) {
+            val snap = findSnapTarget(x, y, collectAllTargets(page), thresholdPt)
+            if (snap != null) return snap.absX to snap.absY
+        }
         return if (snapToGrid) Snapping.lattice(page.background, page.width).snap(x, y) else x to y
     }
 
@@ -143,6 +175,10 @@ object CircuitSnapping {
     /**
      * Snaps translation ([rawDx], [rawDy]) of selected circuits or wires on [page] so that
      * pins/endpoints align with existing pin targets on the page.
+     *
+     * Only connectors are considered, and only toward real connection targets
+     * ([collectAllTargets] is empty on a page without circuits), so dragging an ordinary figure
+     * across the sheet is a free move.
      */
     fun snapTranslation(
         page: Page?,
@@ -157,7 +193,7 @@ object CircuitSnapping {
         }
         val selectedStrokes = refs.mapNotNull { ref ->
             (page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? Stroke)
-                ?.takeIf { it.points.size in 2..4 }
+                ?.takeIf { isWire(it) }
         }
         if (selectedCircuits.isEmpty() && selectedStrokes.isEmpty()) return rawDx to rawDy
 

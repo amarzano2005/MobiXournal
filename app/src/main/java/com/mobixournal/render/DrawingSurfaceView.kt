@@ -1572,18 +1572,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     }
 
     /**
-     * [x] pt pulled onto [box]'s background ruling when the snap-to-grid setting is on, at the ruling's
-     * own phase (a graph sheet rules from its margin, not the page corner).
+     * ([x], [y]) pt for a shape gesture, on [box]'s ruling when the setting is on — and on a circuit pin
+     * only for a **connector** ([magnetic]: a wire or a placed component). The joint snap, so an
+     * isometric sheet resolves both coordinates at once.
      */
-    /**
-     * ([x], [y]) pt pulled onto [box]'s ruling when the snap-to-grid setting is on.
-     *
-     * The **joint** snap rather than two axis-wise calls: only it can resolve an isometric sheet, whose
-     * mesh rules no axis at all (so snapping x and y independently would each leave its coordinate
-     * untouched and the shape endpoint would land nowhere near a ruled node).
-     */
-    internal fun snappedPoint(box: PageBox, x: Double, y: Double): Pair<Double, Double> =
-        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid)
+    internal fun snappedPoint(box: PageBox, x: Double, y: Double, magnetic: Boolean) =
+        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid, magnetic)
 
     // --- the setsquare / compass guide: place it, drag it, and rule drawn points against it -------
 

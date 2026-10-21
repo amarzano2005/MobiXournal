@@ -49,6 +49,14 @@ internal object CircuitElementFactory {
     fun isCircuitKind(kind: ShapeKind): Boolean = kind in CIRCUIT_KINDS
 
     /**
+     * Whether [kind] is drawn as a **connector**, the only gestures the magnetic pin snap serves:
+     * a circuit component (whose pins must meet a wire) or a wire (the line tool). Everything else
+     * — a rectangle, a chemistry bond, a recognised freehand figure — is free ink and must never be
+     * pulled off the user's hand onto a nearby pin.
+     */
+    fun isConnectorKind(kind: ShapeKind): Boolean = kind == ShapeKind.LINE || isCircuitKind(kind)
+
+    /**
      * Emits canonical pin anchors in unrotated page coordinates relative to the component center.
      */
     fun defaultPinsFor(symbol: String, lengthPt: Double): List<CircuitPin> {

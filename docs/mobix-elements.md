@@ -325,7 +325,11 @@ picked where its handles are not.
 ```
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
-net a pin is snapped to and is omitted for a floating pin. A circuit with no `pins` is a plain symbol —
+net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
+a wire drawn with the line tool and a component being placed or moved are pulled onto a nearby pin (or
+wire end), and only on a page that actually holds a circuit. Ordinary figures — rectangles, bonds, the
+chemist's ring, a recognised freehand shape — keep exactly the geometry drawn; their only optional pull
+is the page ruling under *Snap to grid* (`render/CircuitSnapping.kt`, `render/CircuitElementFactory.kt`). A circuit with no `pins` is a plain symbol —
 the shape library's own drawings need no connectivity to be edited as a shape. A component has **no
 `bounds` at all**: its outline is the symbol library's, and a copy of a drawing this format does not
 own would be a copy that can go stale.

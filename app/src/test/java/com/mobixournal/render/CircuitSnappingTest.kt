@@ -3,8 +3,10 @@ package com.mobixournal.render
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.hypot
 
@@ -127,9 +129,145 @@ class CircuitSnappingTest {
             layers = listOf(com.mobixournal.format.model.Layer(listOf(resistor))),
         )
         // p2 is at (150, 100). Point (152, 102) is within 14 pt threshold.
-        val (sx, sy) = CircuitSnapping.snapPoint(page, 152.0, 102.0, snapToGrid = false)
+        val (sx, sy) = CircuitSnapping.snapPoint(
+            page, 152.0, 102.0, snapToGrid = false, magnetic = true,
+        )
         assertEquals(150.0, sx, 1e-6)
         assertEquals(100.0, sy, 1e-6)
+    }
+
+    /**
+     * The magnet belongs to connector gestures only: a rectangle, bond or recognised freehand figure
+     * drawn beside a pin keeps the geometry the user dragged.
+     */
+    @Test
+    fun snapPointWithoutTheMagnetLeavesAnOrdinaryFigureAlone() {
+        val circuit = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 100.0,
+            positionY = 100.0,
+            pins = listOf(CircuitPin("p2", 50.0, 0.0)),
+            id = "c1",
+        )
+        val page = com.mobixournal.format.model.Page(
+            width = 612.0,
+            height = 792.0,
+            background = com.mobixournal.format.model.Background.Solid(-1, "plain"),
+            layers = listOf(com.mobixournal.format.model.Layer(listOf(circuit))),
+        )
+        // p2 is at (150, 100); the point is well within reach of it.
+        val (x, y) = CircuitSnapping.snapPoint(page, 152.0, 102.0, snapToGrid = false)
+        assertEquals(152.0, x, 1e-6)
+        assertEquals(102.0, y, 1e-6)
+    }
+
+    /**
+     * Wire ends are connection targets only where there is a component to connect to; on a page of
+     * ordinary ink there is nothing to join, so nothing is a target.
+     */
+    @Test
+    fun plainStrokesAreNotTargetsWithoutACircuitOnThePage() {
+        val wire = com.mobixournal.format.model.Stroke(
+            com.mobixournal.format.model.Tool.PEN,
+            0xFF000000.toInt(),
+            "round",
+            listOf(
+                com.mobixournal.format.model.StrokePoint(50.0, 50.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(200.0, 50.0, 1.0),
+            ),
+            true,
+        )
+        val page = com.mobixournal.format.model.Page(
+            width = 612.0,
+            height = 792.0,
+            background = com.mobixournal.format.model.Background.Solid(-1, "plain"),
+            layers = listOf(com.mobixournal.format.model.Layer(listOf(wire))),
+        )
+        assertEquals(0, CircuitSnapping.collectAllTargets(page).size)
+
+        // A wire endpoint *is* a target once the page holds a component.
+        val resistor = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 100.0,
+            positionY = 100.0,
+            pins = listOf(CircuitPin("p1", -50.0, 0.0)),
+            id = "c1",
+        )
+        val circuitPage = page.copy(layers = page.layers + com.mobixournal.format.model.Layer(listOf(resistor)))
+        assertEquals(3, CircuitSnapping.collectAllTargets(circuitPage).size)
+    }
+
+    /**
+     * A wire is one straight segment. A closed figure (its last point back on its first) is ink whose
+     * corners must never act as terminals, and a straight line with redundant collinear vertices is
+     * still a wire.
+     */
+    @Test
+    fun onlyAStraightSegmentCountsAsAWire() {
+        val triangle = com.mobixournal.format.model.Stroke(
+            com.mobixournal.format.model.Tool.PEN,
+            0xFF000000.toInt(),
+            "round",
+            listOf(
+                com.mobixournal.format.model.StrokePoint(50.0, 50.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(150.0, 50.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(100.0, 120.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(50.0, 50.0, 1.0),
+            ),
+            true,
+        )
+        val straight = triangle.copy(
+            points = listOf(
+                com.mobixournal.format.model.StrokePoint(50.0, 50.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(100.0, 50.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(200.0, 50.0, 1.0),
+            ),
+        )
+        assertFalse("a closed figure is not a wire", CircuitSnapping.isWire(triangle))
+        assertTrue("a straight line is a wire", CircuitSnapping.isWire(straight))
+
+        // On a circuit page the triangle contributes no targets: only the component's pin does.
+        val circuit = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 100.0,
+            positionY = 100.0,
+            pins = listOf(CircuitPin("p1", -50.0, 0.0)),
+            id = "c1",
+        )
+        val page = com.mobixournal.format.model.Page(
+            width = 612.0,
+            height = 792.0,
+            background = com.mobixournal.format.model.Background.Solid(-1, "plain"),
+            layers = listOf(
+                com.mobixournal.format.model.Layer(listOf(triangle, straight)),
+                com.mobixournal.format.model.Layer(listOf(circuit)),
+            ),
+        )
+        assertEquals(3, CircuitSnapping.collectAllTargets(page).size) // pin + the wire's two ends
+    }
+
+    /** Dragging ink on a page with no circuit is a free move: there is no connector to snap to. */
+    @Test
+    fun snapTranslationLeavesAnOrdinaryStrokeAlone() {
+        val stroke = com.mobixournal.format.model.Stroke(
+            com.mobixournal.format.model.Tool.PEN,
+            0xFF000000.toInt(),
+            "round",
+            listOf(
+                com.mobixournal.format.model.StrokePoint(50.0, 50.0, 1.0),
+                com.mobixournal.format.model.StrokePoint(200.0, 50.0, 1.0),
+            ),
+            true,
+        )
+        val page = com.mobixournal.format.model.Page(
+            width = 612.0,
+            height = 792.0,
+            background = com.mobixournal.format.model.Background.Solid(-1, "plain"),
+            layers = listOf(com.mobixournal.format.model.Layer(listOf(stroke))),
+        )
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 0)), 3.0, 2.0)
+        assertEquals(3.0, dx, 1e-6)
+        assertEquals(2.0, dy, 1e-6)
     }
 
     @Test
