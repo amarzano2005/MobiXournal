@@ -16,6 +16,14 @@ What it does today:
   `.mobix` — from the toolbar or a path argument, lists its pages, and zooms 25–200 %. The container is
   chosen by the file's **bytes** (`FileKind` plus a ZIP's `mimetype` entry), never by the extension, so a
   renamed notebook still opens as a notebook.
+- **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
+tab keeps its own page, zoom and fit, so going back to a tab lands where you left it), a collapsible
+240 dp sidebar of page thumbnails and the current page's layers, the page alone on the true-black desk,
+and a 24 dp status bar with the page counter, the effective zoom, the fit mode and the container.
+Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and every one
+of those actions also has a key (`docs/ui-modernization.md` owns the table). Thumbnails come from the
+same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
+once per page per tab.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
   those documents — the header says "pagine lette su richiesta" instead of lying.
@@ -37,15 +45,15 @@ What it does today:
   ([`mobix-streaming-api.md`](mobix-streaming-api.md)): the paged reader, the asset sources, the page
   and element codecs, the incremental save and the merge are callable from this module, and
   `DesktopMobixOpenTest` opens a 40-page notebook through them without the Android app on the
-  classpath. Wiring that open into the window is the next task
-  (`desktop-open-mobix-and-zipped-xopp` in `TODO.toml`).
+  classpath. The window opens those documents through the same reader.
 
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no isometric paper,
-  no layer visibility, and no editing of a living entity — the ink is drawn, not yet made editable.
-- No PDF or pixmap backgrounds, no images, no living entities (plots, tables, circuits, shapes), no
-  layer visibility.
+  no layer visibility toggles, and no editing of a living entity — the ink is drawn, not yet made
+  editable.
+- No tool rail or ribbon, no right-side property inspector, no search, and no page reordering or
+  insertion.
 - No tablet/dial input, no dirty-rect GPU pacing, no installers. `run` is the only entry point;
   `nativeDistributions` is configured but not wired into a release job.
 
@@ -54,15 +62,19 @@ Verification, runnable on any JVM host (no emulator): `./gradlew :desktop:test` 
 both **misnamed** — `.mobix` content in a `.xopp` file and vice versa), refuses a text file and a ZIP with
 no document inside by name, renders page 1 of each headlessly via `ImageComposeScene`, and renders a
 table, a parametric shape, a bundled pixmap and a PDF background — asserting the pixels, not just that
-the call returned (`LivingAndBackgroundTest`),
-checks the painted pixels, and writes `desktop/build/desktop-render/page-1.png`.
+the call returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and
+after** a document is opened and asserts the frames differ (the regression that caught a strip which
+never redrew), renders the sidebar, and checks the keyboard's fit and zoom arithmetic. Every render is
+written under `desktop/build/desktop-render/` so it can be looked at.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
 phase order and the done criteria, and its children are the atomic tasks (orders 910–1030) and the
-three phase scopes still to be broken down. Two decisions were taken on 2026-10-21 and recorded in
+three phase scopes still to be broken down. Three decisions were taken on 2026-10-21 and recorded in
 `docs/ui-modernization.md` (the owning spoke for desktop layout and materials): the chrome is the app's
-own glass on a true-black desk rather than Mica/Vibrancy, and **both** tool placements ship — vertical
-rail by default, horizontal ribbon as the alternative — switched in settings.
+own glass on a true-black desk rather than Mica/Vibrancy, **both** tool placements ship — vertical rail
+by default, horizontal ribbon as the alternative — switched in settings, and the desktop's tab/view
+model is Compose **snapshot state**, so the chrome is redrawn by the state it reads instead of by a
+second copy kept in sync by hand.
 
 ---
 

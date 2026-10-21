@@ -158,6 +158,33 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
   alternative for 16:9 monitors, and **Settings → Interface → Tool placement** chooses Rail / Ribbon /
   Both. Whichever is on, it is a band in its own lane beside the canvas, never over the page.
 
+**The shell as built (2026-10-21).** `desktop/` now has the header, tab strip, sidebar, workspace and
+status bar of the drawing above; the rail, the ribbon and the inspector are the parts still missing.
+Everything the chrome does can also be done from the keyboard:
+
+| Key | Action |
+|---|---|
+| `Ctrl + T`, `+` | open a document; a file already open activates its tab instead of opening twice |
+| `Ctrl + W`, `×` | close the tab, activating its neighbour |
+| `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
+| `Ctrl + B`, `≡` | show or hide the sidebar |
+| `Ctrl + =`, `Ctrl + NumPad +` | zoom in — see the layout note below |
+| `Ctrl + -`, `Ctrl + NumPad -` | zoom out |
+| `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
+| `Page Up` / `Page Down` | previous / next page |
+| `Space` (held) | pan with the primary button; the middle button always pans |
+
+Two decisions taken while building it:
+- **The tab and view model is Compose snapshot state, not plain fields.** A `mutableListOf` and ordinary
+  `var`s are invisible to Compose: the first run opened a document while the strip stayed empty (`≡`
+  and `+`, no tab) and a zoom changed a number nothing redrew. One state, read by the chrome, is the
+  only version that cannot disagree with itself — and it still runs in a plain JVM test, because
+  snapshot state works outside a composition.
+- **Zoom-in is bound to a physical key, not to the `=` character.** On an Italian keyboard `=` *is*
+  `Shift + 0`, and AWT delivers no key event for it at all — `Ctrl + =` simply never arrives. The
+  keypad's `+` is the layout-independent binding, `Ctrl + shift + 0` is accepted for the layouts where
+  `=` shares the `0` key, and `Ctrl` + wheel (zoom at the cursor) is the one that always works.
+
 ### 2. Visual tool placement and docking on Desktop
 Unlike the header bar (which handles documents) and the sidebar (which handles navigation), the **drawing and STEM tools**
 remain visually accessible on screen for direct mouse or pen clicking:

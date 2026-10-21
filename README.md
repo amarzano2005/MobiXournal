@@ -89,8 +89,26 @@ highlighters, dashed lines, text boxes, and the living parts of a page too: tabl
 shapes and circuit components, plus photo and annotated-PDF page backgrounds — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
 `.mobix` all open, and the window works out which one it has from the file's content rather than its
 name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
-page up front. It is **read-only** for now, and it is a separate module, so it never affects the
-Android build.
+page up front.
+
+More than one document can be open, each in its own tab that remembers the page and the zoom you left
+it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
+page's layers), and the page can be fitted to the window, fitted to its width, or zoomed freely — the
+point under the cursor stays where it is while you zoom. It is **read-only** for now, and it is a
+separate module, so it never affects the Android build.
+
+| Key | What it does |
+|---|---|
+| `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) |
+| `Ctrl + W`, `×` on a tab | close the tab |
+| `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
+| `Ctrl + B`, `≡` | show or hide the sidebar |
+| `Ctrl + =` or the keypad's `+`, `Ctrl + -` | zoom in / out |
+| `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
+| `Page Up` / `Page Down` | previous / next page |
+
+Wheel scrolls the page, `Ctrl` + wheel zooms where you point, and middle-drag or `Space` + drag pans.
+A tab's name can be edited in place with a double-click, and tabs can be dragged into a new order.
 
 ```sh
 # Windows (needs a JDK 21 host, as the Android build does)
@@ -100,9 +118,8 @@ Android build.
 ./gradlew :desktop:run --args="udiff.xopp"
 ```
 
-Start it without an argument and use **Apri…** to pick a file. Nothing can be edited or saved yet, PDF
-and image backgrounds are not painted, and the status with the next steps lives in
-[`docs/desktop-workstation.md`](docs/desktop-workstation.md).
+Start it without an argument and use **Apri…** to pick a file. Nothing can be edited or saved yet, and
+the status with the next steps lives in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
 
 ---
 
