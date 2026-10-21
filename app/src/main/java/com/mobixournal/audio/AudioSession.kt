@@ -171,13 +171,17 @@ class AudioSession(
      * Keep a recording a `.mobix` bundles, under the name the stroke carries — what lets a document
      * moved to an empty folder still replay ([com.mobixournal.io.BundledAudio]).
      */
-    override fun adopt(reference: String, bytes: ByteArray) = store.adopt(reference, bytes)
+    override fun adopt(reference: String, source: java.io.InputStream) = store.adopt(reference, source)
 
     /**
-     * The bytes of the recording [name] names, or null when this session does not hold it — what a
+     * The **file** the recording [name] names, or null when this session does not hold it — what a
      * `.mobix` save hands [com.mobixournal.io.DocumentIo.encode] so the archive carries its audio.
+     *
+     * A file, not its bytes: the recording is bundled by streaming it into the archive
+     * ([com.mobixournal.format.mobix.MobixPayload]), so a 30-minute lecture never becomes a 160 MB
+     * `ByteArray` on the way to disk.
      */
-    fun recording(name: String): ByteArray? = store.local(name).takeIf(File::isFile)?.readBytes()
+    fun recordingFile(name: String): File? = store.local(name).takeIf(File::isFile)
 
     /**
      * Play [ref]'s recording **from the stroke's own offset** — what the Play object tool promises when

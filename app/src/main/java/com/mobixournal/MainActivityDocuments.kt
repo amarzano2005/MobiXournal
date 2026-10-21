@@ -546,9 +546,11 @@ internal fun MainActivity.saveDocument(uri: Uri) {
         work = {
             // Encode locally first, then push the finished bytes across in one pass: on a slow or flaky
             // remote share, serialising straight down the wire risks leaving a half-written .xopp behind.
-            // The recordings travel inside a `.mobix` the way its backgrounds do ([AudioSession.recording]).
+            // The recordings travel inside a `.mobix` the way its backgrounds do, as **files** the
+            // archive streams in ([AudioSession.recordingFile]) — a long lecture is never materialised
+            // to be saved.
             val encoded = io.encode(
-                document, pdf, saveFormat, uri, images, audio::recording, canvasMode, activeTranscription.value,
+                document, pdf, saveFormat, uri, images, audio::recordingFile, canvasMode, activeTranscription.value,
             )
             try {
                 io.stageOut(encoded.file, uri)

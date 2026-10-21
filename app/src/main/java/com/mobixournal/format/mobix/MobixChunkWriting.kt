@@ -79,8 +79,8 @@ internal fun encodeChunks(
     manifest: MobixManifest,
     chunks: List<MobixChunk>,
     sink: MobixAssetSink,
-    backgroundBytes: (Background) -> ByteArray?,
-    audioBytes: (String) -> ByteArray?,
+    backgrounds: (Background) -> MobixPayload?,
+    audio: (String) -> MobixPayload?,
     nowMillis: Long,
     reuse: MobixPageReuse,
 ): List<BuiltPart> = (0 until chunks.size).map { index ->
@@ -88,7 +88,7 @@ internal fun encodeChunks(
     // one means reading its page — the very cost a copy avoids (`LazyChunks`).
     reuse.reused[index]?.let { part -> return@map BuiltPart(part, entry = null) }
     val chunk = chunks[index]
-    val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgroundBytes, audioBytes))
+    val json = JsonWriter.write(MobixChunkCodec.encode(chunk, sink, backgrounds, audio))
         .toByteArray(Charsets.UTF_8)
     val name = MobixFormat.chunkEntry(chunk.cx, chunk.cy)
     BuiltPart(

@@ -63,17 +63,17 @@ internal object MobixChunkCodec {
     fun encode(
         chunk: MobixChunk,
         assets: MobixAssetSink,
-        backgroundBytes: (Background) -> ByteArray? = { null },
-        audioBytes: (String) -> ByteArray? = { null },
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
     ): JsonNode.Obj = MobixJson.obj { out ->
         out["cx"] = JsonNode.of(chunk.cx)
         out["cy"] = JsonNode.of(chunk.cy)
         out["widthPt"] = JsonNode.of(chunk.widthPt)
         out["heightPt"] = JsonNode.of(chunk.heightPt)
         chunk.background?.let {
-            out["background"] = MobixPageCodec.encodeBackground(it, assets, backgroundBytes)
+            out["background"] = MobixPageCodec.encodeBackground(it, assets, backgrounds)
         }
-        out["layers"] = JsonNode.arr(chunk.layers.map { MobixPageCodec.encodeLayer(it, assets, audioBytes) })
+        out["layers"] = JsonNode.arr(chunk.layers.map { MobixPageCodec.encodeLayer(it, assets, audio) })
         if (chunk.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(chunk.extraAttrs)
     }
 

@@ -51,7 +51,7 @@ internal object MobixIncrementalSaver {
      */
     fun repack(
         source: MobixEntrySource,
-        dirtyEntries: Map<String, ByteArray>,
+        dirtyEntries: Map<String, MobixPayload>,
         output: OutputStream,
         explicitOrder: List<String>? = null,
     ): MobixIncrementalSaveStats {
@@ -83,7 +83,7 @@ internal object MobixIncrementalSaver {
             if (dirty != null) {
                 zip.putDeflated(name, dirty)
                 rewrittenCount++
-                rewrittenBytes += dirty.size.toLong()
+                rewrittenBytes += dirty.length
                 continue
             }
             // An entry the source holds as it wrote it is copied verbatim; one it can only inflate

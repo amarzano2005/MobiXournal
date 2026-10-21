@@ -141,8 +141,8 @@ class MobixIncrementalSaveTest {
             val newManifestBytes = newManifest.encode().toByteArray(Charsets.UTF_8)
 
             val dirtyMap = mapOf(
-                MobixFormat.MANIFEST_ENTRY to newManifestBytes,
-                MobixFormat.pageEntry(3) to newPage3Bytes,
+                MobixFormat.MANIFEST_ENTRY to MobixPayload.of(newManifestBytes),
+                MobixFormat.pageEntry(3) to MobixPayload.of(newPage3Bytes),
             )
 
             val stats = FileOutputStream(tempDest).use { destOut ->

@@ -37,18 +37,19 @@ internal object MobixPageCodec {
 
     /**
      * [page] as JSON, registering bundled payloads in [assets] — a picture or PDF through
-     * [backgroundBytes], a stroke's recording through [audioBytes].
+     * [backgrounds], a stroke's recording through [audio]. Both are **streamed** sources
+     * ([MobixPayload]), so a page that names a 160 MB recording is encoded without reading it.
      */
     fun encode(
         page: Page,
         assets: MobixAssetSink,
-        backgroundBytes: (Background) -> ByteArray? = { null },
-        audioBytes: (String) -> ByteArray? = { null },
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
     ): JsonNode.Obj = MobixJson.obj { out ->
         out["widthPt"] = JsonNode.of(page.width)
         out["heightPt"] = JsonNode.of(page.height)
-        out["background"] = encodeBackground(page.background, assets, backgroundBytes)
-        out["layers"] = JsonNode.arr(page.layers.map { encodeLayer(it, assets, audioBytes) })
+        out["background"] = encodeBackground(page.background, assets, backgrounds)
+        out["layers"] = JsonNode.arr(page.layers.map { encodeLayer(it, assets, audio) })
         if (page.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(page.extraAttrs)
     }
 
@@ -68,10 +69,10 @@ internal object MobixPageCodec {
     internal fun encodeLayer(
         layer: Layer,
         assets: MobixAssetSink,
-        audioBytes: (String) -> ByteArray? = { null },
+        audio: (String) -> MobixPayload? = { null },
     ): JsonNode.Obj = MobixJson.obj { out ->
         layer.name?.let { out["name"] = JsonNode.of(it) }
-        out["elements"] = JsonNode.arr(layer.elements.map { MobixElementCodec.encode(it, assets, audioBytes) })
+        out["elements"] = JsonNode.arr(layer.elements.map { MobixElementCodec.encode(it, assets, audio) })
         if (layer.extraAttrs.isNotEmpty()) out[ATTRS] = MobixJson.attrsNode(layer.extraAttrs)
     }
 
@@ -85,11 +86,11 @@ internal object MobixPageCodec {
 
     // ---- backgrounds ----------------------------------------------------------------------------
 
-    /** [background] as JSON, bundling its bytes through [backgroundBytes] when the caller can supply them. */
+    /** [background] as JSON, bundling its content through [backgrounds] when the caller can supply it. */
     fun encodeBackground(
         background: Background,
         assets: MobixAssetSink,
-        backgroundBytes: (Background) -> ByteArray? = { null },
+        backgrounds: (Background) -> MobixPayload? = { null },
     ): JsonNode.Obj = MobixJson.obj { out ->
         when (background) {
             is Background.Solid -> {
@@ -103,7 +104,7 @@ internal object MobixPageCodec {
                 out["domain"] = JsonNode.of(background.domain)
                 out["filename"] = JsonNode.of(background.filename)
                 // The bytes when the caller has them, the name the document already used otherwise.
-                (backgroundBytes(background)
+                (backgrounds(background)
                     ?.let { assets.add(it, MobixFormat.AssetKind.IMAGE) }
                     ?: background.bundledAsset)?.let { out["asset"] = JsonNode.of(it) }
             }
@@ -112,7 +113,7 @@ internal object MobixPageCodec {
                 background.filename?.let { out["filename"] = JsonNode.of(it) }
                 background.domain?.let { out["domain"] = JsonNode.of(it) }
                 out["pageNo"] = JsonNode.of(background.pageNo)
-                (backgroundBytes(background)
+                (backgrounds(background)
                     ?.let { assets.add(it, MobixFormat.AssetKind.IMAGE, suffix = "pdf") }
                     ?: background.bundledAsset)?.let { out["asset"] = JsonNode.of(it) }
             }

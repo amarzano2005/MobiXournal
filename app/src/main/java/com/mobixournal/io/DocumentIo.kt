@@ -18,6 +18,7 @@ import com.mobixournal.format.mobix.MobixIncrementalSave
 import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
+import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.asAssetSource
 import com.mobixournal.format.model.Background
@@ -35,6 +36,7 @@ import com.mobixournal.render.documentWithPdfDomain
 import com.mobixournal.render.documentWithPixmapAttachments
 import com.mobixournal.render.sheetDocument
 import java.io.File
+import java.util.zip.ZipFile
 
 
 /**
@@ -486,8 +488,12 @@ class DocumentIo(
         format: SaveFormat,
         target: Uri? = null,
         images: Map<String, File> = emptyMap(),
-        /** The bytes of the recording a stroke's `fn` names, or null when the store has none. */
-        audio: (String) -> ByteArray? = { null },
+        /**
+         * The **file** the recording a stroke's `fn` names lives in, or null when the store has none.
+         * A file rather than its bytes: the recording is bundled by streaming it into the archive, so a
+         * long lecture is never a `ByteArray` on the way to disk ([MobixPayload]).
+         */
+        audioFiles: (String) -> File? = { null },
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
         transcription: com.mobixournal.audio.AudioTranscription? = null,
     ): Encoded {
@@ -500,64 +506,16 @@ class DocumentIo(
                     uncompiled = ink.uncompiled
                     Xopp.save(refs.portableReference(ink.document, target), output)
                 }
-                SaveFormat.MOBIX -> {
-                    val now = System.currentTimeMillis()
-                    // Repack over the file this document was opened from when the save lands back on
-                    // it: the entries whose bytes did not change stream out of that archive instead of
-                    // being deflated again, and a page nothing touched is not even built — its bytes are
-                    // copied out of the file it is still holding ([MobixPageReuse]). Everywhere else — a
-                    // new document, a first save, a Save As to another target — there is no source to
-                    // copy from, so every page is built and the whole archive is written.
-                    val source = openSessions.sourceFor(document, target)
-                    val backgroundBytes = backgroundBytesOf(pdf, images)
-                    // The shape this write has to keep: a chunked document stays chunked, at its own
-                    // coordinates, whether the save repacks over its file or builds a new archive.
-                    val mode = openSessions.canvasModeOf(document, canvasMode)
-                    val chunkCoords = openSessions.chunkCoordsOf(document)
-                    // …and the board geometry the file declared, which no page carries.
-                    val canvas = openSessions.canvasOf(document)
-                    val carried = carriedAssets(document).toMutableMap()
-                    if (transcription != null) {
-                        carried[MobixFormat.TRANSCRIPT_ENTRY] =
-                            com.mobixournal.audio.TranscriptionCodec.encode(transcription).toByteArray(Charsets.UTF_8)
-                    }
-                    if (source == null) {
-                        // The document's own metadata, not a fresh identity: a `.mobix` opened and saved
-                        // again is the same document ([Document.documentId]).
-                        val mobix = MobixDocument.of(
-                            document = document,
-                            appVersion = appVersion,
-                            nowMillis = now,
-                            source = target?.let { displayName(it, "document") },
-                            // A whole-archive write builds every page from the model, so a page that
-                            // names `assets/…` writes that reference back. Carry the bytes it points
-                            // at out of the archive this document was opened from, or the new file
-                            // names an entry it does not have ([carriedAssets]).
-                            payloads = carried,
-                            canvasMode = mode,
-                            chunkCoords = chunkCoords,
-                            canvas = canvas,
-                        )
-                        MobixContainer.save(mobix.encode(now, backgroundBytes, audio).entries, output)
-                    } else {
-                        entrySources(source.staged).use { from ->
-                            MobixIncrementalSave.saveOver(
-                                source = from,
-                                document = document,
-                                appVersion = appVersion,
-                                nowMillis = now,
-                                output = output,
-                                backgroundBytes = backgroundBytes,
-                                audioBytes = audio,
-                                bridgeSource = target?.let { displayName(it, "document") },
-                                canvasMode = mode,
-                                chunkCoords = chunkCoords,
-                                canvas = canvas,
-                                payloads = carried,
-                            )
-                        }
-                    }
-                }
+                SaveFormat.MOBIX -> writeMobix(
+                    document = document,
+                    pdf = pdf,
+                    target = target,
+                    images = images,
+                    audioFiles = audioFiles,
+                    canvasMode = canvasMode,
+                    transcription = transcription,
+                    output = output,
+                )
                 SaveFormat.ZIPPED -> {
                     val ink = ink(exportDocument(document, canvasMode))
                     uncompiled = ink.uncompiled
@@ -613,61 +571,83 @@ class DocumentIo(
     class Encoded(val file: File, val uncompiled: List<Uncompilable> = emptyList())
 
     /**
-     * The `assets/` entries a **source-less** `.mobix` write still has to carry, read out of the
-     * archive this document was opened from.
-     *
-     * A save that repacks over its own archive needs none of this: an entry whose bytes did not change
-     * is streamed out of that file verbatim ([MobixIncrementalSave]). But a Save As, or a first save of
-     * a document whose staged copy is gone, writes a fresh archive from the model — and the model keeps
-     * the *names* of the payloads it was read with ([Background.Pdf.bundledAsset],
-     * [Stroke.bundledAudio]) precisely so a rewrite cannot orphan them. The bytes those names point at
-     * are only adopted into the app's stores when a page is read ([`BundledPageAssets`]), so a page
-     * nothing has drawn yet has no local copy and the stores answer nothing for it. Left alone, the
-     * written page would name `assets/img_<sha>.png` with no such entry in the archive: the picture, the
-     * bundled PDF or the recording would be silently gone from the new file.
-     *
-     * So the entries the document still *references* are read back out of the staged copy and handed to
-     * the writer as payloads. Reading them is the only pass over the pages that costs anything, and it
-     * is a pass this path is already making: every page is being built from the model anyway. A document
-     * whose staged copy the session no longer holds has nothing to read and yields nothing — the honest
-     * answer, reported to the user where a page needs a background it cannot get
-     * (`report-a-mobix-page-whose-background-is-missing`).
+     * The `.mobix` half of [encode]: one whole-archive write, or a repack over the file this document
+     * was opened from. Split out of `encode` so the three formats stay readable side by side, and so the
+     * audio seam is memoised **once per write** — a page with four hundred strokes that replay from one
+     * lecture asks for it four hundred times.
      */
-    private fun carriedAssets(document: Document): Map<String, ByteArray> {
-        val source = openSessions.stagedOf(document) ?: return emptyMap()
-        val referenced = referencedAssets(document)
-        if (referenced.isEmpty()) return emptyMap()
-        return entrySources(source).use { entries ->
-            val assets = entries.asAssetSource()
-            referenced.mapNotNull { name -> assets.bytes(name)?.let { bytes -> name to bytes } }.toMap()
+    private fun writeMobix(
+        document: Document,
+        pdf: File?,
+        target: Uri?,
+        images: Map<String, File>,
+        audioFiles: (String) -> File?,
+        canvasMode: CanvasMode,
+        transcription: com.mobixournal.audio.AudioTranscription?,
+        output: java.io.OutputStream,
+    ) {
+        val now = System.currentTimeMillis()
+        // Repack over the file this document was opened from when the save lands back on it: the
+        // entries whose bytes did not change stream out of that archive instead of being deflated
+        // again, and a page nothing touched is not even built — its bytes are copied out of the file it
+        // is still holding ([MobixPageReuse]). Everywhere else — a new document, a first save, a Save As
+        // to another target — there is no source to copy from, so every page is built and the whole
+        // archive is written.
+        val source = openSessions.sourceFor(document, target)
+        val backgrounds = backgroundPayloadsOf(pdf, images)
+        val payloads = HashMap<String, MobixPayload?>()
+        fun audioPayload(name: String): MobixPayload? {
+            if (payloads.containsKey(name)) return payloads[name]
+            val payload = audioFiles(name)?.takeIf(File::isFile)?.let(MobixPayload::of)
+            payloads[name] = payload
+            return payload
         }
-    }
-
-    /**
-     * The `assets/` entry names the model itself still carries: a page's bundled background and a
-     * stroke's bundled recording. A stroke that names an asset through its `fn` instead — the shape
-     * this app wrote before it kept the two apart — counts as one too, which is the same rule the
-     * adoption step reads it by ([`BundledPageAssets`]).
-     */
-    private fun referencedAssets(document: Document): Set<String> {
-        val names = LinkedHashSet<String>()
-        for (page in document.pages) {
-            when (val background = page.background) {
-                is Background.Pdf -> background.bundledAsset?.let(names::add)
-                is Background.Pixmap -> background.bundledAsset?.let(names::add)
-                is Background.Solid -> Unit
-            }
-            for (layer in page.layers) {
-                for (element in layer.elements) {
-                    val stroke = element as? Stroke ?: continue
-                    stroke.bundledAudio?.let(names::add)
-                    stroke.audioRef()?.filename
-                        ?.takeIf { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO) }
-                        ?.let(names::add)
-                }
+        // The shape this write has to keep: a chunked document stays chunked, at its own coordinates,
+        // whether the save repacks over its file or builds a new archive — and the board geometry the
+        // file declared, which no page carries.
+        val mode = openSessions.canvasModeOf(document, canvasMode)
+        val chunkCoords = openSessions.chunkCoordsOf(document)
+        val canvas = openSessions.canvasOf(document)
+        val carried = carriedPayloads(document, openSessions.stagedOf(document), ::audioPayload).toMutableMap()
+        if (transcription != null) {
+            carried[MobixFormat.TRANSCRIPT_ENTRY] = MobixPayload.of(
+                com.mobixournal.audio.TranscriptionCodec.encode(transcription).toByteArray(Charsets.UTF_8),
+            )
+        }
+        if (source == null) {
+            // The document's own metadata, not a fresh identity: a `.mobix` opened and saved again is
+            // the same document ([Document.documentId]). A whole-archive write builds every page from
+            // the model, so a page that names `assets/…` writes that reference back — carried from the
+            // archive this document was opened from, or the new file names an entry it does not have.
+            val mobix = MobixDocument.of(
+                document = document,
+                appVersion = appVersion,
+                nowMillis = now,
+                source = target?.let { displayName(it, "document") },
+                payloads = carried,
+                canvasMode = mode,
+                chunkCoords = chunkCoords,
+                canvas = canvas,
+            )
+            MobixContainer.save(mobix.encode(now, backgrounds, ::audioPayload).entries, output)
+        } else {
+            entrySources(source.staged).use { from ->
+                MobixIncrementalSave.saveOver(
+                    source = from,
+                    document = document,
+                    appVersion = appVersion,
+                    nowMillis = now,
+                    output = output,
+                    backgrounds = backgrounds,
+                    audio = ::audioPayload,
+                    bridgeSource = target?.let { displayName(it, "document") },
+                    canvasMode = mode,
+                    chunkCoords = chunkCoords,
+                    canvas = canvas,
+                    payloads = carried,
+                )
             }
         }
-        return names
     }
 
     private companion object {

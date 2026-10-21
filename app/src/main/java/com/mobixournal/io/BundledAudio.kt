@@ -14,8 +14,12 @@ package com.mobixournal.io
 fun interface BundledAudio {
 
     /**
-     * Keep [bytes] as the recording a stroke names [reference] — the sidecar name it replayed from, so
-     * playback of that stroke needs nothing else.
+     * Keep the recording a stroke names [reference] — the sidecar name it replayed from, so playback
+     * of that stroke needs nothing else.
+     *
+     * [source] is **streamed** to its destination rather than handed over whole: a bundled recording
+     * is as long as the lecture it came from, and materialising it on open is the allocation this seam
+     * exists to avoid. The callee reads it to the end; the caller owns closing it.
      */
-    fun adopt(reference: String, bytes: ByteArray)
+    fun adopt(reference: String, source: java.io.InputStream)
 }

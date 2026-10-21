@@ -63,7 +63,7 @@ class MobixAudioBundleTest {
 
     /** The notebook as it would be on disk, with the recording bundled into it. */
     private fun bundledBytes(): ByteArray = MobixDocument.of(notebook(), appVersion = "1.3.0", nowMillis = 1L)
-        .toBytes(nowMillis = 1L, audioBytes = { recording })
+        .toBytes(nowMillis = 1L, audio = { MobixPayload.of(recording) })
 
     private fun openBytes(bytes: ByteArray): MobixDocument =
         MobixDocument.open(MobixContainer.open(ByteArrayInputStream(bytes)))
@@ -83,7 +83,7 @@ class MobixAudioBundleTest {
     @Test
     fun oneRecordingBehindManyStrokesIsOneEntry() {
         val entries = MobixDocument.of(notebook(), appVersion = "1.3.0", nowMillis = 1L)
-            .encode(nowMillis = 1L, audioBytes = { name -> recording.takeIf { name == sidecar } })
+            .encode(nowMillis = 1L, audio = { name -> recording.takeIf { name == sidecar }?.let(MobixPayload::of) })
 
         val bundled = entries.filter { it.name.startsWith(MobixFormat.ASSETS_DIR) }
         assertEquals("one recording, however many strokes replay from it", 1, bundled.size)
@@ -117,7 +117,7 @@ class MobixAudioBundleTest {
     @Test
     fun theOpenKeepsTheSidecarNameAndTheEntryApart() {
         val bytes = MobixDocument.of(notebook(), appVersion = "1.3.0", nowMillis = 1L)
-            .toBytes(nowMillis = 1L, audioBytes = { recording })
+            .toBytes(nowMillis = 1L, audio = { MobixPayload.of(recording) })
         val entry = MobixFormat.assetEntry(
             MobixAssetSink.sha256(recording),
             MobixFormat.AssetKind.AUDIO,

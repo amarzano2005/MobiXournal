@@ -1,11 +1,22 @@
 package com.mobixournal.format.mobix
 
+import java.io.InputStream
 import java.security.MessageDigest
 
 /** Resolves a bundled binary payload by its entry name (an `assets/img_<sha256>.png`, say). */
 internal fun interface MobixAssetSource {
     /** The bytes of [name], or null when this document does not carry it. */
     fun bytes(name: String): ByteArray?
+
+    /**
+     * The content of [name] as a **stream**, or null when this document does not carry it.
+     *
+     * What adopting a recording on open uses: a caller that copies the payload to a store
+     * (`BundledAudio`) must not ask a 160 MB recording for its `ByteArray` first. The default reads
+     * the bytes — correct for a source that has nothing else, wasteful for one that does — and the
+     * streaming source overrides it ([asAssetSource]).
+     */
+    fun open(name: String): InputStream? = bytes(name)?.inputStream()
 }
 
 /** The [MobixAssetSource] view of an opened archive: assets are just entries. */
@@ -13,12 +24,17 @@ internal fun MobixContainer.Archive.asAssetSource(): MobixAssetSource = MobixAss
 
 /**
  * The [MobixAssetSource] view of a streaming [MobixEntrySource]: assets are the `assets/` entries,
- * read on demand. A bare name (no `assets/` prefix) is resolved under the assets directory, matching
- * the names a page's codec hands back.
+ * read — or **streamed** — on demand. A bare name (no `assets/` prefix) is resolved under the assets
+ * directory, matching the names a page's codec hands back.
  */
-internal fun MobixEntrySource.asAssetSource(): MobixAssetSource = MobixAssetSource { name ->
-    val entry = if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
-    readBytes(entry)
+internal fun MobixEntrySource.asAssetSource(): MobixAssetSource = object : MobixAssetSource {
+
+    private fun entryOf(name: String): String =
+        if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
+
+    override fun bytes(name: String): ByteArray? = readBytes(entryOf(name))
+
+    override fun open(name: String): InputStream? = openEntry(entryOf(name))
 }
 
 /**
@@ -34,7 +50,7 @@ internal fun MobixEntrySource.asAssetSource(): MobixAssetSource = MobixAssetSour
  */
 internal class MobixAssetSink {
 
-    private val byName = LinkedHashMap<String, ByteArray>()
+    private val byName = LinkedHashMap<String, MobixPayload>()
 
     /**
      * Register [bytes] and return the entry name that addresses them. [kind] prefixes the name and
@@ -45,15 +61,26 @@ internal class MobixAssetSink {
         bytes: ByteArray,
         kind: MobixFormat.AssetKind,
         suffix: String = suffixFor(bytes),
+    ): String = add(MobixPayload.of(bytes), kind, suffix)
+
+    /**
+     * Register a **streamed** payload and return the entry name that addresses it. The name is its
+     * content hash, so the content is hashed in bounded chunks and only then written as the archive
+     * is built — a recording is never in memory to be named, and is not read twice by being named.
+     */
+    fun add(
+        payload: MobixPayload,
+        kind: MobixFormat.AssetKind,
+        suffix: String = payload.suffix,
     ): String {
-        val name = MobixFormat.assetEntry(sha256(bytes), kind, suffix)
-        byName.putIfAbsent(name, bytes)
+        val name = MobixFormat.assetEntry(payload.sha256, kind, suffix)
+        byName.putIfAbsent(name, payload)
         return name
     }
 
     /** The entries to write, in the order they were first referenced. */
     fun entries(): List<MobixContainer.Entry> =
-        byName.map { (name, bytes) -> MobixContainer.Entry(name, bytes) }
+        byName.map { (name, payload) -> MobixContainer.Entry(name, payload) }
 
     /** How many distinct payloads the document ended up carrying — the deduplication's own measure. */
     val count: Int get() = byName.size

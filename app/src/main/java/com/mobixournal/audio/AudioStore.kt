@@ -39,13 +39,16 @@ class AudioStore(context: Context) {
     fun present(names: Set<String>): Set<String> = names.filterTo(HashSet()) { local(it).isFile }
 
     /**
-     * Keep [bytes] as the recording [reference] names — what a `.mobix` open does with the audio the
-     * archive bundles ([com.mobixournal.io.BundledAudio]). It lands exactly where a recording made here
-     * lands and under the same name, so playback of that stroke needs nothing else and a later export
-     * can push the sidecar out beside a `.xopp` like any other.
+     * Keep the recording [reference] names, read out of [source] — what a `.mobix` open does with the
+     * audio the archive bundles ([com.mobixournal.io.BundledAudio]). It lands exactly where a recording
+     * made here lands and under the same name, so playback of that stroke needs nothing else and a
+     * later export can push the sidecar out beside a `.xopp` like any other.
+     *
+     * Copied **through a stream**: the recording is as long as the lecture, and a bundled one is
+     * adopted on the frame that first reads the page naming it.
      */
-    fun adopt(reference: String, bytes: ByteArray) {
-        local(reference).writeBytes(bytes)
+    fun adopt(reference: String, source: java.io.InputStream) {
+        local(reference).outputStream().use { out -> source.copyTo(out) }
     }
 
     /**

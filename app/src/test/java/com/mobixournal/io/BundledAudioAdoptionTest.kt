@@ -6,6 +6,7 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixAssetSink
 import com.mobixournal.format.mobix.MobixFormat
+import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Document
@@ -61,7 +62,7 @@ class BundledAudioAdoptionTest {
     /** The notebook as it is on disk, with its Opus recording bundled into it. */
     private fun bundledFile(): File {
         val bytes = MobixDocument.of(notebook(), appVersion = "1.3.0", nowMillis = 1L)
-            .toBytes(nowMillis = 1L, audioBytes = { name -> recording.takeIf { name == sidecar } })
+            .toBytes(nowMillis = 1L, audio = { name -> recording.takeIf { name == sidecar }?.let(MobixPayload::of) })
         return temp.newFile("recorded.mobix").apply { writeBytes(bytes) }
     }
 
@@ -91,7 +92,7 @@ class BundledAudioAdoptionTest {
                 storePdf = { bytes -> temp.newFile().also { it.writeBytes(bytes) } },
                 storeImage = { bytes -> temp.newFile().also { it.writeBytes(bytes) } },
                 resolveLinked = { null },
-                storeAudio = BundledAudio { reference, bytes -> adopted[reference] = bytes },
+                storeAudio = BundledAudio { reference, source -> adopted[reference] = source.readBytes() },
             )
             assets.page(0)
         }

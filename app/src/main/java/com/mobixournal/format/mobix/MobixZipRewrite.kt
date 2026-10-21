@@ -7,6 +7,7 @@ import java.io.RandomAccessFile
 import java.util.Calendar
 import java.util.zip.CRC32
 import java.util.zip.Deflater
+import java.util.zip.DeflaterOutputStream
 import java.util.zip.ZipEntry
 
 /**
@@ -27,14 +28,36 @@ import java.util.zip.ZipEntry
  */
 internal object MobixZip {
 
-    /** An entry as the archive stores it: how it is compressed, and its compressed bytes. */
+    /**
+     * An entry as the archive stores it: how it is compressed, its recorded CRC and sizes, and how to
+     * **copy its compressed bytes out** — as a stream, not an array, so copying a 160 MB recording out
+     * of a source archive costs a 64 KiB buffer instead of the recording.
+     */
     class RawEntry(
         val method: Int,
         val crc: Long,
         val size: Long,
         val compressedSize: Long,
-        val bytes: ByteArray,
-    )
+        private val copy: (OutputStream) -> Unit,
+    ) {
+        /** Write the entry's stored (compressed) bytes to [sink], exactly as they are in the source. */
+        fun copyTo(sink: OutputStream) = copy(sink)
+
+        /**
+         * The entry's stored bytes as one array — what a **test** compares. A writer never asks for
+         * this: it would undo the streaming that makes copying a long entry cheap.
+         */
+        val bytes: ByteArray get() = ByteArrayOutputStream().also { copyTo(it) }.toByteArray()
+
+        /**
+         * This entry with its bytes read **now**, so it outlives the [Index] that produced it — the
+         * single-shot [rawEntry] helper closes the file it read from.
+         */
+        internal fun readNow(): RawEntry {
+            val read = bytes
+            return RawEntry(method, crc, size, compressedSize) { out -> out.write(read) }
+        }
+    }
 
     /**
      * The bytes [name] is stored as in [file], or null when this archive cannot be read that way — ZIP64,
@@ -44,7 +67,7 @@ internal object MobixZip {
      * file once.
      */
     fun rawEntry(file: File, name: String): RawEntry? =
-        runCatching { Index(file).use { it.rawEntry(name) } }.getOrNull()
+        runCatching { Index(file).use { it.rawEntry(name)?.readNow() } }.getOrNull()
 
     /**
      * One file's entries, as the archive stores them, **read once**.
@@ -61,17 +84,32 @@ internal object MobixZip {
         private val raf = RandomAccessFile(file, "r")
         private val records = centralDirectory(raf).associateBy { it.name }
 
-        /** The bytes [name] is stored as, or null when this archive cannot hand them over. */
+        /**
+         * How to copy [name] as the archive stores it, or null when it cannot be handed over. The
+         * bytes are read when the copy runs, in bounded chunks — a repack streams a long recording
+         * out of its source instead of materialising it.
+         */
         @Synchronized
         fun rawEntry(name: String): RawEntry? {
             val record = records[name] ?: return null
             if (record.method != ZipEntry.STORED && record.method != ZipEntry.DEFLATED) return null
             val dataOffset = record.localHeaderOffset + LOCAL_HEADER_SIZE +
                 localHeaderSizes(raf, record.localHeaderOffset)
-            raf.seek(dataOffset)
-            val bytes = ByteArray(record.compressedSize.toInt())
-            raf.readFully(bytes)
-            return RawEntry(record.method, record.crc, record.size, record.compressedSize, bytes)
+            return RawEntry(record.method, record.crc, record.size, record.compressedSize) { sink ->
+                // The index is one file handle: a copy owns it while it runs, so two copies (or a copy
+                // and a page read) can never interleave their seeks.
+                synchronized(this) {
+                    raf.seek(dataOffset)
+                    var remaining = record.compressedSize
+                    val buffer = ByteArray(COPY_BUFFER_BYTES)
+                    while (remaining > 0) {
+                        val n = raf.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+                        if (n <= 0) throw java.io.IOException("entry $name is truncated in the source archive")
+                        sink.write(buffer, 0, n)
+                        remaining -= n
+                    }
+                }
+            }
         }
 
         override fun close() = raf.close()
@@ -160,6 +198,7 @@ internal object MobixZip {
             val size: Long,
             val compressedSize: Long,
             val offset: Long,
+            val flags: Int,
         )
 
         private val centred = mutableListOf<Centred>()
@@ -179,9 +218,96 @@ internal object MobixZip {
         fun putDeflated(name: String, bytes: ByteArray) =
             put(name, ZipEntry.DEFLATED, crcOf(bytes), deflate(bytes), bytes.size.toLong())
 
+        /**
+         * [payload] deflated fresh, **read as it is written**: the archive receives the deflated stream
+         * and the entry's CRC and sizes follow it in a data descriptor ([FLAG_DATA_DESCRIPTOR]), so a
+         * long recording is compressed in a 64 KiB window instead of being buffered whole — twice, once
+         * as itself and once as its deflated output.
+         */
+        fun putDeflated(name: String, payload: MobixPayload) {
+            val offset = written
+            val nameBytes = name.toByteArray(Charsets.UTF_8)
+            val header = localHeader(
+                nameLength = nameBytes.size,
+                method = ZipEntry.DEFLATED,
+                crc = 0L,
+                compressed = 0L,
+                size = 0L,
+                flags = FLAG_DATA_DESCRIPTOR,
+            )
+            out.write(header)
+            out.write(nameBytes)
+
+            val counted = CountingOutputStream(out)
+            val crc = CRC32()
+            var size = 0L
+            val deflater = Deflater(Deflater.DEFAULT_COMPRESSION, true)
+            val deflating = DeflaterOutputStream(counted, deflater, COPY_BUFFER_BYTES, true)
+            payload.open().use { input ->
+                val buffer = ByteArray(COPY_BUFFER_BYTES)
+                while (true) {
+                    val n = input.read(buffer)
+                    if (n < 0) break
+                    if (n == 0) continue
+                    crc.update(buffer, 0, n)
+                    deflating.write(buffer, 0, n)
+                    size += n
+                }
+            }
+            deflating.finish()
+            deflater.end()
+            val compressed = counted.count
+
+            val descriptor = ByteArray(DATA_DESCRIPTOR_SIZE)
+            descriptor.writeIntLe(0, DESCRIPTOR_SIGNATURE)
+            descriptor.writeIntLe(4, crc.value)
+            descriptor.writeIntLe(8, compressed)
+            descriptor.writeIntLe(12, size)
+            out.write(descriptor)
+
+            written += header.size + nameBytes.size + compressed + descriptor.size
+            centred += Centred(name, ZipEntry.DEFLATED, crc.value, size, compressed, offset, FLAG_DATA_DESCRIPTOR)
+        }
+
         /** [entry]'s bytes copied verbatim — nothing is inflated, deflated or rewritten. */
-        fun putRaw(name: String, entry: RawEntry) =
-            put(name, entry.method, entry.crc, entry.bytes, entry.size)
+        fun putRaw(name: String, entry: RawEntry) {
+            val offset = written
+            val nameBytes = name.toByteArray(Charsets.UTF_8)
+            val header = localHeader(nameBytes.size, entry.method, entry.crc, entry.compressedSize, entry.size)
+            out.write(header)
+            out.write(nameBytes)
+            entry.copyTo(out)
+            written += header.size + nameBytes.size + entry.compressedSize
+            centred += Centred(name, entry.method, entry.crc, entry.size, entry.compressedSize, offset, 0)
+        }
+
+        /**
+         * A local header whose sizes are inside it (no data descriptor, [FLAG_DATA_DESCRIPTOR] clear).
+         * Only a stream whose length is unknown ahead of time — [putDeflated] over a payload — needs
+         * the trailing descriptor instead.
+         */
+        private fun localHeader(
+            nameLength: Int,
+            method: Int,
+            crc: Long,
+            compressed: Long,
+            size: Long,
+            flags: Int = 0,
+        ): ByteArray {
+            val header = ByteArray(LOCAL_HEADER_SIZE)
+            header.writeIntLe(0, LOCAL_SIGNATURE)
+            header.writeShortLe(4, VERSION_NEEDED)
+            header.writeShortLe(6, flags)
+            header.writeShortLe(8, method)
+            header.writeShortLe(10, dosTime)
+            header.writeShortLe(12, dosDate)
+            header.writeIntLe(14, crc)
+            header.writeIntLe(18, compressed)
+            header.writeIntLe(22, size)
+            header.writeShortLe(26, nameLength)
+            header.writeShortLe(28, 0)
+            return header
+        }
 
         /**
          * One entry: [data] is exactly what the archive stores and [uncompressedSize] what it expands
@@ -190,23 +316,12 @@ internal object MobixZip {
         private fun put(name: String, method: Int, crc: Long, data: ByteArray, uncompressedSize: Long) {
             val offset = written
             val nameBytes = name.toByteArray(Charsets.UTF_8)
-            val header = ByteArray(LOCAL_HEADER_SIZE)
-            header.writeIntLe(0, LOCAL_SIGNATURE)
-            header.writeShortLe(4, VERSION_NEEDED)
-            header.writeShortLe(6, 0)
-            header.writeShortLe(8, method)
-            header.writeShortLe(10, dosTime)
-            header.writeShortLe(12, dosDate)
-            header.writeIntLe(14, crc)
-            header.writeIntLe(18, data.size)
-            header.writeIntLe(22, uncompressedSize)
-            header.writeShortLe(26, nameBytes.size)
-            header.writeShortLe(28, 0)
+            val header = localHeader(nameBytes.size, method, crc, data.size.toLong(), uncompressedSize)
             out.write(header)
             out.write(nameBytes)
             out.write(data)
             written += header.size + nameBytes.size + data.size
-            centred += Centred(name, method, crc, uncompressedSize, data.size.toLong(), offset)
+            centred += Centred(name, method, crc, uncompressedSize, data.size.toLong(), offset, 0)
         }
 
         /** Write the central directory and the end record; report the archive's size in bytes. */
@@ -218,7 +333,7 @@ internal object MobixZip {
                 record.writeIntLe(0, CENTRAL_SIGNATURE)
                 record.writeShortLe(4, VERSION_NEEDED)
                 record.writeShortLe(6, VERSION_NEEDED)
-                record.writeShortLe(8, 0)
+                record.writeShortLe(8, entry.flags)
                 record.writeShortLe(10, entry.method)
                 record.writeShortLe(12, dosTime)
                 record.writeShortLe(14, dosDate)
@@ -267,6 +382,16 @@ internal object MobixZip {
     private const val LOCAL_HEADER_SIZE = 30
     private const val CENTRAL_HEADER_SIZE = 46
     private const val EOCD_SIZE = 22
+
+    /** The trailing record that states a streamed entry's CRC and sizes (APPNOTE 4.3.9.3). */
+    private const val DATA_DESCRIPTOR_SIZE = 16
+    private const val DESCRIPTOR_SIGNATURE = 0x08074b50
+
+    /** Bit 3 of a local header's flags: "the sizes and CRC follow the data, not this header". */
+    private const val FLAG_DATA_DESCRIPTOR = 0x8
+
+    /** The chunk every streamed read or copy passes through. */
+    private const val COPY_BUFFER_BYTES = 64 * 1024
     private const val VERSION_NEEDED = 20
     private const val FLAG_ENCRYPTED = 0x1
     private const val ZIP64_MARKER = 0xFFFFFFFFL
@@ -297,4 +422,20 @@ internal object MobixZip {
     }
 
     private fun ByteArray.writeIntLe(at: Int, value: Long) = writeIntLe(at, value.toInt())
+
+    /** An [OutputStream] that counts what passes through it, so a deflated stream can report its size. */
+    private class CountingOutputStream(out: OutputStream) : java.io.FilterOutputStream(out) {
+        var count: Long = 0L
+            private set
+
+        override fun write(b: Int) {
+            out.write(b)
+            count++
+        }
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            out.write(b, off, len)
+            count += len
+        }
+    }
 }

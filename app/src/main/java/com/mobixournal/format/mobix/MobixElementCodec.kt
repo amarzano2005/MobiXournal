@@ -76,18 +76,19 @@ internal object MobixElementCodec {
     /**
      * [element] as JSON, registering any binary payload it carries in [assets].
      *
-     * [audioBytes] supplies the bytes of the recording a stroke's `fn` names, when the caller's stores
-     * hold them: a `.mobix` carries its audio inside itself, so a recording the document references and
-     * the app can read is bundled by content hash and named by the stroke ([encodeStroke]). A caller
+     * [audio] supplies the recording a stroke's `fn` names, when the caller's stores hold it — as a
+     * **streamed payload**, so a long recording is hashed and deflated without being held: a `.mobix`
+     * carries its audio inside itself, so a recording the document references and the app can read is
+     * bundled by content hash and named by the stroke ([encodeStroke]). A caller
      * with no audio (a format-only test, the metadata block) passes nothing and the sidecar name stands
      * alone, exactly as it does in a `.xopp`.
      */
     fun encode(
         element: Element,
         assets: MobixAssetSink,
-        audioBytes: (String) -> ByteArray? = { null },
+        audio: (String) -> MobixPayload? = { null },
     ): JsonNode.Obj = when (element) {
-        is Stroke -> encodeStroke(element, assets, audioBytes)
+        is Stroke -> encodeStroke(element, assets, audio)
         is TextElement -> encodeText(element)
         is ImageElement -> encodeImage(element, assets)
         is TexImageElement -> encodeTexImage(element, assets)
@@ -103,7 +104,7 @@ internal object MobixElementCodec {
     private fun encodeStroke(
         s: Stroke,
         assets: MobixAssetSink,
-        audioBytes: (String) -> ByteArray?,
+        audio: (String) -> MobixPayload?,
     ): JsonNode.Obj = MobixJson.obj { out ->
         out[TYPE] = JsonNode.of(STROKE)
         s.id?.let { out[ID] = JsonNode.of(it) }
@@ -119,7 +120,7 @@ internal object MobixElementCodec {
             // Both names are written, and they are different things: `assetId` is the entry the bytes
             // are in — the archive that makes this file self-contained — and `filename` is the sidecar
             // the stroke replayed from, which the `.xopp` export has to write a file for.
-            val bundled = audioBytes(audio.filename)
+            val bundled = audio(audio.filename)
                 ?.let { assets.add(it, MobixFormat.AssetKind.AUDIO) }
                 ?: s.bundledAudio
                 ?: audio.filename.takeIf { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO) }

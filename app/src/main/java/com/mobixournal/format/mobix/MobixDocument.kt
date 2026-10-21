@@ -68,6 +68,13 @@ internal class MobixDocument(
      * photo from inflating bytes nothing has looked at yet (`docs/data-path.md`).
      */
     private val assetEntries: MobixEntrySource? = null,
+
+    /**
+     * The payloads a **source-less** write carries for entries the model references but no store
+     * holds ([of]): read out of the archive the document came from, **as streams**, so a bundled PDF
+     * or recording is copied into the new file without ever being one array.
+     */
+    private val bundled: Map<String, MobixPayload> = emptyMap(),
 ) {
 
     /** The `assets/` entry names the archive carries, without inflating any of them. */
@@ -119,21 +126,32 @@ internal class MobixDocument(
      */
     fun encode(
         nowMillis: Long,
-        backgroundBytes: (Background) -> ByteArray? = { null },
-        audioBytes: (String) -> ByteArray? = { null },
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
         reuse: MobixPageReuse = MobixPageReuse.none,
     ): MobixSavePlan {
         val sink = MobixAssetSink()
         val parts = if (manifest.canvasMode == CanvasMode.PAGINATED) {
-            encodePages(sink, backgroundBytes, audioBytes, nowMillis, reuse)
+            encodePages(sink, backgrounds, audio, nowMillis, reuse)
         } else {
-            encodeChunks(manifest, chunks, sink, backgroundBytes, audioBytes, nowMillis, reuse)
+            encodeChunks(manifest, chunks, sink, backgrounds, audio, nowMillis, reuse)
         }
         val written = sink.entries()
-        // Every payload the model carries is re-emitted: an asset still deferred to the source is read
-        // here, so a reference the model kept can never point at an entry the save dropped.
-        val carried = allPayloads.filterKeys { name -> written.none { it.name == name } }
-            .map { (name, bytes) -> MobixContainer.Entry(name, bytes) }
+        // Every payload the model carries is re-emitted, so a reference the model kept can never point
+        // at an entry the save dropped — and **nothing is inflated to do it**: a payload already in
+        // memory is handed over, a bundled one is a stream, and an `assets/` entry still deferred to
+        // the source archive is opened only if the write actually asks for its bytes.
+        val carriedPayloads = LinkedHashMap<String, MobixPayload>()
+        payloads.forEach { (name, bytes) -> carriedPayloads[name] = MobixPayload.of(bytes) }
+        carriedPayloads.putAll(bundled)
+        assetEntries?.let { source ->
+            for (name in deferredAssetNames) {
+                carriedPayloads.putIfAbsent(name, MobixPayload.ofSource({ source.openEntry(name) }))
+            }
+        }
+        val writtenNames = written.map { it.name }.toSet()
+        val carried = carriedPayloads.filterKeys { it !in writtenNames }
+            .map { (name, payload) -> MobixContainer.Entry(name, payload) }
 
         val envelope = mutableListOf(
             MobixContainer.Entry(
@@ -169,17 +187,17 @@ internal class MobixDocument(
     /** This document as a `.mobix` byte array — the shape a caller stages to a file or a URI. */
     fun toBytes(
         nowMillis: Long,
-        backgroundBytes: (Background) -> ByteArray? = { null },
-        audioBytes: (String) -> ByteArray? = { null },
-    ): ByteArray = MobixContainer.toBytes(encode(nowMillis, backgroundBytes, audioBytes).entries)
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
+    ): ByteArray = MobixContainer.toBytes(encode(nowMillis, backgrounds, audio).entries)
 
     /** Write this document as a `.mobix` on [output] (which is finished and not left open). */
     fun save(
         output: OutputStream,
         nowMillis: Long,
-        backgroundBytes: (Background) -> ByteArray? = { null },
-        audioBytes: (String) -> ByteArray? = { null },
-    ) = MobixContainer.save(encode(nowMillis, backgroundBytes, audioBytes).entries, output)
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
+    ) = MobixContainer.save(encode(nowMillis, backgrounds, audio).entries, output)
 
     /**
      * The app's document model: the pages and the title, plus the source `.xopp`'s creator, file version
@@ -201,8 +219,8 @@ internal class MobixDocument(
     /** Each page paired with the `pages[]` entry describing it, in document order. */
     private fun encodePages(
         sink: MobixAssetSink,
-        backgroundBytes: (Background) -> ByteArray?,
-        audioBytes: (String) -> ByteArray?,
+        backgrounds: (Background) -> MobixPayload?,
+        audio: (String) -> MobixPayload?,
         nowMillis: Long,
         reuse: MobixPageReuse,
     ): List<BuiltPart> = (0 until pages.size).map { index ->
@@ -211,7 +229,7 @@ internal class MobixDocument(
         // decode every page of the document before this loop's body ever ran.
         reuse.reused[index]?.let { part -> return@map BuiltPart(part, entry = null) }
         val page = pages[index]
-        val json = JsonWriter.write(MobixPageCodec.encode(page, sink, backgroundBytes, audioBytes))
+        val json = JsonWriter.write(MobixPageCodec.encode(page, sink, backgrounds, audio))
             .toByteArray(Charsets.UTF_8)
         val name = MobixFormat.pageEntry(index + 1)
         BuiltPart(
@@ -446,7 +464,7 @@ internal class MobixDocument(
         source: String? = null,
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
         reuse: MobixPageReuse = MobixPageReuse.none,
-        payloads: Map<String, ByteArray> = emptyMap(),
+        payloads: Map<String, MobixPayload> = emptyMap(),
         chunkCoords: List<Pair<Int, Int>>? = null,
         canvas: MobixCanvasFile? = null,
     ): MobixDocument {
@@ -502,7 +520,7 @@ internal class MobixDocument(
                 preview = document.preview,
                 source = source,
             ),
-            payloads = payloads,
+            bundled = payloads,
         )
     }
 

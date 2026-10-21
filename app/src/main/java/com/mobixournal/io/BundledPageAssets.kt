@@ -4,6 +4,7 @@ import com.mobixournal.audio.audioRef
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixPart
+import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.PageSize
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.asAssetSource
@@ -138,9 +139,11 @@ internal class BundledPageAssets(
                     ?: reference.filename.takeIf { MobixFormat.isAssetEntry(it, MobixFormat.AssetKind.AUDIO) }
                     ?: continue
                 if (entry in adoptedRecordings) continue
-                val bytes = assets.bytes(entry) ?: continue
-                adoptedRecordings += entry
-                store.adopt(reference.filename, bytes)
+                // Streamed to the store: a lecture's recording is never held as an array on open.
+                assets.open(entry)?.use { source ->
+                    adoptedRecordings += entry
+                    store.adopt(reference.filename, source)
+                }
             }
         }
     }
@@ -230,14 +233,16 @@ internal class BundledPageAssets(
  * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's
  * for a picture. Memoised per file.
  */
-internal fun backgroundBytesOf(pdf: File?, images: Map<String, File>): (Background) -> ByteArray? {
-    val read = HashMap<String, ByteArray?>()
-    fun bytesOf(file: File?): ByteArray? = file?.takeIf { it.isFile }
-        ?.let { read.getOrPut(it.path) { it.readBytes() } }
+internal fun backgroundPayloadsOf(pdf: File?, images: Map<String, File>): (Background) -> MobixPayload? {
+    // One payload per file, so a PDF shared by forty pages is hashed — and written — once, and is
+    // never held as a `ByteArray`: a background can be a 100 MB scan.
+    val read = HashMap<String, MobixPayload?>()
+    fun payloadOf(file: File?): MobixPayload? = file?.takeIf { it.isFile }
+        ?.let { read.getOrPut(it.path) { MobixPayload.of(it) } }
     return { background ->
         when (background) {
-            is Background.Pdf -> bytesOf(pdf)
-            is Background.Pixmap -> bytesOf(images[background.filename])
+            is Background.Pdf -> payloadOf(pdf)
+            is Background.Pixmap -> payloadOf(images[background.filename])
             is Background.Solid -> null
         }
     }

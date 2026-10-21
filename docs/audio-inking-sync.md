@@ -44,8 +44,23 @@ Rather than relying on vulnerable loose sidecars in user folders:
 - On open, the recording is adopted into the app's audio store when **the page that names it is read**
   (`io/BundledPageAssets.kt`), under the sidecar name the stroke carries — so playback needs nothing
   beside the file, and the `.xopp` export still names that sidecar and pushes a copy out for it.
+- **A recording is streamed, never held.** The archive addresses an asset by the hash of its bytes, so a
+  save needs the recording's hash and its bytes but never both in memory: `format/mobix/MobixPayload.kt`
+  is *how to open* the content (a file, an archive entry, or a small array), and the hash, the deflate
+  and the copy out of a source archive each read it in 64 KiB chunks. Bundling a 30-minute WAV used to
+  cost three copies of it — read to hash, read to deflate, deflated buffer — which is the
+  `OutOfMemoryError` a long recording produced on saving. Adoption streams the other way for the same
+  reason (`io/BundledAudio.kt` takes an `InputStream`).
+- **Transcription streams too** (`audio/AudioPcmExtractor.kt` → `audio/PcmResampler16k.kt`): the WAV or
+  the decoded Opus/AAC is resampled to 16 kHz mono as it is read, keeping only the output the engine
+  needs, instead of loading the recording and then resampling it into a second array.
 - The audio is bound to the document and cannot be detached when sharing or syncing; a `.xopp`
   exported from it is the one shape that still needs a sidecar file on disk.
+- **Why a `.mobix` can still be large.** The codec follows the *document's* format at the moment
+  recording starts: a recording made while the document is a `.xopp` is WAV (the desktop sidecar
+  contract), and a later **Save As `.mobix`** bundles those WAV bytes untouched (~5.3 MB a minute, so
+  ~160 MB for half an hour). Because nothing is transcoded, that file is as big as its WAV, not as big
+  as an Opus recording would have been.
 
 ### Background capture and standalone media export
 - **Background capture (`AudioRecordingService`)**: Android foreground service (`FOREGROUND_SERVICE_MICROPHONE`)

@@ -74,13 +74,13 @@ internal object MobixIncrementalSave {
         appVersion: String,
         nowMillis: Long,
         output: OutputStream,
-        backgroundBytes: (Background) -> ByteArray? = { null },
-        audioBytes: (String) -> ByteArray? = { null },
+        backgrounds: (Background) -> MobixPayload? = { null },
+        audio: (String) -> MobixPayload? = { null },
         bridgeSource: String? = null,
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
         chunkCoords: List<Pair<Int, Int>>? = null,
         canvas: MobixCanvasFile? = null,
-        payloads: Map<String, ByteArray> = emptyMap(),
+        payloads: Map<String, MobixPayload> = emptyMap(),
     ): MobixIncrementalSaveStats {
         val reuse = MobixPageReuse.of(document.pages, source, canvasMode)
         val mobix = MobixDocument.of(
@@ -94,7 +94,7 @@ internal object MobixIncrementalSave {
             chunkCoords = chunkCoords,
             canvas = canvas,
         )
-        return repack(source, mobix.encode(nowMillis, backgroundBytes, audioBytes, reuse), output)
+        return repack(source, mobix.encode(nowMillis, backgrounds, audio, reuse), output)
     }
 
     /**
@@ -105,7 +105,7 @@ internal object MobixIncrementalSave {
         entries: List<MobixContainer.Entry>,
         previous: MobixManifest?,
         source: MobixEntrySource,
-    ): Map<String, ByteArray> {
+    ): Map<String, MobixPayload> {
         // What the previous write recorded for each part it wrote: an entry name and the hash of the
         // bytes that were in it. This is the manifest paying for the diff.
         val recorded = HashMap<String, String>()
@@ -113,13 +113,15 @@ internal object MobixIncrementalSave {
             (manifest.pages + manifest.chunks).forEach { recorded[it.entry] = it.sha256 }
         }
 
-        val dirty = LinkedHashMap<String, ByteArray>()
+        val dirty = LinkedHashMap<String, MobixPayload>()
         for (entry in entries) {
             if (entry.name == MobixFormat.MANIFEST_ENTRY) {
-                dirty[entry.name] = entry.bytes
+                dirty[entry.name] = entry.payload
                 continue
             }
-            val digest = MobixAssetSink.sha256(entry.bytes)
+            // The hash is read through the payload, so a recording is hashed in bounded chunks and
+            // never handed over as an array just to be compared.
+            val digest = entry.payload.sha256
             // An asset's name is the hash of its own bytes: the same name is the same payload.
             if (entry.name.contains(digest) && entry.name in source.entryNames) continue
             // A part the manifest described: its hash settles it either way, and — the point here —
@@ -128,12 +130,13 @@ internal object MobixIncrementalSave {
             val recordedHash = recorded[entry.name]
             if (recordedHash != null) {
                 if (recordedHash == digest) continue
-                dirty[entry.name] = entry.bytes
+                dirty[entry.name] = entry.payload
                 continue
             }
             // The envelope: small, and nobody recorded its bytes, so it is simply compared.
-            if (source.readBytes(entry.name)?.contentEquals(entry.bytes) == true) continue
-            dirty[entry.name] = entry.bytes
+            val bytes = entry.payload.bytes()
+            if (source.readBytes(entry.name)?.contentEquals(bytes) == true) continue
+            dirty[entry.name] = entry.payload
         }
         return dirty
     }

@@ -182,7 +182,10 @@ class TranscriptionTest {
             document = com.mobixournal.format.model.Document(pages = emptyList()),
             appVersion = "2.0.0",
             nowMillis = 1000L,
-            payloads = mapOf(com.mobixournal.format.mobix.MobixFormat.TRANSCRIPT_ENTRY to payloadBytes),
+            payloads = mapOf(
+                com.mobixournal.format.mobix.MobixFormat.TRANSCRIPT_ENTRY to
+                    com.mobixournal.format.mobix.MobixPayload.of(payloadBytes),
+            ),
         )
 
         val plan = mobixDoc.encode(1000L)

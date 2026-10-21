@@ -16,9 +16,8 @@ import java.io.File
  * argument; the short version is that a `.xopp` has nowhere to put an asset, so writing one for a
  * `.mobix` document drops the reference before any save can carry its bytes.
  *
- * The write is the **save's own**, minus the target: no archive matches a snapshot's name, so
- * `DocumentIo.encode` builds the whole document and carries the payloads the model still names out of
- * the archive this session read it from (`DocumentIo` → `carriedAssets`) — which is exactly what a
+ * The write is the **save's own**, minus the target: no archive matches a snapshot's name, so     * `DocumentIo.encode` builds the whole document and carries the payloads the model still names out of
+     * the archive this session read it from (`DocumentIo` → `carriedPayloads`) — which is exactly what a
  * `.mobix` holding a picture on a page nobody has drawn yet needs. Reading goes back through the same
  * open path as a picked file (`DocumentIo.read`), so the restored document's pages adopt their
  * bundled assets when a page is read, and the snapshot is remembered as that document's source, which
@@ -30,8 +29,8 @@ import java.io.File
  */
 class MobixTabSnapshots(
     private val io: DocumentIo,
-    /** The bytes of the recording a stroke names, when the audio store holds them. */
-    private val audio: (String) -> ByteArray? = { null },
+    /** The file of the recording a stroke names, when the audio store holds it — streamed into the snapshot. */
+    private val audio: (String) -> File? = { null },
 ) : TabSnapshots {
 
     override fun suffixFor(tab: OpenTab): String =
@@ -54,7 +53,7 @@ class MobixTabSnapshots(
             // archive rather than repacking over one.
             target = null,
             images = sources.images,
-            audio = audio,
+            audioFiles = audio,
             canvasMode = tab.canvasMode,
         )
         try {

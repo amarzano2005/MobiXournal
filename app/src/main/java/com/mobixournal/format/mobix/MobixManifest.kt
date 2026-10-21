@@ -181,7 +181,7 @@ internal data class MobixManifest(
                     out["defaultPaper"] = MobixPageCodec.encodeBackground(
                         it,
                         MobixAssetSink(),
-                        backgroundBytes = { null },
+                        backgrounds = { null },
                     )
                 }
                 out.putAll(extra)

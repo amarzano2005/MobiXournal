@@ -272,3 +272,17 @@ created = 2026-10-13
 tags = ["drag-and-drop", "ingestion"]
 rebuild = true
 emulator_debug = true
+
+[[task]]
+id = "compress-wav-on-mobix-conversion"
+title = "Compress WAV recordings when a document becomes .mobix"
+description = "A recording takes the codec of the document's format when it starts: a .xopp document records 16-bit mono WAV (the desktop sidecar contract), ~5.3 MB a minute, ~160 MB for 30 minutes. A later Save As .mobix bundles those WAV bytes untouched (audio-inking-sync.md -> Why a .mobix can still be large), so the archive is as big as the WAV. Investigate and break into tasks: (1) a streaming WAV -> Ogg/Opus (AAC fallback) transcoder using MediaExtractor + MediaCodec + MediaMuxer, written next to the recording in the audio store, keyed by source hash so it is produced once; (2) at a .mobix save, substitute the compressed copy for a WAV recording over a size threshold, and rewrite the strokes' fn to the compressed sidecar name so playback and a later .xopp export stay honest; (3) the .xopp export path keeps pushing the original WAV, and the case where no encoder exists keeps the WAV. Verify on the Pixel_Tablet emulator: record 2 minutes in a .xopp tab, Save As .mobix, confirm the archive holds an assets/aud_<sha>.ogg entry, the file is ~1 MB, the stroke still replays after reopening on a fresh install, and an exported .xopp still has its .wav sidecar."
+status = "active"
+level = "scope"
+category = "bug"
+urgency = "high"
+order = 840
+created = 2026-10-21
+tags = ["audio", "size"]
+rebuild = true
+emulator_debug = false

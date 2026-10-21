@@ -14,6 +14,7 @@ import com.mobixournal.format.mobix.MobixAssetSink
 import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
+import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.asAssetSource
 import com.mobixournal.render.BackgroundResolver
 import java.io.File
@@ -90,7 +91,10 @@ class TabSnapshotsTest {
                 document = liveDoc(),
                 appVersion = appVersion,
                 nowMillis = 1L,
-                payloads = mapOf(pictureEntry to picture, audioEntry to recording),
+                payloads = mapOf(
+                    pictureEntry to MobixPayload.of(picture),
+                    audioEntry to MobixPayload.of(recording),
+                ),
             ).toBytes(1L),
         )
     }
@@ -119,7 +123,7 @@ class TabSnapshotsTest {
                     appVersion = appVersion,
                     nowMillis = 1L,
                     canvasMode = tab.canvasMode,
-                    payloads = carried(),
+                    payloads = carried().mapValues { (_, bytes) -> MobixPayload.of(bytes) },
                 ).toBytes(1L),
             )
         }

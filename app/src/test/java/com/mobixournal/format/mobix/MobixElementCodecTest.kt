@@ -264,14 +264,14 @@ class MobixElementCodecTest {
 
         // Without the bytes the document keeps the reference, exactly like a gzip .xopp.
         val unreferenced = MobixPageCodec.decode(
-            MobixPageCodec.encode(page, MobixAssetSink(), backgroundBytes = { null }),
+            MobixPageCodec.encode(page, MobixAssetSink(), backgrounds = { null }),
             MobixAssetSource { null },
         )
         assertEquals(external, unreferenced.background)
 
         // With them, the same facts plus a self-contained bundle under the document's own name.
         val sink = MobixAssetSink()
-        val json = MobixPageCodec.encode(page, sink, backgroundBytes = { pdf })
+        val json = MobixPageCodec.encode(page, sink, backgrounds = { MobixPayload.of(pdf) })
         val back = MobixPageCodec.decode(json, sourceOf(sink)).background as Background.Pdf
 
         assertTrue(
@@ -297,7 +297,7 @@ class MobixElementCodecTest {
         val reEncoded = MobixPageCodec.encode(
             Page(595.0, 841.0, bundled, emptyList()),
             MobixAssetSink(),
-            backgroundBytes = { null },
+            backgrounds = { null },
         )
 
         assertEquals(
@@ -325,7 +325,7 @@ class MobixElementCodecTest {
         val json = MobixPageCodec.encode(
             Page(595.0, 841.0, pixmap, emptyList()),
             sink,
-            backgroundBytes = { png },
+            backgrounds = { MobixPayload.of(png) },
         )
         val back = MobixPageCodec.decode(json, sourceOf(sink)).background as Background.Pixmap
 

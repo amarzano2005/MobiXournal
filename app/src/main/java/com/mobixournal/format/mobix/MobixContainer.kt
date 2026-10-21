@@ -38,18 +38,37 @@ object MobixContainer {
     class MalformedMobixException(message: String) : IllegalArgumentException(message)
 
     /**
-     * One part of the archive: its entry [name] and its [bytes], exactly as stored. Compared by
-     * name **and** content — a data class would compare the array by identity, and two entries read
-     * from two runs are what the round-trip tests compare.
+     * One part of the archive: its entry [name] and the [payload] its bytes come from.
+     *
+     * The payload is a **source, not a copy** ([MobixPayload]): a page's JSON is bytes already in
+     * memory, while a recording or a background PDF is a file that is hashed and deflated in bounded
+     * chunks as the archive is written. A save therefore never holds a document's audio in the heap,
+     * whatever its length.
+     *
+     * Compared by name, length and — when both sides are already in memory — content: two entries
+     * read from two runs are what the round-trip tests compare, and asking a 160 MB recording for its
+     * `ByteArray` just to compare entries would reintroduce the allocation this class avoids.
      */
-    class Entry(val name: String, val bytes: ByteArray) {
+    class Entry(val name: String, val payload: MobixPayload) {
 
-        val size: Int get() = bytes.size
+        /** An entry whose bytes are already in memory — a page, the manifest, a container test. */
+        constructor(name: String, bytes: ByteArray) : this(name, MobixPayload.of(bytes))
 
-        override fun equals(other: Any?): Boolean =
-            other is Entry && other.name == name && other.bytes.contentEquals(bytes)
+        /** The entry's bytes, materialised. Reading them back off a large payload is a caller's own cost. */
+        val bytes: ByteArray get() = payload.bytes()
 
-        override fun hashCode(): Int = 31 * name.hashCode() + bytes.contentHashCode()
+        val size: Int get() = payload.length.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Entry) return false
+            if (other.name != name || other.payload.length != payload.length) return false
+            val mine = if (payload.isInMemory) payload.bytes() else null
+            val theirs = if (other.payload.isInMemory) other.payload.bytes() else null
+            return if (mine != null && theirs != null) mine.contentEquals(theirs) else true
+        }
+
+        override fun hashCode(): Int = 31 * name.hashCode() + payload.length.hashCode()
 
         override fun toString(): String = "Entry($name, $size bytes)"
     }
@@ -175,7 +194,16 @@ object MobixContainer {
             putStored(zip, MobixFormat.MIMETYPE_ENTRY, MobixFormat.MIMETYPE.toByteArray(Charsets.UTF_8))
             for (entry in entries) {
                 zip.putNextEntry(ZipEntry(entry.name))
-                zip.write(entry.bytes)
+                // Streamed, never handed over as one array: a recording is deflated as it is read, so
+                // the write costs a 64 KiB buffer whatever the entry weighs.
+                entry.payload.open().use { input ->
+                    val buffer = ByteArray(STREAM_BUFFER_BYTES)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        if (n > 0) zip.write(buffer, 0, n)
+                    }
+                }
                 zip.closeEntry()
             }
         }
@@ -190,6 +218,9 @@ object MobixContainer {
 
     /** [toBytes] over an [archive]'s payload. */
     fun toBytes(archive: Archive): ByteArray = toBytes(archive.entries)
+
+    /** The chunk a streamed entry is written in, so no payload is ever held whole. */
+    private const val STREAM_BUFFER_BYTES = 64 * 1024
 
     /**
      * A STORED entry: no compression, with the size and CRC the ZIP format requires for one (a
