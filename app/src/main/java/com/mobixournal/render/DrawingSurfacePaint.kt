@@ -122,6 +122,8 @@ internal fun DrawingSurfaceView.paint() {
         }
         drawSearchHighlights(canvas)
         drawCurrent(canvas)
+        // Where a wire or a component can actually land, while a connector is armed.
+        drawCircuitPins(canvas)
         if (splineNodes.isNotEmpty()) drawSplineOverlay(canvas)
         drawTextSelection(canvas)
         selection?.let { drawSelectionBox(canvas, it) }

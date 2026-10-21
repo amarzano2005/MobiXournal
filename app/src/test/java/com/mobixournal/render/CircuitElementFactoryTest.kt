@@ -105,13 +105,11 @@ class CircuitElementFactoryTest {
     }
 
     /**
-     * Ground is the library's single-terminal symbol: one pin, and it is the element's own anchor,
-     * because the earth hangs *from* the terminal the wire meets. The drag is a heading, so a ground
-     * drawn downwards is a ground rotated 90° that starts where the pen started — not a two-ended
-     * part straddling a wire.
+     * Ground is sized by the drag like every other component: p1 is the terminal the wire meets, p2 the
+     * far end of its plates, and their distance is the length the user dragged.
      */
     @Test
-    fun groundIsASingleTerminalAnchoredWhereTheDragStarted() {
+    fun groundIsSizedByTheDragLikeEveryOtherComponent() {
         val ground = CircuitElementFactory.circuitElementFor(
             symbol = "GROUND",
             startX = 50.0,
@@ -120,24 +118,29 @@ class CircuitElementFactoryTest {
             endY = 160.0,
         )!!
 
-        assertEquals(1, ground.pins.size)
-        assertEquals(0.0, ground.pins[0].relX, 1e-6)
-        assertEquals(0.0, ground.pins[0].relY, 1e-6)
-        assertEquals(50.0, ground.positionX, 1e-6)
-        assertEquals(100.0, ground.positionY, 1e-6)
+        assertEquals(2, ground.pins.size)
+        assertEquals("p1", ground.pins[0].id)
+        assertEquals(-30.0, ground.pins[0].relX, 1e-6)
+        assertEquals("p2", ground.pins[1].id)
+        assertEquals(30.0, ground.pins[1].relX, 1e-6)
+        assertEquals("the anchor is the drag's middle", 50.0, ground.positionX, 1e-6)
+        assertEquals(130.0, ground.positionY, 1e-6)
         assertEquals(90.0, ground.rotation, 1e-6)
 
-        // A tap is an unrotated symbol at the tap point.
+        // p1 is the terminal: it is where the pen touched down, and the plates hang from p2.
+        val (terminalX, terminalY) = CircuitSnapping.pinAbsolutePosition(ground, ground.pins[0])
+        assertEquals(50.0, terminalX, 1e-6)
+        assertEquals(100.0, terminalY, 1e-6)
+        val (endX, endY) = CircuitSnapping.pinAbsolutePosition(ground, ground.pins[1])
+        assertEquals(50.0, endX, 1e-6)
+        assertEquals(160.0, endY, 1e-6)
+
+        // A tap still places a default-sized, unrotated symbol.
         val tapped = CircuitElementFactory.circuitElementFor(
-            symbol = "GROUND",
-            startX = 10.0,
-            startY = 20.0,
-            endX = 11.0,
-            endY = 20.5,
+            symbol = "GROUND", startX = 10.0, startY = 20.0, endX = 11.0, endY = 20.5,
         )!!
-        assertEquals(1, tapped.pins.size)
-        assertEquals(10.0, tapped.positionX, 1e-6)
-        assertEquals(20.0, tapped.positionY, 1e-6)
+        assertEquals(-24.0, tapped.pins[0].relX, 1e-6)
+        assertEquals(24.0, tapped.pins[1].relX, 1e-6)
         assertEquals(0.0, tapped.rotation, 1e-6)
     }
 

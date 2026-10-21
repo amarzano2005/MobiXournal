@@ -509,15 +509,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
         snapped = shape != null || holdWasSnapped
         shape ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
     }
-    // The magnetic pin snap is a connector gesture: a wire drawn with the line tool (components and
-    // tables commit above). A recognised freehand figure, or any other shape tool, is the user's own
-    // geometry and is never pulled onto a nearby pin or stroke end.
-    val magnetise = wasShaping && shapeKind?.let(CircuitElementFactory::isConnectorKind) == true
-    val finalPts = pageAt(currentPage)?.let { p ->
-        if (magnetise) {
-            CircuitSnapping.snapStrokeEndpoints(pts, CircuitSnapping.collectAllTargets(p))
-        } else pts
-    } ?: pts
+    val finalPts = magnetised(pts, wasShaping)
     if (finalPts.size >= 2) {
         // Highlighter and geometric shapes are constant-width → store a single width; the freehand
         // pen keeps its per-vertex pressure. The live line-style is baked in so it round-trips.
@@ -531,6 +523,24 @@ internal fun DrawingSurfaceView.commitCurrent() {
         if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
     render()
+}
+
+/**
+ * [pts] with their ends pulled onto a nearby component pin, when this gesture is a **connector**
+ * ([shaping] with the line tool or a circuit symbol — components and tables commit before this runs).
+ *
+ * A recognised freehand figure, or any other shape tool, is the user's own geometry and is never
+ * pulled onto a pin. The commit uses the same reach as the live drag did (`snappedPoint`), or a wire
+ * would settle somewhere other than where it was previewed on a zoomed-out page.
+ */
+private fun DrawingSurfaceView.magnetised(pts: List<StrokePoint>, shaping: Boolean): List<StrokePoint> {
+    if (!shaping || shapeKind?.let(CircuitElementFactory::isConnectorKind) != true) return pts
+    val page = pageAt(currentPage) ?: return pts
+    val scale = layout.boxes.getOrNull(currentPage)?.scale ?: 1f
+    return CircuitSnapping.snapStrokeEndpoints(
+        pts, CircuitSnapping.collectAllTargets(page),
+        thresholdPt = CircuitSnapping.thresholdFor(scale),
+    )
 }
 
 private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {

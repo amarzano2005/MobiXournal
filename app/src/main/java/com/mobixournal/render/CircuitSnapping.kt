@@ -20,6 +20,33 @@ object CircuitSnapping {
     /** Distance threshold in points within which two pins magnetically snap. */
     const val SNAP_THRESHOLD_PT: Double = 14.0
 
+    /**
+     * The magnet's reach in **screen** pixels. A fit-to-width page draws a point at well under a
+     * pixel, so a 14pt reach can be three pixels wide on screen: unhittable by eye, which is why a
+     * wire used to join a pin only by luck.
+     */
+    const val SNAP_REACH_PX: Double = 22.0
+
+    /**
+     * The most a pin may reach in page points. Without a ceiling, a heavily zoomed-out page would turn
+     * the screen-sized reach into a pull across a visible fraction of the sheet.
+     */
+    const val MAX_SNAP_PT: Double = 36.0
+
+    /**
+     * The magnet's reach in page points for a view [scale] (page points → screen pixels):
+     * [SNAP_THRESHOLD_PT] on a zoomed-in page, and never less than [SNAP_REACH_PX] on screen when
+     * zoomed out, so the target is always big enough to aim at — but no more than [MAX_SNAP_PT]. A
+     * scale that is not a real number (a page not laid out yet) falls back to the document-space
+     * reach.
+     */
+    fun thresholdFor(scale: Float, reachPx: Double = SNAP_REACH_PX): Double {
+        // A page with no layout yet has no scale to convert with: keep the document-space reach
+        // rather than the widest one, so nothing snaps further than it looks.
+        if (!scale.isFinite() || scale <= 0f) return SNAP_THRESHOLD_PT
+        return (reachPx / scale.toDouble()).coerceIn(SNAP_THRESHOLD_PT, MAX_SNAP_PT)
+    }
+
     /** How far a wire's intermediate vertices may sit off its own straight segment, in points. */
     private const val WIRE_STRAIGHTNESS_PT: Double = 1.0
 
@@ -120,6 +147,9 @@ object CircuitSnapping {
      * Every other figure keeps its exact dragged geometry, and only the paper ruling can move it when
      * [snapToGrid] is on. Without that gate the magnet fired on every rectangle, ellipse and chemistry
      * bond drawn near an existing stroke.
+     *
+     * [scale] is the view's page-points-to-pixels factor and sets how far the magnet reaches
+     * ([thresholdFor]); it defaults to 100%, the reach of a page with no zoom to read.
      */
     fun snapPoint(
         page: Page,
@@ -127,10 +157,10 @@ object CircuitSnapping {
         y: Double,
         snapToGrid: Boolean,
         magnetic: Boolean = false,
-        thresholdPt: Double = SNAP_THRESHOLD_PT,
+        scale: Float = 1f,
     ): Pair<Double, Double> {
         if (magnetic) {
-            val snap = findSnapTarget(x, y, collectAllTargets(page), thresholdPt)
+            val snap = findSnapTarget(x, y, collectAllTargets(page), thresholdFor(scale))
             if (snap != null) return snap.absX to snap.absY
         }
         return if (snapToGrid) Snapping.lattice(page.background, page.width).snap(x, y) else x to y

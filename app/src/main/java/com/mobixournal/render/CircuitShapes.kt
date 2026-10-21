@@ -138,36 +138,31 @@ object CircuitShapes {
         }
 
     /**
-     * Ground (GND): the library's **single-terminal** symbol — a stem ending in three plates.
+     * Ground (GND): a lead ending in three plates — the earth as it is drawn by hand.
      *
      * The drag **is** the symbol, not a wire with an earth hung under its middle: the terminal sits at
-     * (sx, sy) and the lead runs along the drag to the plates at its far end. That is how a ground is
-     * drawn by hand — and how it is dropped on a wire (the terminal lands where the wire ends, and the
-     * earth points where the pen dragged) — so the symbol reads as a terminal instead of as a wire
-     * broken in the middle by a fork.
+     * (sx, sy) and the lead runs along the drag to the plates at its far end. That is how it is dropped
+     * on a wire too (the terminal lands where the wire ends, and the earth points the way the pen
+     * dragged), so the symbol reads as a terminal instead of as a wire broken in the middle by a fork.
      *
-     *     |      <- terminal (the element's only pin, at 0)
+     *     |      <- terminal (the element's p1, at 0)
      *     |
      *    ——      <- plates, perpendicular to the drag, evenly spaced, 2 : 1.3 : 0.5 wide
-     *    ——
+     *    ——         and the last one exactly on the drag's far end (p2)
      *     —
      *
-     * Sizes are a fraction of the drag but capped at a symbol's size, so a legacy element whose two
-     * pins still span a long wire draws a readable earth on the end of its lead rather than a fork as
-     * wide as the drag.
+     * Every size is a fraction of the drag, so the symbol is drawn at the size the user dragged — a
+     * component like any other — and the plates keep their proportions.
      */
     fun ground(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
         withBasis(sx, sy, ex, ey, widthPt) { len, p ->
-            // The symbol's own size, independent of the lead: a long drag lengthens the lead, it
-            // never grows the plates.
-            val span = minOf(len, 48.0)
-            val step = minOf(span * 0.17, len / 3.0)
+            val step = len * 0.17
             // Plates at the far end of the lead, the last one exactly on the drag's end so a pin
             // recorded there is still inked.
             val d1 = len - 2 * step
             val d2 = len - step
             val d3 = len
-            val half1 = span * 0.40
+            val half1 = len * 0.40
             val half2 = half1 * 0.62
             val half3 = half1 * 0.26
 

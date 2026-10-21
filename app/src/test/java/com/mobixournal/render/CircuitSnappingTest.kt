@@ -254,6 +254,27 @@ class CircuitSnappingTest {
         assertEquals(1, CircuitSnapping.collectAllTargets(page).size) // the pin, and nothing else
     }
 
+    /**
+     * The reach has to stay big enough to aim at on screen: a fit-to-width page draws a point at well
+     * under a pixel, so a fixed 14pt reach left a target three pixels wide — which is why wiring a
+     * component felt like it worked only now and then.
+     */
+    @Test
+    fun theMagnetStaysAimableAtEveryZoom() {
+        assertEquals("at 100% the reach is the fingertip on screen", 22.0, CircuitSnapping.thresholdFor(1f), 1e-6)
+        assertEquals("zoomed in, the document-space reach takes over", 14.0, CircuitSnapping.thresholdFor(3f), 1e-6)
+        assertEquals("zoomed out, it grows to keep 22 screen px", 22.0 / 0.8, CircuitSnapping.thresholdFor(0.8f), 1e-6)
+        assertEquals(
+            "but a heavily zoomed-out page never reaches across the sheet",
+            CircuitSnapping.MAX_SNAP_PT,
+            CircuitSnapping.thresholdFor(0.1f),
+            1e-6,
+        )
+        // A page that is not laid out yet must not produce an infinite or zero reach.
+        assertEquals(CircuitSnapping.SNAP_THRESHOLD_PT, CircuitSnapping.thresholdFor(0f), 1e-6)
+        assertEquals(CircuitSnapping.SNAP_THRESHOLD_PT, CircuitSnapping.thresholdFor(Float.NaN), 1e-6)
+    }
+
     /** Dragging ink on a page with no circuit is a free move: there is no connector to snap to. */
     @Test
     fun snapTranslationLeavesAnOrdinaryStrokeAlone() {

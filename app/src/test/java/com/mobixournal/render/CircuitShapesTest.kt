@@ -74,16 +74,16 @@ class CircuitShapesTest {
         }
     }
 
-    /** A ground is a symbol, not a stretchable wire: a long drag keeps the plates a symbol's size. */
+    /** The ground is drawn at the size it was dragged, like every other component. */
     @Test
-    fun `ground plates cap their size however long the lead is drawn`() {
-        val short = CircuitShapes.ground(0.0, 0.0, 48.0, 0.0, widthPt = 1.0)
-        val long = CircuitShapes.ground(0.0, 0.0, 240.0, 0.0, widthPt = 1.0)
+    fun `ground is drawn at the size it was dragged`() {
         fun widest(pts: List<com.mobixournal.format.model.StrokePoint>) =
             pts.maxOf { it.y } - pts.minOf { it.y }
+        val short = CircuitShapes.ground(0.0, 0.0, 48.0, 0.0, widthPt = 1.0)
+        val long = CircuitShapes.ground(0.0, 0.0, 240.0, 0.0, widthPt = 1.0)
         assertEquals(38.4, widest(short), 1e-6)
-        assertEquals("a long lead does not grow a giant fork", widest(long), widest(short), 1e-6)
-        // The plates stay on the far end of the long lead, where its terminal partner sits.
+        assertEquals("five times the drag is five times the plates", widest(short) * 5, widest(long), 1e-6)
+        // And the lead still ends exactly on the drag's end, where p2 sits.
         assertEquals(240.0, long.last().x, 1e-6)
     }
 

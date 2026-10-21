@@ -1577,7 +1577,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * isometric sheet resolves both coordinates at once.
      */
     internal fun snappedPoint(box: PageBox, x: Double, y: Double, magnetic: Boolean) =
-        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid, magnetic)
+        CircuitSnapping.snapPoint(box.page, x, y, snapToGrid, magnetic, box.scale)
 
     // --- the setsquare / compass guide: place it, drag it, and rule drawn points against it -------
 

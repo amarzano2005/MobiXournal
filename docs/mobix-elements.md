@@ -327,7 +327,10 @@ picked where its handles are not.
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
 a wire drawn with the line tool and a component being placed or moved are pulled onto a nearby **pin**,
-and only on a page that actually holds a circuit. Ink is never a target — not a pen stroke however
+and only on a page that actually holds a circuit. While a connector is armed every pin is marked with
+a small ring (and the pin the live gesture has caught fills in), so the target can be seen before the
+wire is drawn; the magnet's reach is `SNAP_THRESHOLD_PT` in page points with a floor of `SNAP_REACH_PX`
+screen pixels, so a zoomed-out page can still be wired. Ink is never a target — not a pen stroke however
 straight, and not another wire's end — so drawing next to a line can never create a connection the user
 did not ask for. Ordinary figures — rectangles, bonds, the chemist's ring, a recognised freehand shape —
 keep exactly the geometry drawn; their only optional pull is the page ruling under *Snap to grid*
@@ -336,9 +339,9 @@ the shape library's own drawings need no connectivity to be edited as a shape. A
 `bounds` at all**: its outline is the symbol library's, and a copy of a drawing this format does not
 own would be a copy that can go stale.
 
-One symbol is **single-terminal**: `GROUND` carries one pin, which sits on `position`, and the earth
-hangs from it along `rotation` — so a ground dropped on a wire's end starts at that end instead of
-straddling the middle of a lead, and it is sized by the library rather than by the drag
+`GROUND` keeps two pins like every other part, but they are **the ends of the symbol itself**: `p1` is
+the terminal a wire meets and `p2` the far end of its plates, so the drag sizes the earth exactly as it
+sizes a resistor, and its ink runs from `p1` to `p2` instead of hanging under the middle of a lead
 (`render/CircuitInk.kt`, `render/CircuitShapes.kt`).
 
 `strokeColor`/`strokeWidth` **are** here, because they are the user's choice and not the library's: the
