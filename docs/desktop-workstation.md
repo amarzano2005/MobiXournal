@@ -16,10 +16,12 @@ What it does today:
 - Paints solid/ruled/graph/dotted paper (`config`'s `r1`, else `BackgroundGrid`'s defaults), pen
   strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
-- Reuses `app/src/main/java/com/mobixournal/format/**` and `render/BackgroundGrid.kt` **by compiling
-  those sources**, so there is one codec and one ruling geometry rather than a fork. Phase 3 below
-  replaces that source sharing with real `mobix-model` / `mobix-format` / `mobix-render` modules; until
-  then this module is a spike, not a second implementation.
+- Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
+  layers, the `.xopp` codecs and the shared paper/ink geometry — one codec, one ruling and one ink rule
+  book rather than a fork. The native `.mobix` engine is still in `app` because its streaming API
+  (paged reader, incremental save, merge) is internal to `io/`; the `TODO.toml` scope
+  `extract-the-mobix-streaming-api-into-mobix-core` designs that API and moves it, and the desktop's
+  `.mobix` opening waits on it.
 
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.

@@ -306,14 +306,30 @@ class SourceStructureTest {
 
     private fun keyOf(file: File): String = file.path.replace('\\', '/').substringAfter("com/mobixournal/")
 
-    /** Every Kotlin source file of the app's main source set. */
+    /**
+     * Every Kotlin source file of the shared main source sets — the app and `mobix-core`.
+     *
+     * The core was split out of `app` (Phase A of `step-3-desktop-workstation`), and the budget has to
+     * follow the code: a 700-line file must not become legal by being moved one module up. Keys stay
+     * relative to `com/mobixournal/`, exactly as before the split, so the recorded ceilings mean the
+     * same file they always did.
+     */
     private fun mainSources(): List<File> {
-        val root = listOf(File("src/main/java/com/mobixournal"), File("app/src/main/java/com/mobixournal"))
+        val appRoot = listOf(File("src/main/java/com/mobixournal"), File("app/src/main/java/com/mobixournal"))
             .firstOrNull { it.isDirectory }
             ?: error(
                 "no main source set from ${File(".").absolutePath}: this test must run with the " +
                     "module directory (app/) as its working directory",
             )
-        return root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+        val coreRoot = listOf(
+            File("mobix-core/src/main/java/com/mobixournal"),
+            File("../mobix-core/src/main/java/com/mobixournal"),
+        ).firstOrNull { it.isDirectory }
+            ?: error(
+                "no mobix-core source set from ${File(".").absolutePath}: the structure budget must " +
+                    "cover the shared core, not only the app",
+            )
+        return listOf(appRoot, coreRoot)
+            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList() }
     }
 }

@@ -19,7 +19,7 @@ package com.mobixournal.format.json
  * `docs/mobix-schema-spec.md` means the subtree's *value*, and the archive-level guarantee of
  * byte-identical preservation applies to whole entries, not to the JSON inside them.
  */
-internal object JsonWriter {
+object JsonWriter {
 
     /** [node] as compact JSON. */
     fun write(node: JsonNode): String = StringBuilder().also { append(node, it) }.toString()
@@ -90,7 +90,7 @@ internal object JsonWriter {
 }
 
 /** [node] as compact JSON — the call site's shorthand for `JsonWriter.write(this)`. */
-internal fun JsonNode.toJson(): String = JsonWriter.write(this)
+fun JsonNode.toJson(): String = JsonWriter.write(this)
 
 /** [text] as a JSON string literal, quotes included. */
 internal fun jsonString(text: String): String = StringBuilder().also { JsonWriter.quote(text, it) }.toString()

@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -24,6 +23,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke as InkStroke
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
+import com.mobixournal.render.InkGeometry
 
 /**
  * One page of a document, painted on a Compose/Skia canvas at [scale] (1.0 = page points as dp).
@@ -64,7 +64,7 @@ private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: 
 private fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
     val pts = stroke.points
     if (pts.size < 2) return
-    val color = Color(PageInk.renderColor(stroke.tool, stroke.color))
+    val color = Color(InkGeometry.renderColor(stroke.tool, stroke.color))
 
     if (stroke.tool == Tool.HIGHLIGHTER) {
         // One translucent band, multiplied into the paper: the marker reads over ink instead of
@@ -73,7 +73,7 @@ private fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
             PageInk.polyline(pts, scale),
             color,
             style = Stroke(
-                width = (PageInk.bandWidth(pts) * scale).toFloat().coerceAtLeast(0.5f),
+                width = (InkGeometry.bandWidth(pts) * scale).toFloat().coerceAtLeast(0.5f),
                 cap = StrokeCap.Round,
                 join = StrokeJoin.Round,
             ),
@@ -83,10 +83,8 @@ private fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
     }
 
     val strokeWidth = (pts.first().width * scale).toFloat().coerceAtLeast(0.5f)
-    if (stroke.uniformWidth || PageInk.uniform(pts)) {
+    if (stroke.uniformWidth || InkGeometry.uniformWidth(pts)) {
         val widthPt = pts.first().width
-        val dash = PageInk.dashIntervals(stroke.lineStyle, widthPt)
-            ?.let { intervals -> PathEffect.dashPathEffect(intervals.map { it * scale }.toFloatArray()) }
         drawPath(
             PageInk.polyline(pts, scale),
             color,
@@ -94,12 +92,12 @@ private fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
                 width = strokeWidth,
                 cap = StrokeCap.Round,
                 join = StrokeJoin.Round,
-                pathEffect = dash,
+                pathEffect = PageInk.dashEffect(stroke.lineStyle, widthPt, scale),
             ),
         )
     } else {
         // A pressure stroke keeps its taper by filling one variable-width outline.
-        drawPath(PageInk.taperOutline(pts, scale), color)
+        drawPath(PageInk.taperPath(pts, scale), color)
     }
 }
 

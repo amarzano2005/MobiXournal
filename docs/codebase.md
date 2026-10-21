@@ -42,8 +42,9 @@ structure:
 
 ## Repository layout
 
-A standard single-module Gradle (Kotlin DSL) Android project. The app code is split into small,
-single-responsibility files per `AGENTS.md`'s style guide.
+Three Gradle modules: `app` (the Android shell), `mobix-core` (platform-free model, codecs, shared
+geometry) and `desktop` (the Compose preview, `docs/desktop-workstation.md`). Code is split into small,
+single-responsibility files per `AGENTS.md`.
 
 **The `MainActivity*.kt` family.** An activity can't be split into classes — the framework
 constructs exactly one — so it is split into four files instead, one class plus three files of
@@ -61,6 +62,23 @@ gradlew, gradle/wrapper/                                    # Gradle wrapper (pi
 Dockerfile, compose.yaml, .dockerignore                    # containerized build image + service
 scripts/build.sh                                           # docker/podman build entry point
 
+mobix-core/                  # shared, platform-free core (kotlin-jvm): no android.*, no Compose
+  build.gradle.kts           # jvmToolchain(21), jvmTarget 17, junit; fixtures read from app's test resources
+  src/main/java/com/mobixournal/
+    format/model/            # Document/Page/Layer/Background/Element, the living entities, ids, EditedPages
+    format/xml/              # XmlPullReader, XmlWriter, XmlComment — the dependency-free XML layer
+    format/json/             # the JSON value model, parser and writer (public: .mobix, settings, transcripts)
+    format/FontDescription.kt # Pango-style font description <-> family + bold/italic (pure)
+    format/XoppColor.kt      # #RRGGBBAA <-> ARGB int, named colours
+    format/XoppReader.kt     # XML -> Document
+    format/XoppWriter.kt     # Document -> XML
+    format/Xopp.kt           # gzip open/save + parse/serialize entry points
+    format/XoppZip.kt        # ZIP-package open/save (PDF embedded); see the mimetype caveat
+    format/SaveFormat.kt     # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
+    format/FileKind.kt       # content sniffing: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
+    render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
+    render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
+  src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
   build.gradle.kts                                         # module config (SDK levels, Compose, deps)
   src/main/AndroidManifest.xml
@@ -71,25 +89,10 @@ app/
     MainActivityDocuments.kt # its document I/O half: open/load, PDF & image adoption, save/export
     MainActivityTabs.kt      # its tab/session half: tab strip state, show/switch/close, restore, split view
     MainActivityAudio.kt     # its audio half: canvas wiring, record/playback state, sidecar pull/push
-    format/                  # THE CORE — lossless .xopp read/write (pure Kotlin, no device deps)
-      model/                 # Document, Page, Layer, Background, Element/Stroke/Text/Image/TexImage
-                             #   Living.kt adds the four living entities (.xopp can only bake them into
-                             #   ink): Table, Plot, ParametricShape, Circuit and their value types
-      xml/                   # XmlPullReader, XmlWriter, XmlComment — the dependency-free XML layer
-                             #   malformed entities decode to raw text; truncated input throws
-                             #   XmlPullReader.TruncatedXmlException instead of hanging/crashing
-      FontDescription.kt     # Pango-style font description <-> family + bold/italic (pure)
-                             # model/ElementIds.kt mints the stable element ids the .mobix format keys on,
-                             #   and model/DocumentIdentity.kt has a document adopt them (pages, elements,
-                             #   document id) before it is written as a .mobix
-      XoppColor.kt           # #RRGGBBAA <-> ARGB int, named colours
-      XoppReader.kt          # XML -> Document
-      XoppWriter.kt          # Document -> XML
-      Xopp.kt                  # gzip open/save + parse/serialize entry points
-      XoppZip.kt             # ZIP-package open/save (PDF embedded); see the mimetype caveat
-      SaveFormat.kt          # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
-      FileKind.kt            # content sniffing for open: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
-      mobix/                 # the native .mobix format (roadmap Step 1)
+    format/mobix/            # the native .mobix engine (roadmap Step 1). Still app-side: its streaming
+                             #   API (paged reader, incremental save, merge) is internal and `io/` consumes
+                             #   it, so it moves to mobix-core when that API is designed
+                             #   (`extract-the-mobix-streaming-api-into-mobix-core` in TODO.toml)
         MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
         MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
         MobixManifest.kt     # manifest.json: version stamps, ids, page/chunk order, canvas mode, defaults
@@ -108,7 +111,6 @@ app/
         MobixMetaRevival.kt  # the import rule: revive a claimed entity only where the ink still proves it
         MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
         MobixAssets.kt       # the assets/ half: payloads named by the hash of their own bytes (pure)
-      json/                  # the shared, dependency-free JSON model, parser and writer (pure)
     io/                      # storage access that isn't format work
       UriStaging.kt          # stage document bytes to/from a content:// URI (slow remote shares)
       ScratchDir.kt          # unique-per-call file names (staging and both stores), so overlapping writes can't collide
@@ -156,8 +158,6 @@ app/
       TextEditController.kt  # placing/editing text boxes, images and LaTeX images from a tap
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
       PageStacker.kt         # lays pages out in rows of N columns, fit to column (pure geometry)
-      BackgroundGrid.kt      # ruling line/dot offsets + the pt spacings themselves (pure geometry)
-      BackgroundRuling.kt   # `<background config=…>`: parse/edit/serialize desktop's ruling params (pure)
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
       Snapping.kt            # the page's ruling as a snap lattice (spacing + phase, or an interleaved node mesh for isometric paper); rotation -> 15-degree steps (pure)
       DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling and chemistry snaps: project a drawn point onto an edge, a ray, the page's ruling or a 60° lattice node (pure)
@@ -315,9 +315,9 @@ app/
   src/test/java/com/mobixournal/ui/                             # JVM unit tests for the chrome's pure logic (incl. the palette)
 ```
 
-The **`format/` package is the heart** and is deliberately free of Android dependencies so the
-round-trip logic is fully unit-testable on the JVM (see `app/src/test/`). `render/` and `ui/`
-are the Android-facing shell around it.
+The **`format/` layer is the heart** and is deliberately free of Android dependencies: the model, the
+XML/JSON layers and the `.xopp` codecs live in `mobix-core/`, so the round trip is unit-tested on the
+JVM and reused by the desktop shell. `render/` and `ui/` are the Android-facing shell around it.
 
 ### Branding and identity
 

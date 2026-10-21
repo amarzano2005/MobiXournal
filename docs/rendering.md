@@ -52,6 +52,15 @@ disarmed by touch-slop travel or a second pointer, and never armed for a stylus 
 lifts the page under it, the drag tracks a drop slot with `nearestPage`, and the release commits one
 undoable `PageOps.move(pages, from, to)` through `editPages`. The same `pageAt(x, y)` hit-test drives
 
+## One rule book for a stroke (`mobix-core/.../render/InkGeometry.kt`)
+
+What a stroke **is** — the highlighter's forced alpha (`0x78`) and multiply, its mean band width, the
+dash pattern scaled by width, the render mode, and the variable-width outline of a pressure stroke —
+lives in `InkGeometry` in `mobix-core`, not in the Android painter. `render/StrokePainter.kt` keeps the
+Android-facing names (`renderColor`, `bandWidth`, `dashIntervalsPt`, `uniformWidth`) as delegates, and
+the desktop shell's painter converts the same geometry into Compose paths, so the tablet and the PC
+cannot disagree about how ink looks. Only the raster backend differs.
+
 ## When the pane under the canvas changes size (`render/DrawingSurfaceResize.kt`)
 
 A resize is the one change to the canvas that **no event announces**: a split-divider drag, a pane

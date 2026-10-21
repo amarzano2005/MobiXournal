@@ -7,7 +7,7 @@ import org.junit.Test
 import kotlin.math.abs
 
 /**
- * The pure [pressureOutlinePoints] geometry behind the pen's variable-width fill. The outline must
+ * The pure [InkGeometry.taperOutline] geometry behind the pen's variable-width fill. The outline must
  * span the stroke's **full** point-to-point width (not one mean width), taper along the stroke, and
  * cap both ends — the whole point of replacing the old mean-width path.
  */
@@ -23,13 +23,13 @@ class PressureOutlineTest {
 
     @Test
     fun `fewer than two points yields no outline`() {
-        assertEquals(0, pressureOutlinePoints(emptyList(), 1f, 0f, 0f).size)
-        assertEquals(0, pressureOutlinePoints(listOf(point(1.0, 1.0, 2.0)), 1f, 0f, 0f).size)
+        assertEquals(0, InkGeometry.taperOutline(emptyList(), 1f, 0f, 0f).size)
+        assertEquals(0, InkGeometry.taperOutline(listOf(point(1.0, 1.0, 2.0)), 1f, 0f, 0f).size)
     }
 
     @Test
     fun `a constant-width stroke makes a stadium as wide as the stroke, capped at both ends`() {
-        val o = pressureOutlinePoints(
+        val o = InkGeometry.taperOutline(
             listOf(point(0.0, 0.0, 4.0), point(10.0, 0.0, 4.0)), 1f, 0f, 0f,
         )
         // Half-width 2, so the band runs y=-2..2, and each round cap adds half a width (2) past the end.
@@ -41,7 +41,7 @@ class PressureOutlineTest {
 
     @Test
     fun `the width tapers point to point instead of taking a mean`() {
-        val o = pressureOutlinePoints(
+        val o = InkGeometry.taperOutline(
             listOf(point(0.0, 0.0, 2.0), point(10.0, 0.0, 8.0)), 1f, 0f, 0f,
         )
         val thin = o.indices.step(2).filter { o[it] < 1f }.map { o[it + 1] }
@@ -56,7 +56,7 @@ class PressureOutlineTest {
 
     @Test
     fun `repeated points do not produce NaN or infinity`() {
-        val o = pressureOutlinePoints(
+        val o = InkGeometry.taperOutline(
             listOf(point(3.0, 3.0, 2.0), point(3.0, 3.0, 2.0), point(6.0, 3.0, 2.0)), 1f, 0f, 0f,
         )
         assertTrue(o.isNotEmpty())

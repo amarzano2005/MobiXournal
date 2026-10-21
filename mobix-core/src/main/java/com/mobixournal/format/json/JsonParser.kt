@@ -11,7 +11,7 @@ package com.mobixournal.format.json
  *
  * Object keys keep their source order, which the `.mobix` writer depends on for preserved fields.
  */
-internal object JsonParser {
+object JsonParser {
     fun parse(input: String): JsonNode {
         var pos = 0
         val len = input.length

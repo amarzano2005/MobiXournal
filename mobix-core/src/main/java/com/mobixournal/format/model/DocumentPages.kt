@@ -12,8 +12,12 @@ package com.mobixournal.format.model
  *
  * Flattened on construction, so editing the same page a thousand times leaves one wrapper and not a
  * thousand: the previous view's own base is reused and its edits are carried over.
+ *
+ * Public with [withPage] because it is the model's own edit primitive, not a codec detail: the app's
+ * page window and the `.mobix` save plan both edit a document through it, and a second shell that
+ * opens a document page by page needs the same one-page-cost edit.
  */
-internal class EditedPages private constructor(
+class EditedPages private constructor(
     private val base: List<Page>,
     private val edits: Map<Int, Page>,
 ) : AbstractList<Page>() {
@@ -54,7 +58,7 @@ internal class EditedPages private constructor(
  *
  * @throws IndexOutOfBoundsException when [index] is not a page of [document].
  */
-internal fun Document.withPage(index: Int, page: Page): Document {
+fun Document.withPage(index: Int, page: Page): Document {
     if (index !in pages.indices) {
         throw IndexOutOfBoundsException("page index $index out of bounds (0..${pages.size - 1})")
     }

@@ -1,8 +1,14 @@
 package com.mobixournal.format.json
 
 /**
- * The app's own JSON value model: dependency-free, `internal` to the module, and the single home for
+ * The app's own JSON value model: dependency-free, public in `mobix-core`, and the single home for
  * how a JSON document is held in memory.
+ *
+ * **Why it is public**: it stopped being a private detail the day the format package became a shared
+ * module. The `.mobix` codecs read and write through it, the settings backup parses with it
+ * (`ui/AppSettingsBackup.kt`) and the transcription codec serialises with it — all of them in the
+ * app, across the module boundary — so the value model, its parser and its writer are this module's
+ * deliberate API rather than an implementation leak.
  *
  * It lives here, beside the format layer, because JSON is a **format** concern: it arrived as the
  * settings-backup text format (see `ui/AppSettingsBackup.kt`, which reads it through these types) and
@@ -13,7 +19,7 @@ package com.mobixournal.format.json
  * fields of an element are re-emitted in the order the file had them, so a round trip through this app
  * does not reshuffle a document it did not change.
  */
-internal sealed interface JsonNode {
+sealed interface JsonNode {
     data class Obj(val map: Map<String, JsonNode>) : JsonNode {
         fun getStr(key: String, fallback: String): String = (map[key] as? Str)?.value ?: fallback
         fun getStrOrNull(key: String): String? = (map[key] as? Str)?.value

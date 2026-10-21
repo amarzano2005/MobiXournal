@@ -25,4 +25,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "MobiXournal"
 include(":app")
+include(":mobix-core")
 include(":desktop")

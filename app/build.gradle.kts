@@ -74,6 +74,8 @@ android {
 }
 
 dependencies {
+    // The document model, codecs and ink/paper geometry shared with the desktop shell.
+    implementation(project(":mobix-core"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
