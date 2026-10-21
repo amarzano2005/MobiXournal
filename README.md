@@ -94,8 +94,11 @@ page up front.
 More than one document can be open, each in its own tab that remembers the page and the zoom you left
 it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
 page's layers), and the page can be fitted to the window, fitted to its width, or zoomed freely — the
-point under the cursor stays where it is while you zoom. It is **read-only** for now, and it is a
-separate module, so it never affects the Android build.
+point under the cursor stays where it is while you zoom. A page saved as one long strip — how a lecture
+written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
+shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. The window speaks
+English, like the tablet app. It is **read-only** for now, and it is a separate module, so it never
+affects the Android build.
 
 | Key | What it does |
 |---|---|

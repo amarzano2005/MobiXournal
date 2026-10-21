@@ -72,7 +72,7 @@ fun PageSidebar(
             .padding(vertical = 12.dp),
     ) {
         Text(
-            text = "Pagine",
+            text = "Pages",
             color = Color(0xFF9A9AA6),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
@@ -114,7 +114,7 @@ fun PageSidebar(
                         val aspect = preview.height.toFloat() / preview.width.toFloat()
                         Image(
                             bitmap = preview,
-                            contentDescription = "Pagina ${index + 1}",
+                            contentDescription = "Page ${index + 1}",
                             modifier = Modifier.width(THUMB_WIDTH).height((THUMB_WIDTH.value * aspect).dp),
                         )
                     }
@@ -133,14 +133,14 @@ private fun LayersSection(tab: DesktopTab) {
     val layers = page?.layers.orEmpty()
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
         Text(
-            text = "Livelli",
+            text = "Layers",
             color = Color(0xFF9A9AA6),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Spacer(Modifier.height(4.dp))
         if (layers.isEmpty()) {
-            Text("Nessun livello", color = Color(0xFF6E6E78), fontSize = 11.sp)
+            Text("No layers", color = Color(0xFF6E6E78), fontSize = 11.sp)
         }
         for (index in layers.indices.reversed()) {
             Text(
@@ -154,7 +154,7 @@ private fun LayersSection(tab: DesktopTab) {
 }
 
 /** A layer's own name, or its position in the page when it has none. */
-internal fun Layer.label(index: Int): String = name ?: "Livello ${index + 1}"
+internal fun Layer.label(index: Int): String = name ?: "Layer ${index + 1}"
 
 /** How far through the document the current page is, for the status bar. */
 internal fun pageProgress(page: Int, count: Int): Float =

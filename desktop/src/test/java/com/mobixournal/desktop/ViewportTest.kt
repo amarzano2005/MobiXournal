@@ -105,6 +105,44 @@ class ViewportTest {
         assertTrue("and its height does not fit", pageH * zoom > viewH)
     }
 
+    /**
+     * The reason `AUTO` exists: a sheet is shown whole, and the strip a lecture note is saved as is
+     * read at its width. The tablet writes 850 × 2976 pt when a page is filled top to bottom, and fitting
+     * that whole leaves 12 pt handwriting three pixels tall.
+     */
+    @Test
+    fun `auto fit shows a sheet whole and reads a strip by its width`() {
+        val sheetW = 595f
+        val sheetH = 842f
+        assertEquals("A4 is a sheet", FitMode.PAGE, FitMode.AUTO.resolve(sheetW, sheetH))
+        assertEquals(
+            "and its zoom is the whole-page fit",
+            FitMode.PAGE.zoomFor(sheetW, sheetH, viewW, viewH),
+            FitMode.AUTO.zoomFor(sheetW, sheetH, viewW, viewH),
+        )
+
+        val stripW = 850f
+        val stripH = 2976f
+        assertEquals("a lecture strip is fitted to its width", FitMode.WIDTH, FitMode.AUTO.resolve(stripW, stripH))
+        val zoom = FitMode.AUTO.zoomFor(stripW, stripH, viewW, viewH)!!
+        assertEquals("which is the width fit", Viewport.fitWidthZoom(stripW, viewW), zoom, 1e-4f)
+        assertTrue("and the writing stays legible at $zoom", zoom > 0.6f)
+        assertTrue("the whole fit would have been a third of that", FitMode.PAGE.zoomFor(stripW, stripH, viewW, viewH)!! < zoom / 2f)
+
+        assertEquals(
+            "asking for the whole sheet still means the whole sheet",
+            FitMode.PAGE,
+            FitMode.PAGE.resolve(stripW, stripH),
+        )
+    }
+
+    /** A wide page is not a strip: the ratio only answers "is it much taller than it is wide". */
+    @Test
+    fun `a page wider than it is tall is never a strip`() {
+        assertEquals(FitMode.PAGE, FitMode.AUTO.resolve(1200f, 700f))
+        assertEquals(FitMode.PAGE, FitMode.AUTO.resolve(0f, 0f))
+    }
+
     @Test
     fun `fit modes report the zoom they imply`() {
         assertEquals(FitMode.WIDTH, FitMode.WIDTH)

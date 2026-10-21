@@ -79,14 +79,14 @@ class DesktopDocument(
  * format states what it is. A `.mobix` named `.xopp` opens as a notebook; a ZIP `.xopp` named `.mobix`
  * opens as a `.xopp`.
  *
- * Each unsupported case is reported as itself (`formato non riconosciuto`, `archivio ZIP senza
+ * Each unsupported case is reported as itself (`unrecognised format`, `ZIP archive with no
  * content.xml`) instead of failing deep inside a reader.
  */
 object DocumentLoader {
 
     /** Open [file] and hand back a document whose pages are read through [DesktopDocument.source]. */
     fun load(file: File): DesktopDocument {
-        require(file.isFile) { "File non trovato: ${file.path}" }
+        require(file.isFile) { "File not found: ${file.path}" }
         return when (val kind = FileKind.of(leadingBytes(file))) {
             FileKind.ZIP -> openZip(file)
             FileKind.GZIP, FileKind.XML -> {
@@ -99,10 +99,10 @@ object DocumentLoader {
                     backdrop = PageBackdrop(bundled = { null }, documentDir = file.parentFile),
                 )
             }
-            FileKind.PDF -> throw UnsupportedOperationException(unsupported("un PDF", kind))
-            FileKind.IMAGE -> throw UnsupportedOperationException(unsupported("un'immagine", kind))
-            FileKind.TEXT -> throw UnsupportedOperationException(unsupported("un file di testo", kind))
-            FileKind.UNKNOWN -> throw UnsupportedOperationException(unsupported("un formato sconosciuto", kind))
+            FileKind.PDF -> throw UnsupportedOperationException(unsupported("a PDF", kind))
+            FileKind.IMAGE -> throw UnsupportedOperationException(unsupported("an image", kind))
+            FileKind.TEXT -> throw UnsupportedOperationException(unsupported("a text file", kind))
+            FileKind.UNKNOWN -> throw UnsupportedOperationException(unsupported("an unknown format", kind))
         }
     }
 
@@ -123,7 +123,7 @@ object DocumentLoader {
                 openMobix(file)
             hasContentXml -> openZippedXopp(file)
             else -> throw UnsupportedOperationException(
-                "Questo archivio ZIP non è un documento: manca sia il mimetype .mobix sia content.xml.",
+                "This ZIP archive is not a document: it carries neither the .mobix mimetype nor content.xml.",
             )
         }
     }
@@ -170,8 +170,8 @@ object DocumentLoader {
     }
 
     private fun unsupported(what: String, kind: FileKind): String =
-        "Questo file sembra $what (${kind.name.lowercase()}), non un documento MobiXournal. " +
-            "Questa anteprima apre .xopp (gzip o ZIP) e .mobix."
+        "This file looks like $what (${kind.name.lowercase()}), not a MobiXournal document. " +
+            "This preview opens .xopp (gzip or ZIP) and .mobix."
 
     /** The signature bytes [FileKind.of] classifies; the buffer is trimmed to what was actually read. */
     private fun leadingBytes(file: File): ByteArray {

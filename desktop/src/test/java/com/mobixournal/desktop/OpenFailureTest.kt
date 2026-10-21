@@ -27,9 +27,9 @@ class OpenFailureTest {
         val reported = describeOpenFailure(
             NoClassDefFoundError("com/mobixournal/desktop/DocumentLoader\$openMobix\$1"),
         )
-        assertTrue(reported.title, reported.title.contains("rimasta indietro"))
-        assertTrue(reported.detail, reported.detail.contains("non c'entra"))
-        assertTrue(reported.detail, reported.detail.contains("rilancia"))
+        assertTrue(reported.title, reported.title.contains("fallen behind"))
+        assertTrue(reported.detail, reported.detail.contains("not at fault"))
+        assertTrue(reported.detail, reported.detail.contains("relaunch"))
         // The raw synthetic name is what the old notice showed — it must not reach the user.
         assertFalse(reported.detail, reported.detail.contains("DocumentLoader"))
     }
@@ -42,15 +42,15 @@ class OpenFailureTest {
         assertTrue("expected a refusal, got $failure", failure is UnsupportedOperationException)
 
         val reported = describeOpenFailure(failure!!)
-        assertEquals("Formato non supportato", reported.title)
-        assertTrue(reported.detail, reported.detail.contains("non un documento MobiXournal"))
+        assertEquals("Unsupported format", reported.title)
+        assertTrue(reported.detail, reported.detail.contains("not a MobiXournal document"))
     }
 
     /** Anything else carries its class name, which is what makes a bug report possible. */
     @Test
     fun `an unexpected failure names its class and message`() {
         val reported = describeOpenFailure(FileNotFoundException("C:\\notes\\a.mobix"))
-        assertEquals("Impossibile aprire il documento", reported.title)
+        assertEquals("Could not open the document", reported.title)
         assertTrue(reported.detail, reported.detail.startsWith("FileNotFoundException:"))
         assertTrue(reported.detail, reported.detail.contains("a.mobix"))
     }
@@ -59,15 +59,15 @@ class OpenFailureTest {
     @Test
     fun `a silent failure still says something`() {
         val reported = describeOpenFailure(RuntimeException())
-        assertEquals("Impossibile aprire il documento", reported.title)
-        assertEquals("RuntimeException: nessun dettaglio disponibile", reported.detail)
+        assertEquals("Could not open the document", reported.title)
+        assertEquals("RuntimeException: no detail available", reported.detail)
     }
 
     /** A page too big for the heap is a memory problem, and says so instead of a class name. */
     @Test
     fun `running out of memory is reported as memory`() {
         val reported = describeOpenFailure(OutOfMemoryError("Java heap space"))
-        assertEquals("Memoria insufficiente", reported.title)
+        assertEquals("Not enough memory", reported.title)
     }
 
     @Test

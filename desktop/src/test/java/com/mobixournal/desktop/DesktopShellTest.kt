@@ -1,12 +1,19 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.mobixournal.format.mobix.SyntheticNotebook
+import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.Page
 import java.io.ByteArrayInputStream
 import java.io.File
 import javax.imageio.ImageIO
@@ -109,12 +116,12 @@ class DesktopShellTest {
     @Test
     fun `the status bar's figures follow the tab`() {
         val tab = tabsOf("stato.mobix", "altro.mobix").active!!
-        assertEquals("Pagina 1 / 6", pageLabel(0, 6))
+        assertEquals("Page 1 / 6", pageLabel(0, 6))
         assertEquals("250%", zoomLabel(2.5f))
         assertEquals(1f, pageProgress(5, 6), 1e-4f)
         assertEquals(0.5f, pageProgress(2, 6), 1e-4f)
         assertEquals("a document of one page is complete", 1f, pageProgress(0, 1), 0f)
-        assertEquals("a Layer without a name is numbered", "Livello 2", tab.document.page(0).layers.first().label(1))
+        assertEquals("a Layer without a name is numbered", "Layer 2", tab.document.page(0).layers.first().label(1))
     }
 
     @Test
@@ -162,6 +169,71 @@ class DesktopShellTest {
             assertFalse("closing it repaints the strip too", filled.contentEquals(frame(scene, "shell-tabs-closed")))
         } finally {
             scene.close()
+        }
+    }
+
+    /**
+     * The strip's whole point, in a window of its own: the page is fitted to its **width**, so the
+     * writing is readable, and what you cannot see is below the fold instead of shrunk into a sliver.
+     *
+     * The fixture is the shape the tablet app really writes when a page is filled to the bottom
+     * (850 × 2976 pt): fitting it whole is 27 %, which is a thumbnail with a zoom readout.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun `a strip page opens fitted to its width, not shrunk to fit the window`() {
+        val file = temp.newFile("strip.mobix")
+        SyntheticNotebook.write(
+            file,
+            listOf(
+                Page(
+                    width = 850.0,
+                    height = 2976.0,
+                    background = Background.Solid(0xFFFFFFFF.toInt(), "graph"),
+                    layers = listOf(Layer(listOf(SyntheticNotebook.stroke(40.0)))),
+                    id = "pg_strip",
+                ),
+            ),
+        )
+        val tab = DesktopTabs().open(DocumentLoader.load(file))
+        try {
+            assertEquals("a strip asks for a width fit", FitMode.WIDTH, tab.fitFor(850f, 2976f))
+
+            val side = 700
+            val scene = ImageComposeScene(side, side, Density(1f)) {
+                Box(Modifier.size(side.dp, side.dp)) {
+                    PageCanvas(
+                        tab = tab,
+                        panMode = false,
+                        onViewport = { tab.viewport = it },
+                        onFit = { tab.fit = it },
+                    )
+                }
+            }
+            try {
+                val png = frame(scene, "shell-strip-fit")
+                val expected = Viewport.fitWidthZoom(850f, 700f)
+                assertEquals("the page is shown at its width fit", expected, tab.viewport.zoom, 0.01f)
+                assertTrue("which is readable, not a sliver: ${tab.viewport.zoom}", tab.viewport.zoom > 0.5f)
+                assertTrue(
+                    "and the rest of the sheet is below the fold",
+                    2976f * tab.viewport.zoom > side,
+                )
+
+                // The pixels say the sheet really is stretched across the window: a row through its
+                // middle is paper from one margin to the other, not a narrow column on the desk.
+                val image = ImageIO.read(ByteArrayInputStream(png))
+                var paper = 0
+                for (x in 0 until image.width) {
+                    val rgb = image.getRGB(x, side / 2) and 0xFFFFFF
+                    if (maxOf(rgb shr 16, (rgb shr 8) and 0xFF, rgb and 0xFF) > 0xC0) paper++
+                }
+                assertTrue("the sheet spans the window's width ($paper of $side px)", paper >= side - 80)
+            } finally {
+                scene.close()
+            }
+        } finally {
+            tab.document.close()
         }
     }
 

@@ -85,20 +85,51 @@ data class Viewport(
     }
 }
 
-/** How the page's zoom follows the window: fitted, or whatever the user set. */
+/**
+ * How the page's zoom follows the window: fitted, or whatever the user set.
+ *
+ * [AUTO] is what a tab starts as, and it is the only mode that *decides*: a sheet whose shape is a
+ * sheet's (A4 is 1.41 high) is shown whole, and a page written as a long strip is fitted to its width
+ * and read by scrolling. A strip is not an edge case — the tablet app writes a lecture note as one
+ * 850 × 2976 pt page, where "fit page" lands at 27 % and turns a 12 pt hand into three pixels a line,
+ * with two thirds of the window left as black desk. The rule keys on the **page**, not on the window:
+ * a short window would push the fitted zoom below any threshold, and shrinking the window is not a
+ * request to reflow the document.
+ *
+ * [PAGE] stays explicit and literal: `Ctrl + 0` means see the whole sheet, however small that makes it.
+ */
 enum class FitMode {
     NONE,
+    AUTO,
     WIDTH,
     PAGE,
     ;
 
-    /** The zoom this mode implies, or null when the user's own zoom applies. */
-    fun zoomFor(pageW: Float, pageH: Float, viewW: Float, viewH: Float): Float? = when (this) {
-        NONE -> null
-        WIDTH -> Viewport.fitWidthZoom(pageW, viewW)
-        PAGE -> Viewport.fitZoom(pageW, pageH, viewW, viewH)
+    /** The concrete mode this one stands for: [AUTO] picks a fit from the page's shape, others stand. */
+    fun resolve(pageW: Float, pageH: Float): FitMode = when {
+        this != AUTO -> this
+        pageW > 0f && pageH > pageW * STRIP_PAGE_RATIO -> WIDTH
+        else -> PAGE
     }
+
+    /** The zoom this mode implies, or null when the user's own zoom applies. */
+    fun zoomFor(pageW: Float, pageH: Float, viewW: Float, viewH: Float): Float? =
+        when (resolve(pageW, pageH)) {
+            NONE -> null
+            WIDTH -> Viewport.fitWidthZoom(pageW, viewW)
+            PAGE -> Viewport.fitZoom(pageW, pageH, viewW, viewH)
+            // Unreachable: resolve() never answers AUTO.
+            AUTO -> null
+        }
 }
+
+/**
+ * Height/width above which a page is a **strip** rather than a sheet, and is fitted to its width.
+ *
+ * A4 portrait is 1.41 and letter is 1.29, so both stay whole-page; the threshold sits well clear of
+ * them and below the strips the app really writes (a page of lecture notes runs 3.5 or more).
+ */
+const val STRIP_PAGE_RATIO = 1.8
 
 /** The page margin the desktop leaves around a fitted page, in dp. */
 const val PAGE_MARGIN_DP = 32f

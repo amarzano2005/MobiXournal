@@ -7,7 +7,8 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 ## Status today — the `desktop/` preview (Part live)
 
 The first slice of this plan now builds: a **`desktop` Gradle module** (Compose Multiplatform 1.7 on
-Skiko) that opens the app's own documents and paints their pages in a native window. It is the
+Skiko) that opens the app's own documents and paints their pages in a native window. Every word the
+window shows is **English**, like the tablet app's UI — `docs/ui-modernization.md` owns that rule. It is the
 feasibility proof this spoke was written against — the document model and the codecs are
 platform-free, so a PC window can show the same page the Android editor shows.
 
@@ -21,7 +22,13 @@ tab keeps its own page, zoom and fit, so going back to a tab lands where you lef
 240 dp sidebar of page thumbnails and the current page's layers, the page alone on the true-black desk,
 and a 24 dp status bar with the page counter, the effective zoom, the fit mode and the container.
 Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and every one
-of those actions also has a key (`docs/ui-modernization.md` owns the table). Thumbnails come from the
+of those actions also has a key (`docs/ui-modernization.md` owns the table). A tab opens in **`AUTO`
+fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and a page saved as a
+long strip — the tablet writes one 850 × 2976 pt page for a lecture that fills the sheet — is fitted to
+its **width**, because showing that whole page lands at 27 %, where a 12 pt hand is three pixels tall and
+two thirds of the window is black desk. The status bar names the fit actually in use; `Ctrl + 0` still
+means the whole sheet, however small that makes it, and scrolling never abandons the fit (a width-fitted
+page must stay fitted while you read down it). Thumbnails come from the
 same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
 once per page per tab.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into

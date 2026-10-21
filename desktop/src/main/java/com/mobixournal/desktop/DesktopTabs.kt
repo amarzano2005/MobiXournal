@@ -13,6 +13,9 @@ import java.io.File
  * move the chapter, and coming back to a tab has to land where you left it. The document itself owns a
  * file handle (a `.mobix` reader), so closing a tab closes it ([DesktopTabs.close]).
  *
+ * The view state starts as [FitMode.AUTO], which shows a sheet whole and fits a long strip to the width
+ * so its writing stays readable (`FitMode.resolve`); every zoom key sets a mode explicitly.
+ *
  * The fields are **snapshot state**: the strip, the canvas and the status bar read them, so a wheel zoom
  * or a page change has to invalidate those readers or nothing on screen would move. Snapshot state also
  * works outside a composition, which is what keeps the rules below ordinary JVM tests.
@@ -23,7 +26,7 @@ class DesktopTab(
     title: String = document.file.name,
     page: Int = 0,
     viewport: Viewport = Viewport(),
-    fit: FitMode = FitMode.PAGE,
+    fit: FitMode = FitMode.AUTO,
 ) {
     var title: String by mutableStateOf(title)
     var page: Int by mutableStateOf(page)
@@ -39,6 +42,9 @@ class DesktopTab(
     /** The zoom actually used: the fitted one while a fit mode is on, the user's own otherwise. */
     fun effectiveZoom(pageW: Float, pageH: Float, viewW: Float, viewH: Float): Float =
         fit.zoomFor(pageW, pageH, viewW, viewH) ?: viewport.zoom
+
+    /** The mode the status bar names: [FitMode.AUTO] resolved against this page's shape. */
+    fun fitFor(pageW: Float, pageH: Float): FitMode = fit.resolve(pageW, pageH)
 
     override fun toString(): String = "DesktopTab($title, page=$page, fit=$fit)"
 }

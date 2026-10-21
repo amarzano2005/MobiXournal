@@ -27,7 +27,7 @@ internal fun initialDocument(args: Array<String>): File? {
  *
  * Because `:desktop:run` executes the compiled class directories, a **build while the window is open**
  * replaces files under the live JVM; close the window before recompiling, and reopen the document in a
- * fresh one if it reports "L'anteprima è rimasta indietro" ([describeOpenFailure]).
+ * fresh one if it reports "The preview has fallen behind" ([describeOpenFailure]).
  */
 fun main(args: Array<String>) {
     val initial = initialDocument(args)

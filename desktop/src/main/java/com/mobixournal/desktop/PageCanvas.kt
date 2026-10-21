@@ -42,6 +42,12 @@ import kotlin.math.roundToInt
  * scrolling. The page you are on is [DesktopTab.page], the sidebar and the status bar both read it, and
  * the viewport (zoom, pan, fit) belongs to the tab, so switching tabs restores what each was showing.
  *
+ * A page written as a **long strip** — a lecture note the tablet app saved as one 850 × 2976 pt sheet —
+ * opens fitted to its **width** rather than shrunk to a sliver (`FitMode.AUTO`), and the wheel reads down
+ * it. Scrolling therefore never abandons the fit: a width-fitted page must stay fitted while you travel
+ * through it, or the first notch would turn the view into a free zoom and a window resize would stop
+ * refitting the page.
+ *
  * Input, in the conventions a document viewer has already taught everyone:
  *  - **wheel** scrolls (vertically, and horizontally for a wide page); **Ctrl + wheel** zooms at the
  *    cursor, which is the *page point under the cursor* staying still, not the page's centre;
@@ -66,7 +72,7 @@ fun PageCanvas(
         val viewH = maxHeight.value
         if (loaded == null) {
             Text(
-                text = "Impossibile leggere questa pagina: ${page.exceptionOrNull()?.message}",
+                text = "Could not read this page: ${page.exceptionOrNull()?.message}",
                 color = Color(0xFFFF8A80),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.align(Alignment.Center),
@@ -104,7 +110,8 @@ fun PageCanvas(
                         onFit(FitMode.NONE)
                         onViewport(viewport.copy(zoom = zoom).zoomBy(factor, anchor.x, anchor.y, pageW, pageH, viewW, viewH))
                     } else {
-                        onFit(FitMode.NONE)
+                        // Scrolling keeps the fit: reading down a width-fitted strip must not turn it
+                        // into a free zoom (and stop refitting it when the window changes size).
                         onViewport(viewport.pannedBy(-delta.x * WHEEL_STEP_DP, -delta.y * WHEEL_STEP_DP, pageW, pageH, viewW, viewH))
                     }
                 }
@@ -123,7 +130,6 @@ fun PageCanvas(
                             if (change.changedToUpIgnoreConsumed()) break
                             val drag = change.positionChange()
                             if (drag != Offset.Zero) {
-                                onFit(FitMode.NONE)
                                 current = current.pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH)
                                 onViewport(current)
                                 change.consume()
@@ -160,5 +166,5 @@ internal fun pageSizeDp(pageW: Double, pageH: Double, zoom: Float): Pair<Float, 
 /** The zoom label a status bar shows. */
 internal fun zoomLabel(zoom: Float): String = "${(zoom * 100f).roundToInt()}%"
 
-/** A page's label: `Pagina 3 / 12`. */
-internal fun pageLabel(page: Int, count: Int): String = "Pagina ${page + 1} / ${count.coerceAtLeast(1)}"
+/** A page's label: `Page 3 / 12`. */
+internal fun pageLabel(page: Int, count: Int): String = "Page ${page + 1} / ${count.coerceAtLeast(1)}"

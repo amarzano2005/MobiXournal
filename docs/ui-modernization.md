@@ -74,6 +74,31 @@ mobile and desktop.
 
 ---
 
+## One language: English on every surface
+
+**Every string the app shows is English** — the Android editor's chrome, dialogs, toasts and error copy,
+and the desktop preview's window. The desktop is the same product as the tablet's, not a translated
+companion: a second language in the tree is a second place for one message to drift out of date, and a
+user who opens the same notebook on a PC and a tablet must not meet two voices for the same action.
+
+This is a rule about **copy**, not about code comments, commit messages or these docs. Two consequences
+worth stating plainly:
+
+- **New user-facing text is written in English, in the same commit as the feature** — a tooltip, a
+  status-bar word, a dialog title, an error notice. Italian (or any other language) reaching a screen
+  through a literal is a bug against this rule, not a stylistic preference.
+- **Error copy names what happened and what to do**, in that same voice, and never shows an internal
+  identifier — a class name, a synthetic lambda, an exception's `toString()` — where a person is looking.
+  The desktop's failed-open card is the worked example (`docs/desktop-workstation.md`): the same event
+  reported as `NoClassDefFoundError: …$openMobix$1` read as a corrupt notebook, and reads as "the
+  preview has fallen behind" once it is said in English and about the right subject.
+
+Localising into other languages is a future product decision (string resources, one catalogue per
+language, a setting) and nothing here forecloses it. Until that decision is taken, English literals are
+the contract for both shells.
+
+---
+
 ## Mobile and Tablet ergonomics
 
 ```text

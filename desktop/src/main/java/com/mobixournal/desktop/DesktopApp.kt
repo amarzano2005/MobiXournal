@@ -48,6 +48,9 @@ import java.io.File
 /**
  * The desktop shell: open documents as tabs, navigate them with a sidebar, zoom and pan the page.
  *
+ * Every word the window shows is **English**, like the tablet app's UI (`docs/ui-modernization.md`
+ * owns the rule): the desktop is the same product, not a translated companion.
+ *
  * The layout is the workstation one from `docs/ui-modernization.md` — a header carrying the tab strip,
  * a sidebar beside the canvas (never over it), the page on a true-black desk, and a status bar with the
  * page and the zoom. Everything the chrome does has a key: `Ctrl+T` open, `Ctrl+W` close, `Ctrl+Tab`
@@ -77,7 +80,7 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
     }
 
     fun pick() {
-        val dialog = FileDialog(window, "Apri un documento", FileDialog.LOAD)
+        val dialog = FileDialog(window, "Open a document", FileDialog.LOAD)
         dialog.setFilenameFilter { _, name ->
             name.endsWith(".xopp", ignoreCase = true) || name.endsWith(".mobix", ignoreCase = true)
         }
@@ -179,8 +182,9 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
                     // over it (below) instead, so an unopenable file cannot hide the one you were reading.
                     tab == null && failure != null -> Notice(failure!!.title, failure!!.detail)
                     tab == null -> Notice(
-                        "Apri un file .xopp o .mobix per iniziare",
-                        "Ctrl+T oppure “Apri…”. L'anteprima mostra carta, inchiostro, entità vive e sfondi PDF o immagine, in sola lettura.",
+                        "Open a .xopp or .mobix file to start",
+                        "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
+                            "image backgrounds, read-only.",
                     )
                     else -> Row(Modifier.fillMaxSize()) {
                         if (sidebarVisible) {
@@ -277,10 +281,15 @@ private fun StatusBar(tab: DesktopTab?) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (tab == null) {
-            Text("nessun documento", color = Color(0xFF6E6E78), fontSize = 11.sp)
+            Text("no document", color = Color(0xFF6E6E78), fontSize = 11.sp)
             return@Row
         }
         val zoom = tab.viewport.zoom
+        // The label names the fit that is *in use*: `AUTO` is a question (is this page a sheet or a
+        // strip?), and a status bar that answered it differently from the canvas would be lying about
+        // what its own zoom readout means. The page is already in the reader's cache either way.
+        val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
+        val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
         Text(
             text = pageLabel(tab.page, tab.pageCount),
             color = Color(0xFF9A9AA6),
@@ -290,10 +299,10 @@ private fun StatusBar(tab: DesktopTab?) {
         Text(zoomLabel(zoom), color = Color(0xFF9A9AA6), style = TabularStyle)
         Spacer(Modifier.width(14.dp))
         Text(
-            text = when (tab.fit) {
-                FitMode.NONE -> "zoom libero"
-                FitMode.WIDTH -> "adatta larghezza"
-                FitMode.PAGE -> "adatta pagina"
+            text = when (fit) {
+                FitMode.NONE -> "free zoom"
+                FitMode.WIDTH -> "fit width"
+                FitMode.PAGE, FitMode.AUTO -> "fit page"
             },
             color = Color(0xFF6E6E78),
             fontSize = 11.sp,

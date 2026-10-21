@@ -256,6 +256,14 @@ web-server component — pick a mature async stack (e.g. `axum`/`tokio` or `acti
 the server code idiomatic. Use another language for the server only with a written reason
 recorded here.
 
+### User-facing text is English — on the tablet and on the desktop
+
+**Every string the app shows is English**, in both shells: the Android editor and the `desktop/`
+preview. Write new copy in English in the same commit as the feature — a tooltip, a status-bar word, a
+dialog title, an error notice — and keep comments, commits and docs out of the rule (they may be in any
+language). The reasoning and the error-copy rule (say what happened and what to do; never show an
+internal class name where a person is looking) live in `docs/ui-modernization.md`.
+
 ### Keep the code split up — no mono-files, no giant functions
 
 **Break the project into many small pieces.** This is a hard preference, enforced mechanically by
