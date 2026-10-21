@@ -259,8 +259,7 @@ from the repository root:
 ```
 
 The `run` task's working directory is the repository root (set in `desktop/build.gradle.kts`), so a
-relative document path means what it says. No argument starts an empty window with an **Apri…**
-button.
+relative document path means what it says. No argument starts an empty window with an **Open** button.
 
 The verification that does not need a window or a display:
 
@@ -268,10 +267,20 @@ The verification that does not need a window or a display:
 gradle :desktop:test    # loads udiff.xopp, renders page 1 headlessly, checks pixels
 ```
 
-It writes its PNG to `desktop/build/desktop-render/page-1.png`. The module compiles two source
-directories from `app/` directly (`format/**` and `render/BackgroundGrid.kt`) — see the status
-section of `docs/desktop-workstation.md`; do not add Android-dependent code to either, or the
-desktop build stops compiling.
+It writes its PNG to `desktop/build/desktop-render/page-1.png`. The module consumes `mobix-core`, the
+platform-free module (document model, codecs, paper and ink geometry) — see the status section of
+`docs/desktop-workstation.md`; do not add Android-dependent code to it, or the desktop build stops
+compiling.
+
+### The packaged build — a `.exe` to try the desktop app
+
+`.\gradlew.bat :desktop:createDistributable` (with `JAVA_HOME` set as in `AGENTS.md`) writes a
+self-contained folder, runtime included, to
+`desktop/build/compose/binaries/main/app/MobiXournal/` (about 140 MB). Run `MobiXournal.exe` from
+it; a document path after it opens that document, and no argument opens an empty window. It is **not
+an installer and not signed**: Windows SmartScreen may warn on first run, and the folder is only as
+current as the last build. The MSI installer and a CI artifact are the open task
+`desktop-packaging-installers-and-ci-artifact`.
 
 ---
 

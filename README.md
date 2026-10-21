@@ -28,6 +28,17 @@ In addition to core note-taking, MobiXournal features a specialized **STEM tools
 
 ---
 
+## ▶️ Try it
+
+| What | How |
+|---|---|
+| **Android app** | Download `app-debug.apk` from the latest [GitHub Release](https://github.com/amarzano2005/MobiXournal/releases), or build it with `.\gradlew.bat assembleDebug` — the APK lands in `app/build/outputs/apk/debug/`. It installs as **MobiXournal v2 (dev)**, next to the daily app rather than over it. |
+| **Desktop app (Windows 11)** | Build it with `.\gradlew.bat :desktop:createDistributable`, then run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` (add a file path to open a document; `udiff.xopp` in this repository is a good first one). It is a self-contained folder with no installer, unsigned, and read-only for now. See *Desktop preview* below. |
+
+Both builds need a JDK 21 and, for the APK, the Android SDK — see *Build & Requirements* below.
+
+---
+
 ## 📚 Documentation Map
 
 MobiXournal follows a hub-and-spoke documentation model:
@@ -36,6 +47,9 @@ MobiXournal follows a hub-and-spoke documentation model:
 |---|---|
 | **Development & Conventions** | [`AGENTS.md`](AGENTS.md) |
 | **System Architecture** (the index of the spokes) | [`docs/architecture.md`](docs/architecture.md) |
+| **Roadmap** (data format, mobile UI, desktop) | [`docs/future-roadmap.md`](docs/future-roadmap.md) |
+| **The native `.mobix` format** | [`docs/mobix-format.md`](docs/mobix-format.md) |
+| **The desktop app** | [`docs/desktop-workstation.md`](docs/desktop-workstation.md) |
 | **The `.xopp` on-disk schema** | [`docs/xopp-format.md`](docs/xopp-format.md) |
 | **Build Tools, Container & Emulator** | [`docs/tools.md`](docs/tools.md) |
 | **Active Tasks & Roadmap** | [`TODO.toml`](TODO.toml) (via `scripts/todo.sh list`) |
@@ -47,8 +61,8 @@ MobiXournal follows a hub-and-spoke documentation model:
 ## 🛠️ Build & Requirements
 
 ### Requirements
-- **Docker** (all builds run in a containerized Android toolchain; no local JDK, SDK, or Gradle needed).
-- KVM support (optional, for headless emulator testing).
+- **Linux container host**: Docker (all builds run in a containerized Android toolchain; no local JDK, SDK, or Gradle needed) and, optionally, KVM for headless emulator testing.
+- **Windows 11 (or any host without `/data/android`)**: a JDK 21 and the Android SDK, driven by `.\gradlew.bat` (the desktop app alone needs only the JDK).
 
 Without Docker (or on a machine with no `/data/android` toolchain) the same build runs on the host's
 Gradle wrapper, which needs a **JDK the wrapper supports** (17–24 for the version in the tree — a
@@ -119,7 +133,7 @@ A tab's name can be edited in place with a double-click, and tabs can be dragged
 .\gradlew.bat :desktop:run --args="udiff.xopp"
 ```
 
-Start it without an argument and use **Apri…** to pick a file — a path with spaces works either way. A
+Start it without an argument and use the **Open** button (or `Ctrl + T`) to pick a file — a path with spaces works either way. A
 file that cannot be read leaves the document you already have on screen and says why in a card at the top
 of the page, which a click or `Esc` dismisses. Nothing can be edited or saved yet, and the status with the
 next steps lives in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).

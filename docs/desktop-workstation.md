@@ -36,7 +36,7 @@ same `PageView` that paints the page — a preview cannot disagree with what it 
 once per page per tab.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
-  those documents — the header says "pagine lette su richiesta" instead of lying.
+  those documents — the header says nothing about a count instead of showing a wrong one.
 - Paints solid/ruled/graph/dotted paper (`config`'s `r1`, else `BackgroundGrid`'s defaults), pen
   strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
