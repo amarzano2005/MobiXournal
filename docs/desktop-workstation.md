@@ -7,12 +7,18 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 ## Status today — the `desktop/` preview (Part live)
 
 The first slice of this plan now builds: a **`desktop` Gradle module** (Compose Multiplatform 1.7 on
-Skiko) that opens a gzip `.xopp` with the app's **own** `format` reader and paints its pages in a
-native window. It is the feasibility proof this spoke was written against — the document model and
-the codecs are platform-free, so a PC window can show the same page the Android editor shows.
+Skiko) that opens the app's own documents and paints their pages in a native window. It is the
+feasibility proof this spoke was written against — the document model and the codecs are
+platform-free, so a PC window can show the same page the Android editor shows.
 
 What it does today:
-- Opens a document from the toolbar or a path argument, lists every page, and zooms 25–200 %.
+- Opens **every container the app writes** — gzip `.xopp`, self-contained ZIP `.xopp` and native
+  `.mobix` — from the toolbar or a path argument, lists its pages, and zooms 25–200 %. The container is
+  chosen by the file's **bytes** (`FileKind` plus a ZIP's `mimetype` entry), never by the extension, so a
+  renamed notebook still opens as a notebook.
+- Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
+  view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
+  those documents — the header says "pagine lette su richiesta" instead of lying.
 - Paints solid/ruled/graph/dotted paper (`config`'s `r1`, else `BackgroundGrid`'s defaults), pen
   strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
@@ -28,16 +34,17 @@ What it does today:
 
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.
-- No `.mobix` and no self-contained ZIP `.xopp` **in the window yet**; only gzip `.xopp` is opened
-  there, and the other two are refused with an explicit message instead of a deep reader failure. The
-  reader for both is published and tested — what is missing is the shell's open path, not the format.
+- No sketch/PDF/text import and no image or PDF **backgrounds** in any container: a `.mobix` page's
+  bundled payloads are resolvable through the reader, but this shell paints paper and ink only.
 - No PDF or pixmap backgrounds, no images, no living entities (plots, tables, circuits, shapes), no
   layer visibility.
 - No tablet/dial input, no dirty-rect GPU pacing, no installers. `run` is the only entry point;
   `nativeDistributions` is configured but not wired into a release job.
 
 Verification, runnable on any JVM host (no emulator): `./gradlew :desktop:test` loads `udiff.xopp`
-(6 pages, ~4 000 strokes) through `DocumentLoader`, renders page 1 headlessly via `ImageComposeScene`,
+(6 pages, ~4 000 strokes) through `DocumentLoader`, opens a ZIP `.xopp` and a 40-page `.mobix` (including
+both **misnamed** — `.mobix` content in a `.xopp` file and vice versa), refuses a text file and a ZIP with
+no document inside by name, renders page 1 of each headlessly via `ImageComposeScene`,
 checks the painted pixels, and writes `desktop/build/desktop-render/page-1.png`.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
@@ -133,13 +140,14 @@ Screenless drawing tablets map tablet surface coordinates to desktop pixels. `ap
 1. **Phase 1: Domain model abstraction**:
    - Refactor `Stroke`, `PlotElement`, and `TableElement` to implement a unified `Element` hierarchy.
    - Separate `.xopp` XML writing into a compiler step from the abstract model.
-2. **Phase 2: `.mobix` container reader & writer**:
-   - Implement ZIP-based packaging with `manifest.json` and per-page streaming JSON
-     (see [mobix-format.md](mobix-format.md)).
+2. **Phase 2: `.mobix` container reader & writer** — **reader live in the preview**:
+   - The engine (ZIP packaging, `manifest.json`, per-page streaming JSON) is published from
+     `mobix-core` ([mobix-streaming-api.md](mobix-streaming-api.md)) and the preview opens `.mobix`
+     through it page by page. Writing from the desktop waits for the editor.
 3. **Phase 3: Module split (KMP)**:
    - Extract `mobix-model`, `mobix-format`, and `mobix-math` into Kotlin Multiplatform targets.
 4. **Phase 4: Desktop prototype** (started — see *Status today*):
    - Stand up a desktop `app-desktop` module using Compose Multiplatform with Skia canvas rendering.
-     The `desktop/` preview does this for read-only `.xopp` pages; the editor waits for Phase 3, since
+     The `desktop/` preview does this for read-only `.xopp` and `.mobix` pages; the editor waits for Phase 3, since
      the Android `render`, `ui`, `tabs` and `io` packages are still Android-bound.
    - Verify tablet stylus latency on Linux (evdev/Wacom) and Windows (Windows Ink).

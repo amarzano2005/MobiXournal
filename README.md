@@ -83,10 +83,13 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 ### 🖥️ Desktop preview (experimental)
 
-The first slice of the planned desktop workstation is in the tree: a native window that opens a
-standard gzip `.xopp` and shows every page — paper ruling, pen strokes with their pressure taper,
-highlighters, dashed lines and text boxes — with zoom. It is **read-only** for now, and it is a
-separate module, so it never affects the Android build.
+The first slice of the planned desktop workstation is in the tree: a native window that opens your
+documents and shows every page — paper ruling, pen strokes with their pressure taper, highlighters,
+dashed lines and text boxes — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
+`.mobix` all open, and the window works out which one it has from the file's content rather than its
+name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
+page up front. It is **read-only** for now, and it is a separate module, so it never affects the
+Android build.
 
 ```sh
 # Windows (needs a JDK 21 host, as the Android build does)
@@ -96,9 +99,9 @@ separate module, so it never affects the Android build.
 ./gradlew :desktop:run --args="udiff.xopp"
 ```
 
-Start it without an argument and use **Apri…** to pick a file. Native `.mobix` documents and zipped
-`.xopp` archives are not opened yet, and nothing can be edited or saved; the status and the next
-steps live in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
+Start it without an argument and use **Apri…** to pick a file. Nothing can be edited or saved yet, PDF
+and image backgrounds are not painted, and the status with the next steps lives in
+[`docs/desktop-workstation.md`](docs/desktop-workstation.md).
 
 ---
 

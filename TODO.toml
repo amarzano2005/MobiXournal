@@ -316,20 +316,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-open-mobix-and-zipped-xopp"
-title = "Desktop preview: open .mobix and zipped .xopp"
-description = "`desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt` opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths: a native .mobix through the published streaming contract in `mobix-core` (docs/mobix-streaming-api.md: MobixPagedReader + PageSource, read page by page, no asset extraction needed for a viewer) and a ZIP .xopp through `format/XoppZip`, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). Keep DocumentLoader's failure messages honest for anything still unsupported, and close the reader when the document is replaced. Verify with :desktop:test: load the .mobix fixture `SyntheticNotebook.write` produces and the ZIP .xopp fixture the format tests use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG; then run the built app on a real .mobix if the host allows. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 940
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-document-tabs"
 title = "Desktop: document tabs with per-tab viewport"
 description = "Add a document tab strip to `desktop/` so more than one document can be open, modelled on the editor’s tab behaviour in docs/codebase.md (tabs keep their own viewport, zoom and page). Create a plain `DesktopTabs` state class (no Compose types) holding the open `DesktopDocument`s, the active index and each tab’s viewport/zoom; a `TabStrip` composable under the header with monoline close glyphs, an inline filename on double-click, drag-to-reorder and a trailing “+” that opens the file dialog. Opening a second document adds a tab instead of replacing the first; closing the last tab returns to the empty state; closing the active tab activates a neighbour. Add `desktop/src/test/java/com/mobixournal/desktop/DesktopTabsTest.kt` covering add, close, activate, reorder, and that reopening a file already open activates its tab instead of duplicating it. Bind Ctrl+T (new/open), Ctrl+W (close) and Ctrl+Tab (next) and list them in the shortcuts table of docs/ui-modernization.md. Verify with `:desktop:test` plus a headless ImageComposeScene render of the strip with two tabs."

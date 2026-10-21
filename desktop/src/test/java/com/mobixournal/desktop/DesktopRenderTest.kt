@@ -25,9 +25,9 @@ class DesktopRenderTest {
     fun `loads a desktop xopp and renders its first page to png`() {
         val document = DocumentLoader.load(repoFile("udiff.xopp"))
         assertEquals("pages in udiff.xopp", 6, document.pageCount)
-        assertTrue("strokes parsed", document.strokeCount > 1_000)
+        assertTrue("strokes parsed", (document.strokeCount ?: 0) > 1_000)
 
-        val page = document.document.pages.first()
+        val page = document.page(0)
         val strokesOnPage = page.layers.sumOf { layer -> layer.elements.count { it is Stroke } }
         assertTrue("first page carries ink", strokesOnPage > 0)
 
