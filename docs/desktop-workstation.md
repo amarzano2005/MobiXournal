@@ -34,6 +34,13 @@ Verification, runnable on any JVM host (no emulator): `./gradlew :desktop:test` 
 (6 pages, ~4 000 strokes) through `DocumentLoader`, renders page 1 headlessly via `ImageComposeScene`,
 checks the painted pixels, and writes `desktop/build/desktop-render/page-1.png`.
 
+**The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
+phase order and the done criteria, and its children are the atomic tasks (orders 910–1030) and the
+three phase scopes still to be broken down. Two decisions were taken on 2026-10-21 and recorded in
+`docs/ui-modernization.md` (the owning spoke for desktop layout and materials): the chrome is the app's
+own glass on a true-black desk rather than Mica/Vibrancy, and **both** tool placements ship — vertical
+rail by default, horizontal ribbon as the alternative — switched in settings.
+
 ---
 
 ## Motivation: scaling from mobile stylus to PC workstation

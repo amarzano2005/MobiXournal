@@ -148,6 +148,16 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
   its parameters (formula string, intervals, cell borders, stroke styles) appear in the right panel without
   popping up modal dialogs over the canvas.
 
+**Desktop decisions (2026-10-21):**
+- **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the sidebar
+  and the inspector are the same frosted glass the mobile chrome uses, and the desk behind the page is
+  `#000000`; platform materials (Windows 11 Mica, macOS Vibrancy) are **not** used. Mica replaces the
+  app's material with a wallpaper-tinted one, so the desktop window would stop matching the phone and
+  its contrast would change with the user's wallpaper — the opposite of the pinned ramps above.
+- **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon is the
+  alternative for 16:9 monitors, and **Settings → Interface → Tool placement** chooses Rail / Ribbon /
+  Both. Whichever is on, it is a band in its own lane beside the canvas, never over the page.
+
 ### 2. Visual tool placement and docking on Desktop
 Unlike the header bar (which handles documents) and the sidebar (which handles navigation), the **drawing and STEM tools**
 remain visually accessible on screen for direct mouse or pen clicking:

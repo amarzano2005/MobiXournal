@@ -288,48 +288,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "desktop-preview-open-mobix-and-zipped-xopp"
-title = "Desktop preview: open .mobix and zipped .xopp"
-description = "desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths the app already owns: .mobix through format/mobix/MobixDocument (manifest + pages, no asset extraction needed for a viewer) and a ZIP .xopp through format/XoppZip, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). Keep DocumentLoader's failure messages honest for anything still unsupported. Verify with :desktop:test: load a saved .mobix fixture and the ZIP .xopp fixture the format tests already use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass needed."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 850
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "extract-the-kmp-core-modules-mobix-model-mobix-format-mobix-render"
-title = "Extract the KMP core modules (mobix-model, mobix-format, mobix-render)"
-description = "Phase 3 of docs/desktop-workstation.md, and the gate that turns the desktop/ spike into a shared core. Investigate and add task-level children. Facts to start from: app/src/main/java/com/mobixournal/format (51 files) imports no Android types at all (the one cross-package link, audio.audioRef, has been moved into format/model/StrokeAudio.kt); render/BackgroundGrid.kt and render/BackgroundRuling.kt are documented Android-free; everything else in render (42 of 163 files import android/AndroidX), all of ui (87 of 101) and most of audio are Android-bound. The desktop module currently shares format/** and render/BackgroundGrid.kt by compiling those exact sources through a source-set filter, which must be replaced by real modules. Establish: (1) the module boundaries and which Gradle plugins each target needs (kotlin-jvm for desktop now, KMP android+jvm when the shared layer grows); (2) how internal visibility and the existing JVM tests move with the code (internal declarations are module-scoped, so a test that exercises one must move into the new module's test source set, or the declaration has to be made public deliberately); (3) the app dependency wiring and the effect on the guards (SourceStructureTest scans app/src/main, DocsGuardTest the docs); (4) which Android call sites (render/StrokePainter, TextMeasurer vs android.graphics.Canvas, page backgrounds) need a platform abstraction first. Produce the ordered tasks, no code."
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 860
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-editor-shared-renderer-input-and-dial-support"
-title = "Desktop editor: shared renderer, input and dial support"
-description = "The read-only desktop preview shows pages; making it an editor is Step 3 proper (docs/desktop-workstation.md). Investigate against the current tree and add task-level children for: (1) a shared page renderer that both shells use (today render/PageRenderer + StrokePainter are android.graphics.Canvas, and desktop has a small Compose painter of its own — the split above removes that duplication); (2) pointer input with pressure/tilt from a graphics tablet on Windows (Windows Ink / Wintab) and Linux (libinput / Wayland zwp_tablet_manager_v2), plus mouse; (3) editing operations, undo history and save, reusing the app's document model and the .mobix/.xopp writers; (4) the desktop chrome from docs/ui-modernization.md (document tabs, Ctrl+B sidebar, property inspector, on-screen tool strips); (5) stepless rotary dial zoom and the pen-tip radial HUD. State for each child which existing Android type it reuses, which it must re-implement, and how it is verified without the emulator. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 870
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-packaging-installers-and-ci-artifact"
 title = "Desktop packaging: installers and CI artifact"
 description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.4.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Add a documented, repeatable command that builds the host package (MSI on Windows, DEB on Linux, DMG on macOS) and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the host package and launching the packaged binary against udiff.xopp."
@@ -337,7 +295,189 @@ status = "active"
 level = "task"
 category = "chore"
 urgency = "low"
-order = 880
+order = 1030
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "step-3-desktop-workstation"
+title = "Step 3 — Desktop workstation program (epic)"
+description = "Step 3 of docs/future-roadmap.md, defined across docs/desktop-workstation.md and the desktop section of docs/ui-modernization.md: MobiXournal Desktop, a native workstation app for Windows, Linux and macOS that opens the same documents as the Android editor on a graphics tablet, with bimanual shortcuts, a property inspector for living entities and hardware dial support. A read-only .xopp viewer already ships in desktop/ with a headless render test. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the window chrome is the app’s own glass on a true-black desk (NOT Mica/Vibrancy), the drawing tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is a plain kotlin-jvm module that both shells depend on. Phases, in execution order: (A) shared core — mobix-core plus ink and paper geometry, so no feature is ever implemented twice; (B) complete reader — .mobix and ZIP .xopp, tabs, Ctrl+B page sidebar, zoom/pan, the decided chrome, both tool placements; (C) editing — pressure inking, eraser, selection, undo, Save and Save As under the sticky format policy; (D) graphics-tablet and rotary-dial hardware; (E) living-entity property inspector and PDF/SVG export; (F) installers and a CI artifact. Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, and README documenting it. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "high"
+order = 900
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "create-the-mobix-core-module"
+title = "Create mobix-core and move the format package into it"
+description = "Create a `mobix-core` Gradle module (kotlin-jvm, jvmToolchain(21), same package names) and move `app/src/main/java/com/mobixournal/format/**` (51 files) to `mobix-core/src/main/java/com/mobixournal/format/`, together with every test under `app/src/test/java/com/mobixournal/format/**`. Because `internal` is module-scoped in Kotlin, the tests move WITH the code instead of the declarations being made public. Wire `settings.gradle.kts` (include(\":mobix-core\")), a new `mobix-core/build.gradle.kts` (kotlin-jvm plugin, `testImplementation(libs.junit)`, no Android plugin), `app/build.gradle.kts` (`implementation(project(\":mobix-core\"))`, keep the debug unit-test resources block) and `desktop/build.gradle.kts` (depend on `:mobix-core`; delete the `com/mobixournal/format/**` entry from the source-set filter, keep BackgroundGrid.kt until its own task). Update the repository layout in docs/codebase.md and the Status section of docs/desktop-workstation.md (the desktop module now consumes a real module, not a source directory). Verify: `./gradlew :app:testDebugUnitTest` (whole suite + DocsGuardTest/SourceStructureTest), `./gradlew :desktop:test`, `:app:compileDebugKotlin`, and confirm `app/src/main` no longer contains a `format` directory."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 910
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "move-paper-geometry-into-mobix-core"
+title = "Move the paper geometry into mobix-core"
+description = "Move `app/src/main/java/com/mobixournal/render/BackgroundGrid.kt` and `render/BackgroundRuling.kt` plus their tests (`app/src/test/java/com/mobixournal/render/Background*Test.kt`) into `mobix-core`, keeping the `com.mobixournal.render` package so no call site changes. Both files are documented as Android-free geometry/parsing; verify that before moving by grepping their imports. Then delete the `com/mobixournal/render/BackgroundGrid.kt` entry from the source-set filter in `desktop/build.gradle.kts` (the desktop module now gets the object from `mobix-core`), and add `implementation(project(\":mobix-core\"))` to `app` if the task above did not already. Update docs/codebase.md and the Status section of docs/desktop-workstation.md. Verify: `:app:testDebugUnitTest`, `:desktop:test`, and grep that neither file remains under `app/src/main`."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 920
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "share-the-ink-geometry-between-shells"
+title = "Share the ink geometry between the Android and desktop painters"
+description = "Extract the platform-free ink math out of `app/src/main/java/com/mobixournal/render/StrokePainter.kt` into `mobix-core` (package `com.mobixournal.render`, e.g. `InkGeometry.kt`): the highlighter alpha constant (0x78), `uniform(pts)`, `bandWidth(pts)`, `renderColor(tool, color)` and `dashIntervalsPt(style, widthPt)`, plus a taper-outline builder that returns the polygon in PAGE POINTS (a list of points or quads — no android.graphics.Path, no Compose types); the caller applies scale and offset. `StrokePainter` then calls that object for the rules and constants it uses, and `desktop/src/main/java/com/mobixournal/desktop/PageInk.kt` calls the same object instead of its own copies, so the taper, the highlighter band and the dash pattern are defined once. Add JVM tests in `mobix-core` for the outline (a straight line keeps its width, a taper narrows where width is smaller, the polygon closes) and for the dash intervals. Verify: `:app:testDebugUnitTest`, `:desktop:test` still paints ink on page 1 of udiff.xopp, and the new tests. Record in docs/rendering.md that this geometry is shared and lives in mobix-core."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 930
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-open-mobix-and-zipped-xopp"
+title = "Desktop preview: open .mobix and zipped .xopp"
+description = "`desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt` opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths the app already owns: .mobix through `format/mobix/MobixDocument` (manifest + pages; a viewer needs no asset extraction) and a ZIP .xopp through `format/XoppZip`, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). Keep DocumentLoader’s failure messages honest for anything still unsupported. Verify with `:desktop:test`: load a saved .mobix fixture and the ZIP .xopp fixture the format tests already use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass needed."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 940
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-document-tabs"
+title = "Desktop: document tabs with per-tab viewport"
+description = "Add a document tab strip to `desktop/` so more than one document can be open, modelled on the editor’s tab behaviour in docs/codebase.md (tabs keep their own viewport, zoom and page). Create a plain `DesktopTabs` state class (no Compose types) holding the open `DesktopDocument`s, the active index and each tab’s viewport/zoom; a `TabStrip` composable under the header with monoline close glyphs, an inline filename on double-click, drag-to-reorder and a trailing “+” that opens the file dialog. Opening a second document adds a tab instead of replacing the first; closing the last tab returns to the empty state; closing the active tab activates a neighbour. Add `desktop/src/test/java/com/mobixournal/desktop/DesktopTabsTest.kt` covering add, close, activate, reorder, and that reopening a file already open activates its tab instead of duplicating it. Bind Ctrl+T (new/open), Ctrl+W (close) and Ctrl+Tab (next) and list them in the shortcuts table of docs/ui-modernization.md. Verify with `:desktop:test` plus a headless ImageComposeScene render of the strip with two tabs."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 950
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-page-sidebar"
+title = "Desktop: collapsible pages/layers sidebar (Ctrl+B)"
+description = "Add the collapsible navigation sidebar to `desktop/`: a 240dp left panel toggled by Ctrl+B and by a header glyph, showing page thumbnails rendered from the same `PageView` at a fixed scale (cache one thumbnail per page per tab so scrolling does not repaint pages), the current page highlighted, click-to-scroll navigation, and a layer list for the current page (names from `Layer.name`, “Layer N” when null). Collapsing hands the width back to the canvas without changing the page’s fitted size. Keep the page→scroll-offset arithmetic in a pure `PageIndexScroll` helper with JVM tests (first page, last page, page taller than the viewport, empty document). Verify with `:desktop:test` (state unit tests + headless renders with the sidebar open and closed) and by running `:desktop:run` on udiff.xopp to check Ctrl+B hides it and the page does not jump. Document the sidebar and its shortcut in the desktop section of docs/ui-modernization.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 960
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-zoom-and-pan"
+title = "Desktop: zoom, pan, fit and a status bar"
+description = "Give the desktop canvas real navigation instead of the current one-column page scroll: wheel zoom anchored at the cursor (25%–400%), wheel/trackpad scrolling, middle-drag and space-drag panning, `Ctrl+=` / `Ctrl+-` / `Ctrl+0`, fit-width and fit-page, and a 24dp status bar showing page and zoom with tabular figures. Store offset+zoom per tab in `DesktopTabs` and render pages through it. Put the transform math in a pure `Viewport` class (`screen↔page`, zoom-at-point keeping the point under the cursor fixed, clamping to page bounds) with JVM tests in `desktop/src/test/java/com/mobixournal/desktop/ViewportTest.kt` covering zoom at the centre and at an off-centre point, round-trip conversion, and clamping at both ends. Verify the tests, the headless `:desktop:test` render, and a real `:desktop:run` on udiff.xopp where wheel zoom keeps the point under the cursor fixed. Update the status list in docs/desktop-workstation.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 970
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-shell-chrome-and-tokens"
+title = "Desktop: true-black glass chrome and shared design tokens"
+description = "Replace the placeholder toolbar in `desktop/src/main/java/com/mobixournal/desktop/DesktopApp.kt` with the decided chrome: in-app frosted glass (rgba(22,22,24,0.85) fill, 1px hairline at 12% alpha, 20dp panel corners, 16dp capsules) over a #000000 desk — NOT Mica/Vibrancy — with exactly one shadow under the page, one edge per surface (no double rules), Inter with tabular figures, a 40dp header and a 24dp status bar, and 1.5dp monoline glyphs instead of filled Material icons. Add a `DesignTokens` object to `mobix-core` carrying the values from the token table in docs/ui-modernization.md (glassDark, glassLight, hairline, floatingPanelAlpha 0.88, panelCornerRadiusDp 20, capsuleCornerRadiusDp 16, accent #60A5FA, fade 150ms, spring 380/28); the desktop Compose theme reads only these tokens, and a `DesktopThemeTest` fails when they drift from the documented numbers (mirror of `ModernThemeTest` on the Android side). Desktop ships dark-first; the light theme comes only once the tokens already cover it. Verify with `:desktop:test`, a headless render of the empty state and of a document saved as `desktop/build/desktop-render/shell.png`, and a real run to confirm the header does not cover the page."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 980
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-rail-and-ribbon-tool-strips"
+title = "Desktop: rail and ribbon tool strips, switchable"
+description = "Add BOTH drawing-tool placements to `desktop/` plus a setting (`Settings → Interface → Tool placement`: Rail (default) / Ribbon / Both): a 48dp vertical rail in its own lane beside the canvas and a horizontal ribbon under the header — never over the page in either case. Both list the same tools in the same order with the single-letter shortcuts from docs/ui-modernization.md (B pen, H highlighter, E eraser, V lasso, S marquee, X text, L line, A arrow, R rectangle, C ellipse, P spline, M plot, Shift+X axes, T table, K circuit), use monoline glyphs, show a name+hotkey pill tooltip on hover, and mark the active slot with #38383E. In this task the tools only set a `ToolSelection` (plain class, no Compose types); what the pen actually does arrives with the editing phase. Persist the placement choice in a small settings store beside the desktop module (a properties file under the user home or the app data dir), so it survives restarts. Verify: a unit test that every tool appears exactly once and every shortcut is unique, headless renders of both placements, and a real run where switching the setting moves the strip without moving the page. Document the setting in the desktop section of docs/ui-modernization.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 990
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-editing-undo-and-save"
+title = "Desktop editing, undo and save (scope)"
+description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1000
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-tablet-and-dial-input"
+title = "Desktop graphics tablet and rotary dial input (scope)"
+description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md). Nothing about real tablet pressure on desktop is proven yet: Compose Desktop exposes `PointerInputChange.pressure`, but whether it carries a graphics-tablet value on Windows (Windows Ink / Wintab) and Linux (libinput / Wayland zwp_tablet_manager_v2) is unknown, and talking to those APIs from the JVM is new work for this repo. Investigate and add tasks for: (1) a measuring spike that logs the raw pressure/tilt/azimuth the JVM receives on this Windows host and on Linux, with the concrete library/API chosen (JNA + Wintab? Windows Ink WM_POINTER? AWT stylus events?) and a pass/fail criterion for continuing; (2) the input abstraction the editor consumes, so mouse and tablet are two backends; (3) aspect-ratio lock and window-bounded mapping for screenless tablets; (4) rotary-dial events mapped to zoom, stroke width and radial-HUD navigation; (5) honest fallback behaviour when no tablet is present. Record the chosen backend in docs/desktop-workstation.md. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1010
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-and-export"
+title = "Desktop property inspector and PDF/SVG export (scope)"
+description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1020
 created = 2026-10-21
 tags = []
 rebuild = false
