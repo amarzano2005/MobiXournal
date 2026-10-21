@@ -286,3 +286,59 @@ created = 2026-10-21
 tags = ["audio", "size"]
 rebuild = true
 emulator_debug = false
+
+[[task]]
+id = "desktop-preview-open-mobix-and-zipped-xopp"
+title = "Desktop preview: open .mobix and zipped .xopp"
+description = "desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths the app already owns: .mobix through format/mobix/MobixDocument (manifest + pages, no asset extraction needed for a viewer) and a ZIP .xopp through format/XoppZip, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). Keep DocumentLoader's failure messages honest for anything still unsupported. Verify with :desktop:test: load a saved .mobix fixture and the ZIP .xopp fixture the format tests already use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass needed."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 850
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "extract-the-kmp-core-modules-mobix-model-mobix-format-mobix-render"
+title = "Extract the KMP core modules (mobix-model, mobix-format, mobix-render)"
+description = "Phase 3 of docs/desktop-workstation.md, and the gate that turns the desktop/ spike into a shared core. Investigate and add task-level children. Facts to start from: app/src/main/java/com/mobixournal/format (51 files) imports no Android types at all (the one cross-package link, audio.audioRef, has been moved into format/model/StrokeAudio.kt); render/BackgroundGrid.kt and render/BackgroundRuling.kt are documented Android-free; everything else in render (42 of 163 files import android/AndroidX), all of ui (87 of 101) and most of audio are Android-bound. The desktop module currently shares format/** and render/BackgroundGrid.kt by compiling those exact sources through a source-set filter, which must be replaced by real modules. Establish: (1) the module boundaries and which Gradle plugins each target needs (kotlin-jvm for desktop now, KMP android+jvm when the shared layer grows); (2) how internal visibility and the existing JVM tests move with the code (internal declarations are module-scoped, so a test that exercises one must move into the new module's test source set, or the declaration has to be made public deliberately); (3) the app dependency wiring and the effect on the guards (SourceStructureTest scans app/src/main, DocsGuardTest the docs); (4) which Android call sites (render/StrokePainter, TextMeasurer vs android.graphics.Canvas, page backgrounds) need a platform abstraction first. Produce the ordered tasks, no code."
+status = "active"
+level = "scope"
+category = "refactor"
+urgency = "normal"
+order = 860
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-editor-shared-renderer-input-and-dial-support"
+title = "Desktop editor: shared renderer, input and dial support"
+description = "The read-only desktop preview shows pages; making it an editor is Step 3 proper (docs/desktop-workstation.md). Investigate against the current tree and add task-level children for: (1) a shared page renderer that both shells use (today render/PageRenderer + StrokePainter are android.graphics.Canvas, and desktop has a small Compose painter of its own — the split above removes that duplication); (2) pointer input with pressure/tilt from a graphics tablet on Windows (Windows Ink / Wintab) and Linux (libinput / Wayland zwp_tablet_manager_v2), plus mouse; (3) editing operations, undo history and save, reusing the app's document model and the .mobix/.xopp writers; (4) the desktop chrome from docs/ui-modernization.md (document tabs, Ctrl+B sidebar, property inspector, on-screen tool strips); (5) stepless rotary dial zoom and the pen-tip radial HUD. State for each child which existing Android type it reuses, which it must re-implement, and how it is verified without the emulator. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 870
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-packaging-installers-and-ci-artifact"
+title = "Desktop packaging: installers and CI artifact"
+description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.4.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Add a documented, repeatable command that builds the host package (MSI on Windows, DEB on Linux, DMG on macOS) and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the host package and launching the packaged binary against udiff.xopp."
+status = "active"
+level = "task"
+category = "chore"
+urgency = "low"
+order = 880
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false

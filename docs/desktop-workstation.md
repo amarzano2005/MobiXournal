@@ -4,6 +4,38 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
+## Status today — the `desktop/` preview (Part live)
+
+The first slice of this plan now builds: a **`desktop` Gradle module** (Compose Multiplatform 1.7 on
+Skiko) that opens a gzip `.xopp` with the app's **own** `format` reader and paints its pages in a
+native window. It is the feasibility proof this spoke was written against — the document model and
+the codecs are platform-free, so a PC window can show the same page the Android editor shows.
+
+What it does today:
+- Opens a document from the toolbar or a path argument, lists every page, and zooms 25–200 %.
+- Paints solid/ruled/graph/dotted paper (`config`'s `r1`, else `BackgroundGrid`'s defaults), pen
+  strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
+  text boxes.
+- Reuses `app/src/main/java/com/mobixournal/format/**` and `render/BackgroundGrid.kt` **by compiling
+  those sources**, so there is one codec and one ruling geometry rather than a fork. Phase 3 below
+  replaces that source sharing with real `mobix-model` / `mobix-format` / `mobix-render` modules; until
+  then this module is a spike, not a second implementation.
+
+What it does **not** do (all still governed by this spoke):
+- No editing and no saving — the window is read-only.
+- No `.mobix` and no self-contained ZIP `.xopp`; only gzip `.xopp`, and the other two are refused
+  with an explicit message instead of a deep reader failure.
+- No PDF or pixmap backgrounds, no images, no living entities (plots, tables, circuits, shapes), no
+  layer visibility.
+- No tablet/dial input, no dirty-rect GPU pacing, no installers. `run` is the only entry point;
+  `nativeDistributions` is configured but not wired into a release job.
+
+Verification, runnable on any JVM host (no emulator): `./gradlew :desktop:test` loads `udiff.xopp`
+(6 pages, ~4 000 strokes) through `DocumentLoader`, renders page 1 headlessly via `ImageComposeScene`,
+checks the painted pixels, and writes `desktop/build/desktop-render/page-1.png`.
+
+---
+
 ## Motivation: scaling from mobile stylus to PC workstation
 
 MobiXournal Desktop is a high-performance cross-platform application for Linux, Windows, and macOS,
@@ -93,6 +125,8 @@ Screenless drawing tablets map tablet surface coordinates to desktop pixels. `ap
      (see [mobix-format.md](mobix-format.md)).
 3. **Phase 3: Module split (KMP)**:
    - Extract `mobix-model`, `mobix-format`, and `mobix-math` into Kotlin Multiplatform targets.
-4. **Phase 4: Desktop prototype**:
+4. **Phase 4: Desktop prototype** (started — see *Status today*):
    - Stand up a desktop `app-desktop` module using Compose Multiplatform with Skia canvas rendering.
+     The `desktop/` preview does this for read-only `.xopp` pages; the editor waits for Phase 3, since
+     the Android `render`, `ui`, `tabs` and `io` packages are still Android-bound.
    - Verify tablet stylus latency on Linux (evdev/Wacom) and Windows (Windows Ink).

@@ -81,6 +81,25 @@ scripts/host-build.sh connectedDebugAndroidTest
 ```
 For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release is documented there too, and it is a command rather than a chore: `scripts/todo.sh release --version <version> --bump-gradle` stamps everything finished since the last release and drafts `docs/releases/v<version>.md` from it, then you curate that draft and push the `v<version>` tag so CI builds the APK and publishes the Release.
 
+### 🖥️ Desktop preview (experimental)
+
+The first slice of the planned desktop workstation is in the tree: a native window that opens a
+standard gzip `.xopp` and shows every page — paper ruling, pen strokes with their pressure taper,
+highlighters, dashed lines and text boxes — with zoom. It is **read-only** for now, and it is a
+separate module, so it never affects the Android build.
+
+```sh
+# Windows (needs a JDK 21 host, as the Android build does)
+.\gradlew.bat :desktop:run --args="udiff.xopp"
+
+# Linux / macOS
+./gradlew :desktop:run --args="udiff.xopp"
+```
+
+Start it without an argument and use **Apri…** to pick a file. Native `.mobix` documents and zipped
+`.xopp` archives are not opened yet, and nothing can be edited or saved; the status and the next
+steps live in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
+
 ---
 
 ## 📖 User Guide

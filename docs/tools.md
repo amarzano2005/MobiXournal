@@ -14,6 +14,7 @@ lives, how to invoke it, and the non-obvious gotchas.
 |-----------------|---------------|--------|
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [below](#android-emulator) |
+| Desktop shell | Run/test the Compose Multiplatform desktop preview (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [below](#cutting-a-release) |
 
 ---
@@ -242,6 +243,36 @@ reaches the device. Keep it for the `/data/android` pipeline, where that mismatc
   measured as a 2 px step from `(238,237,244)` to `(173,173,180)` in the light theme and from
   `(30,31,37)` to `(89,90,96)` in the dark one, and how an elevated menu was shown to paint *inside*
   its own top edge instead of casting a shadow.
+
+---
+
+## Desktop shell
+
+The `desktop/` module (Step 3 preview, `docs/desktop-workstation.md`) is a plain JVM Compose
+Multiplatform application: it needs **no Android SDK, no emulator and no `/data/android`**, only the
+JDK 21 the Gradle build already uses (`JAVA_HOME` — on the Windows host,
+`C:\Users\amarz\.jdks\jbr-21.0.11`; JDK 27 breaks Gradle configuration). Run it through the wrapper
+from the repository root:
+
+```sh
+.\gradlew.bat :desktop:run --args="udiff.xopp"   # Windows
+gradle :desktop:run --args="udiff.xopp"          # Linux / macOS (./gradlew)
+```
+
+The `run` task's working directory is the repository root (set in `desktop/build.gradle.kts`), so a
+relative document path means what it says. No argument starts an empty window with an **Apri…**
+button.
+
+The verification that does not need a window or a display:
+
+```sh
+gradle :desktop:test    # loads udiff.xopp, renders page 1 headlessly, checks pixels
+```
+
+It writes its PNG to `desktop/build/desktop-render/page-1.png`. The module compiles two source
+directories from `app/` directly (`format/**` and `render/BackgroundGrid.kt`) — see the status
+section of `docs/desktop-workstation.md`; do not add Android-dependent code to either, or the
+desktop build stops compiling.
 
 ---
 

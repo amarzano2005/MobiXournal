@@ -55,7 +55,7 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 | **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container and document envelope (mimetype, manifest, canvas, pages) | you read or write the container, the envelope, or the page/background shape | **Implemented** |
 | **Step 1** | [`mobix-elements.md`](mobix-elements.md) | the element schema: strokes, text, images, living entities, preservation rules | you add or change an element type inside a `.mobix` document | **Implemented** (Codecs & Synthesis live; living editors landing in Step 2) |
 | **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Partly implemented** (Tokens, theme & layout bands live; Radial HUD & micro-inspectors active in Step 2) |
-| **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Planned Spec** |
+| **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Part live** — the `desktop/` preview opens and renders `.xopp` pages; editor, `.mobix` and tablet input are still spec |
 
 The statuses above are per **spoke**, not per feature: they say whether a doc describes shipped
 behaviour or a specification. Step 1's data model, engines and runtime validations are now fully closed
