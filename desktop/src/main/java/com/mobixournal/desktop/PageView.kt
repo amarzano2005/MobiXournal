@@ -65,6 +65,7 @@ internal fun DrawScope.drawPageContent(
     // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
     // window, so `size` here would paint the paper across the whole viewport.
     val sheet = Size((page.width * pxPerPt).toFloat(), (page.height * pxPerPt).toFloat())
+    drawPageShadow(sheet)
     drawPaper(page.background, page.width, page.height, pxPerPt, sheet)
     backdrop?.image(page.background)?.let { picture ->
         drawImage(
@@ -75,6 +76,29 @@ internal fun DrawScope.drawPageContent(
     }
     for (layer in page.layers) {
         for (element in layer.elements) drawElement(element, pxPerPt, textMeasurer)
+    }
+}
+
+/**
+ * The window's one shadow, under the sheet.
+ *
+ * On a true-black desk a shadow cannot be darker than the desk, so this is drawn as the few units
+ * *above* black that a soft falloff would leave: a faint halo hugging the paper, fading out within
+ * `pageShadowDp`. Without it a page on `#000000` reads as a hole cut in the window rather than a sheet
+ * lying on a desk — which is why the halo is the one place the desk is not literally black.
+ */
+private fun DrawScope.drawPageShadow(sheet: Size) {
+    val radius = DesktopTheme.pageShadow.toPx()
+    if (radius <= 0f) return
+    val steps = 8
+    for (step in 1..steps) {
+        val spread = radius * step / steps
+        val alpha = 0.045f * (1f - (step - 1f) / steps)
+        drawRect(
+            color = DesktopTheme.pageShadowColor.copy(alpha = alpha),
+            topLeft = Offset(-spread, -spread),
+            size = Size(sheet.width + spread * 2f, sheet.height + spread * 2f),
+        )
     }
 }
 

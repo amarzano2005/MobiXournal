@@ -7,6 +7,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,7 @@ class DesktopShellTest {
             for (y in 0 until image.height step 3) shades += image.getRGB(x, y) and 0xFFFFFF
         }
         assertTrue("the strip has more than one surface (${shades.size} shades)", shades.size >= 2)
-        assertTrue("the active tab is drawn lighter", shades.any { it == 0x2A2A31 })
+        assertTrue("the active tab is drawn in the active slot", shades.any { it == activeSlotArgb })
     }
 
     @Test
@@ -163,7 +164,7 @@ class DesktopShellTest {
             val filled = frame(scene, "shell-tabs-late-open")
 
             assertFalse("opening a document repaints the strip", empty.contentEquals(filled))
-            assertTrue("and draws the new active tab", shades(filled).contains(0x2A2A31))
+            assertTrue("and draws the new active tab", shades(filled).contains(activeSlotArgb))
 
             tabs.close(0)
             assertFalse("closing it repaints the strip too", filled.contentEquals(frame(scene, "shell-tabs-closed")))
@@ -237,6 +238,68 @@ class DesktopShellTest {
         }
     }
 
+    /**
+     * The whole window, painted: the empty state and a document, written to `build/desktop-render/shell.png`
+     * so it can be looked at — and checked where a screenshot cannot be trusted.
+     *
+     * Three claims: the header is **glass over the desk** (no paper showing through it), the page is
+     * drawn in the canvas **below** the header rather than under it, and the sheet carries the window's
+     * one shadow — a pixel just outside its edge is no longer pure black.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun `the shell paints chrome above a page that starts below the header`() {
+        val state = DesktopShellState()
+        val scene = ImageComposeScene(1000, 700, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            val empty = frame(scene, "shell-empty")
+            state.open(temp.newFile("shell.mobix").also { SyntheticNotebook.write(it, SyntheticNotebook.pages(6)) })
+            val filled = frame(scene, "shell")
+            assertFalse("opening a document repaints the shell", empty.contentEquals(filled))
+
+            val image = ImageIO.read(ByteArrayInputStream(filled))
+            val header = DesktopTheme.headerHeight.value.toInt()
+            assertTrue("the header has a height", header in 1 until image.height)
+
+            // The band is the glass, never the sheet: no white pixel (the paper) may appear inside it.
+            // The chrome's own ink is near-white, so only the exact paper colour is rejected.
+            for (y in 0 until header) {
+                for (x in 0 until image.width step 5) {
+                    val rgb = image.getRGB(x, y) and 0xFFFFFF
+                    assertTrue(
+                        "the page shows through the header at ($x, $y): #%06X".format(rgb),
+                        rgb != 0xFFFFFF,
+                    )
+                }
+            }
+
+            // The page is in the canvas: a row below the header holds paper.
+            val row = header + 120
+            var paper = 0
+            var edge = -1
+            for (x in 0 until image.width) {
+                if ((image.getRGB(x, row) and 0xFFFFFF) == 0xFFFFFF) {
+                    paper++
+                    if (edge < 0) edge = x
+                }
+            }
+            assertTrue("the page is painted below the header ($paper px)", paper > image.width / 4)
+            assertTrue("the sheet has a left edge", edge > 3)
+
+            // …and it carries the window's one shadow: the desk beside it is lifted off black.
+            val beside = image.getRGB(edge - 4, row) and 0xFFFFFF
+            assertTrue(
+                "the sheet must cast its shadow on the desk (found #%06X)".format(beside),
+                beside != 0,
+            )
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
     // --- rendering ------------------------------------------------------------------------------
 
     @OptIn(ExperimentalComposeUiApi::class)
@@ -276,6 +339,12 @@ class DesktopShellTest {
         File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(png!!)
         return png
     }
+
+    /**
+     * The active slot's rgb, read from the theme: the strip's "is this tab selected" pixel check must
+     * follow the token, not a literal that a token change would silently outdate.
+     */
+    private val activeSlotArgb: Int get() = DesktopTheme.activeSlot.toArgb() and 0xFFFFFF
 
     /** The distinct colours in a rendered frame, for "is anything drawn here" assertions. */
     private fun shades(png: ByteArray): Set<Int> {

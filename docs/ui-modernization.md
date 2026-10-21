@@ -185,6 +185,18 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
 
 **The shell as built (2026-10-21).** `desktop/` now has the header, tab strip, sidebar, workspace and
 status bar of the drawing above; the rail, the ribbon and the inspector are the parts still missing.
+
+The window wears the app's own material, not a stock desktop theme: the bands are the tokens' glass
+(`rgba(22, 22, 24, 0.85)`) over a `#000000` desk, the tabs are 16 dp capsules and a held slot is the
+steel `#38383E`, the floating card turns at the 20 dp panel corner, the header is **40 dp** and the
+status bar **24 dp**, and every glyph is a 1.5 dp monoline stroke drawn in code — no filled Material
+icon in the window. Text is **Inter**, the same three weights the Android module ships (they travel in
+this module's resources), with **tabular figures** on the page and zoom readouts so the numbers do not
+shuffle. It is **dark-first**: the light theme waits until the tokens cover it. The window has exactly
+**one shadow**, under the sheet — and because a shadow cannot be darker than a true-black desk, it is
+drawn as the faint lift *above* black that a soft falloff would leave; without it a page reads as a
+hole cut in the window rather than a sheet lying on a desk.
+
 Everything the chrome does can also be done from the keyboard:
 
 | Key | Action |
@@ -293,7 +305,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 
 ## Design token specification
 
-The typed provider in the codebase is `com.mobixournal.ui.theme.ModernTheme` ([ModernTheme.kt](../app/src/main/java/com/mobixournal/ui/theme/ModernTheme.kt)), pinned by `ModernThemeTest` to fail the build on drift:
+The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mobix-core`) — one home for both shells. Each shell wraps them in the Compose types it draws with: `ModernTheme` for the Android chrome and `DesktopTheme` for the desktop window, and the two guards `ModernThemeTest` / `DesktopThemeTest` re-read this JSON block, so a token cannot move in code without moving here. A chrome file may not paint a colour of its own: `DesktopThemeTest` sweeps the desktop's chrome sources for `Color(0x…)` literals, the same way `ColorContractGuardTest` sweeps the Android chrome.
 
 ```json
 {

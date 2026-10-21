@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -68,12 +69,22 @@ fun PageSidebar(
         modifier
             .width(SIDEBAR_WIDTH)
             .fillMaxHeight()
-            .background(SIDEBAR_BG)
+            .background(DesktopTheme.glass)
+            // One edge, one pixel: the sidebar's own boundary with the canvas, no rim all round.
+            .drawBehind {
+                drawLine(
+                    color = DesktopTheme.hairline,
+                    start = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                    end = androidx.compose.ui.geometry.Offset(size.width, size.height),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            }
             .padding(vertical = 12.dp),
     ) {
         Text(
             text = "Pages",
-            color = Color(0xFF9A9AA6),
+            color = DesktopTheme.inkSecondary,
+            fontFamily = DesktopTheme.inter,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
@@ -90,12 +101,12 @@ fun PageSidebar(
                     Modifier
                         .fillMaxWidth()
                         .background(
-                            if (index == current) Color(0x1A60A5FA) else Color.Transparent,
+                            if (index == current) DesktopTheme.accent.copy(alpha = 0.10f) else Color.Transparent,
                             RoundedCornerShape(8.dp),
                         )
                         .border(
                             1.dp,
-                            if (index == current) Color(0xFF60A5FA) else Color.Transparent,
+                            if (index == current) DesktopTheme.accent else Color.Transparent,
                             RoundedCornerShape(8.dp),
                         )
                         .padding(6.dp)
@@ -104,12 +115,13 @@ fun PageSidebar(
                 ) {
                     Text(
                         text = "${index + 1}",
-                        color = if (index == current) Color(0xFF60A5FA) else Color(0xFF7D7D88),
+                        color = if (index == current) DesktopTheme.accent else DesktopTheme.inkMuted,
+                        fontFamily = DesktopTheme.inter,
                         fontSize = 11.sp,
                         modifier = Modifier.width(22.dp),
                     )
                     if (preview == null) {
-                        Box(Modifier.width(THUMB_WIDTH).height(72.dp).background(Color(0xFF232329)))
+                        Box(Modifier.width(THUMB_WIDTH).height(72.dp).background(DesktopTheme.activeSlot))
                     } else {
                         val aspect = preview.height.toFloat() / preview.width.toFloat()
                         Image(
@@ -134,18 +146,20 @@ private fun LayersSection(tab: DesktopTab) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
         Text(
             text = "Layers",
-            color = Color(0xFF9A9AA6),
+            color = DesktopTheme.inkSecondary,
+            fontFamily = DesktopTheme.inter,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Spacer(Modifier.height(4.dp))
         if (layers.isEmpty()) {
-            Text("No layers", color = Color(0xFF6E6E78), fontSize = 11.sp)
+            Text("No layers", color = DesktopTheme.inkMuted, fontFamily = DesktopTheme.inter, fontSize = 11.sp)
         }
         for (index in layers.indices.reversed()) {
             Text(
                 text = layers[index].label(index),
-                color = Color(0xFFC9C9D2),
+                color = DesktopTheme.ink,
+                fontFamily = DesktopTheme.inter,
                 fontSize = 11.sp,
                 modifier = Modifier.padding(vertical = 2.dp),
             )
@@ -164,7 +178,6 @@ internal fun pageProgress(page: Int, count: Int): Float =
 internal val THUMB_WIDTH = 148.dp
 
 private val SIDEBAR_WIDTH = 240.dp
-private val SIDEBAR_BG = Color(0xFF141418)
 
 /**
  * The page's thumbnail: rendered on first sight, then kept.

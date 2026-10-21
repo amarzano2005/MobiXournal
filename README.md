@@ -91,8 +91,9 @@ shapes and circuit components, plus photo and annotated-PDF page backgrounds —
 name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
 page up front.
 
-More than one document can be open, each in its own tab that remembers the page and the zoom you left
-it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
+The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface as
+the tablet. More than one document can be open, each in its own tab that remembers the page and the
+zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
 page's layers), and the page can be fitted to the window, fitted to its width, or zoomed freely — the
 point under the cursor stays where it is while you zoom. A page saved as one long strip — how a lecture
 written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being

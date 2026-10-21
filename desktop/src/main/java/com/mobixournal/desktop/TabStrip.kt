@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,8 +75,8 @@ fun TabStrip(
                     .padding(end = 4.dp)
                     .height(26.dp)
                     .widthIn(min = 96.dp, max = 220.dp)
-                    .background(if (active) TAB_ACTIVE else TAB_IDLE, TAB_SHAPE)
-                    .border(1.dp, if (active) TAB_ACTIVE_BORDER else TAB_IDLE_BORDER, TAB_SHAPE)
+                    .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.capsuleShape)
+                    .border(1.dp, if (active) DesktopTheme.hairline else Color.Transparent, DesktopTheme.capsuleShape)
                     .pointerInput(tab.key) {
                         detectTapGestures(
                             onTap = { onActivate(index) },
@@ -108,7 +107,8 @@ fun TabStrip(
                 } else {
                     androidx.compose.material3.Text(
                         text = tab.title,
-                        color = if (active) Color.White else Color(0xFF9A9AA6),
+                        color = if (active) DesktopTheme.ink else DesktopTheme.inkSecondary,
+                        fontFamily = DesktopTheme.inter,
                         fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                         fontSize = 12.sp,
                         maxLines = 1,
@@ -141,7 +141,7 @@ private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
         value = text,
         onValueChange = { text = it },
         singleLine = true,
-        textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+        textStyle = TextStyle(color = DesktopTheme.ink, fontSize = 12.sp, fontFamily = DesktopTheme.inter),
         modifier = Modifier
             .width(140.dp)
             .focusRequester(focus)
@@ -174,9 +174,9 @@ private fun CloseGlyph(onClose: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.width(9.dp).height(9.dp)) {
-            val stroke = 1.4.dp.toPx()
-            drawLine(HAIRLINE, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), stroke)
-            drawLine(HAIRLINE, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height), stroke)
+            val stroke = DesktopTheme.glyphStroke.toPx()
+            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), stroke)
+            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height), stroke)
         }
     }
 }
@@ -188,25 +188,18 @@ private fun AddTabButton(onOpen: () -> Unit) {
         Modifier
             .width(26.dp)
             .height(26.dp)
-            .background(TAB_IDLE, TAB_SHAPE)
+            .background(Color.Transparent, DesktopTheme.capsuleShape)
+            .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
             .pointerInput(Unit) { detectTapGestures { onOpen() } },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.width(9.dp).height(9.dp)) {
-            val stroke = 1.4.dp.toPx()
-            drawLine(GLYPH, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
-            drawLine(GLYPH, androidx.compose.ui.geometry.Offset(size.width / 2f, 0f), androidx.compose.ui.geometry.Offset(size.width / 2f, size.height), stroke)
+            val stroke = DesktopTheme.glyphStroke.toPx()
+            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
+            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(size.width / 2f, 0f), androidx.compose.ui.geometry.Offset(size.width / 2f, size.height), stroke)
         }
     }
 }
-
-private val TAB_SHAPE = RoundedCornerShape(8.dp)
-private val TAB_ACTIVE = Color(0xFF2A2A31)
-private val TAB_IDLE = Color(0xFF1B1B20)
-private val TAB_ACTIVE_BORDER = Color(0xFF3A3A44)
-private val TAB_IDLE_BORDER = Color(0xFF232329)
-private val HAIRLINE = Color(0xFF8A8A96)
-private val GLYPH = Color(0xFFB9B9C4)
 
 /** Fallback width of a tab before its first layout pass has been measured. */
 private const val TAB_FALLBACK_PX = 140f

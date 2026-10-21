@@ -73,7 +73,7 @@ fun PageCanvas(
         if (loaded == null) {
             Text(
                 text = "Could not read this page: ${page.exceptionOrNull()?.message}",
-                color = Color(0xFFFF8A80),
+                color = DesktopTheme.danger,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.align(Alignment.Center),
             )
@@ -154,7 +154,7 @@ fun PageCanvas(
 }
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */
-private val DESK = Color(0xFF000000)
+private val DESK = DesktopTheme.desk
 
 /** dp a wheel notch moves the page. */
 private const val WHEEL_STEP_DP = 64f

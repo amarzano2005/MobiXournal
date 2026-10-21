@@ -8,9 +8,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.DesignTokens
 
 /**
- * Modern design token provider for MobiXournal.
+ * The Compose face of the design tokens: turns [DesignTokens] (plain Kotlin, `mobix-core`) into the
+ * colours, radii and animation specs the Android chrome draws with. The desktop reads the same source
+ * through `DesktopTheme`, so the two shells cannot disagree about what the glass is.
  *
  * Owned by `docs/ui-modernization.md` (Design token specification).
  * Centralizes design tokens across surface, geometry, and animation so that
@@ -24,31 +27,31 @@ object ModernTheme {
     // --- Surface tokens ---
 
     /** Raw string definition of [glassDark] from `docs/ui-modernization.md`. */
-    const val GLASS_DARK_RAW: String = "rgba(22, 22, 24, 0.85)"
+    const val GLASS_DARK_RAW: String = DesignTokens.GLASS_DARK_RAW
 
     /** Raw string definition of [glassLight] from `docs/ui-modernization.md`. */
-    const val GLASS_LIGHT_RAW: String = "rgba(255, 255, 255, 0.88)"
+    const val GLASS_LIGHT_RAW: String = DesignTokens.GLASS_LIGHT_RAW
 
     /** Raw string definition of [hairlineBorder] from `docs/ui-modernization.md`. */
-    const val HAIRLINE_BORDER_RAW: String = "rgba(255, 255, 255, 0.12)"
+    const val HAIRLINE_BORDER_RAW: String = DesignTokens.HAIRLINE_BORDER_RAW
 
     /** Dark glassmorphic capsule fill: `rgba(22, 22, 24, 0.85)`. */
-    val glassDark: Color = Color(red = 22 / 255f, green = 22 / 255f, blue = 24 / 255f, alpha = 0.85f)
+    val glassDark: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.GLASS_DARK_ALPHA)
 
     /** Light glassmorphic capsule fill: `rgba(255, 255, 255, 0.88)`. */
-    val glassLight: Color = Color(red = 1f, green = 1f, blue = 1f, alpha = 0.88f)
+    val glassLight: Color = tokenColour(DesignTokens.GLASS_LIGHT_RGB, DesignTokens.GLASS_LIGHT_ALPHA)
 
     /** Subtle hairline rim stroke: `rgba(255, 255, 255, 0.12)`. */
-    val hairlineBorder: Color = Color(red = 1f, green = 1f, blue = 1f, alpha = 0.12f)
+    val hairlineBorder: Color = tokenColour(0xFFFFFF, DesignTokens.HAIRLINE_ALPHA)
 
     /** Subtle hairline rim stroke in light mode: `rgba(0, 0, 0, 0.12)`. */
-    val hairlineBorderLight: Color = Color(red = 0f, green = 0f, blue = 0f, alpha = 0.12f)
+    val hairlineBorderLight: Color = tokenColour(0x000000, DesignTokens.HAIRLINE_ALPHA)
 
     /** Raw string definition of [floatingPanelAlpha] from `docs/ui-modernization.md`. */
-    const val FLOATING_PANEL_ALPHA_RAW: String = "0.88"
+    const val FLOATING_PANEL_ALPHA_RAW: String = DesignTokens.FLOATING_PANEL_ALPHA_RAW
 
     /** Floating-surface opacity, as documented: **0.88**. */
-    const val FLOATING_PANEL_ALPHA_VAL: Double = 0.88
+    val FLOATING_PANEL_ALPHA_VAL: Double = DesignTokens.FLOATING_PANEL_ALPHA.toDouble()
 
     /**
      * How opaque a **floating surface** is — the bars' glass with the see-through turned down
@@ -71,7 +74,7 @@ object ModernTheme {
     val floatingPanelAlpha: Float = FLOATING_PANEL_ALPHA_VAL.toFloat()
 
     /** Raw string definition of [panelCornerRadiusDp] from `docs/ui-modernization.md`. */
-    const val PANEL_CORNER_RADIUS_DP_VAL: Int = 20
+    const val PANEL_CORNER_RADIUS_DP_VAL: Int = DesignTokens.PANEL_CORNER_RADIUS_DP
 
     /**
      * The corner **every floating surface** is cut with — the bars' dock corner, so a menu, an action
@@ -81,33 +84,41 @@ object ModernTheme {
     val panelCornerRadiusDp: Dp = PANEL_CORNER_RADIUS_DP_VAL.dp
 
     /** Backdrop blur radius: 24 dp. */
-    const val BLUR_RADIUS_DP_VAL: Int = 24
-    val blurRadiusDp: Dp = 24.dp
+    const val BLUR_RADIUS_DP_VAL: Int = DesignTokens.BLUR_RADIUS_DP
+    val blurRadiusDp: Dp = BLUR_RADIUS_DP_VAL.dp
 
     // --- Geometry tokens ---
 
     /** Floating capsule corner radius: 16 dp. */
-    const val CAPSULE_CORNER_RADIUS_DP_VAL: Int = 16
-    val capsuleCornerRadiusDp: Dp = 16.dp
+    const val CAPSULE_CORNER_RADIUS_DP_VAL: Int = DesignTokens.CAPSULE_CORNER_RADIUS_DP
+    val capsuleCornerRadiusDp: Dp = CAPSULE_CORNER_RADIUS_DP_VAL.dp
 
     /** Compact tool/action button dimension: 40 dp. */
-    const val COMPACT_BUTTON_SIZE_DP_VAL: Int = 40
-    val compactButtonSizeDp: Dp = 40.dp
+    const val COMPACT_BUTTON_SIZE_DP_VAL: Int = DesignTokens.COMPACT_BUTTON_SIZE_DP
+    val compactButtonSizeDp: Dp = COMPACT_BUTTON_SIZE_DP_VAL.dp
 
     /** Hairline border stroke width: 1.0 dp. */
-    const val HAIRLINE_STROKE_WIDTH_DP_VAL: Double = 1.0
-    val hairlineStrokeWidthDp: Dp = 1.0.dp
+    const val HAIRLINE_STROKE_WIDTH_DP_VAL: Double = DesignTokens.HAIRLINE_STROKE_WIDTH_DP
+    val hairlineStrokeWidthDp: Dp = HAIRLINE_STROKE_WIDTH_DP_VAL.dp
 
     // --- Animation tokens ---
 
     /** Physics spring stiffness: 380. */
-    const val springStiffness: Float = 380f
+    const val springStiffness: Float = DesignTokens.SPRING_STIFFNESS
 
     /** Physics spring damping coefficient: 28. */
-    const val springDamping: Float = 28f
+    const val springDamping: Float = DesignTokens.SPRING_DAMPING
 
     /** Auto-dim and crossfade transition duration: 150 ms. */
-    const val fadeTransitionMs: Int = 150
+    const val fadeTransitionMs: Int = DesignTokens.FADE_TRANSITION_MS
+
+    /** A documented token's RGB + alpha as a Compose [Color]. */
+    private fun tokenColour(rgb: Int, alpha: Float): Color = Color(
+        red = ((rgb shr 16) and 0xFF) / 255f,
+        green = ((rgb shr 8) and 0xFF) / 255f,
+        blue = (rgb and 0xFF) / 255f,
+        alpha = alpha,
+    )
 
     // --- Derived Compose shapes and animation specs ---
 

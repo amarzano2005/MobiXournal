@@ -37,36 +37,34 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 internal fun OpenFailureCard(failure: OpenFailure, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(20.dp)
+    val shape = DesktopTheme.panelShape
     Column(
         modifier
             .widthIn(max = 520.dp)
-            .background(CARD, shape)
-            .border(1.dp, RIM, shape)
+            .background(DesktopTheme.panel, shape)
+            .border(1.dp, DesktopTheme.hairline, shape)
             .clickable(role = Role.Button, onClick = onDismiss)
             .padding(horizontal = 18.dp, vertical = 14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = failure.title,
-                color = TITLE,
+                color = DesktopTheme.ink,
+                fontFamily = DesktopTheme.inter,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.widthIn(max = 420.dp),
             )
             Spacer(Modifier.weight(1f))
-            Text("Esc", color = HINT, fontSize = 10.sp)
+            Text("Esc", color = DesktopTheme.inkMuted, fontFamily = DesktopTheme.inter, fontSize = 10.sp)
         }
         Spacer(Modifier.height(6.dp))
-        Text(failure.detail, color = BODY, fontSize = 12.sp)
+        Text(
+            text = failure.detail,
+            color = DesktopTheme.inkSecondary,
+            fontFamily = DesktopTheme.inter,
+            fontSize = 12.sp,
+        )
     }
 }
 
-/** The card's fill: opaque, a step above the desk so it reads as a card and not a hole. */
-private val CARD = Color(0xFF1E1E24)
-
-/** The family's hairline rim. */
-private val RIM = Color(0x1FFFFFFF)
-private val TITLE = Color(0xFFF2C9C4)
-private val BODY = Color(0xFFC9C9D2)
-private val HINT = Color(0xFF6E6E78)
