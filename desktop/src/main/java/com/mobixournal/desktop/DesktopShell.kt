@@ -99,57 +99,126 @@ class DesktopShellState {
      *
      * Takes the picker as a callback because opening the system file dialog is the window's job — this
      * class has no window to hang one on.
+     *
+     * The event is only *translated* here; what the key means is [shellCommand] and what it does is
+     * [apply]. Compose's `KeyEvent` cannot be built outside a real window, so keeping the decision out
+     * of it is what lets the shortcuts be tested at all.
      */
     fun onKey(event: KeyEvent, onOpenPicker: () -> Unit): Boolean {
-        // Esc dismisses the failed-open card first, even though there may be no tab behind it.
-        if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && failure != null) {
-            failure = null
-            return true
-        }
-        val tab = tabs.active ?: return false
-        if (event.type == KeyEventType.KeyUp && event.key == Key.Spacebar) {
+        // A held Space is a modifier, not a command: it starts on the press and ends on the release.
+        if (event.key == Key.Spacebar && event.type == KeyEventType.KeyUp) {
             panMode = false
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
-        val ctrl = event.isCtrlPressed
-        return when {
-            ctrl && event.key == Key.T -> {
-                onOpenPicker(); true
+        val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed) ?: return false
+        return apply(command, onOpenPicker)
+    }
+
+    /**
+     * Do what [command] says, on the active document where it needs one.
+     *
+     * Opening, the sidebar toggle and dismissing a message work with **nothing open** — `Ctrl+T` used to
+     * be reachable only from an already-open document, which is exactly backwards for the one shortcut
+     * that gets a first document onto the screen.
+     */
+    fun apply(command: ShellCommand, onOpenPicker: () -> Unit = {}): Boolean {
+        when (command) {
+            ShellCommand.DISMISS_FAILURE -> {
+                if (failure == null) return false
+                failure = null
+                return true
             }
-            ctrl && event.key == Key.W -> {
+            ShellCommand.OPEN -> {
+                onOpenPicker()
+                return true
+            }
+            ShellCommand.TOGGLE_SIDEBAR -> {
+                toggleSidebar()
+                return true
+            }
+            else -> Unit
+        }
+        val tab = tabs.active ?: return false
+        return when (command) {
+            ShellCommand.CLOSE_TAB -> {
                 closeActive(); true
             }
-            ctrl && event.key == Key.Tab -> {
-                if (event.isShiftPressed) tabs.previous() else tabs.next(); true
+            ShellCommand.NEXT_TAB -> {
+                tabs.next(); true
             }
-            ctrl && event.key == Key.B -> {
-                toggleSidebar(); true
+            ShellCommand.PREVIOUS_TAB -> {
+                tabs.previous(); true
             }
-            ctrl && isZoomIn(event.key, event.isShiftPressed) -> {
+            ShellCommand.ZOOM_IN -> {
                 zoomBy(tab, ZOOM_STEP); true
             }
-            ctrl && isZoomOut(event.key) -> {
+            ShellCommand.ZOOM_OUT -> {
                 zoomBy(tab, 1f / ZOOM_STEP); true
             }
-            ctrl && event.key == Key.Zero -> {
-                tab.fit = FitMode.PAGE; tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f); true
+            ShellCommand.FIT_PAGE -> {
+                tab.fit = FitMode.PAGE
+                tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f)
+                true
             }
-            ctrl && event.key == Key.One -> {
-                tab.fit = FitMode.WIDTH; tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f); true
+            ShellCommand.FIT_WIDTH -> {
+                tab.fit = FitMode.WIDTH
+                tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f)
+                true
             }
-            event.key == Key.PageDown || event.key == Key.DirectionDown && !ctrl -> {
+            ShellCommand.NEXT_PAGE -> {
                 selectPage(tab, (tab.page + 1).coerceAtMost(tab.pageCount - 1)); true
             }
-            event.key == Key.PageUp || event.key == Key.DirectionUp && !ctrl -> {
+            ShellCommand.PREVIOUS_PAGE -> {
                 selectPage(tab, (tab.page - 1).coerceAtLeast(0)); true
             }
-            event.key == Key.Spacebar -> {
+            ShellCommand.START_PAN -> {
                 panMode = true; true
             }
-            else -> false
+            // Handled above, with no document needed.
+            ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR -> false
         }
     }
+}
+
+/** What one key press means, independent of the platform's event type (and therefore testable). */
+enum class ShellCommand {
+    OPEN,
+    CLOSE_TAB,
+    NEXT_TAB,
+    PREVIOUS_TAB,
+    TOGGLE_SIDEBAR,
+    ZOOM_IN,
+    ZOOM_OUT,
+    FIT_PAGE,
+    FIT_WIDTH,
+    NEXT_PAGE,
+    PREVIOUS_PAGE,
+    START_PAN,
+    DISMISS_FAILURE,
+}
+
+/**
+ * The shortcut table of `docs/ui-modernization.md`, as a decision.
+ *
+ * Order matters in two places: `Ctrl + 0` is "fit page" **only** without Shift (with Shift it is the
+ * zoom-in key on layouts where `=` shares the `0`), and the zoom keys are checked before it so the
+ * more specific binding wins.
+ */
+internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
+    key == Key.Escape -> ShellCommand.DISMISS_FAILURE
+    ctrl && key == Key.T -> ShellCommand.OPEN
+    ctrl && key == Key.W -> ShellCommand.CLOSE_TAB
+    ctrl && key == Key.Tab -> if (shift) ShellCommand.PREVIOUS_TAB else ShellCommand.NEXT_TAB
+    ctrl && key == Key.B -> ShellCommand.TOGGLE_SIDEBAR
+    ctrl && isZoomIn(key, shift) -> ShellCommand.ZOOM_IN
+    ctrl && isZoomOut(key) -> ShellCommand.ZOOM_OUT
+    ctrl && key == Key.Zero -> ShellCommand.FIT_PAGE
+    ctrl && key == Key.One -> ShellCommand.FIT_WIDTH
+    !ctrl && (key == Key.PageDown || key == Key.DirectionDown) -> ShellCommand.NEXT_PAGE
+    !ctrl && (key == Key.PageUp || key == Key.DirectionUp) -> ShellCommand.PREVIOUS_PAGE
+    key == Key.Spacebar -> ShellCommand.START_PAN
+    else -> null
 }
 
 /**

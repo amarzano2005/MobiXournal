@@ -174,6 +174,49 @@ class DesktopShellTest {
     }
 
     /**
+     * The shortcut table, as a decision: which key is which command, and what a command does.
+     *
+     * `onKey` itself cannot be driven here — Compose's `KeyEvent` cannot be constructed outside a real
+     * window — which is why the translation ([shellCommand]) and the action ([DesktopShellState.apply])
+     * are separate. This exercises both halves, including the ordering that made `Ctrl+Shift+0` a
+     * zoom-in rather than a fit-page.
+     */
+    @Test
+    fun `the window's keys decide and act on the open documents`() {
+        assertSame(ShellCommand.ZOOM_IN, shellCommand(Key.Equals, ctrl = true, shift = false))
+        assertSame("Ctrl+Shift+0 is zoom in, not fit page", ShellCommand.ZOOM_IN, shellCommand(Key.Zero, ctrl = true, shift = true))
+        assertSame(ShellCommand.FIT_PAGE, shellCommand(Key.Zero, ctrl = true, shift = false))
+        assertSame(ShellCommand.FIT_WIDTH, shellCommand(Key.One, ctrl = true, shift = false))
+        assertSame(ShellCommand.NEXT_PAGE, shellCommand(Key.PageDown, ctrl = false, shift = false))
+        assertSame("Ctrl+PageDown is not page-down", null, shellCommand(Key.PageDown, ctrl = true, shift = false))
+        assertSame(ShellCommand.DISMISS_FAILURE, shellCommand(Key.Escape, ctrl = false, shift = false))
+
+        val state = DesktopShellState()
+        state.open(temp.newFile("primo.mobix").also { SyntheticNotebook.write(it, SyntheticNotebook.pages(3)) })
+        state.open(temp.newFile("secondo.mobix").also { SyntheticNotebook.write(it, SyntheticNotebook.pages(3)) })
+        assertEquals("two documents open", 2, state.tabs.size)
+
+        state.apply(ShellCommand.NEXT_PAGE)
+        assertEquals("Page Down advances the active document", 1, state.active!!.page)
+
+        state.apply(ShellCommand.CLOSE_TAB)
+        assertEquals("Ctrl+W closes it", 1, state.tabs.size)
+
+        state.apply(ShellCommand.TOGGLE_SIDEBAR)
+        assertFalse("Ctrl+B hides the sidebar", state.sidebarVisible)
+
+        state.tabs.closeAll()
+
+        var picked = false
+        assertTrue(
+            "Ctrl+T opens the picker with nothing open — the shortcut that gets a first document on screen",
+            state.apply(ShellCommand.OPEN) { picked = true },
+        )
+        assertTrue("and it really asked for the picker", picked)
+        assertFalse("Esc with no message to dismiss is not consumed", state.apply(ShellCommand.DISMISS_FAILURE))
+    }
+
+    /**
      * The strip's whole point, in a window of its own: the page is fitted to its **width**, so the
      * writing is readable, and what you cannot see is below the fold instead of shrunk into a sliver.
      *
