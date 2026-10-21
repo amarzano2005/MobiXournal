@@ -115,11 +115,8 @@ Wheel scrolls the page, `Ctrl` + wheel zooms where you point, and middle-drag or
 A tab's name can be edited in place with a double-click, and tabs can be dragged into a new order.
 
 ```sh
-# Windows (needs a JDK 21 host, as the Android build does)
+# Windows 11 (needs a JDK 21 host, as the Android build does)
 .\gradlew.bat :desktop:run --args="udiff.xopp"
-
-# Linux / macOS
-./gradlew :desktop:run --args="udiff.xopp"
 ```
 
 Start it without an argument and use **Apri…** to pick a file — a path with spaces works either way. A

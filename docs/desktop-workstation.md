@@ -116,7 +116,7 @@ second copy kept in sync by hand.
 
 ## Motivation: scaling from mobile stylus to PC workstation
 
-MobiXournal Desktop is a high-performance cross-platform application for Linux, Windows, and macOS,
+MobiXournal Desktop is a high-performance application for **Windows 11 only** (decision 2026-10-21: Linux and macOS are out of scope),
 designed to surpass legacy Xournal++ in both responsiveness and hardware integration. While mobile
 tablets rely on direct touchscreens, desktop workstations operate through **graphics tablets (Wacom,
 Huion, XP-Pen, Xencelabs)**, physical ExpressKeys, rotary **Touch Rings / Dial Wheels**, and simultaneous
@@ -148,11 +148,11 @@ MobiXournal
 
 | Metric / Aspect | Desktop Xournal++ (C++ / GTK3) | MobiXournal Desktop (Compose Desktop + Skia) |
 |---|---|---|
-| **Rendering engine** | Cairo (mostly CPU software rasterization) | Skia / Skiko (DirectX 12 on Windows, Metal on macOS, Vulkan on Linux) |
+| **Rendering engine** | Cairo (mostly CPU software rasterization) | Skia / Skiko (DirectX 12 on Windows) |
 | **Refresh rates** | 60 Hz standard; high refresh can stutter on complex pages | Native 120 Hz / 144 Hz vsync-aligned hardware rendering |
-| **Stylus input** | GTK3 GdkEvent with tablet sub-events | Direct Windows Ink / Linux `libinput` / Wacom native hooks |
+| **Stylus input** | GTK3 GdkEvent with tablet sub-events | Direct Windows Ink / Wintab (Wacom) native hooks |
 | **UI extensibility** | GTK XML layout files + C++ callbacks | Declarative Compose Material 3 state-driven UI |
-| **Cross-platform UI** | Linux-native; Windows build often has theme/input quirks | Consistent pixel-perfect UI across Linux, Windows, macOS |
+| **Target** | Linux-native; Windows build often has theme/input quirks | Windows 11 first-class, tuned for 21:9 and 144 Hz |
 
 ---
 
@@ -175,14 +175,10 @@ to high-frequency analog events in the desktop shell:
   (see [audio-inking-sync.md](audio-inking-sync.md)).
 
 ### 2. Multi-protocol desktop tablet drivers
-To avoid driver inconsistencies common in desktop Linux and Windows applications, `app-desktop`
-implements a low-latency input abstraction layer across three platform protocols:
+`app-desktop` implements a low-latency input abstraction layer over the two Windows tablet protocols:
 
 - **Windows**: Dual-backend support for **Windows Ink (`WM_POINTER`)** and legacy **Wintab API**, ensuring
   full pressure, tilt, and dial compatibility across both consumer styluses and professional Wacom drivers.
-- **Linux**: Direct integration with **libinput** and the Wayland tablet protocol (`zwp_tablet_manager_v2`),
-  with fallback to X11 XInput2 tablet devices.
-- **macOS**: Cocoa `NSEvent` tablet sub-types with native pressure and azimuth resolution.
 
 ### 3. Absolute mapping and multi-monitor aspect ratio lock
 Screenless drawing tablets map tablet surface coordinates to desktop pixels. `app-desktop` provides:
@@ -208,4 +204,4 @@ Screenless drawing tablets map tablet surface coordinates to desktop pixels. `ap
    - Stand up a desktop `app-desktop` module using Compose Multiplatform with Skia canvas rendering.
      The `desktop/` preview does this for read-only `.xopp` and `.mobix` pages; the editor waits for Phase 3, since
      the Android `render`, `ui`, `tabs` and `io` packages are still Android-bound.
-   - Verify tablet stylus latency on Linux (evdev/Wacom) and Windows (Windows Ink).
+   - Verify tablet stylus latency on Windows (Windows Ink and Wintab).

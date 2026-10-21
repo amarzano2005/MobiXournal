@@ -255,8 +255,7 @@ JDK 21 the Gradle build already uses (`JAVA_HOME` — on the Windows host,
 from the repository root:
 
 ```sh
-.\gradlew.bat :desktop:run --args="udiff.xopp"   # Windows
-gradle :desktop:run --args="udiff.xopp"          # Linux / macOS (./gradlew)
+.\gradlew.bat :desktop:run --args="udiff.xopp"
 ```
 
 The `run` task's working directory is the repository root (set in `desktop/build.gradle.kts`), so a

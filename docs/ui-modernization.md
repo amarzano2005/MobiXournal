@@ -146,7 +146,7 @@ There is **one** layout, and each bar has one job (`docs/chrome.md`):
 
 ---
 
-## Desktop workstation UI architecture (PC / Mac / Linux)
+## Desktop workstation UI architecture (Windows 11)
 
 On desktop workstations paired with keyboards and graphics tablets (see [desktop-workstation.md](desktop-workstation.md)),
 scaling up a mobile touch interface creates clumsy, oversized controls. Desktop MobiXournal adopts a
@@ -166,7 +166,7 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
 
 ### 1. Window layout & workspace panes
 - **Slim Native Header**: Displays tabbed open notebooks, document path breadcrumbs, and native OS window
-  decorations with seamless Windows 11 Mica / macOS Vibrancy materials.
+  decorations.
 - **Collapsible Navigation Sidebar (`Ctrl+B`)**: Slide-out panel for page grid thumbnails, layer manager,
   PDF bookmarks outline, and indexed search results. Can be collapsed with one hotkey for distraction-free canvas.
 - **Right Property Inspector (Non-Modal Editing)**: When a `PlotElement`, `TableElement`, or shape is selected,
@@ -176,7 +176,7 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the sidebar
   and the inspector are the same frosted glass the mobile chrome uses, and the desk behind the page is
-  `#000000`; platform materials (Windows 11 Mica, macOS Vibrancy) are **not** used. Mica replaces the
+  `#000000`; platform materials (Windows 11 Mica) are **not** used. Mica replaces the
   app's material with a wallpaper-tinted one, so the desktop window would stop matching the phone and
   its contrast would change with the user's wallpaper — the opposite of the pinned ramps above.
 - **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon is the
