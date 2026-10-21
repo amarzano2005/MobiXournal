@@ -47,6 +47,30 @@ once per page per tab.
   `DesktopMobixOpenTest` opens a 40-page notebook through them without the Android app on the
   classpath. The window opens those documents through the same reader.
 
+### Opening, and what a failed open says
+
+`DocumentLoader` picks a file's family by its bytes and its `mimetype` entry, and `describeOpenFailure`
+decides what the window says when the open is refused. Three cases, three sentences: an
+`UnsupportedOperationException` is the loader's own refusal and keeps its words (`Formato non
+supportato`); an `OutOfMemoryError` is reported as memory, because a page taller than the heap is not a
+corrupt notebook; and a **`LinkageError`** is reported as *the window being stale*, not the file being
+broken. That last case is real — a run produced `NoClassDefFoundError:
+com/mobixournal/desktop/DocumentLoader$openMobix$1`, and the notebook was untouched. It is a fact of how
+the preview is launched: `:desktop:run` executes `build/classes`, so a Gradle build during a session
+rewrites the class files under the live JVM and any synthetic class the JVM had not loaded yet is gone.
+Closing the window and relaunching is the fix; the same file opens in ~40 ms in a fresh process.
+
+A failed open **never takes the document on screen with it**: the report is a card at the top of the
+canvas, dismissed with a click or `Esc`, while the page, the tab and the sidebar stay exactly as they
+were. The card's fill is opaque rather than the floating family's frosted 0.88, because it straddles the
+edge where the desk meets the sheet — at 0.88 the part over the white page came out a tone lighter than
+the part over the black desk, and the panel read as two materials split down its middle.
+
+`--args` splits its value on spaces, so a notebook kept under `Il mio Drive/…` arrives as several
+arguments and `File(args[0])` does not exist: `initialDocument` puts the pieces back together when the
+first one is not itself a file, so a path with spaces works from the command line as it does from the
+picker.
+
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no isometric paper,
@@ -64,7 +88,9 @@ no document inside by name, renders page 1 of each headlessly via `ImageComposeS
 table, a parametric shape, a bundled pixmap and a PDF background — asserting the pixels, not just that
 the call returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and
 after** a document is opened and asserts the frames differ (the regression that caught a strip which
-never redrew), renders the sidebar, and checks the keyboard's fit and zoom arithmetic. Every render is
+never redrew), renders the sidebar, and checks the keyboard's fit and zoom arithmetic. `OpenFailureTest`
+pins what a failed open says in each of its three cases and how a space-split command line is put back
+together. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the

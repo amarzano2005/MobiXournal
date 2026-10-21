@@ -118,8 +118,10 @@ A tab's name can be edited in place with a double-click, and tabs can be dragged
 ./gradlew :desktop:run --args="udiff.xopp"
 ```
 
-Start it without an argument and use **Apri…** to pick a file. Nothing can be edited or saved yet, and
-the status with the next steps lives in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
+Start it without an argument and use **Apri…** to pick a file — a path with spaces works either way. A
+file that cannot be read leaves the document you already have on screen and says why in a card at the top
+of the page, which a click or `Esc` dismisses. Nothing can be edited or saved yet, and the status with the
+next steps lives in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
 
 ---
 

@@ -60,7 +60,7 @@ import java.io.File
 fun FrameWindowScope.DesktopApp(initial: File? = null) {
     val tabs = remember { DesktopTabs() }
     var active by remember { mutableStateOf<DesktopTab?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var failure by remember { mutableStateOf<OpenFailure?>(null) }
     var sidebarVisible by remember { mutableStateOf(true) }
     var panMode by remember { mutableStateOf(false) }
     val thumbnails = remember { mutableMapOf<String, MutableMap<Int, androidx.compose.ui.graphics.ImageBitmap>>() }
@@ -70,9 +70,10 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
         runCatching { DocumentLoader.load(file) }
             .onSuccess { document ->
                 active = tabs.open(document)
-                error = null
+                failure = null
             }
-            .onFailure { error = it.message ?: it.toString() }
+            // A failed open is reported as itself, and never takes the document already on screen with it.
+            .onFailure { failure = describeOpenFailure(it) }
     }
 
     fun pick() {
@@ -97,6 +98,11 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
 
     /** The window's keys: every one of them is also in the shortcuts table of `docs/ui-modernization.md`. */
     fun onKey(event: KeyEvent): Boolean {
+        // Esc dismisses the failed-open card first, even though there may be no tab behind it.
+        if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && failure != null) {
+            failure = null
+            return true
+        }
         val tab = active ?: return false
         if (event.type == KeyEventType.KeyUp && event.key == Key.Spacebar) {
             panMode = false
@@ -169,7 +175,9 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 val tab = active
                 when {
-                    error != null -> Notice("Impossibile aprire il documento", error!!)
+                    // With nothing open the notice owns the window; with a document open the card floats
+                    // over it (below) instead, so an unopenable file cannot hide the one you were reading.
+                    tab == null && failure != null -> Notice(failure!!.title, failure!!.detail)
                     tab == null -> Notice(
                         "Apri un file .xopp o .mobix per iniziare",
                         "Ctrl+T oppure “Apri…”. L'anteprima mostra carta, inchiostro, entità vive e sfondi PDF o immagine, in sola lettura.",
@@ -188,6 +196,15 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
                             onViewport = { tab.viewport = it },
                             onFit = { tab.fit = it },
                             modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                    }
+                }
+                if (tab != null) {
+                    failure?.let { reported ->
+                        OpenFailureCard(
+                            failure = reported,
+                            onDismiss = { failure = null },
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
                         )
                     }
                 }
