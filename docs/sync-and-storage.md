@@ -4,6 +4,10 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
+> **Out of scope (decision 2026-10-21).** No sync feature is planned. This spoke is kept only as the
+> reference for the three-way merge and conflict detector that already exist in `mobix-core`
+> (`MobixMergeEngine`, `MobixConflictDetector`), which the open path still uses.
+
 ## The sync problem with `.xopp`
 
 MobiXournal intentionally avoids proprietary cloud accounts and backend server locks. Users synchronize

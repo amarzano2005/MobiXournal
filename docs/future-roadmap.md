@@ -52,8 +52,6 @@ No user-facing interface can exceed the capabilities of the data model beneath i
    horizontal, and 2D whiteboard coordinate modes with 2D spatial chunking and intelligent print slicing.
 5. **Continuous Audio Synchronization**: [audio-inking-sync.md](audio-inking-sync.md) bundles compressed Opus speech
    directly in `assets/`, mapping every inking point to audio timestamps for karaoke replay and bi-directional scrub.
-6. **Conflict-Free Storage & Sync**: [sync-and-storage.md](sync-and-storage.md) implements three-way page-level
-   merging across Nextcloud, Syncthing, and cloud providers without collision files.
 
 ---
 

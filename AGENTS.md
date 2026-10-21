@@ -89,7 +89,8 @@ the data model beneath it**:
    implemented and archived in `FINISHED.toml` (`step-1-mobix-format-engines`): page streaming
    (`PageSource`), incremental saves, infinite canvas (`docs/infinite-canvas.md`), reactive math
    (`docs/math-engine.md`) and bundled audio & karaoke stroke replay (`docs/audio-inking-sync.md`).
-   Three-way page-level sync (`docs/sync-and-storage.md`) is still a Planned Spec.
+   Multi-device sync is **out of scope** (decision 2026-10-21): the three-way merge already in `mobix-core`
+   stays as library code and `docs/sync-and-storage.md` is kept only as its reference.
 2. **Step 2 — Modern Mobile UI & Living Editors (`step-2-modern-mobile-ui`)**:
    Lightweight frosted-glass chrome (`docs/ui-modernization.md`: bands never overlap the page; headers
    close on one full-width edge), Pen-Tip Radial HUD summoned by stylus barrel button at the nib,
