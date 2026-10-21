@@ -59,7 +59,15 @@ class DesktopDocument(
             }
         }
 
-    override fun close() = source.close()
+    /** True once [close] ran — a tab that was replaced or deduplicated must not keep its reader alive. */
+    var isClosed: Boolean = false
+        private set
+
+    override fun close() {
+        if (isClosed) return
+        isClosed = true
+        source.close()
+    }
 }
 
 /**

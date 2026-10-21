@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.mobixournal.format.model.Background
@@ -17,10 +18,16 @@ import com.mobixournal.render.BackgroundGrid
  * Deliberately out of scope in the preview: PDF and pixmap backgrounds (they need the asset/PDF
  * pipeline), isometric paper, and the optional red margin.
  */
-internal fun DrawScope.drawPaper(background: Background, width: Double, height: Double, scale: Float) {
-    drawRect(Color.White, size = size)
+internal fun DrawScope.drawPaper(
+    background: Background,
+    width: Double,
+    height: Double,
+    scale: Float,
+    sheet: Size,
+) {
+    drawRect(Color.White, size = sheet)
     val solid = background as? Background.Solid ?: return
-    drawRect(Color(solid.color), size = size)
+    drawRect(Color(solid.color), size = sheet)
 
     val spacing = rulingSpacing(solid)
     val lineWidth = 0.6f * scale
@@ -29,7 +36,7 @@ internal fun DrawScope.drawPaper(background: Background, width: Double, height: 
             val line = Color(BackgroundGrid.LINED_RGB)
             for (y in BackgroundGrid.lines(height, spacing)) {
                 val py = (y * scale).toFloat()
-                drawLine(line, Offset(0f, py), Offset(size.width, py), strokeWidth = lineWidth)
+                drawLine(line, Offset(0f, py), Offset(sheet.width, py), strokeWidth = lineWidth)
             }
         }
 
@@ -41,7 +48,7 @@ internal fun DrawScope.drawPaper(background: Background, width: Double, height: 
             }
             for (x in BackgroundGrid.lines(width, spacing)) {
                 val px = (x * scale).toFloat()
-                drawLine(line, Offset(px, 0f), Offset(px, size.height), strokeWidth = lineWidth)
+                drawLine(line, Offset(px, 0f), Offset(px, sheet.height), strokeWidth = lineWidth)
             }
         }
 

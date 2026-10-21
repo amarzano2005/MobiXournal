@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-page-sidebar"
+title = "Desktop: collapsible pages/layers sidebar (Ctrl+B)"
+description = "Add the collapsible navigation sidebar to `desktop/`: a 240dp left panel toggled by Ctrl+B and by a header glyph, showing page thumbnails rendered from the same `PageView` at a fixed scale (cache one thumbnail per page per tab so scrolling does not repaint pages), the current page highlighted, click-to-scroll navigation, and a layer list for the current page (names from `Layer.name`, “Layer N” when null). Collapsing hands the width back to the canvas without changing the page’s fitted size. Keep the page→scroll-offset arithmetic in a pure `PageIndexScroll` helper with JVM tests (first page, last page, page taller than the viewport, empty document). Verify with `:desktop:test` (state unit tests + headless renders with the sidebar open and closed) and by running `:desktop:run` on udiff.xopp to check Ctrl+B hides it and the page does not jump. Document the sidebar and its shortcut in the desktop section of docs/ui-modernization.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
+id = "desktop-zoom-and-pan"
+title = "Desktop: zoom, pan, fit and a status bar"
+description = "Give the desktop canvas real navigation instead of the current one-column page scroll: wheel zoom anchored at the cursor (25%–400%), wheel/trackpad scrolling, middle-drag and space-drag panning, `Ctrl+=` / `Ctrl+-` / `Ctrl+0`, fit-width and fit-page, and a 24dp status bar showing page and zoom with tabular figures. Store offset+zoom per tab in `DesktopTabs` and render pages through it. Put the transform math in a pure `Viewport` class (`screen↔page`, zoom-at-point keeping the point under the cursor fixed, clamping to page bounds) with JVM tests in `desktop/src/test/java/com/mobixournal/desktop/ViewportTest.kt` covering zoom at the centre and at an off-centre point, round-trip conversion, and clamping at both ends. Verify the tests, the headless `:desktop:test` render, and a real `:desktop:run` on udiff.xopp where wheel zoom keeps the point under the cursor fixed. Update the status list in docs/desktop-workstation.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
+id = "desktop-document-tabs"
+title = "Desktop: document tabs with per-tab viewport"
+description = "Add a document tab strip to `desktop/` so more than one document can be open, modelled on the editor’s tab behaviour in docs/codebase.md (tabs keep their own viewport, zoom and page). Create a plain `DesktopTabs` state class (no Compose types) holding the open `DesktopDocument`s, the active index and each tab’s viewport/zoom; a `TabStrip` composable under the header with monoline close glyphs, an inline filename on double-click, drag-to-reorder and a trailing “+” that opens the file dialog. Opening a second document adds a tab instead of replacing the first; closing the last tab returns to the empty state; closing the active tab activates a neighbour. Add `desktop/src/test/java/com/mobixournal/desktop/DesktopTabsTest.kt` covering add, close, activate, reorder, and that reopening a file already open activates its tab instead of duplicating it. Bind Ctrl+T (new/open), Ctrl+W (close) and Ctrl+Tab (next) and list them in the shortcuts table of docs/ui-modernization.md. Verify with `:desktop:test` plus a headless ImageComposeScene render of the strip with two tabs."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
 id = "desktop-paint-living-entities-and-page-pictures"
 title = "Paint living entities and page pictures in the desktop preview"
 description = "Done. The living-entity ink pipeline is now platform-free in mobix-core: LivingInk plus the family compilers (TableInk, PlotInk, ShapeInk, CircuitInk) and what they need (CircuitShapes, ShapeBuilder, ChemShapes, FigureGeometry, FunctionPlot, FunctionAnalysis, AdvancedCurves, MultiFunctionPlotter, InkPrimitives, PlotFrame, TriangularLattice, ElementBounds, TriangleKind/TrapezoidKind, MeasuringText, and a new InkTokens holding the three drawing constants they used to borrow from the Android canvas theme). The app compiler needed no import changes: same package, one module up. Because a living entity compiles to ordinary ink (strokes and text), the desktop draws tables, plots, parametric shapes and circuit components by asking LivingInk for that ink and painting it with the painter it already had - one definition, both shells, no second renderer. An entity with no drawing for it (an unknown circuit symbol) is reported through LivingInk's uncompiled list rather than vanishing. Page pictures are drawn too: PageBackdrop resolves a pixmap or PDF background from the bundle first (a .mobix's assets), then a ZIP package's extraction, then the document's folder, rasterises PDF pages with JVM PDFBox at 2x (desktop-only dependency; the app keeps pdfbox-android) and caches a dozen page-sized bitmaps; the picture is drawn between the paper and the ink so a highlighter still multiplies into it and a missing picture leaves paper instead of failing. Verified by :desktop:test (17 tests), including 7 new ones that assert pixels: a compiled table's grid, a shape's outline, an uncompilable circuit reported, a pixmap's colour as the sheet, a bundled picture winning over a dead reference, a PDF page's grey landing under the ink, and a missing background staying white. Core 236 and app suites green; DocsGuard and SourceStructure green after the moves (the CircuitShapes ceiling moved with the file). Also smoke-ran the window on udiff.xopp with no exception. Docs: desktop-workstation.md, rendering.md, codebase.md, stack.md and README updated."

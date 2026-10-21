@@ -16,6 +16,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -61,12 +62,15 @@ internal fun DrawScope.drawPageContent(
     textMeasurer: TextMeasurer,
     backdrop: PageBackdrop? = null,
 ) {
-    drawPaper(page.background, page.width, page.height, pxPerPt)
+    // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
+    // window, so `size` here would paint the paper across the whole viewport.
+    val sheet = Size((page.width * pxPerPt).toFloat(), (page.height * pxPerPt).toFloat())
+    drawPaper(page.background, page.width, page.height, pxPerPt, sheet)
     backdrop?.image(page.background)?.let { picture ->
         drawImage(
             picture,
             dstOffset = IntOffset.Zero,
-            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+            dstSize = IntSize(sheet.width.roundToInt(), sheet.height.roundToInt()),
         )
     }
     for (layer in page.layers) {

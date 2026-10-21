@@ -1,0 +1,212 @@
+package com.mobixournal.desktop
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
+
+/**
+ * The open documents, as a strip under the header.
+ *
+ * Each tab shows its document's label and a monoline close glyph; the active one is the only one drawn
+ * as a raised surface, so "which document am I in" is answered by one thing instead of by a border, a
+ * colour and a shadow at once. A **double-click edits the label in place** — a tab label is a label,
+ * not the file's name — and **dragging sideways reorders** the strip. The `+` at the end is the same
+ * open action the header button and `Ctrl+T` invoke.
+ *
+ * Tab widths are measured per tab, because drag-to-reorder needs to know how far one tab is: the
+ * distance dragged divided by that width is how many places to move.
+ */
+@Composable
+fun TabStrip(
+    tabs: DesktopTabs,
+    onActivate: (Int) -> Unit,
+    onClose: (Int) -> Unit,
+    onMove: (Int, Int) -> Unit,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val widths = remember { mutableMapOf<String, Float>() }
+    var renamingKey by remember { mutableStateOf<String?>(null) }
+    var dragFrom by remember { mutableStateOf(-1) }
+    var dragX by remember { mutableStateOf(0f) }
+
+    Row(modifier.height(34.dp), verticalAlignment = Alignment.CenterVertically) {
+        tabs.all.forEachIndexed { index, tab ->
+            val active = index == tabs.activeIndex
+            val width = widths[tab.key] ?: TAB_FALLBACK_PX
+
+            Row(
+                Modifier
+                    .onGloballyPositioned { widths[tab.key] = it.size.width.toFloat() }
+                    .padding(end = 4.dp)
+                    .height(26.dp)
+                    .widthIn(min = 96.dp, max = 220.dp)
+                    .background(if (active) TAB_ACTIVE else TAB_IDLE, TAB_SHAPE)
+                    .border(1.dp, if (active) TAB_ACTIVE_BORDER else TAB_IDLE_BORDER, TAB_SHAPE)
+                    .pointerInput(tab.key) {
+                        detectTapGestures(
+                            onTap = { onActivate(index) },
+                            onDoubleTap = { renamingKey = tab.key },
+                        )
+                    }
+                    .pointerInput(tab.key, tabs.size) {
+                        // A drag that lands past the end is clamped by `DesktopTabs.move`, so letting
+                        // go slightly outside the strip must not drop the tab.
+                        detectDragGestures(
+                            onDragStart = { dragFrom = index; dragX = 0f },
+                            onDragEnd = {
+                                if (dragFrom >= 0) {
+                                    val steps = (dragX / width.coerceAtLeast(1f)).roundToInt()
+                                    onMove(dragFrom, dragFrom + steps)
+                                }
+                                dragFrom = -1
+                                dragX = 0f
+                            },
+                            onDragCancel = { dragFrom = -1; dragX = 0f },
+                        ) { _, drag -> dragX += drag.x }
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(Modifier.width(10.dp))
+                if (renamingKey == tab.key) {
+                    RenamingField(tab, onDone = { renamingKey = null })
+                } else {
+                    androidx.compose.material3.Text(
+                        text = tab.title,
+                        color = if (active) Color.White else Color(0xFF9A9AA6),
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 160.dp),
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                CloseGlyph(onClose = { onClose(index) })
+                Spacer(Modifier.width(8.dp))
+            }
+        }
+
+        AddTabButton(onOpen)
+    }
+}
+
+/** The label, edited in place: Enter commits, Escape abandons, an empty label falls back to the file. */
+@Composable
+private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
+    var text by remember(tab) { mutableStateOf(tab.title) }
+    val focus = remember { FocusRequester() }
+
+    fun commit() {
+        tab.title = text.trim().ifEmpty { tab.file.name }
+        onDone()
+    }
+
+    BasicTextField(
+        value = text,
+        onValueChange = { text = it },
+        singleLine = true,
+        textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+        modifier = Modifier
+            .width(140.dp)
+            .focusRequester(focus)
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.Enter, Key.NumPadEnter -> {
+                        commit()
+                        true
+                    }
+                    Key.Escape -> {
+                        onDone()
+                        true
+                    }
+                    else -> false
+                }
+            },
+    )
+    LaunchedEffect(Unit) { focus.requestFocus() }
+}
+
+/** A close glyph drawn as two monoline strokes — no filled Material icon in this chrome. */
+@Composable
+private fun CloseGlyph(onClose: () -> Unit) {
+    Box(
+        Modifier
+            .width(18.dp)
+            .height(18.dp)
+            .pointerInput(Unit) { detectTapGestures { onClose() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.width(9.dp).height(9.dp)) {
+            val stroke = 1.4.dp.toPx()
+            drawLine(HAIRLINE, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), stroke)
+            drawLine(HAIRLINE, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height), stroke)
+        }
+    }
+}
+
+/** A monoline `+`: the open button at the end of the strip. */
+@Composable
+private fun AddTabButton(onOpen: () -> Unit) {
+    Box(
+        Modifier
+            .width(26.dp)
+            .height(26.dp)
+            .background(TAB_IDLE, TAB_SHAPE)
+            .pointerInput(Unit) { detectTapGestures { onOpen() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.width(9.dp).height(9.dp)) {
+            val stroke = 1.4.dp.toPx()
+            drawLine(GLYPH, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
+            drawLine(GLYPH, androidx.compose.ui.geometry.Offset(size.width / 2f, 0f), androidx.compose.ui.geometry.Offset(size.width / 2f, size.height), stroke)
+        }
+    }
+}
+
+private val TAB_SHAPE = RoundedCornerShape(8.dp)
+private val TAB_ACTIVE = Color(0xFF2A2A31)
+private val TAB_IDLE = Color(0xFF1B1B20)
+private val TAB_ACTIVE_BORDER = Color(0xFF3A3A44)
+private val TAB_IDLE_BORDER = Color(0xFF232329)
+private val HAIRLINE = Color(0xFF8A8A96)
+private val GLYPH = Color(0xFFB9B9C4)
+
+/** Fallback width of a tab before its first layout pass has been measured. */
+private const val TAB_FALLBACK_PX = 140f

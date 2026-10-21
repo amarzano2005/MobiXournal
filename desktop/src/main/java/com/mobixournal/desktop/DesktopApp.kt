@@ -1,21 +1,18 @@
 package com.mobixournal.desktop
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -27,45 +24,58 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.FileDialog
 import java.io.File
 
 /**
- * The desktop shell: open a document, look at its pages, zoom.
+ * The desktop shell: open documents as tabs, navigate them with a sidebar, zoom and pan the page.
  *
- * That is the whole feature set on purpose. It is the thinnest thing that proves the claim in
- * `docs/desktop-workstation.md` — the document model and the codecs are platform-free, so a desktop
- * window can show the **same** page the Android editor shows — before any of the editor's
- * Android-bound UI is extracted into shared modules.
+ * The layout is the workstation one from `docs/ui-modernization.md` — a header carrying the tab strip,
+ * a sidebar beside the canvas (never over it), the page on a true-black desk, and a status bar with the
+ * page and the zoom. Everything the chrome does has a key: `Ctrl+T` open, `Ctrl+W` close, `Ctrl+Tab`
+ * switch, `Ctrl+B` sidebar, `Ctrl+=`/`Ctrl+-`/`Ctrl+0` zoom, `PgUp`/`PgDn` page.
  *
- * It opens all three containers the app writes (gzip `.xopp`, ZIP `.xopp`, `.mobix`) through one page
- * surface, and the list is **lazy**: only the pages on screen are asked for, so a 200-page notebook
- * opens without inflating it.
+ * The view state lives in [DesktopTabs], one [DesktopTab] per document: a tab keeps its own page, zoom
+ * and fit, so switching documents returns you to what you were looking at.
  */
 @Composable
 fun FrameWindowScope.DesktopApp(initial: File? = null) {
-    var document by remember { mutableStateOf<DesktopDocument?>(null) }
+    val tabs = remember { DesktopTabs() }
+    var active by remember { mutableStateOf<DesktopTab?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var zoom by remember { mutableStateOf(1f) }
+    var sidebarVisible by remember { mutableStateOf(true) }
+    var panMode by remember { mutableStateOf(false) }
+    val thumbnails = remember { mutableMapOf<String, MutableMap<Int, androidx.compose.ui.graphics.ImageBitmap>>() }
+    val focus = remember { FocusRequester() }
 
     fun open(file: File) {
         runCatching { DocumentLoader.load(file) }
-            .onSuccess { opened ->
-                // The previous document owns a file handle (a `.mobix` reader holds it open).
-                document?.close()
-                document = opened
+            .onSuccess { document ->
+                active = tabs.open(document)
                 error = null
-                zoom = 1f
             }
             .onFailure { error = it.message ?: it.toString() }
     }
 
-    fun pick(): File? {
+    fun pick() {
         val dialog = FileDialog(window, "Apri un documento", FileDialog.LOAD)
         dialog.setFilenameFilter { _, name ->
             name.endsWith(".xopp", ignoreCase = true) || name.endsWith(".mobix", ignoreCase = true)
@@ -73,119 +83,225 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
         dialog.isVisible = true
         val dir = dialog.directory
         val name = dialog.file
-        return if (dir != null && name != null) File(dir, name) else null
+        if (dir != null && name != null) open(File(dir, name))
+    }
+
+    fun closeActive() {
+        tabs.closeActive()
+        active = tabs.active
     }
 
     LaunchedEffect(initial) { initial?.let(::open) }
-    DisposableEffect(Unit) { onDispose { document?.close() } }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    DisposableEffect(Unit) { onDispose { tabs.closeAll() } }
+
+    /** The window's keys: every one of them is also in the shortcuts table of `docs/ui-modernization.md`. */
+    fun onKey(event: KeyEvent): Boolean {
+        val tab = active ?: return false
+        if (event.type == KeyEventType.KeyUp && event.key == Key.Spacebar) {
+            panMode = false
+            return true
+        }
+        if (event.type != KeyEventType.KeyDown) return false
+        val ctrl = event.isCtrlPressed
+        return when {
+            ctrl && event.key == Key.T -> {
+                pick(); true
+            }
+            ctrl && event.key == Key.W -> {
+                closeActive(); true
+            }
+            ctrl && event.key == Key.Tab -> {
+                active = if (event.isShiftPressed) tabs.previous() else tabs.next(); true
+            }
+            ctrl && event.key == Key.B -> {
+                sidebarVisible = !sidebarVisible; true
+            }
+            ctrl && isZoomIn(event.key, event.isShiftPressed) -> {
+                zoomBy(tab, ZOOM_STEP); true
+            }
+            ctrl && isZoomOut(event.key) -> {
+                zoomBy(tab, 1f / ZOOM_STEP); true
+            }
+            ctrl && event.key == Key.Zero -> {
+                tab.fit = FitMode.PAGE; tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f); true
+            }
+            ctrl && event.key == Key.One -> {
+                tab.fit = FitMode.WIDTH; tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f); true
+            }
+            event.key == Key.PageDown || event.key == Key.DirectionDown && !ctrl -> {
+                selectPage(tab, (tab.page + 1).coerceAtMost(tab.pageCount - 1)); true
+            }
+            event.key == Key.PageUp || event.key == Key.DirectionUp && !ctrl -> {
+                selectPage(tab, (tab.page - 1).coerceAtLeast(0)); true
+            }
+            event.key == Key.Spacebar -> {
+                panMode = true; true
+            }
+            else -> false
+        }
+    }
 
     MaterialTheme(colorScheme = darkColorScheme()) {
-        Column(Modifier.fillMaxSize().background(Color(0xFF17171B))) {
-            Toolbar(
-                document = document,
-                zoom = zoom,
-                onZoom = { zoom = it },
-                onOpen = { pick()?.let(::open) },
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(DESK)
+                .focusRequester(focus)
+                .focusable()
+                .onPreviewKeyEvent(::onKey),
+        ) {
+            Header(
+                tabs = tabs,
+                onActivate = { index -> active = tabs.activate(index) },
+                onClose = { index ->
+                    tabs.close(index)
+                    active = tabs.active
+                },
+                onMove = { from, to ->
+                    tabs.move(from, to)
+                    active = tabs.active
+                },
+                onOpen = ::pick,
+                sidebarVisible = sidebarVisible,
+                onToggleSidebar = { sidebarVisible = !sidebarVisible },
             )
-            Box(Modifier.fillMaxSize()) {
-                val doc = document
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                val tab = active
                 when {
                     error != null -> Notice("Impossibile aprire il documento", error!!)
-                    doc == null -> Notice(
+                    tab == null -> Notice(
                         "Apri un file .xopp o .mobix per iniziare",
-                        "Anteprima desktop: pagine e inchiostro in sola lettura. File → Apri, oppure passa un percorso come argomento.",
+                        "Ctrl+T oppure “Apri…”. L'anteprima mostra carta, inchiostro, entità vive e sfondi PDF o immagine, in sola lettura.",
                     )
-                    else -> PageList(doc, zoom)
+                    else -> Row(Modifier.fillMaxSize()) {
+                        if (sidebarVisible) {
+                            PageSidebar(
+                                tab = tab,
+                                cache = thumbnails.getOrPut(tab.key) { mutableMapOf() },
+                                onSelectPage = { index -> selectPage(tab, index) },
+                            )
+                        }
+                        PageCanvas(
+                            tab = tab,
+                            panMode = panMode,
+                            onViewport = { tab.viewport = it },
+                            onFit = { tab.fit = it },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                    }
                 }
             }
+            StatusBar(active)
         }
     }
 }
 
 @Composable
-private fun Toolbar(
-    document: DesktopDocument?,
-    zoom: Float,
-    onZoom: (Float) -> Unit,
+private fun Header(
+    tabs: DesktopTabs,
+    onActivate: (Int) -> Unit,
+    onClose: (Int) -> Unit,
+    onMove: (Int, Int) -> Unit,
     onOpen: () -> Unit,
+    sidebarVisible: Boolean,
+    onToggleSidebar: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().height(56.dp).background(Color(0xFF232329)).padding(horizontal = 16.dp),
+        Modifier.fillMaxWidth().height(HEADER_HEIGHT).background(CHROME).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(onClick = onOpen) { Text("Apri…") }
-        Spacer(Modifier.width(16.dp))
-        Column {
-            Text(
-                text = document?.file?.name ?: "Nessun documento aperto",
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = document?.let { doc ->
-                    // A `.mobix` has no stroke count until every page is read, and this header is not
-                    // allowed to do that; an eager `.xopp` owes the real number.
-                    val inks = doc.strokeCount?.let { "$it tratti" } ?: "pagine lette su richiesta"
-                    "${doc.container.label} · ${doc.pageCount} pagine · $inks"
-                } ?: "anteprima desktop",
-                color = Color(0xFF9A9AA6),
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-        Spacer(Modifier.weight(1f))
-        Text("Zoom ${(zoom * 100).toInt()}%", color = Color(0xFF9A9AA6))
-        Spacer(Modifier.width(12.dp))
-        Slider(
-            value = zoom,
-            onValueChange = onZoom,
-            valueRange = 0.25f..2f,
-            modifier = Modifier.width(180.dp),
+        HeaderGlyph(
+            active = sidebarVisible,
+            onClick = onToggleSidebar,
+            draw = { color, stroke ->
+                drawLine(color, androidx.compose.ui.geometry.Offset(0f, 2f), androidx.compose.ui.geometry.Offset(size.width, 2f), stroke)
+                drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
+                drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height - 2f), androidx.compose.ui.geometry.Offset(size.width, size.height - 2f), stroke)
+            },
+        )
+        Spacer(Modifier.width(10.dp))
+        TabStrip(
+            tabs = tabs,
+            onActivate = onActivate,
+            onClose = onClose,
+            onMove = onMove,
+            onOpen = onOpen,
+            modifier = Modifier.weight(1f),
         )
     }
 }
 
-/**
- * The pages, **lazily**: `LazyColumn` composes the rows near the viewport only, so the reader behind a
- * `.mobix` is asked for the pages on screen and nothing else. That is what makes a paged container worth
- * having — a plain `Column` over `0 until pageCount` would inflate every page to draw three.
- */
 @Composable
-private fun PageList(document: DesktopDocument, zoom: Float) {
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(vertical = 24.dp),
+private fun HeaderGlyph(
+    active: Boolean,
+    onClick: () -> Unit,
+    draw: androidx.compose.ui.graphics.drawscope.DrawScope.(Color, Float) -> Unit,
+) {
+    Box(
+        Modifier
+            .width(26.dp)
+            .height(26.dp)
+            .background(if (active) Color(0xFF2A2A31) else Color.Transparent, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .pointerInput(active) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
     ) {
-        items(count = document.pageCount) { index ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(bottom = 18.dp),
-            ) {
-                Text(
-                    text = "Pagina ${index + 1} / ${document.pageCount}",
-                    color = Color(0xFF9A9AA6),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                // One failed page must not blank the window: it reports itself and the rest still reads.
-                val page = remember(document, index) { runCatching { document.page(index) } }
-                val loaded = page.getOrNull()
-                if (loaded == null) {
-                    Text(
-                        text = "Impossibile leggere questa pagina: ${page.exceptionOrNull()?.message}",
-                        color = Color(0xFFFF8A80),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                } else {
-                    PageView(
-                        page = loaded,
-                        scale = zoom,
-                        modifier = Modifier.shadow(10.dp),
-                        backdrop = document.backdrop,
-                    )
-                }
-            }
+        androidx.compose.foundation.Canvas(Modifier.width(12.dp).height(12.dp)) {
+            draw(if (active) GLYPH_ACTIVE else GLYPH_IDLE, 1.4.dp.toPx())
         }
+    }
+}
+
+/** The bottom bar: page, zoom, container and how far through the document the page is. */
+@Composable
+private fun StatusBar(tab: DesktopTab?) {
+    Row(
+        Modifier.fillMaxWidth().height(STATUS_HEIGHT).background(CHROME).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (tab == null) {
+            Text("nessun documento", color = Color(0xFF6E6E78), fontSize = 11.sp)
+            return@Row
+        }
+        val zoom = tab.viewport.zoom
+        Text(
+            text = pageLabel(tab.page, tab.pageCount),
+            color = Color(0xFF9A9AA6),
+            style = TabularStyle,
+        )
+        Spacer(Modifier.width(14.dp))
+        Text(zoomLabel(zoom), color = Color(0xFF9A9AA6), style = TabularStyle)
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text = when (tab.fit) {
+                FitMode.NONE -> "zoom libero"
+                FitMode.WIDTH -> "adatta larghezza"
+                FitMode.PAGE -> "adatta pagina"
+            },
+            color = Color(0xFF6E6E78),
+            fontSize = 11.sp,
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = "${tab.document.container.label} · ${tab.file.name}",
+            color = Color(0xFF6E6E78),
+            fontSize = 11.sp,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(12.dp))
+        ProgressBar(pageProgress(tab.page, tab.pageCount))
+    }
+}
+
+@Composable
+private fun ProgressBar(fraction: Float) {
+    Box(Modifier.width(90.dp).height(3.dp).background(Color(0xFF2A2A31))) {
+        Box(
+            Modifier
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .background(Color(0xFF60A5FA)),
+        )
     }
 }
 
@@ -199,3 +315,51 @@ private fun Notice(title: String, detail: String) {
         }
     }
 }
+
+/** Select a page, keeping the tab's fit mode and re-centring the free viewport on it. */
+internal fun selectPage(tab: DesktopTab, index: Int) {
+    tab.page = index.coerceIn(0, (tab.pageCount - 1).coerceAtLeast(0))
+    tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f)
+}
+
+/** One keyboard zoom step. */
+internal const val ZOOM_STEP = 1.25f
+
+/**
+ * The keys that mean "zoom in" on the keyboard, whatever the layout puts on them.
+ *
+ * `Ctrl + =` is the documented shortcut, but `=` is not a key everywhere: on an Italian keyboard it is
+ * **Shift + 0**, so the physical shortcut arrives as `Ctrl + Shift + 0` and a plain `Key.Equals` test
+ * would never fire — worse, it would fall through to `Ctrl + 0` (fit page) and silently undo the zoom.
+ * The keypad `+` is the layout-independent one. `Key.Plus` covers layouts where `+` is a key of its own.
+ */
+internal fun isZoomIn(key: Key, shift: Boolean): Boolean =
+    key == Key.Equals ||
+        key == Key.Plus ||
+        key == Key.NumPadAdd ||
+        (shift && key == Key.Zero)
+
+/** The mirror of [isZoomIn]: `Ctrl + -` and the keypad's `-`. */
+internal fun isZoomOut(key: Key): Boolean = key == Key.Minus || key == Key.NumPadSubtract
+
+private val DESK = Color(0xFF000000)
+private val CHROME = Color(0xFF141418)
+private val GLYPH_ACTIVE = Color(0xFFE6E6EF)
+private val GLYPH_IDLE = Color(0xFF9A9AA6)
+/** Tabular figures: a page counter that changes width as it counts is a counter you notice. */
+private val TabularStyle = TextStyle(fontSize = 11.sp, fontFeatureSettings = "tnum")
+
+private val HEADER_HEIGHT = 44.dp
+private val STATUS_HEIGHT = 24.dp
+
+/** Zooms a tab around its centre (the keyboard path; the wheel zooms around the cursor). */
+internal fun zoomBy(tab: DesktopTab, factor: Float) {
+    tab.fit = FitMode.NONE
+    tab.viewport = tab.viewport.copy(zoom = (tab.viewport.zoom * factor).coerceIn(Viewport.MIN_ZOOM, Viewport.MAX_ZOOM))
+}
+
+/** The label a document's tab gets before a rename, kept here so the strip and tests agree. */
+internal fun tabLabel(file: File): String = file.name
+
+@Suppress("unused")
+private val keepFontWeight = FontWeight.SemiBold
