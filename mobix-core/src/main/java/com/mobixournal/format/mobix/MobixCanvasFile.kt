@@ -17,7 +17,7 @@ import com.mobixournal.format.json.JsonWriter
  * default must not silently re-interpret files written before it — the grid of an old file stays the
  * grid it was written with.
  */
-internal data class MobixCanvasFile(
+data class MobixCanvasFile(
     /** The mode this geometry describes; must agree with the manifest's `canvasMode`. */
     val mode: CanvasMode,
 
@@ -89,7 +89,7 @@ internal data class MobixCanvasFile(
 }
 
 /** Where document coordinates `(0, 0)` sit on the printed sheet. */
-internal data class Origin(
+data class Origin(
     /** The 1-based page an exported sheet starts at when [offsetPt] is applied. */
     val pageNo: Int = 1,
 

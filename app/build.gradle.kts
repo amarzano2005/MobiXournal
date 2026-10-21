@@ -93,6 +93,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
+    // `SyntheticNotebook`, the real `.mobix` fixture the I/O and render suites open.
+    testImplementation(testFixtures(project(":mobix-core")))
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.runner)

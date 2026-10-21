@@ -14,7 +14,7 @@ package com.mobixournal.format.mobix
  * A caller with no source to reuse from — a new document, a first save, a Save As — gets [of], where
  * the two are the same list.
  */
-internal class MobixSavePlan(
+class MobixSavePlan(
     /** The entries to write, `manifest.json` first. */
     val entries: List<MobixContainer.Entry>,
 

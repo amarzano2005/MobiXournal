@@ -4,7 +4,7 @@ import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.SyntheticNotebook
-import com.mobixournal.format.mobix.TrackedEntrySource
+import com.mobixournal.format.mobix.CountingEntrySource
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.EditedPages
 import com.mobixournal.format.model.Page
@@ -27,7 +27,7 @@ import java.io.File
  * kept, and undo and redo still find it after the cache has moved on.
  *
  * Everything runs on a synthetic 200-page `.mobix` read through [MobixPagedReader], so "the page left
- * the window" is a real eviction and "only this page was opened" is counted by [TrackedEntrySource].
+ * the window" is a real eviction and "only this page was opened" is counted by [CountingEntrySource].
  */
 class PageWindowTest {
 
@@ -42,10 +42,10 @@ class PageWindowTest {
 
     private fun elements(page: Page): Int = page.layers.sumOf { it.elements.size }
 
-    private fun tracked(): TrackedEntrySource = TrackedEntrySource(MobixEntrySource.fromFile(archive()))
+    private fun tracked(): CountingEntrySource = CountingEntrySource(MobixEntrySource.fromFile(archive()))
 
-    /** Every page entry [TrackedEntrySource] has opened, by index (the entries of this fixture). */
-    private fun openedPages(tracked: TrackedEntrySource): Set<Int> =
+    /** Every page entry [CountingEntrySource] has opened, by index (the entries of this fixture). */
+    private fun openedPages(tracked: CountingEntrySource): Set<Int> =
         (0 until pageCount).filter { tracked.openCount(SyntheticNotebook.entryOf(it)) > 0 }.toSet()
 
     @Test

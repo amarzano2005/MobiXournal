@@ -23,6 +23,9 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     testImplementation(libs.junit)
+    // The `.mobix` fixtures are shared through `mobix-core`'s test fixtures, so this shell's suite
+    // opens the same synthetic notebook the core and app suites do instead of growing its own writer.
+    testImplementation(testFixtures(project(":mobix-core")))
 }
 
 // `run` starts in the module directory by default; run from the repository root so a path argument

@@ -4,7 +4,9 @@ import android.graphics.RectF
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import com.mobixournal.format.mobix.MobixPlotCodec
+import com.mobixournal.format.mobix.MobixAssetSink
+import com.mobixournal.format.mobix.MobixAssetSource
+import com.mobixournal.format.mobix.MobixElementCodec
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.PlotCurve as ModelPlotCurve
 import com.mobixournal.format.model.PlotElement
@@ -29,7 +31,7 @@ import org.junit.Test
  *  2. Edit application round-trip via [PlotElementFactory.applyPlotEdit]: ensuring edited fields update
  *     while unedited fields ([PlotElement.samples], [PlotElement.parameters], [PlotElement.axisColor],
  *     [PlotElement.extraAttrs], [PlotElement.id]) survive the edit and survive a write/read round trip
- *     through [MobixPlotCodec].
+ *     through [MobixElementCodec].
  */
 class PlotInspectorAnchorTest {
 
@@ -253,11 +255,13 @@ class PlotInspectorAnchorTest {
         assertEquals("extraAttrs must be preserved", mapOf("customTag" to "mobixV2"), updated.extraAttrs)
         assertEquals("id must be preserved", "plot-stable-id-1234", updated.id)
 
-        // Verify round-trip through MobixPlotCodec
-        val encodedBytes = MobixPlotCodec.encode(updated)
-        val decoded = MobixPlotCodec.decode(encodedBytes)
+        // Verify the round trip through the element codec a save actually uses
+        val decoded = MobixElementCodec.decode(
+            MobixElementCodec.encode(updated, MobixAssetSink()),
+            MobixAssetSource { null },
+        )
         assertNotNull("decoded plot element must not be null", decoded)
-        val nonNullDecoded = decoded!!
+        val nonNullDecoded = decoded as PlotElement
 
         assertEquals(updated.curves.single().source, nonNullDecoded.curves.single().source)
         assertEquals(updated.curves.single().color, nonNullDecoded.curves.single().color)

@@ -52,7 +52,7 @@ import com.mobixournal.format.model.audioRef
  * and is **never read back**: it is a cache for a reader that does not want to parse the element, so
  * trusting it would let a stale value become the truth.
  */
-internal object MobixElementCodec {
+object MobixElementCodec {
 
     /** The `type` values this build models; anything else is preserved as raw JSON. */
     const val STROKE: String = "stroke"

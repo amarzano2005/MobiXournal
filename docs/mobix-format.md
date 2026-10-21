@@ -365,12 +365,13 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
      (`io/BundledPageAssets.kt`), which is what keeps the open free of pages *and* assets.
    - Pages outside the viewport are evicted from RAM and re-read from the ZIP container on demand in
      $< 5\text{ ms}$ when scrolled into view, verified on synthetic 200-page archives in `MobixPagedReaderTest`.
-   - **Measured** (`MobixPagedOpenBenchmarkTest`, report in `app/build/reports/mobix-open.txt`): a
-     200-page archive, one 1 MiB asset, 204 entries — the whole-archive path opens in 4 ms inflating all
-     204, the old streaming open in 3 ms inflating 203, and **the open the app ships in 1 ms inflating
-     3** (`mimetype`, `manifest.json`, `canvas.json`: no page, no asset).
-   - This is a property of the container's part-per-page layout; the same reader serves the
-     infinite-canvas chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
+   - **Measured** (`MobixPagedOpenBenchmarkTest`, report in `app/build/reports/mobix-open.txt`): on a
+     200-page archive with one 1 MiB asset (204 entries) the whole-archive path opens in 4 ms inflating all
+     204, the old streaming open in 3 ms inflating 203, and **the shipped open in 1 ms inflating 3**.
+   - The reader, the asset sources and the save are a **published contract** ([mobix-streaming-api.md](mobix-streaming-api.md)),
+     not app internals: the desktop shell opens a notebook through them with no Android on its classpath.
+   - It is a property of the container's part-per-page layout; the same reader serves the infinite-canvas
+     chunk mode ([infinite-canvas.md](infinite-canvas.md)) with chunks in place of pages.
 2. **Incremental Delta-Writes (Zero save latency)** — **live** when the save lands back on the file the
    document came from: the manifest and the entries that moved are written, everything else — untouched
    pages, background PDFs, pictures — is copied as the bytes the archive already holds, and a page the

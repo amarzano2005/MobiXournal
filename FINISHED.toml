@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "extract-the-mobix-streaming-api-into-mobix-core"
+title = "Design and extract the .mobix streaming API into mobix-core (scope)"
+description = "Delivered rather than broken into children: `format/mobix` (engine included, 30 files) now lives in `mobix-core/src/main/java/com/mobixournal/format/mobix`, and the boundary was drawn instead of publishing everything. Public contract (KDoc'd, documented in docs/mobix-streaming-api.md): MobixEntrySource + MobixPagedReader + PageSource (open, count, inflate page N, window, evict), MobixAssetSource/MobixAssetSink (content-addressed payloads, streamed), MobixPageCodec/MobixElementCodec (page and element <-> JSON), MobixContainer/MobixManifest/MobixCanvasFile/MobixPart/MobixDocument, MobixSavePlan, MobixIncrementalSave + stats, MobixPageReuse, MobixMergeEngine/MobixMergeSide/MobixMergeResult, MobixConflictDetector/SyncConflictInfo. Kept internal on purpose: MobixZip and its RawEntry/Index (the raw-copy channel is reached through saveOver, via an internal RawEntrySource), the per-family codecs (table/plot/shape/circuit) and MobixJson, the bridge digest internals, and the test instrumentation now in testFixtures (SyntheticNotebook, CountingEntrySource). The app's io/render/audio consumers were left on that surface unchanged apart from four suites that had been reaching internals (they now use MobixElementCodec or the counting fixture). Proof from outside the module: desktop/src/test/.../DesktopMobixOpenTest opens a 40-page notebook through the contract alone. Docs: new spoke docs/mobix-streaming-api.md (registered in architecture.md, linked from mobix-format.md and desktop-workstation.md); codebase.md moved the engine block into mobix-core. :app:testDebugUnitTest and :desktop:test green; desktop-open-mobix-and-zipped-xopp is unblocked."
+status = "finished"
+level = "scope"
+category = "refactor"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
 id = "share-the-ink-geometry-between-shells"
 title = "Share the ink geometry between the Android and desktop painters"
 description = "Extract the platform-free ink math out of `app/src/main/java/com/mobixournal/render/StrokePainter.kt` into `mobix-core` (package `com.mobixournal.render`, e.g. `InkGeometry.kt`): the highlighter alpha constant (0x78), `uniform(pts)`, `bandWidth(pts)`, `renderColor(tool, color)` and `dashIntervalsPt(style, widthPt)`, plus a taper-outline builder that returns the polygon in PAGE POINTS (a list of points or quads — no android.graphics.Path, no Compose types); the caller applies scale and offset. `StrokePainter` then calls that object for the rules and constants it uses, and `desktop/src/main/java/com/mobixournal/desktop/PageInk.kt` calls the same object instead of its own copies, so the taper, the highlighter band and the dash pattern are defined once. Add JVM tests in `mobix-core` for the outline (a straight line keeps its width, a taper narrows where width is smaller, the polygon closes) and for the dash intervals. Verify: `:app:testDebugUnitTest`, `:desktop:test` still paints ink on page 1 of udiff.xopp, and the new tests. Record in docs/rendering.md that this geometry is shared and lives in mobix-core."

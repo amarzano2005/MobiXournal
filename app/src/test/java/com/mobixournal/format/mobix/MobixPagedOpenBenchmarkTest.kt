@@ -111,7 +111,7 @@ class MobixPagedOpenBenchmarkTest {
     }
 
     /** The streaming open (`MobixDocument.open`), which defers the `assets/` payloads. */
-    private fun openStreaming(file: File, tracked: TrackedEntrySource? = null) {
+    private fun openStreaming(file: File, tracked: CountingEntrySource? = null) {
         val source = tracked ?: MobixEntrySource.fromFile(file)
         try {
             MobixDocument.open(source).toDocument()
@@ -126,7 +126,7 @@ class MobixPagedOpenBenchmarkTest {
      * a page's backgrounds when that page is read. It is measured through the real entry point so the
      * claim in `docs/mobix-format.md` is about the code that runs, not about a path a test keeps alive.
      */
-    private fun openShipped(file: File, tracked: TrackedEntrySource): Boolean {
+    private fun openShipped(file: File, tracked: CountingEntrySource): Boolean {
         val io = DocumentIo(
             resolver = object : ContentResolver(null) {},
             cacheDir = temp.newFolder(),
@@ -143,7 +143,7 @@ class MobixPagedOpenBenchmarkTest {
     }
 
     /** The paged path: the reader plus the first five pages. */
-    private fun openPaged(file: File, tracked: TrackedEntrySource) {
+    private fun openPaged(file: File, tracked: CountingEntrySource) {
         val reader = MobixPagedReader(tracked, cacheBudget = 5)
         reader.pageCount
         (0 until 5).forEach { reader.getPage(it) }
@@ -157,32 +157,32 @@ class MobixPagedOpenBenchmarkTest {
 
         // Warm the JIT so the first measured run is not the slowest one.
         openWhole(file)
-        openPaged(file, TrackedEntrySource(MobixEntrySource.fromFile(file)))
+        openPaged(file, CountingEntrySource(MobixEntrySource.fromFile(file)))
 
         val wholeMs = median((1..5).map { timed { openWhole(file) } })
 
         val pagedMs = median((1..5).map {
-            val fresh = TrackedEntrySource(MobixEntrySource.fromFile(file))
+            val fresh = CountingEntrySource(MobixEntrySource.fromFile(file))
             timed { openPaged(file, fresh) }
         })
-        val tracked = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val tracked = CountingEntrySource(MobixEntrySource.fromFile(file))
         openPaged(file, tracked)
         val totalEntries = ZipFile(file).use { zip -> zip.entries().asSequence().count() }
         val entriesOpenedPaged = tracked.entryNames.count { tracked.openCount(it) > 0 }
 
         val streamingMs = median((1..5).map {
-            val fresh = TrackedEntrySource(MobixEntrySource.fromFile(file))
+            val fresh = CountingEntrySource(MobixEntrySource.fromFile(file))
             timed { openStreaming(file, fresh) }
         })
-        val streaming = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val streaming = CountingEntrySource(MobixEntrySource.fromFile(file))
         openStreaming(file, streaming)
         val entriesOpenedStreaming = streaming.entryNames.count { streaming.openCount(it) > 0 }
 
         val shippedMs = median((1..5).map {
-            val fresh = TrackedEntrySource(MobixEntrySource.fromFile(file))
+            val fresh = CountingEntrySource(MobixEntrySource.fromFile(file))
             timed { openShipped(file, fresh) }
         })
-        val shipped = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val shipped = CountingEntrySource(MobixEntrySource.fromFile(file))
         val shippedOk = openShipped(file, shipped)
         val entriesOpenedShipped = shipped.entryNames.count { shipped.openCount(it) > 0 }
 

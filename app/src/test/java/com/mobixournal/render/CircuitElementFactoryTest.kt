@@ -1,6 +1,8 @@
 package com.mobixournal.render
 
-import com.mobixournal.format.mobix.MobixCircuitCodec
+import com.mobixournal.format.mobix.MobixAssetSink
+import com.mobixournal.format.mobix.MobixAssetSource
+import com.mobixournal.format.mobix.MobixElementCodec
 import com.mobixournal.format.model.CircuitElement
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -174,7 +176,7 @@ class CircuitElementFactoryTest {
     }
 
     @Test
-    fun elementSurvivesWriteAndReadThroughMobixCircuitCodec() {
+    fun elementSurvivesWriteAndReadThroughTheElementCodec() {
         val original = CircuitElementFactory.circuitElementFor(
             symbol = "DIODE",
             startX = 300.0,
@@ -186,8 +188,10 @@ class CircuitElementFactoryTest {
             value = "1N4148",
         )!!
 
-        val json = MobixCircuitCodec.encode(original)
-        val decoded = MobixCircuitCodec.decode(json)
+        val decoded = MobixElementCodec.decode(
+            MobixElementCodec.encode(original, MobixAssetSink()),
+            MobixAssetSource { null },
+        ) as CircuitElement
 
         assertNotNull(decoded)
         assertEquals(original.symbol, decoded!!.symbol)

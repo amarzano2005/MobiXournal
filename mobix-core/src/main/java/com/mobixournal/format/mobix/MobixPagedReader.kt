@@ -14,7 +14,7 @@ import java.util.zip.ZipFile
  * Accessor abstraction for ZIP entries of a `.mobix` archive.
  * Allows reading the central directory / entry names without inflating payloads.
  */
-internal interface MobixEntrySource : AutoCloseable {
+interface MobixEntrySource : AutoCloseable {
     /** All entry names present in the archive central directory. */
     val entryNames: Set<String>
 
@@ -25,12 +25,14 @@ internal interface MobixEntrySource : AutoCloseable {
     fun readBytes(name: String): ByteArray? = openEntry(name)?.use { it.readBytes() }
 
     /**
-     * The bytes of [name] **as the archive stores them**, or null when this source cannot hand them
-     * over — an in-memory map holds inflated bytes and nothing else. A repack copies what it is given
-     * verbatim instead of inflating it and deflating it again ([MobixZip]): this is what makes an
-     * incremental save cheaper than a full write rather than more expensive.
+     * The entry [name] **as the archive stores it**, or null when this source cannot hand it over — an
+     * in-memory map holds inflated bytes and nothing else. A repack copies what it is given verbatim
+     * instead of inflating it and deflating it again, which is what makes an incremental save cheaper
+     * than a full write rather than more expensive ([MobixIncrementalSave]).
+     *
+     * A decorator source **must forward it**, or everything it wraps silently loses that path.
      */
-    fun rawEntry(name: String): MobixZip.RawEntry? = null
+    fun rawEntry(name: String): MobixRawEntry? = null
 
     companion object {
         /**
@@ -60,7 +62,7 @@ private class ZipFileEntrySource(private val zip: ZipFile, file: File) : MobixEn
         zip.getEntry(name)?.let { zip.getInputStream(it) }
 
     /** The file's own bytes, for a caller that wants an entry the way the archive stores it. */
-    override fun rawEntry(name: String): MobixZip.RawEntry? = raw.rawEntry(name)
+    override fun rawEntry(name: String): MobixRawEntry? = raw.rawEntry(name)
 
     override fun close() {
         zip.close()
@@ -99,7 +101,7 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
     }
 
     /** A raw copy is still a read of that entry, so it is counted like any other. */
-    override fun rawEntry(name: String): MobixZip.RawEntry? =
+    override fun rawEntry(name: String): MobixRawEntry? =
         delegate.rawEntry(name)?.also { counts[name] = (counts[name] ?: 0) + 1 }
 
     /** How many times [name] was opened/inflated. */
@@ -132,7 +134,7 @@ internal class TrackedEntrySource(val delegate: MobixEntrySource) : MobixEntrySo
  * @param source The underlying entry source exposing archive entries on demand.
  * @param cacheBudget The maximum number of materialised pages kept in memory simultaneously.
  */
-internal class MobixPagedReader(
+class MobixPagedReader(
     val source: MobixEntrySource,
     val cacheBudget: Int = DEFAULT_CACHE_BUDGET,
 ) : AutoCloseable {

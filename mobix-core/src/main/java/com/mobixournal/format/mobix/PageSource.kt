@@ -38,7 +38,7 @@ internal class LazyPages(private val source: PageSource) : AbstractList<Page>() 
  * draws it. Kept apart from [Page] on purpose: a canvas can then be laid out from the sizes alone,
  * and the page models are read only for the boxes it actually shows.
  */
-internal data class PageSize(val widthPt: Double, val heightPt: Double)
+data class PageSize(val widthPt: Double, val heightPt: Double)
 
 /**
  * The page surface of an open document, and the seam that lets a caller work page by page instead
@@ -57,7 +57,7 @@ internal data class PageSize(val widthPt: Double, val heightPt: Double)
  * what it opened itself, so a caller that did not open the archive must not close over it: the
  * `.mobix`-backed source closes its whole reader (and its entries) with it.
  */
-internal interface PageSource : AutoCloseable {
+interface PageSource : AutoCloseable {
 
     /** How many pages the document declares — a `.mobix` answers this from its manifest. */
     val pageCount: Int

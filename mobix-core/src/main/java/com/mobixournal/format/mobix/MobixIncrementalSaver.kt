@@ -12,7 +12,7 @@ import java.io.OutputStream
  * @property rewrittenRawBytes Total uncompressed bytes of rewritten entries written into the archive.
  * @property totalOutputBytes Total size in bytes of the finished repacked archive.
  */
-internal data class MobixIncrementalSaveStats(
+data class MobixIncrementalSaveStats(
     val totalEntries: Int,
     val streamedEntries: Int,
     val rewrittenEntries: Int,

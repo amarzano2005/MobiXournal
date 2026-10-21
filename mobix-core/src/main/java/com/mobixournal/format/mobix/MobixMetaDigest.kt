@@ -34,7 +34,7 @@ import com.mobixournal.format.model.Page
  * statement: if how the writer spells a stroke ever changes, older blocks stop verifying — and they are
  * discarded, which is the safe direction.
  */
-internal object MobixMetaDigest {
+object MobixMetaDigest {
 
     /** The wrapper's creator, so the digest cannot drift with the app's own version. */
     private const val WRAPPER_CREATOR = "mobix-digest"

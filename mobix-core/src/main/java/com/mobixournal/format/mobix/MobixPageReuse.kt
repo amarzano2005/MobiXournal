@@ -41,7 +41,7 @@ import com.mobixournal.format.model.withIdentityOn
  * reused entries out of the source, so a plan that named an entry the source lacks would fail loudly
  * at the repack. [of] refuses to build such a plan in the first place.
  */
-internal class MobixPageReuse private constructor(
+class MobixPageReuse private constructor(
     /** Page index → the part the source archive already holds for exactly that page. */
     val reused: Map<Int, MobixPart>,
 

@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 /**
  * Kind of third-party sync service that produced a conflict file.
  */
-internal enum class SyncClientKind {
+enum class SyncClientKind {
     /** Syncthing conflict files (e.g. `notes.sync-conflict-20261012-143022-DEVICEID.mobix`). */
     SYNCTHING,
 
@@ -20,7 +20,7 @@ internal enum class SyncClientKind {
  * @property client The detected sync client kind.
  * @property rawConflictMarker The specific conflict marker portion extracted from the filename.
  */
-internal data class SyncConflictInfo(
+data class SyncConflictInfo(
     val baseName: String,
     val client: SyncClientKind,
     val rawConflictMarker: String,
@@ -37,7 +37,7 @@ internal data class SyncConflictInfo(
  *    - e.g. `document (conflicted copy 2026-10-12 143022).mobix`
  *    - e.g. `document (conflicted copy user-tablet 2026-10-12).mobix`
  */
-internal object MobixConflictDetector {
+object MobixConflictDetector {
 
     // Syncthing regex: looks for .sync-conflict-YYYYMMDD-HHMMSS-<optional_tag>
     // Can appear either before extension (.sync-conflict-...\.mobix) or at the end of the file.

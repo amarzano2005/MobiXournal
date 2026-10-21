@@ -31,7 +31,7 @@ import com.mobixournal.format.model.Page
  * PDFs (one per page's background), and a name that is not derived from the content would silently let
  * the last one replace the others.
  */
-internal object MobixPageCodec {
+object MobixPageCodec {
 
     private const val ATTRS = "attrs"
 

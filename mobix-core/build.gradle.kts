@@ -10,6 +10,10 @@
  */
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    // `SyntheticNotebook` is a test fixture, not a test: the app's I/O and render suites build a real
+    // `.mobix` with it, and so do this module's own ones. Compiling it once here is what stops the
+    // two suites from growing their own copies of the same archive.
+    `java-test-fixtures`
 }
 
 kotlin {

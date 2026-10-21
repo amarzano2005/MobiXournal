@@ -23,7 +23,7 @@ import com.mobixournal.format.json.JsonWriter
  *    timestamps the export bridge adds (`docs/mobix-format.md`) are written by a different step, and
  *    an older build that reads and rewrites the file must carry them through untouched.
  */
-internal data class MobixBridgeFile(
+data class MobixBridgeFile(
     /** The `.xopp` root's `creator`, verbatim (`xournalpp 1.1.1+dev`, or `MobiXournal`). */
     val creator: String? = null,
 

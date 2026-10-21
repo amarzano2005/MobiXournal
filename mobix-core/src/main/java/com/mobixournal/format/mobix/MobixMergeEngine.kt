@@ -15,7 +15,7 @@ import com.mobixournal.format.model.Page
  * @property elementMergedPages Number of pages where concurrent edits were merged at the element level.
  * @property mergedElementCount Total number of elements resolved during element-level page merges.
  */
-internal data class MobixMergeResult(
+data class MobixMergeResult(
     val mergedDocument: MobixDocument,
     val adoptedRemotePages: Int,
     val adoptedLocalPages: Int,
@@ -37,7 +37,7 @@ internal data class MobixMergeResult(
  * side's page the merged document should answer with and never decodes it. A `.mobix` opened page by
  * page ([MobixDocument.openPaged]) therefore merges without inflating the pages nobody compared.
  */
-internal class MobixMergeSide private constructor(
+class MobixMergeSide private constructor(
     val manifest: MobixManifest,
     val canvas: MobixCanvasFile,
     val bridge: MobixBridgeFile?,
@@ -102,7 +102,7 @@ internal class MobixMergeSide private constructor(
  * compared — one page in a one-page conflict, and none in a merge of documents that only added and
  * removed pages.
  */
-internal object MobixMergeEngine {
+object MobixMergeEngine {
 
     /**
      * Merge two open [local] and [remote] documents against an optional [base] ancestor.

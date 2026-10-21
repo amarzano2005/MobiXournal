@@ -13,7 +13,7 @@ import com.mobixournal.format.json.JsonWriter
  * escaping/order rules of the format layer have one home (`format/json/`) with the *building* rules
  * having one home here.
  */
-internal object MobixJson {
+object MobixJson {
 
     /** A JSON object built field by field, in the order the writer will emit it. */
     fun obj(fill: (LinkedHashMap<String, JsonNode>) -> Unit): JsonNode.Obj =
@@ -93,4 +93,4 @@ internal object MobixJson {
  * reader recomputes those rather than believing the numbers in the file (`docs/mobix-elements.md`,
  * rule 3).
  */
-internal data class MobixBox(val left: Double, val top: Double, val right: Double, val bottom: Double)
+data class MobixBox(val left: Double, val top: Double, val right: Double, val bottom: Double)

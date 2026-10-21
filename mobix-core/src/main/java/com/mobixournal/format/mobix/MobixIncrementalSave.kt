@@ -28,7 +28,7 @@ import java.io.OutputStream
  * bytes are streamed like any other unchanged entry, and the hash this diff would have computed is the
  * one the source manifest already recorded.
  */
-internal object MobixIncrementalSave {
+object MobixIncrementalSave {
 
     /**
      * Repack [plan] over [source], which holds the archive this document was opened from.

@@ -16,7 +16,7 @@ import com.mobixournal.format.model.isLivingEntity
  * `.xopp` has no ids at all: the flattening is the only thing that knows where an entity's ink landed,
  * and the digest is what makes the range checkable rather than merely asserted.
  */
-internal data class MobixMetaClaim(
+data class MobixMetaClaim(
     val page: Int,
     val layer: Int,
     val at: Int,
@@ -42,7 +42,7 @@ internal data class MobixMetaClaim(
  * files reads as a diff of the block. `doc` is the exporting document's identity — informative, since
  * an import cannot always know which `.mobix` this came from, and the digests are what actually decide.
  */
-internal data class MobixMetaBlock(
+data class MobixMetaBlock(
     /** The block's schema version; a newer one is refused rather than half-read. */
     val version: Int = CURRENT_VERSION,
 

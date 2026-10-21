@@ -24,7 +24,7 @@ import com.mobixournal.format.model.Background
  * the sync path key on it), and whether the parts are `pages/` or `chunks/`. Everything else takes a
  * documented default, so a minimal hand-written manifest is still openable.
  */
-internal data class MobixManifest(
+data class MobixManifest(
     /** The structural schema version this file was written in ([CURRENT_FORMAT_VERSION] today). */
     val formatVersion: Int,
 
@@ -211,7 +211,7 @@ internal fun compareVersions(a: String, b: String): Int {
  * (a merge keys on it, and so does the session cache); [sha256] and [modified] are how a merge tells
  * which side of a conflict moved — see `docs/sync-and-storage.md`.
  */
-internal data class MobixPart(
+data class MobixPart(
     val id: String,
     val entry: String,
     val modified: Long = 0,

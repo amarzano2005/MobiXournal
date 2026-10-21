@@ -38,7 +38,7 @@ import java.io.OutputStream
  * Pure Kotlin, no `java.io.File`, like the rest of `format/`: the same code runs on-device and in JVM
  * unit tests.
  */
-internal class MobixDocument(
+class MobixDocument(
     /** The envelope as read (or as built for a new document); its `pages[]` or `chunks[]` is rewritten by [encode]. */
     val manifest: MobixManifest,
 

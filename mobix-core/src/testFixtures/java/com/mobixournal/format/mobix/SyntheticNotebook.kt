@@ -15,7 +15,7 @@ import java.io.FileOutputStream
  * the ink: one stroke per page, a size declared once in `canvas.json`, and a manifest listing every
  * page. Written through the real container, so a reader sees an ordinary archive.
  */
-internal object SyntheticNotebook {
+object SyntheticNotebook {
 
     /** The page size the fixture's `canvas.json` declares, in pt. */
     const val WIDTH_PT = 595.0

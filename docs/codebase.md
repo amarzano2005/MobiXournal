@@ -76,6 +76,26 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     format/XoppZip.kt        # ZIP-package open/save (PDF embedded); see the mimetype caveat
     format/SaveFormat.kt     # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
     format/FileKind.kt       # content sniffing: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
+    format/mobix/            # the native .mobix engine; the public streaming contract is marked below
+        MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
+        MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
+        MobixManifest.kt     # manifest.json: version stamps, ids, page/chunk order, canvas mode, defaults
+        MobixCanvasFile.kt   # canvas.json: the geometry mode, locked dimensions, chunk grid, print origin
+        MobixPagedReader.kt  # public: MobixEntrySource (central-directory access) and the LRU paged reader
+        PageSource.kt        # public: the page surface every reader shares — count, id, page, window
+        MobixAssets.kt       # public: MobixAssetSource (resolve an `assets/` payload) and MobixAssetSink (name = hash)
+        MobixPageCodec.kt    # public: a page <-> JSON, registering the payloads it bundles
+        MobixElementCodec.kt # public: one element <-> JSON, dispatching to the per-family codecs
+        MobixTableCodec.kt, MobixPlotCodec.kt, MobixShapeCodec.kt, MobixCircuitCodec.kt # internal: the living
+                             #   families; MobixJson.kt is the JSON builder they share
+        MobixDocument.kt     # the whole-archive read/write (`.xopp` ingest, encode, refusals); chunk half in
+                             #   MobixChunkWriting.kt (internal: tile coords, the lazy tile list, encode/read)
+        MobixSavePlan.kt     # public: what a full write produces — the entries and the order they are written in
+        MobixIncrementalSave.kt # public: repack over a source, rebuilding only the parts that changed (stats)
+        MobixPageReuse.kt    # the rule that decides which page/chunk may be copied out instead of rebuilt
+        MobixMergeEngine.kt, MobixConflictDetector.kt # public: three-way page merge and its conflicts
+        MobixMeta*.kt        # the `.xopp` bridge block: what an export claims and the digest that revives it
+        MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
     render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
     render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
@@ -89,28 +109,6 @@ app/
     MainActivityDocuments.kt # its document I/O half: open/load, PDF & image adoption, save/export
     MainActivityTabs.kt      # its tab/session half: tab strip state, show/switch/close, restore, split view
     MainActivityAudio.kt     # its audio half: canvas wiring, record/playback state, sidecar pull/push
-    format/mobix/            # the native .mobix engine (roadmap Step 1). Still app-side: its streaming
-                             #   API (paged reader, incremental save, merge) is internal and `io/` consumes
-                             #   it, so it moves to mobix-core when that API is designed
-                             #   (`extract-the-mobix-streaming-api-into-mobix-core` in TODO.toml)
-        MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
-        MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
-        MobixManifest.kt     # manifest.json: version stamps, ids, page/chunk order, canvas mode, defaults
-        MobixCanvasFile.kt   # canvas.json: the geometry mode, locked dimensions, chunk grid, print origin
-        MobixPageCodec.kt    # a page/chunk: size, background (or bundled bytes), layers of elements
-        MobixElementCodec.kt # an element: stroke/text/image/texImage, a living entity, or any type kept verbatim (JSON)
-        MobixTableCodec.kt   # a living table: the grid (colWidths/rowHeights), its cells and its rules
-        MobixPlotCodec.kt    # a living plot: curves with their kinds and ranges, parameters, the engine's cache
-        MobixShapeCodec.kt   # a parametric shape: authored vertices, derived box, an open kind name
-        MobixCircuitCodec.kt # a circuit component: placement, rotation, magnetic pins and their nets
-        MobixJson.kt         # the JSON building blocks every codec shares: ordered objects, boxes, attrs (pure)
-        MobixDocument.kt     # THE DOCUMENT: ingest a .xopp, open/encode the archive, refusals; the chunk
-                             #   half is MobixChunkWriting.kt (tile coords, the lazy tile list, encode/read)
-        MobixMeta.kt         # the bridge block: what an exported .xopp claims about the entities it was flattened from
-        MobixMetaDigest.kt   # the digest a claim records: the ink in the .xopp writer's own spelling, both sides (pure)
-        MobixMetaRevival.kt  # the import rule: revive a claimed entity only where the ink still proves it
-        MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
-        MobixAssets.kt       # the assets/ half: payloads named by the hash of their own bytes (pure)
     io/                      # storage access that isn't format work
       UriStaging.kt          # stage document bytes to/from a content:// URI (slow remote shares)
       ScratchDir.kt          # unique-per-call file names (staging and both stores), so overlapping writes can't collide

@@ -5,7 +5,7 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.SyntheticNotebook
-import com.mobixournal.format.mobix.TrackedEntrySource
+import com.mobixournal.format.mobix.CountingEntrySource
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
@@ -57,10 +57,10 @@ class PageSourceWalkTest {
         return pages
     }
 
-    private class Paged(val document: Document, val reader: MobixPagedReader, val entries: TrackedEntrySource)
+    private class Paged(val document: Document, val reader: MobixPagedReader, val entries: CountingEntrySource)
 
     private fun openPaged(file: File, budget: Int = 5): Paged {
-        val entries = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val entries = CountingEntrySource(MobixEntrySource.fromFile(file))
         val reader = MobixPagedReader(entries, budget)
         return Paged(MobixDocument.openPaged(reader).toDocument(), reader, entries)
     }
@@ -69,7 +69,7 @@ class PageSourceWalkTest {
         MobixDocument.open(com.mobixournal.format.mobix.MobixContainer.open(file.inputStream().buffered()))
             .toDocument()
 
-    private fun reads(entries: TrackedEntrySource, index: Int): Int =
+    private fun reads(entries: CountingEntrySource, index: Int): Int =
         entries.openCount(SyntheticNotebook.entryOf(index))
 
     @Test

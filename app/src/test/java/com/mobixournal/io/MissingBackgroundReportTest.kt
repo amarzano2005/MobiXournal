@@ -14,7 +14,7 @@ import com.mobixournal.format.mobix.MobixManifest
 import com.mobixournal.format.mobix.MobixPageCodec
 import com.mobixournal.format.mobix.MobixPart
 import com.mobixournal.format.mobix.SyntheticNotebook
-import com.mobixournal.format.mobix.TrackedEntrySource
+import com.mobixournal.format.mobix.CountingEntrySource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import java.io.File
@@ -46,10 +46,10 @@ class MissingBackgroundReportTest {
     private val filesDir by lazy { temp.newFolder("files") }
 
     private class Counted {
-        val counted = mutableListOf<TrackedEntrySource>()
+        val counted = mutableListOf<CountingEntrySource>()
 
         val open: (File) -> MobixEntrySource = { file ->
-            TrackedEntrySource(MobixEntrySource.fromFile(file)).also { counted += it }
+            CountingEntrySource(MobixEntrySource.fromFile(file)).also { counted += it }
         }
 
         fun count(name: String): Int = counted.sumOf { it.openCount(name) }

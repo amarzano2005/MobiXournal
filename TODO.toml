@@ -318,7 +318,7 @@ emulator_debug = false
 [[task]]
 id = "desktop-open-mobix-and-zipped-xopp"
 title = "Desktop preview: open .mobix and zipped .xopp"
-description = "`desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt` opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths: .mobix through the public API produced by `extract-the-mobix-streaming-api-into-mobix-core` (paged read, no asset extraction needed for a viewer) and a ZIP .xopp through `format/XoppZip`, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). BLOCKED BY that scope: today those types are internal to `app`, so the desktop module cannot call them. Keep DocumentLoader’s failure messages honest for anything still unsupported. Verify with :desktop:test: load a saved .mobix fixture and the ZIP .xopp fixture the format tests use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass."
+description = "`desktop/src/main/java/com/mobixournal/desktop/DocumentLoader.kt` opens only a gzip .xopp today and rejects a native .mobix or a self-contained ZIP .xopp with an explicit message. Wire the two container paths: a native .mobix through the published streaming contract in `mobix-core` (docs/mobix-streaming-api.md: MobixPagedReader + PageSource, read page by page, no asset extraction needed for a viewer) and a ZIP .xopp through `format/XoppZip`, choosing by the declared content type rather than the file extension, exactly as the Android open path does (docs/data-path.md). Keep DocumentLoader's failure messages honest for anything still unsupported, and close the reader when the document is replaced. Verify with :desktop:test: load the .mobix fixture `SyntheticNotebook.write` produces and the ZIP .xopp fixture the format tests use, assert page and stroke counts match the source, and render page 1 headlessly to a PNG; then run the built app on a real .mobix if the host allows. Update the status list in docs/desktop-workstation.md in the same commit. Desktop-only: no APK rebuild and no emulator pass."
 status = "active"
 level = "task"
 category = "feature"
@@ -436,20 +436,6 @@ level = "scope"
 category = "feature"
 urgency = "low"
 order = 1020
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "extract-the-mobix-streaming-api-into-mobix-core"
-title = "Design and extract the .mobix streaming API into mobix-core (scope)"
-description = "Task `create-the-mobix-core-module` moved the model, JSON and .xopp layers out of `app`; the native `.mobix` engine stayed because the app consumes its internals. Evidence from that split: `app` uses ~30 internal declarations of `format/mobix` — MobixEntrySource, MobixPagedReader, MobixSavePlan, MobixPageReuse, MobixIncrementalSave, MobixMergeEngine/Result, MobixConflictDetector, MobixManifest, MobixCanvasFile, MobixChunk, MobixDocument, MobixMetaBlock/Claim/Digest, PageSource, PageSize, MobixPart, MobixAssetSource and the mobix JSON helpers — across io/DocumentIo.kt, io/CanvasGeometry.kt, io/MobixOpenSessions.kt, io/BundledPageAssets.kt, render/PageStacker, PageWindow, PageWindowEdits, ChunkTileManager, CanvasPageSource, DocumentSearch, BoardInk, DrawingSurfaceBoard, XoppSynthesis and audio/TranscriptionCodec. Publishing all of that would freeze implementation detail as API, so design the boundary instead. Investigate and add task-level children for: (1) the public surface a shell needs — open a .mobix page by page (a public page source), save incrementally over a file, merge, read manifest/canvas metadata — named types with KDoc, sized to those operations and no more; (2) whether the app's consumers can stay put on that surface, or whether the streaming engine (reader + save plan + merge + page reuse) should move wholesale into `mobix-core` while DocumentIo keeps the Android/SAF file policy; (3) the test move: the 22 suites under `app/src/test/java/com/mobixournal/format/mobix` plus the app-coupled ones (MobixAudioBundleTest, MobixMetaBlockTest, MobixPagedOpenBenchmarkTest, MobixRecordingStreamingTest, MobixXoppSizeBenchmarkTest, PixmapBackgroundRoundTripTest, XoppZipTest, DocumentPagesTest); (4) the desktop consumer (`desktop-open-mobix-and-zipped-xopp`) using the same surface. Done means the tasks exist with file-level instructions; no code."
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 935
 created = 2026-10-21
 tags = []
 rebuild = false

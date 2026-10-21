@@ -34,14 +34,15 @@ internal object MobixZip {
      * of a source archive costs a 64 KiB buffer instead of the recording.
      */
     class RawEntry(
-        val method: Int,
-        val crc: Long,
-        val size: Long,
-        val compressedSize: Long,
+        override val method: Int,
+        override val crc: Long,
+        override val size: Long,
+        override val compressedSize: Long,
         private val copy: (OutputStream) -> Unit,
-    ) {
+    ) : MobixRawEntry {
+
         /** Write the entry's stored (compressed) bytes to [sink], exactly as they are in the source. */
-        fun copyTo(sink: OutputStream) = copy(sink)
+        override fun copyTo(sink: OutputStream) = copy(sink)
 
         /**
          * The entry's stored bytes as one array — what a **test** compares. A writer never asks for
@@ -270,7 +271,7 @@ internal object MobixZip {
         }
 
         /** [entry]'s bytes copied verbatim — nothing is inflated, deflated or rewritten. */
-        fun putRaw(name: String, entry: RawEntry) {
+        fun putRaw(name: String, entry: MobixRawEntry) {
             val offset = written
             val nameBytes = name.toByteArray(Charsets.UTF_8)
             val header = localHeader(nameBytes.size, entry.method, entry.crc, entry.compressedSize, entry.size)

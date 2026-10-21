@@ -17,7 +17,7 @@ import com.mobixournal.format.model.Page
  * @param extraAttrs Attributes kept in source order so unmodeled attributes round-trip.
  * @param id Stable chunk identity (e.g. "chk_...").
  */
-internal data class MobixChunk(
+data class MobixChunk(
     val cx: Int,
     val cy: Int,
     val layers: List<Layer> = emptyList(),

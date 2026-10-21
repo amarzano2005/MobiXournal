@@ -14,7 +14,7 @@ import com.mobixournal.format.mobix.MobixManifest
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.MobixPart
 import com.mobixournal.format.mobix.SyntheticNotebook
-import com.mobixournal.format.mobix.TrackedEntrySource
+import com.mobixournal.format.mobix.CountingEntrySource
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.withPage
@@ -48,15 +48,18 @@ class ChunkedMobixRoundTripTest {
     private val filesDir by lazy { temp.newFolder("files") }
 
     private class Counted {
-        val counted = mutableListOf<TrackedEntrySource>()
+        val counted = mutableListOf<CountingEntrySource>()
 
         val open: (File) -> MobixEntrySource = { file ->
-            TrackedEntrySource(MobixEntrySource.fromFile(file)).also { counted += it }
+            CountingEntrySource(MobixEntrySource.fromFile(file)).also { counted += it }
         }
 
         fun count(name: String): Int = counted.sumOf { it.openCount(name) }
 
-        fun inflates(name: String): Int = counted.sumOf { it.inflateCount(name) }
+        fun inflates(name: String): Int = counted.sumOf { it.openCount(name) }
+
+        /** How many times [name] was copied out verbatim instead of being inflated. */
+        fun copies(name: String): Int = counted.sumOf { it.copyCount(name) }
 
         /** Every entry of [names] that was opened at all. */
         fun read(names: Collection<String>): List<String> = names.filter { count(it) > 0 }
@@ -352,7 +355,7 @@ class ChunkedMobixRoundTripTest {
             ),
         )
         val out = temp.newFile("repacked.mobix")
-        val source = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val source = CountingEntrySource(MobixEntrySource.fromFile(file))
         val stats = FileOutputStream(out).use { output ->
             source.use { from ->
                 MobixIncrementalSave.saveOver(
@@ -372,8 +375,8 @@ class ChunkedMobixRoundTripTest {
         // through — and the bytes that land in the new file are its own.
         for (index in listOf(0, 2)) {
             val name = MobixFormat.chunkEntry(coords[index].first, coords[index].second)
-            assertTrue("$name is copied out of the source", source.openCount(name) >= 1)
-            assertEquals("$name is never inflated", 0, source.inflateCount(name))
+            assertTrue("$name is copied out of the source", source.copyCount(name) >= 1)
+            assertEquals("$name is copied, never inflated", 0, source.openCount(name))
             assertEquals("$name lands in the new file byte for byte", bytesOf(file, name), bytesOf(out, name))
         }
         // …and its manifest part is the archive's own record of it, unchanged: what a merge and a sync

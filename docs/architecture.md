@@ -53,13 +53,14 @@ The high-level evolution is coordinated in [`future-roadmap.md`](future-roadmap.
 | **Master** | [`future-roadmap.md`](future-roadmap.md) | strategic 3-step architecture roadmap coordinating data, mobile, and desktop | you plan or review the next-generation architecture hierarchy | **Roadmap** |
 | **Step 1** | [`mobix-format.md`](mobix-format.md) | technical design for native `.mobix` container, living domain entities, and `.xopp` bridge | you work on the next-gen file format, serialization, or bridge | **Implemented** |
 | **Step 1** | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` container and document envelope (mimetype, manifest, canvas, pages) | you read or write the container, the envelope, or the page/background shape | **Implemented** |
+| **Step 1** | [`mobix-streaming-api.md`](mobix-streaming-api.md) | the published `.mobix` contract a second shell opens, reads, writes and merges with — and the engine detail it deliberately does not expose | you call `mobix-core` from outside the engine (desktop, plugins, tests) | **Implemented** |
 | **Step 1** | [`mobix-elements.md`](mobix-elements.md) | the element schema: strokes, text, images, living entities, preservation rules | you add or change an element type inside a `.mobix` document | **Implemented** (Codecs & Synthesis live; living editors landing in Step 2) |
 | **Step 2** | [`ui-modernization.md`](ui-modernization.md) | lightweight UI design system, floating glass capsules, bimanual ergonomics, 1-tap STEM | you modernize the mobile interface or implement floating toolbars | **Partly implemented** (Tokens, theme & layout bands live; Radial HUD & micro-inspectors active in Step 2) |
 | **Step 3** | [`desktop-workstation.md`](desktop-workstation.md) | desktop Compose Multiplatform architecture, Skia GPU rendering, and tablet/dial hardware | you work on desktop PC workstation support, Wacom/Huion, or dials | **Part live** — the `desktop/` preview opens and renders `.xopp` pages; editor, `.mobix` and tablet input are still spec |
 
 The statuses above are per **spoke**, not per feature: they say whether a doc describes shipped
 behaviour or a specification. Step 1's data model, engines and runtime validations are now fully closed
-(archived in `FINISHED.toml` under `step-1-mobix-format-engines`). In `format/mobix/`, the container
+(archived in `FINISHED.toml` under `step-1-mobix-format-engines`). In `mobix-core`'s `format/mobix/`, the container
 (`MobixContainer`), the shared JSON layer (`format/json/`), the manifest and `canvas.json` codecs, the element
 codecs for all geometry elements and living families (tables, plots, parametric shapes, circuits), and the
 document layer on top (`MobixDocument`: `.xopp` ingested as `.mobix` and read back, [mobix-format.md](mobix-format.md))

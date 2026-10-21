@@ -4,7 +4,7 @@ import java.io.InputStream
 import java.security.MessageDigest
 
 /** Resolves a bundled binary payload by its entry name (an `assets/img_<sha256>.png`, say). */
-internal fun interface MobixAssetSource {
+fun interface MobixAssetSource {
     /** The bytes of [name], or null when this document does not carry it. */
     fun bytes(name: String): ByteArray?
 
@@ -20,14 +20,14 @@ internal fun interface MobixAssetSource {
 }
 
 /** The [MobixAssetSource] view of an opened archive: assets are just entries. */
-internal fun MobixContainer.Archive.asAssetSource(): MobixAssetSource = MobixAssetSource { bytes(it) }
+fun MobixContainer.Archive.asAssetSource(): MobixAssetSource = MobixAssetSource { bytes(it) }
 
 /**
  * The [MobixAssetSource] view of a streaming [MobixEntrySource]: assets are the `assets/` entries,
  * read — or **streamed** — on demand. A bare name (no `assets/` prefix) is resolved under the assets
  * directory, matching the names a page's codec hands back.
  */
-internal fun MobixEntrySource.asAssetSource(): MobixAssetSource = object : MobixAssetSource {
+fun MobixEntrySource.asAssetSource(): MobixAssetSource = object : MobixAssetSource {
 
     private fun entryOf(name: String): String =
         if (name.startsWith(MobixFormat.ASSETS_DIR)) name else "${MobixFormat.ASSETS_DIR}$name"
@@ -48,7 +48,7 @@ internal fun MobixEntrySource.asAssetSource(): MobixAssetSource = object : Mobix
  * The bytes go in the archive, never into the JSON: base64 inside XML tags is exactly the `.xopp`
  * inefficiency the native format exists to remove (`docs/mobix-format.md`).
  */
-internal class MobixAssetSink {
+class MobixAssetSink {
 
     private val byName = LinkedHashMap<String, MobixPayload>()
 

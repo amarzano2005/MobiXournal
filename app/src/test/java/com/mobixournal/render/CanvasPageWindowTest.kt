@@ -12,7 +12,7 @@ import com.mobixournal.format.mobix.MobixPageCodec
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.MobixPart
 import com.mobixournal.format.mobix.PageSource
-import com.mobixournal.format.mobix.TrackedEntrySource
+import com.mobixournal.format.mobix.CountingEntrySource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer
@@ -91,7 +91,7 @@ class CanvasPageWindowTest {
         val pages = List(pageCount) { page(it) }
         writeSyntheticNotebook(file, pages)
 
-        val tracked = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val tracked = CountingEntrySource(MobixEntrySource.fromFile(file))
         val source = PageSource.of(MobixPagedReader(tracked, cacheBudget = 5))
         try {
             val layout = PageStacker.stack(source, viewWidthPx = 600, gapPx = 10f)
@@ -122,7 +122,7 @@ class CanvasPageWindowTest {
         val file = File.createTempFile("canvas_window_", ".mobix").apply { deleteOnExit() }
         writeSyntheticNotebook(file, List(pageCount) { page(it) })
 
-        val tracked = TrackedEntrySource(MobixEntrySource.fromFile(file))
+        val tracked = CountingEntrySource(MobixEntrySource.fromFile(file))
         val source = PageSource.of(MobixPagedReader(tracked, cacheBudget = 5))
         try {
             val layout = PageStacker.stack(source, viewWidthPx = 600, gapPx = 10f)

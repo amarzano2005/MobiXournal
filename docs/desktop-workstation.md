@@ -17,16 +17,20 @@ What it does today:
   strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
 - Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
-  layers, the `.xopp` codecs and the shared paper/ink geometry — one codec, one ruling and one ink rule
-  book rather than a fork. The native `.mobix` engine is still in `app` because its streaming API
-  (paged reader, incremental save, merge) is internal to `io/`; the `TODO.toml` scope
-  `extract-the-mobix-streaming-api-into-mobix-core` designs that API and moves it, and the desktop's
-  `.mobix` opening waits on it.
+  layers, the `.xopp` and `.mobix` codecs, and the shared paper/ink geometry — one codec, one ruling and
+  one ink rule book rather than a fork.
+- The `.mobix` engine now lives in `mobix-core` too, behind a published streaming contract
+  ([`mobix-streaming-api.md`](mobix-streaming-api.md)): the paged reader, the asset sources, the page
+  and element codecs, the incremental save and the merge are callable from this module, and
+  `DesktopMobixOpenTest` opens a 40-page notebook through them without the Android app on the
+  classpath. Wiring that open into the window is the next task
+  (`desktop-open-mobix-and-zipped-xopp` in `TODO.toml`).
 
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.
-- No `.mobix` and no self-contained ZIP `.xopp`; only gzip `.xopp`, and the other two are refused
-  with an explicit message instead of a deep reader failure.
+- No `.mobix` and no self-contained ZIP `.xopp` **in the window yet**; only gzip `.xopp` is opened
+  there, and the other two are refused with an explicit message instead of a deep reader failure. The
+  reader for both is published and tested — what is missing is the shell's open path, not the format.
 - No PDF or pixmap backgrounds, no images, no living entities (plots, tables, circuits, shapes), no
   layer visibility.
 - No tablet/dial input, no dirty-rect GPU pacing, no installers. `run` is the only entry point;
