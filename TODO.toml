@@ -302,72 +302,30 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-rail-and-ribbon-tool-strips"
-title = "Desktop: rail and ribbon tool strips, switchable"
-description = "Add BOTH drawing-tool placements to `desktop/` plus a setting (`Settings → Interface → Tool placement`: Rail (default) / Ribbon / Both): a 48dp vertical rail in its own lane beside the canvas and a horizontal ribbon under the header — never over the page in either case. Both list the same tools in the same order with the single-letter shortcuts from docs/ui-modernization.md (B pen, H highlighter, E eraser, V lasso, S marquee, X text, L line, A arrow, R rectangle, C ellipse, P spline, M plot, Shift+X axes, T table, K circuit), use monoline glyphs, show a name+hotkey pill tooltip on hover, and mark the active slot with #38383E. In this task the tools only set a `ToolSelection` (plain class, no Compose types); what the pen actually does arrives with the editing phase. Persist the placement choice in a small settings store beside the desktop module (a properties file under the user home or the app data dir), so it survives restarts. Verify: a unit test that every tool appears exactly once and every shortcut is unique, headless renders of both placements, and a real run where switching the setting moves the strip without moving the page. Document the setting in the desktop section of docs/ui-modernization.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 990
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-kmp-module-split"
-title = "Desktop: KMP module split (scope)"
-description = "Prerequisite of the desktop editor (Phase 3 of docs/desktop-workstation.md). The Android render, ui, tabs and io packages are still Android-bound, so desktop editing cannot reuse them. Investigate which of EditHistory, DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfaceSelection, ElementEdits, PdfVectorPainter, PageSvgWriter, XoppSynthesis and io/DocumentIo are platform-free enough to move into mobix-core (or a new mobix-render behind a small canvas abstraction), and which must be reimplemented for desktop. Target is Windows 11 only, but keep the shared core OS-independent. Per candidate state: what moves, what stays, the size of the change and how the Android app keeps compiling and passing its unit suite. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "normal"
-order = 995
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-guards-and-ci"
 title = "Desktop: structure guards and CI test job"
 description = "Two holes in the mechanical guards. (1) SourceStructureTest (app/src/test/java/com/mobixournal/guards/) budgets app/src/main and mobix-core/src/main (700-line files, 100-line functions) but not desktop/src/main, where DesktopShell.kt is already 449 lines: add the desktop source root next to the two existing ones with the same fail-loudly-if-missing check, and record any legacy ceiling in the test rather than raising the budget. (2) .github/workflows/build.yml runs only ./gradlew testDebugUnitTest and assembleDebug, so the desktop suite (:desktop:test, which renders headlessly) never runs in CI: add a job that runs :desktop:test on a windows-latest runner (the desktop is Windows-only) with JDK 21, uploading desktop/build/desktop-render/ as an artifact. Verify: run SourceStructureTest locally and see it fail when a test file in desktop/ is temporarily padded past 700 lines, then pass again; run :desktop:test locally. Document both in docs/testing.md."
 status = "active"
 level = "task"
 category = "test"
-urgency = "normal"
-order = 996
+urgency = "high"
+order = 910
 created = 2026-10-21
 tags = ["desktop", "ci"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-editing-undo-and-save"
-title = "Desktop editing, undo and save (scope)"
-description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
+id = "desktop-rail-and-ribbon-tool-strips"
+title = "Desktop: rail and ribbon tool strips, switchable"
+description = "Add BOTH drawing-tool placements to `desktop/` plus a setting (`Settings → Interface → Tool placement`: Rail (default) / Ribbon / Both): a 48dp vertical rail in its own lane beside the canvas and a horizontal ribbon under the header — never over the page in either case. Both list the same tools in the same order with the single-letter shortcuts from docs/ui-modernization.md (B pen, H highlighter, E eraser, V lasso, S marquee, X text, L line, A arrow, R rectangle, C ellipse, P spline, M plot, Shift+X axes, T table, K circuit), use monoline glyphs, show a name+hotkey pill tooltip on hover, and mark the active slot with #38383E. In this task the tools only set a `ToolSelection` (plain class, no Compose types); what the pen actually does arrives with the editing phase. Persist the placement choice in a small settings store beside the desktop module (a properties file under the user home or the app data dir), so it survives restarts. Verify: a unit test that every tool appears exactly once and every shortcut is unique, headless renders of both placements, and a real run where switching the setting moves the strip without moving the page. Document the setting in the desktop section of docs/ui-modernization.md."
 status = "active"
-level = "scope"
+level = "task"
 category = "feature"
-urgency = "normal"
-order = 1000
+urgency = "high"
+order = 920
 created = 2026-10-21
 tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-living-entity-editors"
-title = "Desktop: in-place editors for living entities (scope)"
-description = "Editing of living elements directly on the desktop page, one family at a time (plot, table, circuit, parametric shape), reusing the codecs in format/mobix/ and the apply functions the Android editors use (render/ElementEdits.kt, applyPlotEdit). Complements the non-modal inspector in desktop-inspector-and-export: this scope is the on-page gestures (double-click to edit, vertex and pin handles, drag to resize without changing line weight). Investigate what each family needs from the desktop selection and undo model, state the order of families and add task-level children. Depends on desktop-kmp-module-split and desktop-editing-undo-and-save. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1005
-created = 2026-10-21
-tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
@@ -378,38 +336,38 @@ description = "docs/ui-modernization.md section 3 gives every desktop tool favou
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "normal"
-order = 1006
+urgency = "high"
+order = 930
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-shape-text-and-math-tools"
-title = "Desktop: shape perfection, text boxes and math blocks (scope)"
-description = "Desktop editing parity for three Android engines: (1) 300 ms hold-to-perfect shapes (docs/shape-perfection-engine.md) - whether the recogniser is platform-free enough for mobix-core; (2) the text box tool (X) and markdown text (docs/text-and-markdown.md); (3) MathBlockElement typesetting with KaTeX and Typst (docs/latex-typst-rendering.md): first whether the desktop viewer already draws a math block through LivingInk, and what an offline compiler on a JVM costs (the Android core is task embedded-katex-and-typst-offline-compilation-core). Add task-level children, in dependency order. Produce tasks, no code."
+id = "desktop-kmp-module-split"
+title = "Desktop: KMP module split (scope)"
+description = "Prerequisite of the desktop editor (Phase 3 of docs/desktop-workstation.md). The Android render, ui, tabs and io packages are still Android-bound, so desktop editing cannot reuse them. Investigate which of EditHistory, DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfaceSelection, ElementEdits, PdfVectorPainter, PageSvgWriter, XoppSynthesis and io/DocumentIo are platform-free enough to move into mobix-core (or a new mobix-render behind a small canvas abstraction), and which must be reimplemented for desktop. Target is Windows 11 only, but keep the shared core OS-independent. Per candidate state: what moves, what stays, the size of the change and how the Android app keeps compiling and passing its unit suite. Produce tasks, no code."
 status = "active"
 level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1007
+category = "refactor"
+urgency = "high"
+order = 940
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-pdf-annotation"
-title = "Desktop: PDF annotation and outline (scope)"
-description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it. Investigate for desktop (PDFBox, not pdfbox-android): PDF text selection, the snap-to-text magnetic highlighter (docs/pdf-annotation-engine.md, docs/pdf.md), the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there) and where each engine lives today. Add task-level children. Export is in desktop-inspector-and-export. Produce tasks, no code."
+id = "desktop-editing-undo-and-save"
+title = "Desktop editing, undo and save (scope)"
+description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "normal"
-order = 1008
+urgency = "high"
+order = 950
 created = 2026-10-21
-tags = ["desktop"]
+tags = []
 rebuild = false
 emulator_debug = false
 
@@ -420,8 +378,8 @@ description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md),
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "low"
-order = 1010
+urgency = "high"
+order = 960
 created = 2026-10-21
 tags = []
 rebuild = false
@@ -435,7 +393,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1011
+order = 970
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -448,8 +406,8 @@ description = "Optimise desktop/ for 21:9 monitors (3440x1440 and 2560x1080). UI
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "high"
-order = 1012
+urgency = "normal"
+order = 980
 created = 2026-10-21
 tags = ["desktop", "ui"]
 rebuild = false
@@ -462,10 +420,80 @@ description = "Make desktop/ render and ink at the monitor's real refresh rate (
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "high"
-order = 1014
+urgency = "normal"
+order = 990
 created = 2026-10-21
 tags = ["desktop", "performance"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-settings-and-status-ui"
+title = "Desktop: settings window and status bar additions (scope)"
+description = "UI surface for the new desktop features, in the app's own glass and English copy per docs/ui-modernization.md. Specify and break into tasks: (1) a Settings window, not a dialog over the page - sections Interface (tool placement Rail / Ribbon / Both, page spread, sidebar and inspector defaults), Display (target refresh rate, show frame-time overlay), Tablet (backend Windows Ink / Wintab, aspect-ratio lock, active-area mapping, pressure curve) and Dial (what the ring controls: zoom, stroke width, radial HUD, step size); (2) status bar additions: refresh rate and frame time (optional), tablet connected state; (3) dial feedback - stroke-width diameter ring around the cursor and a zoom percentage pill; (4) a shortcut table that can be remapped, shared with the Android remapping model. Settings persist in the small store introduced by desktop-rail-and-ribbon-tool-strips. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1000
+created = 2026-10-21
+tags = ["desktop", "ui"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-and-export"
+title = "Desktop property inspector and PDF/SVG export (scope)"
+description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1010
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-living-entity-editors"
+title = "Desktop: in-place editors for living entities (scope)"
+description = "Editing of living elements directly on the desktop page, one family at a time (plot, table, circuit, parametric shape), reusing the codecs in format/mobix/ and the apply functions the Android editors use (render/ElementEdits.kt, applyPlotEdit). Complements the non-modal inspector in desktop-inspector-and-export: this scope is the on-page gestures (double-click to edit, vertex and pin handles, drag to resize without changing line weight). Investigate what each family needs from the desktop selection and undo model, state the order of families and add task-level children. Depends on desktop-kmp-module-split and desktop-editing-undo-and-save. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1020
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-shape-text-and-math-tools"
+title = "Desktop: shape perfection, text boxes and math blocks (scope)"
+description = "Desktop editing parity for three Android engines: (1) 300 ms hold-to-perfect shapes (docs/shape-perfection-engine.md) - whether the recogniser is platform-free enough for mobix-core; (2) the text box tool (X) and markdown text (docs/text-and-markdown.md); (3) MathBlockElement typesetting with KaTeX and Typst (docs/latex-typst-rendering.md): first whether the desktop viewer already draws a math block through LivingInk, and what an offline compiler on a JVM costs (the Android core is task embedded-katex-and-typst-offline-compilation-core). Add task-level children, in dependency order. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1030
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-annotation"
+title = "Desktop: PDF annotation and outline (scope)"
+description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it. Investigate for desktop (PDFBox, not pdfbox-android): PDF text selection, the snap-to-text magnetic highlighter (docs/pdf-annotation-engine.md, docs/pdf.md), the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there) and where each engine lives today. Add task-level children. Export is in desktop-inspector-and-export. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1040
+created = 2026-10-21
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
@@ -477,23 +505,9 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1016
+order = 1050
 created = 2026-10-21
 tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-inspector-and-export"
-title = "Desktop property inspector and PDF/SVG export (scope)"
-description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 1020
-created = 2026-10-21
-tags = []
 rebuild = false
 emulator_debug = false
 
@@ -505,7 +519,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1022
+order = 1060
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -519,35 +533,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1023
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-layer-visibility-and-isometric-paper"
-title = "Desktop: layer visibility toggles and isometric paper"
-description = "In desktop/ add (1) an eye toggle per layer in the sidebar's layer list that hides and shows the layer on the page and in thumbnails without changing the document, kept per tab; (2) isometric paper in the shared paper geometry used by the Android editor (mobix-core ruling code) so both shells draw the same grid. Files: the sidebar layer list and the page painter under desktop/src/main, the paper geometry in mobix-core. Verify: a unit test that a hidden layer is absent from the rendered pixels and a headless render of isometric paper compared with the shared ruling output. Document in docs/desktop-workstation.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "low"
-order = 1024
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-multi-window-and-monitors"
-title = "Desktop: multiple windows and monitors (scope)"
-description = "docs/multi-window-workspace.md lists desktop multi-monitor use. Investigate a second desktop window on another monitor showing the same document (shared state, per-window zoom, undo scoped per document) and dragging a tab out into its own window, with the Windows 21:9 main monitor plus a secondary one in mind. Reuse the shared document-state design from the Android multi-window work; do not start a second model. Add task-level children. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 1025
+order = 1070
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -561,7 +547,21 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1026
+order = 1080
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-layer-visibility-and-isometric-paper"
+title = "Desktop: layer visibility toggles and isometric paper"
+description = "In desktop/ add (1) an eye toggle per layer in the sidebar's layer list that hides and shows the layer on the page and in thumbnails without changing the document, kept per tab; (2) isometric paper in the shared paper geometry used by the Android editor (mobix-core ruling code) so both shells draw the same grid. Files: the sidebar layer list and the page painter under desktop/src/main, the paper geometry in mobix-core. Verify: a unit test that a hidden layer is absent from the rendered pixels and a headless render of isometric paper compared with the shared ruling output. Document in docs/desktop-workstation.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 1090
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -575,23 +575,23 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "low"
-order = 1027
+order = 1100
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-settings-and-status-ui"
-title = "Desktop: settings window and status bar additions (scope)"
-description = "UI surface for the new desktop features, in the app's own glass and English copy per docs/ui-modernization.md. Specify and break into tasks: (1) a Settings window, not a dialog over the page - sections Interface (tool placement Rail / Ribbon / Both, page spread, sidebar and inspector defaults), Display (target refresh rate, show frame-time overlay), Tablet (backend Windows Ink / Wintab, aspect-ratio lock, active-area mapping, pressure curve) and Dial (what the ring controls: zoom, stroke width, radial HUD, step size); (2) status bar additions: refresh rate and frame time (optional), tablet connected state; (3) dial feedback - stroke-width diameter ring around the cursor and a zoom percentage pill; (4) a shortcut table that can be remapped, shared with the Android remapping model. Settings persist in the small store introduced by desktop-rail-and-ribbon-tool-strips. Produce tasks, no code."
+id = "desktop-multi-window-and-monitors"
+title = "Desktop: multiple windows and monitors (scope)"
+description = "docs/multi-window-workspace.md lists desktop multi-monitor use. Investigate a second desktop window on another monitor showing the same document (shared state, per-window zoom, undo scoped per document) and dragging a tab out into its own window, with the Windows 21:9 main monitor plus a secondary one in mind. Reuse the shared document-state design from the Android multi-window work; do not start a second model. Add task-level children. Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "normal"
-order = 1028
+urgency = "low"
+order = 1110
 created = 2026-10-21
-tags = ["desktop", "ui"]
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
@@ -603,7 +603,7 @@ status = "active"
 level = "task"
 category = "chore"
 urgency = "low"
-order = 1030
+order = 1120
 created = 2026-10-21
 tags = []
 rebuild = false
