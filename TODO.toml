@@ -316,20 +316,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-shell-chrome-and-tokens"
-title = "Desktop: true-black glass chrome and shared design tokens"
-description = "Replace the placeholder toolbar in `desktop/src/main/java/com/mobixournal/desktop/DesktopApp.kt` with the decided chrome: in-app frosted glass (rgba(22,22,24,0.85) fill, 1px hairline at 12% alpha, 20dp panel corners, 16dp capsules) over a #000000 desk — NOT Mica/Vibrancy — with exactly one shadow under the page, one edge per surface (no double rules), Inter with tabular figures, a 40dp header and a 24dp status bar, and 1.5dp monoline glyphs instead of filled Material icons. Add a `DesignTokens` object to `mobix-core` carrying the values from the token table in docs/ui-modernization.md (glassDark, glassLight, hairline, floatingPanelAlpha 0.88, panelCornerRadiusDp 20, capsuleCornerRadiusDp 16, accent #60A5FA, fade 150ms, spring 380/28); the desktop Compose theme reads only these tokens, and a `DesktopThemeTest` fails when they drift from the documented numbers (mirror of `ModernThemeTest` on the Android side). Desktop ships dark-first; the light theme comes only once the tokens already cover it. Verify with `:desktop:test`, a headless render of the empty state and of a document saved as `desktop/build/desktop-render/shell.png`, and a real run to confirm the header does not cover the page."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 980
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-rail-and-ribbon-tool-strips"
 title = "Desktop: rail and ribbon tool strips, switchable"
 description = "Add BOTH drawing-tool placements to `desktop/` plus a setting (`Settings → Interface → Tool placement`: Rail (default) / Ribbon / Both): a 48dp vertical rail in its own lane beside the canvas and a horizontal ribbon under the header — never over the page in either case. Both list the same tools in the same order with the single-letter shortcuts from docs/ui-modernization.md (B pen, H highlighter, E eraser, V lasso, S marquee, X text, L line, A arrow, R rectangle, C ellipse, P spline, M plot, Shift+X axes, T table, K circuit), use monoline glyphs, show a name+hotkey pill tooltip on hover, and mark the active slot with #38383E. In this task the tools only set a `ToolSelection` (plain class, no Compose types); what the pen actually does arrives with the editing phase. Persist the placement choice in a small settings store beside the desktop module (a properties file under the user home or the app data dir), so it survives restarts. Verify: a unit test that every tool appears exactly once and every shortcut is unique, headless renders of both placements, and a real run where switching the setting moves the strip without moving the page. Document the setting in the desktop section of docs/ui-modernization.md."

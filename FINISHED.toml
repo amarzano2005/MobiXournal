@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-shell-chrome-and-tokens"
+title = "Desktop: true-black glass chrome and shared design tokens"
+description = "Replace the placeholder toolbar in `desktop/src/main/java/com/mobixournal/desktop/DesktopApp.kt` with the decided chrome: in-app frosted glass (rgba(22,22,24,0.85) fill, 1px hairline at 12% alpha, 20dp panel corners, 16dp capsules) over a #000000 desk — NOT Mica/Vibrancy — with exactly one shadow under the page, one edge per surface (no double rules), Inter with tabular figures, a 40dp header and a 24dp status bar, and 1.5dp monoline glyphs instead of filled Material icons. Add a `DesignTokens` object to `mobix-core` carrying the values from the token table in docs/ui-modernization.md (glassDark, glassLight, hairline, floatingPanelAlpha 0.88, panelCornerRadiusDp 20, capsuleCornerRadiusDp 16, accent #60A5FA, fade 150ms, spring 380/28); the desktop Compose theme reads only these tokens, and a `DesktopThemeTest` fails when they drift from the documented numbers (mirror of `ModernThemeTest` on the Android side). Desktop ships dark-first; the light theme comes only once the tokens already cover it. Verify with `:desktop:test`, a headless render of the empty state and of a document saved as `desktop/build/desktop-render/shell.png`, and a real run to confirm the header does not cover the page."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-21
+tags = []
+
+[[task]]
 id = "desktop-page-sidebar"
 title = "Desktop: collapsible pages/layers sidebar (Ctrl+B)"
 description = "Add the collapsible navigation sidebar to `desktop/`: a 240dp left panel toggled by Ctrl+B and by a header glyph, showing page thumbnails rendered from the same `PageView` at a fixed scale (cache one thumbnail per page per tab so scrolling does not repaint pages), the current page highlighted, click-to-scroll navigation, and a layer list for the current page (names from `Layer.name`, “Layer N” when null). Collapsing hands the width back to the canvas without changing the page’s fitted size. Keep the page→scroll-offset arithmetic in a pure `PageIndexScroll` helper with JVM tests (first page, last page, page taller than the viewport, empty document). Verify with `:desktop:test` (state unit tests + headless renders with the sidebar open and closed) and by running `:desktop:run` on udiff.xopp to check Ctrl+B hides it and the page does not jump. Document the sidebar and its shortcut in the desktop section of docs/ui-modernization.md."
