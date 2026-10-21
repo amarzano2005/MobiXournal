@@ -24,7 +24,7 @@ note-taking suite proceeds along **three strictly ordered strategic pillars**:
                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                       STEP 3: SOFTWARE DESKTOP WORKSTATION                             │
-│  Compose Multiplatform + Skia GPU, drawing-tablet tuning, dials & plugins              │
+│  Compose Multiplatform + Skia GPU, drawing-tablet tuning, dials, 21:9 & 144 Hz           │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -45,7 +45,7 @@ No user-facing interface can exceed the capabilities of the data model beneath i
    - High-fidelity Inking (`Stroke` with tilt, azimuth, and $\Delta t$ millisecond timestamps — and
      deliberately no barrel roll: Android exposes no roll axis, so the platform cannot supply it).
 2. **Lossless Round-Trip Bridge**: [mobix-format.md](mobix-format.md) provides
-   bidirectional `.xopp` ingestion and synthesis export, plus official Lua companion plugins for desktop Xournal++.
+   bidirectional `.xopp` ingestion and synthesis export.
 3. **Reactive Math Engine**: [math-engine.md](math-engine.md) powers real-time expression evaluation, numerical
    derivatives, definite integrals, roots, extrema, parametric curves, and polar plots.
 4. **Infinite Canvas Engine**: [infinite-canvas.md](infinite-canvas.md) introduces infinite vertical,
@@ -80,7 +80,7 @@ toward a lightweight, content-first creative tool.
 
 ---
 
-## Step 3: Desktop workstation software (PC / Mac / Linux)
+## Step 3: Desktop workstation software (Windows 11)
 
 The third step scales MobiXournal onto desktop workstations, bringing extreme performance and hardware
 synergy for mouse, keyboard, and drawing tablet users.
@@ -88,7 +88,7 @@ synergy for mouse, keyboard, and drawing tablet users.
 ### Owning architecture spokes:
 1. **Multiplatform Core & GPU Engine**: [desktop-workstation.md](desktop-workstation.md) extracts
    the shared Kotlin Multiplatform (KMP) core and drives rendering via **Skia/Skiko** on GPU backends
-   (DirectX 12 on Windows, Vulkan on Linux, Metal on macOS), achieving $< 4\text{ ms}$ frame times at 120–240 Hz.
+   (DirectX 12 on Windows), achieving $< 4\text{ ms}$ frame times at 120–240 Hz.
 2. **Desktop Workstation UI Layout**: [ui-modernization.md](ui-modernization.md) adapts the interface into:
    - Slim native header bar with document tabs.
    - Collapsible navigation sidebar (`Ctrl+B`) for pages, layers, and PDF outlines.
@@ -96,10 +96,8 @@ synergy for mouse, keyboard, and drawing tablet users.
    - Direct on-screen tool strips with permanent 1-click STEM access (dockable as a top/bottom ribbon or a widescreen lateral palette).
    - Bimanual desktop flow combining left-hand keyboard shortcuts with pen tablet inking.
 3. **Graphics Tablet & Dial Integration**: [desktop-workstation.md](desktop-workstation.md) implements
-   multi-protocol driver support (Wintab / Windows Ink / Wayland `zwp_tablet_manager_v2`), stepless rotary dial zoom,
+   driver support (Wintab / Windows Ink), stepless rotary dial zoom,
    aspect ratio locks for screenless tablets, and pen-tip radial HUD pie menus.
-4. **Extensible Plugin Ecosystem**: [plugin-system.md](plugin-system.md) enables sandboxed Lua and WASM
-   plugins for custom exporters (LaTeX, Typst, Anki) and automated handwriting/MathOCR.
 
 ---
 

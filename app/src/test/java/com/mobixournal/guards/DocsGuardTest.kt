@@ -158,10 +158,7 @@ class DocsGuardTest {
      * Backticked prose that has a task id's shape without being one. Deliberate, the way the source-size
      * ceilings are: adding a line here is a decision to state, not a way round the check.
      */
-    private val proseThatLooksLikeATaskId = setOf(
-        // The desktop companion plugin's own name (docs/mobix-format.md), not a task in either file.
-        "xournalpp-mobix-plugin",
-    )
+    private val proseThatLooksLikeATaskId = emptySet<String>()
 
     /** Every task id in `TODO.toml` and `FINISHED.toml`: the two files a doc may reference. */
     private fun taskIds(): Set<String> {

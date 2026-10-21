@@ -98,11 +98,11 @@ the data model beneath it**:
    (`docs/shape-perfection-engine.md`), offline KaTeX/Typst typesetting (`docs/latex-typst-rendering.md`),
    snap-to-text magnetic PDF highlighter (`docs/pdf-annotation-engine.md`), and freeform/DeX multi-window
    workspaces (`docs/multi-window-workspace.md`).
-3. **Step 3 — Desktop Workstation Software (`docs/desktop-workstation.md`, `docs/plugin-system.md`)**:
-   Shared Kotlin Multiplatform (KMP) core with Skia/Skiko GPU rendering (DirectX 12 / Vulkan / Metal at
+3. **Step 3 — Desktop Workstation Software (`docs/desktop-workstation.md`)**:
+   Shared Kotlin Multiplatform (KMP) core with Skia/Skiko GPU rendering (DirectX 12 at
    120–240 Hz), desktop workstation UI (tabs, `Ctrl+B` sidebar, right Property Inspector, bimanual
-   shortcuts), Wintab / Windows Ink / Wayland graphics tablet & rotary dial integration, and sandboxed
-   Lua/WASM plugins.
+   shortcuts), and Wintab / Windows Ink graphics tablet & rotary dial integration. Target: Windows 11
+   only, optimised for 21:9 and 144 Hz displays.
 
 ### 3. Architectural honesty in docs and code
 

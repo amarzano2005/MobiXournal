@@ -321,32 +321,6 @@ geometry is always preserved exactly (it is compiled into real elements), and se
 only while nothing downstream touched them. A file edited in Xournal++ opens correctly — as the edit,
 which is what it now is — and never as a table that swallowed it.
 
-### Opening `.mobix` directly in desktop Xournal++ (Solution C: Lua plugin)
-
-While desktop Xournal++ (C++/GTK3) does not natively know the `.mobix` file type, Xournal++ provides a
-**Lua plugin API** (`~/.config/xournalpp/plugins/`).
-
-MobiXournal ships an official companion plugin (`xournalpp-mobix-plugin`), **as a published artifact,
-not as this app's code**:
-
-```text
-~/.config/xournalpp/plugins/mobix-importer/
-├── plugin.ini                   # Declares plugin name, author, menu entry
-└── main.lua                     # Unpacks .mobix, parses JSON, and injects pages into Xournal++
-```
-
-- **User workflow**: In desktop Xournal++, the user clicks **Plugin → Import MobiXournal document…**
-  and selects the `.mobix` file.
-- **Under the hood**: The Lua script unzips the archive into a temporary cache, translates
-  `manifest.json` and `pages/*.json` into standard Xournal++ document elements using the Lua document
-  API — or, where that API cannot express a construct, **synthesizes an equivalent `.xopp` and calls
-  `app.openFile`**, which is the fallback that makes the plugin work regardless of how complete the
-  in-app Lua bindings are.
-- **Not part of this repo's build, and not a dependency of the app.** It is a separate deliverable
-  that lives with the plugin ecosystem; the app never requires it, and the `.xopp` export above is
-  the mechanism guaranteed to work today. Its limits are the desktop API's, not the format's, so it
-  is deliberately allowed to lag the app.
-
 ---
 
 ## Engine optimizations enabled by the format
