@@ -23,8 +23,11 @@ import kotlin.math.sin
  *    its two ends and the axis falls out of them; a gate states an input and an output on each side,
  *    and the axis through the middle of them is the gate's own left-to-right drag — not the diagonal
  *    between two pins, which would draw the symbol crooked.
- *  - A component with fewer than two pins has no axis to read, so it is drawn at a **default size**
- *    ([DEFAULT_LENGTH_PT]) about its position: a plain symbol is still a symbol.
+ *  - A **single-pin** symbol (the ground) hangs off that pin: its axis starts at the pin and runs
+ *    out along +x for the default size ([DEFAULT_LENGTH_PT]), and the rotation turns the whole
+ *    symbol about the pin — so the terminal stays exactly where the element says it is.
+ *  - A component with no pins at all has no axis to read, so it is drawn at the same **default
+ *    size** about its position: a plain symbol is still a symbol.
  *
  * A symbol whose key this build does not have returns null, and the export reports it rather than
  * drawing a substitute.
@@ -69,7 +72,14 @@ internal object CircuitInk {
     }
 
     private fun axisOf(circuit: CircuitElement): Axis {
-        if (circuit.pins.size < 2) {
+        if (circuit.pins.size == 1) {
+            val pin = circuit.pins.first()
+            return Axis(
+                circuit.positionX + pin.relX, circuit.positionY + pin.relY,
+                circuit.positionX + pin.relX + DEFAULT_LENGTH_PT, circuit.positionY + pin.relY,
+            )
+        }
+        if (circuit.pins.isEmpty()) {
             val half = DEFAULT_LENGTH_PT / 2.0
             return Axis(
                 circuit.positionX - half, circuit.positionY,

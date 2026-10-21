@@ -162,11 +162,12 @@ class CircuitSnappingTest {
     }
 
     /**
-     * Wire ends are connection targets only where there is a component to connect to; on a page of
-     * ordinary ink there is nothing to join, so nothing is a target.
+     * A pen stroke is never a magnetic target — not even a perfectly straight one, and not even on a
+     * page that holds components. Only a component's pin is a terminal: ink lying near a wire is the
+     * user's own drawing and must not be pulled into a connection.
      */
     @Test
-    fun plainStrokesAreNotTargetsWithoutACircuitOnThePage() {
+    fun penStrokesAreNeverMagneticTargets() {
         val wire = com.mobixournal.format.model.Stroke(
             com.mobixournal.format.model.Tool.PEN,
             0xFF000000.toInt(),
@@ -185,7 +186,7 @@ class CircuitSnappingTest {
         )
         assertEquals(0, CircuitSnapping.collectAllTargets(page).size)
 
-        // A wire endpoint *is* a target once the page holds a component.
+        // With a component on the page the only target is that component's pin.
         val resistor = CircuitElement(
             symbol = "RESISTOR",
             positionX = 100.0,
@@ -194,7 +195,14 @@ class CircuitSnappingTest {
             id = "c1",
         )
         val circuitPage = page.copy(layers = page.layers + com.mobixournal.format.model.Layer(listOf(resistor)))
-        assertEquals(3, CircuitSnapping.collectAllTargets(circuitPage).size)
+        val targets = CircuitSnapping.collectAllTargets(circuitPage)
+        assertEquals(1, targets.size)
+        assertEquals("c1", targets.single().circuitId)
+
+        // A line tool stroke drawn near the other stroke's end stays where the user put it.
+        val (x, y) = CircuitSnapping.snapPoint(page, 201.0, 51.0, snapToGrid = false, magnetic = true)
+        assertEquals(201.0, x, 1e-6)
+        assertEquals(51.0, y, 1e-6)
     }
 
     /**
@@ -226,7 +234,7 @@ class CircuitSnappingTest {
         assertFalse("a closed figure is not a wire", CircuitSnapping.isWire(triangle))
         assertTrue("a straight line is a wire", CircuitSnapping.isWire(straight))
 
-        // On a circuit page the triangle contributes no targets: only the component's pin does.
+        // Neither figure contributes a target: only the component's pin does.
         val circuit = CircuitElement(
             symbol = "RESISTOR",
             positionX = 100.0,
@@ -243,7 +251,7 @@ class CircuitSnappingTest {
                 com.mobixournal.format.model.Layer(listOf(circuit)),
             ),
         )
-        assertEquals(3, CircuitSnapping.collectAllTargets(page).size) // pin + the wire's two ends
+        assertEquals(1, CircuitSnapping.collectAllTargets(page).size) // the pin, and nothing else
     }
 
     /** Dragging ink on a page with no circuit is a free move: there is no connector to snap to. */

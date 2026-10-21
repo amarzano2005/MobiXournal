@@ -96,12 +96,10 @@ internal object CircuitElementFactory {
                     CircuitPin("out", half, 0.0),
                 )
             }
-            ShapeKind.GROUND -> {
-                listOf(
-                    CircuitPin("p1", -half, 0.0),
-                    CircuitPin("p2", half, 0.0),
-                )
-            }
+            // Ground is the library's **single-terminal** symbol: one pin, the point the wire
+            // meets, sitting on the element's position. The earth hangs from it, so there is no
+            // second end to state — the drag is a heading, not a length (see [circuitElementFor]).
+            ShapeKind.GROUND -> listOf(CircuitPin("p1", 0.0, 0.0))
             else -> {
                 // Two-terminal passives, sources, switches, transformers, junctions
                 listOf(
@@ -146,6 +144,24 @@ internal object CircuitElementFactory {
         }
 
         val pins = defaultPinsFor(symbol, len)
+        // A one-pin symbol is anchored at the gesture's **start** — the point that meets the wire —
+        // and follows the drag's direction at the library's default size. Its length is not stored
+        // on the element, so a fixed-size symbol is drawn rather than one whose size the user
+        // cannot see or undo separately.
+        if (pins.size == 1) {
+            val heading = if (isTap) 0.0 else degrees(atan2(dy, dx))
+            return CircuitElement(
+                symbol = symbol,
+                positionX = startX,
+                positionY = startY,
+                rotation = heading,
+                strokeColor = strokeColor,
+                strokeWidth = strokeWidth,
+                value = value,
+                pins = pins,
+                id = ElementId.mint(ElementId.CIRCUIT),
+            )
+        }
         return CircuitElement(
             symbol = symbol,
             positionX = posX,
@@ -157,6 +173,12 @@ internal object CircuitElementFactory {
             pins = pins,
             id = ElementId.mint(ElementId.CIRCUIT),
         )
+    }
+
+    /** [radians] as a rotation in degrees, normalized to `[0, 360)`. */
+    private fun degrees(radians: Double): Double {
+        val deg = Math.toDegrees(radians)
+        return if (deg < 0.0) deg + 360.0 else deg
     }
 
     private data class Quad(val len: Double, val posX: Double, val posY: Double, val rot: Double)

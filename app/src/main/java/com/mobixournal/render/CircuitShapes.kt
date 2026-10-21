@@ -138,44 +138,49 @@ object CircuitShapes {
         }
 
     /**
-     * Ground (GND): the wire the symbol terminates, with the earth symbol hanging below it.
+     * Ground (GND): the library's **single-terminal** symbol — a stem ending in three plates.
      *
-     * The drag is the **wire** — [0, len], exactly as it is for the resistor, the capacitor and the
-     * diode — and the symbol hangs off its midpoint on the +v side (downwards for a left-to-right
-     * drag): a stem, then three plates of decreasing width, drawn as one stroke that retraces back up
-     * the stem and runs on to the wire's far end.
+     * The drag **is** the symbol, not a wire with an earth hung under its middle: the terminal sits at
+     * (sx, sy) and the lead runs along the drag to the plates at its far end. That is how a ground is
+     * drawn by hand — and how it is dropped on a wire (the terminal lands where the wire ends, and the
+     * earth points where the pen dragged) — so the symbol reads as a terminal instead of as a wire
+     * broken in the middle by a fork.
      *
-     * Every size is a fraction of the drag, so stretching the wire grows the symbol with it and the
-     * plates keep the classic 2 : 1.3 : 0.5 proportions. The plates used to be a fixed ~6pt apiece and
-     * were laid out *along* the drag after the stem, which crowded all three into one blob at the far
-     * end of the wire and left the tail of the drag empty.
+     *     |      <- terminal (the element's only pin, at 0)
+     *     |
+     *    ——      <- plates, perpendicular to the drag, evenly spaced, 2 : 1.3 : 0.5 wide
+     *    ——
+     *     —
+     *
+     * Sizes are a fraction of the drag but capped at a symbol's size, so a legacy element whose two
+     * pins still span a long wire draws a readable earth on the end of its lead rather than a fork as
+     * wide as the drag.
      */
     fun ground(sx: Double, sy: Double, ex: Double, ey: Double, widthPt: Double): List<StrokePoint> =
         withBasis(sx, sy, ex, ey, widthPt) { len, p ->
-            val mid = len * 0.5
-            val stem = minOf(18.0, len * 0.30)
-            val step = stem * 0.45
-            val v1 = stem
-            val v2 = stem + step
-            val v3 = stem + 2 * step
-            val half1 = stem
-            val half2 = stem * 0.62
-            val half3 = stem * 0.24
+            // The symbol's own size, independent of the lead: a long drag lengthens the lead, it
+            // never grows the plates.
+            val span = minOf(len, 48.0)
+            val step = minOf(span * 0.17, len / 3.0)
+            // Plates at the far end of the lead, the last one exactly on the drag's end so a pin
+            // recorded there is still inked.
+            val d1 = len - 2 * step
+            val d2 = len - step
+            val d3 = len
+            val half1 = span * 0.40
+            val half2 = half1 * 0.62
+            val half3 = half1 * 0.26
 
             listOf(
                 p(0.0, 0.0),
-                p(mid, 0.0),
-                // Stem down to the first plate, then each plate as an out-and-back rung, so the pen
-                // walks from one plate to the next straight down the stem instead of cutting across.
-                p(mid, v1),
-                p(mid - half1, v1), p(mid + half1, v1), p(mid, v1),
-                p(mid, v2),
-                p(mid - half2, v2), p(mid + half2, v2), p(mid, v2),
-                p(mid, v3),
-                p(mid - half3, v3), p(mid + half3, v3),
-                // Retrace up the stem (over strokes already laid) and out to the wire's end.
-                p(mid, 0.0),
-                p(len, 0.0),
+                p(d1, 0.0),
+                // Each plate is an out-and-back rung, so the pen walks to the next plate down the
+                // stem instead of cutting across the gap between two plates.
+                p(d1, -half1), p(d1, half1), p(d1, 0.0),
+                p(d2, 0.0),
+                p(d2, -half2), p(d2, half2), p(d2, 0.0),
+                p(d3, 0.0),
+                p(d3, -half3), p(d3, half3),
             )
         }
 

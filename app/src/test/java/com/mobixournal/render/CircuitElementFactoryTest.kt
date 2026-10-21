@@ -104,6 +104,43 @@ class CircuitElementFactoryTest {
         assertEquals(abs(in1.relY), abs(in2.relY), 1e-6)
     }
 
+    /**
+     * Ground is the library's single-terminal symbol: one pin, and it is the element's own anchor,
+     * because the earth hangs *from* the terminal the wire meets. The drag is a heading, so a ground
+     * drawn downwards is a ground rotated 90° that starts where the pen started — not a two-ended
+     * part straddling a wire.
+     */
+    @Test
+    fun groundIsASingleTerminalAnchoredWhereTheDragStarted() {
+        val ground = CircuitElementFactory.circuitElementFor(
+            symbol = "GROUND",
+            startX = 50.0,
+            startY = 100.0,
+            endX = 50.0,
+            endY = 160.0,
+        )!!
+
+        assertEquals(1, ground.pins.size)
+        assertEquals(0.0, ground.pins[0].relX, 1e-6)
+        assertEquals(0.0, ground.pins[0].relY, 1e-6)
+        assertEquals(50.0, ground.positionX, 1e-6)
+        assertEquals(100.0, ground.positionY, 1e-6)
+        assertEquals(90.0, ground.rotation, 1e-6)
+
+        // A tap is an unrotated symbol at the tap point.
+        val tapped = CircuitElementFactory.circuitElementFor(
+            symbol = "GROUND",
+            startX = 10.0,
+            startY = 20.0,
+            endX = 11.0,
+            endY = 20.5,
+        )!!
+        assertEquals(1, tapped.pins.size)
+        assertEquals(10.0, tapped.positionX, 1e-6)
+        assertEquals(20.0, tapped.positionY, 1e-6)
+        assertEquals(0.0, tapped.rotation, 1e-6)
+    }
+
     @Test
     fun unknownSymbolIsRefusedRatherThanDrawn() {
         val unknown = CircuitElementFactory.circuitElementFor(

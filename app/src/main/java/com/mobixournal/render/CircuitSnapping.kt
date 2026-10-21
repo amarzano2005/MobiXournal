@@ -79,36 +79,25 @@ object CircuitSnapping {
     }
 
     /**
-     * Collects all pin targets from circuits on [page], along with the endpoints of wire strokes
-     * ([isWire]), excluding pins belonging to [excludeCircuitId].
+     * Collects every component pin on [page], excluding pins belonging to [excludeCircuitId].
      *
-     * Wire endpoints are only targets on a page that actually holds a circuit: the magnet exists to
-     * join a wire to a component, so on a page with no components there is nothing to join and plain
-     * lines must not be pulled onto each other.
+     * Pins are the page's **only** magnetic targets. Ink is never a target, however straight it is:
+     * a pen stroke lying near a wire is the user's own drawing, not a terminal, and pulling a line
+     * onto it (or onto another line's end) drew connections the user never asked for. The magnet
+     * exists to join a connector to a **component**, and only a connector (the line tool) or a
+     * placed component ever asks for it.
      */
-    fun collectAllTargets(page: Page, excludeCircuitId: String? = null): List<PinTarget> {
-        val out = mutableListOf<PinTarget>()
-        val circuits = page.layers.flatMap { it.elements.filterIsInstance<CircuitElement>() }
-        out.addAll(collectTargets(circuits, excludeCircuitId))
-        if (circuits.isEmpty()) return out
-        for (layer in page.layers) {
-            for (element in layer.elements) {
-                if (element is Stroke && isWire(element)) {
-                    val first = element.points.first()
-                    val last = element.points.last()
-                    out += PinTarget(null, "stroke_start", first.x, first.y, null)
-                    out += PinTarget(null, "stroke_end", last.x, last.y, null)
-                }
-            }
-        }
-        return out
-    }
+    fun collectAllTargets(page: Page, excludeCircuitId: String? = null): List<PinTarget> =
+        collectTargets(
+            page.layers.flatMap { it.elements.filterIsInstance<CircuitElement>() },
+            excludeCircuitId,
+        )
 
     /**
      * Whether [stroke] is a **wire** — a single straight segment (the line tool's own two points, or a
      * straight line carrying redundant collinear vertices from a `.xopp`). A closed figure (triangle,
-     * arrow, chemistry ring) has vertices that do not lie on one line, so it is ink, never a terminal:
-     * the magnet must not treat a sketch's corners as connection points.
+     * arrow, chemistry ring) has vertices that do not lie on one line, so it is ink, never a connector:
+     * only a wire's own ends are dragged toward a pin, and a sketch's corners never are.
      */
     fun isWire(stroke: Stroke): Boolean {
         if (stroke.points.size !in 2..4) return false
@@ -173,12 +162,12 @@ object CircuitSnapping {
     }
 
     /**
-     * Snaps translation ([rawDx], [rawDy]) of selected circuits or wires on [page] so that
-     * pins/endpoints align with existing pin targets on the page.
+     * Snaps translation ([rawDx], [rawDy]) of selected circuits or wires on [page] so that their
+     * pins/endpoints land on a component pin.
      *
-     * Only connectors are considered, and only toward real connection targets
-     * ([collectAllTargets] is empty on a page without circuits), so dragging an ordinary figure
-     * across the sheet is a free move.
+     * Only connectors are considered, and only toward component pins ([collectAllTargets] is empty
+     * on a page without circuits): a wire is never a target, so dragging an ordinary figure, or a
+     * wire, across the sheet is a free move unless a real pin is in reach.
      */
     fun snapTranslation(
         page: Page?,

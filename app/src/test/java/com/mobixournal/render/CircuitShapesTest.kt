@@ -35,37 +35,56 @@ class CircuitShapesTest {
         assertTrue(pts.any { abs(it.y) > 5.0 })
     }
 
+    /**
+     * The ground is a **single-terminal** symbol: the drag is its lead, not a wire with a fork hung
+     * under the middle. So it starts at the terminal, runs along the drag, and ends in the three
+     * plates at the far end — never straddling the middle of a wire it was dropped on.
+     */
     @Test
-    fun `ground hangs three shrinking plates below the middle of the wire`() {
+    fun `ground runs its lead from the terminal to three shrinking plates`() {
         val pts = CircuitShapes.ground(0.0, 0.0, 120.0, 0.0, widthPt = 1.0)
-        assertEquals(0.0, pts.first().x, 1e-6)
+        assertEquals(1.0, pts.first().width, 1e-6)
+        assertEquals("the lead starts at the terminal", 0.0, pts.first().x, 1e-6)
         assertEquals(0.0, pts.first().y, 1e-6)
-        assertEquals(120.0, pts.last().x, 1e-6)
-        assertEquals(0.0, pts.last().y, 1e-6)
-        assertTrue(pts.all { it.width == 1.0 })
-        // The drag is the wire, so the symbol hangs *off* it: below the line (+v), never above it,
-        // and never reaching past either end of the drag.
-        assertTrue("the symbol hangs below the wire", pts.all { it.y >= -1e-9 })
-        assertTrue("the symbol has depth", pts.any { it.y > 1.0 })
         assertTrue(pts.all { it.x >= -1e-9 && it.x <= 120.0 + 1e-9 })
-        // Exactly three plates, each narrower than the one before, evenly spaced down the stem, the
-        // widest one dropping from the wire's midpoint.
-        val plates = pts.filter { it.y > 1e-9 }
-            .groupBy { round(it.y * 1e6) / 1e6 }
+        // Plates are perpendicular rungs of the lead, symmetric about it.
+        assertTrue("the plates span the lead", pts.any { it.y > 1.0 } && pts.any { it.y < -1.0 })
+
+        val plates = pts.groupBy { round(it.x * 1e6) / 1e6 }
+            .filterValues { group -> group.any { abs(it.y) > 1e-9 } }
             .toSortedMap()
         assertEquals("three plates", 3, plates.size)
-        val widths = plates.values.map { pl -> pl.maxOf { it.x } - pl.minOf { it.x } }
-        assertTrue("each plate is narrower than the one above it", widths[0] > widths[1] && widths[1] > widths[2])
-        val step = plates.keys.toList()
-        assertEquals("the plates are evenly spaced", step[1] - step[0], step[2] - step[1], 1e-6)
-        // Plates closer together than the shortest one is wide would read as one blob.
-        assertTrue("the plates do not crowd into each other", step[1] - step[0] < widths[2])
-        assertEquals(
-            "the stem drops from the wire's midpoint",
-            60.0,
-            (plates.values.first().minOf { it.x } + plates.values.first().maxOf { it.x }) / 2.0,
-            1e-6,
+        assertTrue(
+            "the plates sit at the far end of the lead, never over its middle",
+            plates.keys.first() > 60.0,
         )
+        assertEquals("the last plate ends the drag", 120.0, plates.keys.last(), 1e-6)
+        val widths = plates.values.map { plate -> plate.maxOf { it.y } - plate.minOf { it.y } }
+        assertTrue("each plate is narrower than the one before it", widths[0] > widths[1] && widths[1] > widths[2])
+        val at = plates.keys.toList()
+        assertEquals("the plates are evenly spaced", at[1] - at[0], at[2] - at[1], 1e-6)
+        // The plates are centered on the lead: a lopsided ground reads as a broken symbol.
+        for ((x, plate) in plates) {
+            assertEquals(
+                "the plate at $x is centered on the lead",
+                0.0,
+                (plate.minOf { it.y } + plate.maxOf { it.y }) / 2.0,
+                1e-6,
+            )
+        }
+    }
+
+    /** A ground is a symbol, not a stretchable wire: a long drag keeps the plates a symbol's size. */
+    @Test
+    fun `ground plates cap their size however long the lead is drawn`() {
+        val short = CircuitShapes.ground(0.0, 0.0, 48.0, 0.0, widthPt = 1.0)
+        val long = CircuitShapes.ground(0.0, 0.0, 240.0, 0.0, widthPt = 1.0)
+        fun widest(pts: List<com.mobixournal.format.model.StrokePoint>) =
+            pts.maxOf { it.y } - pts.minOf { it.y }
+        assertEquals(38.4, widest(short), 1e-6)
+        assertEquals("a long lead does not grow a giant fork", widest(long), widest(short), 1e-6)
+        // The plates stay on the far end of the long lead, where its terminal partner sits.
+        assertEquals(240.0, long.last().x, 1e-6)
     }
 
     @Test
