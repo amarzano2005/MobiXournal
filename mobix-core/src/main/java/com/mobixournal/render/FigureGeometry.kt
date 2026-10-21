@@ -45,7 +45,7 @@ import kotlin.math.sin
  *
  * Pure — no Android types, no view — so the arithmetic is unit-tested on the JVM.
  */
-internal object FigureGeometry {
+object FigureGeometry {
 
     /**
      * The half-angle of the V, in degrees: 24°, i.e. a 48° opening. Slightly tighter than the 56° the

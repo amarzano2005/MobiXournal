@@ -98,6 +98,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
         MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
     render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
     render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
+    render/LivingInk.kt      # THE living dispatch: TableInk/PlotInk/ShapeInk/CircuitInk + their geometry
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
   build.gradle.kts                                         # module config (SDK levels, Compose, deps)

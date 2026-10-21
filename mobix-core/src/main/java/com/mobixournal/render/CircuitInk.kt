@@ -32,7 +32,7 @@ import kotlin.math.sin
  * A symbol whose key this build does not have returns null, and the export reports it rather than
  * drawing a substitute.
  */
-internal object CircuitInk {
+object CircuitInk {
 
     /** The length a component with no pins to derive an axis from is drawn at. */
     const val DEFAULT_LENGTH_PT: Double = 48.0

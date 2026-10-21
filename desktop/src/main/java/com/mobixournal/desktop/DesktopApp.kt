@@ -177,7 +177,12 @@ private fun PageList(document: DesktopDocument, zoom: Float) {
                         style = MaterialTheme.typography.bodySmall,
                     )
                 } else {
-                    PageView(page = loaded, scale = zoom, modifier = Modifier.shadow(10.dp))
+                    PageView(
+                        page = loaded,
+                        scale = zoom,
+                        modifier = Modifier.shadow(10.dp),
+                        backdrop = document.backdrop,
+                    )
                 }
             }
         }

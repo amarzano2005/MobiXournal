@@ -110,3 +110,8 @@ pure and unit-testable, and the output scales without the raster's pixel ceiling
 of their own: each is compiled by its family's compiler and the result painted in its place, through the
 single dispatch in `LivingInk` — the same one the PDF painter and the SVG writer above use, so an entity
 cannot look one way on the canvas and another way in an export. See [mobix-elements.md](mobix-elements.md).
+
+The compilers themselves (`LivingInk`, `TableInk`, `PlotInk`, `ShapeInk`, `CircuitInk`, and the
+function/geometry helpers they use) are **platform-free and live in `mobix-core`**: they turn a recipe
+into ordinary ink — strokes and text boxes — rather than painting it, so whoever paints (Android
+`Canvas`, Compose on Skia in the desktop shell, a PDF or SVG writer) draws the same compiled result.

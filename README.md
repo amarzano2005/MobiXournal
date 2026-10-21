@@ -84,8 +84,9 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 ### 🖥️ Desktop preview (experimental)
 
 The first slice of the planned desktop workstation is in the tree: a native window that opens your
-documents and shows every page — paper ruling, pen strokes with their pressure taper, highlighters,
-dashed lines and text boxes — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
+documents and shows every page as it was written — paper ruling, pen strokes with their pressure taper,
+highlighters, dashed lines, text boxes, and the living parts of a page too: tables, graphs, parametric
+shapes and circuit components, plus photo and annotated-PDF page backgrounds — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
 `.mobix` all open, and the window works out which one it has from the file's content rather than its
 name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
 page up front. It is **read-only** for now, and it is a separate module, so it never affects the

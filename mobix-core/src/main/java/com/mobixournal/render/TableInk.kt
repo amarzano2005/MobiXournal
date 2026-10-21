@@ -6,6 +6,7 @@ import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
+import com.mobixournal.render.InkTokens.FIGURE_LABEL_SIZE_PT
 
 /**
  * A table compiled into the ink `.xopp` can hold: the grid as border strokes, and one text box per
@@ -18,7 +19,7 @@ import com.mobixournal.format.model.TextElement
  * the shading the desktop draws — and a coloured fill that differs from the table's own ink is a
  * second stroke underneath, since `.xopp` gives a stroke one colour and one interior alpha.
  */
-internal object TableInk {
+object TableInk {
 
     /** Space between a cell's edge and its text, so a label never sits on the rule beside it. */
     private const val CELL_PAD_PT = 2.0
@@ -138,7 +139,7 @@ internal object TableInk {
      * The size scales with cell height for comfortable proportion, but adapts down gracefully
      * if the text width or line count would overflow the available cell bounds.
      */
-    internal fun autoFontSizePt(
+    fun autoFontSizePt(
         text: String,
         width: Double,
         height: Double,

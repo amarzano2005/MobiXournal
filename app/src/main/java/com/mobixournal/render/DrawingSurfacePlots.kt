@@ -17,6 +17,8 @@ import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
 import kotlin.math.hypot
+import com.mobixournal.render.InkTokens.FIGURE_LABEL_FONT
+import com.mobixournal.render.InkTokens.FIGURE_LABEL_SIZE_PT
 
 /**
  * Insert a **plotted function** on the visible page as one undoable edit: the graph's frame, axes,

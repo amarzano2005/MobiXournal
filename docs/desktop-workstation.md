@@ -22,6 +22,14 @@ What it does today:
 - Paints solid/ruled/graph/dotted paper (`config`'s `r1`, else `BackgroundGrid`'s defaults), pen
   strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
+- **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
+  running the same compiler the Android canvas and every export use (`LivingInk`, now platform-free in
+  `mobix-core`), then drawing the ink it produces. A table on the PC is the table on the tablet, not a
+  second renderer's opinion of it; an entity this build has no drawing for is reported, not drawn blank.
+- **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF
+  page** rasterised with PDFBox (about 144 dpi) and placed under the ink, so a highlighter still
+  multiplies into it. A `.mobix`'s bundled bytes are preferred over the original reference, which is
+  what keeps a shared notebook looking right after the picture's file has moved away.
 - Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
   layers, the `.xopp` and `.mobix` codecs, and the shared paper/ink geometry — one codec, one ruling and
   one ink rule book rather than a fork.
@@ -34,8 +42,8 @@ What it does today:
 
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.
-- No sketch/PDF/text import and no image or PDF **backgrounds** in any container: a `.mobix` page's
-  bundled payloads are resolvable through the reader, but this shell paints paper and ink only.
+- No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no isometric paper,
+  no layer visibility, and no editing of a living entity — the ink is drawn, not yet made editable.
 - No PDF or pixmap backgrounds, no images, no living entities (plots, tables, circuits, shapes), no
   layer visibility.
 - No tablet/dial input, no dirty-rect GPU pacing, no installers. `run` is the only entry point;
@@ -44,7 +52,9 @@ What it does **not** do (all still governed by this spoke):
 Verification, runnable on any JVM host (no emulator): `./gradlew :desktop:test` loads `udiff.xopp`
 (6 pages, ~4 000 strokes) through `DocumentLoader`, opens a ZIP `.xopp` and a 40-page `.mobix` (including
 both **misnamed** — `.mobix` content in a `.xopp` file and vice versa), refuses a text file and a ZIP with
-no document inside by name, renders page 1 of each headlessly via `ImageComposeScene`,
+no document inside by name, renders page 1 of each headlessly via `ImageComposeScene`, and renders a
+table, a parametric shape, a bundled pixmap and a PDF background — asserting the pixels, not just that
+the call returned (`LivingAndBackgroundTest`),
 checks the painted pixels, and writes `desktop/build/desktop-render/page-1.png`.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the

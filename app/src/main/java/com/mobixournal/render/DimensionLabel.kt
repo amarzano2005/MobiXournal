@@ -37,13 +37,6 @@ private const val LABEL_FONT = "Sans"
 /** Reused for measuring the label; [measurementText] and the placement both run on the UI thread. */
 private val measurer = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = LABEL_SIZE_PT.toFloat() }
 
-/** Pure half of the label: the measured length in pt rendered in millimetres, or null when too short. */
-internal fun measurementText(lengthPt: Double): String? {
-    if (lengthPt < MIN_MEASURED_PT) return null
-    // A tenth of a millimetre is finer than any stylus places a point; more digits would be noise.
-    return String.format(Locale.US, "%.1f mm", lengthPt * MM_PER_PT)
-}
-
 /** The measurement label centred above the midpoint of the segment (sx,sy)–(ex,ey), or null. */
 internal fun measurementLabel(
     sx: Double,

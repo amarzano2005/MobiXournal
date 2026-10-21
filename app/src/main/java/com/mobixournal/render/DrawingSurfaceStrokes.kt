@@ -656,8 +656,6 @@ internal fun DrawingSurfaceView.withStroke(page: Page, stroke: Stroke): Page {
  * (`XoppSynthesis`), and a table's cells and a plot's ticks must come out in the same hand the app
  * would have drawn them in on screen.
  */
-internal const val FIGURE_LABEL_FONT = "Sans"
-internal const val FIGURE_LABEL_SIZE_PT = 8.0
 
 /** The layer new ink lands on for [page]: [activeLayerIndex] when in range, else the top layer. */
 internal fun DrawingSurfaceView.resolvedActiveLayer(page: Page): Int =

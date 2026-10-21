@@ -6,6 +6,8 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
+import com.mobixournal.render.InkTokens.FIGURE_LABEL_FONT
+import com.mobixournal.render.InkTokens.FIGURE_LABEL_SIZE_PT
 
 /**
  * The ink primitives the four families' compilers build a figure out of — one place where a synthesized

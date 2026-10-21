@@ -33,7 +33,7 @@ import kotlin.math.sin
  * A curve whose formula does not parse is not drawn, and it is **named** in
  * [CompiledPlot.unparsed] — the caller reports it — rather than substituted or silently dropped.
  */
-internal object PlotInk {
+object PlotInk {
 
     /** The width a curve is drawn at when the element's own curves do not name one. */
     private const val NOMINAL_WIDTH_PT = 1.0
@@ -53,7 +53,7 @@ internal object PlotInk {
      * second curve. It rides the stroke's `fill`, which is exactly how the desktop carries a fill
      * (`docs/xopp-format.md`), so the area survives a save to `.xopp`, SVG and PDF.
      */
-    private const val SHADE_FILL_ALPHA = CanvasChrome.BAND_FILL_ALPHA
+    private const val SHADE_FILL_ALPHA = InkTokens.BAND_FILL_ALPHA
 
     /**
      * The **other** spellings a parameterised curve's variable arrives in. The app itself writes the
@@ -331,4 +331,4 @@ internal object PlotInk {
  * three-curve plot is not the same thing as a plot that drew nothing — and both go to the caller's
  * [Uncompilable] list rather than being smoothed over.
  */
-internal data class CompiledPlot(val elements: List<Element>, val unparsed: List<String>)
+data class CompiledPlot(val elements: List<Element>, val unparsed: List<String>)

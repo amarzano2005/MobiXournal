@@ -24,7 +24,6 @@ import com.mobixournal.format.model.isLivingEntity
  * user wrote it in. The export's honest half: a symbol or a formula this build has no drawing for is
  * **stated**, not silently left out of the file.
  */
-data class Uncompilable(val type: String, val reason: String)
 
 /**
  * What an export produced: a `.xopp` document, and whatever could not be drawn into it — whether that

@@ -308,7 +308,7 @@ internal class CanvasChrome {
         /** Alpha of the wash inside a selection outline. */
         const val SELECTION_FILL_ALPHA = 0x14
         /** Alpha of the wash inside the drag-select band. */
-        const val BAND_FILL_ALPHA = 0x22
+        const val BAND_FILL_ALPHA = InkTokens.BAND_FILL_ALPHA
 
         const val SELECTION_FILL = 0x142060E0
         const val BAND_FILL = 0x222060E0

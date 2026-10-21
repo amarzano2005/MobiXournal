@@ -37,6 +37,8 @@ class DesktopDocument(
     val file: File,
     val source: PageSource,
     val container: DesktopContainer,
+    /** Where this document's pictures live: bundled bytes, a ZIP package's extraction, or its folder. */
+    val backdrop: PageBackdrop,
 ) : AutoCloseable {
 
     val pageCount: Int get() = source.pageCount
@@ -79,8 +81,16 @@ object DocumentLoader {
         require(file.isFile) { "File non trovato: ${file.path}" }
         return when (val kind = FileKind.of(leadingBytes(file))) {
             FileKind.ZIP -> openZip(file)
-            FileKind.GZIP, FileKind.XML ->
-                DesktopDocument(file, PageSource.of(Xopp.open(file.inputStream().buffered())), DesktopContainer.XOPP_GZIP)
+            FileKind.GZIP, FileKind.XML -> {
+                val document = Xopp.open(file.inputStream().buffered())
+                DesktopDocument(
+                    file = file,
+                    source = PageSource.of(document),
+                    container = DesktopContainer.XOPP_GZIP,
+                    // A gzip `.xopp` keeps its pictures beside it: the reference is a path, nothing is bundled.
+                    backdrop = PageBackdrop(bundled = { null }, documentDir = file.parentFile),
+                )
+            }
             FileKind.PDF -> throw UnsupportedOperationException(unsupported("un PDF", kind))
             FileKind.IMAGE -> throw UnsupportedOperationException(unsupported("un'immagine", kind))
             FileKind.TEXT -> throw UnsupportedOperationException(unsupported("un file di testo", kind))
@@ -113,7 +123,14 @@ object DocumentLoader {
     private fun openMobix(file: File): DesktopDocument {
         val reader = MobixPagedReader(MobixEntrySource.fromFile(file))
         return try {
-            DesktopDocument(file, PageSource.of(reader), DesktopContainer.MOBIX)
+            DesktopDocument(
+                file = file,
+                source = PageSource.of(reader),
+                container = DesktopContainer.MOBIX,
+                // A native document bundles its pictures, and still carries the `.xopp` reference they came
+                // from: the bundle is tried first so the file stands alone, the folder is the fallback.
+                backdrop = PageBackdrop(bundled = reader.assetSource::bytes, documentDir = file.parentFile),
+            )
         } catch (failure: Throwable) {
             // The reader owns the file handle; a rejected archive must not keep it open.
             reader.close()
@@ -125,12 +142,23 @@ object DocumentLoader {
         val loaded = XoppZip.open(
             file.inputStream().buffered(),
             pdfFile = {
-                // The preview does not paint PDF backgrounds yet, but the package's background still has
-                // to land somewhere: the codec hands back a file the caller allocated, never a shared name.
+                // The package's background has to land somewhere: the codec hands back a file the caller
+                // allocated, never a shared name (two open packages must not overwrite each other).
                 Files.createTempFile("mobixournal-desktop-bg", ".pdf").toFile().also { it.deleteOnExit() }
             },
+            imageFile = { Files.createTempFile("mobixournal-desktop-img", ".bin").toFile().also { it.deleteOnExit() } },
         )
-        return DesktopDocument(file, PageSource.of(loaded.doc), DesktopContainer.XOPP_ZIP)
+        return DesktopDocument(
+            file = file,
+            source = PageSource.of(loaded.doc),
+            container = DesktopContainer.XOPP_ZIP,
+            // A packaged `.xopp` names its entries, and the codec has just extracted them for us.
+            backdrop = PageBackdrop(
+                bundled = { null },
+                documentDir = file.parentFile,
+                extracted = { name -> loaded.images[name] ?: loaded.pdf?.takeIf { name == XoppZip.PDF_ENTRY } },
+            ),
+        )
     }
 
     private fun unsupported(what: String, kind: FileKind): String =

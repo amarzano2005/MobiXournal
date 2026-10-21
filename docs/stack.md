@@ -120,6 +120,9 @@ native for stylus latency and platform fit).
   `.xopp` layer has: what a document means is ours to read, not a library's. Only the codecs
   (`format/mobix/`) touch it; the settings backup's JSON goes through the same layer rather than its
   own private copy.
+- **PDF backgrounds on the desktop — PDFBox for the JVM (`org.apache.pdfbox:pdfbox 2.0.31`).** The
+  Android port cannot rasterise outside Android, so the `desktop/` module links the same 2.0 API on a
+  plain JVM; the app keeps `pdfbox-android`, and the two never share a classpath.
 - **PDF export — PDFBox (`com.tom-roush:pdfbox-android`).** *Decision (2026-07-31):* the one
   non-framework runtime dependency, taken deliberately. The framework `android.graphics.pdf`
   writer (`PdfDocument`) can only paint onto a canvas, so exporting an imported PDF forced every

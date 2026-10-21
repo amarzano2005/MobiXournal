@@ -16,14 +16,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.sp
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke as InkStroke
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
+import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.InkGeometry
+import com.mobixournal.render.LivingInk
 
 /**
  * One page of a document, painted on a Compose/Skia canvas at [scale] (1.0 = page points as dp).
@@ -33,18 +38,37 @@ import com.mobixournal.render.InkGeometry
  * content is the document, not a screenshot of it.
  */
 @Composable
-fun PageView(page: Page, scale: Float, modifier: Modifier = Modifier) {
+fun PageView(page: Page, scale: Float, modifier: Modifier = Modifier, backdrop: PageBackdrop? = null) {
     val measurer = rememberTextMeasurer()
     Canvas(modifier.size((page.width * scale).dp, (page.height * scale).dp)) {
         // The box is sized in dp, so the painter must convert page points to device pixels with the
         // display density: without it a HiDPI screen would draw the ink at 1:1 inside a larger box.
-        drawPageContent(page, pxPerPt = scale * density, textMeasurer = measurer)
+        drawPageContent(page, pxPerPt = scale * density, textMeasurer = measurer, backdrop = backdrop)
     }
 }
 
-/** Paints the sheet, then every layer's elements in document order (first = bottom, last = top). */
-internal fun DrawScope.drawPageContent(page: Page, pxPerPt: Float, textMeasurer: TextMeasurer) {
+/**
+ * Paints the sheet, its picture, then every layer's elements in document order (first = bottom, last =
+ * top).
+ *
+ * The picture (a pixmap or an annotated PDF page) goes **between** the paper and the ink: it is what
+ * the page is written on, so a highlighter multiplies into it and a stroke covers it, exactly as on the
+ * tablet.
+ */
+internal fun DrawScope.drawPageContent(
+    page: Page,
+    pxPerPt: Float,
+    textMeasurer: TextMeasurer,
+    backdrop: PageBackdrop? = null,
+) {
     drawPaper(page.background, page.width, page.height, pxPerPt)
+    backdrop?.image(page.background)?.let { picture ->
+        drawImage(
+            picture,
+            dstOffset = IntOffset.Zero,
+            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+        )
+    }
     for (layer in page.layers) {
         for (element in layer.elements) drawElement(element, pxPerPt, textMeasurer)
     }
@@ -54,10 +78,14 @@ private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: 
     when (element) {
         is InkStroke -> drawInkStroke(element, scale)
         is TextElement -> drawTextBox(element, scale, textMeasurer)
-        // Images and the living families (plots, tables, circuits, shapes) are the shared
-        // `mobix-render` module's job; skipping them here is visible, not silent — the preview's
-        // status in `docs/desktop-workstation.md` says so.
-        else -> Unit
+        // A living entity is a *recipe*, and `LivingInk` is the one place that compiles it into ink —
+        // the same dispatch the Android canvas, `XoppSynthesis`, PDF and SVG export use. Drawing its
+        // result here is what keeps a table or a graph identical on both shells without a second
+        // renderer to drift: this shell only knows how to paint strokes and text, which is all a
+        // compiled entity is.
+        else -> if (element.isLivingEntity) {
+            for (ink in LivingInk.of(element).elements) drawElement(ink, scale, textMeasurer)
+        }
     }
 }
 

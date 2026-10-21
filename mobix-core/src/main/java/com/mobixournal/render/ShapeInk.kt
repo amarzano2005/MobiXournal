@@ -25,7 +25,7 @@ import kotlin.math.roundToInt
  *    fraction of a millimetre away from where the screen put it. Its *text* is the same
  *    ([DimensionLabel.measurementText]).
  */
-internal object ShapeInk {
+object ShapeInk {
 
     /** How far a label sits from the edge it names, at the figure's own scale. */
     private const val LABEL_OFFSET_PT = 6.0
