@@ -85,11 +85,11 @@ Work across the repository follows a strict dependency hierarchy — **no user-f
 the data model beneath it**:
 
 1. **Step 1 — Native `.mobix` Format & Core Engines (Data Foundation)**:
-   Container, schema, living element codecs, and `.xopp` synthesis bridge are implemented. Active Step 1
-   engine work (`step-1-mobix-format-engines` in `TODO.toml`) completes end-to-end page streaming in the
-   editor (`PageSource`), zero-regeneration incremental saves, pen telemetry payoff, infinite canvas
-   rendering (`docs/infinite-canvas.md`), reactive math (`docs/math-engine.md`), bundled audio & karaoke
-   stroke replay (`docs/audio-inking-sync.md`), and three-way page-level sync (`docs/sync-and-storage.md`).
+   Container, schema, living element codecs, the `.xopp` synthesis bridge and the runtime engines are
+   implemented and archived in `FINISHED.toml` (`step-1-mobix-format-engines`): page streaming
+   (`PageSource`), incremental saves, infinite canvas (`docs/infinite-canvas.md`), reactive math
+   (`docs/math-engine.md`) and bundled audio & karaoke stroke replay (`docs/audio-inking-sync.md`).
+   Three-way page-level sync (`docs/sync-and-storage.md`) is still a Planned Spec.
 2. **Step 2 — Modern Mobile UI & Living Editors (`step-2-modern-mobile-ui`)**:
    Lightweight frosted-glass chrome (`docs/ui-modernization.md`: bands never overlap the page; headers
    close on one full-width edge), Pen-Tip Radial HUD summoned by stylus barrel button at the nib,
@@ -136,15 +136,16 @@ Two JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce stru
 
 ## Multi-machine workflow: detect the active host profile
 
-The owner works across **multiple machines** (including a Linux container host equipped with
-`/data/android` and a Windows 11 laptop). **Never assume which machine a session is running on** —
-check the OS/shell and whether `/data/android` exists at the start of a task, then follow the
-matching profile below:
+The owner works across **multiple machines** (a Linux container host equipped with `/data/android`,
+a Windows 11 laptop and a Windows 11 desktop PC). **Never assume which machine a session is running
+on** — check the OS/shell, the host name (`$env:COMPUTERNAME`) and whether `/data/android` exists at
+the start of a task, then follow the matching profile below:
 
 | Profile | How to recognise it | Build & test front door | Emulator & `androidTest` |
 |---|---|---|---|
 | **A. Linux `/data/android` container host** (Primary standard when present) | Linux shell (`bash`/`sh`) and `/data/android/build.sh` exists | `scripts/build.sh` (runs inside `android-builder:local` via Docker, Podman fallback) | `/data/android` headless Android 14 container via `emulator.sh`; run `androidTest` via `scripts/connected-test.sh` |
 | **B. Windows 11 laptop (`i7-12650H`)** | Windows (`pwsh`), user `amarz`, no `/data/android` | `.\gradlew.bat` directly in `pwsh`, or `& "C:\Program Files\Git\bin\bash.exe" scripts/host-build.sh` | Local SDK `Pixel_Tablet` AVD (WHPX); run `androidTest` via `.\gradlew.bat connectedDebugAndroidTest` |
+| **D. Windows 11 desktop PC (`ANTONIOFISSO-PC`, `i9-12900KF`)** | Windows (`pwsh`), host name `ANTONIOFISSO-PC`, 3440×1440 monitor, no `/data/android` | same as B | same as B (SDK and `Pixel_Tablet` AVD present) |
 | **C. Other Linux / macOS / Windows hosts** (without `/data/android`) | `/data/android` absent | `scripts/host-build.sh` (auto-discovers JDK 17–24 preferring 21 + Android SDK) or `./gradlew` | Host SDK `emulator` + `adb`; run `androidTest` via `scripts/host-build.sh connectedDebugAndroidTest` |
 
 ### Profile A — Linux `/data/android` container host
@@ -157,7 +158,29 @@ matching profile below:
   container, which lives in a separate `adb` world).
 - Full contract and gotchas live in `docs/tools.md`.
 
-### Profile B — Windows 11 laptop (`i7-12650H` / 16 GB RAM)
+### Profile B and D — the Windows 11 machines
+Both run Windows 11 `10.0.26300` in `pwsh` with the same toolchain paths (below); they differ in
+hardware. **Profile D is the machine to verify desktop-app work on**: it has the 21:9 monitor and a
+Huion tablet attached, which Profile B lacks.
+
+#### Profile D — Windows 11 desktop PC (`ANTONIOFISSO-PC`)
+- **Hardware**: 12th Gen Intel Core **i9-12900KF** (16 cores, 24 threads), **32 GB RAM**, NVIDIA
+  **GeForce RTX 3080** (a discrete GPU, so a running AVD does not share system RAM with the display).
+- **Display**: one **3440×1440 (21:9)** monitor; Windows reports **120 Hz** for it, so the 144 Hz
+  target of `docs/desktop-workstation.md` needs the refresh rate raised in Windows display settings
+  (or a check that the monitor supports it) before it can be measured here.
+- **Tablet**: a **Huion** device shows up as a HID device (driver and Wintab/Windows Ink support not
+  yet checked — that is the `desktop-tablet-and-dial-input` spike).
+- **Python trap**: `python` on `PATH` resolves to the Microsoft Store stub in `WindowsApps` and prints
+  a Store prompt instead of running. The real interpreter is
+  `C:\Users\amarz\AppData\Local\Python\bin\python.exe` (3.14), e.g.
+  `& 'C:\Users\amarz\AppData\Local\Python\bin\python.exe' scripts/todo/todo.py stats`.
+- **JDKs**: `~\.jdks` holds `jbr-21.0.11` (use this) and `temurin-25.0.3`; the default `java` on `PATH`
+  is **JDK 27**, which breaks Gradle — set `JAVA_HOME` as under Profile B.
+- Everything else (SDK, `Pixel_Tablet` AVD, `.\gradlew.bat`, Git Bash for `.sh`) is as under Profile B.
+  With 32 GB the RAM pressure is far lower, but still run **one Gradle command at a time**.
+
+#### Profile B — Windows 11 laptop (`i7-12650H` / 16 GB RAM)
 When the session is running on this Windows 11 workstation (`10.0.26300`, `pwsh`):
 - **Hardware & resource budget**:
   - **CPU**: 12th Gen Intel Core i7-12650H (10 cores: 6P + 4E, **16 logical processors**).
@@ -201,10 +224,10 @@ The **repository layout** (every package/module and what it does) lives in
 scripts/build.sh                           # unit tests + debug APK inside container
 scripts/build.sh testDebugUnitTest         # unit tests only
 
-# 2. On hosts without /data/android via Git Bash / POSIX shell (Profiles B & C):
+# 2. On hosts without /data/android via Git Bash / POSIX shell (Profiles B, C & D):
 scripts/host-build.sh                      # auto-discovers JDK 21 + SDK, runs unit tests + debug APK
 
-# 3. Direct PowerShell fast path on Windows host (Profile B):
+# 3. Direct PowerShell fast path on a Windows host (Profiles B & D):
 .\gradlew.bat testDebugUnitTest            # unit tests (JVM; no device needed)
 .\gradlew.bat assembleDebug                # build debug APK (com.mobixournal.v2)
 ```
