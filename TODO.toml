@@ -36,48 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "summon-and-anchor-the-pen-tip-radial-hud"
-title = "Summon and anchor the pen-tip radial HUD"
-description = "The pen-tip radial HUD of docs/ui-modernization.md, and deliberately not the NeXopp palette docs/codebase.md records as deleted: nothing is on screen until the stylus barrel button is pressed, the ring is anchored at the nib (hoverX/hoverY on render/DrawingSurfaceView), and it disappears on release instead of sitting over the canvas. Build the summon on the barrel path the input layer already has (render/DrawingSurfaceInput.kt: BarrelButtonState, barrelClicks, the vendor-key route a Bluetooth pen needs, InputClassifier.classify), dismiss on a second press or a cancelled gesture, and add no settings section of its own - the bindings stay in Settings to Shortcuts (docs/chrome.md). Verify with the connected harness that already drives these paths (com.mobixournal.StylusInputTest, see docs/stylus.md) plus an emulator pass with screenshots: the button opens the HUD at the tip, a release outside cancels without committing, and logcat shows no stroke was written."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 810
-created = 2026-10-13
-tags = ["ui", "stylus"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "draw-the-radial-hud-as-glass-chrome"
-title = "Draw the radial HUD as glass chrome at the nib"
-description = "The HUD drawing, done in the canvas chrome instead of a Compose dialog so it sits under the pen without stealing focus: a hairline ring, 40 dp slots and a glass fill, every number from the ModernTheme tokens, monoline icons (docs/ui-modernization.md). The ring holds the user palette swatches first - this is where a custom HEX slot finally gets a one-flick home - then the pen widths, then the few tools with no other 1-tap home; the rail and the STEM dock keep the rest, because duplicating every tool is exactly the weight that made the old palette heavy. Remove the dead radial-palette paints left behind in render/CanvasChrome.kt (paletteScrim, paletteRing, paletteSlot, paletteSlotEmpty, paletteHighlight, paletteIcon and the PALETTE_* constants are never drawn by anything) and let the new HUD replace them. Verify with a screenshot of the open HUD over ink, and a unit test that every slot of the documented count lands inside the ring."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 820
-created = 2026-10-13
-tags = ["ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "track-the-flick-and-commit-a-colour-width-or-tool"
-title = "Track the flick and commit a colour, width or tool"
-description = "The interaction half of the HUD: while the barrel button is held, the flick direction selects a slot, a haptic tick marks each crossing of a boundary, and the release commits. The commit must go through one entry point, and there is a stub of it: applyToolPreset (ui/ToolPreset.kt) is documented as the call the rail and a radial-palette slot both make, but nothing calls it today - the rail switches through EditorUiState.switchToolTo plus surface.applyTool in EditorScreen and EditorRegions. So this task starts by routing the rail's own tool, colour and width switches through applyToolPreset, pinned by a unit test, which is what turns the guarantee (a HUD choice can never mean something the user could not have set by hand) from a comment into a property. Keep the angle-to-slot geometry pure and unit-tested, including the seam wrap where the ring closes and the centre dead zone, which commits nothing when the release lands there; haptics respect the existing pen haptics setting. Verify with JVM unit tests over the slot maths (each slot centre, a boundary, the dead zone) plus an emulator pass committing a colour and a width and seeing the rail follow."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 830
-created = 2026-10-13
-tags = ["ui", "stylus"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "shape-perfection-engine-with-300ms-pen-dwell-recognition"
 title = "Shape perfection engine: dwell recognition and living vertex handles"
 description = "docs/shape-perfection-engine.md specifies the shape engine: a dwell trigger (tip travelling under 3.0 pt for 300 ms before touch-up, with an exponential moving average cancelling micro-jitter), a multi-class classifier reading curvature profile, aspect ratio, closure and vertex angles against the documented invariants (line with regression R2 above 0.96, circle closing within 10 percent with radial variance under 0.08, rectangle corners within 10 degrees of a right angle, triangle angles summing to 180), and a living ParametricShapeElement with draggable vertex handles. Investigate the gap - the dwell constants, which classes the recogniser can already name, how a recognised shape becomes a living element instead of ink, and what the selection and handle machinery must learn - then add the task-level children. Produce tasks, not code."
@@ -274,6 +232,48 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
+id = "summon-and-anchor-the-pen-tip-radial-hud"
+title = "Summon and anchor the pen-tip radial HUD"
+description = "The pen-tip radial HUD of docs/ui-modernization.md, and deliberately not the NeXopp palette docs/codebase.md records as deleted: nothing is on screen until the stylus barrel button is pressed, the ring is anchored at the nib (hoverX/hoverY on render/DrawingSurfaceView), and it disappears on release instead of sitting over the canvas. Build the summon on the barrel path the input layer already has (render/DrawingSurfaceInput.kt: BarrelButtonState, barrelClicks, the vendor-key route a Bluetooth pen needs, InputClassifier.classify), dismiss on a second press or a cancelled gesture, and add no settings section of its own - the bindings stay in Settings to Shortcuts (docs/chrome.md). Verify with the connected harness that already drives these paths (com.mobixournal.StylusInputTest, see docs/stylus.md) plus an emulator pass with screenshots: the button opens the HUD at the tip, a release outside cancels without committing, and logcat shows no stroke was written."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 810
+created = 2026-10-13
+tags = ["ui", "stylus"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "draw-the-radial-hud-as-glass-chrome"
+title = "Draw the radial HUD as glass chrome at the nib"
+description = "The HUD drawing, done in the canvas chrome instead of a Compose dialog so it sits under the pen without stealing focus: a hairline ring, 40 dp slots and a glass fill, every number from the ModernTheme tokens, monoline icons (docs/ui-modernization.md). The ring holds the user palette swatches first - this is where a custom HEX slot finally gets a one-flick home - then the pen widths, then the few tools with no other 1-tap home; the rail and the STEM dock keep the rest, because duplicating every tool is exactly the weight that made the old palette heavy. Remove the dead radial-palette paints left behind in render/CanvasChrome.kt (paletteScrim, paletteRing, paletteSlot, paletteSlotEmpty, paletteHighlight, paletteIcon and the PALETTE_* constants are never drawn by anything) and let the new HUD replace them. Verify with a screenshot of the open HUD over ink, and a unit test that every slot of the documented count lands inside the ring."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 820
+created = 2026-10-13
+tags = ["ui"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
+id = "track-the-flick-and-commit-a-colour-width-or-tool"
+title = "Track the flick and commit a colour, width or tool"
+description = "The interaction half of the HUD: while the barrel button is held, the flick direction selects a slot, a haptic tick marks each crossing of a boundary, and the release commits. The commit must go through one entry point, and there is a stub of it: applyToolPreset (ui/ToolPreset.kt) is documented as the call the rail and a radial-palette slot both make, but nothing calls it today - the rail switches through EditorUiState.switchToolTo plus surface.applyTool in EditorScreen and EditorRegions. So this task starts by routing the rail's own tool, colour and width switches through applyToolPreset, pinned by a unit test, which is what turns the guarantee (a HUD choice can never mean something the user could not have set by hand) from a comment into a property. Keep the angle-to-slot geometry pure and unit-tested, including the seam wrap where the ring closes and the centre dead zone, which commits nothing when the release lands there; haptics respect the existing pen haptics setting. Verify with JVM unit tests over the slot maths (each slot centre, a boundary, the dead zone) plus an emulator pass committing a colour and a width and seeing the rail follow."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 830
+created = 2026-10-13
+tags = ["ui", "stylus"]
+rebuild = true
+emulator_debug = true
+
+[[task]]
 id = "compress-wav-on-mobix-conversion"
 title = "Compress WAV recordings when a document becomes .mobix"
 description = "A recording takes the codec of the document's format when it starts: a .xopp document records 16-bit mono WAV (the desktop sidecar contract), ~5.3 MB a minute, ~160 MB for 30 minutes. A later Save As .mobix bundles those WAV bytes untouched (audio-inking-sync.md -> Why a .mobix can still be large), so the archive is as big as the WAV. Investigate and break into tasks: (1) a streaming WAV -> Ogg/Opus (AAC fallback) transcoder using MediaExtractor + MediaCodec + MediaMuxer, written next to the recording in the audio store, keyed by source hash so it is produced once; (2) at a .mobix save, substitute the compressed copy for a WAV recording over a size threshold, and rewrite the strokes' fn to the compressed sidecar name so playback and a later .xopp export stay honest; (3) the .xopp export path keeps pushing the original WAV, and the case where no encoder exists keeps the WAV. Verify on the Pixel_Tablet emulator: record 2 minutes in a .xopp tab, Save As .mobix, confirm the archive holds an assets/aud_<sha>.ogg entry, the file is ~1 MB, the stroke still replays after reopening on a fresh install, and an exported .xopp still has its .wav sidecar."
@@ -285,20 +285,6 @@ order = 840
 created = 2026-10-21
 tags = ["audio", "size"]
 rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "desktop-packaging-installers-and-ci-artifact"
-title = "Desktop packaging: MSI installer and CI artifact"
-description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.4.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Windows 11 only (decision 2026-10-21): add a documented, repeatable command that builds the MSI and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the MSI and launching the packaged binary against udiff.xopp."
-status = "active"
-level = "task"
-category = "chore"
-urgency = "low"
-order = 1030
-created = 2026-10-21
-tags = []
-rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -330,48 +316,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-editing-undo-and-save"
-title = "Desktop editing, undo and save (scope)"
-description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1000
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tablet-and-dial-input"
-title = "Desktop graphics tablet and rotary dial input (scope)"
-description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md), WINDOWS 11 ONLY (decision 2026-10-21, no Linux or macOS). Nothing about real tablet pressure on desktop is proven yet: Compose Desktop exposes PointerInputChange.pressure, but whether it carries a graphics-tablet value through Windows Ink or Wintab is unknown, and talking to those APIs from the JVM is new work for this repo. Investigate and add tasks for: (1) a measuring spike that logs the raw pressure, tilt and azimuth the JVM receives on this Windows host, with the concrete library or API chosen (JNA + Wintab, Windows Ink WM_POINTER, AWT) and a pass/fail criterion; (2) the input abstraction the editor consumes, so mouse and tablet are two backends; (3) aspect-ratio lock and window-bounded mapping for screenless tablets; (4) the tablet's ROTARY DIAL or touch ring (owner requirement): events mapped to continuous zoom at the cursor, stroke width with a diameter-ring preview, and radial-HUD navigation, including whether the driver delivers the ring as mouse-wheel or key events (cheapest path) or only through Wintab ExpressKeys; (5) honest fallback behaviour when no tablet is present. Record the chosen backend in docs/desktop-workstation.md. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 1010
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-inspector-and-export"
-title = "Desktop property inspector and PDF/SVG export (scope)"
-description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 1020
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-kmp-module-split"
 title = "Desktop: KMP module split (scope)"
 description = "Prerequisite of the desktop editor (Phase 3 of docs/desktop-workstation.md). The Android render, ui, tabs and io packages are still Android-bound, so desktop editing cannot reuse them. Investigate which of EditHistory, DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfaceSelection, ElementEdits, PdfVectorPainter, PageSvgWriter, XoppSynthesis and io/DocumentIo are platform-free enough to move into mobix-core (or a new mobix-render behind a small canvas abstraction), and which must be reimplemented for desktop. Target is Windows 11 only, but keep the shared core OS-independent. Per candidate state: what moves, what stays, the size of the change and how the Android app keeps compiling and passing its unit suite. Produce tasks, no code."
@@ -386,6 +330,20 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "desktop-editing-undo-and-save"
+title = "Desktop editing, undo and save (scope)"
+description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 1000
+created = 2026-10-21
+tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "desktop-living-entity-editors"
 title = "Desktop: in-place editors for living entities (scope)"
 description = "Editing of living elements directly on the desktop page, one family at a time (plot, table, circuit, parametric shape), reusing the codecs in format/mobix/ and the apply functions the Android editors use (render/ElementEdits.kt, applyPlotEdit). Complements the non-modal inspector in desktop-inspector-and-export: this scope is the on-page gestures (double-click to edit, vertex and pin handles, drag to resize without changing line weight). Investigate what each family needs from the desktop selection and undo model, state the order of families and add task-level children. Depends on desktop-kmp-module-split and desktop-editing-undo-and-save. Produce tasks, no code."
@@ -396,6 +354,20 @@ urgency = "normal"
 order = 1005
 created = 2026-10-21
 tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-tablet-and-dial-input"
+title = "Desktop graphics tablet and rotary dial input (scope)"
+description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md), WINDOWS 11 ONLY (decision 2026-10-21, no Linux or macOS). Nothing about real tablet pressure on desktop is proven yet: Compose Desktop exposes PointerInputChange.pressure, but whether it carries a graphics-tablet value through Windows Ink or Wintab is unknown, and talking to those APIs from the JVM is new work for this repo. Investigate and add tasks for: (1) a measuring spike that logs the raw pressure, tilt and azimuth the JVM receives on this Windows host, with the concrete library or API chosen (JNA + Wintab, Windows Ink WM_POINTER, AWT) and a pass/fail criterion; (2) the input abstraction the editor consumes, so mouse and tablet are two backends; (3) aspect-ratio lock and window-bounded mapping for screenless tablets; (4) the tablet's ROTARY DIAL or touch ring (owner requirement): events mapped to continuous zoom at the cursor, stroke width with a diameter-ring preview, and radial-HUD navigation, including whether the driver delivers the ring as mouse-wheel or key events (cheapest path) or only through Wintab ExpressKeys; (5) honest fallback behaviour when no tablet is present. Record the chosen backend in docs/desktop-workstation.md. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1010
+created = 2026-10-21
+tags = []
 rebuild = false
 emulator_debug = false
 
@@ -424,6 +396,20 @@ urgency = "high"
 order = 1014
 created = 2026-10-21
 tags = ["desktop", "performance"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-and-export"
+title = "Desktop property inspector and PDF/SVG export (scope)"
+description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "low"
+order = 1020
+created = 2026-10-21
+tags = []
 rebuild = false
 emulator_debug = false
 
@@ -480,5 +466,19 @@ urgency = "normal"
 order = 1028
 created = 2026-10-21
 tags = ["desktop", "ui"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-packaging-installers-and-ci-artifact"
+title = "Desktop packaging: MSI installer and CI artifact"
+description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.4.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Windows 11 only (decision 2026-10-21): add a documented, repeatable command that builds the MSI and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the MSI and launching the packaged binary against udiff.xopp."
+status = "active"
+level = "task"
+category = "chore"
+urgency = "low"
+order = 1030
+created = 2026-10-21
+tags = []
 rebuild = false
 emulator_debug = false
