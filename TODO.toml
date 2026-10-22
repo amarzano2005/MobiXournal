@@ -302,20 +302,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "split-documentio-into-a-core-file-layer-and-a-saf-shell"
-title = "Split DocumentIo into a core file layer and a SAF shell"
-description = "io/DocumentIo.kt (666 lines) imports android.content.ContentResolver, android.net.Uri and android.provider.OpenableColumns, but the URI work is confined: private resolver is used only by displayName (line 166), the staged files come from DocumentStaging, and read(staged: File), identifyForSave, encode, merge, adoptPdf and prune all work on Files and streams. Split it so the desktop can open and save a local path without SAF. (1) In mobix-core add DocumentFileIo: the byte-level half — picking the family by bytes and mimetype (FileKind/SaveFormat), reading a File into the same loaded document the app sees, encoding a document into a File through the same temporary-then-replace staging, the image store, and the failure sentences read() already produces — with the staging directory as a constructor File and the callbacks as plain lambdas instead of a ContentResolver. (2) Leave app/src/main/java/com/mobixournal/io/DocumentIo.kt as the SAF shell: stageIn/stageOut/persist/isWritable/displayName and the Uri overloads stay, every other method delegates, so MainActivity's call sites do not change. This is child (4) of desktop-editing-undo-and-save and lands before it: the desktop save path is this core class plus a local staging directory. Verify: a new mobix-core test writes a document to a temp directory as .mobix and as .xopp, reads both back and compares the documents; the full :app:testDebugUnitTest suite green (DocumentIoTest and the io integration tests are the behaviour gate, including the failure sentences describeOpenFailure relies on); no emulator."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 945
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "give-both-shells-one-pointer-router"
 title = "Give both shells one pointer router"
 description = "render/DrawingSurfaceInput.kt (680 lines; android.view.KeyEvent, MotionEvent, SurfaceView, ViewConfiguration), DrawingSurfaceStrokes.kt (679; MotionEvent) and DrawingSurfaceSelection.kt (341; ClipData, ClipboardManager, Context, MotionEvent) are View-event code and stay in the app — the desktop cannot reuse a MotionEvent and should not try. What it needs is the decisions inside them, which a Compose pointer can feed: the pressure filter of docs/stylus.md, the gesture classification (pen versus finger, tap versus drag, the second-finger rule that turns a drag into pan/zoom) and the geometry of a partial erase and of a selection transform. (1) In mobix-core/src/main/java/com/mobixournal/render/ add an InkPointer value (x, y, pressure, tilt, azimuth, timestamp, tool type, buttons, phase) and an InkPointerRouter that turns a stream of them into the events the editor consumes: stroke start/extend/end, tap, two-finger pan/zoom, erase hit. (2) Rewrite the Android side as a thin MotionEvent adapter that produces InkPointer and keeps its current behaviour, with the app suite as the gate — if a test has to change, the adapter changed behaviour and the refactor is wrong. (3) Test the router in mobix-core with synthetic pointer streams: a pressure ramp that the filter smooths, a tap that does not draw, an erase that splits a stroke at the hit point, and a second finger that ends the stroke and starts a pan. State in the router's doc that the desktop's Compose pointer becomes the second adapter in desktop-editing-undo-and-save, and that which pointer fields Compose Desktop actually fills on Windows is measured by desktop-tablet-and-dial-input rather than assumed."
@@ -327,6 +313,20 @@ order = 946
 created = 2026-10-22
 tags = ["desktop"]
 rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "core-encoder-so-the-desktop-can-write-a-document"
+title = "Core encoder so the desktop can write a document"
+description = "The desktop can open a document but not write one: encode() lives in app/src/main/java/com/mobixournal/io/DocumentIo.kt and is entangled with SAF through four seams — staging (UriStaging) creates the scratch file, openSessions (MobixOpenSessions) supplies the incremental-repack source, the canvas mode, the chunk coords and the canvas, refs.portableReference relativises against a Uri, and displayName(Uri) names the bridge. Everything that actually writes bytes is already in the core: Xopp.save, XoppZip.save, MobixContainer.save, MobixIncrementalSave.saveOver, MobixDocument.of, XoppSynthesis.synthesize — and the two reference transforms (PdfBackgroundDomain, PixmapBackgroundDomain) moved there too. Note from the split: ImageStore cannot follow, it is not platform-free (ScratchDir + UriStaging). Add mobix-core/src/main/java/com/mobixournal/io/DocumentEncoder.kt with (1) a SaveTarget value a plain File and a SAF Uri can both produce (document name, its folder, and the base a relative reference is computed against); (2) write(document, format, target, out: OutputStream, pdf, images, audioFiles, canvasMode, transcription) holding the three format arms exactly as DocumentIo.encode has them, returning the list of Uncompilable a .xopp export could not draw; (3) an optional PageReuseSource with the four answers writeMobix asks openSessions for, so the incremental repack keeps working when the source exists (the app passes its MobixOpenSessions, the desktop passes null). DocumentIo.encode then delegates to it: it keeps staging.newFile and its Encoded return, so no call site changes. Verify: the app's io suite is the gate and must not change — DeferredPayloadSaveTest, SaveIdentityTest, SaveTargetTest, ChunkedMobixRoundTripTest, InfiniteExportTest, PagedMobixOpenTest; add one core test that writes the same document to a temp .xopp (gzip), a zipped .xopp and a .mobix through DocumentEncoder and reads each back with the core codecs, asserting the document that comes back. No emulator. Docs: the io rows of docs/codebase.md and the sticky-format paragraph of docs/data-path.md."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 948
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
 emulator_debug = false
 
 [[task]]
