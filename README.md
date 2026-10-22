@@ -106,7 +106,9 @@ name. A long `.mobix` notebook opens instantly and reads pages as you scroll, in
 page up front.
 
 The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface as
-the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. More than one document can be open, each in its own tab that remembers the page and the
+the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. The
+toolbars are the tablet's too: the same raised glass capsules floating in their own lanes, and the same
+monoline tool icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
 page's layers, each with an eye that hides it from the page and from the thumbnail without touching the file),
 and the page can be fitted to the window, fitted to its width, or zoomed freely — the
@@ -120,7 +122,8 @@ Isometric paper — the triangular ±30° sheet — is ruled here from the same 
 two shells draw the same grid.
 
 The drawing tools have their two placements here as well: a vertical rail beside the page (the
-default) and a horizontal ribbon under the header. The header's **Tool placement** control switches
+default) and a horizontal ribbon under the header, each a rounded pane of glass with a little air around
+it rather than a strip glued to the window's edge. The header's **Tool placement** control switches
 between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —

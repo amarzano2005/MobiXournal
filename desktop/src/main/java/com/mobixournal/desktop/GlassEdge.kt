@@ -5,7 +5,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -111,3 +114,58 @@ internal fun Modifier.glassSurface(
     fill: Color = DesktopTheme.floating,
     cornerRadius: Dp = DesktopTheme.panelRadius,
 ): Modifier = clip(RoundedCornerShape(cornerRadius)).background(fill).glassRim(cornerRadius)
+
+/**
+ * The **sheen** that makes glass read as glass on a desk that cannot show its transparency.
+ *
+ * A vertical wash of white — [DesktopTheme.sheenTop] along the lit top edge falling to
+ * [DesktopTheme.sheenBottom] at the bottom — painted **under** the content, above the fill. It is the
+ * one ingredient the window was missing: over the true-black desk a near-black fill at 85 % and an
+ * opaque one are the same pixels, so without a lit edge a band is a flat rectangle whatever its alpha
+ * (`docs/ui-modernization.md`).
+ */
+internal fun Modifier.glassSheen(
+    top: Color = DesktopTheme.sheenTop,
+    bottom: Color = DesktopTheme.sheenBottom,
+): Modifier = drawBehind {
+    drawRect(Brush.verticalGradient(colors = listOf(top, bottom), startY = 0f, endY = size.height))
+}
+
+/**
+ * A **band** of chrome — the header, the status bar, the sidebar, a tool lane — as the tablet draws it:
+ * the glass fill, the sheen down its face, and **one** cast shadow underneath for [DesktopTheme.bandShadow].
+ *
+ * A band deliberately takes **no rim** (`docs/chrome.md`): on the true-black scheme a rim above and one
+ * below a 40 dp slab read as two grey rules across the window, and that is the pair the tablet removed.
+ * The shadow is its whole edge.
+ */
+@Composable
+internal fun Modifier.bandSurface(
+    fill: Color = DesktopTheme.glass,
+    shadow: Dp = DesktopTheme.bandShadow,
+): Modifier = shadow(shadow, RectangleShape, clip = false)
+    .background(fill)
+    .glassSheen()
+
+/**
+ * A **floating capsule** — the rail, the ribbon, the header's controls — the tablet's recipe in full:
+ * the lift it has room to cast ([DesktopTheme.capsuleShadow]), the glass fill, the sheen, and the
+ * family's drawn edge.
+ *
+ * The difference from [bandSurface] is exactly the difference on the tablet: a band is a slab of chrome
+ * with one shadow and no rim; a capsule is an object lying in that chrome, so it carries a rim and casts
+ * a smaller shadow of its own.
+ */
+@Composable
+internal fun Modifier.glassCapsule(
+    cornerRadius: Dp = DesktopTheme.capsuleRadius,
+    fill: Color = DesktopTheme.glass,
+    shadow: Dp = DesktopTheme.capsuleShadow,
+): Modifier {
+    val shape = RoundedCornerShape(cornerRadius)
+    return shadow(shadow, shape, clip = false)
+        .clip(shape)
+        .background(fill)
+        .glassSheen()
+        .glassRim(cornerRadius)
+}

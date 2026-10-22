@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -35,6 +37,8 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -468,7 +472,7 @@ private fun Header(
         Modifier
             .fillMaxWidth()
             .height(DesktopTheme.headerHeight)
-            .background(DesktopTheme.glass)
+            .bandSurface()
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -548,23 +552,39 @@ private fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlacemen
     }
 }
 
-/** A header glyph: two or three monoline strokes, drawn at the token's width, never a filled icon. */
+/**
+ * A header control: two or three monoline strokes on a **capsule of the header's own glass** — the
+ * tablet's icon buttons beside the dock, at the smaller desktop size.
+ *
+ * It used to be a bare 26 dp box that only appeared when active: a glyph floating on the band with
+ * nothing around it. The capsule is the family's smallest surface — the same fill as the band, the
+ * family's rim and a 4 dp lift — so a control reads as an object lying on the header instead of as a
+ * symbol printed on it (`docs/ui-modernization.md`).
+ */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun HeaderGlyph(
     active: Boolean,
     onClick: () -> Unit,
     draw: DrawScope.(Color, Float) -> Unit,
 ) {
+    var hovered by remember { mutableStateOf(false) }
+    val lit = active || hovered
     Box(
         Modifier
-            .width(26.dp)
-            .height(26.dp)
-            .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.capsuleShape)
+            .size(DesktopTheme.headerControlSize)
+            .glassCapsule(
+                cornerRadius = DesktopTheme.headerControlSize / 2,
+                fill = if (lit) DesktopTheme.activeSlot else DesktopTheme.glass,
+                shadow = DesktopTheme.bandShadow,
+            )
+            .onPointerEvent(PointerEventType.Enter) { hovered = true }
+            .onPointerEvent(PointerEventType.Exit) { hovered = false }
             .pointerInput(active) { detectTapGestures { onClick() } },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.width(12.dp).height(12.dp)) {
-            draw(if (active) DesktopTheme.ink else DesktopTheme.inkSecondary, DesktopTheme.glyphStroke.toPx())
+        Canvas(Modifier.width(14.dp).height(14.dp)) {
+            draw(if (lit) DesktopTheme.ink else DesktopTheme.inkSecondary, DesktopTheme.glyphStroke.toPx())
         }
     }
 }
@@ -576,7 +596,7 @@ private fun StatusBar(tab: DesktopTab?) {
         Modifier
             .fillMaxWidth()
             .height(DesktopTheme.statusHeight)
-            .background(DesktopTheme.glass)
+            .bandSurface()
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

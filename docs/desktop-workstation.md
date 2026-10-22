@@ -22,8 +22,9 @@ tab keeps its own page, zoom and fit, so going back to a tab lands where you lef
 240 dp sidebar of page thumbnails and the current page's layers, the page alone on the true-black desk,
 and a 24 dp status bar with the page counter, the effective zoom, the fit mode and the container. The
 chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
-header carrying 16 dp tab capsules, 1.5 dp monoline glyphs, Inter with tabular figures, and one shadow
-under the sheet — `docs/ui-modernization.md` owns the material and `DesktopThemeTest` pins it.
+header carrying 16 dp tab capsules, 1.5 dp monoline glyphs, Inter with tabular figures, one cast shadow
+under each band, and one under the sheet — `docs/ui-modernization.md` owns the material and
+`DesktopThemeTest` pins it.
 Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and every one
 of those actions also has a key (`docs/ui-modernization.md` owns the table). A tab opens in **`AUTO`
 fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and a page saved as a
@@ -56,12 +57,22 @@ preview can never show a layer the sheet beside it is missing.
   page** rasterised with PDFBox (about 144 dpi) and placed under the ink, so a highlighter still
   multiplies into it. A `.mobix`'s bundled bytes are preferred over the original reference, which is
   what keeps a shared notebook looking right after the picture's file has moved away.
-- **Shows both tool placements**: a 48 dp rail in its own lane beside the page (the default) and a
-  48 dp ribbon in a row under the header, switched from the header's **Tool placement** control
-  (Rail / Ribbon / Both) and remembered in the window's settings file, so the choice survives a
-  restart. Both draw the same fifteen tools, in the order, glyphs and shortcuts of
-  [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot in the steel `#38383E` and a
-  name-and-hotkey pill on hover. A slot only sets the tool selection — nothing draws with it yet.
+- **Shows both tool placements**: a **52 dp rail capsule in a 64 dp lane** beside the page (the
+  default, the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the
+  header, switched from the header's **Tool placement** control (Rail / Ribbon / Both) and remembered in
+  the window's settings file, so the choice survives a restart. A lane is chrome; inside it the strip is
+  a **capsule** with its own 6 dp lift, the family's rim and the sheen down its face, and each header
+  control is the same object at 36 dp. Both placements draw the same fifteen tools, in the order, glyphs
+  and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
+  squircle in the steel `#38383E` and a name-and-hotkey pill on hover. A slot only sets the tool
+  selection — nothing draws with it yet.
+- **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar, tool
+  lanes) takes the band lift and a vertical sheen instead of a bare fill, and every surface that floats
+  takes the drawn rim. The fifteen tool glyphs are no longer the window's own art: they come from
+  `ToolGlyphCatalogue` in `mobix-core` — plain geometry on the 24-unit grid — which the tablet turns into
+  an `ImageVector` and this shell draws into a `DrawScope`, so the PC's pen and the tablet's pen are the
+  same strokes. `ChromeMaterialRenderTest` proves the lift, the sheen and the rim as pixels, and
+  `ToolGlyphCatalogueTest` pins the geometry both shells read.
 - Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
   layers, the `.xopp` and `.mobix` codecs, and the shared paper/ink geometry — one codec, one ruling and
   one ink rule book rather than a fork.

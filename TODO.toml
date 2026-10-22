@@ -566,3 +566,31 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "unify-remaining-stem-tool-glyphs"
+title = "Port the remaining STEM family glyphs into the shared catalogue"
+description = "ToolGlyphCatalogue (mobix-core) now holds the thirty glyphs either shell can put on a toolbar slot face: the rail's tools, the STEM dock's default faces, every shape and arrow variant, and the window's fifteen. The tablet's deeper picker members still draw their original ImageVectors — capacitor, inductor, ground, the switch pair, junction, LED, zener, op-amp, both BJTs, the two sources, transformer, OR/NOT/NAND/NOR/XOR/XNOR/buffer gates, the three chem bonds, TEXIMAGE, TEXT_SELECT, BG_SELECT and PLAY_OBJECT. Add a GlyphPart entry for each (they are already monoline paths on the 24-unit grid in app/src/main/java/com/mobixournal/ui/CircuitGlyphs.kt and ChemGlyphs.kt, so this is transcription, not new art), map it in EditorTool.ToolInfo, and tighten ToolGlyphCoverageTest's waiting bound to zero. Done when no EditorTool lacks a catalogue glyph, the app and desktop suites pass, and docs/ui-modernization.md's iconography bullet no longer names a seam."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 1130
+created = 2026-10-22
+tags = ["desktop", "mobile"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-tool-groups-and-pickers"
+title = "Give the desktop tool strips the tablet's tool groups"
+description = "The tablet's rail shows one slot per tool group (pen, highlighter, eraser partial/whole, pan, select rectangle/lasso, insert, text, vertical space) with a chevron that opens the group's picker, and its STEM dock does the same for the shapes, arrows, passive and active circuits, logic gates and chemistry families. The desktop's rail and ribbon still draw the window's fifteen tools as fifteen flat slots with no grouping and no picker, so the two toolbars now share their material and their glyphs but not their structure. Port ToolGroup/pickerRows semantics to a desktop model (documents are read-only today, so a slot still only sets a selection), add the chevron affordance and a glass picker popup anchored to the slot, and keep the shortcuts of docs/ui-modernization.md section 3 meaning the same tools. Verify headlessly: a render test asserting each group's slot shows its selected member's glyph and that a pick re-faces the slot, plus the picker opened/closed by keyboard and pointer. Docs: the desktop tool-placement section of docs/desktop-workstation.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1140
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false

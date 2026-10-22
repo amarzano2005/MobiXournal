@@ -75,7 +75,7 @@ fun PageSidebar(
         modifier
             .width(SIDEBAR_WIDTH)
             .fillMaxHeight()
-            .background(DesktopTheme.glass)
+            .bandSurface()
             // One edge, one pixel: the sidebar's own boundary with the canvas, no rim all round.
             .drawBehind {
                 drawLine(

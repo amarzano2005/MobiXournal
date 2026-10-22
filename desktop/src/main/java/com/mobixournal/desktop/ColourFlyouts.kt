@@ -102,7 +102,7 @@ internal fun ColourSlot(
                 .size(ToolStripMetrics.slotSize)
                 .background(
                     if (open) DesktopTheme.activeSlot else Color.Transparent,
-                    DesktopTheme.capsuleShape,
+                    DesktopTheme.railSlotShape,
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -161,7 +161,7 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
                 .size(ToolStripMetrics.slotSize)
                 .background(
                     if (open) DesktopTheme.activeSlot else Color.Transparent,
-                    DesktopTheme.capsuleShape,
+                    DesktopTheme.railSlotShape,
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -263,7 +263,7 @@ private fun CustomSwatch(custom: Int?, onPick: (Int) -> Unit, onEdit: () -> Unit
     ) {
         if (custom == null) {
             Canvas(Modifier.size(12.dp)) {
-                drawToolGlyph(DesktopTool.PEN, DesktopTheme.inkSecondary, DesktopTheme.glyphStroke.toPx())
+                drawToolGlyph(DesktopTool.PEN, DesktopTheme.inkSecondary)
             }
         }
     }

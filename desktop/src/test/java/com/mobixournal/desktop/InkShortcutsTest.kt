@@ -130,10 +130,11 @@ class InkShortcutsTest {
         val narrow = railPng(DesktopInk(PenPalette.GREEN, 0.85f), "ink-keys-s")
 
         val image = ImageIO.read(ByteArrayInputStream(wide))
-        assertEquals(
+        // The ink slots sit at the tail of the rail and the rail now floats in its lane, so the swatch
+        // is found by its own colour rather than by a coordinate that moved when the capsule arrived.
+        assertTrue(
             "the capsule is the picked colour",
-            PenPalette.GREEN and 0xFFFFFF,
-            image.getRGB(24, 689) and 0xFFFFFF,
+            countInk(image, PenPalette.GREEN) > 40,
         )
         assertTrue("the L dot has more ink than the S dot", inkBelow(image) > inkBelow(ImageIO.read(ByteArrayInputStream(narrow))))
     }
@@ -156,11 +157,22 @@ class InkShortcutsTest {
         return png
     }
 
-    /** Pixels of the rail's ink colour in the size slot, the strip's last row. */
+    /** Pixels of [image] painted in [colour]. */
+    private fun countInk(image: java.awt.image.BufferedImage, colour: Int): Int {
+        var count = 0
+        for (x in 0 until image.width) {
+            for (y in 0 until image.height) {
+                if ((image.getRGB(x, y) and 0xFFFFFF) == (colour and 0xFFFFFF)) count++
+            }
+        }
+        return count
+    }
+
+    /** Pixels of the rail's ink colour in the size slot, the strip's last rows. */
     private fun inkBelow(image: java.awt.image.BufferedImage): Int {
         var count = 0
         for (x in 0 until image.width) {
-            for (y in 713 until image.height) {
+            for (y in (image.height - 80) until image.height) {
                 if ((image.getRGB(x, y) and 0xFFFFFF) == (PenPalette.GREEN and 0xFFFFFF)) count++
             }
         }

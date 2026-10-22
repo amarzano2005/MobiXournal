@@ -185,48 +185,37 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
   settings window exists (`desktop-settings-and-status-ui`), the same entry is switched from a **Tool
   placement** control in the header: both write one value, so they cannot disagree.
 
-**The shell as built (2026-10-22).** `desktop/` now has the header, tab strip, sidebar, workspace and
-status bar of the drawing above, **and both tool strips**: a 48 dp rail in its own lane beside the
-canvas, and a 48 dp ribbon in a row under the header. Each draws all fifteen tools of §3 in the doc's
-order, as monoline glyphs, with the picked slot in the steel `#38383E` and the rest in secondary ink.
-The rail scrolls vertically and the ribbon horizontally rather than hiding a tool on a short or narrow
-window, and hovering a slot reveals the name-and-hotkey pill. A slot only sets the tool **selection** —
-nothing draws with it until the editing phase. At the tail of each strip sit the two **ink slots** — the
-colour in use in a capsule and a dot at the current width — each opening a glass flyout: the palette as
-one horizontally scrolling row of swatches, and the three width slots `S`/`M`/`L`. Every floating
-surface the window puts over the page — the two flyouts, the colour panel, the placement pop-up, the
-hover pill and the failed-open card — wears the family's **drawn edge** (`Modifier.glassSurface()` in
-`GlassEdge.kt`) over its **translucent fill** (`floatingPanelAlpha`, **0.88**), so the sheet's ruling and
-ink read through it as they do on the tablet: both numbers are the shared tokens and the corner is
-`panelCornerRadiusDp`. `GlassParityRenderTest` writes the two materials side by side to `glass-parity.png`,
-and `GlassEdgeTest` proves the show-through — a band of ink under a panel — in `glass-show-through.png`.
-One limit, stated rather than faked: over the true-black desk a 0.88 near-black glass and an opaque one
-are the same picture, so the transparency reads where a panel overlaps the sheet. Nor does the window invent a motion language of its own: it arrives on `DesignTokens.GlassMotion` too — 82 % → 1 on the 0.74/550 spring with a 110 ms fade, held 230 ms on the way out by `GlassPresence` so the draw-back is not cut off between two frames (`Modifier.glassSpring()` in `GlassMotion.kt`, applied *outside* the fill or the alpha fades empty space). The `Popup` flyouts still appear instantly, and that is stated rather than faked: a desktop popup has no composition of its own to hold open once its flag clears, so there is no departure to play. The bands take neither
-the fill nor the edge, because a band is not a panel lying over the page (`docs/chrome.md`). Picking one
-writes it
-straight to the settings file (`ink.colour`, `ink.width`), and the palette itself is `palette.colours`,
-read through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour, a duplicate
-or an empty palette in front of the picker. The row ends in the **editable custom slot** — empty until
-the user defines one, then a swatch that a tap picks and a long press redefines — and the **add-colour**
-swatch; both open the window's own colour panel: a saturation/value square, a hue slider, a two-way
-`#RRGGBB` field with a live preview, and Set/Cancel, drawn in the floating glass rather than a Material
-dialog (a picker that comes and goes may lie over the page; a band may not). An invalid hex keeps the
-last valid colour, says so and leaves Set out of reach, so a half-typed `#12` can never commit black.
-The placement choice is a persisted setting
-(`interface.toolPlacement`, Rail by default) in the desktop's own settings file under `%APPDATA%`, and
-the strips appear once a document is open, because the empty state has no canvas to draw on. The
-right-hand inspector is the part still missing.
+**The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status
+bar and both tool strips of the drawing above; [`desktop-workstation.md`](desktop-workstation.md) owns the
+shell's inventory. From **this** spoke it takes four rules, and the parity work of 2026-10-22 is what
+put them all in the window:
 
-The window wears the app's own material, not a stock desktop theme: the bands are the tokens' glass
-(`rgba(22, 22, 24, 0.85)`) over a `#000000` desk, the tabs are 16 dp capsules and a held slot is the
-steel `#38383E`, the floating card turns at the 20 dp panel corner, the header is **40 dp** and the
-status bar **24 dp**, and every glyph is a 1.5 dp monoline stroke drawn in code — no filled Material
-icon in the window. Text is **Inter**, the same three weights the Android module ships (they travel in
-this module's resources), with **tabular figures** on the page and zoom readouts so the numbers do not
-shuffle. It is **dark-first**: the light theme waits until the tokens cover it. The window has exactly
-**one shadow**, under the sheet — and because a shadow cannot be darker than a true-black desk, it is
-drawn as the faint lift *above* black that a soft falloff would leave; without it a page reads as a
-hole cut in the window rather than a sheet lying on a desk.
+- **A band is chrome, a capsule is an object.** The header, status bar, sidebar and the strips' lanes
+take the glass fill with **one 4 dp cast shadow** and a vertical sheen, and **no rim** (the rule above).
+The rail is a **52 dp capsule in a 64 dp lane** — the tablet's own geometry, 6 dp of side air and 8 dp
+above and below — and the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp lift**, the
+family's rim and the sheen. A header control is the same capsule at 36 dp. Without those two lifts the
+bands were a flat fill, because over a true-black desk the glass' alpha is invisible: the shadow and the
+sheen are the only depth the window has (`Modifier.bandSurface()` / `glassCapsule()`, `GlassEdge.kt`).
+- **One icon set.** The fifteen tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry
+on the 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`;
+the window no longer keeps a second, hand-drawn set. The picked slot is a 10 dp squircle in the steel
+`#38383E`. Floating surfaces keep the drawn rim over the 0.88 fill, as documented above.
+- **No motion of its own**: the windows' surfaces arrive on `DesignTokens.GlassMotion` too. The `Popup`
+flyouts still appear instantly — a desktop popup has no composition to hold open once its flag clears.
+- **The colours and corners are the tokens**: 16 dp tab capsules, the 20 dp panel corner, a 40 dp header,
+a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block
+above, `ChromeMaterialRenderTest` proves the lift, the sheen and the rim as pixels, and
+`ToolGlyphCatalogueTest` pins the geometry both shells read.
+
+Picking a colour writes it straight to the settings file (`ink.colour`, `ink.width`), and the palette is
+`palette.colours` through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour,
+a duplicate or an empty palette in front of the picker. The row ends in the **editable custom slot** and
+the **add-colour** swatch, both opening the window's own colour panel (saturation/value square, hue
+slider, two-way `#RRGGBB` with a live preview, Set/Cancel) in the floating glass rather than a Material
+dialog; an invalid hex keeps the last valid colour and leaves Set out of reach. The placement choice is
+persisted (`interface.toolPlacement`, Rail by default) and the strips appear once a document is open.
+The right-hand inspector is the part still missing.
 
 Everything the chrome does can also be done from the keyboard:
 
@@ -357,12 +346,24 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "rimAlphaTop": 0.12,
       "rimAlphaBottom": 0.04,
       "rimInnerWidthScale": 1.5,
-      "rimInnerAlphaScale": 0.35
+      "rimInnerAlphaScale": 0.35,
+      "bandShadowDp": 4,
+      "capsuleShadowDp": 6,
+      "sheenAlphaTop": 0.10,
+      "sheenAlphaBottom": 0.02
     },
     "geometry": {
       "capsuleCornerRadiusDp": 16,
       "compactButtonSizeDp": 40,
-      "hairlineStrokeWidthDp": 1.0
+      "hairlineStrokeWidthDp": 1.0,
+      "railSlotCornerRadiusDp": 10,
+      "railCapsuleWidthDp": 52,
+      "railLanePaddingDp": 6,
+      "railLaneWidthDp": 64,
+      "railOuterPaddingDp": 8,
+      "headerControlSizeDp": 36,
+      "toolGlyphGrid": 24,
+      "toolGlyphStrokeUnits": 1.5
     },
     "animation": {
       "springStiffness": 380,

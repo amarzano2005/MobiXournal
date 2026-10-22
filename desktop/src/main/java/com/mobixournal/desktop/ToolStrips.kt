@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,8 +44,9 @@ import com.mobixournal.design.PenPalette
  * **A band in its own lane, never a bar over the page.** The rail stands in a lane [railWidth] wide
  * beside the canvas and the ribbon takes a [ribbonHeight] row under the header; neither is a floating
  * surface on the sheet, so the page is never underneath the glass and the whole visible sheet stays
- * writable (`docs/chrome.md`). That is the one structural difference from the Android rail, which is a
- * capsule in a lane of the same shape.
+ * writable (`docs/chrome.md`). Inside its lane each strip is a **capsule** — the tablet's own recipe,
+ * 52 dp in a 64 dp lane — so the tools sit on a raised pane of glass rather than edge to edge on a
+ * slab that happens to be the same colour.
  *
  * The strips only **set a [ToolSelection]** — this is the chrome Phase 2 asks for, and what a pen does
  * with the picked tool arrives with the desktop editing phase. Because of that, the two placements draw
@@ -53,11 +55,14 @@ import com.mobixournal.design.PenPalette
  */
 object ToolStripMetrics {
 
-    /** The rail's lane: 48 dp, its own column beside the canvas. */
-    val railWidth = 48.dp
+    /** The rail's lane: 64 dp (the capsule plus its air), its own column beside the canvas. */
+    val railWidth = DesktopTheme.railLaneWidth
 
-    /** The ribbon's band: 48 dp, a row under the header and above the workspace. */
-    val ribbonHeight = 48.dp
+    /** The ribbon's lane: 56 dp — the capsule plus the air above and below it. */
+    val ribbonHeight = 56.dp
+
+    /** The ribbon's floating capsule inside that lane: 48 dp, so a 40 dp slot keeps 4 dp of air. */
+    val ribbonCapsuleHeight = 48.dp
 
     /** One tool slot — the compact button of the token table (40 dp). */
     val slotSize = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp
@@ -70,6 +75,21 @@ object ToolStripMetrics {
 
     /** How far the hover pill sits from the slot it names. */
     val tooltipGap = 6.dp
+
+    /**
+     * Where slot 0 starts inside the rail's lane — the capsule's side air plus the column's padding.
+     * Derived rather than written down, so the strip and a render test cannot disagree about it.
+     */
+    val railSlotLeft = (railWidth - DesktopTheme.railCapsuleWidth) / 2f + DesktopTheme.railLanePadding
+
+    /** Where slot 0 starts down the rail's lane: the capsule's vertical air plus the column's padding. */
+    val railSlotTop = DesktopTheme.railOuterPadding + gap
+
+    /** Where the first slot starts across the ribbon: the capsule's air plus the row's padding. */
+    val ribbonSlotLeft = DesktopTheme.railOuterPadding + DesktopTheme.railLanePadding
+
+    /** The ribbon's slots are centred in the lane, so they start this far down it. */
+    val ribbonSlotTop = (ribbonHeight - slotSize) / 2f
 }
 
 /**
@@ -115,30 +135,57 @@ fun ToolRail(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    // The lane is a band of chrome; the rail itself is a **capsule** lying in it, exactly as the tablet
+    // draws it: 52 dp inside a 64 dp lane, 6 dp of air each side and 8 dp above and below, its own
+    // shadow, its own rim and the sheen down its face. The first cut drew the rail as the lane — a
+    // full-height slab with the slots running edge to edge — which is why it read flat next to the
+    // tablet's floating capsule.
+    Box(
         modifier
-            .width(ToolStripMetrics.railWidth)
+            .width(DesktopTheme.railLaneWidth)
             .fillMaxHeight()
-            .background(DesktopTheme.glass)
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = ToolStripMetrics.gap),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
+            .bandSurface(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        for (tool in DesktopTool.entries) {
-            ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.RIGHT)
+        Box(
+            Modifier
+                .padding(vertical = DesktopTheme.railOuterPadding)
+                .width(DesktopTheme.railCapsuleWidth)
+                .fillMaxHeight()
+                .glassCapsule(),
+        ) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = DesktopTheme.railLanePadding,
+                        vertical = ToolStripMetrics.gap,
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
+            ) {
+                for (tool in DesktopTool.entries) {
+                    ToolSlot(
+                        tool,
+                        active = tool == state.selection.current,
+                        onSelect = onSelect,
+                        side = StripSide.RIGHT,
+                    )
+                }
+                StripDivider(vertical = true)
+                ColourSlot(
+                    ink = state.ink,
+                    palette = state.palette,
+                    favourites = state.favourites,
+                    onPick = ink.onColour,
+                    onEditCustom = ink.onEditCustom,
+                    onAddColour = ink.onAddColour,
+                    side = StripSide.RIGHT,
+                )
+                SizeSlot(state.ink, ink.onWidth, side = StripSide.RIGHT)
+            }
         }
-        StripDivider(vertical = true)
-        ColourSlot(
-            ink = state.ink,
-            palette = state.palette,
-            favourites = state.favourites,
-            onPick = ink.onColour,
-            onEditCustom = ink.onEditCustom,
-            onAddColour = ink.onAddColour,
-            side = StripSide.RIGHT,
-        )
-        SizeSlot(state.ink, ink.onWidth, side = StripSide.RIGHT)
     }
 }
 
@@ -155,30 +202,52 @@ fun ToolRibbon(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    // The ribbon is the rail laid on its side, and it wears the same material: a capsule inside its
+    // lane rather than a band with the slots glued to its edges.
+    Box(
         modifier
             .fillMaxWidth()
             .height(ToolStripMetrics.ribbonHeight)
-            .background(DesktopTheme.glass)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = ToolStripMetrics.gap),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
+            .bandSurface(),
+        contentAlignment = Alignment.Center,
     ) {
-        for (tool in DesktopTool.entries) {
-            ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.BELOW)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(ToolStripMetrics.ribbonCapsuleHeight)
+                .padding(horizontal = DesktopTheme.railOuterPadding)
+                .glassCapsule(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = DesktopTheme.railLanePadding),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
+            ) {
+                for (tool in DesktopTool.entries) {
+                    ToolSlot(
+                        tool,
+                        active = tool == state.selection.current,
+                        onSelect = onSelect,
+                        side = StripSide.BELOW,
+                    )
+                }
+                StripDivider(vertical = false)
+                ColourSlot(
+                    ink = state.ink,
+                    palette = state.palette,
+                    favourites = state.favourites,
+                    onPick = ink.onColour,
+                    onEditCustom = ink.onEditCustom,
+                    onAddColour = ink.onAddColour,
+                    side = StripSide.BELOW,
+                )
+                SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
+            }
         }
-        StripDivider(vertical = false)
-        ColourSlot(
-            ink = state.ink,
-            palette = state.palette,
-            favourites = state.favourites,
-            onPick = ink.onColour,
-            onEditCustom = ink.onEditCustom,
-            onAddColour = ink.onAddColour,
-            side = StripSide.BELOW,
-        )
-        SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
     }
 }
 
@@ -226,7 +295,7 @@ private fun ToolSlot(
                 .size(ToolStripMetrics.slotSize)
                 .background(
                     if (active) DesktopTheme.activeSlot else Color.Transparent,
-                    DesktopTheme.capsuleShape,
+                    DesktopTheme.railSlotShape,
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -237,7 +306,6 @@ private fun ToolSlot(
                 drawToolGlyph(
                     tool,
                     color = if (active) DesktopTheme.ink else DesktopTheme.inkSecondary,
-                    stroke = DesktopTheme.glyphStroke.toPx(),
                 )
             }
         }

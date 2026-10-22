@@ -153,7 +153,10 @@ class ToolStripsTest {
         assertEquals(
             "the rail marks the picked tool with the active slot",
             activeSlotArgb,
-            rail.getRGB(24, gapPx + 2) and 0xFFFFFF,
+            rail.getRGB(
+                (ToolStripMetrics.railSlotLeft + ToolStripMetrics.slotSize / 2f).value.toInt(),
+                ToolStripMetrics.railSlotTop.value.toInt() + 2,
+            ) and 0xFFFFFF,
         )
 
         val ribbonPng = save(
@@ -167,7 +170,8 @@ class ToolStripsTest {
         )
         assertEverySlotInked(ribbonPng, vertical = false)
         val ribbon = ImageIO.read(ByteArrayInputStream(ribbonPng))
-        val lastSlotX = gapPx + (DesktopTool.entries.lastIndex * slotStride) + 2
+        val lastSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() +
+            (DesktopTool.entries.lastIndex * slotStride) + 2
         assertEquals(
             "the ribbon marks the picked tool with the active slot",
             activeSlotArgb,
@@ -254,8 +258,16 @@ class ToolStripsTest {
         val slot = ToolStripMetrics.slotSize.value.toInt()
         val centre = (if (vertical) ToolStripMetrics.railWidth.value.toInt() else image.height) / 2
         for (index in DesktopTool.entries.indices) {
-            val x0 = if (vertical) gapPx else gapPx + index * slotStride
-            val y0 = if (vertical) gapPx + index * slotStride else (image.height - slot) / 2
+            val x0 = if (vertical) {
+                ToolStripMetrics.railSlotLeft.value.toInt()
+            } else {
+                ToolStripMetrics.ribbonSlotLeft.value.toInt() + index * slotStride
+            }
+            val y0 = if (vertical) {
+                ToolStripMetrics.railSlotTop.value.toInt() + index * slotStride
+            } else {
+                ToolStripMetrics.ribbonSlotTop.value.toInt()
+            }
             val background = image.getRGB(x0 + 2, y0 + 2) and 0xFFFFFF
             var ink = 0
             for (x in x0 until x0 + slot) {
