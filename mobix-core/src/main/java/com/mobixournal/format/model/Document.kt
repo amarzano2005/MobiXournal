@@ -48,7 +48,7 @@ data class Document(
      * It lives here because it has to outlive the file: the manifest is where the identity is written,
      * and a document opened from a `.mobix` must carry its own id so that **saving it again is the same
      * document** rather than a new one — the difference between an edit and a duplicate to a merge or a
-     * sync client ([sync-and-storage.md](sync-and-storage.md)). A `.xopp` has no such notion and never
+     * sync client ([mobix-format.md](mobix-format.md)). A `.xopp` has no such notion and never
      * writes one, so a document read from a `.xopp` is null here and gets an id the day it is first
      * saved as a `.mobix`.
      */

@@ -396,4 +396,4 @@ The Kotlin package, the namespace and **`applicationId` are all `com.mobixournal
 identity of this unofficial app, kept distinct from upstream and from any other build. (The one
 exception is the v2 development channel: the `debug` build type adds `.v2` so a test build installs
 beside the owner's daily app instead of replacing it — see
-[the v2 development channel](tools.md#the-v2-development-channel--the-test-build-never-replaces-the-daily-app).)
+[the debug build's own app](tools.md#the-debug-build-is-its-own-app--a-test-build-never-replaces-the-daily-app).)

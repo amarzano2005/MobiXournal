@@ -6,14 +6,13 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 ## Motivation: moving beyond heavy Material Design
 
-The current UI (documented in [chrome.md](chrome.md)) relies heavily on Google's standard Material 3
-conventions (filled container pills, colored surface tints, heavy drop shadows, and full-screen dialogs).
-While functional on phones, this aesthetic creates visual clutter on tablets and desktop workstations:
-it feels like an "Android OS utility" rather than a focused, sleek creative tool (like Figma, Linear,
-Concepts, or Apple Freeform).
+The interface was built on Google's standard Material 3 conventions — filled container pills, coloured
+surface tints, heavy drop shadows and full-screen dialogs. Functional on a phone, that aesthetic is
+visual clutter on a tablet or a desktop: it reads as an "Android OS utility" rather than as a focused
+creative tool (Figma, Linear, Concepts, Freeform).
 
-The **Modern UI Design System** establishes a clean, lightweight, content-first interface shared across
-mobile and desktop.
+The **Modern UI Design System** replaces it with a clean, lightweight, content-first interface shared by
+the tablet and the `desktop/` window; the layout it produces is owned by [chrome.md](chrome.md).
 
 ---
 
@@ -42,9 +41,9 @@ mobile and desktop.
   what the glass reveals is the **desk** the page lies on, not the page. A translucent bar *on* the sheet
   hides the ink under it and swallows the stylus there, and the strip it covers is the top of the sheet,
   where a hand reaches first (the layout is [chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
-  **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: a radial HUD,
-  an anchored popover, a dialog or a selection bar comes and goes with the gesture, so it may sit over the
-  ink, and none of them is ever a permanent band.
+  **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: an anchored
+  popover, a dialog or a selection bar comes and goes with the gesture, so it may sit over the ink, and
+  none of them is ever a permanent band.
 - **One edge per surface**: a header closes on **one** bottom edge, across the full width, with one shadow
   and **no rim**; its rows (tools, document tabs) are separated by their own content, not by a line. A rim
   and an inner hairline are tidy on a light scheme, but over the true-black one they read as three grey
@@ -93,9 +92,8 @@ worth stating plainly:
   reported as `NoClassDefFoundError: …$openMobix$1` read as a corrupt notebook, and reads as "the
   preview has fallen behind" once it is said in English and about the right subject.
 
-Localising into other languages is a future product decision (string resources, one catalogue per
-language, a setting) and nothing here forecloses it. Until that decision is taken, English literals are
-the contract for both shells.
+English literals are the contract for both shells: strings live in the code that shows them, in one
+language, and there is no localisation catalogue in the tree.
 
 ---
 
@@ -149,46 +147,46 @@ There is **one** layout, and each bar has one job (`docs/chrome.md`):
 ## Desktop workstation UI architecture (Windows 11)
 
 On desktop workstations paired with keyboards and graphics tablets (see [desktop-workstation.md](desktop-workstation.md)),
-scaling up a mobile touch interface creates clumsy, oversized controls. Desktop MobiXournal adopts a
-**professional bimanual workstation layout** (inspired by modern suites like Figma, VS Code, and Blender):
+scaling a mobile touch interface up produces clumsy, oversized controls. The window is therefore a
+**workstation layout** (inspired by Figma, VS Code and Blender) built from the same material as the tablet's:
 
 ```text
 ┌───────────────────────────────────────────────────────────────────────────────────────┐
-│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]          [Search 🔍]      [Share] [Settings ⚙] │  (Header Bar)
-├─────────┬─────────────────────────────────────────────────────────────────┬───────────┤
-│ Sidebar │                           CANVAS                                │ Inspector │
-│ Pages   │                                                                 │ Properties│
-│ Layers  │                 [Radial HUD Palette (At Pen Tip)]               │ Formula / │
-│ Outline │                                                                 │ Table /   │
-│ [Ctrl+B]│                                                                 │ Stroke    │
-└─────────┴─────────────────────────────────────────────────────────────────┴───────────┘
+│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]                          [Tool placement]      │  header band
+├─────────┬─────────────────────────────────────────────────────────────────────────────┤
+│ Sidebar │                                CANVAS                                       │
+│ Pages   │                                                                             │
+│ Layers  │                                                                             │
+│ [Ctrl+B]│                                                                             │
+├─────────┴─────────────────────────────────────────────────────────────────────────────┤
+│ Page 1 / 6    100%    fit page                                  notebook.mobix        │  status bar
+└───────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1. Window layout & workspace panes
-- **Slim Native Header**: Displays tabbed open notebooks, document path breadcrumbs, and native OS window
-  decorations.
-- **Collapsible Navigation Sidebar (`Ctrl+B`)**: Slide-out panel for page grid thumbnails, layer manager,
-  PDF bookmarks outline, and indexed search results. Can be collapsed with one hotkey for distraction-free canvas.
-- **Right Property Inspector (Non-Modal Editing)**: When a `PlotElement`, `TableElement`, or shape is selected,
-  its parameters (formula string, intervals, cell borders, stroke styles) appear in the right panel without
-  popping up modal dialogs over the canvas.
+- **Slim header band**: one tab per open document (each keeps its own page, zoom and fit), the `+` to open
+  another, and the **Tool placement** control; the window wears the OS's own decorations.
+- **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
+  per layer that hides it from the page and from its thumbnail without writing to the document.
+- **The sheet alone on the desk**: one page at a time, fitted by what the page is (a sheet whole, a long
+  strip to its width), with the fit mode named in the status bar.
+- **Status bar**: page counter, effective zoom, fit mode and the container behind the document.
 
 **Desktop decisions (2026-10-21):**
-- **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the sidebar
-  and the inspector are the same frosted glass the mobile chrome uses, and the desk behind the page is
-  `#000000`; platform materials (Windows 11 Mica) are **not** used. Mica replaces the
+- **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
+  sidebar and the tool strips are the same frosted glass the mobile chrome uses, and the desk behind the
+  page is `#000000`; platform materials (Windows 11 Mica) are **not** used. Mica replaces the
   app's material with a wallpaper-tinted one, so the desktop window would stop matching the phone and
   its contrast would change with the user's wallpaper — the opposite of the pinned ramps above.
 - **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon is the
-  alternative for 16:9 monitors, and **Settings → Interface → Tool placement** chooses Rail / Ribbon /
-  Both. Whichever is on, it is a band in its own lane beside the canvas, never over the page. Until the
-  settings window exists (`desktop-settings-and-status-ui`), the same entry is switched from a **Tool
-  placement** control in the header: both write one value, so they cannot disagree.
+  alternative for 16:9 monitors, and the header's **Tool placement** control chooses Rail / Ribbon /
+  Both. Whichever is on, the strip is a capsule in a lane of **air** beside the canvas, never a bar over
+  the page. The choice is written to the window's settings file, so it survives a restart.
 
 **The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status
-bar and both tool strips of the drawing above; [`desktop-workstation.md`](desktop-workstation.md) owns the
-shell's inventory. From **this** spoke it takes four rules, and the parity work of 2026-10-22 is what
-put them all in the window:
+bar and both tool strips; [`desktop-workstation.md`](desktop-workstation.md) owns the shell's inventory.
+From **this** spoke it takes four rules, and the parity work of 2026-10-22 is what put them all in the
+window:
 
 - **A band is chrome, a capsule is an object.** The header, status bar and sidebar take the glass fill
 and **one 4 dp cast shadow**, and **no rim** (the rule above). A strip's lane is **air, not a band** —
@@ -216,7 +214,6 @@ the **add-colour** swatch, both opening the window's own colour panel (saturatio
 slider, two-way `#RRGGBB` with a live preview, Set/Cancel) in the floating glass rather than a Material
 dialog; an invalid hex keeps the last valid colour and leaves Set out of reach. The placement choice is
 persisted (`interface.toolPlacement`, Rail by default) and the strips appear once a document is open.
-The right-hand inspector is the part still missing.
 
 Everything the chrome does can also be done from the keyboard:
 
@@ -248,37 +245,17 @@ Two decisions taken while building it:
   keypad's `+` is the layout-independent binding, `Ctrl + shift + 0` is accepted for the layouts where
   `=` shares the `0` key, and `Ctrl` + wheel (zoom at the cursor) is the one that always works.
 
-### 2. Visual tool placement and docking on Desktop
-Unlike the header bar (which handles documents) and the sidebar (which handles navigation), the **drawing and STEM tools**
-remain visually accessible on screen for direct mouse or pen clicking:
+### 2. Tool placement on Desktop
+The drawing and STEM tools are always on screen, in whichever strip the header's **Tool placement** control
+selects:
 
-```text
-Desktop Tool Placements:
-Option A: Floating Top/Bottom Ribbon (Figma/Freeform style)
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│  [✏️ Pen (B)] [🖍️ Highl (H)] [🧹 Eraser (E)] [✂️ Sel (V)] │ [📈 f(x) (M)] [📐 Geo] [📊 Tab (T)] [⚡ Ckt]  │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-
-Option B: Widescreen Left Tool Palette (Photoshop/Illustrator style)
-┌───────────┐
-│ [✏️ (B)]   │
-│ [🖍️ (H)]   │  - Compact 42px vertical strip docked to the left canvas edge.
-│ [🧹 (E)]   │  - Optimized for 16:9 and 21:9 monitors: leaves full vertical height for A4 sheets.
-│ [✂️ (V)]   │
-│ ───────── │
-│ [📈 (M)]   │  - STEM tools permanently visible at 1-click.
-│ [📐 Geo]  │
-│ [📊 (T)]   │
-│ [⚡ Ckt]   │
-│ ───────── │
-│ [🔴 Color]│
-└───────────┘
-```
-
-- **Permanent 1-Click STEM Access**: The STEM group ($f(x)$, shapes, tables, circuits) is always visible
-  in the tool strip, maintaining immediate 1-click execution without buried submenus.
-- **Visual Hover Tooltips with Hotkeys**: Hovering the pen or cursor over any button reveals a subtle
-  pill tooltip displaying the tool name and single-letter keyboard shortcut (e.g. `Funzione f(x) [M]`).
+- **Rail (default)**: the 52 dp capsule in its 64 dp lane down one edge — the tablet's own geometry, which
+  leaves the sheet its full height on 16:9 and 21:9 monitors.
+- **Ribbon**: the 48 dp capsule in a 56 dp band under the header, for a window that is short or narrow.
+- **Both**: the ribbon above the rail, each with its own slots.
+- **1-click STEM access**: `f(x)`, shapes, tables and circuits sit in the same strip as the inking tools,
+  with no submenu between the user and them.
+- **Hover names the slot**: a pill tooltip shows the tool's name and its key (e.g. `Function plot [M]`).
 
 ### 3. Universal shortcuts across all tools (Mobile & Desktop)
 Every single tool and editing action in MobiXournal carries an assigned shortcut accelerator, providing
@@ -292,7 +269,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Lasso Select | `V` | Barrel button hold + drag |
 | | Marquee Rect Select | `S` | Selection mode toggle |
 | | Text Box | `X` | Screen double-tap with finger |
-| | Pan / Hand Tool | `Space` (held) or `H` | Two-finger scroll / drag |
+| | Pan / Hand Tool | `Space` (held) | Two-finger scroll / drag |
 | **Geometry & Figures** | Straight Line / Ruler | `L` | Hold-to-straighten dwell (300 ms) |
 | | Arrow | `A` | Arrow shape toggle |
 | | Rectangle | `R` | Shape dwell |
@@ -304,28 +281,14 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Circuit Components | `K` | 1-tap STEM dock button |
 | | Audio Tap / Replay | `Y` | Audio tool slot |
 | **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Tap on color swatch / Rail slot |
-| | Stroke Width Up / Down | `]`, `[` | Rotary Touch Ring / Dial Wheel |
-| | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture / Dial Wheel |
-| | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap / Three-finger tap |
+| | Stroke Width Up / Down | `]`, `[` | Rail's size slot |
+| | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture |
+| | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap |
 
 - **Universal Shortcut & Individual Color Remapping**: All keybindings, tools, and **individual color palette slots**
-  are fully remappable via **Settings → Input & Shortcuts**. Users can bind any keyboard shortcut, stylus gesture,
-  or dial action to directly select a specific user-defined custom HEX color (e.g. `Alt+1` for Pure Black `#000000`,
-  `Alt+2` for Crimson Red `#D32F2F`, `Alt+3` for Royal Blue `#1565C0`), not just the 3 factory favorites.
-- **Pen-Tip Radial HUD Menu (Pie Menu)**: Clicking the pen barrel button summons an instant circular HUD
-  directly under the pen nib, selecting colors, widths, or tools in $< 0.1\text{ s}$ without moving the hand.
-  **Decision (2026-10-13, recorded in this, its owning spoke): the HUD is new work, not NeXopp's palette
-  returning.** The palette [codebase.md](codebase.md) records as deleted — 33 files: its renderer, tap
-  layer, haptics, action and catalog code, and a `Palette` settings section of its own — stays deleted.
-  What comes back is transient and smaller. Nothing is on screen until the barrel button is pressed; the
-  ring is anchored at the nib and dismissed on release (a second press or a cancelled gesture closes it
-  without committing); and it has no settings section, because the keybindings and the palette slots
-  already live under **Settings → Input & Shortcuts**. The ring holds the user's own swatches **first** —
-  the one-flick home a custom HEX slot never had — then the pen widths, then the few tools with no other
-  1-tap place; the rail and the STEM dock keep the rest, which is the weight that made the old palette
-  heavy on screen. It draws through `ModernTheme` and the canvas chrome (`render/CanvasChrome.kt`), not a
-  Compose dialog, so the menu sits under the pen without stealing focus. Tracked in `TODO.toml` as the
-  three *pen-tip radial HUD* tasks (summon, draw, flick-and-commit).
+  are remappable via **Settings → Input & Shortcuts**. A keyboard shortcut or a stylus gesture can select a
+  specific user-defined custom HEX color (e.g. `Alt+1` for Pure Black `#000000`, `Alt+2` for Crimson Red
+  `#D32F2F`, `Alt+3` for Royal Blue `#1565C0`), not just the 3 factory favourites.
 
 ---
 
@@ -377,24 +340,27 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
 
 ---
 
-## Phased migration plan
+## Shell details stated outright
 
-1. **Phase 1: Design Tokens, Typography & Monoline Iconography**:
-   - Extract UI colors and dimensions into a modern token provider (`ModernTheme`).
-   - Bundle clean geometric typography (**Inter**) in `res/font/` with tabular figures (`tnum`) via `ModernTypography` (`ui/theme/Type.kt`).
-   - Swap stock filled Material icons for consistent $1.5\text{ dp}$ monoline vector assets across toolbars, rails, and popups.
-2. **Phase 2: floating glass capsules, laid out in bands** (shipped, except where noted):
-   - The rail and the header's docks are the frosted capsules the tokens describe — but they are laid out
-     **beside** the canvas, in bands, not as a floating bar over it: the rail is not draggable and docks to
-     a vertical edge only, and the header carries the document tabs as its second row (the principle above).
-   - **Vertical rail capsule**: Translucent frosted capsule (`ModernTheme.glassDark` / `ModernTheme.glassLight` with ~85-88% opacity, 1px hairline border at 12% alpha, 16dp rounded corners, 40dp compact button slots, 52dp inner width + 6dp horizontal padding = 64dp total width), standing in a lane exactly that wide whose height begins below the **whole** header; its gap and padding budget (`RailSizing.kt`) is what keeps every slot whole and on screen without a scroll.
-   - **Canvas beside the chrome**: the document canvas takes the rectangle the chrome leaves — the rail's lane down one edge and the header band above — so the page is never underneath the glass and the whole visible sheet stays writable. See [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
-   - **Settings opens with the app's own spring**: the settings screen is an overlay on the still-composed editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector, instead of snapping in.
-   - **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own monoline icon, drawn in a tinted disc at the head of its row (`SectionRow`) — a list of twelve text rows is read at a glance, and the same glyph follows the row into the search results. The glyph is part of the enum, so a new section cannot be added without one.
-   - **Dialogs leave the way they arrived**: a dialog is its own window, so Compose tore it down the instant its flag cleared — the entrance spring played in full and the panel vanished mid-frame. `DialogPresence(visible)` holds the window composed for `FLOATING_EXIT_MS` (230 ms) while the surface runs the animation backwards (same 0.82 scale as a `0.85/850` spring, a 170 ms fade, `LocalFloatingSurfaceClosing`), and `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one (`flag != null`). The hold is what the eye needs: at the first take, 130 ms, the panel left in about eight frames and read as no animation at all. Every floating dialog — the editor's, the pages menu's, the settings pickers' — is gated that way.
-3. **Phase 3: Contextual Micro-Inspectors & Pen-Tip Radial HUD** (active in Step 2 `TODO.toml`):
-   - **Chrome & system bar guards** (`guard-the-system-bars-as-one-transparent-contract`, `guard-the-chrome-bands-as-one-geometry-contract`): mechanical test suites pinning edge-to-edge transparency and layout band partitioning.
-   - **Pen-Tip Radial HUD** (`summon-and-anchor-the-pen-tip-radial-hud`, `draw-the-radial-hud-as-glass-chrome`, `track-the-flick-and-commit-a-colour-width-or-tool`): barrel-button summoned pie menu rendered as frosted glass at the nib with flick-and-commit presets.
-   - **Anchored micro-inspectors** (`anchored-flyout-inspector-for-the-function-plot-editor`): living entity editing dialogs (Function Plot, Table editor, Circuits, Parametric Shapes) transitioning into anchor-positioned micro-inspectors adjacent to the selection on canvas. The plot editor opens as `PlotInspectorAnchor` beside the selection when editing an existing `PlotElement`, committing through `applyPlotEdit` with full undo coverage and unedited field preservation; new plot creation continues to use modal `AdvancedFunctionGraphDialog` to preserve viewport-centered placement arithmetic.
-4. **Phase 4: Desktop Shell Integration** (Step 3 roadmap):
-   - Apply platform-native window styling (Mica / Vibrancy) in Compose Desktop.
+- **The rail is a capsule in a lane exactly as wide as it** — 52 dp of glass and 6 dp of air each side, the
+  height beginning below the **whole** header. Its gap and padding budget (`RailSizing.kt`) keeps every
+  slot whole and on screen without a scroll. The rail is not draggable and docks to a vertical edge only,
+  and the header carries the document tabs as its second row (the principle above).
+- **The canvas takes the rectangle the chrome leaves** — the rail's lane down one edge and the header band
+  above — so the page is never underneath the glass and the whole visible sheet stays writable. See
+  [`chrome.md`](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest).
+- **Settings opens with the app's own spring**: the settings screen is an overlay on the still-composed
+  editor, and it enters with `liquidGlassSpringAnimation` like every menu and inspector.
+- **Every settings row is identified by a glyph**: each `SettingsArea` and `SettingsSection` carries its own
+  monoline icon in a tinted disc at the head of its row (`SectionRow`), and the same glyph follows the row
+  into the search results. The glyph is part of the enum, so a new section cannot be added without one.
+- **Dialogs leave the way they arrived**: a dialog is its own window, so Compose tore it down the instant its
+  flag cleared — the entrance spring played in full and the panel vanished mid-frame. `DialogPresence(visible)`
+  holds the window composed for `FLOATING_EXIT_MS` (230 ms) while the surface runs the animation backwards
+  (the 0.82 scale of a `0.85/850` spring, a 170 ms fade, `LocalFloatingSurfaceClosing`), and
+  `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one. Every floating
+  dialog — the editor's, the pages menu's, the settings pickers' — is gated that way.
+- **The plot editor anchors to its element**: editing an existing `PlotElement` opens `PlotInspectorAnchor`
+  beside the selection, commits through `applyPlotEdit` with full undo coverage and unedited fields kept;
+  creating a new plot uses the modal `AdvancedFunctionGraphDialog`, whose placement arithmetic is
+  viewport-centred.

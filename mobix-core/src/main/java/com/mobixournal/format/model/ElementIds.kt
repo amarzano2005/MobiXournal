@@ -8,7 +8,7 @@ import java.util.UUID
  *
  * Identity is a *document* fact, not a format detail, which is why it lives on the model rather than
  * in the `.mobix` layer: it is what a conflict-free merge keys on (two devices editing one page union
- * their elements by id and resolve the ones that collide by timestamp — `docs/sync-and-storage.md`),
+ * their elements by id and resolve the ones that collide by timestamp — `docs/mobix-format.md`),
  * and what lets an edit change an element without the element becoming a different one.
  *
  * Two rules the minting below is built to satisfy:
@@ -55,7 +55,7 @@ object ElementId {
     /**
      * A **page**'s id prefix. A page is a document part rather than an element, but its id needs the
      * same two properties for the same reasons: stable across saves (a merge matches two copies of a
-     * page by it, `docs/sync-and-storage.md`) and never derived from content. It is written in the
+     * page by it, `docs/mobix-format.md`) and never derived from content. It is written in the
      * `.mobix` manifest's `pages[]` entry, not in the page's own JSON.
      */
     const val PAGE = "pg"

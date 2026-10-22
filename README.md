@@ -47,12 +47,12 @@ MobiXournal follows a hub-and-spoke documentation model:
 |---|---|
 | **Development & Conventions** | [`AGENTS.md`](AGENTS.md) |
 | **System Architecture** (the index of the spokes) | [`docs/architecture.md`](docs/architecture.md) |
-| **Roadmap** (data format, mobile UI, desktop) | [`docs/future-roadmap.md`](docs/future-roadmap.md) |
+| **UI contract** (what a new interface element must satisfy) | [`docs/interface-contract.md`](docs/interface-contract.md) |
 | **The native `.mobix` format** | [`docs/mobix-format.md`](docs/mobix-format.md) |
 | **The desktop app** | [`docs/desktop-workstation.md`](docs/desktop-workstation.md) |
 | **The `.xopp` on-disk schema** | [`docs/xopp-format.md`](docs/xopp-format.md) |
 | **Build Tools, Container & Emulator** | [`docs/tools.md`](docs/tools.md) |
-| **Active Tasks & Roadmap** | [`TODO.toml`](TODO.toml) (via `scripts/todo.sh list`) |
+| **Active tasks** | [`TODO.toml`](TODO.toml) (via `scripts/todo.sh list`) |
 | **Completed Work Archive** | [`FINISHED.toml`](FINISHED.toml) |
 | **Release Notes (per version)** | [`docs/releases/`](docs/releases/) |
 
@@ -97,7 +97,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 
 ### 🖥️ Desktop preview (experimental)
 
-The first slice of the planned desktop workstation is in the tree: a native window that opens your
+The desktop app is in the tree: a native window that opens your
 documents and shows every page as it was written — paper ruling, pen strokes with their pressure taper,
 highlighters, dashed lines, text boxes, and the living parts of a page too: tables, graphs, parametric
 shapes and circuit components, plus photo and annotated-PDF page backgrounds — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
@@ -127,7 +127,7 @@ it rather than a strip glued to the window's edge. The header's **Tool placement
 between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
-the slots only choose a tool for now; drawing arrives with the editing phase. The colour slot also
+the slots only choose a tool, because the window does not draw or edit yet. The colour slot also
 carries the palette: pick a swatch, define your own colour in the window's HSV/hex panel, or add a new
 one, and the palette, the favourites and the width are remembered between runs.
 

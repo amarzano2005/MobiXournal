@@ -27,7 +27,7 @@ data class SyncConflictInfo(
 )
 
 /**
- * Pure filename pattern matcher for third-party sync engine conflict markers (`docs/sync-and-storage.md`).
+ * Pure filename pattern matcher for third-party sync engine conflict markers (`docs/mobix-format.md`).
  *
  * Recognises:
  * 1. **Syncthing**: `.sync-conflict-YYYYMMDD-HHMMSS-DEVICEID` injected before or after the file extension.

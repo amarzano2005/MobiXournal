@@ -288,7 +288,7 @@ class ChunkedMobixRoundTripTest {
     /**
      * A save that changed nothing rewrites the manifest and nothing else: every part of the board is
      * streamed out of the file it was read from, keeping its own `sha256` and `modified` stamp, which is
-     * what a merge and a sync client read to see that nothing moved (`docs/sync-and-storage.md`).
+     * what a merge and a sync client read to see that nothing moved (`docs/mobix-format.md`).
      */
     @Test
     fun aSaveWithNothingChangedRebuildsNoChunk() {

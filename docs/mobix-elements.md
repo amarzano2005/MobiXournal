@@ -18,8 +18,8 @@ they share in `MobixJson.kt`.
    the whole format is built on: a `.mobix` written by a newer app — carrying a table, a plot, a
    `3dPlotElement` nobody has written yet — survives an open-and-save here byte-for-byte in value, so
    an older build can never quietly strip a newer document.
-2. **An `id`, minted once and never re-minted.** Identity is what the conflict-free merge keys on
-   ([sync-and-storage.md](sync-and-storage.md)) and what lets an edit change an element without the
+2. **An `id`, minted once and never re-minted.** Identity is what the merge keys on
+   ([mobix-format.md](mobix-format.md) → *Merging two copies is library code*) and what lets an edit change an element without the
    element becoming a different one. A copy's *duplicate* is a new id; a move is the same id. A reader
    that finds an element without one mints it (`ElementId.mint`, `format/model/ElementIds.kt`), which
    is how a `.xopp` import — a format with no ids at all — gets its elements identified exactly once.
@@ -127,8 +127,8 @@ anyone coordinating, and a name derived from content cannot go stale.
 
 - The container is the one the bytes arrived in (a PNG stays a PNG), named from the hash plus that
   suffix — re-encoding the user's picture to save a few bytes would change the pixels they pasted.
-- `texImage.asset` is the **rendered PNG** (per `docs/latex-typst-rendering.md`) and is optional: a
-  document may carry only the LaTeX. `latexInAttribute` records which of `.xopp`'s two on-disk shapes
+- `texImage.asset` is the **rendered PNG** the `.xopp` carried, and is optional: a document may carry
+  only the LaTeX. `latexInAttribute` records which of `.xopp`'s two on-disk shapes
   the source used, so a legacy file is not silently rewritten into the modern one.
 
 ### What an unknown or `.xopp`-only element looks like
@@ -360,18 +360,11 @@ resistor black. `symbol` names a key in that library (and, like a shape's `shape
 a build that does not know a symbol cannot draw it, and says so rather than inventing ink for it
 (`docs/mobix-format.md`, the lossy-field rule).
 
-### Math block (`mathBlock`)
+### LaTeX today
 
-Defined in [latex-typst-rendering.md](latex-typst-rendering.md) and tracked in `TODO.toml` (tasks 720, 730, 740):
-
-```json
-{
-  "type": "mathBlock", "id": "mth_01",
-  "engine": "TYPST",
-  "source": "integral_(-oo)^(+oo) e^(-x^2) dif x = sqrt(pi)",
-  "bounds": { "left": 140.0, "top": 220.0, "scale": 1.2 },
-  "color": "#212121ff", "fontSizePt": 16.0
-}
-```
-
-A living math block element preserving raw formula markup (`LaTeX` or `Typst`), rendered as resolution-independent vector outlines, re-editable via double-tap, and exported as vector glyphs to PDF and `.xopp` `TexImage` with metadata fallback.
+`.xopp`'s `teximage` is the only math element the model carries: `TexImageElement` keeps the LaTeX source,
+its colour, and the rendered PNG bytes (either may be absent), and round-trips through `.xopp` unchanged.
+The app draws that source itself — `render/LatexParser.kt` builds a node tree and `render/LatexRenderer.kt`
+draws fractions, scripts and roots — and `ui/LatexPalette.kt` inserts the STEM symbols the keyboard cannot.
+There is no living `mathBlock` element: the format does not model one, so a document carrying one from a
+newer build is preserved verbatim as a `RawElement` (rule 1 above) rather than drawn.

@@ -11,8 +11,7 @@ native for stylus latency and platform fit).
 
 - **Language:** Kotlin, targeting the modern Android SDK.
 - **App chrome / UI:** **Jetpack Compose with Material 3** (Material You) for all app chrome —
-  app bar, menus, dialogs, the tool palette. Satisfies the Material Design requirement in
-  `TODO.toml`.
+  app bar, menus, dialogs, the tool palette.
 - **One colour scheme drives every surface, and one chrome colour paints it.** All chrome — app
   bar, rail/toolbar, dialogs, the elevated popovers — takes its colours from
   `MaterialTheme.colorScheme` (`ui/theme/Theme.kt`); no surface hardcodes a colour. The canvas is the

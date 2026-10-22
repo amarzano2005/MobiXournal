@@ -53,10 +53,9 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   - The parent mount is what makes the optional real-file test resolve its repo-root sample; the
     rule is documented in [`testing.md`](testing.md#what-the-unit-tests-cover).
 
-### The v2 development channel — the test build never replaces the daily app
+### The debug build is its own app — a test build never replaces the daily app
 
-While the v2 line (the native `.mobix` work, [mobix-format.md](mobix-format.md)) is built, the owner
-keeps using a released `com.mobixournal` daily. The debug build is therefore its **own app**:
+The released `com.mobixournal` stays the daily app, so the debug build is its **own app**:
 `app/build.gradle.kts` gives the `debug` build type `applicationIdSuffix = ".v2"`, so
 `scripts/build.sh`, the emulator install and the APK the release workflow attaches all land on
 **`com.mobixournal.v2`**, and the `debug` source set gives that build its own launcher label
@@ -73,9 +72,9 @@ The suffix is what makes "install the test build" a non-destructive step.
   `logcat`-filter by is `com.mobixournal.v2`.
 - **Its storage is its own too** (`filesDir`/`cacheDir` are per-package), so a v2 build cannot disturb
 the daily app's tabs, settings or saved documents.
-- **Ending the transition** is deleting the `debug` block and the `debug` source set, after which the
-  build is `com.mobixournal` again and upgrades the existing install in place. Do that when the v2 line
-  is meant to *become* the daily app, not before.
+- **Dropping the suffix** is deleting the `debug` block and the `debug` source set, after which the
+  build is `com.mobixournal` again and upgrades the existing install in place. That is the change to make
+  if the debug build should ever *become* the daily app.
 
 ### Host fallback — no `/data/android`, no Docker
 
@@ -248,7 +247,7 @@ reaches the device. Keep it for the `/data/android` pipeline, where that mismatc
 
 ## Desktop shell
 
-The `desktop/` module (Step 3 preview, `docs/desktop-workstation.md`) is a plain JVM Compose
+The `desktop/` module (`docs/desktop-workstation.md`) is a plain JVM Compose
 Multiplatform application: it needs **no Android SDK, no emulator and no `/data/android`**, only the
 JDK 21 the Gradle build already uses (`JAVA_HOME` — on the Windows host,
 `C:\Users\amarz\.jdks\jbr-21.0.11`; JDK 27 breaks Gradle configuration). Run it through the wrapper

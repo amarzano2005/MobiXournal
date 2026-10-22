@@ -20,7 +20,7 @@ import java.io.OutputStream
  *
  *  - **The manifest's `pages[]` is derived from what is being written**, never copied wholesale from
  *    what was read. A save recomputes each page's `sha256`, keeps an unchanged page's `modified` stamp
- *    (so a sync client does not see an untouched page as an edit — `docs/sync-and-storage.md`) and
+ *    (so a sync client does not see an untouched page as an edit — `docs/mobix-format.md`) and
  *    stamps only the pages whose bytes actually changed. A page a save **copies** out of the archive
  *    it came from keeps the part that archive recorded for it ([MobixPageReuse]), `sha256` included —
  *    which is the same statement, made one step earlier: the hash is of the bytes being copied.

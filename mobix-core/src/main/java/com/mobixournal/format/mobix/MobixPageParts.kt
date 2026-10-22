@@ -16,7 +16,7 @@ import com.mobixournal.format.model.Page
  *  - **A part's identity is stable.** A page that already has an [ElementId.PAGE] keeps it, and a page
  *    that arrives without one gets it minted here — matched to the part the previous manifest wrote for
  *    that page, found **by id** (a page with no id falls back to the part at the same index), so a page
- *    can be reordered without becoming a different page to a merge (`docs/sync-and-storage.md`).
+ *    can be reordered without becoming a different page to a merge (`docs/mobix-format.md`).
  *  - **A part's `modified` stamp only moves when its bytes did.** A page whose `sha256` is what the
  *    previous write recorded is untouched, and a sync client reading the manifest has to see that — an
  *    untouched page restamped with the save time reads as an edit on another device.

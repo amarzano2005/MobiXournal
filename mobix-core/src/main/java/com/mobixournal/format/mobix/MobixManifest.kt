@@ -209,7 +209,7 @@ internal fun compareVersions(a: String, b: String): Int {
 /**
  * One part of a document: a page in `pages/`, a tile in `chunks/`. [id] is the part's stable identity
  * (a merge keys on it, and so does the session cache); [sha256] and [modified] are how a merge tells
- * which side of a conflict moved — see `docs/sync-and-storage.md`.
+ * which side of a conflict moved — see `docs/mobix-format.md`.
  */
 data class MobixPart(
     val id: String,

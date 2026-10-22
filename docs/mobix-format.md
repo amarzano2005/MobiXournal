@@ -36,9 +36,9 @@ uncompromising **lossless export/import bridge to `.xopp`**.
 | Capability | `.xopp` (Current) | `.mobix` (Native) | Status today |
 |---|---|---|---|
 | **Mathematical plots** | Baked into dead strokes & text boxes | Living `PlotElement`: formula $f(x)$, range, samples, re-editable anytime | **Live** — created, drawn, re-edited in place ([mobix-elements.md](mobix-elements.md)) |
-| **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **Model only** — codec and ink are live; the table tool still draws a static grid and no editor exists (Step 2: `insert-a-living-table-from-the-table-tool`) |
+| **Data tables** | Static ink lines & independent text | Living `TableElement`: editable rows, cols, alignments, cell text | **Model only** — codec and ink are live; the table tool still draws a static grid and no editor exists |
 | **Stylus telemetry** | $(x, y, \text{pressure})$ only | $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \Delta t_{\text{ms}})$ — no barrel roll, which the platform cannot report | **Stored & verified** — tilt, azimuth and $\Delta t$ are captured and written; Pen diagnostics panel prints tilt and azimuth ([stylus.md](stylus.md)). $\Delta t$ is read by stroke replay and audio-karaoke sync ([audio-inking-sync.md](audio-inking-sync.md)). None drives drawn width, which follows desktop pressure filter |
-| **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Live & verified** — playhead published, frame loop drives canvas with dimmed future ink, progressive stroke growth with glowing tip, and scrubber pop-up seeking ([audio-inking-sync.md](audio-inking-sync.md)). Replay verified on emulator. Velocity smoothing is not built |
+| **Stroke replay & dynamics** | Impossible (no timing information) | Real-time replay & physics-driven velocity smoothing via $\Delta t$ timestamps | **Live & verified** — playhead published, frame loop drives canvas with dimmed future ink, progressive stroke growth with glowing tip, and scrubber pop-up seeking ([audio-inking-sync.md](audio-inking-sync.md)). Replay verified on emulator |
 | **Large notebooks (100+ pages)** | Monolithic XML; huge heap footprint & slow open | Paged container; instant open, random-access streaming via LRU cache | **Live** — every reader goes through the page surface (`PageSource`): counting, ids and layout come from `manifest.json`/`canvas.json`, and a page is inflated only when the canvas, find or the export asks for it, never at open ([data-path.md](data-path.md)) |
 | **Binary assets & photos** | Inefficient base64 inside XML tags | Raw WebP/PNG binaries in `assets/` with content-hash deduplication | **Live** — bundled by content hash on the `.mobix` save path |
 | **Audio annotations** | Sidecar `.wav` files prone to detachment | Bundled Opus/WAV in container, linked to stroke millisecond timestamps | **Live & verified** — Opus recording and playback bundled in container by content hash as `assets/aud_<sha256>.<ext>`, linked to stroke timestamps, verified on emulator ([audio-inking-sync.md](audio-inking-sync.md)) |
@@ -193,17 +193,22 @@ and what this build could not draw is reported after a successful export rather 
 **What a `.mobix` save writes.** The manifest is not copied from what was read: `pages[]` is derived
 from the pages being written, each page's `sha256` is the digest of the stored bytes, and a page whose
 bytes did not change **keeps its `modified` stamp** — a save that edited one page must not look like an
-edit of all of them to a sync client ([sync-and-storage.md](sync-and-storage.md)). Page ids are stable
-(they are the manifest's, not the position's, so a reordered page is still the same page), entries this
-build does not model are written back untouched, and a payload read from a file and never inspected is
-re-written rather than orphaned.
+edit of all of them to anything that compares two copies. Page ids are stable (they are the manifest's,
+not the position's, so a reordered page is still the same page), entries this build does not model are
+written back untouched, and a payload read from a file and never inspected is re-written rather than
+orphaned.
+
+**Merging two copies is library code, not a product.** `MobixMergeEngine` in `format/mobix/` reconciles
+three sides (base, local, remote) per page and per element id; nothing in the app calls it, there is no
+sync UI, and no account. It stays because the identity work above is what makes it possible, and it is
+tested as a library.
 
 **What a reader refuses, rather than opening something it cannot keep:** a page (or chunk) the manifest
 names but the archive does not carry (a corrupt file, never an empty page), a `formatVersion` from a
 newer schema, a `canvas.json` that disagrees with the manifest about the mode, and a file that carries
 both `pages/` and `chunks/` — the entries and the declared mode have to agree with each other. The
-canvas *engine* drawing that geometry unbounded is a later step ([infinite-canvas.md](infinite-canvas.md),
-`render-a-chunked-document-as-an-unbounded-canvas`). `minAppVersion` is a
+canvas *engine* does not yet draw that geometry unbounded ([infinite-canvas.md](infinite-canvas.md)).
+`minAppVersion` is a
 **caller's** question, not this layer's: the document layer exposes
 `manifest.requiresAppNewerThan(appVersion)`, and whether that means "open read-only" or "refuse" is the
 app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).
@@ -326,9 +331,9 @@ which is what it now is — and never as a table that swallowed it.
 
 ## Engine optimizations enabled by the format
 
-Migrating to the `.mobix` format directly enables four major performance optimizations in the engine.
-Each one is labelled with **what actually runs today** — **Live**, **library only** (a tested engine with
-no caller in `app/src/main`), or **not built** — and names the task that makes it live.
+The container's layout is what makes these four engine properties possible. Each one is labelled with
+**what actually runs today** — **live**, or **library only** (a tested engine with no caller in
+`app/src/main`).
 
 1. **Page Virtualization & LRU Streaming (Instant open on huge notebooks)** — **live**:
    - `format/mobix/MobixPagedReader.kt` walks the ZIP central directory and materialises a page (or a
@@ -350,21 +355,15 @@ no caller in `app/src/main`), or **not built** — and names the task that makes
 2. **Incremental Delta-Writes (Zero save latency)** — **live** when the save lands back on the file the
    document came from: the manifest and the entries that moved are written, everything else — untouched
    pages, background PDFs, pictures — is copied as the bytes the archive already holds, and a page the
-   source still holds is **not built at all** (`MobixPageReuse` answers from the shape of the document's
-   page list), so its JSON is never parsed, rebuilt or hashed (`repack-only-the-pages-a-save-changed`).
+   source still holds is reused as it stands (`MobixPageReuse` answers from the shape of the document's
+   page list), so its JSON is never parsed, rebuilt or hashed.
    The diff is derived, never flagged (a part is compared by the `sha256` its own manifest recorded);
    unknown/unmodelled entries survive untouched (container rule 4, [mobix-schema-spec.md](mobix-schema-spec.md)).
    - Measured in `MobixIncrementalSaveBenchmarkTest` (`app/build/reports/mobix-incremental-save.txt`): one
      edited page of a 200-page notebook costs **2 ms and one page opened**, against **13 ms and 399** for
      the path it replaced — constant, not proportional to the notebook. The on-device round trip is run:
      the *Document saving* row above holds what the emulator pass measured.
-3. **Zero-Allocation Inking Loop (No GC stutter)** — **not built**:
-   - High-rate stylus events (120 Hz–240 Hz on modern tablets and stylus digitizers) can trigger frequent
-     JVM Garbage Collection pauses if objects (`StrokePoint`, temporary event wrappers) are allocated per touch.
-   - The live stroke is still a growing `ArrayList<StrokePoint>` (`render/DrawingSurfaceStrokes.kt`),
-     so a `StrokePoint` and its wrappers are allocated per touch today. The pre-allocated, pooled
-     primitive-array path this item describes is not implemented.
-4. **GPU Texture Layering & Path Tessellation Cache** — **live (off-screen raster)**:
+3. **GPU Texture Layering & Path Tessellation Cache** — **live (off-screen raster)**:
    - Static elements (paper rulings, PDF page backgrounds, committed lower layers) are rendered once into
      an off-screen GPU texture (`android.graphics.Bitmap` hardware texture on Android, Skia `Image` on Desktop).
      This is what `render/InkCache.kt` does (one bitmap per page at a zoom bucket, charged to a shared

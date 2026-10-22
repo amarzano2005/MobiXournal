@@ -79,7 +79,7 @@ class MobixMergeSide private constructor(
 }
 
 /**
- * Three-way merge engine for `.mobix` documents (`docs/sync-and-storage.md`).
+ * Three-way merge engine for `.mobix` documents (`docs/mobix-format.md`).
  *
  * Resolves concurrent multi-device edits (e.g. tablet vs desktop on Nextcloud/Syncthing)
  * without data loss:

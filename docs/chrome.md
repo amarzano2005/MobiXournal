@@ -239,8 +239,8 @@ they can write on.
 
 **The rule this encodes — and its one carve-out — is owned by**
 [ui-modernization.md](ui-modernization.md#core-design-principles): *bands never lie on the page; transient
-surfaces may*. A radial HUD, an anchored popover, a dialog or a selection bar comes and goes with the
-gesture it belongs to; a band is always there, so it never costs the sheet a pixel.
+surfaces may*. An anchored popover, a dialog or a selection bar comes and goes with the gesture it
+belongs to; a band is always there, so it never costs the sheet a pixel.
 
 The **desk** is what the bands sit on: `EditorScreen`'s `Scaffold` takes `rememberChromeColor()` (the
 scheme's `background`, the same colour the canvas paints around a page) instead of transparency, so the
@@ -301,9 +301,9 @@ always differs from the old default — is never rewritten.
 ## A document with no pages
 
 **The chrome on an infinite canvas.** A chunked `.mobix` has tiles, not pages ([infinite-canvas.md](infinite-canvas.md)
-owns the mode), and every surface here that used to count pages had to answer for it. The rule is the one
-the epic set: **no surface may claim a page that does not exist** — and, just as important, none may offer a
-control whose effect is invisible, or one that would rewrite the file's own chunk grid.
+owns the mode), and every surface here that used to count pages had to answer for it. The rule is:
+**no surface may claim a page that does not exist** — and, just as important, none may offer a control
+whose effect is invisible, or one that would rewrite the file's own chunk grid.
 
 One field carries the whole answer: `PaneState.board`, fed by `DrawingSurfaceView.onBoardReading` with a
 `BoardReading` — the **tile** the viewport is centred on, as its coordinate, and how many tiles the document

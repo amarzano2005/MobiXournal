@@ -136,8 +136,9 @@ chunks/chunk_<cx>_<cy>.json      # cx, cy signed decimal integers, no padding, n
 ```
 
 The same positive/negative split decides the file *and* the index: `manifest.json`'s `chunks[]`
-lists the entries in the document's own order with the ids/hashes a merge uses
-([sync-and-storage.md](sync-and-storage.md)), so nothing is derived by scanning the archive.
+lists the entries in the document's own order with their ids and content hashes, the bookkeeping a
+three-way merge in `MobixMergeEngine` keys on ([mobix-format.md](mobix-format.md) → *Merging two
+copies is library code*), so nothing is derived by scanning the archive.
 
 ### `canvas.json`
 
@@ -185,8 +186,8 @@ What the app does with this geometry today, so the mode is not a format the edit
   page ([mobix-format.md](mobix-format.md) → *What a `.mobix` save writes*): a chunk the archive already
   holds contributes its manifest part and no entry, and its bytes are streamed out of the source file
   instead of being decoded and re-encoded. The manifest keeps that part's `sha256` and `modified` stamp as
-  the archive recorded them, which is what a merge and a sync client read
-  ([sync-and-storage.md](sync-and-storage.md)). A chunk the write does *not* build is never even converted
+  the archive recorded them, which is what a later merge reads
+  ([mobix-format.md](mobix-format.md) → *Merging two copies is library code*). A chunk the write does *not* build is never even converted
   from its page (`LazyChunks`), so the only page such a save reads is the board's first, which carries
   `defaultPaper` into the new manifest.
 - **A document is born on one, chosen with its page format.** The geometry is the second half of the one

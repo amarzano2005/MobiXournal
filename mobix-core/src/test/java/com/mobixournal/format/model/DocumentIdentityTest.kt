@@ -9,7 +9,7 @@ import org.junit.Test
 /**
  * The identity a save **adopts** before a `.mobix` is written, rather than one the writer mints into a
  * copy the open document never sees (`docs/mobix-schema-spec.md`, and the merge it exists for:
- * `docs/sync-and-storage.md`).
+ * `docs/mobix-format.md`).
  *
  * The property that matters is not that ids exist but that the *same* ids come back. A document whose
  * elements are minted twice is, to a merge or a sync client, a whole page replaced instead of an edit —

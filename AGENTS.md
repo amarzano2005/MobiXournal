@@ -17,7 +17,7 @@ you pull in a spoke only when the task touches it, instead of reading everything
 | **What's already done** (completed-work archive) | `FINISHED.toml` (via the `todo` skill) |
 | **How to work here** (conventions, decisions, host profile) | `AGENTS.md` (this file) |
 | **How the system works internally** (data flow, layout, all spokes) | `docs/architecture.md` — the **index** of the architecture spokes |
-| **Strategic 3-pillar v2 roadmap** (`.mobix`, mobile UI, desktop) | `docs/future-roadmap.md` (indexed in `docs/architecture.md`) |
+| **What every new UI element must satisfy** (material, colour, states, glyphs, tests) | `docs/interface-contract.md` |
 | **Native `.mobix` format & `.xopp` bridge policy** | `docs/mobix-format.md`, `docs/mobix-schema-spec.md`, `docs/mobix-elements.md` |
 | **How a user runs/uses it** (setup, build & run) | `README.md`               |
 | **External tools & build pipelines** (Android, deploy, device harnesses) | `docs/tools.md` |
@@ -31,29 +31,28 @@ you pull in a spoke only when the task touches it, instead of reading everything
    fails the build** when they fall out of sync (`DocsGuardTest`, `SourceStructureTest`,
    `ManifestIntentFilterTest`), so a stale doc or structural regression is caught mechanically
    rather than by discipline.
-2. **Narrative facts** (status, "verified live", roadmap history) can't be tested, so they
+2. **Narrative facts** (status, "verified live" notes, change history) can't be tested, so they
    live in **one** place only and the update rules below keep that single copy current.
 
 ---
 
-## What this project is & the v2 `.mobix` roadmap
+## What this project is
 
-**MobiXournal** is an **independent, unofficial note-taking and scientific drafting app** that
-began as an Android companion for [Xournal++](https://github.com/xournalpp/xournalpp) (`.xopp`) —
-continuing Brian Monroe's **NeXopp** ([github.com/bamonroe/NeXopp](https://github.com/bamonroe/NeXopp))
-under the label **MobiXournal** (not affiliated with or endorsed by the Xournal++ authors; see
-_Branding and identity_ in `docs/codebase.md`).
+**MobiXournal** is an **independent, unofficial note-taking and scientific drafting app** for Android.
+It began as a companion for [Xournal++](https://github.com/xournalpp/xournalpp) (`.xopp`) — continuing
+Brian Monroe's **NeXopp** ([github.com/bamonroe/NeXopp](https://github.com/bamonroe/NeXopp)) under the
+label **MobiXournal** (not affiliated with or endorsed by the Xournal++ authors; see _Branding and
+identity_ in `docs/codebase.md`). It reads and writes Xournal++ documents losslessly, and it has a
+native format for what a `.xopp` cannot carry: living STEM elements, full stylus telemetry and paged
+streaming.
 
-With the **v2 line**, MobiXournal evolves from a `.xopp`-only editor into a full-featured STEM
-note-taking platform built around a **two-tier format architecture** (`docs/mobix-format.md`) and
-**three strictly ordered strategic pillars** (`docs/future-roadmap.md`):
-
-### 1. Two-tier format architecture & round-trip boundary
+### Two formats, one document
 
 - **`.mobix` (Native format — `docs/mobix-format.md`, `docs/mobix-schema-spec.md`, `docs/mobix-elements.md`)**:
   A paged PKWARE ZIP container (`application/vnd.mobixournal+zip`) that stores:
   - **Living domain entities**: re-editable function plots (`PlotElement`), data tables (`TableElement`),
-    parametric shapes (`ParametricShapeElement`), circuit components (`CircuitElement`), and math blocks (`MathBlockElement`).
+    parametric shapes (`ParametricShapeElement`) and circuit components (`CircuitElement`); LaTeX is
+    carried as a `.xopp` `teximage` with its source kept (`docs/mobix-elements.md`).
   - **Rich stylus telemetry**: $(x, y, \text{pressure}, \text{tilt}, \text{azimuth}, \Delta t_{\text{ms}})$ for replay and diagnostics.
   - **Scalable container engines**: part-per-page LRU streaming (`PageSource` / `MobixPagedReader`),
     incremental delta-saves (`MobixIncrementalSaver` / `MobixZipRewrite`), content-hash deduplicated
@@ -79,39 +78,21 @@ note-taking platform built around a **two-tier format architecture** (`docs/mobi
   format are out of scope. Furthermore, drawn stroke width continues to follow desktop Xournal++'s
   pressure filter (`docs/stylus.md`) unless a written architectural decision changes it.
 
-### 2. The 3 strategic pillars (`docs/future-roadmap.md`)
+### The `desktop/` window
 
-Work across the repository follows a strict dependency hierarchy — **no user-facing UI may outrun
-the data model beneath it**:
+`desktop/` is a Compose Multiplatform window (Skiko) that opens the same containers and paints their
+pages **read-only**: tabs, a page sidebar with layers, zoom, the shared tool strips and the shared
+design tokens. It consumes `mobix-core`, so a codec, a ruling or an ink rule is not forked for the PC.
+Editing in that window is not built — `docs/desktop-workstation.md` describes it as it is.
 
-1. **Step 1 — Native `.mobix` Format & Core Engines (Data Foundation)**:
-   Container, schema, living element codecs, the `.xopp` synthesis bridge and the runtime engines are
-   implemented and archived in `FINISHED.toml` (`step-1-mobix-format-engines`): page streaming
-   (`PageSource`), incremental saves, infinite canvas (`docs/infinite-canvas.md`), reactive math
-   (`docs/math-engine.md`) and bundled audio & karaoke stroke replay (`docs/audio-inking-sync.md`).
-   Multi-device sync is **out of scope** (decision 2026-10-21): the three-way merge already in `mobix-core`
-   stays as library code and `docs/sync-and-storage.md` is kept only as its reference.
-2. **Step 2 — Modern Mobile UI & Living Editors (`step-2-modern-mobile-ui`)**:
-   Lightweight frosted-glass chrome (`docs/ui-modernization.md`: bands never overlap the page; headers
-   close on one full-width edge), Pen-Tip Radial HUD summoned by stylus barrel button at the nib,
-   in-place editors for living entities built **one family at a time** (Plot [live] → Table → Circuit →
-   Parametric Shape, see `docs/mobix-elements.md`), 300 ms pen-dwell shape perfection
-   (`docs/shape-perfection-engine.md`), offline KaTeX/Typst typesetting (`docs/latex-typst-rendering.md`),
-   snap-to-text magnetic PDF highlighter (`docs/pdf-annotation-engine.md`), and freeform/DeX multi-window
-   workspaces (`docs/multi-window-workspace.md`).
-3. **Step 3 — Desktop Workstation Software (`docs/desktop-workstation.md`)**:
-   Shared Kotlin Multiplatform (KMP) core with Skia/Skiko GPU rendering (DirectX 12 at
-   120–240 Hz), desktop workstation UI (tabs, `Ctrl+B` sidebar, right Property Inspector, bimanual
-   shortcuts), and Wintab / Windows Ink graphics tablet & rotary dial integration. Target: Windows 11
-   only, optimised for 21:9 and 144 Hz displays.
+### Architectural honesty in docs and code
 
-### 3. Architectural honesty in docs and code
-
-Because the codebase spans active production code and Step 1–3 roadmap specifications:
-- **Never blur specification with implementation.** In spoke docs (`docs/architecture.md`,
-  `docs/mobix-format.md`), keep status labels strictly honest: **Live** (wired end-to-end in
-  `app/src/main`), **Part live / Library only** (tested codec or engine exists in tree, but not yet
-  wired into the editor/open/save path), or **Planned Spec**.
+- **Docs describe what the code does.** In spoke docs, keep the wording literal: **live** for behaviour
+  wired end-to-end in `app/src/main` or `desktop/`, **library only** for tested code with no call site,
+  and no entry at all for a capability that does not exist yet.
+- **A UI change is checked against `docs/interface-contract.md`** before it lands: one of the three
+  material classes, tokens only, a glyph from the catalogue, all five states, English copy, both shells
+  in agreement.
 - **v2 development package (`com.mobixournal.v2`)**: Debug builds set `applicationIdSuffix = ".v2"`
   ("MobiXournal v2 (dev)") so installing and testing v2 never overwrites the daily `com.mobixournal`
   installation or its storage (`docs/tools.md`).
@@ -360,8 +341,10 @@ work, or immediately after — never defer it to "later," and never ship code wi
 - Every new user-facing feature gets documented in `README.md` as part of the same work.
 - Keep the single-source-of-truth spoke docs in sync in the same pass (per `docs/architecture.md`),
   respecting the **400-line spoke budget** verified by `DocsGuardTest`.
-- Update status claims honestly when turning a **Library only** or **Planned Spec** capability into
-  a **Live** one (`docs/mobix-format.md`, `docs/architecture.md`).
+- Update the wording when a **library only** capability gains its call site: the doc says what is
+  wired, not what is possible (`docs/mobix-format.md`, `docs/architecture.md`).
+- A new UI element must satisfy `docs/interface-contract.md`; the owning spoke is updated in the same
+  commit.
 - Docs land in the **same commit** as the feature (or an immediately-following commit) — a
   feature commit with no accompanying documentation is incomplete.
 - **Documenting is part of the coding task, never a task of its own.** Every time you write
@@ -399,9 +382,9 @@ on Windows PowerShell, or `scripts/todo.sh <command>` in Git Bash; documented in
     guesswork.
   - **`scope`**: investigate the code and `add` the atomic `task`s it breaks into, then mark the
     `scope` `done`. A `scope` produces **tasks, not code**.
-  - **`epic`**: a spanning pillar or milestone (`step-1-mobix-format-engines`,
-    `step-2-modern-mobile-ui`). Never implement an epic in one pass; break out the next `scope`/`task`
-    children as work progresses.
+  - **`epic`**: a milestone too large for one pass (its id may read like `step-1-mobix-format-engines`,
+    a historical label rather than a plan). Never implement an epic in one pass; break out the next
+    `scope`/`task` children as work progresses.
 - Run `python scripts/todo/todo.py validate` if you ever hand-edit `TODO.toml` or `FINISHED.toml`.
 
 ### Token discipline — keep the context small

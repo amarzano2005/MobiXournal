@@ -4,12 +4,12 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-## Stylus & selection roadmap
+## Stylus & selection
 
 The app is **stylus-first**. `DrawingSurfaceView.onTouchEvent` routes every pointer-down through the
 pure `InputClassifier`, so the pen hardware — not the on-screen toolbar — decides what a gesture does,
-matching desktop Xournal++. This section is the design home for the input layer and for finishing the
-selection tool to desktop parity; work items are journaled in `TODO.toml` (via the `todo` skill).
+matching desktop Xournal++. This section is the design home for the input layer and for the selection
+tool's parity with desktop Xournal++.
 
 ## Stylus input — implemented
 

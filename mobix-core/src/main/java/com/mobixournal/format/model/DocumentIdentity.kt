@@ -8,7 +8,7 @@ import java.util.UUID
  * Every page and every element of a `.mobix` has an id, and the document has one of its own in the
  * manifest (`docs/mobix-schema-spec.md`). Those ids are what a conflict-free merge keys on — two
  * devices editing one page union their elements by id and resolve the ones that collide by timestamp
- * (`docs/sync-and-storage.md`) — so a document saved twice must hand out the *same* ids the second
+ * (`docs/mobix-format.md`) — so a document saved twice must hand out the *same* ids the second
  * time. Minting them inside the writer does not achieve that: the writer mints on a copy, the open
  * document never learns the ids, and the next save mints a fresh set, which a merge (or a sync client)
  * reads as the whole page replaced. [Document.documentId] makes the same argument for the document

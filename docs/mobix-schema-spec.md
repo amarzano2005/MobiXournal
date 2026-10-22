@@ -87,8 +87,8 @@ These are the parts an implementation must get right; the rest is payload. All f
 - **Required: `formatVersion`, `documentId`, `canvasMode`.** Those are the three a reader cannot
   invent — which schema this is, which document it is, and whether the parts are `pages/` or
   `chunks/`. Every other field has a documented default, so a minimal hand-written manifest opens.
-- `pages[]` **is** the page order, and the bookkeeping the conflict-free merge needs
-  ([sync-and-storage.md](sync-and-storage.md)): `sha256` is the digest of the page entry's *stored*
+- `pages[]` **is** the page order, and the bookkeeping a merge needs
+  ([mobix-format.md](mobix-format.md) → *Merging two copies is library code*): `sha256` is the digest of the page entry's *stored*
   bytes and `modified` its last-write time, so a merge can tell which side of a conflict moved. A
   page whose `entry` is absent from the archive is a corrupt file — fail the open, don't skip quietly.
 - Documents in an infinite mode use `chunks[]` (same shape, entries under `chunks/`) instead of
