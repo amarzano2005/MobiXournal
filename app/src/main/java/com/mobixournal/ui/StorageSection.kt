@@ -32,7 +32,8 @@ fun StorageSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         SwitchRow(
             title = "Save standalone audio recordings",
             subtitle = "Automatically export an audio copy to the device's public media folder (Music / Recordings) " +
-                "upon completing a recording, in addition to binding it into the notebook.",
+                "upon completing a recording, in addition to binding it into the notebook. The copy is written " +
+                "as .m4a (AAC), which phones, browsers and AI assistants all accept.",
             checked = settings.saveStandaloneAudio,
             onCheckedChange = { onChange(settings.copy(saveStandaloneAudio = it)) },
         )

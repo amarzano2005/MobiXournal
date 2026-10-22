@@ -69,6 +69,17 @@ Rather than relying on vulnerable loose sidecars in user folders:
 - **Standalone export (`AudioStandaloneExporter`)**: Option (`saveStandaloneAudio` in settings and audio popup)
   that automatically exports an independent copy of each completed recording into the device's public
   `Music/MobiXournal` or `Recordings/MobiXournal` collection via MediaStore.
+- **What leaves is `.m4a`, never the recorded container.** The app records Ogg/Opus (`.mobix`) or WAV
+  (`.xopp`), and the player decodes both, but outside the app Ogg/Opus is the format uploaders most often
+  refuse: an assistant that does not recognise it answers that the file "was not processed by the audio
+  component" and injects its bytes into the conversation as text, while a lecture-length WAV is hundreds
+  of megabytes. `audio/AudioTranscoder.kt` therefore decodes the recording (`MediaExtractor` +
+  `MediaCodec`) and re-encodes it mono at 48 kbps into MP4/AAC — the one encoder every Android device is
+  required to provide — writing `<same timestamp>.m4a` in the cache, which is the file the media store
+  receives. Nothing is ever lost to the conversion: a recording already in M4A is copied as it is, and a
+  transcode that fails (unsupported source stream, no encoder, a busy codec) exports the original bytes
+  under their own name and media type instead. The export runs on a background thread, since re-encoding
+  a lecture takes longer than a tap.
 
 ### On-device Speech-to-Text and stroke synchronization
 - **Temporal transcript segments (`TranscriptionSegment`)**: Stores recognized speech with start and end timestamps

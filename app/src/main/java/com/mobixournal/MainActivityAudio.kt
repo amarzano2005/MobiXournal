@@ -17,6 +17,7 @@ import com.mobixournal.audio.AudioRecordingService
 import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
 import com.mobixournal.audio.AudioStandaloneExporter
+import com.mobixournal.audio.AudioTranscoder
 import com.mobixournal.audio.AudioWaveformExtractor
 import com.mobixournal.audio.WavWriter
 import com.mobixournal.format.model.audioRef
@@ -282,8 +283,16 @@ internal fun MainActivity.toggleRecording() {
             transcribeDeferredAudio(file)
         }
         if (file != null && settingsStore.load().saveStandaloneAudio) {
-            val exported = AudioStandaloneExporter.exportStandalone(this, file)
-            if (exported) toast("Standalone audio exported to Music/Recordings")
+            // Off the main thread: a long recording is re-encoded to `.m4a` first (Ogg/Opus and WAV
+            // are what the app records, M4A is what a phone or an uploader accepts), which takes a
+            // moment for a lecture and must not freeze the editor while it runs.
+            val toExport = file
+            lifecycleScope.launch(Dispatchers.IO) {
+                val exported = AudioStandaloneExporter.exportStandalone(this@toggleRecording, toExport)
+                withContext(Dispatchers.Main) {
+                    if (exported) toast("Standalone audio exported as ${AudioTranscoder.CONTAINER_SUFFIX}")
+                }
+            }
         }
         pushAudioSidecars()
         audioTick.value++
