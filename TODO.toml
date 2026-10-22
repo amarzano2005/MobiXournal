@@ -594,17 +594,3 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "play-object-finger-pans-pen-picks"
-title = "Let a finger pan and zoom the Play-object page while the pen picks the stroke"
-description = "In the Play-object tool (audioPlayMode) beginPointer calls audioTap for every pointer and returns, so with finger drawing off (fingerDraws = false, the palm-safe default for stylus users) a finger could not scroll the page at all: the tap landed on a stroke and replayed it instead of panning, and a second finger only started a pan by accident. The finger-draw gate that every other tool honours (InputClassifier returns PAN for a FINGER when !fingerDraws) is bypassed by that short-circuit. Fix: add InputClassifier.playModePans(kind, settings) (a pure rule, JVM-testable: true for FINGER with fingerDraws off, false otherwise) and in beginPointer start beginScroll for that pointer instead of audioTap, so one finger pans, two pinch, and only the stylus/eraser tip picks the stroke to replay; with finger drawing on nothing changes. Docs: docs/audio.md (*Replay*) and the audio bullet of README.md. Verify: unit tests for the pure rule, full unit suite + assembleDebug; emulator flag off for this task."
-status = "active"
-level = "task"
-category = "bug"
-urgency = "normal"
-order = 1130
-created = 2026-10-22
-tags = ["audio"]
-rebuild = true
-emulator_debug = false

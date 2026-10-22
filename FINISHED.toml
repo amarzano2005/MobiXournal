@@ -25,6 +25,36 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "play-object-finger-pans-pen-picks"
+title = "Let a finger pan and zoom the Play-object page while the pen picks the stroke"
+description = """
+In the Play-object tool (audioPlayMode) beginPointer calls audioTap for every pointer and returns, so with finger drawing off (fingerDraws = false, the palm-safe default for stylus users) a finger could not scroll the page at all: the tap landed on a stroke and replayed it instead of panning. The finger-draw gate every other tool honours (InputClassifier returns PAN for a FINGER when !fingerDraws) was bypassed by that short-circuit. Fix: add InputClassifier.playModePans(kind, settings) (a pure rule, JVM-testable) and in beginPointer start beginScroll for that pointer instead of audioTap, so one finger pans, two pinch, and only the stylus/eraser tip picks the stroke to replay; with finger drawing on nothing changes. Docs: docs/audio.md (*Replay*) and the audio bullet of README.md.
+
+Landed (commit bc54ffa): `InputClassifier.playModePans` is the pure rule (a FINGER pans only when `fingerDraws` is false; a stylus, eraser tip or mouse still picks the stroke), and `beginPointer`'s play-object short-circuit now calls `beginScroll` for such a pointer, so one finger pans and a second one pinches through the normal scroll gesture. `InputClassifierTest` gained two tests (finger off pans, pen still picks; finger draw on keeps finger taps).
+VERIFIED: 1529 unit tests / 0 failures (DocsGuardTest and SourceStructureTest included) and `assembleDebug` green. NOT VERIFIED on a device: the emulator flag was off for this task, so how the pan feels against a live play-object tap is the user's tablet pass."""
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["audio"]
+
+[[task]]
+id = "transcription-progress-only-in-the-audio-popup"
+title = "Report transcription progress only inside the audio pop-up"
+description = """
+The top bar's audio capsule replaced its play/pause icon with a CircularProgressIndicator for the whole of a deferred transcription (AudioMiniCapsule.PlayCapsuleButton, audio.isTranscribing), so the toolbar turned into a status bar and the play button stopped meaning play for minutes at a time. Fix: the capsule always draws its play/pause icon, and the progress (spinner plus AudioUiState.transcriptionStatus, the draft status the service already publishes) is drawn inside the Audio pop-up's transcription section, next to the language row; the mini-player's transcript section keeps its existing 'Transcribing...' line. Docs: docs/audio-inking-sync.md (where the progress is shown) and the audio bullet of README.md.
+
+Landed (commit 8e2bd36): `PlayCapsuleButton` always draws the play/pause icon, and `AudioCapsuleTranscriptionItems` opens with a spinner row carrying `transcriptionStatus` (falling back to "Transcribing…") while `isTranscribing`, above the transcription-language row. The mini-player's own transcript section is unchanged.
+VERIFIED: 1529 unit tests / 0 failures (DocsGuardTest and SourceStructureTest included) and `assembleDebug` green. NOT VERIFIED: the visual result on a device (emulator_debug off for this task) - the user's own tablet pass settles how the pop-up row reads."""
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["audio"]
+
+[[task]]
 id = "render-the-two-glass-materials-side-by-side"
 title = "Render the two glass materials side by side"
 description = "Parity that is only described is parity nobody checks. Add desktop/src/test/java/com/mobixournal/desktop/GlassParityRenderTest.kt: compose the same panel twice in one headless ImageComposeScene — once in the app's floating material (DESIGN tokens GLASS_DARK at FLOATING_PANEL_ALPHA, the rim, the 20 dp corner) and once in the desktop's DesktopTheme material — over the same true-black desk at the same size, and write desktop/build/desktop-render/glass-parity.png with the two side by side and a label under each. Then assert what can be asserted: both panels' fill alpha rounds to the same tone over the desk, both draw a rim whose top edge is brighter than its bottom edge, both use the same corner radius, and the two panels' interior pixels differ from the desk. This is the artefact a person opens when the question is \"does the PC look like the tablet\" — the test keeps it current, and the render is looked at rather than trusted."
