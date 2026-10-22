@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "circuit-label-side-and-clearance"
+title = "Circuit value label clear of its symbol, with a chosen side"
+description = "Landed: CircuitInk lays the value out from the symbol's own drawn bounds after rotation - centred horizontally, above the box by default or below when CircuitElement.labelBelow is set, with 3 pt of air - so a turned component no longer has its value over the body; the old rule put the text's top-left corner a dozen points off the axis' middle. labelBelow is written by MobixCircuitCodec only when true (default above) and therefore travels in both .mobix and the .xopp bridge claim. ui/CircuitEditorDialog.kt gains an Above/Below FilterChip pair applied live, and its inspector state was collapsed into edited()/apply() helpers to stay under the function-length ratchet. VERIFIED: mobix-core CircuitLabelTest (5, including rotations 45/90/180/270 in both placements) and the codec round-trip test, 1538 app + 378 core JVM tests / 0 failures with the guards; on the Pixel_Tablet CircuitLabelScreenshotTest captured three resistors (above, below, rotated 90 degrees) with every value clear of its symbol. Docs: mobix-elements (circuit example and labelBelow)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = []
+
+[[task]]
 id = "sharpen-shape-recognition-and-tame-hud-and-labels"
 title = "Sharpen shape recognition, make the double-click HUD a picker, keep figure labels off the figure"
 description = "Landed: a rebuilt polygon is judged against the ink that produced it (ShapeRecognizer.agreement: mean <= 3% and p90 <= 6% of the diagonal, no corner under 12 degrees or side under 5%), both polygon classes are asked and the closer one wins, and render/PolygonCorners.kt (RDP at 2% of the diagonal, collinear seam merged away) supplies the corner set a fit one side short missed - a squat 300x60 rectangle used to snap into a wrong triangle, and now is a rectangle; a fast square with three samples a side is recognised too. The double-click HUD is a picker (HudTrigger.TAP): it stays on screen through the pen leaving hover range until a slot is tapped, tapping inside but off a slot does nothing and a tap well outside puts it away, which fixes the ring flashing shut on the release of the opening click. Side lengths are written outside their own edge and angles inside their corner, each offset clearing the whole axis-aligned label box in the edge normal. The 300 ms dwell previews the figure (holdFigure + sample count) instead of rewriting current, so drawing on returns the user's own ink. VERIFIED: 1538 app + 377 core JVM tests / 0 failures including the guards, assembleDebug green; on the Pixel_Tablet StylusInputTest (24), ShapeVertexInputTest (3) and ShapeHandleScreenshotTest pass, and the captures show a triangle's lengths beside their sides and its angles inside its corners. Docs: shape-perfection-engine, drawing-tools, ui-modernization."
