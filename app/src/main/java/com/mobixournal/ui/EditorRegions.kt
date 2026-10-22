@@ -94,12 +94,14 @@ import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.HudSlot
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
 import com.mobixournal.render.SearchStatus
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.boardFixedExtentPt
+import com.mobixournal.render.applyChromeColors
 import com.mobixournal.render.clearPenDebug
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBoardFixedExtent
@@ -805,25 +807,24 @@ fun rememberToolbarStyleCallbacks(
     onSettingsChange: (AppSettings) -> Unit,
 ): ToolbarStyleCallbacks = ToolbarStyleCallbacks(
     color = ui.color,
+    // A colour and a width are one-knob presets, so the rail goes through the same entry a
+    // pen-tip-ring slot does (`applyToolPreset`): both write the tool's own slot, both persist the
+    // same fields, and neither can invent a state the other could not reach.
     onColor = { newColor ->
-        ui.color = newColor
-        surface?.colorArgb = newColor
-        if (ui.tool == EditorTool.HIGHLIGHTER) {
-            ui.highlighterColor = newColor
-            onSettingsChange(settings.copy(highlighterColor = newColor))
-        } else {
-            onSettingsChange(settings.withColorUsed(newColor))
-        }
+        applyToolPreset(
+            ToolPreset("rail", "Rail", ui.tool, newColor, ui.width, ui.lineStyle),
+            ui, surface, settings, onSettingsChange,
+        )
     },
     palette = rememberColorPaletteState(settings, onSettingsChange),
     onRedefineCustom = { newColor -> redefineCustomColor(newColor, ui, surface, settings, onSettingsChange) },
     onAddColor = { newColor -> addPenColor(newColor, settings, onSettingsChange) },
     width = ui.width,
     onWidth = { newWidth ->
-        ui.width = newWidth
-        surface?.baseWidthPt = newWidth
-        if (ui.tool == EditorTool.HIGHLIGHTER) ui.highlighterWidth = newWidth
-        onSettingsChange(settings.withWidthFor(ui.tool, newWidth))
+        applyToolPreset(
+            ToolPreset("rail", "Rail", ui.tool, ui.color, newWidth, ui.lineStyle),
+            ui, surface, settings, onSettingsChange,
+        )
     },
     widthSlots = settings.penWidths,
     onRedefineSlot = { i, newPt -> redefineWidthSlot(i, newPt, ui, surface, settings, onSettingsChange) },
@@ -1510,6 +1511,24 @@ private fun DrawingSurfaceView.bindEditorActions(
             else -> applyTool(ui.tool)
         }
     }
+    // A ring release commits through the same entries the rail uses: applyToolPreset for a colour
+    // or a width, activateTool for a tool — a HUD choice can never mean something the user could
+    // not have set by hand.
+    onHudPick = { slot ->
+        onActivePane(index)
+        val settings = getSettings()
+        val commitInk = { colour: Int, width: Float ->
+            applyToolPreset(
+                ToolPreset("radial-hud", "Radial HUD", ui.tool, colour, width, ui.lineStyle),
+                ui, this, settings, onSettingsChange,
+            )
+        }
+        when (slot) {
+            is HudSlot.Colour -> commitInk(slot.argb, ui.width)
+            is HudSlot.Width -> commitInk(ui.color, slot.pt)
+            is HudSlot.ToolFace -> activateTool(editorToolFor(slot.tool, settings), ui, settings, onSettingsChange)
+        }
+    }
     onPlace = { kind, placement ->
         onActivePane(index)
         when (kind) {
@@ -1659,7 +1678,10 @@ fun EditorPaneView(
                     }
                 },
                 update = {
-                    it.applyChromeColors(chrome.backdrop, chrome.pageOutline, chrome.selection, chrome.guide)
+                    it.applyChromeColors(
+                        chrome.backdrop, chrome.pageOutline, chrome.selection, chrome.guide,
+                        chrome.floating, chrome.ink,
+                    )
                     it.setPenDebug(ui.penDiagnostics)
                 },
                 modifier = Modifier.fillMaxSize(),

@@ -157,8 +157,7 @@ app/
       TabStore.kt            # filesDir/tabs: index + one .xopp snapshot per tab
       DocColors.kt           # the dot colour that marks two tabs as views of the same document (pure)
     render/
-      DrawingSurfaceView.kt  # low-latency stylus canvas (MotionEvent pressure): state block, document/zoom/
-                             # page/layer facades, View overrides; gestures live in the DrawingSurface*.kt files
+      DrawingSurfaceView.kt  # low-latency stylus canvas (MotionEvent pressure): state block, document/zoom/page/layer facades, View overrides; gestures live in the DrawingSurface*.kt files
       DrawingSurfaceConstants.kt # DrawingSurfaceDefaults: the canvas's shared tuning constants; blankDocument/blankPage
       DrawingSurfacePaint.kt # the surface's render loop, page compositing and chrome overlays (extensions)
       DrawingSurfaceInput.kt # the surface's touch/hover state machine: pointer routing, scroll and gesture end (extensions)
@@ -167,11 +166,12 @@ app/
       DrawingSurfaceHoldSnap.kt # hold-to-snap: the stillness timer that rewrites a stroke in progress as geometry (extensions)
       DrawingSurfacePenDebug.kt # the surface's pen-diagnostics trace hooks: raw pointer/key events into PenInputLog
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
-      DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the
-                             # delete/restyle/copy/cut/paste/duplicate edits (extensions)
+      DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
       InkCache.kt            # off-screen page-ink bitmaps in zoom buckets, so panning blits instead of re-drawing
       StrokeSmoother.kt      # streaming jitter filter for freehand position and pressure (pure)
-      CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, overview, hover, palette
+      CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, overview, hover, the radial HUD
+      RadialHud.kt           # the pen-tip HUD's slot ring and its angle-to-slot geometry (pure, tested)
+      DrawingSurfaceHud.kt   # the HUD's view half: summon at the nib, track the flick, commit or cancel; ToolGlyphPainter.kt draws a catalogue glyph into a Canvas
       ViewportState.kt       # scroll offsets, zoom, and their clamps (pure, tested)
       MomentumDriver.kt      # the fling loop: velocity tracking, release seed, per-frame glide
       PageOverview.kt        # the overview grid's view state: edit mode, selection, clipboard, lift

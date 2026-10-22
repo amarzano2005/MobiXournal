@@ -34,6 +34,7 @@ import com.mobixournal.render.ImportPdfMode
 import com.mobixournal.render.InputSettings
 import com.mobixournal.render.PlaceKind
 import com.mobixournal.render.Placement
+import com.mobixournal.render.RadialHud
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.tracePenParameters
@@ -165,6 +166,17 @@ fun DrawingSurfaceView.activateTool(
     onSettingsChange(next)
 }
 
+/**
+ * The rail's tool for a writing tool the pen-tip ring committed. The eraser lands on the eraser the
+ * rail's own slot is showing ([preferredEraser]), so a ring pick and a rail pick are the same tool —
+ * never a second eraser the slot's menu cannot reach.
+ */
+fun editorToolFor(tool: Tool, settings: AppSettings): EditorTool = when (tool) {
+    Tool.HIGHLIGHTER -> EditorTool.HIGHLIGHTER
+    Tool.ERASER -> preferredEraser(settings.toolGroupSelections)
+    else -> EditorTool.PEN
+}
+
 /** Push the stylus/input [AppSettings] onto the surface (classifier settings, hover, pressure feel). */
 fun DrawingSurfaceView.applySettings(s: AppSettings) {
     inputSettings = InputSettings(
@@ -180,6 +192,15 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     minimumPressure = s.minimumPressure
     strokePrecision = s.strokePrecision
     recognizeShapes = s.recognizeShapes
+    // The pen-tip ring's slots: the user's own palette (the editable custom colour last), then the
+    // three widths, then the three writing tools. Rebuilt with the settings, so a palette edited in
+    // Settings is on the ring at the next summon.
+    hudSlots = RadialHud.slots(
+        colors = s.penColors,
+        customColor = s.customColor,
+        widths = s.penWidths,
+        tools = listOf(Tool.PEN, Tool.HIGHLIGHTER, Tool.ERASER),
+    )
     setColumns(s.pageColumns)
     snapToGrid = s.snapToGrid
     snapRotation = s.snapRotation

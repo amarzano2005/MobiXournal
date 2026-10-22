@@ -62,6 +62,17 @@ enum class BarrelAction {
 
     /** Rubber-band select while held. */
     SELECT,
+
+    /**
+     * Summon the pen-tip radial HUD while the tip is off the glass, and commit the slot the pen is
+     * released over (`docs/ui-modernization.md`, *The pen-tip HUD*).
+     *
+     * The point-down decision falls through to the on-screen tool: the HUD is a hover gesture, so a
+     * tip that lands while it is open cancels it instead of drawing through it (`DrawingSurfaceInput`
+     * does that before classifying). Keeping the enum value here — and this branch — is what lets the
+     * button's action stay one setting shared by every path that reports it.
+     */
+    HUD,
 }
 
 /**
@@ -257,7 +268,9 @@ object InputClassifier {
             when (settings.barrelAction) {
                 BarrelAction.ERASE -> return GestureIntent.ERASE
                 BarrelAction.SELECT -> return GestureIntent.SELECT
-                BarrelAction.NONE -> Unit // fall through to the on-screen tool
+                // NONE applies no modifier; HUD is a hover gesture, already handled (or cancelled)
+                // before a tip-down reaches this classifier. Both fall through to the on-screen tool.
+                BarrelAction.NONE, BarrelAction.HUD -> Unit
             }
         }
 

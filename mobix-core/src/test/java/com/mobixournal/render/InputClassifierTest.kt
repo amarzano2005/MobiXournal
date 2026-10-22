@@ -45,6 +45,14 @@ class InputClassifierTest {
         assertEquals(GestureIntent.DRAW, classify(PointerKind.STYLUS, ActiveTool.PEN, barrel = true, settings = s))
     }
 
+    @Test fun barrelHudFallsThroughToTheTool() {
+        // The HUD is summoned while the tip is off the glass; a tip that still lands with the button
+        // held draws what the tool says rather than being read as an erase/select modifier.
+        val s = InputSettings(barrelAction = BarrelAction.HUD)
+        assertEquals(GestureIntent.DRAW, classify(PointerKind.STYLUS, ActiveTool.PEN, barrel = true, settings = s))
+        assertEquals(GestureIntent.PAN, classify(PointerKind.STYLUS, ActiveTool.HAND, barrel = true, settings = s))
+    }
+
     @Test fun barrelOnlyAppliesToStylusNotFinger() {
         // A finger reporting a button state (e.g. a mouse) shouldn't hijack the tool.
         assertEquals(GestureIntent.DRAW, classify(PointerKind.FINGER, ActiveTool.PEN, barrel = true))

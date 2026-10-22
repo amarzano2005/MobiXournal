@@ -142,6 +142,12 @@ There is **one** layout, and each bar has one job (`docs/chrome.md`):
 ### The header: STEM tools
 - **Secondary STEM Toolbar (header)**: the glass dock in the header's tools row, containing all mathematical and scientific tools (shapes, geometry, function graph, tables, circuits, guides), with the document tabs as the row under it — one slab, one closing edge. It is their **only** home: duplicating them on the rail cost a second copy of the same buttons, and the audio, play-object and shape-recognition slots left the rail for the audio capsule and the Settings toggle respectively.
 
+### The pen-tip HUD: the barrel button's ring
+- **What it is.** With Settings → Stylus → Barrel button → *While held* set to **Hud**, pressing the stylus button with the tip off the glass opens a ring centred on the nib (the last `hoverX`/`hoverY`), not a palette parked on screen: nothing exists until the button is pressed, and the release takes it away.
+- **What it holds**, clockwise from the top: the user's palette swatches in their stored order (the editable custom HEX colour last — its first one-flick home), then the three pen widths, then the three writing tools (pen, highlighter, eraser). The rail and the STEM dock keep the rest; the ring is a writing control, and the 33 files of the old NeXopp palette are the weight it exists *not* to repeat.
+- **How a flick commits.** The pen crosses the ring; the slot under it takes the accent ring and the steel plate, with a haptic tick at each boundary; the release commits it through the same `applyToolPreset` / `activateTool` entries the rail uses, so a ring choice can never mean something the user could not have set by hand. A release inside the 32 dp dead zone or off the slot band commits nothing, and a tip that lands while the ring is open cancels it without writing a stroke.
+- **Material.** A floating surface, round: the floating fill at `floatingPanelAlpha`, the 1 dp hairline rim in the chrome ink, and 40 dp slots (`COMPACT_BUTTON_SIZE_DP`) on a 116 dp radius. Faces are read without labels — a swatch is its colour, a width is a dot of that width, a tool is its `ToolGlyphCatalogue` glyph drawn through the canvas adapter.
+
 ---
 
 ## Desktop workstation UI architecture (Windows 11)

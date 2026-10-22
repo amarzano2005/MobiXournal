@@ -57,7 +57,7 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
         subtitle = "Action while the stylus side-button is held, whatever the tool.",
         options = BarrelAction.values().toList(),
         selected = settings.barrelAction,
-        label = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
+        label = { if (it == BarrelAction.HUD) "Radial HUD" else it.name.lowercase().replaceFirstChar(Char::uppercase) },
         onSelect = { onChange(settings.copy(barrelAction = it)) },
     )
     SettingsDivider()

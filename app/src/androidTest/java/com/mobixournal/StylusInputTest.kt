@@ -14,15 +14,19 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.BarrelAction
+import com.mobixournal.render.BarrelButtonState
 import com.mobixournal.render.BarrelClickDetector
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.DrawingGuide
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.HudSlot
 import com.mobixournal.render.InputSettings
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.RadialHud
 import com.mobixournal.render.PressureCurve
 import com.mobixournal.render.Snapping
 import com.mobixournal.render.deleteSelection
+import com.mobixournal.render.zoomOut
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -699,6 +703,114 @@ class StylusInputTest {
         return PageMap(scale, left, GAP_PX)
     }
 
+    /**
+     * The pen-tip HUD: with the barrel bound to *Hud*, a hover press opens the ring at the nib, the
+     * hover over a slot lights it, and the release commits exactly that slot — here a pen width.
+     * Nothing is written to the page: this is a hover gesture, not a stroke.
+     */
+    @Test
+    fun barrelHudOpensAtTheNibAndCommitsTheFlickedSlot() = onView { view ->
+        view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
+        val width = 0.85f
+        view.hudSlots = RadialHud.slots(
+            colors = listOf(0xFF000000.toInt()),
+            customColor = null,
+            widths = listOf(width),
+            tools = listOf(Tool.PEN),
+        )
+        var picked: HudSlot? = null
+        view.onHudPick = { picked = it }
+
+        // Hover first, so the nib is where the press will anchor the ring.
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS)
+        hoverAt(
+            view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY,
+        )
+        assertTrue("the press opened the ring", view.hud != null)
+
+        // Slot 1 is the width (slot 0 is the one swatch), wherever the ring puts it.
+        val density = view.resources.displayMetrics.density
+        val (sx, sy) = RadialHud.slotCenter(
+            200f, 300f, 1, view.hudSlots.size, RadialHud.RING_RADIUS_DP * density,
+        )
+        hoverAt(
+            view, MotionEvent.ACTION_HOVER_MOVE, sx, sy, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY,
+        )
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, sx, sy, MotionEvent.TOOL_TYPE_STYLUS)
+
+        assertEquals(HudSlot.Width(width), picked)
+        assertEquals("the release took the ring away", null, view.hud)
+        assertEquals("a flick writes no ink", 0, strokesOf(view).size)
+    }
+
+    /**
+     * The barrel-button **key** path (a Bluetooth pen's button) summons and dismisses the ring too: a
+     * key-down with the tip off the glass opens it, and the key-up commits whatever is under the pen.
+     * This is the path `adb shell input keyevent` cannot prove, since it carries no hover position.
+     */
+    @Test
+    fun aBarrelKeyDownSummonsAndKeyUpDismisses() = onView { view ->
+        view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
+        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf(Tool.PEN))
+        var picked: HudSlot? = null
+        view.onHudPick = { picked = it }
+
+        view.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, BarrelButtonState.KEYCODE_STYLUS_BUTTON_PRIMARY))
+        assertTrue("the key-down opened the ring", view.hud != null)
+        view.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, BarrelButtonState.KEYCODE_STYLUS_BUTTON_PRIMARY))
+
+        assertEquals("the key-up took the ring away", null, view.hud)
+        assertEquals("a release over no slot commits nothing", null, picked)
+    }
+
+    /** A release inside the dead zone commits nothing: the ring closes without a change. */
+    @Test
+    fun aHudReleaseInTheDeadZoneCommitsNothing() = onView { view ->
+        view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
+        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf(Tool.PEN))
+        var picked: HudSlot? = null
+        view.onHudPick = { picked = it }
+
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS)
+        hoverAt(
+            view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY,
+        )
+        assertTrue(view.hud != null)
+        // Straight up from the nib: a real slot. Straight *on* the nib: the dead zone.
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f + 1f, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY)
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f + 1f, MotionEvent.TOOL_TYPE_STYLUS)
+
+        assertEquals(null, picked)
+        assertEquals(null, view.hud)
+    }
+
+    /** A tip that lands on the open ring cancels it — and writes no stroke while it does. */
+    @Test
+    fun aTipThatLandsOnTheOpenHudCancelsItAndWritesNothing() = onView { view ->
+        view.tool = Tool.PEN
+        view.inputSettings = InputSettings(barrelAction = BarrelAction.HUD)
+        view.hudSlots = RadialHud.slots(listOf(0xFF000000.toInt()), null, listOf(1.5f), listOf(Tool.PEN))
+        var picked: HudSlot? = null
+        view.onHudPick = { picked = it }
+
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS)
+        hoverAt(
+            view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY,
+        )
+        assertTrue(view.hud != null)
+
+        drawLine(view, MotionEvent.TOOL_TYPE_STYLUS, buttonState = MotionEvent.BUTTON_STYLUS_PRIMARY)
+
+        assertEquals("a cancelled ring commits nothing", null, picked)
+        assertEquals("the ring closed", null, view.hud)
+        assertEquals("no stroke was written", 0, strokesOf(view).size)
+    }
+
     private fun onView(body: (DrawingSurfaceView) -> Unit) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         instrumentation.runOnMainSync {
@@ -744,12 +856,19 @@ class StylusInputTest {
     }
 
     /** Dispatch a stylus hover event at ([x], [y]) with [toolType] — the tip off the glass. */
-    private fun hoverAt(view: DrawingSurfaceView, action: Int, x: Float, y: Float, toolType: Int) {
+    private fun hoverAt(
+        view: DrawingSurfaceView,
+        action: Int,
+        x: Float,
+        y: Float,
+        toolType: Int,
+        buttonState: Int = 0,
+    ) {
         val props = arrayOf(MotionEvent.PointerProperties().apply { id = 0; this.toolType = toolType })
         val coords = arrayOf(MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 0f; size = 1f })
         val event = MotionEvent.obtain(
             now(), now(), action, 1, props, coords,
-            0, 0, 1f, 1f, 0, 0, 0x00004002 /* SOURCE_STYLUS */, 0,
+            0, buttonState, 1f, 1f, 0, 0, 0x00004002 /* SOURCE_STYLUS */, 0,
         )
         try {
             view.onHoverEvent(event)

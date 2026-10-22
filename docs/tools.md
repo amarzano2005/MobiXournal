@@ -189,6 +189,14 @@ scripts/host-build.sh -Pandroid.testInstrumentationRunnerArguments.class=com.mob
 That is how the stylus paths are exercised where `adb shell input` cannot reach (`StylusInputTest`
 injects real `MotionEvent`s carrying tool type, button state and per-sample pressure).
 
+**Capturing the pen-tip HUD.** `adb shell input` cannot inject a stylus barrel key on the AVD (key
+code 308 arrives as 0), so the ring is opened from an instrumented test instead:
+`RadialHudScreenshotTest` starts the editor, binds the barrel to the HUD, opens the ring with a
+barrel **key-down** and writes the composited screen to `Pictures/` — `radial-hud.png` (the ring over
+a stroke) and `radial-hud-commit.png` (a flick committed, the rail following). Run it with the class
+filter above, then pull the file it printed (`adb pull /sdcard/Pictures/radial-hud.png`, with
+`MSYS_NO_PATHCONV=1` in Git Bash so the remote path is not rewritten as a Windows one).
+
 **On a host this is the canonical path, and it runs everything.** Measured: 34 tests across all seven
 `androidTest` classes — `BitmapCacheDeadlockTest`, `MouseWheelInputTest`, `SelectionInputTest` (3),
 `SmokeTest` (2), `StylusInputTest` (19), `io.UriStagingTest` (3), `ui.SettingsStoreTest` (3) — in

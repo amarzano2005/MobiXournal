@@ -479,10 +479,12 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** When true, a hovering stylus shows a preview dot (from `ACTION_HOVER_MOVE`). */
     var showHover: Boolean = true
 
-    /** When true, the open radial palette buzzes as the flick crosses slots and on commit. */
-    var paletteHaptics: Boolean = true
-    /** When true, picking a slot closes the palette instead of leaving it open for more picks. */
-    var paletteCloseOnSelect: Boolean = false
+    /** The open pen-tip HUD (null: nothing on screen), its slots, and the release callback. */
+    internal var hud: HudState? = null
+    internal var hudSlots: List<HudSlot> = emptyList()
+    var onHudPick: ((HudSlot) -> Unit)? = null
+    /** When true, the open HUD buzzes as the flick crosses a slot boundary. */
+    var hudHaptics: Boolean = true
     /** When true, one finger pans the canvas (the Hand tool) instead of drawing/erasing. */
     var handMode: Boolean = false
     /** When non-null, a one-finger tap places an element of this kind instead of drawing. */
@@ -758,15 +760,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Every non-document brush this canvas paints with — see [CanvasChrome]. */
     internal val chrome = CanvasChrome()
 
-    /**
-     * Repaints the canvas chrome from the app's Material 3 colour scheme. The `SurfaceView` sits
-     * outside the Compose tree, so the colours are pushed in from the hosting composable; see
-     * `com.mobixournal.ui.theme.CanvasChromeColors`.
-     */
-    fun applyChromeColors(backdrop: Int, pageOutline: Int, selection: Int, guide: Int) {
-        chrome.applyColors(backdrop, pageOutline, selection, guide)
-        requestRender()
-    }
 
     init {
         holder.addCallback(this)

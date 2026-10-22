@@ -137,6 +137,9 @@ internal fun DrawingSurfaceView.paint() {
         if (hovering && showHover && current == null && !erasing) {
             if (erasesNow()) drawEraserTip(canvas, hoverX, hoverY) else drawHover(canvas)
         }
+        // Last, so the ring is never covered by a hover dot or a preview: the pen is pointing *at*
+        // it (`DrawingSurfaceHud.kt` owns when it is open).
+        drawRadialHud(canvas)
     } finally {
         holder.unlockCanvasAndPost(canvas)
     }

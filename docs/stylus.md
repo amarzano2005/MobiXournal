@@ -43,7 +43,8 @@ toolbar":
 
 1. **Eraser tip.** A `TOOL_TYPE_ERASER` pointer (the flipped-over tip) erases whatever the tool.
 2. **Barrel button.** The button held on a pen invokes a configurable action while
-   held — default **erase**, or **select** / **none** (`BarrelAction`), whatever the on-screen tool.
+   held — default **erase**, **select**, the pen-tip **HUD** or **none** (`BarrelAction`), whatever the
+   on-screen tool.
    Which stream reports it depends on the pen and the platform, so detection is deliberately broad
    and latched (pure, JVM-tested **`BarrelButtonState`**, see `BarrelButtonStateTest`):
    `BUTTON_STYLUS_PRIMARY`/`_SECONDARY` on any pointer event; the barrel-button *key* events a
@@ -91,6 +92,11 @@ toolbar":
    makes right after erasing lands. The action it runs is recorded in the diagnostics log
    (`CLICK -> toggle eraser`, `CLICK swallowed (same gesture)`), so the panel shows what the app did
    with the press and not only what arrived.
+   **`HUD`** turns the same button into the pen-tip ring (`docs/ui-modernization.md`, *The pen-tip
+   HUD*): a press with the tip off the glass opens it at the nib, the hover moves the pick, and the
+   key-up (or the motion-stream release) commits the slot under the pen or cancels. It is a hover
+   gesture, so a tip that lands while the ring is open closes it and writes nothing
+   (`DrawingSurfaceHud.kt`).
    **`TOGGLE_ERASER` switches to the eraser the rail's slot is showing** (`preferredEraser`,
    `ToolGroups.kt`): whole-stroke by default, partial if that is what the user picked from the slot's
    menu — shared with the pen↔eraser keyboard shortcut so both toggles land on the same eraser.

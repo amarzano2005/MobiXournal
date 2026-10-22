@@ -28,6 +28,14 @@ data class CanvasChromeColors(
     val selection: Int,
     /** Outline and grab handles of the setsquare/compass overlay. */
     val guide: Int,
+    /**
+     * The **floating surface** fill ([rememberFloatingSurfaceColor]): the pen-tip radial HUD's own
+     * glass. It is chrome, not document data, and it is the same material as every menu, because a
+     * ring shown over the page for a moment *is* a floating surface — round rather than square.
+     */
+    val floating: Int,
+    /** The chrome's own ink ([rememberChromeInk]): the HUD's ring, width dots and tool glyphs. */
+    val ink: Int,
 )
 
 /**
@@ -156,12 +164,18 @@ const val MENU_RIM_ALPHA_BOTTOM = DesignTokens.RIM_ALPHA_BOTTOM
 @Composable
 fun rememberCanvasChromeColors(): CanvasChromeColors {
     val scheme = MaterialTheme.colorScheme
-    return remember(scheme) {
+    // Read outside the `remember` block: both are composables of their own, and the canvas wants
+    // their ARGB values rather than their `Color`s.
+    val floating = rememberFloatingSurfaceColor().toArgb()
+    val ink = rememberChromeInk().toArgb()
+    return remember(scheme, floating, ink) {
         CanvasChromeColors(
             backdrop = scheme.background.toArgb(),
             pageOutline = scheme.outlineVariant.toArgb(),
             selection = scheme.primary.toArgb(),
             guide = scheme.secondary.toArgb(),
+            floating = floating,
+            ink = ink,
         )
     }
 }

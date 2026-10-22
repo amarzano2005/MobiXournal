@@ -214,45 +214,59 @@ internal class CanvasChrome {
         color = SEARCH_CURRENT_STROKE
     }
 
-    /** Radial palette: dimmed disc under the slot rings ([PALETTE_SCRIM]). */
-    val paletteScrim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    // --- the pen-tip radial HUD (docs/ui-modernization.md, *The pen-tip HUD*) -------------------
+
+    /** The HUD's glass disc, at the floating surface's own fill so it is the same material as a menu. */
+    val hudSurface = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = PALETTE_SCRIM
+        color = HUD_SURFACE
     }
-    /** Radial palette: slot ring outlines, 1.5 px faint white stroke. */
-    val paletteRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    /** The HUD's hairline: the ring at the nib and each slot's own rim. */
+    val hudRim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 1.5f
-        color = PALETTE_RING
+        strokeWidth = 1f
+        color = HUD_RIM
     }
-    /** Radial palette: assigned slot fill (dark gray). */
-    val paletteSlot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    /** A swatch's fill — the one paint whose colour is the user's, not the theme's. */
+    val hudSwatch = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = PALETTE_SLOT
+        color = HUD_RIM
     }
-    /** Radial palette: unassigned slot fill (faint white — [PALETTE_SLOT_EMPTY]). */
-    val paletteSlotEmpty = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = PALETTE_SLOT_EMPTY
-    }
-    /** Radial palette: slot hover highlight, 3 px selection-color stroke. */
-    val paletteHighlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    /**
+     * A swatch's own rim, a touch stronger than the ring's hairline: white is a palette colour, and
+     * on the light theme's white glass an outlined-by-12 % swatch would be a hole in the palette. At
+     * 35 % the white and the black both read as objects without shouting over their neighbours.
+     */
+    val hudSwatchRim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = 1f
+        color = HUD_RIM
+    }
+    /** The ring's plain ink: a width dot, the nib marker. */
+    val hudInk = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = HUD_INK
+    }
+    /** A tool slot's monoline glyph, drawn from the shared catalogue. */
+    val hudGlyph = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        color = HUD_INK
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    /** The picked slot's plate — the contract's steel — and its accent ring. */
+    val hudPlate = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = HUD_PLATE
+    }
+    val hudActive = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
         color = SELECTION_COLOR
     }
-    /** Radial palette: slot rail icon fill (white or preset color). */
-    val paletteIcon = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = PALETTE_ICON
-    }
-    /** Radial palette: slot width number glyph, 20 px white centered text. */
-    val paletteGlyph = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = 0xFFFFFFFF.toInt()
-        textAlign = Paint.Align.CENTER
-        textSize = PALETTE_GLYPH_PX
-    }
+    /** Scratch path for a tool glyph; reused by every slot of every frame. */
+    val hudGlyphPath = Path()
 
     /** Scratch path for lasso drawing — reused each frame to avoid allocation. */
     val lassoPath = Path()
@@ -263,8 +277,14 @@ internal class CanvasChrome {
      * Repaint the chrome from the app's Material 3 colour scheme. The translucent fills keep their
      * original alphas so the washes stay faint enough to draw over.
      */
-    fun applyColors(backdrop: Int, outline: Int, selection: Int, guide: Int) {
+    fun applyColors(backdrop: Int, outline: Int, selection: Int, guide: Int, floating: Int, ink: Int) {
         backdropColor = backdrop
+        // The HUD wears the chrome's floating material and ink; its swatches keep their own colours.
+        hudSurface.color = floating
+        hudGlyph.color = ink
+        hudInk.color = ink
+        hudRim.color = ink.withAlpha(HUD_RIM_ALPHA)
+        hudSwatchRim.color = ink.withAlpha(HUD_SWATCH_RIM_ALPHA)
         pageOutline.color = outline
         selectionStroke.color = selection
         handle.color = selection
@@ -279,7 +299,7 @@ internal class CanvasChrome {
         guideFill.color = guide.withAlpha(GUIDE_FILL_ALPHA)
         guideMesh.color = guide.withAlpha(GUIDE_MESH_ALPHA)
         guideText.color = guide
-        paletteHighlight.color = selection
+        hudActive.color = selection
         sliderTrackActive.color = selection
         sliderThumb.color = selection
     }
@@ -327,17 +347,34 @@ internal class CanvasChrome {
         /** Drawn radius of a spline tangent-handle end dot. */
         const val SPLINE_HANDLE_PX = 3.5f
 
-        /** Wash darkening the page under the open palette, so the ring marks read over any ink. */
-        const val PALETTE_SCRIM = 0x66101010
-        const val PALETTE_RING = 0x40FFFFFF
-        const val PALETTE_SLOT = 0xE0303030.toInt()
-        /** Default fill for a slot's icon — preset slots override it with the preset's colour. */
-        const val PALETTE_ICON = 0xFFFFFFFF.toInt()
-        /** An unassigned slot: present enough to show the ring's shape, faint enough to ignore. */
-        const val PALETTE_SLOT_EMPTY = 0x33FFFFFF
-        const val PALETTE_GLYPH_PX = 20f
-        /** Drawn radius of a slot mark, inner ring and outer. */
-        const val PALETTE_SLOT_PX = 20f
-        const val PALETTE_SLOT_OUTER_PX = 15f
+        /** Fallbacks until the theme pushes its floating fill and ink in (see [applyColors]). */
+        const val HUD_SURFACE = 0xE0161618.toInt()
+        const val HUD_INK = 0xFFFFFFFF.toInt()
+        const val HUD_RIM = 0x40FFFFFF
+        const val HUD_PLATE = 0xFF38383E.toInt()
+        /** The rim's alpha over the chrome ink: the hairline's own 12 %. */
+        const val HUD_RIM_ALPHA = 0x1F
+        /** A swatch's outline: 35 %, so white-on-white still reads as a palette entry. */
+        const val HUD_SWATCH_RIM_ALPHA = 0x59
     }
+}
+
+/**
+ * Repaint the canvas chrome from the app's Material 3 colour scheme. The `SurfaceView` sits outside
+ * the Compose tree, so the colours are pushed in from the hosting composable; see
+ * `com.mobixournal.ui.theme.CanvasChromeColors`.
+ *
+ * An extension rather than a member because this is the only thing the view still owes the chrome
+ * holder, and `DrawingSurfaceView` is at its line ceiling (`SourceStructureTest`).
+ */
+internal fun DrawingSurfaceView.applyChromeColors(
+    backdrop: Int,
+    pageOutline: Int,
+    selection: Int,
+    guide: Int,
+    floating: Int = CanvasChrome.HUD_SURFACE,
+    ink: Int = CanvasChrome.HUD_INK,
+) {
+    chrome.applyColors(backdrop, pageOutline, selection, guide, floating, ink)
+    requestRender()
 }
