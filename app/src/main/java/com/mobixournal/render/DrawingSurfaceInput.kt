@@ -164,8 +164,14 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // Touching a divider line inside an active table resizes that column or row.
     if (gestures.tryBeginDividerDrag(event)) return
     // Play-object is a pure query — it never edits the document, so it short-circuits the whole
-    // gesture machinery rather than earning a GestureIntent of its own.
-    if (audioPlayMode) { audioTap(event, pointerIndex); return }
+    // gesture machinery rather than earning a GestureIntent of its own. A finger is the one pointer
+    // that is not the query: with finger-draw off it navigates the page (one finger pans, two pinch),
+    // so the page stays scrollable while **only the pen** picks the stroke to replay.
+    if (audioPlayMode) {
+        if (InputClassifier.playModePans(kind, inputSettings)) beginScroll(event)
+        else audioTap(event, pointerIndex)
+        return
+    }
     val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
     // A board is not a page list, so the page-shaped gestures are refused here, in one place, rather
     // than half-working on a grid of chunks: the rubber band and its clipboard, the background-region

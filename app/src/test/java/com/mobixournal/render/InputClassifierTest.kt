@@ -1,6 +1,8 @@
 package com.mobixournal.render
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InputClassifierTest {
@@ -100,5 +102,22 @@ class InputClassifierTest {
     @Test fun unknownPointerDrawsLikeAStylus() {
         // A mouse (UNKNOWN) should draw, and is never treated as a palm.
         assertEquals(GestureIntent.DRAW, classify(PointerKind.UNKNOWN, ActiveTool.PEN, settings = InputSettings(fingerDraws = false)))
+    }
+
+    // --- play object: the finger navigates, the pen picks the stroke ----------------------------
+
+    @Test fun playObjectLetsAFingerPanWhenFingerDrawIsOff() {
+        val s = InputSettings(fingerDraws = false)
+        assertTrue("a finger pans the page in play mode", InputClassifier.playModePans(PointerKind.FINGER, s))
+        assertFalse("only the pen picks the stroke", InputClassifier.playModePans(PointerKind.STYLUS, s))
+        assertFalse("the flipped eraser tip picks too", InputClassifier.playModePans(PointerKind.ERASER_TIP, s))
+        assertFalse("a mouse is not a palm", InputClassifier.playModePans(PointerKind.UNKNOWN, s))
+    }
+
+    @Test fun playObjectKeepsFingerTapsWhenFingerDrawIsOn() {
+        assertFalse(
+            "with finger draw on a finger still taps a stroke to replay it",
+            InputClassifier.playModePans(PointerKind.FINGER, InputSettings(fingerDraws = true)),
+        )
     }
 }

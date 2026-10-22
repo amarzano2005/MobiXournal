@@ -31,7 +31,10 @@ drawn over even if the capture thread stalls.
 the gesture classifier — it is a pure query that never edits the document, so it earns no
 `GestureIntent`. A tap picks the topmost stroke (`SelectionTester.pickTopmost`), reads its `AudioRef`,
 and `AudioPlayer` seeks a `MediaPlayer` to that offset. A tap that misses, or lands on a stroke with
-no recording, says so rather than failing silently.
+no recording, says so rather than failing silently. **With `fingerDraws` off the query belongs to the
+pen alone** (`InputClassifier.playModePans`): a finger keeps navigating — one finger pans, two pinch —
+and only a stylus or eraser tip picks a stroke, so the page stays scrollable under a resting hand while
+the pen decides what replays. With finger drawing on, a finger tap plays, as it always has.
 
 *Which side the recording has to suit.* A `.xopp` and a `.mobix` want opposite things from a codec, so
 the format decides: **size** for the container, which bundles the audio and can afford Opus, and

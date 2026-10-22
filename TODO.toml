@@ -596,9 +596,9 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "transcription-progress-only-in-the-audio-popup"
-title = "Report transcription progress only inside the audio pop-up"
-description = "The top bar's audio capsule replaced its play/pause icon with a CircularProgressIndicator for the whole of a deferred transcription (AudioMiniCapsule.PlayCapsuleButton, audio.isTranscribing), so the toolbar turned into a status bar and the play button stopped meaning play for minutes at a time. Fix: the capsule always draws its play/pause icon, and the progress (spinner plus AudioUiState.transcriptionStatus, the draft status the service already publishes) is drawn inside the Audio pop-up's transcription section, next to the language row; the mini-player's transcript section keeps its existing 'Transcribing...' line. Docs: docs/audio-inking-sync.md (where the progress is shown) and the audio bullet of README.md. Verify: unit tests + assembleDebug; the emulator flag is off for this task, so the visual pass is the user's."
+id = "play-object-finger-pans-pen-picks"
+title = "Let a finger pan and zoom the Play-object page while the pen picks the stroke"
+description = "In the Play-object tool (audioPlayMode) beginPointer calls audioTap for every pointer and returns, so with finger drawing off (fingerDraws = false, the palm-safe default for stylus users) a finger could not scroll the page at all: the tap landed on a stroke and replayed it instead of panning, and a second finger only started a pan by accident. The finger-draw gate that every other tool honours (InputClassifier returns PAN for a FINGER when !fingerDraws) is bypassed by that short-circuit. Fix: add InputClassifier.playModePans(kind, settings) (a pure rule, JVM-testable: true for FINGER with fingerDraws off, false otherwise) and in beginPointer start beginScroll for that pointer instead of audioTap, so one finger pans, two pinch, and only the stylus/eraser tip picks the stroke to replay; with finger drawing on nothing changes. Docs: docs/audio.md (*Replay*) and the audio bullet of README.md. Verify: unit tests for the pure rule, full unit suite + assembleDebug; emulator flag off for this task."
 status = "active"
 level = "task"
 category = "bug"

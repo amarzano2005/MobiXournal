@@ -267,4 +267,17 @@ object InputClassifier {
 
         return activeTool.defaultIntent()
     }
+
+    /**
+     * Whether a pointer on the **Play object** tool should navigate the page instead of picking the
+     * stroke to replay.
+     *
+     * Play object is a pure query, so it short-circuits [classify] altogether — but a finger must not
+     * stop working there: with **finger-draw off**, a palm-safe finger keeps panning the page (and a
+     * second finger keeps pinching), exactly as it does under every other tool, while the stroke whose
+     * recording replays is picked by the **pen** alone. With finger-draw on, a finger taps to play as it
+     * always has.
+     */
+    fun playModePans(kind: PointerKind, settings: InputSettings): Boolean =
+        kind == PointerKind.FINGER && !settings.fingerDraws
 }
