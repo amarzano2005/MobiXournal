@@ -272,6 +272,8 @@ internal fun MainActivity.togglePauseRecording() {
 internal fun MainActivity.toggleRecording() {
     if (audio.isRecording) {
         AudioRecordingService.stop(this)
+        // The live job stops feeding first, so the file path resumes from what it really finished.
+        endLiveTranscription()
         val file = audio.stopRecording()
         toast(if (file != null) "Recording saved: ${file.name}" else "No active recording")
         if (file != null) {
@@ -325,6 +327,7 @@ internal fun MainActivity.beginRecording() {
     requestNotificationPermissionIfNecessary()
     val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
     if (name != null) {
+        beginLiveTranscription(name)
         AudioRecordingService.onStopRequested = {
             runOnUiThread { if (audio.isRecording) toggleRecording() }
         }
@@ -333,6 +336,40 @@ internal fun MainActivity.beginRecording() {
     } else {
         toast("Unable to open microphone")
     }
+}
+
+/**
+ * Start transcribing **while the microphone is open**, when a Whisper model is installed.
+ *
+ * The capture chunks go straight into [com.mobixournal.audio.LiveTranscription], which cuts them into
+ * spans at silences and transcribes them on its own worker, writing the sidecar's transcript file as
+ * it goes. That file is what the post-stop job resumes from, so nothing is transcribed twice and a
+ * recording that keeps up needs only its last few seconds at Stop. It runs in the app's process, which
+ * the recording foreground service keeps alive and awake, so background and screen-off recording are
+ * no different.
+ *
+ * Without a model nothing starts: the first-run download still happens at Stop, and live inference on
+ * a machine whose encoder is missing would only compete with the writing.
+ */
+internal fun MainActivity.beginLiveTranscription(fileName: String) {
+    val model = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this) ?: return
+    val live = com.mobixournal.audio.LiveTranscription(
+        fileName = fileName,
+        dir = filesDir,
+        language = com.mobixournal.audio.resolveTranscriptionLanguageTag(settingsStore.load().transcriptionLanguage),
+        modelDir = com.mobixournal.audio.WhisperModelManager.getModelDir(this, model),
+        isTiny = model.isTiny,
+    )
+    if (!live.start()) return
+    liveTranscription = live
+    audio.onPcmData = { buffer, count, rate -> live.feed(buffer, count, rate) }
+}
+
+/** Stop the live job and hand the capture back (the post-stop transcription reads its transcript). */
+internal fun MainActivity.endLiveTranscription() {
+    audio.onPcmData = null
+    liveTranscription?.stop()
+    liveTranscription = null
 }
 
 internal fun MainActivity.transcribeDeferredAudio(file: File) {

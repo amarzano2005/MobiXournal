@@ -158,6 +158,9 @@ class MainActivity : ComponentActivity() {
     /** Active speech-to-text transcription associated with the open document or current recording. */
     internal val activeTranscription = mutableStateOf<com.mobixournal.audio.AudioTranscription?>(null)
 
+    /** The job transcribing the recording that is being made, if one is running ([beginLiveTranscription]). */
+    internal var liveTranscription: com.mobixournal.audio.LiveTranscription? = null
+
     /** Whether speech-to-text deferred transcription is currently running in background. */
     internal val isTranscribing = mutableStateOf(false)
 

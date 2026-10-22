@@ -105,11 +105,13 @@ Rather than relying on vulnerable loose sidecars in user folders:
   speech speed changes sharply inside a window. Windows carry their audio lazily (`pcm()`): grouping an hour of
   speech must not hold a second copy of the recording. Inference uses the device's cores, capped at six
   (`WhisperOfflineTranscriber.inferenceThreads`), where it used to be a literal 4.
+- **It runs during the recording too (`LiveTranscription`)**: while the microphone is open the recorder's PCM goes into a live job (`AudioSession.onPcmData` → `LiveResampler16k` → `LiveSpanCutter` → one worker thread). The stream is resampled to 16 kHz as it arrives and cut into **spans** at silences (≥6 s, ≤28 s, never inside a word unless the maximum forces it); each span then runs the same pipeline the file path runs (VAD phrases → windows → Whisper) and the transcript file is rewritten after every span. The post-stop job **resumes from the last segment it finds there**, so nothing is transcribed twice and a session that keeps up leaves only its final seconds for Stop. The queue holds four spans and then the live job gives up on its own: inference that falls behind the microphone must not take the machine from the app being written in, and whatever it did not reach is exactly what the post-stop path already does. It runs in the app's process, kept alive and awake by the recording foreground service, so a screen that is off changes nothing. The honest limit: this moves the wait into the recording, it does not make the engine faster — if inference is slower than real time, the tail is simply longer and the file path finishes it.
 - **Background execution (`AudioTranscriptionService`)**: Android foreground service (`FOREGROUND_SERVICE_DATA_SYNC`)
   holding a partial wake lock with ongoing notification progress bar. Allows hour-long lectures to finish processing
   even when the device screen is locked or another application is active. Progress reports windows, and the final
-  status carries the measured wall time (`Transcription complete (N segments in Xs)`), so a windowing or thread-count
-  change can be judged on a device instead of argued about.
+  status carries the measured wall time (`Transcription complete (N segments in Xs)`) — for a resumed transcription
+  that is the tail's time, which is the whole point of the live job — so a windowing or thread-count change can be
+  judged on a device instead of argued about.
 - **Temporal ink alignment (`AudioInkAligner`)**: Correlates handwritten stroke telemetry (`startMs` + $\sum \Delta t$)
   with spoken audio segments. Tapping a stroke navigates directly to the exact spoken phrase; seeking in audio
   locates the bounding box of words written at that moment on the page canvas.

@@ -96,49 +96,83 @@ class AudioTranscriptionService : Service() {
 
     private suspend fun processTranscription(file: File, lang: String) {
         val startedMs = System.currentTimeMillis()
+        // What the recording's own live job already finished, if it ran (LiveTranscription). Its last
+        // segment is where this one starts: a session that kept up with the microphone leaves only
+        // its final seconds here, and the two halves are the same transcript, not a second one.
+        val live = readPartialTranscript(file)
+        val resumeMs = live?.segments?.lastOrNull()?.endTimeMs ?: 0
         updateProgress("Extracting audio...", 5, 100)
         onProgressUpdated?.invoke("Extracting audio...", 5, 100)
 
         val pcmData = AudioPcmExtractor.extract16kMonoPcm(file)
         if (pcmData == null || pcmData.isEmpty() || isCancelled) {
-            finishWithResult(file, null, "Audio extraction failed")
+            val done = if (isCancelled) null else live
+            finishWithResult(file, done, if (done != null) completed(done.segments.size, startedMs) else "Audio extraction failed")
             return
         }
 
         updateProgress("Detecting speech (VAD)...", 10, 100)
-        val chunks = AudioVadSegmenter.segment(pcmData)
-        if (chunks.isEmpty() || isCancelled) {
-            finishWithResult(file, null, "No speech detected")
+        val chunks = tailChunks(pcmData, resumeMs)
+        val segments = when {
+            isCancelled -> emptyList()
+            chunks.isEmpty() -> emptyList()
+            else -> transcribeChunks(chunks, lang)
+        }
+        if (isCancelled) {
+            finishWithResult(file, null, "Transcription cancelled")
             return
         }
 
-        val availableModel = WhisperModelManager.getAvailableModel(this)
-        val segments = if (availableModel != null) {
-            transcribeWithWhisper(availableModel, chunks, lang)
-        } else {
-            transcribeWithPlatformRecognizer(chunks, lang)
-        }
-
-        if (isCancelled || segments.isEmpty()) {
-            finishWithResult(file, null, if (isCancelled) "Transcription cancelled" else "No recognized text")
+        val all = live?.segments.orEmpty() + segments
+        if (all.isEmpty()) {
+            finishWithResult(file, null, "No recognized text")
             return
         }
 
         val transcript = AudioTranscription(
             audioFilename = file.name,
-            segments = segments,
-            language = lang,
+            segments = all,
+            language = live?.language ?: lang,
         )
-
         val transcriptFile = File(filesDir, "audio/${file.name}.transcript.json")
         runCatching {
             transcriptFile.writeText(TranscriptionCodec.encode(transcript))
         }
 
-        // How long it actually took, in the status the pop-up and the notification show: without a
-        // measured number a change to the windowing or the thread count can only be argued about.
+        finishWithResult(file, transcript, completed(all.size, startedMs))
+    }
+
+    private suspend fun transcribeChunks(chunks: List<AudioChunk>, lang: String): List<TranscriptionSegment> {
+        val model = WhisperModelManager.getAvailableModel(this) ?: return transcribeWithPlatformRecognizer(chunks, lang)
+        return transcribeWithWhisper(model, chunks, lang)
+    }
+
+    /** The transcript already on disk for [file] — the live job's, or an earlier partial attempt. */
+    private fun readPartialTranscript(file: File): AudioTranscription? {
+        val saved = File(filesDir, "audio/${file.name}.transcript.json")
+        if (!saved.isFile) return null
+        return runCatching { TranscriptionCodec.decode(saved.readText()) }
+            .getOrNull()
+            ?.takeIf { it.segments.isNotEmpty() }
+    }
+
+    /**
+     * The audio after [resumeMs], split by the VAD with its timestamps kept on the recording's clock.
+     * Empty when the live job already reached the end of the file.
+     */
+    private fun tailChunks(pcm: ByteArray, resumeMs: Int): List<AudioChunk> {
+        val from = (resumeMs.toLong() * BYTES_PER_MS).coerceIn(0L, pcm.size.toLong()).toInt()
+        if (from >= pcm.size) return emptyList()
+        val tail = if (from == 0) pcm else pcm.copyOfRange(from, pcm.size)
+        return AudioVadSegmenter.segment(tail).map {
+            AudioChunk(it.startMs + resumeMs, it.endMs + resumeMs, it.pcm)
+        }
+    }
+
+    /** How long it actually took, in the status the pop-up and the notification show. */
+    private fun completed(segmentCount: Int, startedMs: Long): String {
         val seconds = ((System.currentTimeMillis() - startedMs) / 1000L).coerceAtLeast(0L)
-        finishWithResult(file, transcript, "Transcription complete (${segments.size} segments in ${seconds}s)")
+        return "Transcription complete ($segmentCount segments in ${seconds}s)"
     }
 
     private fun transcribeWithWhisper(
@@ -300,6 +334,9 @@ class AudioTranscriptionService : Service() {
     }
 
     companion object {
+        /** 16 kHz mono, 16-bit: what [AudioPcmExtractor] yields and what a timestamp is measured in. */
+        private const val BYTES_PER_MS = 32
+
         const val CHANNEL_ID = "mobixournal_audio_transcription"
         const val NOTIFICATION_ID = 4002
         const val COMPLETION_NOTIFICATION_ID = 4003

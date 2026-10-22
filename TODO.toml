@@ -580,3 +580,17 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "transcribe-while-recording"
+title = "Transcribe while recording, in the background"
+description = "Transcription only ever started at Stop, so the user waits for the whole recording even though the app is already holding the audio. Add a live job: AudioSession.onPcmData (raw PCM from whichever recorder is running) feeds audio/LiveTranscription.kt, which resamples to 16 kHz as it arrives (LiveResampler16k), cuts the stream into spans at silences with a 6 s minimum and the 28 s window maximum (LiveSpanCutter, pure), and hands each span to one worker thread that runs the same pipeline the file path runs - AudioVadSegmenter phrases, grouped by TranscriptionWindows - writing audio/<name>.transcript.json after every span. AudioTranscriptionService then resumes: it reads that file, takes the last segment's endTimeMs as the resume point, extracts only the tail of the PCM and merges the two halves, so nothing is transcribed twice. The span queue is bounded (4) and then the live job gives up, leaving the rest to the post-stop path - inference must never take the machine from the app being written in. Start it in beginRecording when a Whisper model is installed (no model: nothing changes, the first-run download still happens at Stop) and end it before stopRecording so the file path's resume point is honest. It runs in the app process, which AudioRecordingService keeps alive and awake, so background and screen-off recording work. Verify: LiveTranscriptionTest (resampler 44.1k/48k/stereo, cutting at silences, the 28 s ceiling, leading-silence drop, tail flush, silent tail dropped, inert without a model) plus the full suite and assembleDebug; real device behaviour (CPU contention with capture, actual catch-up) needs the tablet. Docs: docs/audio-inking-sync.md and README.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1130
+created = 2026-10-22
+tags = ["audio"]
+rebuild = true
+emulator_debug = false
