@@ -55,7 +55,13 @@ import com.mobixournal.audio.LanguagePackStatus
 import com.mobixournal.audio.SUPPORTED_TRANSCRIPTION_LANGUAGES
 import com.mobixournal.audio.checkSpeechLanguagePack
 import com.mobixournal.audio.triggerSpeechLanguageDownload
+import com.mobixournal.ui.theme.AlertOrange
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.DocumentRed
+import com.mobixournal.ui.theme.MutedTintDark
+import com.mobixournal.ui.theme.MutedTintLight
+import com.mobixournal.ui.theme.SignalAmber
+import com.mobixournal.ui.theme.SignalGreen
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
@@ -112,16 +118,12 @@ fun AudioMiniCapsule(
     }
 }
 
-private val VividRed = Color(0xFFE53935)
-private val VividAmber = Color(0xFFF57C00)
-private val VividGreen = Color(0xFF2E7D32)
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
     var showMenu by remember { mutableStateOf(false) }
     val isRecording = audio.recording
-    val recordingBg = if (isRecording) VividRed else Color.Transparent
+    val recordingBg = if (isRecording) DocumentRed else Color.Transparent
 
     Box(
         modifier = Modifier
@@ -164,16 +166,16 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
     val (bg, iconTint, icon) = when {
         !isRecording -> Triple(
             Color.Transparent,
-            if (isDark) Color(0x33FFFFFF) else Color(0x33000000),
+            if (isDark) MutedTintDark else MutedTintLight,
             Icons.Outlined.Pause,
         )
         isPaused -> Triple(
-            VividGreen,
+            SignalGreen,
             Color.White,
             Icons.Outlined.PlayArrow,
         )
         else -> Triple(
-            VividAmber,
+            SignalAmber,
             Color.White,
             Icons.Outlined.Pause,
         )
@@ -503,7 +505,7 @@ private fun LanguagePackStatusCard(
         packStatus == LanguagePackStatus.INSTALLED -> {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF2E7D32).copy(alpha = 0.15f),
+                color = SignalGreen.copy(alpha = 0.15f),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -514,13 +516,13 @@ private fun LanguagePackStatusCard(
                     Icon(
                         imageVector = Icons.Outlined.Check,
                         contentDescription = null,
-                        tint = Color(0xFF2E7D32),
+                        tint = SignalGreen,
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
                         text = "Offline pack installed on this device",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF2E7D32),
+                        color = SignalGreen,
                         fontWeight = FontWeight.Medium,
                     )
                 }
@@ -531,18 +533,18 @@ private fun LanguagePackStatusCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE65100).copy(alpha = 0.12f))
+                    .background(AlertOrange.copy(alpha = 0.12f))
                     .padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = "⚠️ Offline pack not installed. To transcribe without a connection, download the voice model.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFE65100),
+                    color = AlertOrange,
                 )
                 Button(
                     onClick = onTriggerDownload,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100)),
+                    colors = ButtonDefaults.buttonColors(containerColor = AlertOrange),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.align(Alignment.End),
                 ) {

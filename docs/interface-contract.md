@@ -30,7 +30,12 @@ Every surface is one of three objects. Pick the class from what the element *doe
 ## 2. Colour: tokens or nothing
 
 - Only values from `com.mobixournal.design.DesignTokens` (wrapped by `ModernTheme` / `DesktopTheme`).
-  **No `Color(0x…)` literal in UI code**, no `Color.White`, no ad-hoc alpha.
+  **A hex literal may only be spelled in `ui/theme/`** — the palette's one home — and every other file
+  reads a token or a theme function. `ColorContractGuardTest` sweeps the whole `ui` tree for `Color(0x)`
+  outside that directory and fails by file and line.
+- `Color.White` / `Color.Black` are allowed only as an **on-colour** (text or glyph on a filled accent,
+  signal or steel surface) and in a renderer's own contrast pair (the colour picker's black-and-white
+  cursor, a swatch's tint chosen by luminance) — never as a surface fill the chrome returns to.
 - The chrome ink is **`#FFFFFF`** (`CHROME_INK_DARK_RGB`): tool glyphs and header glyphs are white in both
   shells, active or not. The secondary and muted inks are for figures and explanatory labels only.
 - The picked state is the **steel `#38383E`** (`ACTIVE_SLOT_DARK_RGB`) with the glyph in the accent
@@ -61,7 +66,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   `DrawScope`. A shell may not keep a hand-drawn set of its own, and `material.icons` is not an import the
   desktop's chrome may have.
 - The `when` in `ToolGlyphCatalogue.parts` is exhaustive: a new tool does not compile without art.
-  `ToolGlyphCoverageTest` additionally requires every slot the UI shows to come from the catalogue.
+  `ToolGlyphCoverageTest` additionally requires every slot the UI shows to come from the catalogue, and
+  **names the tools still on Material vectors** by identity — today only the deep STEM picker members
+  (capacitor, the gates beyond AND, the chemistry bonds). A tool leaving that list, or a rail mode
+  slipping back to a Material icon, fails the build by name.
 - Art rules, learned the hard way: the glyph must read at **20 dp**; it must use the grid's area (a small
   shape in a big box reads as a blob); a pair of tools that differ only in subtlety (eraser vs whole-stroke
   eraser) must differ by a whole stroke (the crease, the sweeps), never by a shade.
@@ -77,9 +85,13 @@ Every surface is one of three objects. Pick the class from what the element *doe
 ## 6. States: five, all of them drawn
 
 Every interactive element defines **default, hover, picked, disabled, focus**. The picked state is the
-steel slot; hover is a lighter capsule, never a colour change of the glyph; disabled keeps its ink but
-loses its hit area; focus is visible without relying on the pointer. A new element with only a default
-state is unfinished.
+steel slot; hover is the same steel at `hoverSlotAlpha` (**0.45**), never a colour change of the glyph and
+never the picked fill; disabled keeps its ink but loses its hit area; focus is visible without relying on
+the pointer. A new element with only a default state is unfinished.
+
+On the desktop every surface wears `Modifier.hoverFill()` (`GlassEdge.kt`), and `ToolStripsTest` reads
+the hovered pixel against the unhovered one, so a control that answers only its tooltip — as the rail did
+— fails.
 
 ## 7. Motion
 

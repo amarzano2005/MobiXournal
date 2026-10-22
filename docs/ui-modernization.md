@@ -201,6 +201,10 @@ chrome ink (white), the picked slot steel with the glyph in the accent, exactly 
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`; the
 window keeps no second set. The picked slot is a 10 dp squircle in the steel `#38383E`.
+- **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option, the open and
+  close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
+  short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only
+  with its tooltip and the sidebar not at all.
 - **No motion of its own**: the windows' surfaces arrive on `DesignTokens.GlassMotion` too. The `Popup`
 flyouts still appear instantly — a desktop popup has no composition to hold open once its flag clears.
 - **The colours and corners are the tokens**: 16 dp tab capsules, the 20 dp panel corner, a 40 dp header,
@@ -313,7 +317,8 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "rimInnerAlphaScale": 0.35,
       "bandShadowDp": 4,
       "capsuleShadowDp": 6,
-      "chromeInkDark": "#FFFFFF"
+      "chromeInkDark": "#FFFFFF",
+      "hoverSlotAlpha": 0.45
     },
     "geometry": {
       "capsuleCornerRadiusDp": 16,

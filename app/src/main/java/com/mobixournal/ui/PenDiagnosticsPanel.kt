@@ -22,6 +22,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobixournal.ui.theme.MeterGreen
+import com.mobixournal.ui.theme.PanelScrim
 
 /**
  * The on-canvas **pen diagnostics** panel: the raw stylus stream as the app receives it — input
@@ -52,7 +54,7 @@ fun PenDiagnosticsPanel(
         modifier
             .widthIn(max = 380.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xE6000000))
+            .background(PanelScrim)
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -74,7 +76,7 @@ fun PenDiagnosticsPanel(
                 // The tail, not the head: the interesting line is always one of the last few.
                 lines.takeLast(VISIBLE_LINES).joinToString("\n")
             },
-            color = Color(0xFF9BE79B),
+            color = MeterGreen,
             fontFamily = FontFamily.Monospace,
             fontSize = 10.sp,
             lineHeight = 13.sp,

@@ -211,6 +211,15 @@ object DesignTokens {
     /** The steel a *picked* tool slot wears (`ActiveSlotDark`) — never the accent. */
     const val ACTIVE_SLOT_DARK_RGB: Int = 0x38383E
 
+    /**
+     * How much of the picked slot's steel a **hovered** slot wears: the state between rest and picked.
+     *
+     * The window's slots had no hover fill at all — only the tooltip — so a pointer resting on the rail
+     * gave no answer about which slot it was on. A token rather than an opacity written at the call site,
+     * because the two shells must be able to hover at the same weight.
+     */
+    const val HOVER_SLOT_ALPHA: Float = 0.45f
+
     /** The chrome's own ink on the dark glass. */
     const val INK_DARK_RGB: Int = 0xE6E6EF
 

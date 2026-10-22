@@ -430,6 +430,36 @@ class ColorContractGuardTest {
         }
     }
 
+    /**
+     * No screen invents a colour.
+     *
+     * `ui/theme/` is the palette's one home — it is the only directory allowed to spell a hex value,
+     * because that is where a token is defined. Everywhere else a surface reads a token or a theme
+     * function (`docs/interface-contract.md` §2), which is what lets the two shells be compared at all.
+     * The sweep reads the whole `ui` tree and excludes that one directory by path.
+     */
+    @Test
+    fun noScreenOutsideTheThemeSpellsItsOwnColour() {
+        val swept = uiSourceFiles().filter { "/theme/" !in it.invariantSeparatorsPath }
+        assertTrue(
+            "the sweep must actually read the chrome's source (found ${swept.size} files)",
+            swept.size > 40,
+        )
+        val offending = swept.flatMap { file ->
+            file.readLines().withIndex()
+                .map { (index, line) -> index + 1 to line.trim() }
+                .filter { (_, line) ->
+                    line.contains("Color(0x") && !line.startsWith("//") && !line.startsWith("*")
+                }
+                .map { (number, line) -> "${file.name}:$number: $line" }
+        }
+        assertTrue(
+            "these files spell a colour instead of reading one from ui/theme: " +
+                offending.joinToString("; "),
+            offending.isEmpty(),
+        )
+    }
+
     /** The container roles of one scheme, as (role name, colour) pairs, for the sweep below. */
     private fun containerRoles(scheme: ColorScheme): List<Pair<String, Color>> = listOf(
         "background" to scheme.background,

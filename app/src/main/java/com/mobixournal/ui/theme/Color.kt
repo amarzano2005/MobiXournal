@@ -116,3 +116,32 @@ val NeutralContainerLightHighest = Color(0xFFDCE1E6)
  */
 val OnAccentDark = Color(0xFF000000)
 
+/**
+ * **Signals** — the colours the chrome shows while something is happening: a recording, a paused
+ * recording, a stored model, a warning that needs an action. They live here, not in the screen that
+ * shows them: a state colour is a token like any other (`docs/interface-contract.md` §2).
+ */
+val SignalAmber = Color(0xFFF57C00)
+val SignalGreen = Color(0xFF2E7D32)
+val AlertOrange = Color(0xFFE65100)
+
+/** The pen-diagnostics readout's ink: a terminal green, only ever on [PanelScrim]. */
+val MeterGreen = Color(0xFF9BE79B)
+
+/** A blocking overlay's scrim, and the darker one the diagnostics panel paints behind its text. */
+val ModalScrim = Color(0x66000000)
+val PanelScrim = Color(0xE6000000)
+
+/** A dimmed glyph on a transparent control — the pause button while nothing is recording. */
+val MutedTintDark = Color(0x33FFFFFF)
+val MutedTintLight = Color(0x33000000)
+
+/** The tab strip's "new document" chip: a tint over the glass, and its hairline in the light theme. */
+val TabChipFillDark = Color(0x22FFFFFF)
+val TabChipFillLight = Color(0x10000000)
+val TabChipBorderLight = Color(0x18000000)
+
+/** The lit edge of a menu row (the overflow menu's glass panes): bright top, faint bottom. */
+fun menuSheenTop(isDark: Boolean): Color = Color.White.copy(alpha = if (isDark) 0.17f else 0.62f)
+fun menuSheenBottom(isDark: Boolean): Color = Color.White.copy(alpha = if (isDark) 0.035f else 0.08f)
+

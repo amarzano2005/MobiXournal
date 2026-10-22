@@ -64,6 +64,9 @@ object DesktopTheme {
     /** The steel a *picked* slot wears — a selected tab, a held toggle. */
     val activeSlot: Color = tokenColour(DesignTokens.ACTIVE_SLOT_DARK_RGB)
 
+    /** The same steel at the hover step: what a slot under the pointer wears, short of picked. */
+    val hoverSlot: Color = activeSlot.copy(alpha = DesignTokens.HOVER_SLOT_ALPHA)
+
     /** The chrome's ink on the glass. */
     val ink: Color = tokenColour(DesignTokens.INK_DARK_RGB)
 

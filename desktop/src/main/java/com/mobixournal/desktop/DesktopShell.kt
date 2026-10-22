@@ -538,6 +538,7 @@ private fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlacemen
                                     if (option == placement) DesktopTheme.activeSlot else Color.Transparent,
                                     DesktopTheme.capsuleShape,
                                 )
+                                .hoverFill(DesktopTheme.capsuleShape, active = option == placement)
                                 .pointerInput(option) {
                                     detectTapGestures { onPlacement(option); open = false }
                                 }

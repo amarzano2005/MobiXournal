@@ -115,6 +115,7 @@ fun PageSidebar(
                             if (index == current) DesktopTheme.accent.copy(alpha = 0.10f) else Color.Transparent,
                             RoundedCornerShape(8.dp),
                         )
+                        .hoverFill(RoundedCornerShape(8.dp), active = index == current)
                         .border(
                             1.dp,
                             if (index == current) DesktopTheme.accent else Color.Transparent,
@@ -171,6 +172,7 @@ private fun LayersSection(tab: DesktopTab) {
             Row(
                 Modifier
                     .fillMaxWidth()
+                    .hoverFill(RoundedCornerShape(8.dp))
                     .clickable { tab.toggleLayer(tab.page, index) }
                     .padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,

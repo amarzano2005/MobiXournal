@@ -3,7 +3,9 @@ package com.mobixournal.desktop
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Density
 import com.mobixournal.design.DesignTokens
@@ -265,6 +267,51 @@ class ToolStripsTest {
     private val slotStride: Int get() = ToolStripMetrics.slotSize.value.toInt() + gapPx
 
     private val activeSlotArgb: Int get() = DesktopTheme.activeSlot.toArgb() and 0xFFFFFF
+
+    /**
+     * A slot under the pointer wears the steel at the hover step.
+     *
+     * The rail had no hover fill at all — only the tooltip — so a resting pointer got no answer about
+     * which slot it was on, while the contract asks every interactive element to draw hover and picked
+     * as two steps of one colour (`docs/interface-contract.md` §6). The pixel is compared against the
+     * same slot in an unhovered render, so the test fails if the fill is dropped or painted the picked
+     * steel by mistake.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun `a hovered slot shows the hover step, not the picked one`() {
+        val width = ToolStripMetrics.railWidth.value.toInt()
+        val slot = ToolStripMetrics.slotSize.value.toInt()
+        val x = (ToolStripMetrics.railSlotLeft + ToolStripMetrics.slotSize / 2f).value.toInt()
+        val y = ToolStripMetrics.railSlotTop.value.toInt() + slotStride + slot / 2
+
+        fun render(hover: Boolean): java.awt.image.BufferedImage {
+            val scene = ImageComposeScene(width, 700, Density(1f)) {
+                ToolRail(ToolStripState(), onSelect = {})
+            }
+            return try {
+                if (hover) scene.sendPointerEvent(PointerEventType.Enter, Offset(x.toFloat(), y.toFloat()))
+                Snapshot.sendApplyNotifications()
+                val bytes = scene.render().encodeToData()!!.bytes
+                ImageIO.read(ByteArrayInputStream(bytes))
+            } finally {
+                scene.close()
+            }
+        }
+
+        val probeX = ToolStripMetrics.railSlotLeft.value.toInt() + 3
+        val probeY = ToolStripMetrics.railSlotTop.value.toInt() + slotStride + 3
+        val rest = render(hover = false).getRGB(probeX, probeY) and 0xFFFFFF
+        val hovered = render(hover = true).getRGB(probeX, probeY) and 0xFFFFFF
+        assertTrue(
+            "hovering a slot changed nothing (${"#%06X".format(rest)})",
+            difference(rest, hovered) > 4,
+        )
+        assertTrue(
+            "a hovered slot painted the picked steel instead of the hover step",
+            difference(hovered, activeSlotArgb) > 4,
+        )
+    }
 
     /** The glass composited over the desk, as the tablet's rail measures it: #131314. */
     private val tabletGlass: Int get() {

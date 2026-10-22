@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.menuSheenBottom
+import com.mobixournal.ui.theme.menuSheenTop
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
@@ -84,8 +86,8 @@ private fun GlassPane(
 ) {
     val dark = chromeIsDark()
     val shape = RoundedCornerShape(corner)
-    val sheenTop = Color.White.copy(alpha = if (dark) 0.17f else 0.62f)
-    val sheenBottom = Color.White.copy(alpha = if (dark) 0.035f else 0.08f)
+    val sheenTop = menuSheenTop(dark)
+    val sheenBottom = menuSheenBottom(dark)
     Box(
         modifier = modifier
             .shadow(shadowElevation, shape)

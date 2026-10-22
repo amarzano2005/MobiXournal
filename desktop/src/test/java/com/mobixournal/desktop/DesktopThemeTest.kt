@@ -58,6 +58,12 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.BAND_SHADOW_DP, number("bandShadowDp").toInt())
         assertEquals(DesignTokens.CAPSULE_SHADOW_DP, number("capsuleShadowDp").toInt())
         assertEquals(DesignTokens.CHROME_INK_DARK_RAW, string("chromeInkDark"))
+        assertEquals(DesignTokens.HOVER_SLOT_ALPHA, number("hoverSlotAlpha").toFloat(), 1e-4f)
+        // Compose packs a colour's alpha to 8 bits, so 0.45 comes back as 115/255.
+        assertEquals(DesignTokens.HOVER_SLOT_ALPHA, DesktopTheme.hoverSlot.alpha, 0.005f)
+        assertEquals(DesktopTheme.activeSlot.red, DesktopTheme.hoverSlot.red, 1e-6f)
+        assertEquals(DesktopTheme.activeSlot.green, DesktopTheme.hoverSlot.green, 1e-6f)
+        assertEquals(DesktopTheme.activeSlot.blue, DesktopTheme.hoverSlot.blue, 1e-6f)
 
         // The rail both shells draw: one capsule, one lane, one slot corner, one glyph grid.
         assertEquals(DesignTokens.RAIL_CAPSULE_WIDTH_DP, number("railCapsuleWidthDp").toInt())

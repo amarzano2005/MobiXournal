@@ -54,6 +54,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.TabChipBorderLight
+import com.mobixournal.ui.theme.TabChipFillDark
+import com.mobixournal.ui.theme.TabChipFillLight
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
@@ -222,8 +226,8 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
 private fun AddTabButton(isDark: Boolean, onNew: () -> Unit) {
     Surface(
         shape = CircleShape,
-        color = if (isDark) Color(0x22FFFFFF) else Color(0x10000000),
-        border = BorderStroke(1.dp, if (isDark) com.mobixournal.ui.theme.ModernTheme.hairlineBorder else Color(0x18000000)),
+        color = if (isDark) TabChipFillDark else TabChipFillLight,
+        border = BorderStroke(1.dp, if (isDark) ModernTheme.hairlineBorder else TabChipBorderLight),
         modifier = Modifier.padding(start = 4.dp, end = 8.dp),
     ) {
         IconButton(onClick = onNew, modifier = Modifier.size(30.dp)) {

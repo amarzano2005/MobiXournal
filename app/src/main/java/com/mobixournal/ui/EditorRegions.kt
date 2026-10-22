@@ -108,6 +108,7 @@ import com.mobixournal.render.resetZoom
 import com.mobixournal.render.zoomIn
 import com.mobixournal.render.zoomOut
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
@@ -302,7 +303,7 @@ fun EditorTopBar(
                         Icon(
                             Icons.Outlined.PictureAsPdf,
                             contentDescription = "Export PDF",
-                            tint = Color(0xFFE53935),
+                            tint = DocumentRed,
                             modifier = Modifier.size(20.dp),
                         )
                     }

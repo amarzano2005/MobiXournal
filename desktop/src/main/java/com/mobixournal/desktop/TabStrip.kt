@@ -76,6 +76,7 @@ fun TabStrip(
                     .height(26.dp)
                     .widthIn(min = 96.dp, max = 220.dp)
                     .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.capsuleShape)
+                    .hoverFill(DesktopTheme.capsuleShape, active = active)
                     .border(1.dp, if (active) DesktopTheme.hairline else Color.Transparent, DesktopTheme.capsuleShape)
                     .pointerInput(tab.key) {
                         detectTapGestures(
@@ -170,6 +171,7 @@ private fun CloseGlyph(onClose: () -> Unit) {
         Modifier
             .width(18.dp)
             .height(18.dp)
+            .hoverFill(DesktopTheme.capsuleShape)
             .pointerInput(Unit) { detectTapGestures { onClose() } },
         contentAlignment = Alignment.Center,
     ) {
@@ -189,6 +191,7 @@ private fun AddTabButton(onOpen: () -> Unit) {
             .width(26.dp)
             .height(26.dp)
             .background(Color.Transparent, DesktopTheme.capsuleShape)
+            .hoverFill(DesktopTheme.capsuleShape)
             .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
             .pointerInput(Unit) { detectTapGestures { onOpen() } },
         contentAlignment = Alignment.Center,

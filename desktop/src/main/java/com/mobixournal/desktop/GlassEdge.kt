@@ -3,7 +3,14 @@ package com.mobixournal.desktop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
@@ -113,6 +120,31 @@ internal fun Modifier.glassSurface(
     fill: Color = DesktopTheme.floating,
     cornerRadius: Dp = DesktopTheme.panelRadius,
 ): Modifier = clip(RoundedCornerShape(cornerRadius)).background(fill).glassRim(cornerRadius)
+
+/**
+ * The **hover step** of a chrome surface: the steel at [DesktopTheme.hoverSlot] while the pointer rests
+ * on it, and nothing at all otherwise.
+ *
+ * Every interactive surface wears this (`docs/interface-contract.md` §6): a tab, a sidebar row, a
+ * menu option, a tool slot. Without it a pointer over the window got no answer about
+ * what it was over — only the tool slots had a tooltip, and the rest were silent.
+ *
+ * [active] suppresses the hover fill, because a picked surface already answers: a tab cannot be both
+ * selected and merely pointed at, and painting both would put two greys on one capsule.
+ */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@Composable
+internal fun Modifier.hoverFill(
+    shape: Shape,
+    active: Boolean = false,
+    fill: Color = DesktopTheme.hoverSlot,
+): Modifier {
+    var hovered by remember { mutableStateOf(false) }
+    return this
+        .onPointerEvent(PointerEventType.Enter) { hovered = true }
+        .onPointerEvent(PointerEventType.Exit) { hovered = false }
+        .background(if (hovered && !active) fill else Color.Transparent, shape)
+}
 
 /**
  * A **band** of chrome — the header, the status bar, the sidebar, a tool lane — as the tablet draws it:

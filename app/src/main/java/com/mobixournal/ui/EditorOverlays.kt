@@ -43,6 +43,7 @@ import com.mobixournal.render.replacePlotElement
 import com.mobixournal.render.restyleSelection
 import com.mobixournal.render.undoLastSplineNode
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.ModalScrim
 import com.mobixournal.ui.theme.rememberClosingArgument
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
@@ -358,7 +359,7 @@ fun TransferOverlay(label: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(ModalScrim)
             .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } },
         contentAlignment = Alignment.Center,
     ) {

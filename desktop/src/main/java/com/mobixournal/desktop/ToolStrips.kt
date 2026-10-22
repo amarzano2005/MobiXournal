@@ -292,7 +292,11 @@ private fun ToolSlot(
             Modifier
                 .size(ToolStripMetrics.slotSize)
                 .background(
-                    if (active) DesktopTheme.activeSlot else Color.Transparent,
+                    when {
+                        active -> DesktopTheme.activeSlot
+                        hovered -> DesktopTheme.hoverSlot
+                        else -> Color.Transparent
+                    },
                     DesktopTheme.railSlotShape,
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
