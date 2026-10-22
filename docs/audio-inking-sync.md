@@ -85,6 +85,10 @@ Rather than relying on vulnerable loose sidecars in user folders:
 - **Temporal transcript segments (`TranscriptionSegment`)**: Stores recognized speech with start and end timestamps
   in milliseconds (`startTimeMs`, `endTimeMs`, `text`, `confidence`), serialized in `.mobix` via
   `TranscriptionCodec` into `transcript.json`.
+- **Where its progress is shown**: only inside the Audio pop-up (draft status line with a spinner) and
+  the mini-player's transcript section. The recording capsule in the top bar keeps showing play/pause
+  throughout — a background job must not turn a control into a status display that the user then cannot
+  press.
 - **On-device Whisper engine (`WhisperOfflineTranscriber` & `WhisperModelManager`)**: Offline automatic speech recognition
   powered by `sherpa-onnx` ONNX Runtime int8 models (`whisper-tiny` ~39 MB, `whisper-base` ~75 MB). Runs locally at
   $\sim 30\times$ real-time on CPU/NNPACK without network requests or microphone timeouts. The first

@@ -226,25 +226,19 @@ private fun PlayCapsuleButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (audio.isTranscribing) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(14.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        } else {
-            val tint = when {
-                playActive -> MaterialTheme.colorScheme.primary
-                isDark -> Color.White
-                else -> MaterialTheme.colorScheme.onSurface
-            }
-            Icon(
-                imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                contentDescription = if (audio.playing) "Pause playback" else "Play audio",
-                tint = tint,
-                modifier = Modifier.size(16.dp),
-            )
+        // The button keeps its play/pause meaning while a transcription runs: its progress is the
+        // pop-up's business, so the toolbar never turns into a status bar.
+        val tint = when {
+            playActive -> MaterialTheme.colorScheme.primary
+            isDark -> Color.White
+            else -> MaterialTheme.colorScheme.onSurface
         }
+        Icon(
+            imageVector = if (audio.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+            contentDescription = if (audio.playing) "Pause playback" else "Play audio",
+            tint = tint,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 
@@ -337,6 +331,24 @@ private fun AudioCapsuleTranscriptionItems(
     audio: AudioUiState,
     onShowLanguageDialog: () -> Unit,
 ) {
+    // The transcription's progress is reported **here**, inside the pop-up, and nowhere else — a
+    // background job the user asked for from this menu should be watchable by reopening it, not by
+    // watching the recording capsule.
+    if (audio.isTranscribing) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            Text(
+                text = audio.transcriptionStatus ?: "Transcribing…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        HorizontalDivider()
+    }
     DropdownMenuItem(
         text = {
             val currentLangName = SUPPORTED_TRANSCRIPTION_LANGUAGES.firstOrNull {

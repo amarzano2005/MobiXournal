@@ -594,3 +594,17 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "transcription-progress-only-in-the-audio-popup"
+title = "Report transcription progress only inside the audio pop-up"
+description = "The top bar's audio capsule replaced its play/pause icon with a CircularProgressIndicator for the whole of a deferred transcription (AudioMiniCapsule.PlayCapsuleButton, audio.isTranscribing), so the toolbar turned into a status bar and the play button stopped meaning play for minutes at a time. Fix: the capsule always draws its play/pause icon, and the progress (spinner plus AudioUiState.transcriptionStatus, the draft status the service already publishes) is drawn inside the Audio pop-up's transcription section, next to the language row; the mini-player's transcript section keeps its existing 'Transcribing...' line. Docs: docs/audio-inking-sync.md (where the progress is shown) and the audio bullet of README.md. Verify: unit tests + assembleDebug; the emulator flag is off for this task, so the visual pass is the user's."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "normal"
+order = 1130
+created = 2026-10-22
+tags = ["audio"]
+rebuild = true
+emulator_debug = false
