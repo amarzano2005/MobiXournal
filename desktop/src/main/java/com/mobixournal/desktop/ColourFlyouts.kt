@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -87,6 +89,8 @@ internal fun ColourSlot(
     palette: List<Int>,
     favourites: List<Int> = emptyList(),
     onPick: (Int) -> Unit,
+    onEditCustom: () -> Unit = {},
+    onAddColour: () -> Unit = {},
     side: StripSide,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -122,8 +126,17 @@ internal fun ColourSlot(
                 PaletteFlyout(
                     palette = palette,
                     current = ink.colour,
+                    custom = ink.custom,
                     onPick = { colour ->
                         onPick(colour)
+                        open = false
+                    },
+                    onEditCustom = {
+                        onEditCustom()
+                        open = false
+                    },
+                    onAddColour = {
+                        onAddColour()
                         open = false
                     },
                 )
@@ -183,9 +196,19 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
     }
 }
 
-/** The palette, as one scrolling row of swatches; the picked one wears the steel ring. */
+/**
+ * The palette, as one scrolling row: the stored swatches, then the editable custom slot, then the
+ * add-colour swatch — the three parts `docs/colours.md` describes, in that order.
+ */
 @Composable
-private fun PaletteFlyout(palette: List<Int>, current: Int, onPick: (Int) -> Unit) {
+internal fun PaletteFlyout(
+    palette: List<Int>,
+    current: Int,
+    custom: Int?,
+    onPick: (Int) -> Unit,
+    onEditCustom: () -> Unit,
+    onAddColour: () -> Unit,
+) {
     Row(
         Modifier
             .background(DesktopTheme.panel, DesktopTheme.panelShape)
@@ -207,6 +230,61 @@ private fun PaletteFlyout(palette: List<Int>, current: Int, onPick: (Int) -> Uni
                     .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
                     .pointerInput(colour) { detectTapGestures { onPick(colour) } },
             )
+        }
+        CustomSwatch(custom = custom, onPick = onPick, onEdit = onEditCustom)
+        AddSwatch(onAdd = onAddColour)
+    }
+}
+
+/**
+ * The editable custom slot: filled with the colour the user defined, or an empty ring carrying the pencil
+ * when it holds nothing. A tap on a set slot picks it, a tap on the empty one opens the panel — and a
+ * long press redefines it either way, the same gesture the tablet's palette teaches.
+ */
+@Composable
+private fun CustomSwatch(custom: Int?, onPick: (Int) -> Unit, onEdit: () -> Unit) {
+    val side = InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2
+    Box(
+        Modifier
+            .size(side)
+            .background(custom?.let(::Color) ?: Color.Transparent, DesktopTheme.capsuleShape)
+            .border(
+                1.dp,
+                if (custom == null) DesktopTheme.hairline else DesktopTheme.inkMuted,
+                DesktopTheme.capsuleShape,
+            )
+            .pointerInput(custom) {
+                detectTapGestures(
+                    onTap = { if (custom == null) onEdit() else onPick(custom) },
+                    onLongPress = { onEdit() },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (custom == null) {
+            Canvas(Modifier.size(12.dp)) {
+                drawToolGlyph(DesktopTool.PEN, DesktopTheme.inkSecondary, DesktopTheme.glyphStroke.toPx())
+            }
+        }
+    }
+}
+
+/** The add-colour swatch: a plus in a hairline ring, opening the panel on a colour to append. */
+@Composable
+private fun AddSwatch(onAdd: () -> Unit) {
+    val side = InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2
+    Box(
+        Modifier
+            .size(side)
+            .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
+            .pointerInput(Unit) { detectTapGestures { onAdd() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(10.dp)) {
+            val colour = DesktopTheme.accent
+            val stroke = DesktopTheme.glyphStroke.toPx()
+            drawLine(colour, Offset(size.width / 2f, 0f), Offset(size.width / 2f, size.height), stroke)
+            drawLine(colour, Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), stroke)
         }
     }
 }

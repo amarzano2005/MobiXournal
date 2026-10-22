@@ -89,6 +89,19 @@ data class ToolStripState(
 internal enum class StripSide { RIGHT, BELOW }
 
 /**
+ * What the strips' ink slots report: a picked colour or width, and the two requests only the panel can
+ * answer (redefine the custom slot, add a new palette entry).
+ *
+ * A plain class with defaults so a render test can draw a strip without wiring the window up.
+ */
+class InkActions(
+    val onColour: (Int) -> Unit = {},
+    val onWidth: (Float) -> Unit = {},
+    val onEditCustom: () -> Unit = {},
+    val onAddColour: () -> Unit = {},
+)
+
+/**
  * Option B: the vertical rail, docked beside the canvas.
  *
  * Fifteen slots are ~660 dp tall, so the lane scrolls rather than dropping its last tools on a window
@@ -99,8 +112,7 @@ internal enum class StripSide { RIGHT, BELOW }
 fun ToolRail(
     state: ToolStripState,
     onSelect: (DesktopTool) -> Unit,
-    onColour: (Int) -> Unit,
-    onWidth: (Float) -> Unit,
+    ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -117,8 +129,16 @@ fun ToolRail(
             ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.RIGHT)
         }
         StripDivider(vertical = true)
-        ColourSlot(state.ink, state.palette, state.favourites, onColour, side = StripSide.RIGHT)
-        SizeSlot(state.ink, onWidth, side = StripSide.RIGHT)
+        ColourSlot(
+            ink = state.ink,
+            palette = state.palette,
+            favourites = state.favourites,
+            onPick = ink.onColour,
+            onEditCustom = ink.onEditCustom,
+            onAddColour = ink.onAddColour,
+            side = StripSide.RIGHT,
+        )
+        SizeSlot(state.ink, ink.onWidth, side = StripSide.RIGHT)
     }
 }
 
@@ -132,8 +152,7 @@ fun ToolRail(
 fun ToolRibbon(
     state: ToolStripState,
     onSelect: (DesktopTool) -> Unit,
-    onColour: (Int) -> Unit,
-    onWidth: (Float) -> Unit,
+    ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -150,8 +169,16 @@ fun ToolRibbon(
             ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.BELOW)
         }
         StripDivider(vertical = false)
-        ColourSlot(state.ink, state.palette, state.favourites, onColour, side = StripSide.BELOW)
-        SizeSlot(state.ink, onWidth, side = StripSide.BELOW)
+        ColourSlot(
+            ink = state.ink,
+            palette = state.palette,
+            favourites = state.favourites,
+            onPick = ink.onColour,
+            onEditCustom = ink.onEditCustom,
+            onAddColour = ink.onAddColour,
+            side = StripSide.BELOW,
+        )
+        SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
     }
 }
 

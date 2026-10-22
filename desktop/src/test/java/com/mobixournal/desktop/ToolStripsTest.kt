@@ -144,7 +144,7 @@ class ToolStripsTest {
     fun `the rail and the ribbon draw every tool`() {
         val railPng = save(
             ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 700, Density(1f)) {
-                ToolRail(ToolStripState(), onSelect = {}, onColour = {}, onWidth = {})
+                ToolRail(ToolStripState(), onSelect = {})
             },
             "tools-rail",
         )
@@ -161,8 +161,6 @@ class ToolStripsTest {
                 ToolRibbon(
                     state = ToolStripState(selection = ToolSelection(DesktopTool.CIRCUIT)),
                     onSelect = {},
-                    onColour = {},
-                    onWidth = {},
                 )
             },
             "tools-ribbon",

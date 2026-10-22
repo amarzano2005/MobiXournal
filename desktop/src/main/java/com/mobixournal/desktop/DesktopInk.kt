@@ -29,6 +29,15 @@ data class DesktopInk(
     fun withCustom(colour: Int?): DesktopInk = copy(custom = colour?.let(PenPalette::opaque))
 }
 
+/** What the colour panel will do with the colour it commits. */
+enum class ColourEditorTarget {
+    /** Write the palette's editable custom slot, and pick it. */
+    CUSTOM,
+
+    /** Append a new entry to the palette (opaque, de-duplicated, capped), and pick it. */
+    NEW,
+}
+
 /**
  * The settings-file spelling of ARGB colours: comma-separated, eight lowercase hex digits each
  * (`ff000000,ffff0000`), which is readable in the file and round-trips every int including the

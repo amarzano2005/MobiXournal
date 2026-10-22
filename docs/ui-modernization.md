@@ -196,8 +196,13 @@ colour in use in a capsule and a dot at the current width — each opening a gla
 one horizontally scrolling row of swatches, and the three width slots `S`/`M`/`L`. Picking one writes it
 straight to the settings file (`ink.colour`, `ink.width`), and the palette itself is `palette.colours`,
 read through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour, a duplicate
-or an empty palette in front of the picker. The editable custom slot and the add-colour swatch arrive
-with `desktop-custom-colour-picker`. The placement choice is a persisted setting
+or an empty palette in front of the picker. The row ends in the **editable custom slot** — empty until
+the user defines one, then a swatch that a tap picks and a long press redefines — and the **add-colour**
+swatch; both open the window's own colour panel: a saturation/value square, a hue slider, a two-way
+`#RRGGBB` field with a live preview, and Set/Cancel, drawn in the floating glass rather than a Material
+dialog (a picker that comes and goes may lie over the page; a band may not). An invalid hex keeps the
+last valid colour, says so and leaves Set out of reach, so a half-typed `#12` can never commit black.
+The placement choice is a persisted setting
 (`interface.toolPlacement`, Rail by default) in the desktop's own settings file under `%APPDATA%`, and
 the strips appear once a document is open, because the empty state has no canvas to draw on. The
 right-hand inspector is the part still missing.

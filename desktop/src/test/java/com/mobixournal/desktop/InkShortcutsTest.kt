@@ -144,12 +144,7 @@ class InkShortcutsTest {
     @OptIn(ExperimentalComposeUiApi::class)
     private fun railPng(ink: DesktopInk, name: String): ByteArray {
         val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 780, Density(1f)) {
-            ToolRail(
-                state = ToolStripState(ink = ink),
-                onSelect = {},
-                onColour = {},
-                onWidth = {},
-            )
+            ToolRail(state = ToolStripState(ink = ink), onSelect = {})
         }
         val png = try {
             scene.render().encodeToData()?.bytes

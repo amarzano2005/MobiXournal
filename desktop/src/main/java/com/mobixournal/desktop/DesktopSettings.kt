@@ -95,6 +95,21 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /**
+     * The palette's editable custom slot: null while it is empty, and an absent key on disk so that
+     * "empty" and "black" stay distinguishable ([PenPalette]'s rule, kept here too).
+     */
+    var paletteCustom: Int?
+        get() = PaletteCodec.parseHex(properties.getProperty(KEY_PALETTE_CUSTOM))?.let(PenPalette::opaque)
+        set(value) {
+            if (value == null) {
+                properties.remove(KEY_PALETTE_CUSTOM)
+            } else {
+                properties.setProperty(KEY_PALETTE_CUSTOM, PaletteCodec.hex(value))
+            }
+            save()
+        }
+
     /** The stroke width the strips show, in points, clamped to [PenPalette]'s range. */
     var inkWidth: Float
         get() = properties.getProperty(KEY_INK_WIDTH)?.toFloatOrNull()
@@ -125,6 +140,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The three favourite colours keys `1`–`3` pick, as [PaletteCodec]'s hex list. */
         const val KEY_COLOUR_FAVOURITES = "interface.colourFavourites"
+
+        /** The palette's editable custom slot; absent while the slot is empty. */
+        const val KEY_PALETTE_CUSTOM = "palette.custom"
 
         /** The stroke width the strips show, in points. */
         const val KEY_INK_WIDTH = "ink.width"

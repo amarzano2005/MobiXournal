@@ -120,7 +120,9 @@ default) and a horizontal ribbon under the header. The header's **Tool placement
 between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
-the slots only choose a tool for now; drawing arrives with the editing phase.
+the slots only choose a tool for now; drawing arrives with the editing phase. The colour slot also
+carries the palette: pick a swatch, define your own colour in the window's HSV/hex panel, or add a new
+one, and the palette, the favourites and the width are remembered between runs.
 
 | Key | What it does |
 |---|---|

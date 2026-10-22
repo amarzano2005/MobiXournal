@@ -22,8 +22,13 @@ swatch rows, the custom-slot affordances and the HSV/hex dialog.
 ARGB hex, plus `ink.colour` and `ink.width` for what the strips show. The strip tails carry a colour slot
 and a size slot, opening the palette row and the `S`/`M`/`L` widths as floating glass flyouts. Reading
 the file runs the list through `PenPalette.sanitised`, so an edited file cannot put a transparent colour,
-a duplicate or an empty palette in front of the picker. The desktop's editable custom slot, its
-add-colour swatch and its HSV/hex panel are `desktop-custom-colour-picker`'s.
+a duplicate or an empty palette in front of the picker. The row ends in the editable custom slot and the
+add-colour swatch; both open the window's own panel — a saturation/value square, a hue slider and a
+two-way `#RRGGBB` field with a live preview (`ColourPickerPanel.kt`, rules in `ColourPickerModel.kt`),
+which commits the custom slot or appends through `PenPalette.add` and picks the colour. It is the same
+contract as the tablet's dialog (always opaque, a strict hex field, an invalid entry that keeps the last
+valid colour and says so) built in the desktop's glass, because `CustomColorPickerDialog` lives in the
+app's `ui/` and reads `AppSettings`.
 
 The one colour picker all three sites share (the pen pop-up, the text-box dialog, the selection
 recolour menu), plus the shortcut tables that jump straight to a colour or a tool (see
