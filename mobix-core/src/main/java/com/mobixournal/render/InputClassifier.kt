@@ -115,9 +115,9 @@ enum class QuickAction {
      *
      * It is the **second** way to summon the ring: [BarrelAction.HUD] opens it on every press of the
      * held button, this opens it on a double-click instead, so a pen whose button is wanted for
-     * erasing (the default) can still reach the ring. The press that completes the double-click is
-     * what holds the ring open, and its release commits the slot under the pen — exactly the held-HUD
-     * gesture, one click longer.
+     * erasing (the default) can still reach the ring. There is no held button to release, so the ring
+     * opens as a **picker** that stays on screen until a slot is tapped — the release of the click
+     * that opened it is that click's own release and must not be read as the pick.
      *
      * Deliberately **not offered to the finger taps**: the ring is anchored at the nib and a tap has
      * none, so `FingerGesturesSection` filters this value out of its pickers.

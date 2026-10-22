@@ -18,8 +18,26 @@ import com.mobixournal.design.ToolGlyph
 import com.mobixournal.format.model.Tool
 import kotlin.math.sqrt
 
-/** The open ring: where its centre is, and the slot the pen is over (null when over no slot). */
-internal data class HudState(val cx: Float, val cy: Float, val active: Int? = null)
+/**
+ * How the ring was opened, which decides how it closes.
+ *
+ * - [HOLD] — the barrel is **held** (Settings → Barrel button → *While held* = HUD): a hover gesture,
+ *   so letting the button go commits the slot under the pen and a tip landing cancels.
+ * - [TAP] — a **double-click** opened it (Settings → Barrel button → *Double-click* = Radial HUD).
+ *   There is no held button to release, so the ring is a picker: it stays on screen until the user
+ *   taps a slot, and only that tap (or a tap well outside the ring) takes it away. The press that
+ *   completed the double-click used to be the release that committed it, which is why the ring
+ *   flashed open and shut before a single slot could be reached.
+ */
+enum class HudTrigger { HOLD, TAP }
+
+/** The open ring: where its centre is, the slot the pen is over, and how it was opened. */
+internal data class HudState(
+    val cx: Float,
+    val cy: Float,
+    val active: Int? = null,
+    val trigger: HudTrigger = HudTrigger.HOLD,
+)
 
 /** True when Settings → Stylus → Barrel button → *While held* is set to the HUD. */
 internal val DrawingSurfaceView.barrelSummonsHud: Boolean
@@ -39,7 +57,7 @@ internal fun DrawingSurfaceView.nibAnchor(): Pair<Float, Float> =
  * press dismisses" half of the gesture. A press that arrives while the tip is on the glass is
  * ignored: the ring is a hover surface, and opening it mid-stroke would steal the pen from the page.
  */
-internal fun DrawingSurfaceView.summonRadialHud() {
+internal fun DrawingSurfaceView.summonRadialHud(trigger: HudTrigger = HudTrigger.HOLD) {
     if (hud != null) {
         dismissRadialHud(commit = false)
         return
@@ -47,8 +65,46 @@ internal fun DrawingSurfaceView.summonRadialHud() {
     if (hudSlots.isEmpty()) return
     if (current != null || erasing || placing || scrolling) return
     val (x, y) = nibAnchor()
-    hud = HudState(x, y)
+    hud = HudState(x, y, trigger = trigger)
     render()
+}
+
+/**
+ * A touch that lands while the ring is **open as a picker** ([HudTrigger.TAP]): the slot under the
+ * finger is chosen and the ring goes away; inside the ring but off a slot nothing happens (the tap
+ * was aimed at the ring, not through it); well outside it the tap is a deliberate "not now" and the
+ * ring closes without changing anything.
+ *
+ * Returns true when the touch belonged to the ring, so the caller consumes it instead of starting a
+ * stroke under the picker.
+ */
+internal fun DrawingSurfaceView.tapRadialHud(x: Float, y: Float): Boolean {
+    val open = hud ?: return false
+    val density = resources.displayMetrics.density
+    val ringRadius = RadialHud.RING_RADIUS_DP * density
+    val slotRadius = RadialHud.SLOT_DIAMETER_DP * density / 2f
+    val index = RadialHud.slotIndexAt(
+        cx = open.cx,
+        cy = open.cy,
+        x = x,
+        y = y,
+        count = hudSlots.size,
+        ringRadiusPx = ringRadius,
+        slotRadiusPx = slotRadius,
+        deadZonePx = RadialHud.DEAD_ZONE_DP * density,
+    )
+    if (index != null) {
+        hud = open.copy(active = index)
+        dismissRadialHud(commit = true)
+        return true
+    }
+    val distance = sqrt((x - open.cx) * (x - open.cx) + (y - open.cy) * (y - open.cy))
+    if (distance <= ringRadius + slotRadius + HUD_AIR_DP * density) {
+        render()
+        return true
+    }
+    dismissRadialHud(commit = false)
+    return true
 }
 
 /** Track the pen over the open ring: the slot under it lights up, with a tick per boundary crossed. */

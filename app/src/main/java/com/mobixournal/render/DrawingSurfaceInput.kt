@@ -25,10 +25,16 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
     when (event.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
             momentum.stop()
-            // The ring is a hover surface: a tip that lands on it cancels instead of committing, and
-            // writes nothing. That is the gesture being cancelled, not ink — the task's "no stroke
-            // was written" is this branch, not a promise.
-            if (hud != null) { dismissRadialHud(commit = false); return true }
+            // The open ring takes the touch. Held (a hover gesture) it is cancelled by a tip that
+            // lands, and writes nothing — the task's "no stroke was written" is that branch, not a
+            // promise. Opened by a double-click it is a **picker**, and the touch is how a slot is
+            // chosen (`tapRadialHud`).
+            val openHud = hud
+            if (openHud != null) {
+                if (openHud.trigger == HudTrigger.TAP) tapRadialHud(event.x, event.y)
+                else dismissRadialHud(commit = false)
+                return true
+            }
             multiTap.onDown(
                 event.eventTime, event.x, event.y, event.getPointerId(0),
                 maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
@@ -129,8 +135,9 @@ internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
     trackBarrelClicks(event)
     if (event.actionMasked == MotionEvent.ACTION_HOVER_EXIT) {
         // The pen left the glass's range without a release event the app could see: the ring goes
-        // away rather than waiting for a release that will never arrive.
-        dismissRadialHud(commit = false)
+        // away rather than waiting for a release that will never arrive. A picker is not waiting for
+        // a release at all — it waits for a tap — so it stays on screen.
+        if (hud?.trigger != HudTrigger.TAP) dismissRadialHud(commit = false)
         barrelClicks.reset(); vendorClicks.reset(); barrelButton.reset()
     }
     val kind = pointerKindOf(event, 0)
@@ -291,7 +298,7 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
 /** Drop any in-progress draw/erase/place/band/move without committing (a stylus is taking over). */
 internal fun DrawingSurfaceView.abandonInProgress() {
     dismissRadialHud(commit = false)
-    clearSpline(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false
+    clearSpline(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestureCell = null; gestures.reset(); multiTap.reset()
@@ -299,7 +306,7 @@ internal fun DrawingSurfaceView.abandonInProgress() {
 
 internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
-    momentum.stop(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false
+    momentum.stop(); stopAutoScroll(); cancelHoldSnap(); holdSnapped = false; holdFigure = null
     guideDrag.end(null); clearSpline()
     current = null; currentStrokes = null; shaping = false; scrolling = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null

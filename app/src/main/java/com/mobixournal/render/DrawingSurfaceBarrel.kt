@@ -107,8 +107,10 @@ internal fun DrawingSurfaceView.runBarrelClickAction() {
 /** The barrel button was let go (a key-up): the held modifier is over. */
 internal fun DrawingSurfaceView.releaseBarrelButton() {
     if (barrelButton.onKey(false) && hovering) render()
-    // The release is the HUD's commit: the slot under the pen runs, or (over no slot) nothing does.
-    if (hud != null) dismissRadialHud(commit = true)
+    // Under the held ring the release is its commit: the slot under the pen runs, or (over no slot)
+    // nothing does. A picker was opened by a *double-click* and must ignore this release — this is
+    // the release of the very press that opened it, and consuming it is what made the ring flash.
+    if (hud?.trigger == HudTrigger.HOLD) dismissRadialHud(commit = true)
 }
 
 /** The on-screen tool collapsed to the classifier's [ActiveTool]. */
@@ -133,8 +135,8 @@ internal fun DrawingSurfaceView.trackBarrelClicks(event: MotionEvent) {
     // Only an edge changes anything: a held button repeats its bit on every hover move.
     if (!changed) return
     if (!barrelButton.held) {
-        // The button's motion-stream release is the HUD's commit, exactly as the key-up is.
-        if (hud != null) dismissRadialHud(commit = true)
+        // The button's motion-stream release is the held HUD's commit, exactly as the key-up is.
+        if (hud?.trigger == HudTrigger.HOLD) dismissRadialHud(commit = true)
         return
     }
     if (barrelSummonsHud) {
@@ -155,9 +157,10 @@ internal fun DrawingSurfaceView.runQuickAction(action: QuickAction) {
         QuickAction.NONE -> Unit
         QuickAction.UNDO -> undo()
         QuickAction.REDO -> redo()
-        // The ring's second summon: the click that completes the double-click opens it, and that
-        // press's release is its commit — the held-HUD gesture with one click in front of it.
-        QuickAction.HUD -> summonRadialHud()
+        // The ring's second summon: a double-click opens it as a **picker** that stays on screen
+        // until a slot is tapped — there is no held button to release, so the release that follows
+        // the opening press must not be read as the pick.
+        QuickAction.HUD -> summonRadialHud(HudTrigger.TAP)
         // TOGGLE_ERASER / TOGGLE_SELECT / TOGGLE_FULL_PAGE are applied by the editor, which owns the
         // UI state a toggle needs; the surface just reports the action.
         else -> onQuickAction?.invoke(action)
