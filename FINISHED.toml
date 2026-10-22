@@ -25,6 +25,23 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "decode-transcription-in-windows"
+title = "Decode transcription in 28 s windows on all cores"
+description = """
+Whisper's encoder always works on a 30 s mel window and pads shorter audio up to it, but AudioTranscriptionService fed it one AudioVadSegmenter phrase at a time (1.2-6.5 s), so every phrase paid a padded 30 s encoder pass: a one-hour lecture is ~1,000 decodes for ~1,000 phrases. On top of that WhisperOfflineTranscriber.init defaulted to a literal 4 threads whatever the device's core count. Fix: audio/TranscriptionWindows.kt - of(chunks) groups consecutive phrases into windows of WINDOW_MS = 28 s (cut only between phrases, so no word is cut), AudioWindow.pcm() assembles a window's audio lazily so grouping an hour does not keep a second copy of the recording, and distributeText(window, text) gives the recognised words back to the phrases by their share of the window (chronological, never empty, every word kept). WhisperOfflineTranscriber gains transcribeWindows(list) (replacing transcribeChunks) and inferenceThreads() = availableProcessors capped at 6, used as init's default. The service reports progress per window and prints the measured wall time in its completion status. Docs: docs/audio-inking-sync.md (the windowing bullet, background execution) and README.md.
+
+Landed (commit c784516): `TranscriptionWindows.of` cuts windows only between VAD phrases (28 s, just under Whisper's own 30 s), `AudioWindow.pcm()` builds a window's PCM per decode, `distributeText` returns segments with the VAD's timestamps, and `WhisperOfflineTranscriber.transcribeWindows` + `inferenceThreads` replaced the per-phrase loop and the literal 4 threads. The completion status now reads "Transcription complete (N segments in Xs)".
+MEASURED (JVM, ten minutes of synthetic speech through the real VAD): 231 phrases -> 24 decode windows, 9.6x fewer padded encoder passes for the same audio; the 9 new tests in TranscriptionWindowsTest pin the ratio (>= 8x), the window ceiling, chunk coverage and the text split.
+VERIFIED: 1538 unit tests / 1 failure, and that failure is NOT this change - SourceStructureTest trips on the uncommitted desktop/DesktopShell.kt (105-line function) another in-flight change is holding in the shared checkout. Ran both guards in a clean worktree of this commit: DocsGuardTest 6/6 and SourceStructureTest 5/5 pass. `assembleDebug` green.
+NOT VERIFIED: the wall clock on a device (no emulator pass, and the host has no encoder to time inference). The new "in Xs" status is what the next real recording will report; parallel decoding of windows is the next step if that number is still too high."""
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["audio"]
+
+[[task]]
 id = "mini-player-controls-survive-long-titles"
 title = "Keep the mini-player controls on screen when the document name is long"
 description = """

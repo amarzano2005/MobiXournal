@@ -594,17 +594,3 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "decode-transcription-in-windows"
-title = "Decode transcription in 28 s windows on all cores"
-description = "Whisper's encoder always works on a 30 s mel window and pads shorter audio up to it, but AudioTranscriptionService fed it one AudioVadSegmenter phrase at a time (1.2-6.5 s), so every phrase paid a padded 30 s encoder pass: a one-hour lecture is ~1,000 decodes for ~1,000 phrases. On top of that WhisperOfflineTranscriber.init defaulted to a literal 4 threads whatever the device's core count. Fix: add audio/TranscriptionWindows.kt - of(chunks) groups consecutive phrases into windows of WINDOW_MS = 28 s (cut only between phrases, so no word is cut), AudioWindow.pcm() assembles a window's audio lazily so grouping an hour does not keep a second copy of the recording, and distributeText(window, text) gives the recognised words back to the phrases by their share of the window (chronological, never empty, every word kept). WhisperOfflineTranscriber gains transcribeWindows(list) (replacing transcribeChunks) and inferenceThreads() = availableProcessors capped at 6, used as init's default. The service reports progress per window and prints the measured wall time in its completion status. Docs: docs/audio-inking-sync.md (the windowing bullet, background execution) and README.md. Verify: TranscriptionWindowsTest (grouping limit and coverage, ten minutes of synthetic speech measured at ~231 phrases vs ~24 windows, distribution, thread bounds) plus the full unit suite and assembleDebug; real wall clock needs a device."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 1130
-created = 2026-10-22
-tags = ["audio"]
-rebuild = true
-emulator_debug = false
