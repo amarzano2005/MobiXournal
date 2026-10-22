@@ -91,12 +91,25 @@ Rather than relying on vulnerable loose sidecars in user folders:
   press.
 - **On-device Whisper engine (`WhisperOfflineTranscriber` & `WhisperModelManager`)**: Offline automatic speech recognition
   powered by `sherpa-onnx` ONNX Runtime int8 models (`whisper-tiny` ~39 MB, `whisper-base` ~75 MB). Runs locally at
-  $\sim 30\times$ real-time on CPU/NNPACK without network requests or microphone timeouts. The first
+  without network requests or microphone timeouts. The first
   transcription downloads `whisper-tiny` automatically (with visible progress), so transcription needs no
   manual model setup; when no model is present the service falls back to the platform recognizer.
+- **It decodes windows, not phrases (`TranscriptionWindows`)**: Whisper's encoder always works on a 30-second mel
+  window and pads shorter audio up to it, so decoding one 2–6 s VAD phrase costs what decoding 30 s costs. The
+  phrases are therefore grouped into consecutive windows of 28 s (`WINDOW_MS`, cut only between phrases at a
+  silence) and each window is one decode: on ten minutes of speech the VAD produces ~230 phrases and the grouping
+  ~24 windows, i.e. 9–10× fewer padded encoder passes for the same bytes and the same model (pinned by
+  `TranscriptionWindowsTest`). The recognised text is distributed back over the phrases the window covers by their
+  share of it (`distributeText`), so segments keep the VAD's real timestamps, stay chronological, none is empty and
+  every word is kept — Whisper reports no per-phrase boundary here, so a word can land one phrase early or late when
+  speech speed changes sharply inside a window. Windows carry their audio lazily (`pcm()`): grouping an hour of
+  speech must not hold a second copy of the recording. Inference uses the device's cores, capped at six
+  (`WhisperOfflineTranscriber.inferenceThreads`), where it used to be a literal 4.
 - **Background execution (`AudioTranscriptionService`)**: Android foreground service (`FOREGROUND_SERVICE_DATA_SYNC`)
   holding a partial wake lock with ongoing notification progress bar. Allows hour-long lectures to finish processing
-  in 1–2 minutes even when the device screen is locked or another application is active.
+  even when the device screen is locked or another application is active. Progress reports windows, and the final
+  status carries the measured wall time (`Transcription complete (N segments in Xs)`), so a windowing or thread-count
+  change can be judged on a device instead of argued about.
 - **Temporal ink alignment (`AudioInkAligner`)**: Correlates handwritten stroke telemetry (`startMs` + $\sum \Delta t$)
   with spoken audio segments. Tapping a stroke navigates directly to the exact spoken phrase; seeking in audio
   locates the bounding box of words written at that moment on the page canvas.

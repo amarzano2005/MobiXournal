@@ -95,6 +95,7 @@ class AudioTranscriptionService : Service() {
     }
 
     private suspend fun processTranscription(file: File, lang: String) {
+        val startedMs = System.currentTimeMillis()
         updateProgress("Extracting audio...", 5, 100)
         onProgressUpdated?.invoke("Extracting audio...", 5, 100)
 
@@ -134,7 +135,10 @@ class AudioTranscriptionService : Service() {
             transcriptFile.writeText(TranscriptionCodec.encode(transcript))
         }
 
-        finishWithResult(file, transcript, "Transcription complete (${segments.size} segments)")
+        // How long it actually took, in the status the pop-up and the notification show: without a
+        // measured number a change to the windowing or the thread count can only be argued about.
+        val seconds = ((System.currentTimeMillis() - startedMs) / 1000L).coerceAtLeast(0L)
+        finishWithResult(file, transcript, "Transcription complete (${segments.size} segments in ${seconds}s)")
     }
 
     private fun transcribeWithWhisper(
@@ -150,12 +154,16 @@ class AudioTranscriptionService : Service() {
             return emptyList()
         }
 
+        // The VAD's phrases are grouped into the ~28 s windows Whisper decodes in one pass: feeding it
+        // one 2–6 s phrase at a time paid a padded 30 s encoder window for each of them, which is what
+        // made an hour of speech take minutes (TranscriptionWindows).
+        val windows = TranscriptionWindows.of(chunks)
         return try {
-            transcriber.transcribeChunks(
-                chunks = chunks,
+            transcriber.transcribeWindows(
+                windows = windows,
                 onProgress = { current, total ->
                     val percent = ((current * 100) / total).coerceIn(0, 100)
-                    val status = "Whisper: sentence $current of $total ($percent%)"
+                    val status = "Whisper: $current of $total windows ($percent%)"
                     updateProgress(status, current, total)
                     onProgressUpdated?.invoke(status, current, total)
                 },

@@ -20,9 +20,10 @@ class WhisperOfflineTranscriber(
     private var recognizer: OfflineRecognizer? = null
 
     /**
-     * Initializes the Whisper offline recognizer from [modelDir].
+     * Initializes the Whisper offline recognizer from [modelDir], using every core the device reports
+     * unless a different count is asked for ([inferenceThreads]).
      */
-    fun init(language: String = "it", numThreads: Int = 4): Boolean {
+    fun init(language: String = "it", numThreads: Int = inferenceThreads()): Boolean {
         return runCatching {
             val prefix = if (isTiny) "tiny" else "base"
             val encoder = File(modelDir, "$prefix-encoder.int8.onnx")
@@ -93,30 +94,25 @@ class WhisperOfflineTranscriber(
     }
 
     /**
-     * Transcribes [chunks] sequentially with [onProgress] reporting.
-     * Yields [TranscriptionSegment] with exact timestamp preservation.
+     * Transcribes every [window] with [onProgress] reporting, one decode each.
+     *
+     * The windows — not the VAD's phrases — are the unit of work, because Whisper pads every input to
+     * its 30-second encoder window ([TranscriptionWindows]): decoding the phrases one by one paid that
+     * cost per phrase. The text of a window goes back to the phrases it covers through
+     * [TranscriptionWindows.distributeText], so segments keep their real timestamps.
      */
-    fun transcribeChunks(
-        chunks: List<AudioChunk>,
+    fun transcribeWindows(
+        windows: List<AudioWindow>,
         onProgress: (current: Int, total: Int) -> Unit,
         isCancelled: () -> Boolean = { false },
     ): List<TranscriptionSegment> {
         val results = mutableListOf<TranscriptionSegment>()
-        val total = chunks.size
-        for ((index, chunk) in chunks.withIndex()) {
+        val total = windows.size
+        for ((index, window) in windows.withIndex()) {
             if (isCancelled()) break
             onProgress(index + 1, total)
-            val text = transcribePcm(chunk.pcm, 16000)
-            if (text.isNotBlank()) {
-                results.add(
-                    TranscriptionSegment(
-                        startTimeMs = chunk.startMs,
-                        endTimeMs = chunk.endMs,
-                        text = text,
-                        confidence = 0.95,
-                    ),
-                )
-            }
+            val text = transcribePcm(window.pcm(), 16000)
+            if (text.isNotBlank()) results.addAll(TranscriptionWindows.distributeText(window, text))
         }
         return results
     }
@@ -124,5 +120,20 @@ class WhisperOfflineTranscriber(
     override fun close() {
         recognizer?.release()
         recognizer = null
+    }
+
+    companion object {
+        /**
+         * Inference threads for the recognizer: every core the device reports, capped at [MAX_THREADS].
+         *
+         * The count used to be a literal 4, which left half of an eight-core tablet unused. Above six
+         * threads onnxruntime spends more time in contention and on the little cores than it gains back,
+         * and a long decode is also a thermal question, so the cap stays at six rather than
+         * `availableProcessors` outright.
+         */
+        const val MAX_THREADS = 6
+
+        fun inferenceThreads(cores: Int = Runtime.getRuntime().availableProcessors()): Int =
+            cores.coerceIn(2, MAX_THREADS)
     }
 }
