@@ -108,12 +108,16 @@ page up front.
 The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface as
 the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
-page's layers), and the page can be fitted to the window, fitted to its width, or zoomed freely — the
+page's layers, each with an eye that hides it from the page and from the thumbnail without touching the file),
+and the page can be fitted to the window, fitted to its width, or zoomed freely — the
 point under the cursor stays where it is while you zoom. A page saved as one long strip — how a lecture
 written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
 shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. The window speaks
 English, like the tablet app. It is **read-only** for now, and it is a separate module, so it never
 affects the Android build.
+
+Isometric paper — the triangular ±30° sheet — is ruled here from the same geometry the tablet uses, so the
+two shells draw the same grid.
 
 The drawing tools have their two placements here as well: a vertical rail beside the page (the
 default) and a horizontal ribbon under the header. The header's **Tool placement** control switches

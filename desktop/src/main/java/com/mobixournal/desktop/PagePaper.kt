@@ -33,7 +33,7 @@ internal fun DrawScope.drawPaper(
     val lineWidth = 0.6f * scale
     when (solid.style.lowercase()) {
         "ruled", "lined" -> {
-            val line = Color(BackgroundGrid.LINED_RGB)
+            val line = rulingColour(BackgroundGrid.LINED_RGB)
             for (y in BackgroundGrid.lines(height, spacing)) {
                 val py = (y * scale).toFloat()
                 drawLine(line, Offset(0f, py), Offset(sheet.width, py), strokeWidth = lineWidth)
@@ -41,7 +41,7 @@ internal fun DrawScope.drawPaper(
         }
 
         "graph", "squared", "grid" -> {
-            val line = Color(BackgroundGrid.GRAPH_RGB)
+            val line = rulingColour(BackgroundGrid.GRAPH_RGB)
             for (y in BackgroundGrid.lines(height, spacing)) {
                 val py = (y * scale).toFloat()
                 drawLine(line, Offset(0f, py), Offset(size.width, py), strokeWidth = lineWidth)
@@ -52,8 +52,23 @@ internal fun DrawScope.drawPaper(
             }
         }
 
+        // Isometric sheets rule the same triangular mesh the tablet and the SVG/PDF exports do:
+        // `BackgroundGrid.isometric` is the shared geometry, so this shell strokes the segments it
+        // returns instead of deriving a second grid that could drift from the sheet next to it.
+        "isometric", "isograph" -> {
+            val line = rulingColour(BackgroundGrid.GRAPH_RGB)
+            for (segment in BackgroundGrid.isometric(width, height, spacing)) {
+                drawLine(
+                    line,
+                    Offset((segment[0] * scale).toFloat(), (segment[1] * scale).toFloat()),
+                    Offset((segment[2] * scale).toFloat(), (segment[3] * scale).toFloat()),
+                    strokeWidth = lineWidth,
+                )
+            }
+        }
+
         "dotted" -> {
-            val dot = Color(BackgroundGrid.DOT_RGB)
+            val dot = rulingColour(BackgroundGrid.DOT_RGB)
             val radius = 0.7f * scale
             for (y in BackgroundGrid.lines(height, spacing)) {
                 for (x in BackgroundGrid.lines(width, spacing)) {
@@ -63,6 +78,17 @@ internal fun DrawScope.drawPaper(
         }
     }
 }
+
+/**
+ * A ruling colour, made **opaque**.
+ *
+ * `BackgroundGrid`'s RGB constants are `0xRRGGBB` — the tablet's painter ORs the alpha in, because
+ * `android.graphics.Color` would read the same number the same way. `Compose`'s `Color(Int)` wants
+ * `0xAARRGGBB`, so passing the constant straight through gave every ruling an alpha of **zero**: the
+ * desktop's graph and ruled sheets were painted white on white, and the only reason nobody noticed is
+ * that nobody had drawn an isometric one yet.
+ */
+private fun rulingColour(rgb: Int): Color = Color(rgb or 0xFF000000.toInt())
 
 /**
  * The `<background config="r1=…,m1=…">` spacing, or desktop's default for the style when the file
@@ -83,6 +109,8 @@ private fun rulingSpacing(solid: Background.Solid): Double {
     if (r1 != null) return r1
     return when (solid.style.lowercase()) {
         "ruled", "lined" -> BackgroundGrid.RULE_SPACING_PT
+        // `r1` on an isometric sheet is the triangle's side, not a square's.
+        "isometric", "isograph" -> BackgroundGrid.ISO_SPACING_PT
         else -> BackgroundGrid.GRID_SPACING_PT
     }
 }

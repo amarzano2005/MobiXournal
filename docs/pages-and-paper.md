@@ -43,7 +43,12 @@ per frame was pure churn. Isometric paper is the same story one level up: `isogr
 desktop styles, `r1` is the triangle's side, and the mesh is the pure `BackgroundGrid.isometric`
 clipped to the sheet — the two ±30° families whose diagonals are what desktop paints. (A desktop page
 ruled `isodotted` is drawn as that same mesh rather than as its dotted variant: a cosmetic difference
-on a style we never produce, recorded here rather than guessed at.) **Stationery** is the menu over
+on a style we never produce, recorded here rather than guessed at.) The RGB constants in
+`BackgroundGrid` carry **no alpha** (`0xRRGGBB`); a renderer must make them opaque before it paints
+them. Android's `android.graphics.Color` reads the number that way already, while Compose's
+`Color(Int)` wants `0xAARRGGBB` — passing a constant straight through gave the desktop's rulings an
+alpha of zero, so its ruled and graph sheets were white on white until the isometric paper exposed it
+(`PagePaper.rulingColour` now ORs the alpha in). **Stationery** is the menu over
 all of this (`PageTemplates`): millimetre paper, 5 mm graph, 7 mm ruled and 5/10 mm isometric write a
 style + `config` pair — real paper the desktop renders too — while **Cornell notes**, which no
 Xournal++ version has, is drawn instead: its three rules land as ordinary strokes on a layer named

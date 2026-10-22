@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.io.File
@@ -32,6 +33,29 @@ class DesktopTab(
     var page: Int by mutableStateOf(page)
     var viewport: Viewport by mutableStateOf(viewport)
     var fit: FitMode by mutableStateOf(fit)
+
+    /**
+     * Layers hidden **in this window**, by page index. Never written to the document.
+     *
+     * A layer the user has switched off is a view state, not an edit: hiding an annotation to read the
+     * page underneath must not change the file, and it must not survive a reopen either. It is per tab
+     * because two tabs may be looking at the same document for two different reasons, and per page
+     * because "Layer 2" of page 1 is not "Layer 2" of page 7.
+     */
+    private val hidden = mutableStateMapOf<Int, Set<Int>>()
+
+    /** The layers switched off on [page] — the set the painter and the thumbnails skip. */
+    fun hiddenOn(page: Int): Set<Int> = hidden[page].orEmpty()
+
+    /** Whether [layer] of [page] is switched off. */
+    fun isLayerHidden(page: Int, layer: Int): Boolean = hidden[page]?.contains(layer) == true
+
+    /** Switches [layer] of [page] off or back on; the document is untouched. */
+    fun toggleLayer(page: Int, layer: Int) {
+        val current = hidden[page].orEmpty()
+        hidden[page] = if (layer in current) current - layer else current + layer
+    }
+
     val file: File get() = document.file
 
     /** The identity two opens of the same document share — the absolute path, not the label. */

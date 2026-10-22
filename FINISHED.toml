@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-layer-visibility-and-isometric-paper"
+title = "Desktop: layer visibility toggles and isometric paper"
+description = "In desktop/ add (1) an eye toggle per layer in the sidebar's layer list that hides and shows the layer on the page and in thumbnails without changing the document, kept per tab; (2) isometric paper in the shared paper geometry used by the Android editor (mobix-core ruling code) so both shells draw the same grid. Files: the sidebar layer list and the page painter under desktop/src/main, the paper geometry in mobix-core. Verify: a unit test that a hidden layer is absent from the rendered pixels and a headless render of isometric paper compared with the shared ruling output. Document in docs/desktop-workstation.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "transcribe-while-recording"
 title = "Transcribe while recording, in the background"
 description = """

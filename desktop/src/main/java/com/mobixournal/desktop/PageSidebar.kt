@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,7 +29,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
@@ -96,7 +102,12 @@ fun PageSidebar(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(count = tab.pageCount) { index ->
-                val preview = remember(tab, index) { thumbnail(tab, index, THUMB_WIDTH.value, cache) }
+                // The hidden set is part of the key: switching a layer off repaints this page's thumbnail
+                // rather than leaving a preview that disagrees with the sheet beside it.
+                val hidden = tab.hiddenOn(index)
+                val preview = remember(tab, index, hidden) {
+                    thumbnail(tab, index, THUMB_WIDTH.value, cache)
+                }
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -156,12 +167,60 @@ private fun LayersSection(tab: DesktopTab) {
             Text("No layers", color = DesktopTheme.inkMuted, fontFamily = DesktopTheme.inter, fontSize = 11.sp)
         }
         for (index in layers.indices.reversed()) {
-            Text(
-                text = layers[index].label(index),
-                color = DesktopTheme.ink,
-                fontFamily = DesktopTheme.inter,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(vertical = 2.dp),
+            val hidden = tab.isLayerHidden(tab.page, index)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { tab.toggleLayer(tab.page, index) }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LayerEye(hidden = hidden)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = layers[index].label(index),
+                    // A hidden layer stays listed, in the muted ink: it is switched off, not gone.
+                    color = if (hidden) DesktopTheme.inkMuted else DesktopTheme.ink,
+                    fontFamily = DesktopTheme.inter,
+                    fontSize = 11.sp,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The eye beside a layer's name: open when the layer is painted, struck through when it is not.
+ *
+ * Monoline like every other glyph in the window, and drawn rather than shipped as an icon: the chrome
+ * has one stroke weight and one ink, and an image would be a second material in a 16 dp square.
+ */
+@Composable
+private fun LayerEye(hidden: Boolean) {
+    val ink = if (hidden) DesktopTheme.inkMuted else DesktopTheme.ink
+    Canvas(Modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = 1.2.dp.toPx()
+        val lid = Path().apply {
+            moveTo(w * 0.08f, h * 0.5f)
+            cubicTo(w * 0.28f, h * 0.3f, w * 0.72f, h * 0.3f, w * 0.92f, h * 0.5f)
+            cubicTo(w * 0.72f, h * 0.7f, w * 0.28f, h * 0.7f, w * 0.08f, h * 0.5f)
+        }
+        drawPath(lid, ink, style = Stroke(width = stroke, cap = StrokeCap.Round))
+        drawCircle(
+            color = ink,
+            radius = w * 0.1f,
+            center = Offset(w * 0.5f, h * 0.5f),
+            style = Stroke(width = stroke),
+        )
+        if (hidden) {
+            drawLine(
+                ink,
+                Offset(w * 0.14f, h * 0.86f),
+                Offset(w * 0.86f, h * 0.14f),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
             )
         }
     }
@@ -194,21 +253,30 @@ internal fun thumbnail(
     widthDp: Float,
     cache: MutableMap<Int, ImageBitmap>,
 ): ImageBitmap? {
-    cache[index]?.let { return it }
+    val hidden = tab.hiddenOn(index)
+    // The cache holds the *unfiltered* page. A page with layers switched off is painted fresh (and
+    // remembered by the caller's `remember` keyed on the hidden set), so switching a layer on again
+    // cannot hand back a thumbnail that is missing it.
+    if (hidden.isEmpty()) cache[index]?.let { return it }
     val page = runCatching { tab.document.page(index) }.getOrNull() ?: return null
     if (page.width <= 0.0) return null
     val scale = widthDp / page.width.toFloat()
-    val bitmap = runCatching { renderPageBitmap(page, scale) }.getOrNull() ?: return null
-    cache[index] = bitmap
+    val bitmap = runCatching { renderPageBitmap(page, scale, hiddenLayers = hidden) }.getOrNull() ?: return null
+    if (hidden.isEmpty()) cache[index] = bitmap
     return bitmap
 }
 
 /** Renders [page] at [scale] into a bitmap — thumbnails today, page-list previews tomorrow. */
 @OptIn(ExperimentalComposeUiApi::class)
-internal fun renderPageBitmap(page: Page, scale: Float, density: Density = Density(1f)): ImageBitmap {
+internal fun renderPageBitmap(
+    page: Page,
+    scale: Float,
+    density: Density = Density(1f),
+    hiddenLayers: Set<Int> = emptySet(),
+): ImageBitmap {
     val w = (page.width * scale).roundToInt().coerceAtLeast(1)
     val h = (page.height * scale).roundToInt().coerceAtLeast(1)
-    val scene = ImageComposeScene(w, h, density) { PageView(page, scale) }
+    val scene = ImageComposeScene(w, h, density) { PageView(page, scale, hiddenLayers = hiddenLayers) }
     return try {
         scene.render().toComposeImageBitmap()
     } finally {

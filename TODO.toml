@@ -526,20 +526,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-layer-visibility-and-isometric-paper"
-title = "Desktop: layer visibility toggles and isometric paper"
-description = "In desktop/ add (1) an eye toggle per layer in the sidebar's layer list that hides and shows the layer on the page and in thumbnails without changing the document, kept per tab; (2) isometric paper in the shared paper geometry used by the Android editor (mobix-core ruling code) so both shells draw the same grid. Files: the sidebar layer list and the page painter under desktop/src/main, the paper geometry in mobix-core. Verify: a unit test that a hidden layer is absent from the rendered pixels and a headless render of isometric paper compared with the shared ruling output. Document in docs/desktop-workstation.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "low"
-order = 1090
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-light-theme-and-header-extras"
 title = "Desktop: light theme and header extras (scope)"
 description = "docs/desktop-workstation.md and ui-modernization.md say the desktop is dark-first and the light theme waits until the tokens cover it, and the header drawing lists a document path breadcrumb, a search field, Share and Settings. Break down: (1) light-theme tokens for the glass, desk and sheet, with a setting and the system default; (2) the breadcrumb for the open document's path; (3) the search field wired to desktop-page-management-and-search; (4) Share (reveal in Explorer, export, copy path); (5) the Settings entry opening desktop-settings-and-status-ui. Produce tasks, no code."

@@ -147,7 +147,8 @@ fun PageCanvas(
             val dx = viewport.offsetX * density
             val dy = viewport.offsetY * density
             withTransform({ translate(dx, dy) }) {
-                drawPageContent(loaded, pxPerPt = pxPerPt, textMeasurer = measurer, backdrop = tab.document.backdrop)
+                // (page, scale, measurer, backdrop, hidden layers) — the last one is the sidebar's eyes.
+                drawPageContent(loaded, pxPerPt, measurer, tab.document.backdrop, tab.hiddenOn(tab.page))
             }
         }
     }

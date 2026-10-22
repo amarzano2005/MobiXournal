@@ -33,11 +33,19 @@ two thirds of the window is black desk. The status bar names the fit actually in
 means the whole sheet, however small that makes it, and scrolling never abandons the fit (a width-fitted
 page must stay fitted while you read down it). Thumbnails come from the
 same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
-once per page per tab.
+once per page per tab. The sidebar's layer list carries an **eye per layer** (`LayerEye`, monoline like
+the rest of the chrome): switching one off skips that layer in the page painter *and* in the thumbnail,
+and the layer stays listed in the muted ink — switched off, not gone. That is **view** state, per tab and
+per page (`DesktopTab.hiddenOn` / `toggleLayer`): nothing is written to the document, and a second press
+brings the layer back. A hidden layer's thumbnail is painted fresh instead of taking the page cache, so a
+preview can never show a layer the sheet beside it is missing.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
   those documents — the header says nothing about a count instead of showing a wrong one.
-- Paints solid/ruled/graph/dotted paper (`config`'s `r1`, else `BackgroundGrid`'s defaults), pen
+- Paints solid/ruled/graph/dotted/**isometric** paper (`config`'s `r1`, else `BackgroundGrid`'s defaults;
+  an isometric sheet strokes the segments `BackgroundGrid.isometric` returns — the same mesh the tablet
+  and the SVG/PDF exports draw — so a ±30° sheet is ruled by shared geometry and not a second grid),
+  pen
   strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
 - **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
@@ -89,8 +97,8 @@ picker.
 
 What it does **not** do (all still governed by this spoke):
 - No editing and no saving — the window is read-only.
-- No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no isometric paper,
-  no layer visibility toggles, and no editing of a living entity — the ink is drawn, not yet made
+- No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
+  living entity — the ink is drawn, not yet made
   editable.
 - No right-side property inspector, no search, and no page reordering or insertion. The tool strips
   pick a tool and stop there: there is no inking, no erasing and no selection.
@@ -119,7 +127,10 @@ the family's edge, and a band of ink under the panel must still read through it,
 `GlassMotionTest` drives the arrival through a scene's frame clock (`render(nanoTime)`) and reads the
 pixels at successive instants: at t=0 nothing is painted, 40 ms later the panel is faint and still inside
 its 82 % box, by 700 ms it is the glass at full size — and gating it with `GlassPresence` keeps it
-composed through the 230 ms exit hold before releasing it.
+composed through the 230 ms exit hold before releasing it. `PageLayersAndPaperTest` reads pixels too:
+`isometric-paper.png` is an isometric sheet, whose line midpoints must fall on the segments
+`BackgroundGrid.isometric` returns, and `hidden-layer.png` is a two-layer page with one layer switched
+off — the band that is gone is the check.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
 phase order and the done criteria, and its children are the atomic tasks (orders 934–1120) and the

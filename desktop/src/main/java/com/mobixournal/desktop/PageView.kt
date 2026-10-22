@@ -39,12 +39,24 @@ import com.mobixournal.render.LivingInk
  * content is the document, not a screenshot of it.
  */
 @Composable
-fun PageView(page: Page, scale: Float, modifier: Modifier = Modifier, backdrop: PageBackdrop? = null) {
+fun PageView(
+    page: Page,
+    scale: Float,
+    modifier: Modifier = Modifier,
+    backdrop: PageBackdrop? = null,
+    hiddenLayers: Set<Int> = emptySet(),
+) {
     val measurer = rememberTextMeasurer()
     Canvas(modifier.size((page.width * scale).dp, (page.height * scale).dp)) {
         // The box is sized in dp, so the painter must convert page points to device pixels with the
         // display density: without it a HiDPI screen would draw the ink at 1:1 inside a larger box.
-        drawPageContent(page, pxPerPt = scale * density, textMeasurer = measurer, backdrop = backdrop)
+        drawPageContent(
+            page,
+            pxPerPt = scale * density,
+            textMeasurer = measurer,
+            backdrop = backdrop,
+            hiddenLayers = hiddenLayers,
+        )
     }
 }
 
@@ -61,6 +73,7 @@ internal fun DrawScope.drawPageContent(
     pxPerPt: Float,
     textMeasurer: TextMeasurer,
     backdrop: PageBackdrop? = null,
+    hiddenLayers: Set<Int> = emptySet(),
 ) {
     // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
     // window, so `size` here would paint the paper across the whole viewport.
@@ -74,7 +87,10 @@ internal fun DrawScope.drawPageContent(
             dstSize = IntSize(sheet.width.roundToInt(), sheet.height.roundToInt()),
         )
     }
-    for (layer in page.layers) {
+    // A hidden layer is skipped like an empty one: the page keeps its elements, the window just does
+    // not paint them (the same view state that hides it in the sidebar's list).
+    for ((index, layer) in page.layers.withIndex()) {
+        if (index in hiddenLayers) continue
         for (element in layer.elements) drawElement(element, pxPerPt, textMeasurer)
     }
 }
