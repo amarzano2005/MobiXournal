@@ -336,7 +336,8 @@ and width and no line style, so neither would survive the round trip.
 ```json
 {
   "type": "circuit", "id": "ckt_res_01", "symbol": "RESISTOR",
-  "value": "10 kΩ", "position": { "x": 300.0, "y": 150.0 }, "rotation": 90.0,
+  "value": "10 kΩ", "labelBelow": true,
+  "position": { "x": 300.0, "y": 150.0 }, "rotation": 90.0,
   "strokeColor": "#d84315ff", "strokeWidth": 1.6,
   "pins": [
     { "id": "p1", "relX": -24.0, "relY": 0.0, "connectedTo": "net_node_A" },
@@ -344,6 +345,13 @@ and width and no line style, so neither would survive the round trip.
   ]
 }
 ```
+
+`labelBelow` places the `value` under the drawn symbol instead of above it, and is omitted when it is
+`false` — a label above its part is the ordinary reading. Either way the label is laid out **around**
+the symbol (centred on the turned symbol's own box, with air between the two), so it never lies over
+the drawing — which is what it used to do as soon as a component was rotated, since the ink turns and
+a value does not. The side is chosen in the circuit inspector, and changing it there moves the label
+at once (`render/CircuitInk.kt`, `ui/CircuitEditorDialog.kt`).
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:

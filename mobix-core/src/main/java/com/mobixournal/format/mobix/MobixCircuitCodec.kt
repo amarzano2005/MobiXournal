@@ -34,12 +34,18 @@ internal object MobixCircuitCodec {
     private const val PINS = "pins"
     private const val POSITION = "position"
 
+    /** Where the value label sits, relative to the drawn symbol (`CircuitElement.labelBelow`). */
+    private const val LABEL_BELOW = "labelBelow"
+
     /** [circuit] as JSON. */
     fun encode(circuit: CircuitElement): JsonNode.Obj = MobixJson.obj { out ->
         out["type"] = JsonNode.of(TYPE)
         circuit.id?.let { out["id"] = JsonNode.of(it) }
         out["symbol"] = JsonNode.of(circuit.symbol)
         circuit.value?.let { out["value"] = JsonNode.of(it) }
+        // Only when it differs from the default: a label above its symbol is the ordinary reading,
+        // and a file full of default values is noise in the one place a person reads by hand.
+        if (circuit.labelBelow) out[LABEL_BELOW] = JsonNode.of(true)
         out[POSITION] = MobixJson.obj { position ->
             position["x"] = JsonNode.of(circuit.positionX)
             position["y"] = JsonNode.of(circuit.positionY)
@@ -72,6 +78,7 @@ internal object MobixCircuitCodec {
             strokeColor = MobixJson.colourOrNull(node, "strokeColor") ?: CircuitElement.DEFAULT_INK,
             strokeWidth = node.getDouble("strokeWidth", 1.0),
             value = node.getStrOrNull("value"),
+            labelBelow = node.getBool(LABEL_BELOW, false),
             pins = pins,
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.CIRCUIT),

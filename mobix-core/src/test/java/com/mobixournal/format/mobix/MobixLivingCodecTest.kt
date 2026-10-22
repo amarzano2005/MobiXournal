@@ -333,6 +333,17 @@ class MobixLivingCodecTest {
     }
 
     @Test
+    fun aCircuitRemembersWhichSideItsLabelIsWrittenOn() {
+        // The side is the reader's choice, not a layout accident, so it has to travel with the file —
+        // in `.mobix` and in the `.xopp` bridge claim, which share this codec.
+        val below = circuit().copy(labelBelow = true)
+        assertEquals(below, roundTrip(below))
+        assertTrue("a label below is written down", encode(below).has("labelBelow"))
+        assertFalse("the default is absence, not a stored false", encode(circuit()).has("labelBelow"))
+        assertFalse("and reading a file without it means above", (roundTrip(circuit()) as CircuitElement).labelBelow)
+    }
+
+    @Test
     fun aComponentWithNoPinsIsAPlainSymbol() {
         // The shape library's own drawings need no connectivity, so an empty pin list is written as
         // nothing at all — "no anchors" and "an empty set of anchors" are one fact, not two spellings.

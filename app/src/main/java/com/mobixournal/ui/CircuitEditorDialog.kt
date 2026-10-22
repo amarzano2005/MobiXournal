@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,8 +52,9 @@ import kotlin.math.roundToInt
 /**
  * Compact anchored inspector for editing a living [CircuitElement].
  *
- * Sits beside the selected component on the canvas, is freely draggable,
- * and allows quick editing of component value/designation and 90° rotation.
+ * Sits beside the selected component on the canvas, is freely draggable, and allows quick editing of
+ * the component's value/designation, which side of the symbol that label is written on, and its 90°
+ * rotation.
  */
 @Composable
 fun CircuitInspectorAnchor(
@@ -99,6 +101,20 @@ fun CircuitInspectorAnchor(
 
     var valueText by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.value ?: "") }
     var rotation by remember(circuit.id ?: circuit.hashCode()) { mutableDoubleStateOf(circuit.rotation) }
+    var labelBelow by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.labelBelow) }
+
+    /** The element as the inspector currently reads it — what every control below applies. */
+    fun edited() = circuit.copy(
+        value = valueText.ifBlank { null },
+        labelBelow = labelBelow,
+        rotation = rotation,
+    )
+
+    /** Push the inspector's state to the page. A label's side is a placement, so it applies live. */
+    fun apply(updated: CircuitElement = edited()) {
+        surface?.replaceCircuitElement(circuit, updated)
+        ui.editingCircuit = updated
+    }
 
     FloatingSurface(
         modifier = modifier
@@ -115,26 +131,24 @@ fun CircuitInspectorAnchor(
             circuit = circuit,
             valueText = valueText,
             onValueTextChange = { valueText = it },
+            labelBelow = labelBelow,
+            onLabelBelowChange = { below ->
+                labelBelow = below
+                apply()
+            },
             rotation = rotation,
             onRotate = {
-                val nextRot = (rotation + 90.0) % 360.0
-                rotation = nextRot
-                val updated = circuit.copy(value = valueText.ifBlank { null }, rotation = nextRot)
-                surface?.replaceCircuitElement(circuit, updated)
-                ui.editingCircuit = updated
+                rotation = (rotation + 90.0) % 360.0
+                apply()
             },
             onStraighten = {
                 val straight = (round(rotation / 90.0) * 90.0) % 360.0
-                val nextRot = if (straight < 0.0) straight + 360.0 else straight
-                rotation = nextRot
-                val updated = circuit.copy(value = valueText.ifBlank { null }, rotation = nextRot)
-                surface?.replaceCircuitElement(circuit, updated)
-                ui.editingCircuit = updated
+                rotation = if (straight < 0.0) straight + 360.0 else straight
+                apply()
             },
             onDismiss = onDismiss,
             onSave = {
-                val updated = circuit.copy(value = valueText.ifBlank { null }, rotation = rotation)
-                surface?.replaceCircuitElement(circuit, updated)
+                apply()
                 onDismiss()
             },
             onDrag = { dragDelta += it },
@@ -147,6 +161,8 @@ private fun CircuitInspectorContent(
     circuit: CircuitElement,
     valueText: String,
     onValueTextChange: (String) -> Unit,
+    labelBelow: Boolean,
+    onLabelBelowChange: (Boolean) -> Unit,
     rotation: Double,
     onRotate: () -> Unit,
     onStraighten: () -> Unit,
@@ -171,6 +187,10 @@ private fun CircuitInspectorContent(
             placeholder = { Text("e.g. 10 kΩ, Vcc, R1") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+        )
+        CircuitLabelPlacementControl(
+            labelBelow = labelBelow,
+            onSelect = onLabelBelowChange,
         )
         CircuitRotationControl(
             rotation = rotation,
@@ -224,6 +244,42 @@ private fun CircuitInspectorHeader(
                 Icons.Outlined.Close,
                 contentDescription = "Close",
                 modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Where the value label is written: above the symbol, or below it.
+ *
+ * The label is laid out around the drawn symbol either way, so this picks a **side**, not a
+ * position — above is where a dimension is written, below keeps a crowded row of wires free. The
+ * choice is applied at once, so the user sees the value move while the inspector is still open.
+ */
+@Composable
+private fun CircuitLabelPlacementControl(
+    labelBelow: Boolean,
+    onSelect: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = "Label",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(
+                selected = !labelBelow,
+                onClick = { onSelect(false) },
+                label = { Text("Above") },
+            )
+            FilterChip(
+                selected = labelBelow,
+                onClick = { onSelect(true) },
+                label = { Text("Below") },
             )
         }
     }

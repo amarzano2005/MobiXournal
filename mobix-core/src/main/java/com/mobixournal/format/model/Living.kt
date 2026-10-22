@@ -283,6 +283,9 @@ data class CircuitPin(
  * @param strokeWidth The component's line width in points.
  * @param value The component's value as the user wrote it (`10 kΩ`, `V1`) — a string, because it is a
  *   label and not a quantity this build computes with.
+ * @param labelBelow Whether that label is written **below** the symbol instead of above it. The label
+ *   is laid out around the drawn symbol, never over it, so this is the reader's choice of side rather
+ *   than a position: above is where a dimension is written, below keeps a crowded wire row free.
  * @param pins The magnetic anchors, relative to the position and before the rotation.
  * @param extraAttrs Attributes a later schema added, preserved for round-trip.
  * @param id The element's stable identity; see [ElementId].
@@ -295,6 +298,7 @@ data class CircuitElement(
     val strokeColor: Int = DEFAULT_INK,
     val strokeWidth: Double = 1.0,
     val value: String? = null,
+    val labelBelow: Boolean = false,
     val pins: List<CircuitPin> = emptyList(),
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
