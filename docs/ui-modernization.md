@@ -191,7 +191,13 @@ canvas, and a 48 dp ribbon in a row under the header. Each draws all fifteen too
 order, as monoline glyphs, with the picked slot in the steel `#38383E` and the rest in secondary ink.
 The rail scrolls vertically and the ribbon horizontally rather than hiding a tool on a short or narrow
 window, and hovering a slot reveals the name-and-hotkey pill. A slot only sets the tool **selection** —
-nothing draws with it until the editing phase. The choice is a persisted setting
+nothing draws with it until the editing phase. At the tail of each strip sit the two **ink slots** — the
+colour in use in a capsule and a dot at the current width — each opening a glass flyout: the palette as
+one horizontally scrolling row of swatches, and the three width slots `S`/`M`/`L`. Picking one writes it
+straight to the settings file (`ink.colour`, `ink.width`), and the palette itself is `palette.colours`,
+read through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour, a duplicate
+or an empty palette in front of the picker. The editable custom slot and the add-colour swatch arrive
+with `desktop-custom-colour-picker`. The placement choice is a persisted setting
 (`interface.toolPlacement`, Rail by default) in the desktop's own settings file under `%APPDATA%`, and
 the strips appear once a document is open, because the empty state has no canvas to draw on. The
 right-hand inspector is the part still missing.

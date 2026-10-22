@@ -83,9 +83,32 @@ class DesktopShellState(
     var toolPlacement by mutableStateOf(settings.toolPlacement)
         private set
 
+    /** The colour and width the strips show, restored from the settings file. */
+    var ink by mutableStateOf(DesktopInk(colour = settings.inkColour, width = settings.inkWidth))
+        private set
+
+    /** The palette the colour flyout offers; the factory eight until the settings file says otherwise. */
+    var palette by mutableStateOf(settings.paletteColours)
+        private set
+
+    /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
+    val stripState: ToolStripState get() = ToolStripState(selection = tools, ink = ink, palette = palette)
+
     /** Pick a tool (a slot, or its accelerator): the only thing the strips do until the editing phase. */
     fun selectTool(tool: DesktopTool) {
         tools = tools.select(tool)
+    }
+
+    /** Pick the ink colour, and remember it: the same swatch is there after a restart. */
+    fun pickColour(colour: Int) {
+        ink = ink.withColour(colour)
+        settings.inkColour = ink.colour
+    }
+
+    /** Pick a stroke width, and remember it. */
+    fun pickWidth(width: Float) {
+        ink = ink.withWidth(width)
+        settings.inkWidth = ink.width
     }
 
     /** Move the tool strips, and remember the choice across restarts. */
@@ -332,7 +355,12 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                 // is left. Neither is ever laid over the sheet (`docs/chrome.md`).
                 else -> Column(Modifier.fillMaxSize()) {
                     if (state.toolPlacement.showsRibbon) {
-                        ToolRibbon(selection = state.tools, onSelect = state::selectTool)
+                        ToolRibbon(
+                            state = state.stripState,
+                            onSelect = state::selectTool,
+                            onColour = state::pickColour,
+                            onWidth = state::pickWidth,
+                        )
                     }
                     Row(Modifier.weight(1f).fillMaxWidth()) {
                         if (state.sidebarVisible) {
@@ -343,7 +371,12 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                             )
                         }
                         if (state.toolPlacement.showsRail) {
-                            ToolRail(selection = state.tools, onSelect = state::selectTool)
+                            ToolRail(
+                                state = state.stripState,
+                                onSelect = state::selectTool,
+                                onColour = state::pickColour,
+                                onWidth = state::pickWidth,
+                            )
                         }
                         PageCanvas(
                             tab = tab,

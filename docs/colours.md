@@ -17,6 +17,14 @@ read it instead of spelling their own copies, because the desktop window needs t
 the same three widths — what a palette *is* cannot be decided twice. What stays in `ui/` is the UI: the
 swatch rows, the custom-slot affordances and the HSV/hex dialog.
 
+**On the desktop** the palette is the same data, kept in the window's own settings file
+(`%APPDATA%\MobiXournal\desktop.properties`): `palette.colours` as a comma-separated list of eight-digit
+ARGB hex, plus `ink.colour` and `ink.width` for what the strips show. The strip tails carry a colour slot
+and a size slot, opening the palette row and the `S`/`M`/`L` widths as floating glass flyouts. Reading
+the file runs the list through `PenPalette.sanitised`, so an edited file cannot put a transparent colour,
+a duplicate or an empty palette in front of the picker. The desktop's editable custom slot, its
+add-colour swatch and its HSV/hex panel are `desktop-custom-colour-picker`'s.
+
 The one colour picker all three sites share (the pen pop-up, the text-box dialog, the selection
 recolour menu), plus the shortcut tables that jump straight to a colour or a tool (see
 `ShortcutsSection.kt` and the `toolShortcutKeys` / `colorShortcutKeys` maps in `AppSettings`):

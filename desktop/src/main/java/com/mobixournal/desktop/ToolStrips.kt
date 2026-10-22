@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.DesignTokens
+import com.mobixournal.design.PenPalette
 
 /**
  * The two tool placements of `docs/ui-modernization.md` §2, and the metrics that keep them honest.
@@ -72,6 +73,21 @@ object ToolStripMetrics {
 }
 
 /**
+ * Everything a strip draws, as one value: the picked tool, the ink and the palette it offers.
+ *
+ * Bundled rather than passed as four parameters because both placements must draw the same thing — a
+ * rail that showed a different colour from the ribbon would be two palettes again.
+ */
+data class ToolStripState(
+    val selection: ToolSelection = ToolSelection(),
+    val ink: DesktopInk = DesktopInk(),
+    val palette: List<Int> = PenPalette.COLORS,
+)
+
+/** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
+internal enum class StripSide { RIGHT, BELOW }
+
+/**
  * Option B: the vertical rail, docked beside the canvas.
  *
  * Fifteen slots are ~660 dp tall, so the lane scrolls rather than dropping its last tools on a window
@@ -80,8 +96,10 @@ object ToolStripMetrics {
  */
 @Composable
 fun ToolRail(
-    selection: ToolSelection,
+    state: ToolStripState,
     onSelect: (DesktopTool) -> Unit,
+    onColour: (Int) -> Unit,
+    onWidth: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -95,8 +113,11 @@ fun ToolRail(
         verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
     ) {
         for (tool in DesktopTool.entries) {
-            ToolSlot(tool, active = tool == selection.current, onSelect = onSelect, side = TooltipSide.RIGHT)
+            ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.RIGHT)
         }
+        StripDivider(vertical = true)
+        ColourSlot(state.ink, state.palette, onColour, side = StripSide.RIGHT)
+        SizeSlot(state.ink, onWidth, side = StripSide.RIGHT)
     }
 }
 
@@ -108,8 +129,10 @@ fun ToolRail(
  */
 @Composable
 fun ToolRibbon(
-    selection: ToolSelection,
+    state: ToolStripState,
     onSelect: (DesktopTool) -> Unit,
+    onColour: (Int) -> Unit,
+    onWidth: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -123,13 +146,31 @@ fun ToolRibbon(
         horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
     ) {
         for (tool in DesktopTool.entries) {
-            ToolSlot(tool, active = tool == selection.current, onSelect = onSelect, side = TooltipSide.BELOW)
+            ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.BELOW)
         }
+        StripDivider(vertical = false)
+        ColourSlot(state.ink, state.palette, onColour, side = StripSide.BELOW)
+        SizeSlot(state.ink, onWidth, side = StripSide.BELOW)
     }
 }
 
-/** Which side of its slot a strip's hover pill opens on: the rail has no room below it. */
-private enum class TooltipSide { RIGHT, BELOW }
+/**
+ * A hairline between the tools and the ink slots — the only rule inside a strip.
+ *
+ * It is a **gap with one edge**, not a second band: the tools are what you draw with, the colour and the
+ * width are what they draw *in*, and the strip already has an edge on the page side. The vertical rail
+ * gets a short horizontal stroke, the ribbon a full-height vertical one.
+ */
+@Composable
+private fun StripDivider(vertical: Boolean) {
+    if (vertical) {
+        Box(Modifier.width(20.dp).height(1.dp).background(DesktopTheme.hairline))
+    } else {
+        Box(Modifier.width(1.dp).height(20.dp).background(DesktopTheme.hairline))
+    }
+}
+
+
 
 /**
  * One tool: its glyph in a 40 dp capsule, the active one wearing the steel [`DesktopTheme.activeSlot`]
@@ -144,7 +185,7 @@ private fun ToolSlot(
     tool: DesktopTool,
     active: Boolean,
     onSelect: (DesktopTool) -> Unit,
-    side: TooltipSide,
+    side: StripSide,
 ) {
     var hovered by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -176,8 +217,8 @@ private fun ToolSlot(
             TooltipPill(
                 tool = tool,
                 offset = when (side) {
-                    TooltipSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
-                    TooltipSide.BELOW -> IntOffset(0, slotPx + gapPx)
+                    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
+                    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
                 },
             )
         }

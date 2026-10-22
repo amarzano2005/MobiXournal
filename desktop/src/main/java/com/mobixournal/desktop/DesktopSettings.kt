@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import com.mobixournal.design.PenPalette
 import java.io.File
 import java.util.Properties
 
@@ -58,6 +59,38 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /**
+     * The live palette the strips' colour flyout draws: opaque, de-duplicated and never empty, because
+     * the decoder runs it through [PenPalette.sanitised]. A fresh or hand-edited file opens on the
+     * factory eight rather than on nothing.
+     */
+    var paletteColours: List<Int>
+        get() = PaletteCodec.decode(properties.getProperty(KEY_PALETTE_COLORS))
+        set(value) {
+            properties.setProperty(KEY_PALETTE_COLORS, PaletteCodec.encode(PenPalette.sanitised(value)))
+            save()
+        }
+
+    /** The colour the strips show; the factory palette's first swatch until one is picked. */
+    var inkColour: Int
+        get() = PaletteCodec.parseHex(properties.getProperty(KEY_INK_COLOUR))
+            ?.let(PenPalette::opaque)
+            ?: DesktopInk().colour
+        set(value) {
+            properties.setProperty(KEY_INK_COLOUR, PaletteCodec.hex(value))
+            save()
+        }
+
+    /** The stroke width the strips show, in points, clamped to [PenPalette]'s range. */
+    var inkWidth: Float
+        get() = properties.getProperty(KEY_INK_WIDTH)?.toFloatOrNull()
+            ?.let(PenPalette::clampWidth)
+            ?: DesktopInk().width
+        set(value) {
+            properties.setProperty(KEY_INK_WIDTH, PenPalette.clampWidth(value).toString())
+            save()
+        }
+
     /** Write the file; a failure leaves the window running on the value just chosen. */
     private fun save() {
         runCatching {
@@ -69,6 +102,15 @@ class DesktopSettings(val file: File = defaultFile()) {
     companion object {
         /** The property the placement is stored under, named for the settings section that owns it. */
         const val KEY_TOOL_PLACEMENT = "interface.toolPlacement"
+
+        /** The palette the colour flyout draws, as [PaletteCodec]'s comma-separated hex list. */
+        const val KEY_PALETTE_COLORS = "palette.colours"
+
+        /** The colour the strips show, as [PaletteCodec] hex. */
+        const val KEY_INK_COLOUR = "ink.colour"
+
+        /** The stroke width the strips show, in points. */
+        const val KEY_INK_WIDTH = "ink.width"
 
         /**
          * The store's home: `%APPDATA%\MobiXournal\desktop.properties` on Windows, and the same
