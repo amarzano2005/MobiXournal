@@ -99,6 +99,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
     render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
     render/LivingInk.kt      # THE living dispatch: TableInk/PlotInk/ShapeInk/CircuitInk + their geometry
+    render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, one per tab
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
   build.gradle.kts                                         # module config (SDK levels, Compose, deps)
@@ -251,7 +252,6 @@ app/
       PressureCurve.kt       # pressure -> width multiplier + sensitivity presets (pure)
       Fling.kt               # decelerating two-axis momentum-scroll kinematics (pure)
       VelocityEstimator.kt   # pan release-velocity from a trailing sample window (pure)
-      EditHistory.kt         # generic undo/redo over document snapshots (pure)
       PageOps.kt             # insert / copy / move / delete pages in a page list (pure)
       PageThumbnail.kt       # rasterises one page into a small preview bitmap for the tab overview
     audio/                   # audio-annotated strokes: record, replay, sidecar transfer

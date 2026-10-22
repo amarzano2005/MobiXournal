@@ -162,7 +162,7 @@ orders 941–946).
 |---|---|---|---|
 | `render/XoppSynthesis.kt` | 179 | none — only `format.mobix` and `format.model` | moves to `mobix-core` unchanged |
 | `render/PageSvgWriter.kt` | 229 | none — model and `java.util.Base64` | moves to `mobix-core` unchanged |
-| `render/EditHistory.kt` | 69 | none, no imports at all | moves to `mobix-core` unchanged |
+| `render/EditHistory.kt` | 69 | none, no imports at all | **moved** — lives in `mobix-core/src/main/java/com/mobixournal/render/` |
 | `render/PdfVectorPainter.kt` | 226 | `BitmapFactory`, plus `com.tom_roush.pdfbox` (the Android PDFBox port) | the geometry moves as a **page plan** in `mobix-core`; the emitter stays per shell (the desktop has `org.apache.pdfbox` 3) |
 | `io/DocumentIo.kt` | 666 | `ContentResolver`, `Uri`, `OpenableColumns` — and `resolver` is used in exactly one place, `displayName` | splits: a `File`-based core layer plus the existing SAF shell |
 | `render/ElementEdits.kt` | 152 | `BitmapFactory`, for `inJustDecodeBounds` only | movable behind an injected image-size function |

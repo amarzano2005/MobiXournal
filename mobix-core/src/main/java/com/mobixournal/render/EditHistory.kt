@@ -2,9 +2,10 @@ package com.mobixournal.render
 
 /**
  * A generic undo/redo history over immutable snapshots of type [T]. Pure and Android-free so it's
- * unit-testable; [DrawingSurfaceView] parameterises it with the whole `Document`. Each edit calls
- * [record] with the pre-edit snapshot; [undo]/[redo] move between branches. Recording a new edit
- * discards the redo branch, as in every editor.
+ * unit-testable, and now shared: the Android editor parameterises it with the whole `Document` and the
+ * desktop editor will do the same, one history per tab. Each edit calls [record] with the pre-edit
+ * snapshot; [undo]/[redo] move between branches. Recording a new edit discards the redo branch, as in
+ * every editor.
  */
 class EditHistory<T>(private val maxDepth: Int = DEFAULT_MAX_DEPTH) {
     companion object {
