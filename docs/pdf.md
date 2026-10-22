@@ -100,11 +100,14 @@ fresh sheet whose background ruling is drawn as vectors (`PdfBackgroundPainter`)
 overlay. A `pixmap`-backed page additionally gets its picture embedded over that sheet —
 `PdfExporter` decodes it synchronously through `ImageBackgroundCache.render` at 2× the page's point
 size (~150 dpi) and draws it to the page box, so an image-backed document flattens to what the
-editor shows; a picture that no longer decodes leaves the bare sheet. `PdfVectorPainter` mirrors the on-screen `StrokePainter`/`ElementRenderer` geometry at scale
-1 — the `.xopp` unit == the PDF unit (1/72") — flipping y into PDF's bottom-left space via
-`PdfPageTransform`; pen strokes taper per segment, the highlighter is one constant-width translucent
-path, `.xopp` text elements use the base-14 fonts (see **Fonts in generated PDFs** below), and images
-embed losslessly. **Nothing is rasterised** except
+editor shows; a picture that no longer decodes leaves the bare sheet. The geometry is **not** in the
+painter: `PdfPagePlan` (in `mobix-core`) compiles the page into the ordered ops — fills, paths, text
+runs, image placements — at scale 1 (the `.xopp` unit == the PDF unit, 1/72"), flipping y into PDF's
+bottom-left space through the shared `PdfPageTransform`, and `PdfVectorPainter` replays those ops
+through the Android port of PDFBox, one arm per op. Pen strokes taper per segment, the highlighter is
+one constant-width translucent path, `.xopp` text elements use the base-14 fonts (see **Fonts in
+generated PDFs** below), and images embed losslessly. That split is why the desktop can emit the same
+page with `org.apache.pdfbox`: one geometry, two writers, no second opinion about a stroke. **Nothing is rasterised** except
 bitmaps that were already raster (user images and `pixmap` backgrounds), so a no-op import→export round-trips a PDF at ~its original size
 and fidelity instead of bloating ~10× from a raster flatten. **Rotated source pages** (`/Rotate`
 90/180/270) are handled: since the on-screen renderer already applies `/Rotate`, annotations are

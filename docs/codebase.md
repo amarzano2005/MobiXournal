@@ -115,6 +115,8 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   with feature detection and summaries, and the frame a plot was drawn in (pure)
     render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
     render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
+    render/PdfPagePlan.kt    # a page -> the PDF ops an emitter replays (no PDF library); PdfPageTransform.kt
+                             #   flips points into PDF user space and TextBlock.kt splits text for it (pure)
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, one per tab
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
@@ -204,11 +206,9 @@ app/
       PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox
       PdfOutlineCache.kt     # one extracted outline per PDF file, shared across mirrored views
       PdfExporter.kt         # flattens a Document to a PDF (PDFBox; preserves source vector pages)
-      PdfVectorPainter.kt    # draws a page's strokes/text/images as vector overlay onto a PDFBox stream
+      PdfVectorPainter.kt    # the Android emitter: replays the core's PdfPagePlan onto a PDFBox stream, one arm per op
       PdfBackgroundPainter.kt # draws a fresh (non-PDF) page's background ruling as PDFBox vectors
-      PdfPageTransform.kt    # maps .xopp top-left points into PDF bottom-left user space (pure)
       PdfOverlayMatrix.kt    # overlay cm-matrix that aligns annotations on /Rotate 90/180/270 pages (pure)
-      TextBlock.kt           # text line-split + baseline geometry (pure)
       TextPaginator.kt       # text-import word-wrap + A4 pagination, injected measurement (pure)
       TextWrapping.kt        # tab expansion + mid-word hard break shared by both wrappers (pure)
       PdfFonts.kt            # embeds the bundled Unicode fonts (DejaVu) into a PDDocument, cached per doc
