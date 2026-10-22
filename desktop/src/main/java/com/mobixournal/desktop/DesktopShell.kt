@@ -234,7 +234,7 @@ class DesktopShellState(
      * [apply]. Compose's `KeyEvent` cannot be built outside a real window, so keeping the decision out
      * of it is what lets the shortcuts be tested at all.
      */
-    fun onKey(event: KeyEvent, onOpenPicker: () -> Unit): Boolean {
+    fun onKey(event: KeyEvent, onOpenPicker: () -> Unit, onSavePicker: () -> Unit = {}): Boolean {
         // A held Space is a modifier, not a command: it starts on the press and ends on the release.
         if (event.key == Key.Spacebar && event.type == KeyEventType.KeyUp) {
             panMode = false
@@ -249,7 +249,7 @@ class DesktopShellState(
         // The order is the table's: a `Ctrl` command first (`Ctrl+1` stays fit width), then the ink keys
         // (digits and brackets, none of which is a tool's letter), then the tools.
         val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed)
-        if (command != null) return apply(command, onOpenPicker)
+        if (command != null) return apply(command, onOpenPicker, onSavePicker)
         inkCommand(event.key, alt = event.isAltPressed, ctrl = event.isCtrlPressed)?.let { pressed ->
             when (pressed) {
                 is InkCommand.PickFavourite -> pickFavourite(pressed.index)
@@ -272,7 +272,11 @@ class DesktopShellState(
      * be reachable only from an already-open document, which is exactly backwards for the one shortcut
      * that gets a first document onto the screen.
      */
-    fun apply(command: ShellCommand, onOpenPicker: () -> Unit = {}): Boolean {
+    fun apply(
+        command: ShellCommand,
+        onOpenPicker: () -> Unit = {},
+        onSavePicker: () -> Unit = {},
+    ): Boolean {
         when (command) {
             ShellCommand.DISMISS_FAILURE -> {
                 if (failure == null) return false
@@ -285,6 +289,16 @@ class DesktopShellState(
             }
             ShellCommand.TOGGLE_SIDEBAR -> {
                 toggleSidebar()
+                return true
+            }
+            ShellCommand.SAVE_AS -> {
+                if (tabs.active == null) return false
+                onSavePicker()
+                return true
+            }
+            ShellCommand.SAVE -> {
+                if (tabs.active == null) return false
+                save()
                 return true
             }
             else -> Unit
@@ -326,7 +340,8 @@ class DesktopShellState(
                 panMode = true; true
             }
             // Handled above, with no document needed.
-            ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR -> false
+            ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
+            ShellCommand.SAVE, ShellCommand.SAVE_AS -> false
         }
     }
 }

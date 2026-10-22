@@ -45,6 +45,21 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
         if (dir != null && name != null) state.open(File(dir, name))
     }
 
+    /**
+     * Save As: the system dialog, proposing the name the document already has. The **container** follows
+     * the suffix the user leaves on the name (`DesktopSaves.formatFor`) — `.mobix` for the native
+     * archive, `.xopp` for the interchange one — so the dialog is where a format is chosen.
+     */
+    fun pickSaveDestination() {
+        val tab = state.active ?: return
+        val dialog = FileDialog(window, "Save the document as", FileDialog.SAVE)
+        dialog.file = tab.file.name
+        dialog.isVisible = true
+        val dir = dialog.directory
+        val name = dialog.file
+        if (dir != null && name != null) state.saveAs(File(dir, name))
+    }
+
     LaunchedEffect(initial) { initial?.let(state::open) }
     LaunchedEffect(Unit) { focus.requestFocus() }
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.
@@ -57,7 +72,7 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
             modifier = Modifier
                 .focusRequester(focus)
                 .focusable()
-                .onPreviewKeyEvent { event -> state.onKey(event, ::pick) },
+                .onPreviewKeyEvent { event -> state.onKey(event, ::pick, ::pickSaveDestination) },
         )
     }
 }

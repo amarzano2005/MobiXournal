@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-save-and-save-as-through-the-core-encoder"
+title = "Desktop: Save and Save As through the core encoder"
+description = "The write is now platform-free (io/DocumentEncoder in mobix-core, task core-encoder-so-the-desktop-can-write-a-document), so the window can save a document it opened without SAF. (1) DesktopTab remembers the format it was opened as (DesktopContainer MOBIX -> SaveFormat.MOBIX, both .xopp containers -> ORIGINAL or ZIPPED, whichever the file was) and Save writes back in it: sticky per-document format, the rule docs/data-path.md owns. (2) Save writes beside the original through DocumentEncoder.write with FileSaveTarget: a temp file in the same folder then an atomic move over the target, so a crash mid-write cannot truncate the document (the app stages locally for the same reason). (3) Save As opens the FileDialog, switches the format by the chosen suffix, and re-points the tab; a document that has never been saved (none yet, the window only opens files) would take the same road. (4) The .mobix arm needs the page overlay (from the page-window child) and the shape an open document must keep: build a SaveShape from what DocumentLoader read (canvas mode, chunk coords, canvas) so a chunked board is not rewritten as a paginated one. (5) After a successful write the tab is clean and no longer points at a stale source. (6) Verification, headless: save a .xopp and a .mobix fixture after an edit and reopen each with DocumentLoader, asserting the edit survived and the container is unchanged; a refused destination leaves the original byte-identical. No emulator. Docs: docs/data-path.md (the sticky format, now two shells), docs/desktop-workstation.md (What the window does and does not do)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "freehand-shape-recognition-on-a-300ms-end-of-stroke-dwell"
 title = "Freehand shape recognition on a 300 ms end-of-stroke dwell"
 description = "Give freehand strokes the dwell recognition docs/shape-perfection-engine.md describes: a tip that travels under 3.0 pt for 300 ms before touch-up triggers the recogniser, with an exponential moving average filtering micro-jitter out of the samples first. Reuse and extend what exists rather than starting again - render/ShapeRecognizer.kt and render/CircleRecognizer.kt already name lines, polygons and circles for the hold-to-snap path in render/DrawingSurfaceHoldSnap.kt, which previews the result before lift-off and is cancelled by any move. Keep one recogniser and one switch (the recognizeShapes setting with the pen and highlighter filter), reconcile the 500 ms of hold-to-snap with the 300 ms of the doc in one named constant, and cover the classes the doc lists: line, arrow, circle, ellipse, rectangle or square, triangle, arc. Verify with JVM unit tests over the pure recogniser for each class and for a deliberately wobbly non-shape, plus a stylus check on the emulator."

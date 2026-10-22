@@ -32,6 +32,13 @@ enum class ShellCommand {
     NEXT_PAGE,
     PREVIOUS_PAGE,
     START_PAN,
+
+    /** Write the active document back to the file it came from, in its own container. */
+    SAVE,
+
+    /** Write it somewhere else, choosing the container by the name: `Ctrl+Shift+S`. */
+    SAVE_AS,
+
     DISMISS_FAILURE,
 }
 
@@ -117,6 +124,7 @@ internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean): DesktopTool? {
 internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
     key == Key.Escape -> ShellCommand.DISMISS_FAILURE
     ctrl && key == Key.T -> ShellCommand.OPEN
+    ctrl && key == Key.S -> if (shift) ShellCommand.SAVE_AS else ShellCommand.SAVE
     ctrl && key == Key.W -> ShellCommand.CLOSE_TAB
     ctrl && key == Key.Tab -> if (shift) ShellCommand.PREVIOUS_TAB else ShellCommand.NEXT_TAB
     ctrl && key == Key.B -> ShellCommand.TOGGLE_SIDEBAR

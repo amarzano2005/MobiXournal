@@ -610,20 +610,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-save-and-save-as-through-the-core-encoder"
-title = "Desktop: Save and Save As through the core encoder"
-description = "The write is now platform-free (io/DocumentEncoder in mobix-core, task core-encoder-so-the-desktop-can-write-a-document), so the window can save a document it opened without SAF. (1) DesktopTab remembers the format it was opened as (DesktopContainer MOBIX -> SaveFormat.MOBIX, both .xopp containers -> ORIGINAL or ZIPPED, whichever the file was) and Save writes back in it: sticky per-document format, the rule docs/data-path.md owns. (2) Save writes beside the original through DocumentEncoder.write with FileSaveTarget: a temp file in the same folder then an atomic move over the target, so a crash mid-write cannot truncate the document (the app stages locally for the same reason). (3) Save As opens the FileDialog, switches the format by the chosen suffix, and re-points the tab; a document that has never been saved (none yet, the window only opens files) would take the same road. (4) The .mobix arm needs the page overlay (from the page-window child) and the shape an open document must keep: build a SaveShape from what DocumentLoader read (canvas mode, chunk coords, canvas) so a chunked board is not rewritten as a paginated one. (5) After a successful write the tab is clean and no longer points at a stale source. (6) Verification, headless: save a .xopp and a .mobix fixture after an edit and reopen each with DocumentLoader, asserting the edit survived and the container is unchanged; a refused destination leaves the original byte-identical. No emulator. Docs: docs/data-path.md (the sticky format, now two shells), docs/desktop-workstation.md (What the window does and does not do)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1190
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-dirty-state-close-confirmation-and-crash-safety"
 title = "Desktop: dirty state, close confirmation and crash safety"
 description = "The last of the editing scope, and the one that decides whether a window can lose work. (1) A tab is dirty when its editable document differs from what was last written or opened; implement it as a save point in the per-tab history (the snapshot count at the last successful save, plus a flag for edits made after an undo back to that point), not as a boolean somebody forgets to clear — the app has no dirty flag at all today because it saves on command only. (2) The tab shows it (the strip's title gains a dot, per docs/interface-contract.md: a token colour, all five states), and Ctrl+S / Ctrl+Shift+S are enabled accordingly. (3) Closing a dirty tab or the window asks first, with three answers — Save, Discard, Cancel — in English, and the window's close request goes through the same path (ExitRequest / onCloseRequest) so the X button cannot bypass it. (4) Crash safety: while a tab is dirty, its edited document is written as a snapshot beside the window's settings file (the app's TabStore does this for its tabs, in filesDir/tabs), and a start that finds one offers it as a recovered tab; the snapshot is deleted after a successful save. (5) Verification, headless: a test edits, saves, edits again and asserts the dirty flag at each step and that the save point survives an undo; a close request on a dirty tab reports what it would ask rather than closing; a snapshot written by one shell instance is offered by the next. No emulator. Docs: docs/desktop-workstation.md (the lifecycle), docs/data-path.md (tabs and what is cached between launches), docs/interface-contract.md if the dot is a new UI element."

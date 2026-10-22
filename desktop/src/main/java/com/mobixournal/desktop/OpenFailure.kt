@@ -49,3 +49,27 @@ fun describeOpenFailure(failure: Throwable): OpenFailure {
         else -> OpenFailure("Could not open the document", "${failure::class.simpleName}: $detail")
     }
 }
+
+/**
+ * What the window says when a **save** failed. Same rule as an open — say what happened and what to
+ * do — but a different set of causes: a destination it refuses because the file could not hold what
+ * the document has, a folder it may not write (a read-only share, a file the user does not own), and
+ * the disk being full. The document is untouched in every one of these cases, which is worth saying:
+ * the write is staged and moved, so a failed save leaves the file that was there.
+ */
+fun describeSaveFailure(failure: Throwable): OpenFailure {
+    val detail = failure.message?.takeIf { it.isNotBlank() } ?: "no detail available"
+    return when (failure) {
+        is DesktopSaves.SaveRefused -> OpenFailure("This document cannot be saved there", detail)
+        is java.io.IOException -> OpenFailure(
+            "Could not write the file",
+            "$detail — the document on disk was left as it was.",
+        )
+        is OutOfMemoryError -> OpenFailure("Not enough memory", "This document is larger than the available memory: $detail")
+        is LinkageError -> OpenFailure(
+            "The preview has fallen behind",
+            "The window was open while the code was rebuilt. Close it, relaunch, then save again.",
+        )
+        else -> OpenFailure("Could not save the document", "${failure::class.simpleName}: $detail")
+    }
+}

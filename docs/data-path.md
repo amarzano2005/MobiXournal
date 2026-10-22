@@ -29,12 +29,10 @@ saves as one, and one opened as a `.xopp` (gzip or ZIP package) saves as the `.x
 travelling through this app never changes a file's format behind the user's back. Save As is the one
 place the format changes, and then the name it proposes carries the new suffix (the picker's declared
 type changes with it, since a `.mobix` offered to the system as `application/x-xopp` would invite
-desktop Xournal++ to open something it cannot).
+desktop Xournal++ to open something it cannot). The `desktop/` window follows the same rule through the same encoder, and its Save As decides by the **name the user types**; how it stages and moves the write is [desktop-workstation.md](desktop-workstation.md)'s.
 
-**The write itself is platform-free** (`io/DocumentEncoder.kt` in `mobix-core`): one `write` holds the three format arms, and what
-is Android-shaped arrives through two seams: a `SaveTarget` (the name, and the reference arithmetic — `UriSaveTarget` on a SAF id,
-`FileSaveTarget` on a path) and a `SaveShape` (the container and board geometry a document declared, the archive `assets/` are
-carried from, the archive to repack over). `DocumentIo.encode` keeps its staging file and `Encoded`, and delegates the bytes.
+**The write itself is platform-free** (`io/DocumentEncoder.kt` in `mobix-core`): one `write` holds the three format arms, and what is Android-shaped arrives through two seams — a `SaveTarget` (the name and the reference arithmetic: `UriSaveTarget` on a SAF id, `FileSaveTarget` on a path)
+and a `SaveShape` (the container, the board geometry, the archive to carry `assets/` from and the archive to repack over) — while `DocumentIo.encode` keeps its staging file and delegates the bytes.
 
 A `.mobix` is read as its own document, not through the `.xopp` model:
 

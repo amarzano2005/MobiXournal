@@ -49,6 +49,17 @@ What it does today:
   and the SVG/PDF exports draw — so a ±30° sheet is ruled by shared geometry and not a second grid),
   pen strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
   text boxes.
+- **Writes the document back** (`Ctrl + S`; `Ctrl + Shift + S` is Save As). The bytes are
+  `DocumentEncoder.write` from `mobix-core` — the same three format arms the tablet saves through —
+  staged into a temp file beside the target and then moved over it, so a crash mid-write cannot leave a
+  truncated notebook. A save over the document's own file stages first, releases the archive and opens
+  it again after the move, because Windows refuses to replace a file the process still holds and a
+  `.mobix` tab holds its own for as long as its pages stay lazy. The **container is the one it was
+  opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the name
+  the user gives it decides (`.mobix` writes the archive, `.xopp` the gzip form, a packaged `.xopp` stays
+  packaged, an unrecognised name keeps what the document had), and the tab is re-homed onto the file it
+  just wrote. Nothing in the window edits a page yet, so a save writes back the document it opened; what
+  is built here is the path the editing tasks save through.
 - **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
   running the same compiler the Android canvas and every export use (`LivingInk`, now platform-free in
   `mobix-core`), then drawing the ink it produces. A table on the PC is the table on the tablet, not a
@@ -105,6 +116,19 @@ were. The card's fill is opaque rather than the floating family's frosted 0.88, 
 edge where the desk meets the sheet — at 0.88 the part over the white page came out a tone lighter than
 the part over the black desk, and the panel read as two materials split down its middle.
 
+### Saving, and what a refused save says
+
+A save can be refused before anything is written, and the sentence says which case it is
+(`describeSaveFailure`). A **packaged `.xopp` whose background lives inside the package** is the one this
+window cannot write faithfully — it has no image or PDF store to bundle a picture or a PDF back out of
+— so it is refused with the two ways round it (save it as a gzip `.xopp` or as a `.mobix`) rather than
+written with a reference to an entry it did not produce; the file stays byte-identical, because a staging
+file that is never committed is all that existed. An **I/O failure** says so and adds that the document on
+disk was left as it was — the staged-then-moved write is what makes that true. A **`LinkageError`** is
+reported as the window being stale, exactly as on an open, since the class files it needs were rewritten
+under a running JVM. `DesktopSaveTest` pins all three, and byte-compares the original to prove a refused
+save touched nothing.
+
 `--args` splits its value on spaces, so a notebook kept under `Il mio Drive/…` arrives as several
 arguments and `File(args[0])` does not exist: `initialDocument` puts the pieces back together when the
 first one is not itself a file, so a path with spaces works from the command line as it does from the
@@ -112,7 +136,9 @@ picker.
 
 ### What the window does not do
 
-- No editing and no saving — the window is read-only.
+- No editing — the page is read-only, so a save writes back exactly what was opened. There is no dirty
+  state and no close confirmation yet (`desktop-dirty-state-close-confirmation-and-crash-safety`), and no
+  Save As to a container the name does not imply.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
 - No right-side property inspector, no search, and no page reordering or insertion. The tool strips
@@ -135,7 +161,11 @@ must wear the active slot), then renders the whole window in Rail, Ribbon and Bo
 out of the pixels: the page starts after the rail's lane and below the ribbon's band, in every
 placement — the mechanical form of "a band never lies on the page". `OpenFailureTest`
 pins what a failed open says in each of its three cases and how a space-split command line is put back
-together. Every render is
+together. `DesktopSaveTest` is the write's round trip: an edit saved over a gzip `.xopp` and over a
+40-page `.mobix`, each re-opened through `DocumentLoader` with the container and the untouched pages
+asserted, a Save As that turns a `.mobix` into a `.xopp` and re-homes the tab, a packaged `.xopp` refused
+with its file byte-identical, and the version the window stamps into a `.mobix` checked against
+`app/build.gradle.kts`'s `versionName`. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at — including
 `glass-parity.png`, the same panel in the tablet's material and in this window's, written by
 `GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which

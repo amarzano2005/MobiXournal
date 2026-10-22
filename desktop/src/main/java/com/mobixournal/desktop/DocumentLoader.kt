@@ -3,12 +3,17 @@ package com.mobixournal.desktop
 import com.mobixournal.format.FileKind
 import com.mobixournal.format.Xopp
 import com.mobixournal.format.XoppZip
+import com.mobixournal.format.mobix.MobixChunk
+import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixPagedReader
 import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.io.DocumentEncoder
+import com.mobixournal.render.CanvasGeometry
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
@@ -36,9 +41,17 @@ enum class DesktopContainer(val label: String) {
 class DesktopDocument(
     val file: File,
     val source: PageSource,
+    /**
+     * The document **model** the save writes — the same object [source] reads its pages through,
+     * so a save cannot disagree with what the window shows. A `.mobix`'s pages are lazy: the model
+     * describes the manifest, and only a write (or a scroll) inflates a page.
+     */
+    val model: Document,
     val container: DesktopContainer,
     /** Where this document's pictures live: bundled bytes, a ZIP package's extraction, or its folder. */
     val backdrop: PageBackdrop,
+    /** What a `.mobix` write has to keep: the container, the board's cells and its `canvas.json`. */
+    val shape: DocumentEncoder.SaveShape = DocumentEncoder.SaveShape(),
 ) : AutoCloseable {
 
     val pageCount: Int get() = source.pageCount
@@ -58,6 +71,16 @@ class DesktopDocument(
                 source.page(index).layers.sumOf { layer -> layer.elements.count { it is Stroke } }
             }
         }
+
+    /**
+     * The shape a save to [target] must keep. A native document repacks over itself when the write
+     * lands back on the file it was opened from — unchanged entries stream out of that archive instead
+     * of being rebuilt — and everywhere else it still carries the `assets/` entries its pages name.
+     */
+    fun saveShapeFor(target: File): DocumentEncoder.SaveShape = shape.copy(
+        carriedFrom = file,
+        repackOver = target.takeIf { it.absoluteFile == file.absoluteFile },
+    )
 
     /** True once [close] ran — a tab that was replaced or deduplicated must not keep its reader alive. */
     var isClosed: Boolean = false
@@ -94,6 +117,7 @@ object DocumentLoader {
                 DesktopDocument(
                     file = file,
                     source = PageSource.of(document),
+                    model = document,
                     container = DesktopContainer.XOPP_GZIP,
                     // A gzip `.xopp` keeps its pictures beside it: the reference is a path, nothing is bundled.
                     backdrop = PageBackdrop(bundled = { null }, documentDir = file.parentFile),
@@ -131,10 +155,29 @@ object DocumentLoader {
     private fun openMobix(file: File): DesktopDocument {
         val reader = MobixPagedReader(MobixEntrySource.fromFile(file))
         return try {
+            val mobix = MobixDocument.openPaged(reader)
+            val model = mobix.toDocument()
+            val cells = mobix.chunks.map { MobixChunk(it.cx, it.cy) }
             DesktopDocument(
                 file = file,
-                source = PageSource.of(reader),
+                source = PageSource.of(model),
+                model = model,
                 container = DesktopContainer.MOBIX,
+                // The board the file declared: a chunked document stays chunked, at its own cells, and a
+                // `.xopp` export slices it into the sheets those cells add up to.
+                shape = DocumentEncoder.SaveShape(
+                    mode = mobix.manifest.canvasMode,
+                    chunkCoords = cells.map { it.cx to it.cy },
+                    canvas = mobix.canvas,
+                    geometry = CanvasGeometry(
+                        mode = mobix.manifest.canvasMode,
+                        widthPt = mobix.canvas.widthPt,
+                        heightPt = mobix.canvas.heightPt,
+                        chunkSizePt = mobix.canvas.chunkSizePt,
+                        chunkCoords = cells.map { it.cx to it.cy },
+                        originOffsetPt = mobix.canvas.origin.offsetPt,
+                    ).takeIf { mobix.manifest.canvasMode != com.mobixournal.format.mobix.CanvasMode.PAGINATED },
+                ),
                 // A native document bundles its pictures, and still carries the `.xopp` reference they came
                 // from: the bundle is tried first so the file stands alone, the folder is the fallback.
                 backdrop = PageBackdrop(bundled = reader.assetSource::bytes, documentDir = file.parentFile),
@@ -159,6 +202,7 @@ object DocumentLoader {
         return DesktopDocument(
             file = file,
             source = PageSource.of(loaded.doc),
+            model = loaded.doc,
             container = DesktopContainer.XOPP_ZIP,
             // A packaged `.xopp` names its entries, and the codec has just extracted them for us.
             backdrop = PageBackdrop(

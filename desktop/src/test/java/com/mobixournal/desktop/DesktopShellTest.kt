@@ -210,7 +210,7 @@ class DesktopShellTest {
         var picked = false
         assertTrue(
             "Ctrl+T opens the picker with nothing open — the shortcut that gets a first document on screen",
-            state.apply(ShellCommand.OPEN) { picked = true },
+            state.apply(ShellCommand.OPEN, onOpenPicker = { picked = true }),
         )
         assertTrue("and it really asked for the picker", picked)
         assertFalse("Esc with no message to dismiss is not consumed", state.apply(ShellCommand.DISMISS_FAILURE))

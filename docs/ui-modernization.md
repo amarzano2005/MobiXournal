@@ -225,6 +225,8 @@ Everything the chrome does can also be done from the keyboard:
 |---|---|
 | `Ctrl + T`, `+` | open a document; a file already open activates its tab instead of opening twice |
 | `Ctrl + W`, `×` | close the tab, activating its neighbour |
+| `Ctrl + S` | save the active document back into the container it was opened as |
+| `Ctrl + Shift + S` | Save As — the name's suffix chooses the container |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
 | `Ctrl + B`, `≡` | show or hide the sidebar |
 | `Ctrl + =`, `Ctrl + NumPad +` | zoom in — see the layout note below |
