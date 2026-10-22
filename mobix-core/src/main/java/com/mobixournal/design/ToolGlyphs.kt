@@ -28,9 +28,14 @@ enum class ToolGlyph {
     HAND,
     MARQUEE,
     LASSO,
+
+    SELECT_TEXT,
+    SELECT_BG,
     TEXT,
     IMAGE,
+    TEXIMAGE,
     VSPACE,
+    PLAY,
 
     LINE,
     ARROW,
@@ -112,9 +117,13 @@ object ToolGlyphCatalogue {
         ToolGlyph.HAND -> pan()
         ToolGlyph.MARQUEE -> marquee()
         ToolGlyph.LASSO -> lasso()
+        ToolGlyph.SELECT_TEXT -> selectText()
+        ToolGlyph.SELECT_BG -> selectBackground()
         ToolGlyph.TEXT -> text()
         ToolGlyph.IMAGE -> image()
+        ToolGlyph.TEXIMAGE -> texImage()
         ToolGlyph.VSPACE -> verticalSpace()
+        ToolGlyph.PLAY -> play()
         ToolGlyph.LINE -> line()
         ToolGlyph.ARROW -> arrow()
         ToolGlyph.DOUBLE_ARROW -> doubleArrow()
@@ -290,6 +299,24 @@ object ToolGlyphCatalogue {
         GlyphPart.Cubic(8.6f, 22.2f, 9.8f, 22.8f, 10.6f, 21.6f, 10f, 20.2f),
     )
 
+    /**
+     * Select text: an **I-beam**, the cursor every text surface uses. It shares nothing with the
+     * marquee's frame, which is the point — the two selections act on different things.
+     */
+    private fun selectText(): List<GlyphPart> = listOf(
+        GlyphPart.Line(12f, 4f, 12f, 20f),
+        GlyphPart.Line(8.5f, 4f, 15.5f, 4f),
+        GlyphPart.Line(8.5f, 20f, 15.5f, 20f),
+    )
+
+    /** Select background: the crop frame, standing in for "take the picture, not the ink". */
+    private fun selectBackground(): List<GlyphPart> = listOf(
+        GlyphPart.Line(7.5f, 3f, 7.5f, 16.5f),
+        GlyphPart.Line(3f, 7.5f, 16.5f, 7.5f),
+        GlyphPart.Line(16.5f, 7.5f, 16.5f, 21f),
+        GlyphPart.Line(7.5f, 16.5f, 21f, 16.5f),
+    )
+
     /** The letter T. */
     private fun text(): List<GlyphPart> = listOf(
         GlyphPart.Line(5.8f, 5.8f, 18.2f, 5.8f),
@@ -312,6 +339,24 @@ object ToolGlyphCatalogue {
             ),
         ),
         GlyphPart.Circle(8f, 8.5f, 1.4f),
+    )
+
+    /** LaTeX: the radical sign, the one mark that reads as mathematics at 20 dp. */
+    private fun texImage(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(3f, 12.5f), GlyphPoint(5.5f, 12.5f), GlyphPoint(7.5f, 19.5f),
+                GlyphPoint(11f, 4.5f), GlyphPoint(20f, 4.5f),
+            ),
+        ),
+    )
+
+    /** A played annotation: the transport triangle, outlined like every other glyph. */
+    private fun play(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(GlyphPoint(8f, 5f), GlyphPoint(19f, 12f), GlyphPoint(8f, 19f)),
+            closed = true,
+        ),
     )
 
     /** Vertical space: two rules with an arrow between them. */

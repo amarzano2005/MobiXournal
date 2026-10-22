@@ -5,19 +5,15 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.ChangeHistory
 import androidx.compose.material.icons.outlined.Create
-import androidx.compose.material.icons.outlined.Crop
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
-import androidx.compose.material.icons.outlined.Functions
 import androidx.compose.material.icons.outlined.Gesture
 import androidx.compose.material.icons.outlined.HighlightAlt
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PanTool
-import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Polyline
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
-import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.TextFields
@@ -91,7 +87,7 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
 private data class ToolInfo(
     val tool: EditorTool,
     val label: String,
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
     val glyph: ToolGlyph? = null,
 )
 
@@ -146,13 +142,13 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Outlined.PanTool, ToolGlyph.HAND),
     ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Outlined.HighlightAlt, ToolGlyph.MARQUEE),
     ToolInfo(EditorTool.LASSO_SELECT, "Select lasso", Icons.Outlined.Polyline, ToolGlyph.LASSO),
-    ToolInfo(EditorTool.TEXT_SELECT, "Select text (PDF)", Icons.Outlined.SelectAll),
-    ToolInfo(EditorTool.BG_SELECT, "Select background (flatten)", Icons.Outlined.Crop),
+    ToolInfo(EditorTool.TEXT_SELECT, "Select text (PDF)", glyph = ToolGlyph.SELECT_TEXT),
+    ToolInfo(EditorTool.BG_SELECT, "Select background (flatten)", glyph = ToolGlyph.SELECT_BG),
     ToolInfo(EditorTool.TEXT, "Text", Icons.Outlined.TextFields, ToolGlyph.TEXT),
     ToolInfo(EditorTool.IMAGE, "Image", Icons.Outlined.Image, ToolGlyph.IMAGE),
-    ToolInfo(EditorTool.TEXIMAGE, "LaTeX", Icons.Outlined.Functions),
+    ToolInfo(EditorTool.TEXIMAGE, "LaTeX", glyph = ToolGlyph.TEXIMAGE),
     ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", Icons.Outlined.SwapVert, ToolGlyph.VSPACE),
-    ToolInfo(EditorTool.PLAY_OBJECT, "Play object", Icons.Outlined.GraphicEq),
+    ToolInfo(EditorTool.PLAY_OBJECT, "Play object", glyph = ToolGlyph.PLAY),
 )
 
 /** Human-readable label for a tool (the same text the rail's tool menu shows). */
@@ -170,7 +166,10 @@ fun EditorTool.catalogueGlyph(): ToolGlyph? = TOOLS.first { it.tool == this }.gl
  * vector for the families that do not yet (`ToolGlyphCatalogue`).
  */
 val EditorTool.icon: ImageVector
-    get() = TOOLS.first { it.tool == this }.let { info -> info.glyph?.imageVector() ?: info.icon }
+    get() = TOOLS.first { it.tool == this }.let { info ->
+        info.glyph?.imageVector()
+            ?: requireNotNull(info.icon) { "$this has neither a catalogue glyph nor a vector" }
+    }
 
 /**
  * The tools that make sense to *start* a document in, offered by the "Default tool" setting. The

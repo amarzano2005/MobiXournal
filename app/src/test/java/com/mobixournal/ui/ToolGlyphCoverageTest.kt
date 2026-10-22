@@ -1,8 +1,7 @@
 package com.mobixournal.ui
 
-import com.mobixournal.design.ToolGlyph
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -16,7 +15,7 @@ import org.junit.Test
  *
  * The families' deeper picker entries (the other circuit components, gate variants, chemistry bonds)
  * still draw the tablet's original vectors; closing those is a task of its own, and this test says so
- * by pinning exactly how many are left rather than by pretending there are none.
+ * by naming exactly which are left rather than by pretending there are none.
  */
 class ToolGlyphCoverageTest {
 
@@ -46,12 +45,34 @@ class ToolGlyphCoverageTest {
     }
 
     @Test
-    fun `the families still on their old vectors are only the deep picker members`() {
-        val mapped = ToolGlyph.entries.size
-        val waiting = EditorTool.entries.count { it.catalogueGlyph() == null }
-        // Pinned so adding a tool is a deliberate choice: either it gets a shared glyph, or this number
-        // moves and whoever moved it says why.
-        assertTrue("the catalogue shrank below the toolbars it must cover", mapped >= 30)
-        assertTrue("more tools lost their shared glyph ($waiting waiting)", waiting in 1..30)
+    fun `the tools a slot face can show without a shared glyph are named`() {
+        val waiting = EditorTool.entries.filter { it.catalogueGlyph() == null }
+        // Pinned by **identity**, not only by count: a tool losing its glyph must fail the build by
+        // name, and shrinking this set is the only way the list may change.
+        assertEquals(
+            "the tools still on the tablet's own vectors are the deep STEM picker members",
+            listOf(
+                "CAPACITOR", "INDUCTOR", "GROUND", "LED", "ZENER_DIODE", "OPAMP", "BJT_NPN",
+                "BJT_PNP", "DC_SOURCE", "CURRENT_SOURCE", "OR_GATE", "NOT_GATE", "NAND_GATE",
+                "NOR_GATE", "XOR_GATE", "XNOR_GATE", "BUFFER_GATE", "SWITCH_OPEN",
+                "SWITCH_CLOSED", "TRANSFORMER", "JUNCTION", "CHEM_BOND_SINGLE",
+                "CHEM_BOND_DOUBLE", "CHEM_BOND_TRIPLE",
+            ),
+            waiting.map { it.name },
+        )
+    }
+
+    @Test
+    fun `the editor's modes are catalogue glyphs too`() {
+        // These four used to be Material vectors beside a catalogue everyone else read — the one place a
+        // slate could still show two icon families on the same rail (`docs/interface-contract.md` §4).
+        for (tool in listOf(
+            EditorTool.TEXT_SELECT,
+            EditorTool.BG_SELECT,
+            EditorTool.TEXIMAGE,
+            EditorTool.PLAY_OBJECT,
+        )) {
+            assertNotNull("$tool is still drawn with a Material icon", tool.catalogueGlyph())
+        }
     }
 }
