@@ -16,7 +16,7 @@ import java.util.Base64
 
 /**
  * Serialises a single [Page] to an **SVG** document — real vector output for the "Export page as SVG"
- * action, the counterpart of [PageThumbnail]'s raster preview.
+ * action, and the vector counterpart of the app's raster page thumbnail.
  *
  * Everything the page holds is re-emitted as vector geometry: the sheet fill and its ruling —
  * including an isometric page's triangular mesh ([BackgroundGrid.isometric]) — as
@@ -57,8 +57,8 @@ object PageSvgWriter {
     }
 
     /**
-     * The background ruling (lined / ruled / graph / dotted) as SVG geometry, matching
-     * [BackgroundRenderer] — the page's own `<background config=…>` spacing, margin and line widths
+     * The background ruling (lined / ruled / graph / dotted) as SVG geometry, matching the canvas's
+     * own renderer — the page's own `<background config=…>` spacing, margin and line widths
      * included, so an exported sheet rules exactly like the one on screen.
      */
     private fun ruling(sb: StringBuilder, page: Page, solid: Background.Solid?) {

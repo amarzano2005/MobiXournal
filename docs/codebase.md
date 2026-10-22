@@ -98,8 +98,23 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
         MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
     render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
     render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
-    render/LivingInk.kt      # THE living dispatch: TableInk/PlotInk/ShapeInk/CircuitInk + their geometry
+    render/InkTokens.kt, MeasurementText.kt # the drawing tokens the compilers need (label size, wash) and mm<->pt (pure)
+    render/ElementBounds.kt  # pt bounding box of any element + a Bounds value type (pure)
+    render/LivingInk.kt      # HOW a living entity is drawn: the one dispatch over the four families' ink
+                             #   compilers; Uncompilable.kt is the loss they report instead of dropping
+    render/TableInk.kt, PlotInk.kt, ShapeInk.kt, CircuitInk.kt # a family -> its ink: grid rules/cells,
+                             #   axes/ticks/curves/summary, outline/fill/labels, symbol placed by its pins; InkPrimitives.kt
+                             #   holds the stroke and label primitives all four share (pure)
+    render/ShapeBuilder.kt, TriangleKind.kt, TrapezoidKind.kt, FigureGeometry.kt # drag -> vertex list
+                             #   (line/arrow(s)/rect/ellipse/axis/table/circuit); triangle/trapezoid variants;
+                             #   headed figures, where a head is sized by the pen and not by the shaft (pure)
+    render/CircuitShapes.kt, ChemShapes.kt, TriangularLattice.kt # symbols and gates; bonds and the benzene
+                             #   ring; the 60° chemistry lattice (pure)
+    render/FunctionPlot.kt, AdvancedCurves.kt, FunctionAnalysis.kt, MultiFunctionPlotter.kt, PlotFrame.kt
+                             #   f(x) parse/sample/geometry, piecewise + parametric curves, multi-curve plotting
+                             #   with feature detection and summaries, and the frame a plot was drawn in (pure)
     render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
+    render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, one per tab
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
@@ -162,14 +177,12 @@ app/
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
       Snapping.kt            # the page's ruling as a snap lattice (spacing + phase, or an interleaved node mesh for isometric paper); rotation -> 15-degree steps (pure)
       DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling and chemistry snaps: project a drawn point onto an edge, a ray, the page's ruling or a 60° lattice node (pure)
-      TriangularLattice.kt   # the 60° node lattice behind the chemistry guide and its rings: nearest node, bond mesh, hexagon (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
       BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
       PageRegionRenderer.kt  # synchronous flattened rectangular page-region copies
       StrokePainter.kt       # paints a stroke's pressure polyline (shared by screen + PDF export)
       PageRenderer.kt        # draws a page's layers/elements at a scale/offset (shared)
       ElementRenderer.kt     # draws text boxes, images, and LaTeX images (real math)
-      LivingInk.kt           # HOW a living entity is drawn: the one dispatch over the four families' ink compilers, shared by the canvas and every export
       LatexParser.kt         # LaTeX source -> node tree (pure, no Android deps)
       LatexRenderer.kt       # draws a parsed LaTeX tree to a Canvas (fractions, scripts, roots)
        PdfTileGeometry.kt     # tile grid math for high-zoom PDF rasterisation (pure geometry)
@@ -191,7 +204,6 @@ app/
       PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox
       PdfOutlineCache.kt     # one extracted outline per PDF file, shared across mirrored views
       PdfExporter.kt         # flattens a Document to a PDF (PDFBox; preserves source vector pages)
-      PageSvgWriter.kt       # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
       PdfVectorPainter.kt    # draws a page's strokes/text/images as vector overlay onto a PDFBox stream
       PdfBackgroundPainter.kt # draws a fresh (non-PDF) page's background ruling as PDFBox vectors
       PdfPageTransform.kt    # maps .xopp top-left points into PDF bottom-left user space (pure)
@@ -220,17 +232,6 @@ app/
       StrokeHitTester.kt     # whole-stroke eraser point-to-stroke hit geometry (pure)
       StrokeEraser.kt        # partial eraser: split a stroke into surviving pieces (pure)
       PageEraser.kt          # eraser applied to a page: mode, tip size, hidden-layer skip (pure)
-      ShapeBuilder.kt        # line/arrow(s)/rect/ellipse/axis/table/circuit drag -> stroke vertex list; headed figures delegate to FigureGeometry.kt (pen-sized heads) and are re-emitted by FigureRedraw.kt on resize (pure)
-      TriangleKind.kt        # equilateral/right/isosceles/scalene variants and angle model (pure)
-      TrapezoidKind.kt       # isosceles/right/scalene variants and base-angle model (pure)
-      FunctionPlot.kt        # f(x): expression parser, sampling, and the plot's page geometry (pure, tested)
-      CircuitShapes.kt       # passive & active circuits, gates, switching and dimensioning (resistor, capacitor, inductor, ground, switches, junction, transformer, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR, buffer, dimension arrow) (pure)
-      ChemShapes.kt          # chemical formulas: single/double/triple bonds and the aromatic benzene ring (pure)
-      TableInk.kt            # a table -> its grid rules, its shaded cells and its cell text (pure)
-      PlotInk.kt             # a plot -> axes, ticks, curves and summary; a sampled frame for polar/parametric (pure)
-      ShapeInk.kt            # a figure -> its closed outline, its fill and its angle/side labels (pure)
-      CircuitInk.kt          # a component -> its symbol, placed by its own pins, in its own ink (pure)
-      InkPrimitives.kt       # the stroke and label primitives the four compilers share (pure)
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
@@ -243,7 +244,6 @@ app/
       HandwritingTemplate.kt # normalized canonical templates for Latin alphanumeric characters (pure)
       SplineBuilder.kt       # spline control points -> cubic-Bezier stroke vertex list (pure)
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
-      ElementBounds.kt       # pt bounding box of any element + a Bounds value type (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
       SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure)
       VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
