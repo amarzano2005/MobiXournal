@@ -23,6 +23,11 @@ import kotlin.math.hypot
  * straight segment of a line — each rebuilt from the *intersections* of the fitted lines, so the
  * emitted geometry is cleaner than anything the recognizer could have read off the samples.
  *
+ * One thing is **not** upstream: a rebuilt polygon has to agree with the ink that produced it
+ * ([agreement]), and when the fit comes up a side short [PolygonCorners] offers a corner set found by
+ * simplification instead. Upstream trusts the topology of its own fit, so a squat rectangle fitted as
+ * three sides snapped into a wrong triangle; see `docs/shape-perfection-engine.md`.
+ *
  * When no polygon fits, the stroke is tried as an **arrow** ([ArrowRecognizer]), a **circle**
  * ([CircleRecognizer]), an **ellipse** ([EllipseRecognizer]) and finally an **arc**
  * ([ArcRecognizer]) — strictest first, and each one rejects rather than guesses. The last three are
@@ -97,6 +102,32 @@ object ShapeRecognizer {
      */
     private const val MIN_STROKE_SIZE_PT = 40.0
 
+    // ---------------------------------------------------------------- polygon agreement
+    //
+    // A polygon rebuilt from fitted lines is only worth emitting if the ink actually *is* that
+    // polygon. Upstream trusts the topology of the fit instead: three segments that close are a
+    // triangle. That is the recogniser's worst failure on a tablet — a squat rectangle drawn in one
+    // stroke is often fitted as three sides, and its fourth side then becomes a chord, so the user
+    // watches their rectangle become a wrong triangle. The tests below measure the emitted polygon
+    // against the stroke that produced it, which rejects that fit and lets the corner fallback
+    // ([PolygonCorners]) find the fourth corner instead.
+
+    /** Mean distance the ink may stray from the polygon, as a fraction of the polygon's diagonal. */
+    private const val POLYGON_MEAN_STRAY = 0.03
+
+    /**
+     * The 90th-percentile distance, as a fraction of the diagonal. A percentile rather than a
+     * maximum on purpose: a hand-drawn rectangle usually overshoots its corners, and those few
+     * samples must not veto the fit — a *whole missing side* moves far more than a tenth of them.
+     */
+    private const val POLYGON_STRAY_P90 = 0.06
+
+    /** Sharpest corner a rebuilt polygon may have; below it the figure is a sliver of the ink. */
+    private const val MIN_CORNER_DEG = 12.0
+
+    /** Shortest side, as a fraction of the diagonal: a sliver's short side is what it is made of. */
+    private const val MIN_SIDE_FRACTION = 0.05
+
     /**
      * The cleaned-up replacement for [points], or **null** when the stroke doesn't fit any primitive
      * (the caller then keeps the freehand stroke exactly as drawn). [widthPt] is the constant width
@@ -129,19 +160,21 @@ object ShapeRecognizer {
         if (count > 0) {
             optimizePolygonal(filtered, count, breaks, fits)
 
-            val segments = List(count) { i ->
-                RecoSegment().also {
-                    it.startpt = breaks[i]
-                    it.endpt = breaks[i + 1]
-                    it.calcSegmentGeometry(filtered, breaks[i], breaks[i + 1], fits[i])
-                }
-            }
-
-            triangle(segments, widthPt)?.let { return RecognisedFigure(FigureKind.TRIANGLE, it) }
-            rectangle(segments, widthPt)?.let { return RecognisedFigure(FigureKind.RECTANGLE, it) }
+            val segments = segmentsOf(filtered, breaks, count)
+            // A single straight piece is a line — never a polygon, whatever it closes with.
             if (count == 1 && fits[0].det < LINE_MAX_DET) {
                 return RecognisedFigure(FigureKind.LINE, line(segments[0], filtered, widthPt))
             }
+            // Both polygon classes are asked, and the one that agrees with the ink best wins. See
+            // `POLYGON_MEAN_STRAY`: emitting the first topological match is how a rectangle becomes
+            // a triangle.
+            bestPolygon(filtered, widthPt, segments)?.let { return it }
+        }
+
+        // The fit was one side short (or its ring was rejected): ask the corner detector for a ring.
+        for (ring in PolygonCorners.rings(filtered)) {
+            val segments = segmentsOf(ring.points, ring.breaks, ring.sides)
+            bestPolygon(ring.points, widthPt, segments)?.let { return it }
         }
 
         // The arrow reads the *raw* samples: its point is a corner, and the filter's clamp would
@@ -150,6 +183,123 @@ object ShapeRecognizer {
         CircleRecognizer.recognize(filtered, widthPt)?.let { return RecognisedFigure(FigureKind.CIRCLE, it) }
         EllipseRecognizer.recognize(filtered, widthPt)?.let { return RecognisedFigure(FigureKind.ELLIPSE, it) }
         return ArcRecognizer.recognize(filtered, widthPt)?.let { RecognisedFigure(FigureKind.ARC, it) }
+    }
+
+    /**
+     * One straight piece per break range, fitted from the samples it spans — upstream's segment.
+     * The inertia is accumulated from the range itself, so the same helper serves the fit's own
+     * breaks and the corner fallback's without either reading the other's accumulators.
+     */
+    private fun segmentsOf(points: List<StrokePoint>, breaks: IntArray, count: Int): List<RecoSegment> =
+        List(count) { i ->
+            RecoSegment().also {
+                it.startpt = breaks[i]
+                it.endpt = breaks[i + 1]
+                val inertia = Inertia().also { s -> s.calc(points, breaks[i], breaks[i + 1]) }
+                it.calcSegmentGeometry(points, breaks[i], breaks[i + 1], inertia)
+            }
+        }
+
+    /**
+     * The polygon [segments] describes that also **agrees with [points]**, or null when neither a
+     * triangle nor a rectangle does. When both do, the closer one wins — a four-sided figure fitted
+     * as three sides is exactly the case the agreement test exists to settle.
+     */
+    private fun bestPolygon(
+        points: List<StrokePoint>,
+        widthPt: Double,
+        segments: List<RecoSegment>,
+    ): RecognisedFigure? {
+        var best: RecognisedFigure? = null
+        var bestError = Double.MAX_VALUE
+        for ((kind, ring) in listOf(
+            FigureKind.TRIANGLE to triangle(segments, widthPt),
+            FigureKind.RECTANGLE to rectangle(segments, widthPt),
+        )) {
+            if (ring == null) continue
+            val error = agreement(points, ring) ?: continue
+            if (error < bestError) {
+                bestError = error
+                best = RecognisedFigure(kind, ring)
+            }
+        }
+        return best
+    }
+
+    /**
+     * How closely the stroke [points] follows the closed [ring]: the mean distance from each sample
+     * to the polygon's outline, as a fraction of the polygon's own diagonal — or null when the
+     * polygon is not a plausible reading of the ink at all (a sliver corner, a side too short to be
+     * a side, ink that strays too far from any of the edges).
+     */
+    private fun agreement(points: List<StrokePoint>, ring: List<StrokePoint>): Double? {
+        // A rebuilt polygon is already closed: its last point repeats the first.
+        if (ring.size < 4) return null
+        val closed = ring
+        if (!plausibleCorners(closed)) return null
+        val diagonal = diagonal(closed)
+        if (diagonal <= 0.0) return null
+        val distances = DoubleArray(points.size) { i -> distanceToOutline(points[i], closed) }
+        distances.sort()
+        val mean = distances.average() / diagonal
+        val p90 = distances[(distances.size * 9) / 10] / diagonal
+        if (mean > POLYGON_MEAN_STRAY || p90 > POLYGON_STRAY_P90) return null
+        return mean
+    }
+
+    /** No sliver corner and no sliver side: the two ways a fit can close a ring that is not one. */
+    private fun plausibleCorners(closed: List<StrokePoint>): Boolean {
+        val diagonal = diagonal(closed)
+        if (diagonal <= 0.0) return false
+        val sides = closed.size - 1
+        for (i in 0 until sides) {
+            val from = closed[i]
+            val vertex = closed[i + 1]
+            val to = closed[(i + 2) % sides]
+            if (hypot(to.x - vertex.x, to.y - vertex.y) < MIN_SIDE_FRACTION * diagonal) return false
+            if (interiorAngleDeg(from, vertex, to) < MIN_CORNER_DEG) return false
+        }
+        return true
+    }
+
+    /** The distance from [p] to the nearest of the closed outline's edges, in pt. */
+    private fun distanceToOutline(p: StrokePoint, closed: List<StrokePoint>): Double {
+        var best = Double.MAX_VALUE
+        for (i in 0 until closed.size - 1) {
+            val a = closed[i]
+            val b = closed[i + 1]
+            val dx = b.x - a.x
+            val dy = b.y - a.y
+            val lengthSq = dx * dx + dy * dy
+            val t = if (lengthSq == 0.0) 0.0 else
+                (((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq).coerceIn(0.0, 1.0)
+            val d = hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+            if (d < best) best = d
+        }
+        return best
+    }
+
+    /** [closed]'s bounding-box diagonal, the unit every tolerance here is relative to. */
+    private fun diagonal(closed: List<StrokePoint>): Double {
+        var minX = Double.MAX_VALUE
+        var maxX = -Double.MAX_VALUE
+        var minY = Double.MAX_VALUE
+        var maxY = -Double.MAX_VALUE
+        for (p in closed) {
+            if (p.x < minX) minX = p.x
+            if (p.x > maxX) maxX = p.x
+            if (p.y < minY) minY = p.y
+            if (p.y > maxY) maxY = p.y
+        }
+        return hypot(maxX - minX, maxY - minY)
+    }
+
+    /** The interior angle at [vertex], in degrees, between the rays to [from] and [to]. */
+    private fun interiorAngleDeg(from: StrokePoint, vertex: StrokePoint, to: StrokePoint): Double {
+        val a = kotlin.math.atan2(from.y - vertex.y, from.x - vertex.x)
+        val b = kotlin.math.atan2(to.y - vertex.y, to.x - vertex.x)
+        val degrees = Math.toDegrees(abs(a - b))
+        return if (degrees > 180.0) 360.0 - degrees else degrees
     }
 
     /** True when the stroke spans enough of the page to be worth snapping. */

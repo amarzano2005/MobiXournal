@@ -41,14 +41,13 @@ raw samples untouched.
 
 ## The pipeline
 
-Each stage rejects rather than guesses, strictest first; the first match wins, and a stroke that
-matches nothing commits as drawn.
+Each stage rejects rather than guesses; a stroke that matches nothing commits as drawn.
 
 | Order | Class | File | Accepts when |
 |---|---|---|---|
-| 1 | **triangle** | `ShapeRecognizer` | the last three fitted segments close into a ring; vertex gaps within 0.3 × the pieces' radii |
-| 2 | **rectangle / square** | `ShapeRecognizer` | four segments, every corner within 15° of square, gaps within 0.20; a tilt under 5° is dropped to the page axes, which is what squares an upright hand rectangle |
-| 3 | **line** | `ShapeRecognizer` | one straight segment, `Inertia.det` < 0.015 (a piece of a polygon is allowed 0.045); a near-horizontal or vertical fit is snapped flat, a diagonal keeps its extent unless the tip strayed more than √15 pt from the fitted line |
+| 1 | **line** | `ShapeRecognizer` | one straight segment, `Inertia.det` < 0.015 (a piece of a polygon is allowed 0.045); a near-horizontal or vertical fit is snapped flat, a diagonal keeps its extent unless the tip strayed more than √15 pt from the fitted line |
+| 2 | **triangle** and **rectangle / square** | `ShapeRecognizer` | a ring of three or four fitted sides **that also agrees with the ink** (see below); a rectangle's corners must be within 15° of square with gaps within 0.20, and a tilt under 5° is dropped to the page axes, which is what squares an upright hand rectangle |
+| 3 | **triangle** / **rectangle** again, from the corner fallback | `PolygonCorners` | the piecewise fit did not produce a ring that agrees: Ramer–Douglas–Peucker finds the corners and the same rebuild and agreement test run on them |
 | 4 | **arrow** | `ArrowRecognizer` | a straight shaft ≥ 60 pt with ≤ 10% bow, two barbs 10–55% of its length (within 2.5× of each other) not past the point, and the stroke returning to the point between them |
 | 5 | **circle** | `CircleRecognizer` | roundness `det` > 0.95 and a length-weighted radial residual < 0.10 × the radius |
 | 6 | **ellipse** | `EllipseRecognizer` | **closed** (ends within 30% of the bounding diagonal), axes 1.25–6× apart, mean rim residual ≤ 0.10 and no single sample above 0.45 |
@@ -59,6 +58,35 @@ The polygon fit is desktop Xournal++'s own (`findPolygonal` recursion on `Inerti
 fitted lines' **intersections**, so it is cleaner than anything read off the samples. Every tolerance
 is relative to the stroke's own size (`RecoSegment.radius`), never an absolute pt budget, so the same
 wobble passes on a small circle and a page-sized one.
+
+## The agreement test, and why a rectangle used to become a triangle
+
+Upstream reads the **topology** of the fit as proof: three segments that close are a triangle. That is
+the single worst thing the port did on a tablet. The splitter guesses an even split first and grows one
+straight piece out of it, so a squat rectangle drawn in one stroke — the wide, shallow box most people
+make — can run out of search budget one corner short. Its three fitted sides still close, through the
+fourth side's chord, and the recogniser emitted a **triangle**: it snapped, and it was wrong.
+
+So a rebuilt polygon is now measured against the ink that produced it before it is emitted
+(`ShapeRecognizer.agreement`), against three tests:
+
+| Test | Threshold | Why |
+|---|---|---|
+| mean distance from the samples to the polygon | ≤ 3% of the diagonal | the polygon is where the ink is |
+| 90th-percentile distance | ≤ 6% of the diagonal | a hand-drawn corner usually overshoots, and a few samples must not veto the fit — a *missing side* moves far more than a tenth of them |
+| every corner ≥ 12°, every side ≥ 5% of the diagonal | — | a sliver is not a figure |
+
+Both classes are asked, and the **closer** one wins rather than the first one in a cascade. When the
+fit agrees with neither, `PolygonCorners` steps in: RDP over the closed ring (epsilon 2% of the
+diagonal) finds the corners the piecewise fit missed, every vertex nearly collinear with its
+neighbours is merged away (the seam — the stroke's own start point, which sits mid-side whenever the
+user began drawing mid-side), and the same line fit, intersection, rebuild and agreement test run on
+that ring. RDP assumes nothing about where the sides are, so the four corners of a squat rectangle and
+the three of a wide triangle come out at any sample density — a fast square drawn with three samples a
+side is recognised now, where before it was left as ink.
+
+What the fallback cannot do is invent a figure: a circle has no corners to cut, and a polygon that
+hugs a scribble fails the agreement test. It only offers a corner set the first detector missed.
 
 `Inertia.det` — a normalised second-moment ratio that falls to 0 for a perfect line — is deliberately
 kept instead of a regression R²: it is the number the desktop thresholds, so the same stroke is judged
@@ -92,9 +120,10 @@ write an infinite point into the `.xopp`.
 ## Status
 
 - **Live**: dwell (300 ms) and lift-off recognition, all seven classes, the tremor filter, the switch,
-  the pen/highlighter filter, and the step that keeps the result: a recognised **triangle or
-  rectangle** drawn with the pen is committed as a living `ParametricShapeElement` whose corners are
-  dragged on the page (see *Living figures* in [drawing-tools.md](drawing-tools.md)).
+  the pen/highlighter filter, the polygon agreement test and the corner fallback, and the step that
+  keeps the result: a recognised **triangle or rectangle** drawn with the pen is committed as a
+  living `ParametricShapeElement` whose corners are dragged on the page (see *Living figures* in
+  [drawing-tools.md](drawing-tools.md)).
 - **Not built**: the kinds whose angles are authored rather than recognised — a scaled-angle triangle
   or trapezoid re-fitting its vertices on every drag. Those arrive with the shape-library kinds that
   carry an angle set; a circle or an ellipse has no corners to drag and stays ink, as does every other
