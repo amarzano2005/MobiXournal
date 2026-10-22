@@ -133,7 +133,11 @@ private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: 
     }
 }
 
-private fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
+/**
+ * One stroke at [scale] — shared with the canvas's **live preview** in `PageCanvas`, so the ink being
+ * drawn and the ink the lift commits are painted by the same rule (highlighter band, taper, dash).
+ */
+internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
     val pts = stroke.points
     if (pts.size < 2) return
     val color = Color(InkGeometry.renderColor(stroke.tool, stroke.color))

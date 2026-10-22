@@ -108,14 +108,14 @@ A `.mobix` is read as its own document, not through the `.xopp` model:
   looking like a bug. A document whose backgrounds resolve up front keeps reporting them at the open, in
   the same words (`LoadedFile.Doc.missingPdf`/`missingImage`).
 
-  **Editing** goes through the window too (`render/PageWindow.kt`,
-  `edit-a-page-the-lru-window-has-evicted`): a bounded read cache over the same source plus an overlay
-  of edited pages that eviction never touches. A single-page command runs through
-  `DrawingSurfaceView.windowEditPage`, which **materialises the page it touches first** — so a command
-  may act on a page the window has evicted, without its caller knowing which pages are resident — and
-  keeps the result in the overlay (so the edit is still there when the page leaves the cache, which is
-  what lets undo and redo find it). `PageWindow.pin` holds a page for as long as a live gesture keeps
-  re-reading it. A **wholesale replacement** of the document — a load, undo/redo, a mirrored pane, a
+  **Editing** goes through the window too — `mobix-core`'s `render/PageWindow.kt`, shared by both shells
+  (`edit-a-page-the-lru-window-has-evicted`): a bounded read cache over the same source plus an overlay
+  of edited pages that eviction never touches. A single-page command runs through the shell's
+  `windowEditPage` (`DrawingSurfaceView` on the tablet, `DesktopDocument.editPage` on the PC), which
+  **materialises the page it touches first** — so a command may act on a page the window has evicted,
+  without its caller knowing which pages are resident — and keeps the result in the overlay (so the edit
+  is still there when the page leaves the cache, which is what lets undo and redo find it).
+  `PageWindow.pin` holds a page for as long as a live gesture keeps re-reading it. A **wholesale replacement** of the document — a load, undo/redo, a mirrored pane, a
   page-list edit — calls `resetPageWindow()`, because the overlay then describes pages the document no
   longer has. Between those two, the document is the truth and the window **follows** it:
   `PageWindow.followDocument` runs from the `DrawingSurfaceView.doc` setter — the one place every edit

@@ -8,29 +8,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.isTertiaryPressed
-import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
@@ -52,7 +41,14 @@ import kotlin.math.roundToInt
  *  - **wheel** scrolls (vertically, and horizontally for a wide page); **Ctrl + wheel** zooms at the
  *    cursor, which is the *page point under the cursor* staying still, not the page's centre;
  *  - **middle-drag** or **space-drag** pans;
+ *  - a **primary drag with the pen or highlighter** draws, and with the eraser rubs out — the gesture
+ *    is decided by the shared `InkPointerRouter` (`PageCanvasInput.kt`), so the window has no second
+ *    opinion about what a press means or how hard it draws;
  *  - the page is clamped into the window by [Viewport], so it cannot be dragged out of sight.
+ *
+ * A stroke is **previewed as it is drawn** and committed on lift as one edit through
+ * [DesktopDocument.editPage]: the page the painter shows is the page the tab will save. A press that
+ * lands off the sheet starts nothing, because the desk is not paper.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -61,11 +57,18 @@ fun PageCanvas(
     panMode: Boolean,
     onViewport: (Viewport) -> Unit,
     onFit: (FitMode) -> Unit,
+    tool: DesktopTool = DesktopTool.PEN,
+    ink: DesktopInk = DesktopInk(),
+    onEdited: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
-    val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) } }
+    val page = remember(tab, tab.page, tab.document.edits) {
+        runCatching { tab.document.page(tab.page) }
+    }
     val loaded = page.getOrNull()
+    // The stroke in progress, in page pt: the canvas draws it every frame, and the lift commits it.
+    val draft = remember(tab, tab.page) { mutableStateListOf<InkSample>() }
 
     BoxWithConstraints(modifier.background(DESK).clipToBounds()) {
         val viewW = maxWidth.value
@@ -100,42 +103,24 @@ fun PageCanvas(
         Canvas(
             Modifier.fillMaxSize()
                 .onPointerEvent(PointerEventType.Scroll) { event ->
-                    val change = event.changes.firstOrNull() ?: return@onPointerEvent
-                    val delta = change.scrollDelta
-                    if (event.keyboardModifiers.isCtrlPressed) {
-                        // One notch is roughly 0.1 of a zoom step; exponential so zooming feels the same
-                        // at 30 % and at 300 %.
-                        val factor = exp((-delta.y * 0.12f)).coerceIn(0.5f, 2f)
-                        val anchor = change.position / density
-                        onFit(FitMode.NONE)
-                        onViewport(viewport.copy(zoom = zoom).zoomBy(factor, anchor.x, anchor.y, pageW, pageH, viewW, viewH))
-                    } else {
-                        // Scrolling keeps the fit: reading down a width-fitted strip must not turn it
-                        // into a free zoom (and stop refitting it when the window changes size).
-                        onViewport(viewport.pannedBy(-delta.x * WHEEL_STEP_DP, -delta.y * WHEEL_STEP_DP, pageW, pageH, viewW, viewH))
-                    }
+                    wheelViewport(event, viewport, zoom, density, pageW, pageH, viewW, viewH, onFit)
+                        ?.let(onViewport)
                 }
-                .pointerInput(tab, panMode, pageW, pageH, viewW, viewH, viewport) {
-                    awaitEachGesture {
-                        val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
-                        val buttons = currentEvent.buttons
-                        // Middle-drag always pans; a primary drag pans only while Space is held, so a
-                        // future tool can use the primary button without fighting this one.
-                        val pans = buttons.isTertiaryPressed || (panMode && buttons.isPrimaryPressed)
-                        if (!pans) return@awaitEachGesture
-                        var current = viewport
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull() ?: break
-                            if (change.changedToUpIgnoreConsumed()) break
-                            val drag = change.positionChange()
-                            if (drag != Offset.Zero) {
-                                current = current.pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH)
-                                onViewport(current)
-                                change.consume()
-                            }
-                        }
-                    }
+                .pointerInput(tab, panMode, tool, ink, pageW, pageH, viewW, viewH, viewport) {
+                    pageGestures(
+                        tab = tab,
+                        panMode = panMode,
+                        tool = tool,
+                        ink = ink,
+                        viewport = viewport,
+                        pageW = pageW,
+                        pageH = pageH,
+                        viewW = viewW,
+                        viewH = viewH,
+                        draft = draft,
+                        onViewport = onViewport,
+                        onEdited = onEdited,
+                    )
                 },
         ) {
             // The page is painted in its own coordinate space and moved by the viewport: the paper,
@@ -149,6 +134,14 @@ fun PageCanvas(
             withTransform({ translate(dx, dy) }) {
                 // (page, scale, measurer, backdrop, hidden layers) — the last one is the sidebar's eyes.
                 drawPageContent(loaded, pxPerPt, measurer, tab.document.backdrop, tab.hiddenOn(tab.page))
+                // The stroke in progress, painted with the same rule as the committed ink: a preview
+                // that looked different from what the lift writes would be a lie about the file.
+                val inkTool = tool.inkTool()
+                if (inkTool != null && draft.isNotEmpty()) {
+                    strokeOf(inkTool, ink.colour, ink.width, draft.toList())?.let { draftStroke ->
+                        drawInkStroke(draftStroke, pxPerPt)
+                    }
+                }
             }
         }
     }
@@ -156,9 +149,6 @@ fun PageCanvas(
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */
 private val DESK = DesktopTheme.desk
-
-/** dp a wheel notch moves the page. */
-private const val WHEEL_STEP_DP = 64f
 
 /** A page's on-screen size in dp at [zoom] — used by the sidebar's progress bar and the status bar. */
 internal fun pageSizeDp(pageW: Double, pageH: Double, zoom: Float): Pair<Float, Float> =

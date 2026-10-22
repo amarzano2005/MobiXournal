@@ -79,7 +79,7 @@ class DesktopShellState(
     /** Page thumbnails, one map per document, kept by the shell so a scroll back is not a repaint. */
     val thumbnails = mutableMapOf<String, MutableMap<Int, ImageBitmap>>()
 
-    /** The picked tool. Nothing draws with it yet: the strips only set the selection. */
+    /** The picked tool: what a primary drag on the page does (pen and highlighter ink, eraser rubs out). */
     var tools by mutableStateOf(ToolSelection())
         private set
 
@@ -117,7 +117,7 @@ class DesktopShellState(
     val stripState: ToolStripState
         get() = ToolStripState(selection = tools, ink = ink, palette = palette, favourites = favourites)
 
-    /** Pick a tool (a slot, or its accelerator): the only thing the strips do until the editing phase. */
+    /** Pick a tool (a slot, or its accelerator); the canvas reads it on the next press. */
     fun selectTool(tool: DesktopTool) {
         tools = tools.select(tool)
     }
@@ -449,8 +449,13 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                         PageCanvas(
                             tab = tab,
                             panMode = state.panMode,
+                            tool = state.tools.current,
+                            ink = state.ink,
                             onViewport = { tab.viewport = it },
                             onFit = { tab.fit = it },
+                            // An edit changes the page's picture, so the thumbnail cached for it is
+                            // stale; the other pages keep theirs.
+                            onEdited = { index -> state.thumbnails[tab.key]?.remove(index) },
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                     }

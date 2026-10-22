@@ -114,9 +114,12 @@ page's layers, each with an eye that hides it from the page and from the thumbna
 and the page can be fitted to the window, fitted to its width, or zoomed freely — the
 point under the cursor stays where it is while you zoom. A page saved as one long strip — how a lecture
 written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
-shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. The window speaks
-English, like the tablet app. It is **read-only** for now, and it is a separate module, so it never
-affects the Android build.
+shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. You can **write on the
+page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
+draw and lands in the document when you lift — and `Ctrl + S` writes it back to the file you opened
+(a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
+the format its name asks for. The window speaks English, like the tablet app, and it is a separate
+module, so it never affects the Android build.
 
 Isometric paper — the triangular ±30° sheet — is ruled here from the same geometry the tablet uses, so the
 two shells draw the same grid.
@@ -126,14 +129,15 @@ default) and a horizontal ribbon under the header, each a rounded pane of glass 
 it rather than a strip glued to the window's edge. The header's **Tool placement** control switches
 between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
-tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
-the slots only choose a tool, because the window does not draw or edit yet. The colour slot also
-carries the palette: pick a swatch, define your own colour in the window's HSV/hex panel, or add a new
+tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard.
+The pen, highlighter and eraser are live; the other slots pick a tool the window cannot draw with yet.
+The colour slot also carries the palette: pick a swatch, define your own colour in the window's HSV/hex panel, or add a new
 one, and the palette, the favourites and the width are remembered between runs.
 
 | Key | What it does |
 |---|---|
 | `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) |
+| `Ctrl + S` / `Ctrl + Shift + S` | save back to the file / Save As (the name's suffix picks the format) |
 | `Ctrl + W`, `×` on a tab | close the tab |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
 | `Ctrl + B`, `≡` | show or hide the sidebar |
@@ -156,8 +160,9 @@ A tab's name can be edited in place with a double-click, and tabs can be dragged
 
 Start it without an argument and use the **Open** button (or `Ctrl + T`) to pick a file — a path with spaces works either way. A
 file that cannot be read leaves the document you already have on screen and says why in a card at the top
-of the page, which a click or `Esc` dismisses. Nothing can be edited or saved yet, and the status with the
-next steps lives in [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
+of the page, which a click or `Esc` dismisses. Undo, selection and the in-place editors for tables, graphs
+and circuits are still to come; the status with the next steps lives in
+[`docs/desktop-workstation.md`](docs/desktop-workstation.md).
 
 ---
 
@@ -187,6 +192,7 @@ next steps lives in [`docs/desktop-workstation.md`](docs/desktop-workstation.md)
   - **Hover Preview**: S-Pen / Active Pen hover ring indicates exact tip contact point.
   - **Hold to Snap**: rest the tip on the glass for a moment (300 ms) and the stroke you are drawing turns into clean geometry **before you lift** — a straight line, a triangle, a rectangle, a circle, an oval, an arc or an arrow. Nothing is committed by the pause: keep drawing and the recogniser simply runs again over the longer stroke, so a wrong guess costs nothing. The hold uses the same recogniser as **Shape recognition** in Settings → Drawing, and is off with it.
   - **Hardware Barrel Buttons**: Hold barrel button to erase or lasso select (supported on Android 14+ stylus buttons, Bluetooth pens, and mouse right-clicks). Double-click to undo or toggle tools.
+  - **Pen-Tip Radial HUD**: choose **Hud** as what the barrel button does (Settings → Stylus) and holding it with the pen off the glass opens a ring at the nib — your colour swatches (the custom HEX one included), the three pen widths and the three writing tools. Flick to a slot and release to take it; a release in the centre, or a tip that touches the page, closes it without changing anything.
 - **Pen & Realistic Highlighter**:
   - **Pen**: Smooth vector strokes with digitizer wobble filtering and pressure dynamics.
   - **Highlighter**: Realistic multiply blending (~47% opacity) preserving ink visibility underneath. Standard desktop tip sizes (1 mm, 3 mm, 7 mm).

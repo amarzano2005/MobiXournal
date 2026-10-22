@@ -27,6 +27,16 @@ both and tests can drive the paged path. `MobixMergeEngine` and `MobixConflictDe
 verbs — three-way page merge and its conflicts — and are public for the same reason: a second shell
 that syncs must not reimplement them.
 
+**`PageWindow` is part of the contract too**, because a shell that can *edit* needs the other half of
+streaming: a bounded read cache over a `PageSource` plus an overlay of edited pages eviction never
+touches. `page(i)` answers an edit if there is one and materialises the page otherwise, `edit(i) { … }`
+returns the page it produced and keeps it, `set`/`revert` are the undo pair, `pin`/`unpin` hold a page for
+a live gesture, and `applyTo`/`followDocument` keep the overlay and the document in step. It costs one
+page however long the document is, which is what lets the desktop window edit a 200-page notebook
+without opening it; `DesktopDocument.window` is one per tab, and the tablet's canvas holds its own. Its
+gates are `PageWindowTest` (app module) and `DesktopEditingTest` (desktop module, through the published
+type).
+
 ## What the contract promises
 
 - **Opening is O(1) in pages.** `MobixPagedReader` reads the mimetype, `manifest.json` and `canvas.json`

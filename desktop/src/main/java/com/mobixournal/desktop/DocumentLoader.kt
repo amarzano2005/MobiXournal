@@ -8,12 +8,17 @@ import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixPagedReader
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.withPage
 import com.mobixournal.io.DocumentEncoder
 import com.mobixournal.render.CanvasGeometry
+import com.mobixournal.render.PageWindow
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
@@ -41,12 +46,7 @@ enum class DesktopContainer(val label: String) {
 class DesktopDocument(
     val file: File,
     val source: PageSource,
-    /**
-     * The document **model** the save writes — the same object [source] reads its pages through,
-     * so a save cannot disagree with what the window shows. A `.mobix`'s pages are lazy: the model
-     * describes the manifest, and only a write (or a scroll) inflates a page.
-     */
-    val model: Document,
+    model: Document,
     val container: DesktopContainer,
     /** Where this document's pictures live: bundled bytes, a ZIP package's extraction, or its folder. */
     val backdrop: PageBackdrop,
@@ -54,10 +54,49 @@ class DesktopDocument(
     val shape: DocumentEncoder.SaveShape = DocumentEncoder.SaveShape(),
 ) : AutoCloseable {
 
+    /**
+     * The **editable** page window over [source]: a bounded read cache plus the overlay of pages an
+     * edit produced, which eviction never touches (`mobix-core`'s [PageWindow], the same one the
+     * tablet's canvas edits through). A `.mobix` edit therefore inflates its own page and nothing else,
+     * and a page the user just drew on is the page the painter, the thumbnail and the save see.
+     */
+    val window: PageWindow = PageWindow(source)
+
+    /**
+     * The document **model** the save writes — the same object [source] reads its pages through, so a
+     * save cannot disagree with what the window shows. A `.mobix`'s pages are lazy: the model describes
+     * the manifest, and only a write (or a scroll) inflates a page. An edit replaces exactly its own
+     * page through [Document.withPage], so a two-hundred-page notebook is never walked to change one of
+     * them, and the save's reuse plan (`MobixPageReuse`) can still tell the untouched pages apart.
+     */
+    var model: Document = model
+        private set
+
+    /**
+     * How many edits the window has taken — **snapshot state**, because the painter and the thumbnails
+     * cache a page per index and must be told that the page they cached is not the page any more.
+     */
+    var edits: Int by mutableStateOf(0)
+        private set
+
     val pageCount: Int get() = source.pageCount
 
-    /** The page at [index] — decoded now for a `.mobix`, already in memory for a `.xopp`. */
-    fun page(index: Int): Page = source.page(index)
+    /** The page at [index] — the edit if there is one, else decoded now for a `.mobix`, in memory for a `.xopp`. */
+    fun page(index: Int): Page = window.page(index)
+
+    /**
+     * Apply [transform] to page [index] as one edit, through the window, and adopt the result into
+     * [model] — the one path an editing tool writes through.
+     *
+     * @return the page the edit produced, or null when [transform] handed the same page back (a command
+     *   that changed nothing), in which case neither the model nor the edit count moved.
+     */
+    fun editPage(index: Int, transform: (Page) -> Page): Page? {
+        val edited = window.edit(index, transform) ?: return null
+        model = model.withPage(index, edited)
+        edits++
+        return edited
+    }
 
     /**
      * How many ink strokes the whole document holds, or **null when counting them would cost a full
@@ -68,7 +107,7 @@ class DesktopDocument(
         get() = when (container) {
             DesktopContainer.MOBIX -> null
             else -> (0 until pageCount).sumOf { index ->
-                source.page(index).layers.sumOf { layer -> layer.elements.count { it is Stroke } }
+                page(index).layers.sumOf { layer -> layer.elements.count { it is Stroke } }
             }
         }
 
@@ -152,8 +191,15 @@ object DocumentLoader {
         }
     }
 
-    private fun openMobix(file: File): DesktopDocument {
-        val reader = MobixPagedReader(MobixEntrySource.fromFile(file))
+    private fun openMobix(file: File): DesktopDocument = openMobix(file, MobixEntrySource.fromFile(file))
+
+    /**
+     * A `.mobix` opened over [entries] — the file's own channel everywhere except in a test that wraps
+     * it to count which page entries an edit inflates (the same `CountingEntrySource` the core's suites
+     * use). Production always takes the one-argument form above; nothing else may pass a source.
+     */
+    internal fun openMobix(file: File, entries: MobixEntrySource): DesktopDocument {
+        val reader = MobixPagedReader(entries)
         return try {
             val mobix = MobixDocument.openPaged(reader)
             val model = mobix.toDocument()

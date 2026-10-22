@@ -103,9 +103,11 @@ fun PageSidebar(
         ) {
             items(count = tab.pageCount) { index ->
                 // The hidden set is part of the key: switching a layer off repaints this page's thumbnail
-                // rather than leaving a preview that disagrees with the sheet beside it.
+                // rather than leaving a preview that disagrees with the sheet beside it. So is the
+                // document's edit count — an edit changes the picture, and the shell drops the page's
+                // cached bitmap, so this re-renders the edited page and takes the others from the cache.
                 val hidden = tab.hiddenOn(index)
-                val preview = remember(tab, index, hidden) {
+                val preview = remember(tab, index, hidden, tab.document.edits) {
                     thumbnail(tab, index, THUMB_WIDTH.value, cache)
                 }
                 Row(
@@ -153,7 +155,9 @@ fun PageSidebar(
 /** The current page's layers, topmost first — the order the eye reads a stack of ink in. */
 @Composable
 private fun LayersSection(tab: DesktopTab) {
-    val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
+    val page = remember(tab, tab.page, tab.document.edits) {
+        runCatching { tab.document.page(tab.page) }.getOrNull()
+    }
     val layers = page?.layers.orEmpty()
     Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
         Text(

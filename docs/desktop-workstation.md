@@ -58,8 +58,21 @@ What it does today:
   opened as** (`DesktopContainer` → `SaveFormat`), and Save As is the only place it changes: the name
   the user gives it decides (`.mobix` writes the archive, `.xopp` the gzip form, a packaged `.xopp` stays
   packaged, an unrecognised name keeps what the document had), and the tab is re-homed onto the file it
-  just wrote. Nothing in the window edits a page yet, so a save writes back the document it opened; what
-  is built here is the path the editing tasks save through.
+  just wrote. A save writes the document **with its edits**: a page the window drew on is the page the
+  file gets, and a `.mobix` repack still streams the pages nobody touched out of the archive.
+- **Draws and erases on the page** — pen (`B`), highlighter (`H`) and eraser (`E`). A primary drag is
+  fed to the shared `InkPointerRouter` (`mobix-core`) as a stream of `InkPointer`s, so what a press
+  means, how hard the pen draws and when a drag is a stroke rather than a tap are the same decisions the
+  tablet makes; the window only converts a Compose pointer into that vocabulary. The stroke is
+  previewed while it is drawn and committed on lift as **one edit** through the tab's page window
+  (`PageWindow`, moved into `mobix-core` and shared with the tablet's canvas): the edited page is
+  materialised on its own, kept in an overlay eviction never touches, and adopted into the document the
+  save writes. So a `.mobix` edit inflates exactly the page it touched, the stroke lands in the file, and
+  the page's thumbnail follows. A press that lands on the desk starts nothing, because the desk is not
+  paper. The eraser is the shared `PageEraser` in standard mode — it rubs out the part of a stroke it
+  crosses and splits it in two, at a tip the pen width sizes — and a highlighter band keeps its
+  multiply. Pressure is the shared filter's: a mouse reports none, which draws at the tool's width,
+  exactly as the tablet's cursor does.
 - **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
   running the same compiler the Android canvas and every export use (`LivingInk`, now platform-free in
   `mobix-core`), then drawing the ink it produces. A table on the PC is the table on the tablet, not a
@@ -76,8 +89,8 @@ What it does today:
   its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
   header control is the same object at 36 dp. Both placements draw the same fifteen tools, in the order,
   glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
-  squircle in the steel `#38383E` and a name-and-hotkey pill on hover. A slot only sets the tool
-  selection — nothing draws with it yet.
+  squircle in the steel `#38383E` and a name-and-hotkey pill on hover. The pen, highlighter and eraser
+  slots draw; every other slot still only sets the selection.
 - **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
   band lift instead of a bare fill, every surface that floats takes the drawn rim, and
   both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
@@ -136,15 +149,19 @@ picker.
 
 ### What the window does not do
 
-- No editing — the page is read-only, so a save writes back exactly what was opened. There is no dirty
-  state and no close confirmation yet (`desktop-dirty-state-close-confirmation-and-crash-safety`), and no
-  Save As to a container the name does not imply.
+- No **undo or redo**, no selection (marquee, lasso), no text, shape, plot or circuit authoring, and no
+  layer editing: pen, highlighter and eraser are the tools that work, and every other slot only picks a
+  tool (`desktop-undo-redo-per-tab-history`, `desktop-eraser-and-selection-on-shared-geometry`). There is
+  no dirty state and no close confirmation yet (`desktop-dirty-state-close-confirmation-and-crash-safety`).
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
-- No right-side property inspector, no search, and no page reordering or insertion. The tool strips
-  pick a tool and stop there: there is no inking, no erasing and no selection.
-- No tablet or dial input, no dirty-rect GPU pacing, no installer. `run` is the only entry point;
-  `nativeDistributions` is configured but not wired into a release job.
+- No **tablet pressure, tilt or azimuth**: the pen draws at the strip's width through the shared pressure
+  filter, and what Compose Desktop reports on Windows is measured by `desktop-tablet-and-dial-input`
+  rather than assumed here.
+- No right-side property inspector, no search, and no page reordering or insertion.
+- No tablet backend of its own and no dial input — whatever the pen reports reaches the router through
+  Compose; no dirty-rect GPU pacing and no installer. `run` is the only entry point; `nativeDistributions`
+  is configured but not wired into a release job.
 
 ### Verification, runnable on any JVM host (no emulator)
 
@@ -165,7 +182,12 @@ together. `DesktopSaveTest` is the write's round trip: an edit saved over a gzip
 40-page `.mobix`, each re-opened through `DocumentLoader` with the container and the untouched pages
 asserted, a Save As that turns a `.mobix` into a `.xopp` and re-homes the tab, a packaged `.xopp` refused
 with its file byte-identical, and the version the window stamps into a `.mobix` checked against
-`app/build.gradle.kts`'s `versionName`. Every render is
+`app/build.gradle.kts`'s `versionName`. `DesktopEditingTest` is the editing path headless: a 40-page
+`.mobix` opens through a `CountingEntrySource` with **zero** page entries read, an edit on page 3 opens
+that page and no other, the page's rendered ink grows, the model the save writes carries it and a
+40-page repack round-trips it while the untouched pages keep their own ink; the eraser splits a bar
+where it crosses it and the gap reads as paper again; a pressure sample becomes its filtered width, a
+highlighter stays one width, and the page-point mapping undoes the display density and the zoom. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at — including
 `glass-parity.png`, the same panel in the tablet's material and in this window's, written by
 `GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which
