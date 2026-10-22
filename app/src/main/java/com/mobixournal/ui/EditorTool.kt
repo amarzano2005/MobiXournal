@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.mobixournal.design.ToolGlyph
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
@@ -79,31 +80,44 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.CHEM_BENZENE,
 )
 
-private data class ToolInfo(val tool: EditorTool, val label: String, val icon: ImageVector)
+/**
+ * One tool's name and picture.
+ *
+ * [glyph] is the shared catalogue entry (`ToolGlyphCatalogue`, `mobix-core`) and wins whenever it is
+ * present; [icon] is the Material vector it replaced, kept only for the tools whose families still use
+ * the tablet's own artwork (the deeper circuit, logic and chemistry members). A tool drawn from the
+ * catalogue draws the **same** picture on the desktop, which is what makes the two toolbars one family.
+ */
+private data class ToolInfo(
+    val tool: EditorTool,
+    val label: String,
+    val icon: ImageVector,
+    val glyph: ToolGlyph? = null,
+)
 
 private val TOOLS: List<ToolInfo> = listOf(
-    ToolInfo(EditorTool.PEN, "Pen", Icons.Outlined.Create),
-    ToolInfo(EditorTool.HIGHLIGHTER, "Highlighter", Icons.Outlined.Brush),
-    ToolInfo(EditorTool.ERASER, "Eraser (partial)", Icons.Outlined.Delete),
-    ToolInfo(EditorTool.ERASER_WHOLE, "Eraser (whole stroke)", Icons.Outlined.DeleteSweep),
-    ToolInfo(EditorTool.LINE, "Line", Icons.Outlined.HorizontalRule),
-    ToolInfo(EditorTool.ARROW, "Arrow", Icons.AutoMirrored.Outlined.ArrowRightAlt),
-    ToolInfo(EditorTool.DOUBLE_ARROW, "Double arrow", Icons.Outlined.SwapHoriz),
-    ToolInfo(EditorTool.COORDINATE_AXIS, "Coordinate axis", CoordinateAxisIcon),
-    ToolInfo(EditorTool.RECTANGLE, "Rectangle", RectangleIcon),
-    ToolInfo(EditorTool.ELLIPSE, "Ellipse", Icons.Outlined.RadioButtonUnchecked),
-    ToolInfo(EditorTool.TRIANGLE, "Triangle", Icons.Outlined.ChangeHistory),
-    ToolInfo(EditorTool.SQUARE, "Square", SquareIcon),
-    ToolInfo(EditorTool.RHOMBUS, "Rhombus", RhombusIcon),
-    ToolInfo(EditorTool.TRAPEZOID, "Trapezoid", TrapezoidIcon),
-    ToolInfo(EditorTool.PENTAGON, "Pentagon", PentagonIcon),
-    ToolInfo(EditorTool.HEXAGON, "Hexagon", HexagonIcon),
-    ToolInfo(EditorTool.TABLE, "Table", TableIcon),
-    ToolInfo(EditorTool.RESISTOR, "Resistor", ResistorIcon),
+    ToolInfo(EditorTool.PEN, "Pen", Icons.Outlined.Create, ToolGlyph.PEN),
+    ToolInfo(EditorTool.HIGHLIGHTER, "Highlighter", Icons.Outlined.Brush, ToolGlyph.HIGHLIGHTER),
+    ToolInfo(EditorTool.ERASER, "Eraser (partial)", Icons.Outlined.Delete, ToolGlyph.ERASER),
+    ToolInfo(EditorTool.ERASER_WHOLE, "Eraser (whole stroke)", Icons.Outlined.DeleteSweep, ToolGlyph.ERASER_WHOLE),
+    ToolInfo(EditorTool.LINE, "Line", Icons.Outlined.HorizontalRule, ToolGlyph.LINE),
+    ToolInfo(EditorTool.ARROW, "Arrow", Icons.AutoMirrored.Outlined.ArrowRightAlt, ToolGlyph.ARROW),
+    ToolInfo(EditorTool.DOUBLE_ARROW, "Double arrow", Icons.Outlined.SwapHoriz, ToolGlyph.DOUBLE_ARROW),
+    ToolInfo(EditorTool.COORDINATE_AXIS, "Coordinate axis", CoordinateAxisIcon, ToolGlyph.AXES),
+    ToolInfo(EditorTool.RECTANGLE, "Rectangle", RectangleIcon, ToolGlyph.RECTANGLE),
+    ToolInfo(EditorTool.ELLIPSE, "Ellipse", Icons.Outlined.RadioButtonUnchecked, ToolGlyph.ELLIPSE),
+    ToolInfo(EditorTool.TRIANGLE, "Triangle", Icons.Outlined.ChangeHistory, ToolGlyph.TRIANGLE),
+    ToolInfo(EditorTool.SQUARE, "Square", SquareIcon, ToolGlyph.SQUARE),
+    ToolInfo(EditorTool.RHOMBUS, "Rhombus", RhombusIcon, ToolGlyph.RHOMBUS),
+    ToolInfo(EditorTool.TRAPEZOID, "Trapezoid", TrapezoidIcon, ToolGlyph.TRAPEZOID),
+    ToolInfo(EditorTool.PENTAGON, "Pentagon", PentagonIcon, ToolGlyph.PENTAGON),
+    ToolInfo(EditorTool.HEXAGON, "Hexagon", HexagonIcon, ToolGlyph.HEXAGON),
+    ToolInfo(EditorTool.TABLE, "Table", TableIcon, ToolGlyph.TABLE),
+    ToolInfo(EditorTool.RESISTOR, "Resistor", ResistorIcon, ToolGlyph.RESISTOR),
     ToolInfo(EditorTool.CAPACITOR, "Capacitor", CapacitorIcon),
     ToolInfo(EditorTool.INDUCTOR, "Inductor", InductorIcon),
     ToolInfo(EditorTool.GROUND, "Ground", GroundIcon),
-    ToolInfo(EditorTool.DIODE, "Diode", DiodeIcon),
+    ToolInfo(EditorTool.DIODE, "Diode", DiodeIcon, ToolGlyph.DIODE),
     ToolInfo(EditorTool.LED, "LED", LedIcon),
     ToolInfo(EditorTool.ZENER_DIODE, "Zener diode", ZenerDiodeIcon),
     ToolInfo(EditorTool.OPAMP, "Op-Amp", OpAmpIcon),
@@ -111,7 +125,7 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.BJT_PNP, "BJT PNP", BjtPnpIcon),
     ToolInfo(EditorTool.DC_SOURCE, "DC voltage source", DcSourceIcon),
     ToolInfo(EditorTool.CURRENT_SOURCE, "Current source", CurrentSourceIcon),
-    ToolInfo(EditorTool.AND_GATE, "AND Gate", AndGateIcon),
+    ToolInfo(EditorTool.AND_GATE, "AND Gate", AndGateIcon, ToolGlyph.AND_GATE),
     ToolInfo(EditorTool.OR_GATE, "OR Gate", OrGateIcon),
     ToolInfo(EditorTool.NOT_GATE, "NOT Gate", NotGateIcon),
     ToolInfo(EditorTool.NAND_GATE, "NAND Gate", NandGateIcon),
@@ -123,29 +137,40 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.SWITCH_CLOSED, "Switch (closed)", SwitchClosedIcon),
     ToolInfo(EditorTool.TRANSFORMER, "Transformer", TransformerIcon),
     ToolInfo(EditorTool.JUNCTION, "Junction dot", JunctionDotIcon),
-    ToolInfo(EditorTool.DIMENSION, "Dimension arrow", DimensionIcon),
+    ToolInfo(EditorTool.DIMENSION, "Dimension arrow", DimensionIcon, ToolGlyph.DIMENSION),
     ToolInfo(EditorTool.CHEM_BOND_SINGLE, "Single bond", BondSingleIcon),
     ToolInfo(EditorTool.CHEM_BOND_DOUBLE, "Double bond", BondDoubleIcon),
     ToolInfo(EditorTool.CHEM_BOND_TRIPLE, "Triple bond", BondTripleIcon),
-    ToolInfo(EditorTool.CHEM_BENZENE, "Benzene ring", BenzeneIcon),
-    ToolInfo(EditorTool.SPLINE, "Spline", Icons.Outlined.Gesture),
-    ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Outlined.PanTool),
-    ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Outlined.HighlightAlt),
-    ToolInfo(EditorTool.LASSO_SELECT, "Select lasso", Icons.Outlined.Polyline),
+    ToolInfo(EditorTool.CHEM_BENZENE, "Benzene ring", BenzeneIcon, ToolGlyph.BENZENE),
+    ToolInfo(EditorTool.SPLINE, "Spline", Icons.Outlined.Gesture, ToolGlyph.SPLINE),
+    ToolInfo(EditorTool.HAND, "Hand (pan)", Icons.Outlined.PanTool, ToolGlyph.HAND),
+    ToolInfo(EditorTool.SELECT, "Select rectangle", Icons.Outlined.HighlightAlt, ToolGlyph.MARQUEE),
+    ToolInfo(EditorTool.LASSO_SELECT, "Select lasso", Icons.Outlined.Polyline, ToolGlyph.LASSO),
     ToolInfo(EditorTool.TEXT_SELECT, "Select text (PDF)", Icons.Outlined.SelectAll),
     ToolInfo(EditorTool.BG_SELECT, "Select background (flatten)", Icons.Outlined.Crop),
-    ToolInfo(EditorTool.TEXT, "Text", Icons.Outlined.TextFields),
-    ToolInfo(EditorTool.IMAGE, "Image", Icons.Outlined.Image),
+    ToolInfo(EditorTool.TEXT, "Text", Icons.Outlined.TextFields, ToolGlyph.TEXT),
+    ToolInfo(EditorTool.IMAGE, "Image", Icons.Outlined.Image, ToolGlyph.IMAGE),
     ToolInfo(EditorTool.TEXIMAGE, "LaTeX", Icons.Outlined.Functions),
-    ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", Icons.Outlined.SwapVert),
+    ToolInfo(EditorTool.VERTICAL_SPACE, "Vertical space", Icons.Outlined.SwapVert, ToolGlyph.VSPACE),
     ToolInfo(EditorTool.PLAY_OBJECT, "Play object", Icons.Outlined.GraphicEq),
 )
 
 /** Human-readable label for a tool (the same text the rail's tool menu shows). */
 val EditorTool.label: String get() = TOOLS.first { it.tool == this }.label
 
-/** The rail icon for a tool. */
-val EditorTool.icon: ImageVector get() = TOOLS.first { it.tool == this }.icon
+/**
+ * The shared-catalogue glyph for this tool, or null when it still draws the tablet's own vector (the
+ * deeper circuit, logic and chemistry members a picker offers but no slot face shows by default).
+ * Exposed so the coverage test can pin which tools are already one picture across the two shells.
+ */
+fun EditorTool.catalogueGlyph(): ToolGlyph? = TOOLS.first { it.tool == this }.glyph
+
+/**
+ * The rail icon for a tool: the shared catalogue's picture when the tool has one, and the tablet's own
+ * vector for the families that do not yet (`ToolGlyphCatalogue`).
+ */
+val EditorTool.icon: ImageVector
+    get() = TOOLS.first { it.tool == this }.let { info -> info.glyph?.imageVector() ?: info.icon }
 
 /**
  * The tools that make sense to *start* a document in, offered by the "Default tool" setting. The

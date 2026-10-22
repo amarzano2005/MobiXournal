@@ -41,6 +41,7 @@ import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberClosingArgument
+import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
@@ -576,7 +577,7 @@ private fun RailLane(toolbar: @Composable () -> Unit) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
         color = glassColor,
-        shadowElevation = 4.dp,
+        shadowElevation = ModernTheme.bandShadowDp,
         modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
     ) {
         Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) {

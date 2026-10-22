@@ -64,6 +64,31 @@ object DesignTokens {
     /** Backdrop blur radius behind the glass, in dp. */
     const val BLUR_RADIUS_DP: Int = 24
 
+    // --- The raised glass: what lifts a surface off the desk -------------------------------------
+    //
+    // A band (the header, the status bar, the sidebar, a tool lane) and a floating capsule (the rail,
+    // the ribbon, a header control) are the same material, and what tells them apart from the desk is
+    // the lift under them. Both shells take the numbers from here: the tablet puts them on a Material
+    // `Surface`, the desktop draws the same lift with `Modifier.shadow`, so "raised" means one thing.
+    //
+    // Over the true-black desk the glass' alpha is invisible (a near-black at 0.85 and an opaque one
+    // are the same pixels), so the shadow and the sheen are the **only** depth cue the window has.
+
+    /** The cast shadow under a **band**: 4 dp — the tablet's header, status bar and rail lane. */
+    const val BAND_SHADOW_DP: Int = 4
+
+    /** The cast shadow under a **floating capsule**: 6 dp — the tablet's rail, a header control. */
+    const val CAPSULE_SHADOW_DP: Int = 6
+
+    /**
+     * The sheen along a glass surface's **lit top edge**, as a white alpha: strong enough to read as
+     * light falling on glass instead of as a flat charcoal fill, faint enough not to be a gradient bar.
+     */
+    const val SHEEN_ALPHA_TOP: Float = 0.10f
+
+    /** Where the sheen has fallen away by the bottom edge — the shaded end of the same gradient. */
+    const val SHEEN_ALPHA_BOTTOM: Float = 0.02f
+
     // --- The floating glass's edge --------------------------------------------------------------
     //
     // A floating surface is not a filled box with a border: it wears one drawn edge — a hairline shaded
@@ -94,6 +119,41 @@ object DesignTokens {
 
     /** One compact tool/action button, in dp. */
     const val COMPACT_BUTTON_SIZE_DP: Int = 40
+
+    /** A tool slot's own corner — the 10 dp squircle inside the rail's capsule (`RoundedCornerShape(10)`). */
+    const val RAIL_SLOT_CORNER_RADIUS_DP: Int = 10
+
+    /** The rail's floating capsule, in dp — its own width, inside the lane that holds it. */
+    const val RAIL_CAPSULE_WIDTH_DP: Int = 52
+
+    /** The air between the rail capsule and its lane's edge, on each side, in dp. */
+    const val RAIL_LANE_PADDING_DP: Int = 6
+
+    /** The whole lane: the capsule plus its air on both sides — 64 dp, the tablet's own lane. */
+    const val RAIL_LANE_WIDTH_DP: Int =
+        RAIL_CAPSULE_WIDTH_DP + RAIL_LANE_PADDING_DP * 2
+
+    /** The capsule's own top/bottom air inside the lane, so it reads as a capsule and not a band. */
+    const val RAIL_OUTER_PADDING_DP: Int = 8
+
+    /** A control in the header band (the sidebar toggle, placement, and the tablet's icon buttons): 36 dp. */
+    const val HEADER_CONTROL_SIZE_DP: Int = 36
+
+    // --- Tool glyphs: one grid, one weight ------------------------------------------------------
+
+    /**
+     * The grid every tool glyph is drawn on, in design units — the 24-unit icon grid. A glyph is
+     * **geometry only**: the shells scale it to the slot they draw, so the same art reads at 20 dp in
+     * a rail slot and at 24 dp in a picker (`docs/ui-modernization.md`, monoline iconography).
+     */
+    const val TOOL_GLYPH_GRID: Float = 24f
+
+    /**
+     * The stroke a tool glyph is drawn with, **in grid units** (1.5 of 24). Both shells scale geometry
+     * and stroke together, so the two toolbars draw the same optical weight at the same size — which
+     * is what "monoline" means here: one line, not one width at one zoom level.
+     */
+    const val TOOL_GLYPH_STROKE_UNITS: Float = 1.5f
 
     // --- Animation tokens -----------------------------------------------------------------------
 

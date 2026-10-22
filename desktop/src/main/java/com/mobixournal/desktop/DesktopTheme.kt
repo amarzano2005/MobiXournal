@@ -82,8 +82,55 @@ object DesktopTheme {
     /** The corner every panel turns at (`panelCornerRadiusDp`). */
     val panelShape: RoundedCornerShape = RoundedCornerShape(panelRadius)
 
-    /** The corner a capsule turns at (`capsuleCornerRadiusDp`): tabs, chips, round buttons. */
-    val capsuleShape: RoundedCornerShape = RoundedCornerShape(DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp)
+    /** The corner a capsule turns at (`capsuleCornerRadiusDp`): the rail, tabs, chips, round buttons. */
+    val capsuleRadius = DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp
+
+    /** The same corner as a shape. */
+    val capsuleShape: RoundedCornerShape = RoundedCornerShape(capsuleRadius)
+
+    /**
+     * The cast shadow a band puts on what stands beside it — 4 dp, the tablet's own band lift.
+     *
+     * A band is not a panel: it takes this one lift and no rim (`docs/chrome.md`), which is what makes
+     * the header read as chrome over the canvas rather than as a slab lying on the page.
+     */
+    val bandShadow = DesignTokens.BAND_SHADOW_DP.dp
+
+    /** The cast shadow under a floating capsule — the rail, the ribbon, a header control: 6 dp. */
+    val capsuleShadow = DesignTokens.CAPSULE_SHADOW_DP.dp
+
+    /** The sheen's lit end, painted along a glass surface's top edge. */
+    val sheenTop: Color = Color.White.copy(alpha = DesignTokens.SHEEN_ALPHA_TOP)
+
+    /** The sheen's shaded end, where the same gradient has fallen away at the bottom. */
+    val sheenBottom: Color = Color.White.copy(alpha = DesignTokens.SHEEN_ALPHA_BOTTOM)
+
+    /** The rail's floating capsule: 52 dp, inside a [railLaneWidth] lane. */
+    val railCapsuleWidth = DesignTokens.RAIL_CAPSULE_WIDTH_DP.dp
+
+    /** The air between the rail capsule and its lane: 6 dp on each side. */
+    val railLanePadding = DesignTokens.RAIL_LANE_PADDING_DP.dp
+
+    /** The whole rail lane: capsule plus air, 64 dp — the tablet's own lane. */
+    val railLaneWidth = DesignTokens.RAIL_LANE_WIDTH_DP.dp
+
+    /** The capsule's top/bottom air inside the lane, so it is a capsule and not a band: 8 dp. */
+    val railOuterPadding = DesignTokens.RAIL_OUTER_PADDING_DP.dp
+
+    /** A tool slot's corner inside the rail: 10 dp, the tablet's `RoundedCornerShape(10)`. */
+    val railSlotRadius = DesignTokens.RAIL_SLOT_CORNER_RADIUS_DP.dp
+
+    /** The same slot corner as a shape. */
+    val railSlotShape: RoundedCornerShape = RoundedCornerShape(railSlotRadius)
+
+    /** A control in the header band: 36 dp, the tablet's icon buttons beside the dock. */
+    val headerControlSize = DesignTokens.HEADER_CONTROL_SIZE_DP.dp
+
+    /** The grid every tool glyph is drawn on, in design units: 24. */
+    const val TOOL_GLYPH_GRID: Float = DesignTokens.TOOL_GLYPH_GRID
+
+    /** A tool glyph's stroke, in grid units: 1.5 of 24. */
+    const val TOOL_GLYPH_STROKE_UNITS: Float = DesignTokens.TOOL_GLYPH_STROKE_UNITS
 
     /** The header band's height, in dp. */
     val headerHeight = DesignTokens.HEADER_HEIGHT_DP.dp

@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.DesignTokens
+import com.mobixournal.design.ToolGlyphCatalogue
 import java.io.File
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
@@ -52,6 +53,26 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.CAPSULE_CORNER_RADIUS_DP, number("capsuleCornerRadiusDp").toInt())
         assertEquals(DesignTokens.COMPACT_BUTTON_SIZE_DP, number("compactButtonSizeDp").toInt())
         assertEquals(DesignTokens.HAIRLINE_STROKE_WIDTH_DP, number("hairlineStrokeWidthDp"), 1e-4)
+
+        // The raised glass: the lift under a band and a capsule, and the sheen that makes it read.
+        assertEquals(DesignTokens.BAND_SHADOW_DP, number("bandShadowDp").toInt())
+        assertEquals(DesignTokens.CAPSULE_SHADOW_DP, number("capsuleShadowDp").toInt())
+        assertEquals(DesignTokens.SHEEN_ALPHA_TOP, number("sheenAlphaTop").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.SHEEN_ALPHA_BOTTOM, number("sheenAlphaBottom").toFloat(), 1e-4f)
+
+        // The rail both shells draw: one capsule, one lane, one slot corner, one glyph grid.
+        assertEquals(DesignTokens.RAIL_CAPSULE_WIDTH_DP, number("railCapsuleWidthDp").toInt())
+        assertEquals(DesignTokens.RAIL_LANE_PADDING_DP, number("railLanePaddingDp").toInt())
+        assertEquals(DesignTokens.RAIL_LANE_WIDTH_DP, number("railLaneWidthDp").toInt())
+        assertEquals(DesignTokens.RAIL_OUTER_PADDING_DP, number("railOuterPaddingDp").toInt())
+        assertEquals(DesignTokens.RAIL_SLOT_CORNER_RADIUS_DP, number("railSlotCornerRadiusDp").toInt())
+        assertEquals(DesignTokens.HEADER_CONTROL_SIZE_DP, number("headerControlSizeDp").toInt())
+        assertEquals(DesignTokens.TOOL_GLYPH_GRID, number("toolGlyphGrid").toFloat(), 1e-4f)
+        assertEquals(
+            DesignTokens.TOOL_GLYPH_STROKE_UNITS,
+            number("toolGlyphStrokeUnits").toFloat(),
+            1e-4f,
+        )
         assertEquals(DesignTokens.SPRING_STIFFNESS, number("springStiffness").toFloat(), 1e-4f)
         assertEquals(DesignTokens.SPRING_DAMPING, number("springDamping").toFloat(), 1e-4f)
         assertEquals(DesignTokens.FADE_TRANSITION_MS, number("fadeTransitionMs").toInt())
@@ -101,6 +122,17 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.STATUS_HEIGHT_DP.dp, DesktopTheme.statusHeight)
         assertEquals(DesignTokens.GLYPH_STROKE_DP, DesktopTheme.glyphStroke.value, 1e-4f)
         assertEquals(DesignTokens.PAGE_SHADOW_DP.dp, DesktopTheme.pageShadow)
+        assertEquals(DesignTokens.BAND_SHADOW_DP.dp, DesktopTheme.bandShadow)
+        assertEquals(DesignTokens.CAPSULE_SHADOW_DP.dp, DesktopTheme.capsuleShadow)
+        assertEquals(DesignTokens.RAIL_CAPSULE_WIDTH_DP.dp, DesktopTheme.railCapsuleWidth)
+        assertEquals(DesignTokens.RAIL_LANE_WIDTH_DP.dp, DesktopTheme.railLaneWidth)
+        assertEquals(DesignTokens.RAIL_LANE_PADDING_DP.dp, DesktopTheme.railLanePadding)
+        assertEquals(DesignTokens.RAIL_OUTER_PADDING_DP.dp, DesktopTheme.railOuterPadding)
+        assertEquals(DesignTokens.RAIL_SLOT_CORNER_RADIUS_DP.dp, DesktopTheme.railSlotRadius)
+        assertEquals(DesignTokens.HEADER_CONTROL_SIZE_DP.dp, DesktopTheme.headerControlSize)
+        // Compose stores alpha in 8 bits, so a token's 0.10 lands on 26/255: compare the quantised value.
+        assertEquals(DesignTokens.SHEEN_ALPHA_TOP, DesktopTheme.sheenTop.alpha, 1f / 255f)
+        assertEquals(DesignTokens.SHEEN_ALPHA_BOTTOM, DesktopTheme.sheenBottom.alpha, 1f / 255f)
     }
 
     /** The window sets Inter, and the three weights travel with the module (no OS font guess). */
@@ -151,6 +183,44 @@ class DesktopThemeTest {
                 offenders.joinToString("; "),
             offenders.isEmpty(),
         )
+    }
+
+    /**
+     * The window's tool glyphs are the tablet's, by identity.
+     *
+     * `ToolGlyphCatalogue` is the one definition; a tool added to the window without a catalogue entry
+     * does not compile (the `when` in `DesktopTool.glyph` is exhaustive), and two tools sharing one
+     * picture would be a copy-paste bug the eye might not catch.
+     */
+    @Test
+    fun `every tool draws a shared glyph of its own`() {
+        val glyphs = DesktopTool.entries.map { it.glyph }
+        assertEquals("two tools draw the same glyph", glyphs.size, glyphs.toSet().size)
+        for (glyph in glyphs) {
+            assertTrue("$glyph has no art in the shared catalogue", ToolGlyphCatalogue.parts(glyph).isNotEmpty())
+        }
+    }
+
+    /**
+     * No Material icon in the window.
+     *
+     * The desktop chrome draws its own monoline art (`docs/ui-modernization.md`), and the toolbars draw
+     * the shared catalogue. A `material.icons` import creeping back in is the first step towards the two
+     * shells' toolbars drifting apart again, so it fails here by name.
+     */
+    @Test
+    fun `the window imports no Material icon`() {
+        val offenders = mutableListOf<String>()
+        File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop").listFiles().orEmpty()
+            .filter { it.extension == "kt" }
+            .forEach { file ->
+                file.readLines().forEachIndexed { index, line ->
+                    if (line.contains("androidx.compose.material.icons")) {
+                        offenders += "${file.name}:${index + 1} ${line.trim()}"
+                    }
+                }
+            }
+        assertTrue("Material icons in the window: ${offenders.joinToString("; ")}", offenders.isEmpty())
     }
 
     /** The theme itself must read the tokens, not repeat them. */

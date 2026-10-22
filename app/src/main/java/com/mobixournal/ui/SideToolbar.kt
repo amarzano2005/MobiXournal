@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -107,15 +106,15 @@ fun SideToolbar(
     }
 }
 
-/** The floating rail's width: 40dp buttons + 6dp padding each side = 52dp. */
-val SideToolbarModernWidth = 52.dp
+/** The floating rail's width: 40dp buttons + 6dp padding each side = 52dp (the shared token). */
+val SideToolbarModernWidth = ModernTheme.railCapsuleWidthDp
 /** Margin around the modern floating rail. */
-val SideToolbarModernPadding = 6.dp
+val SideToolbarModernPadding = ModernTheme.railLanePaddingDp
 /** The modern floating rail's vertical margin, top and bottom. */
-private val SideToolbarModernOuterPadding = 8.dp
+private val SideToolbarModernOuterPadding = ModernTheme.railOuterPaddingDp
 
 /** Total width occupied by the modern vertical rail including its margins. */
-val SideToolbarModernTotalWidth = SideToolbarModernWidth + (SideToolbarModernPadding * 2)
+val SideToolbarModernTotalWidth = ModernTheme.railLaneWidthDp
 
 /** One slot at full scale in modern design: 40dp compact buttons from ModernTheme. */
 internal val SideToolbarModernSlot = ModernTheme.compactButtonSizeDp
@@ -174,7 +173,7 @@ private fun ToolbarShell(
                 shape = ModernTheme.capsuleShape,
                 color = glassColor,
                 tonalElevation = 0.dp,
-                shadowElevation = 6.dp,
+                shadowElevation = ModernTheme.capsuleShadowDp,
             ) {
                 RailColumn(scale) { buttons() }
             }
@@ -223,7 +222,7 @@ private fun ToolGroupButton(
 ) {
     var open by remember { mutableStateOf(false) }
     val tint = if (active) MaterialTheme.colorScheme.primary else rememberChromeInk()
-    val shape = RoundedCornerShape(10.dp)
+    val shape = ModernTheme.railSlotShape
     val buttonSize = LocalRailSlotSize.current
     Box {
         Box(

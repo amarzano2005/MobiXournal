@@ -140,18 +140,16 @@ class ToolGlyphsTest {
     @Test
     fun `the coordinate-axis glyph is a plotted diagram the tool actually wears`() {
         // The button used to wear Material's bar chart (`ShowChart`), which reads as statistics
-        // rather than as the oriented X/Y plane the tool draws; the wiring is the change, so it is
-        // the wiring this pins.
-        assertEquals(CoordinateAxisIcon, EditorTool.COORDINATE_AXIS.icon)
-        assertEquals("CoordinateAxis", CoordinateAxisIcon.name)
-        assertNotEquals("ShowChart", CoordinateAxisIcon.name)
-        val nodes = CoordinateAxisIcon.nodes()
+        // rather than as the oriented X/Y plane the tool draws. It now wears the **shared** axes
+        // glyph, so the picture is the desktop's too; this pins the wiring and the shape of the art.
+        val icon = EditorTool.COORDINATE_AXIS.icon
+        assertEquals("ToolGlyph.axes", icon.name)
+        assertNotEquals("ShowChart", icon.name)
+        assertEquals(24f, icon.viewportWidth)
+        assertEquals(24f, icon.viewportHeight)
+        val nodes = icon.nodes()
         assertTrue("the glyph draws something", nodes.isNotEmpty())
-        assertTrue("there is a plotted curve", nodes.any { it is PathNode.QuadTo || it is PathNode.CurveTo })
-        assertTrue(
-            "two axes, each starting from its own origin",
-            nodes.count { it is PathNode.MoveTo } >= 2,
-        )
+        assertTrue("the axes are straight strokes", nodes.any { it is PathNode.LineTo })
         assertTrue(
             "every point is inside the 24-unit grid — a hand-drawn glyph that spills gets clipped",
             points(nodes).all { (x, y) -> x in 0f..24f && y in 0f..24f },

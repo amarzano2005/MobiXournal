@@ -97,6 +97,54 @@ object ModernTheme {
     const val COMPACT_BUTTON_SIZE_DP_VAL: Int = DesignTokens.COMPACT_BUTTON_SIZE_DP
     val compactButtonSizeDp: Dp = COMPACT_BUTTON_SIZE_DP_VAL.dp
 
+    // --- The raised glass: what lifts a surface off the desk ---
+
+    /** The cast shadow under a band (header, status bar, rail lane): 4 dp. */
+    val bandShadowDp: Dp = DesignTokens.BAND_SHADOW_DP.dp
+
+    /** The cast shadow under a floating capsule (the rail, a header control): 6 dp. */
+    val capsuleShadowDp: Dp = DesignTokens.CAPSULE_SHADOW_DP.dp
+
+    /** The sheen's alpha at a glass surface's lit top edge. */
+    const val SHEEN_ALPHA_TOP_VAL: Float = DesignTokens.SHEEN_ALPHA_TOP
+
+    /** The sheen's alpha where it has fallen away at the bottom edge. */
+    const val SHEEN_ALPHA_BOTTOM_VAL: Float = DesignTokens.SHEEN_ALPHA_BOTTOM
+
+    /** The sheen's lit end, as the colour a gradient paints. */
+    val sheenTop: Color get() = Color.White.copy(alpha = SHEEN_ALPHA_TOP_VAL)
+
+    /** The sheen's shaded end. */
+    val sheenBottom: Color get() = Color.White.copy(alpha = SHEEN_ALPHA_BOTTOM_VAL)
+
+    // --- Rail geometry (shared with the desktop's rail) ---
+
+    /** The rail's floating capsule width: 52 dp. */
+    val railCapsuleWidthDp: Dp = DesignTokens.RAIL_CAPSULE_WIDTH_DP.dp
+
+    /** The air on each side of the capsule inside its lane: 6 dp. */
+    val railLanePaddingDp: Dp = DesignTokens.RAIL_LANE_PADDING_DP.dp
+
+    /** The whole lane — capsule plus air: 64 dp. */
+    val railLaneWidthDp: Dp = DesignTokens.RAIL_LANE_WIDTH_DP.dp
+
+    /** The capsule's top/bottom air inside the lane: 8 dp. */
+    val railOuterPaddingDp: Dp = DesignTokens.RAIL_OUTER_PADDING_DP.dp
+
+    /** A tool slot's own corner inside the rail: 10 dp. */
+    val railSlotCornerRadiusDp: Dp = DesignTokens.RAIL_SLOT_CORNER_RADIUS_DP.dp
+
+    /** A control in the header band: 36 dp. */
+    val headerControlSizeDp: Dp = DesignTokens.HEADER_CONTROL_SIZE_DP.dp
+
+    // --- Tool glyphs: one grid, one weight ---
+
+    /** The grid a tool glyph is drawn on, in design units: 24. */
+    const val TOOL_GLYPH_GRID_VAL: Float = DesignTokens.TOOL_GLYPH_GRID
+
+    /** A tool glyph's stroke, in grid units: 1.5 of 24. */
+    const val TOOL_GLYPH_STROKE_UNITS_VAL: Float = DesignTokens.TOOL_GLYPH_STROKE_UNITS
+
     /** Hairline border stroke width: 1.0 dp. */
     const val HAIRLINE_STROKE_WIDTH_DP_VAL: Double = DesignTokens.HAIRLINE_STROKE_WIDTH_DP
     val hairlineStrokeWidthDp: Dp = HAIRLINE_STROKE_WIDTH_DP_VAL.dp
@@ -165,4 +213,7 @@ object ModernTheme {
      * (see [floatingPanelAlpha]).
      */
     fun floatingSurface(isDark: Boolean): Color = glassSurface(isDark).copy(alpha = floatingPanelAlpha)
+
+    /** The rail slot's shape (10 dp squircle), the one piece of rail geometry Compose wants as a type. */
+    val railSlotShape: RoundedCornerShape = RoundedCornerShape(railSlotCornerRadiusDp)
 }

@@ -1,6 +1,7 @@
 package com.mobixournal.ui.theme
 
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.DesignTokens
 import java.io.File
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
@@ -129,6 +130,20 @@ class ModernThemeTest {
         assertEquals(ModernTheme.springStiffness, extractNumber("springStiffness").toFloat(), 0.0001f)
         assertEquals(ModernTheme.springDamping, extractNumber("springDamping").toFloat(), 0.0001f)
         assertEquals(ModernTheme.fadeTransitionMs, extractNumber("fadeTransitionMs").toInt())
+
+        // The raised glass and the rail geometry the desktop reads from the same block.
+        assertEquals(DesignTokens.BAND_SHADOW_DP, extractNumber("bandShadowDp").toInt())
+        assertEquals(DesignTokens.CAPSULE_SHADOW_DP, extractNumber("capsuleShadowDp").toInt())
+        assertEquals(ModernTheme.SHEEN_ALPHA_TOP_VAL, extractNumber("sheenAlphaTop").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.SHEEN_ALPHA_BOTTOM_VAL, extractNumber("sheenAlphaBottom").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.railSlotCornerRadiusDp.value, extractNumber("railSlotCornerRadiusDp").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.railCapsuleWidthDp.value, extractNumber("railCapsuleWidthDp").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.railLanePaddingDp.value, extractNumber("railLanePaddingDp").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.railLaneWidthDp.value, extractNumber("railLaneWidthDp").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.railOuterPaddingDp.value, extractNumber("railOuterPaddingDp").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.headerControlSizeDp.value, extractNumber("headerControlSizeDp").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.TOOL_GLYPH_GRID_VAL, extractNumber("toolGlyphGrid").toFloat(), 0.0001f)
+        assertEquals(ModernTheme.TOOL_GLYPH_STROKE_UNITS_VAL, extractNumber("toolGlyphStrokeUnits").toFloat(), 0.0001f)
     }
 
     private fun repoRoot(): File {

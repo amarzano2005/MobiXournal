@@ -182,7 +182,7 @@ fun EditorTopBar(
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
     Surface(
         color = glassColor,
-        shadowElevation = 4.dp,
+        shadowElevation = ModernTheme.bandShadowDp,
         modifier = modifier.fillMaxWidth(),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
