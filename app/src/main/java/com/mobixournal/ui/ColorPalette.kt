@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.PenPalette
 import com.mobixournal.ui.theme.DialogPresence
 
 /**
@@ -41,15 +42,12 @@ class ColorPaletteState(
 
     /**
      * Append [color] to the pen palette — what the toolbar pop-up's **add colour** swatch does. The
-     * list is de-duplicated (re-adding a colour that is already there selects it rather than making a
-     * twin) and capped at [AppSettings.MAX_PEN_COLORS], the same ceiling Settings → Colors enforces.
+     * rules are [PenPalette]'s, shared with the desktop window: opaque, de-duplicated (re-adding a
+     * colour that is already there selects it rather than making a twin) and capped at
+     * [PenPalette.MAX_COLORS], the same ceiling Settings → Colors enforces.
      */
     fun addColor(color: Int) = onSettingsChange(
-        settings.copy(
-            penColors = (settings.penColors + (color or 0xFF000000.toInt()))
-                .distinct()
-                .take(AppSettings.MAX_PEN_COLORS),
-        ),
+        settings.copy(penColors = PenPalette.add(settings.penColors, color)),
     )
 }
 

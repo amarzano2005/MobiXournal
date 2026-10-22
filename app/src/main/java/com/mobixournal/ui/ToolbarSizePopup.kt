@@ -40,16 +40,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.PenPalette
 import kotlin.math.roundToInt
 
-/** Fixed labels for the three configurable pen-width slots (the widths themselves live in [AppSettings]). */
-val PEN_WIDTH_LABELS: List<String> = listOf("S", "M", "L")
+/**
+ * The three configurable width slots' labels and bounds, read from the shared [PenPalette] — the
+ * desktop window's size flyout uses the same three, so neither shell may invent a fourth label or a
+ * different ceiling.
+ */
+val PEN_WIDTH_LABELS: List<String> get() = PenPalette.WIDTH_LABELS
 
 /** Minimum allowed pen width in points for the size slider and slot editor. */
-const val PEN_WIDTH_MIN: Float = 0.5f
+const val PEN_WIDTH_MIN: Float = PenPalette.WIDTH_MIN
 
 /** Maximum allowed pen width in points for the size slider and slot editor. */
-const val PEN_WIDTH_MAX: Float = 15f
+const val PEN_WIDTH_MAX: Float = PenPalette.WIDTH_MAX
 
 /** Increment for the −/+ fine-adjust buttons in the slot-resize dialog, in points. */
 const val PEN_WIDTH_STEP: Float = 0.1f

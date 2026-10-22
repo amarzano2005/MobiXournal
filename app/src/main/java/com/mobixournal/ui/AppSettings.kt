@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import android.content.Context
+import com.mobixournal.design.PenPalette
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.GuideKind
@@ -347,15 +348,12 @@ data class AppSettings(
             // Every entry survives, custom hexes included: pruning to the named desktop colours is what
             // used to delete a user's own swatches on the next launch, and out of their JSON backups
             // with them. Opaque ARGB stays the palette's invariant, so a colour is normalised, not judged.
-            penColors = penColors.map { it or 0xFF000000.toInt() }
-                .distinct()
-                .take(MAX_PEN_COLORS)
-                .ifEmpty { PEN_COLORS },
+            penColors = PenPalette.sanitised(penColors),
             penFavorites = sanitizeFavorites(penFavorites, DEFAULT_PEN_FAVORITES),
             highlighterFavorites = sanitizeFavorites(highlighterFavorites, DEFAULT_HIGHLIGHTER_FAVORITES),
-            penWidths = penWidths.map { it.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX) },
-            lastWidth = lastWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
-            shapeWidth = shapeWidth.coerceIn(PEN_WIDTH_MIN, PEN_WIDTH_MAX),
+            penWidths = penWidths.map(PenPalette::clampWidth),
+            lastWidth = PenPalette.clampWidth(lastWidth),
+            shapeWidth = PenPalette.clampWidth(shapeWidth),
             defaultShapeSlot = defaultShapeSlot.coerceIn(0, penWidths.lastIndex.coerceAtLeast(0)),
             scaleneAngleA = scaleneAngleA.coerceIn(1f, 178f),
             scaleneAngleB = scaleneAngleB.coerceIn(1f, 178f),
@@ -418,8 +416,8 @@ data class AppSettings(
 
         const val KEY_DEFAULT_PAGE_WIDTH = "default_page_width_pt"
         const val KEY_DEFAULT_PAGE_HEIGHT = "default_page_height_pt"
-        /** Factory defaults for the three pen-width slots — the old fixed S/M/L values. */
-        val DEFAULT_PEN_WIDTHS: List<Float> = listOf(0.85f, 1.5f, 2.6f)
+        /** Factory defaults for the three width slots — [PenPalette]'s, shared with the desktop. */
+        val DEFAULT_PEN_WIDTHS: List<Float> get() = PenPalette.DEFAULT_WIDTHS
 
         /**
          * The colour the custom picker **opens with** while the slot is still empty — a violet that is
@@ -492,7 +490,7 @@ data class AppSettings(
          * this the picker wraps onto a third and fourth line and stops being glanceable — while still
          * leaving room for every desktop swatch plus a working set of one's own.
          */
-        const val MAX_PEN_COLORS: Int = 24
+        const val MAX_PEN_COLORS: Int = PenPalette.MAX_COLORS
 
         /** One mebibyte, the unit both storage caps are expressed in. */
         const val BYTES_PER_MB: Long = 1024L * 1024L

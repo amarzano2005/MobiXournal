@@ -6,6 +6,17 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 ## Colour palette (`ColorPalette.kt`, `ColorPicker.kt`)
 
+**The values and the rules live in `mobix-core`, not in the picker.** `design/PenPalette.kt` is the one
+home of the factory eight (desktop Xournal++'s hexes, in its published order), the 24-swatch ceiling
+(`MAX_COLORS`), the three width slots (0.85 / 1.5 / 2.6 pt as `DEFAULT_WIDTHS`, labelled `S`/`M`/`L`)
+and the 0.5–15 pt range, plus the pure rules every shell calls: `opaque`, `add` (opaque,
+de-duplicated, capped), `sanitised` (the same, falling back to the factory list when empty),
+`clampWidth` and `widthSlot`. `PEN_COLORS`, the `XOPP_*` names, `PEN_WIDTH_LABELS`,
+`AppSettings.MAX_PEN_COLORS` / `DEFAULT_PEN_WIDTHS` / `sanitized()` and `ColorPaletteState.addColor`
+read it instead of spelling their own copies, because the desktop window needs the same eight hexes and
+the same three widths — what a palette *is* cannot be decided twice. What stays in `ui/` is the UI: the
+swatch rows, the custom-slot affordances and the HSV/hex dialog.
+
 The one colour picker all three sites share (the pen pop-up, the text-box dialog, the selection
 recolour menu), plus the shortcut tables that jump straight to a colour or a tool (see
 `ShortcutsSection.kt` and the `toolShortcutKeys` / `colorShortcutKeys` maps in `AppSettings`):

@@ -376,7 +376,7 @@ and `encodeColorShortcuts` / `decodeColorShortcuts` (the same `key:value` comma-
 other codecs, dropping unknown tools/colours and blank keys), migrating the old per-colour keys
 (`black_pen_key` etc.) once. `EditorRegions.onKeyPressed` resolves a character against those maps —
 toggles first, then colour, then tool — so the table is data, not code. The factory pen palette (`PEN_COLORS` — desktop Xournal++'s default palette, hex for hex; see `PaletteColorsTest`) and `PEN_WIDTH_LABELS`
-lives beside its pop-up (`ToolbarColorPopup.kt` / `ToolbarSizePopup.kt`); the **live** palette is `AppSettings.penColors`, seeded with `PEN_COLORS` and edited under **Settings → Drawing → Colors**
+now read `mobix-core`'s `design/PenPalette.kt`, the one home of the values and rules (`ToolbarColorPopup.kt` / `ToolbarSizePopup.kt` keep only the UI); the **live** palette is `AppSettings.penColors`, seeded with `PEN_COLORS` and edited under **Settings → Drawing → Colors**
 (`ColorsSection.kt`: add / redefine / delete, capped at `MAX_PEN_COLORS`, opaque and
 de-duplicated by `sanitized()`, round-tripped by `encodePenColors` / `decodePenColors` which falls
 back to the factory list rather than blanking the pickers). The user's own colours are part of the

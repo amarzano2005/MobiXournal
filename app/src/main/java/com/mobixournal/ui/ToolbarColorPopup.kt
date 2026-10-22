@@ -5,31 +5,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.mobixournal.design.PenPalette
 import com.mobixournal.ui.theme.DialogPresence
 
-/** Xournal++ palette colour `#000000` (black) — the pen a fresh document starts with. */
-internal val XOPP_BLACK: Int = 0xFF000000.toInt()
+/**
+ * The factory palette's own colours, named after desktop Xournal++'s swatches.
+ *
+ * They are **aliases** of [PenPalette]'s values, not a second copy of the hexes: the shared object in
+ * `mobix-core` is the one home, because the desktop window needs the same eight (a colour picked on
+ * either shell has to write the same ARGB). The names stay here because the editor and its tests
+ * spell them (`XOPP_RED` is what the red-pen shortcut switches to).
+ */
+internal val XOPP_BLACK: Int get() = PenPalette.BLACK
 
-/** Xournal++ palette colour `#FF0000` (red) — what the "red pen" shortcut switches to. */
-internal val XOPP_RED: Int = 0xFFFF0000.toInt()
+internal val XOPP_RED: Int get() = PenPalette.RED
 
-/** Xournal++ palette colour `#008000` (green) — what the "green pen" shortcut switches to. */
-internal val XOPP_GREEN: Int = 0xFF008000.toInt()
+internal val XOPP_GREEN: Int get() = PenPalette.GREEN
 
-/** Xournal++ palette colour `#3333CC` (blue). */
-internal val XOPP_BLUE: Int = 0xFF3333CC.toInt()
+internal val XOPP_BLUE: Int get() = PenPalette.BLUE
 
-/** Xournal++ palette colour `#FF8000` (orange). */
-internal val XOPP_ORANGE: Int = 0xFFFF8000.toInt()
+internal val XOPP_ORANGE: Int get() = PenPalette.ORANGE
 
-/** Xournal++ palette colour `#FFFF00` (yellow) — the factory highlighter colour. */
-internal val XOPP_YELLOW: Int = 0xFFFFFF00.toInt()
+internal val XOPP_YELLOW: Int get() = PenPalette.YELLOW
 
-/** Xournal++ palette colour `#FF00FF` (magenta) — the desktop palette's own name for this swatch. */
-internal val XOPP_MAGENTA: Int = 0xFFFF00FF.toInt()
+internal val XOPP_MAGENTA: Int get() = PenPalette.MAGENTA
 
-/** Xournal++ palette colour `#FFFFFF` (white). */
-internal val XOPP_WHITE: Int = 0xFFFFFFFF.toInt()
+internal val XOPP_WHITE: Int get() = PenPalette.WHITE
 
 /**
  * The factory pen palette: eight swatches in the order the app ships with — **Black, Red, Green,
@@ -42,16 +43,7 @@ internal val XOPP_WHITE: Int = 0xFFFFFFFF.toInt()
  *
  * Colours are opaque ARGB; the highlighter renders them translucent.
  */
-val PEN_COLORS: List<Int> = listOf(
-    XOPP_BLACK,   // Black (#000000)
-    XOPP_RED,     // Red (#FF0000)
-    XOPP_GREEN,   // Green (#008000)
-    XOPP_BLUE,    // Blue (#3333CC)
-    XOPP_ORANGE,  // Orange (#FF8000)
-    XOPP_YELLOW,  // Yellow (#FFFF00)
-    XOPP_MAGENTA, // Magenta (#FF00FF)
-    XOPP_WHITE,   // White (#FFFFFF)
-)
+val PEN_COLORS: List<Int> get() = PenPalette.COLORS
 
 /**
  * Human-readable English names for the standard desktop Xournal++ palette colours, in palette
