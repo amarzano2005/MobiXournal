@@ -566,17 +566,3 @@ created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
-
-[[task]]
-id = "desktop-custom-colour-picker"
-title = "Desktop custom colour picker"
-description = "Scope child of desktop-colour-and-width-palette. The palette flyout shipped by desktop-colour-and-size-slots-with-their-flyouts offers the stored swatches and the three widths; this task adds the rest of a picker. (1) In desktop/src/main/java/com/mobixournal/desktop/ColourFlyouts.kt add the editable custom slot as the trailing swatch of the palette row - filled with the ink's custom colour when set, an unfilled hairline ring when empty - and the add-colour swatch after it; both open the editor below. (2) Add desktop/src/main/java/com/mobixournal/desktop/ColourPickerDialog.kt: a glass panel (DesktopTheme.panel, panelShape, one hairline) over the page, not a Material dialog, with a saturation/value square, a hue slider, a two-way #RRGGBB field and a live preview, matching what CustomColorPickerDialog offers on the tablet (docs/colours.md) while being built in this module, because that composable lives in the app's ui/ package and reads AppSettings. Colours are always opaque (PenPalette.opaque): parsing accepts #RRGGBB in either case with or without the leading #, formatting always writes #RRGGBB, and invalid text keeps the last valid colour and says so instead of committing black. (3) Wire the host: tapping the custom slot when set picks that colour; tapping it when empty, or the add swatch, opens the dialog; Set on the custom slot writes the ink custom colour (persisted as palette.custom, absent = empty, never black), Set on the add swatch appends through PenPalette.add into palette.colours and selects the new colour; Cancel changes nothing and Esc dismisses. Verify: desktop/src/test/java/com/mobixournal/desktop/ColourPickerTest.kt - hex parse/format round-trips including lowercase and a missing #, invalid input rejected without committing, opaque promotion, null-versus-black for the custom slot, add de-duplicating and capping, and both writes surviving a reload; headless renders colour-picker.png and colour-flyout.png whose preview swatch pixel equals the entered colour. Docs: docs/colours.md and the desktop section of docs/ui-modernization.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 934
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
