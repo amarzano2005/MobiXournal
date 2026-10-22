@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "track-the-flick-and-commit-a-colour-width-or-tool"
+title = "Track the flick and commit a colour, width or tool"
+description = "Done. `RadialHud.slotIndexAt` is the pure geometry: the angle snaps to the nearest slot centre, the seam wraps arithmetically, and a release inside the 32 dp dead zone or off the slot band answers null and commits nothing. The view tracks it on hover, ticks haptics per boundary (`performHapticFeedback`, which already respects the device's haptics preference, so there is no second switch to keep), and commits through one callback. The commit path **is** the rail's: a colour or a width builds a `ToolPreset` and calls `applyToolPreset`; a tool calls `activateTool`. The rail's own colour and width handlers now go through `applyToolPreset` too — the inline `ui.color = ...` / `surface.baseWidthPt = ...` writes are gone — so a HUD choice cannot mean anything the user could not have set by hand, and the guarantee is a call graph rather than a comment. Verified: `RadialHudTest`'s slot-centre, boundary, seam, dead-zone and off-band tests (`everySlotCentreMapsBackToItsOwnSlot` runs every count up to 16); `RadialHudScreenshotTest.aReleaseOnASwatchCommitsItThroughTheEditorsOwnPath` opens the ring in the real editor, flicks to the default palette's blue and releases, asserting the canvas took that colour and the ring closed, with the rail following in `screenshots/radial-hud-commit.png`; `ToolPresetTest` still passes. All five HUD tests and the new commit test are green on the Pixel_Tablet AVD."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-22
+tags = ["ui", "stylus"]
+
+[[task]]
+id = "draw-the-radial-hud-as-glass-chrome"
+title = "Draw the radial HUD as glass chrome at the nib"
+description = "Done. `render/DrawingSurfaceHud.kt` paints the ring in the canvas chrome, so it sits under the pen and takes no focus: the floating fill at its token alpha, a 1 dp hairline rim in the chrome ink, 40 dp slots (`COMPACT_BUTTON_SIZE_DP`) on a 116 dp radius and the nib marker. Faces are read without labels — a swatch is its colour with a 35% rim (white would otherwise vanish on the light theme's glass, which the emulator screenshot caught), a width is a dot of that width, a tool is its `ToolGlyphCatalogue` glyph through `render/ToolGlyphPainter.kt`, the third adapter of the shared catalogue beside the tablet's ImageVector builder and the desktop's DrawScope painter. The ring holds the user's palette in their stored order with the editable custom HEX slot last (its one-flick home), then the three widths, then pen/highlighter/eraser; `RadialHud.slots` caps it at 16 and keeps the widths and tools room (the palette at ten). The dead radial-palette paints are deleted: `paletteScrim`, `paletteRing`, `paletteSlot`, `paletteSlotEmpty`, `paletteHighlight`, `paletteIcon`, `paletteGlyph` and the `PALETTE_*` constants are gone, replaced by the HUD's own brushes; `CanvasChrome.applyColors` now also carries the floating fill and the chrome ink, from `CanvasChromeColors`. Verified: `RadialHudTest` (12 tests — order, cap, custom slot, every slot centre on the ring, boundaries, seam, dead zone, off-band release, the editor's default settings) and the AVD capture `screenshots/radial-hud-over-ink.png`."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-22
+tags = ["ui"]
+
+[[task]]
+id = "summon-and-anchor-the-pen-tip-radial-hud"
+title = "Summon and anchor the pen-tip radial HUD"
+description = "Done. The barrel button gains a fourth binding — `BarrelAction.HUD` — and with it the pen-tip ring has its summon, its anchor and its exit. A press with the tip off the glass opens it at the nib (`hoverX`/`hoverY`, the canvas centre only when no hover has ever arrived), the hover moves the pick, and the key-up or the motion-stream release commits or cancels (`render/DrawingSurfaceHud.kt` owns the state, `render/DrawingSurfaceBarrel.kt` the button). A second press dismisses it, a tip that lands while it is open cancels it and writes nothing, and a cancelled gesture or a hover exit takes it away. Nothing is on screen otherwise, and there is no settings section of its own: the binding is `BarrelAction`'s existing \"While held\" group, labelled \"Radial HUD\". Verified on the Pixel_Tablet AVD: `RadialHudScreenshotTest` opens the ring in the real editor and captures `screenshots/radial-hud-over-ink.png`; `StylusInputTest` gains `aBarrelKeyDownSummonsAndKeyUpDismisses`, `barrelHudOpensAtTheNibAndCommitsTheFlickedSlot`, `aHudReleaseInTheDeadZoneCommitsNothing` and `aTipThatLandsOnTheOpenHudCancelsItAndWritesNothing` — five HUD tests green on the AVD. Limitation: `adb shell input keyevent 308` cannot inject the stylus key on this emulator (it arrives as key 0), so the ring is opened by that instrumented test rather than from the shell. Docs: docs/ui-modernization.md (*The pen-tip HUD*), docs/stylus.md, docs/codebase.md, docs/tools.md, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-22
+tags = ["ui", "stylus"]
+
+[[task]]
 id = "desktop-undo-redo-per-tab-history"
 title = "Desktop: undo, redo and one history per tab"
 description = "render/EditHistory.kt is already in mobix-core and its header says what it is for: one history per editor, one per tab. The app holds exactly one, on the canvas (DrawingSurfaceView.history = EditHistory<Document>()). (1) DesktopTab gets its own EditHistory<Document> (or <DesktopEditable> once the page-window child lands), recorded with the pre-edit snapshot by every committing command (stroke end, erase, selection transform) — not by pointer moves, so one drag is one step. (2) ShellCommand gains UNDO and REDO, bound to Ctrl+Z and Ctrl+Shift+Z (the table in docs/ui-modernization.md is the owner of shortcuts and gains the rows), disabled by canUndo/canRedo so the header can grey them. (3) Undo restores the snapshot into the tab's editable document and resets the page window, as the app's resetPageWindow does, so a redo cannot rebuild from a stale page. (4) Verification, headless: a desktop test drives stroke, undo, undo, redo through the shell state and asserts the model's stroke counts and that the painter's pixels follow; a core test already covers the stack. No emulator. Docs: docs/ui-modernization.md (shortcut table, and the states the two commands must have), docs/desktop-workstation.md."

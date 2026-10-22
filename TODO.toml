@@ -218,48 +218,6 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
-id = "summon-and-anchor-the-pen-tip-radial-hud"
-title = "Summon and anchor the pen-tip radial HUD"
-description = "The pen-tip radial HUD of docs/ui-modernization.md, and deliberately not the NeXopp palette docs/codebase.md records as deleted: nothing is on screen until the stylus barrel button is pressed, the ring is anchored at the nib (hoverX/hoverY on render/DrawingSurfaceView), and it disappears on release instead of sitting over the canvas. Build the summon on the barrel path the input layer already has (render/DrawingSurfaceInput.kt: BarrelButtonState, barrelClicks, the vendor-key route a Bluetooth pen needs, InputClassifier.classify), dismiss on a second press or a cancelled gesture, and add no settings section of its own - the bindings stay in Settings to Shortcuts (docs/chrome.md). Verify with the connected harness that already drives these paths (com.mobixournal.StylusInputTest, see docs/stylus.md) plus an emulator pass with screenshots: the button opens the HUD at the tip, a release outside cancels without committing, and logcat shows no stroke was written."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 810
-created = 2026-10-13
-tags = ["ui", "stylus"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "draw-the-radial-hud-as-glass-chrome"
-title = "Draw the radial HUD as glass chrome at the nib"
-description = "The HUD drawing, done in the canvas chrome instead of a Compose dialog so it sits under the pen without stealing focus: a hairline ring, 40 dp slots and a glass fill, every number from the ModernTheme tokens, monoline icons (docs/ui-modernization.md). The ring holds the user palette swatches first - this is where a custom HEX slot finally gets a one-flick home - then the pen widths, then the few tools with no other 1-tap home; the rail and the STEM dock keep the rest, because duplicating every tool is exactly the weight that made the old palette heavy. Remove the dead radial-palette paints left behind in render/CanvasChrome.kt (paletteScrim, paletteRing, paletteSlot, paletteSlotEmpty, paletteHighlight, paletteIcon and the PALETTE_* constants are never drawn by anything) and let the new HUD replace them. Verify with a screenshot of the open HUD over ink, and a unit test that every slot of the documented count lands inside the ring."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 820
-created = 2026-10-13
-tags = ["ui"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
-id = "track-the-flick-and-commit-a-colour-width-or-tool"
-title = "Track the flick and commit a colour, width or tool"
-description = "The interaction half of the HUD: while the barrel button is held, the flick direction selects a slot, a haptic tick marks each crossing of a boundary, and the release commits. The commit must go through one entry point, and there is a stub of it: applyToolPreset (ui/ToolPreset.kt) is documented as the call the rail and a radial-palette slot both make, but nothing calls it today - the rail switches through EditorUiState.switchToolTo plus surface.applyTool in EditorScreen and EditorRegions. So this task starts by routing the rail's own tool, colour and width switches through applyToolPreset, pinned by a unit test, which is what turns the guarantee (a HUD choice can never mean something the user could not have set by hand) from a comment into a property. Keep the angle-to-slot geometry pure and unit-tested, including the seam wrap where the ring closes and the centre dead zone, which commits nothing when the release lands there; haptics respect the existing pen haptics setting. Verify with JVM unit tests over the slot maths (each slot centre, a boundary, the dead zone) plus an emulator pass committing a colour and a width and seeing the rail follow."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 830
-created = 2026-10-13
-tags = ["ui", "stylus"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "compress-wav-on-mobix-conversion"
 title = "Compress WAV recordings when a document becomes .mobix"
 description = "A recording takes the codec of the document's format when it starts: a .xopp document records 16-bit mono WAV (the desktop sidecar contract), ~5.3 MB a minute, ~160 MB for 30 minutes. A later Save As .mobix bundles those WAV bytes untouched (audio-inking-sync.md -> Why a .mobix can still be large), so the archive is as big as the WAV. Investigate and break into tasks: (1) a streaming WAV -> Ogg/Opus (AAC fallback) transcoder using MediaExtractor + MediaCodec + MediaMuxer, written next to the recording in the audio store, keyed by source hash so it is produced once; (2) at a .mobix save, substitute the compressed copy for a WAV recording over a size threshold, and rewrite the strokes' fn to the compressed sidecar name so playback and a later .xopp export stay honest; (3) the .xopp export path keeps pushing the original WAV, and the case where no encoder exists keeps the WAV. Verify on the Pixel_Tablet emulator: record 2 minutes in a .xopp tab, Save As .mobix, confirm the archive holds an assets/aud_<sha>.ogg entry, the file is ~1 MB, the stroke still replays after reopening on a fresh install, and an exported .xopp still has its .wav sidecar."
