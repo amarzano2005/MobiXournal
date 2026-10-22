@@ -25,6 +25,21 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mini-player-controls-survive-long-titles"
+title = "Keep the mini-player controls on screen when the document name is long"
+description = """
+The floating mini-player (AudioMiniPlayer) is a fixed 300 dp frosted pill whose header is a SpaceBetween Row of two unweighted halves: the left one holds the icon, the time readout and the clip title chip (the tab title plus 'Page N', i.e. the document's name). A long name measured the left half wider than the pill, so the right half - transcript toggle, SpeedSelectorPill and the close button - was pushed outside the Surface and clipped: the speed settings disappeared on long document names. Fix: the left half takes weight(1f) so the controls are measured first at their own size and the title receives only the remainder, and the title Text truncates (maxLines = 1, TextOverflow.Ellipsis, weight(1f, fill = false)); the subtitle/transcript preview line gets the same ellipsis instead of clipping mid-word. Docs: the HUD-pill bullet of docs/audio-inking-sync.md and the audio bullet of README.md.
+
+Landed (commit db2ecda): `MiniPlayerHeader`'s title half is `Modifier.weight(1f)` and the title chip is `Modifier.weight(1f, fill = false)` with `maxLines = 1` + `TextOverflow.Ellipsis`, so a long document name shortens instead of pushing the transcript toggle, the speed pill and the close button out of the 300 dp surface; the transcript/subtitle preview line ellipsizes too.
+VERIFIED: 1529 unit tests / 0 failures (DocsGuardTest and SourceStructureTest included) and `assembleDebug` green. NOT VERIFIED VISUALLY: no emulator pass for this task (emulator_debug off) and the project has no Compose UI-test harness, so the pill on a long-named tab is the user's own check."""
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["audio"]
+
+[[task]]
 id = "play-object-finger-pans-pen-picks"
 title = "Let a finger pan and zoom the Play-object page while the pen picks the stroke"
 description = """
