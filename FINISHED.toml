@@ -25,6 +25,23 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "transcribe-while-recording"
+title = "Transcribe while recording, in the background"
+description = """
+Transcription only ever started at Stop, so the user waits for the whole recording even though the app is already holding the audio. Add a live job: AudioSession.onPcmData (raw PCM from whichever recorder is running) feeds audio/LiveTranscription.kt, which resamples to 16 kHz as it arrives (LiveResampler16k), cuts the stream into spans at silences with a 6 s minimum and the 28 s window maximum (LiveSpanCutter, pure), and hands each span to one worker thread that runs the same pipeline the file path runs - AudioVadSegmenter phrases, grouped by TranscriptionWindows - writing audio/<name>.transcript.json after every span. AudioTranscriptionService then resumes: it reads that file, takes the last segment's endTimeMs as the resume point, extracts only the tail of the PCM and merges the two halves, so nothing is transcribed twice. The span queue is bounded (4) and then the live job gives up, leaving the rest to the post-stop path - inference must never take the machine from the app being written in. Started in beginRecording when a Whisper model is installed and ended before stopRecording so the resume point is honest. It runs in the app process, which AudioRecordingService keeps alive and awake, so background and screen-off recording work.
+
+Landed (commits <live>, 958877e): `audio/LiveTranscription.kt` holds `LiveResampler16k`, `LiveSpanCutter` and the job; `MainActivityAudio.beginLiveTranscription`/`endLiveTranscription` wire it to `AudioSession.onPcmData`, `MainActivity.liveTranscription` holds it, and `AudioTranscriptionService.processTranscription` resumes from the partial transcript (`readPartialTranscript` + `tailChunks`) and merges. The recogniser is released in one place (`closeRecognizer`) whichever side exits first.
+VERIFIED: 1548 unit tests / 1 failure and that failure is NOT this change - SourceStructureTest trips on the uncommitted `desktop/PageCanvas.kt` (103-line function) another in-flight change holds in the shared checkout; both guards pass in a clean worktree of this commit (DocsGuardTest 6/6, SourceStructureTest 5/5). `assembleDebug` green. New `LiveTranscriptionTest` (10 tests) covers the resampler's rate mapping and stereo averaging, cutting at silences, the 28 s ceiling, leading-silence drop, the flushed tail, a dropped silent tail, and the inert no-model case.
+NOT VERIFIED on a device: whether inference keeps up with the microphone without starving capture, the join between the live half and the resumed half (the live resampler and the file resampler can differ by a few samples, so a syllable may repeat or clip at the seam), and the background/screen-off run. The first real recording is the pass that settles all three.
+Honest limit recorded: live transcription moves the wait into the recording; it does not make the engine faster than real time. If inference is slower than the microphone the tail is simply longer and the post-stop path finishes it."""
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["audio"]
+
+[[task]]
 id = "desktop-floating-glass-motion"
 title = "Desktop floating glass motion"
 description = "The app's floating surfaces open with a liquid-glass spring: scale from 0.82 to 1 (damping 0.74, stiffness 550) while the alpha fades in over 110 ms, and draw back to 0.82 and out over 170 ms while the host holds the window for 230 ms (app/src/main/java/com/mobixournal/ui/theme/FloatingGlass.kt). The desktop's picker panel and flyouts appear and disappear instantly. Move the numbers into mobix-core's design tokens as a GlassMotion block (start scale, damping, stiffness, fade-in ms, fade-out ms, exit hold ms), have the app read them, and give the desktop a Modifier.glassSpring(visible) with the same behaviour on its in-composition surfaces — the colour picker panel first, since it is drawn inside the shell and not in a Popup. Popups are a known gap: a desktop Popup has no exit animation to hold, so document that they simply appear (as they do today) rather than pretending otherwise. Verify headlessly: compose the picker panel in a scene, step the animation at t=0 and at its end, and assert the panel's drawn alpha rises from about 0.0 to 1.0 and its bounds grow from the 0.82 scale to full, with the total inside the documented timings."
