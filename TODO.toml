@@ -302,20 +302,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-colour-and-width-palette"
-title = "Desktop: colour and stroke-width palette (scope)"
-description = "docs/ui-modernization.md section 3 gives every desktop tool favourite colours 1/2/3 on keys 1-3, remappable HEX slots (Alt+1..), stroke width up/down on ] and [, and the shared colour picker (docs/colours.md). None of it is in a desktop task. Investigate how the Android palette state and picker (colours.md, ui/) can move into mobix-core or be reimplemented, where the desktop surfaces them (rail or ribbon flyout, inspector, the Settings window of desktop-settings-and-status-ui), and add tasks. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 930
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-kmp-module-split"
 title = "Desktop: KMP module split (scope)"
 description = "Prerequisite of the desktop editor (Phase 3 of docs/desktop-workstation.md). The Android render, ui, tabs and io packages are still Android-bound, so desktop editing cannot reuse them. Investigate which of EditHistory, DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfaceSelection, ElementEdits, PdfVectorPainter, PageSvgWriter, XoppSynthesis and io/DocumentIo are platform-free enough to move into mobix-core (or a new mobix-render behind a small canvas abstraction), and which must be reimplemented for desktop. Target is Windows 11 only, but keep the shared core OS-independent. Per candidate state: what moves, what stays, the size of the change and how the Android app keeps compiling and passing its unit suite. Produce tasks, no code."
@@ -578,5 +564,61 @@ urgency = "low"
 order = 1120
 created = 2026-10-21
 tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "move-the-ink-palette-and-width-rules-into-mobix-core"
+title = "Move the ink palette and width rules into mobix-core"
+description = "Scope child of desktop-colour-and-width-palette. The palette's rules live behind AppSettings/ColorPaletteState in app/src/main/java/com/mobixournal/ui/, which desktop cannot depend on, so both shells must agree on what a palette is before either draws one. Add mobix-core/src/main/java/com/mobixournal/design/PenPalette.kt, plain Kotlin with no Compose types: COLORS = the eight desktop Xournal++ hexes in the published order (#000000, #FF0000, #008000, #3333CC, #FF8000, #FFFF00, #FF00FF, #FFFFFF - today PEN_COLORS in ui/ToolbarColorPopup.kt), MAX_COLORS = 24, DEFAULT_WIDTHS = listOf(0.85f, 1.5f, 2.6f), WIDTH_LABELS = listOf(\"S\", \"M\", \"L\") and the width bounds now in AppSettings (PEN_WIDTH_MIN/PEN_WIDTH_MAX), plus the pure rules opaque(color), add(colors, color) (opaque, de-duplicated, capped at MAX_COLORS), sanitised(colors) (opaque, de-duplicated, capped, falling back to COLORS when empty), clampWidth(width) and widthSlot(width). Then make the app read it instead of declaring its own: PEN_COLORS, AppSettings.MAX_PEN_COLORS, DEFAULT_PEN_WIDTHS and the width bounds keep their names (so PaletteColorsTest, SettingsSanitizeTest, ColorSizeRailSlotTest and DesktopColorParityTest keep passing) but take their values from PenPalette, and ColorPaletteState.addColor and AppSettings.sanitized() call the shared rules. Add mobix-core/src/test/java/com/mobixournal/design/PenPaletteTest.kt pinning the eight hexes and their order, the cap, de-duplication, opaque promotion, the empty-palette fallback and the width clamp/slot lookup. Verify: :desktop:test (the desktop module must be able to import PenPalette), :app:testDebugUnitTest and both guards green. Docs: docs/colours.md names PenPalette as the one home of the rules and says which ui/ types are now thin wrappers."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 931
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-colour-and-size-slots-with-their-flyouts"
+title = "Desktop colour and size slots with their flyouts"
+description = "Scope child of desktop-colour-and-width-palette, and it does not wait for the KMP split. Add desktop/src/main/java/com/mobixournal/desktop/DesktopInk.kt - plain Kotlin, no Compose types: colour (ARGB), width (pt) and custom (Int?, null while the slot is empty), the same immutable-value shape as ToolSelection - and ColourFlyouts.kt with the two flyouts. ToolStrips.kt gains two trailing slots in BOTH placements (the rail under the fifteen tools past a hairline gap, the ribbon at its right end): a colour capsule filled with the current colour and a size slot drawing a dot at the current width in that colour. Each opens a glass Popup like the placement chooser (DesktopTheme.panel, panelShape): the palette flyout lays the swatches in one horizontally scrolling row (compact, as docs/colours.md describes), followed by the editable custom slot and the add-colour swatch (which opens desktop-custom-colour-picker); the size flyout shows the three slots labelled S/M/L with the current one in the active slot. The palette is PenPalette.COLORS/sanitised(colors); appending uses PenPalette.add so it is opaque, de-duplicated and capped. Persist palette.colours (comma list of hex), palette.custom (absent key = empty slot, never black), ink.colour and ink.width in DesktopSettings, read at start and written on change; both strips read the one DesktopInk held in DesktopShellState as snapshot state. Nothing draws with the colour yet. Verify: desktop/src/test/java/com/mobixournal/desktop/ColourFlyoutTest.kt - the append rules through the settings store, the custom slot's null round-trip, persistence across a reload, and a picked colour/width appearing in the strip's slot; headless renders colour-slots-rail.png, colour-slots-ribbon.png, colour-flyout.png and size-flyout.png under desktop/build/desktop-render/, with the flyout renders asserted by pixel (the current colour fills the slot, the current size dot is wider than the smallest). The Popups themselves are not covered headlessly - say so in the task's report. Docs: docs/ui-modernization.md section 2-3 and docs/colours.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 932
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-colour-and-stroke-width-shortcuts"
+title = "Desktop colour and stroke-width shortcuts"
+description = "Scope child of desktop-colour-and-width-palette, and it builds on desktop-colour-and-size-slots-with-their-flyouts. In DesktopShellState.onKey, next to toolForKey: 1/2/3 pick the three favourite colours (stored as three ARGB values under interface.colourFavourites in DesktopSettings, defaulting to the first three of PenPalette.COLORS), Alt+1..3 assign the colour in use to that favourite and persist it, and ] / [ step the stroke width through PenPalette.DEFAULT_WIDTHS with no wrap at either end (clamped, and the new value written as ink.width). The tool letters must not be shadowed (digits and brackets are no tool's letter), Alt must not fall into the tool path, and Ctrl+1/Ctrl+0 must stay the shell's fit commands - the checks run in the order: shell commands with Ctrl first, then favourites, then tools. The size slot's hover pill names the step (S/M/L) and the colour slots' pills name their key, so the table in docs/ui-modernization.md and what the strip says cannot drift. Verify: desktop/src/test/java/com/mobixournal/desktop/InkShortcutsTest.kt - each digit picks its favourite, Alt+digit remaps and survives a reload, ]/[ step and clamp at both ends, Ctrl+1 still fits the width, and every tool shortcut still picks its tool; a headless render of the rail with a non-default colour and width. Docs: the desktop keyboard table in docs/ui-modernization.md and README's desktop shortcut table."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 933
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-custom-colour-picker"
+title = "Desktop custom colour picker"
+description = "Scope child of desktop-colour-and-width-palette, and it is opened by desktop-colour-and-size-slots-with-their-flyouts. Add desktop/src/main/java/com/mobixournal/desktop/ColourPickerDialog.kt: a glass panel (DesktopTheme.panel, panelShape, one hairline) over the page - not a Material dialog, since the window carries no stock Material surface - with a saturation/value square, a hue slider, a two-way #RRGGBB field and a live preview, matching what CustomColorPickerDialog offers on the tablet (docs/colours.md) while being built in this module, because that composable lives in the app's ui/ package and reads AppSettings. Colours are always opaque (PenPalette.opaque): parsing accepts #RRGGBB in either case with or without the leading #, formatting always writes #RRGGBB, and invalid text keeps the last valid colour and says so instead of committing black. Opened from the palette flyout's custom slot (a tap when the slot is empty, the pencil affordance when it is set) and from the add-colour swatch; Set writes palette.custom or appends through PenPalette.add, Cancel changes nothing, Esc dismisses. Verify: desktop/src/test/java/com/mobixournal/desktop/ColourPickerTest.kt - hex parse/format round-trips including lowercase and a missing #, invalid input rejected without committing, opaque promotion of a transparent value, and null-versus-black for the custom slot; a headless render colour-picker.png whose preview swatch pixel equals the entered colour. Docs: docs/colours.md (the desktop's own picker and how it differs) and the desktop section of docs/ui-modernization.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 934
+created = 2026-10-22
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
