@@ -115,6 +115,8 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   with feature detection and summaries, and the frame a plot was drawn in (pure)
     render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
     render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
+    render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # the `attach` domain and the bundled pixmap
+                             #   entries: background references rewritten for a self-contained save (pure)
     render/PdfPagePlan.kt    # a page -> the PDF ops an emitter replays (no PDF library); PdfPageTransform.kt
                              #   flips points into PDF user space and TextBlock.kt splits text for it (pure)
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, one per tab
@@ -194,8 +196,6 @@ app/
        BitmapLruCache.kt      # the LRU bitmap-cache core PdfPageCache and ImageBackgroundCache share
       ImageImport.kt         # builds a one-page Document with an image as its pixmap background
       ImageBackgroundCache.kt # decodes+scales pixmap background pictures (LRU, off the frame)
-      PdfBackgroundDomain.kt # the `attach` domain: the PDF travels bundled beside the .xopp
-      PixmapBackgroundDomain.kt # re-points pixmap backgrounds at bundled ZIP entries for attach saves
       ImportPdfMode.kt       # how an imported PDF joins the open document (replace vs append-and-merge)
       PdfImport.kt           # builds a Document of pdf-background pages from a PdfPageCache
       PdfMerger.kt           # joins two PDFs end-to-end (PDFBox) so Append has one background PDF
