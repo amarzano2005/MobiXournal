@@ -99,6 +99,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/BackgroundGrid.kt, BackgroundRuling.kt # ruling offsets/spacings + `<background config=…>`
     render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
     render/LivingInk.kt      # THE living dispatch: TableInk/PlotInk/ShapeInk/CircuitInk + their geometry
+    render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, one per tab
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
@@ -225,7 +226,6 @@ app/
       FunctionPlot.kt        # f(x): expression parser, sampling, and the plot's page geometry (pure, tested)
       CircuitShapes.kt       # passive & active circuits, gates, switching and dimensioning (resistor, capacitor, inductor, ground, switches, junction, transformer, diode, LED, zener, op-amp, BJT NPN/PNP, DC/current sources, AND, OR, NOT, NAND, NOR, XOR, XNOR, buffer, dimension arrow) (pure)
       ChemShapes.kt          # chemical formulas: single/double/triple bonds and the aromatic benzene ring (pure)
-      XoppSynthesis.kt       # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
       TableInk.kt            # a table -> its grid rules, its shaded cells and its cell text (pure)
       PlotInk.kt             # a plot -> axes, ticks, curves and summary; a sampled frame for polar/parametric (pure)
       ShapeInk.kt            # a figure -> its closed outline, its fill and its angle/side labels (pure)

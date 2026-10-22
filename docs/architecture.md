@@ -64,7 +64,7 @@ behaviour or a specification. Step 1's data model, engines and runtime validatio
 (`MobixContainer`), the shared JSON layer (`format/json/`), the manifest and `canvas.json` codecs, the element
 codecs for all geometry elements and living families (tables, plots, parametric shapes, circuits), and the
 document layer on top (`MobixDocument`: `.xopp` ingested as `.mobix` and read back, [mobix-format.md](mobix-format.md))
-are live and tested. Bidirectional compilation via `render/XoppSynthesis.kt` and `render/LivingInk.kt` serves as
+are live and tested. Bidirectional compilation via `mobix-core`'s `render/XoppSynthesis.kt` and `render/LivingInk.kt` serves as
 the single dispatch across canvas (`PageRenderer`), vector PDF (`PdfVectorPainter`), and SVG (`PageSvgWriter`),
 with verified round-trip preservation (`MobixMetaRevival`).
 

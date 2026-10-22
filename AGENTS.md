@@ -66,7 +66,7 @@ note-taking platform built around a **two-tier format architecture** (`docs/mobi
   saves back as `.mobix`; new documents use the user's chosen default; **"Save As"** explicitly switches
   formats in either direction. Conversion is **never** silent or automatic on open.
 - **Lossless bidirectional bridge (`MobixDocument` ↔ `XoppSynthesis`)**:
-  - **Export (`.mobix` → `.xopp`)**: `render/XoppSynthesis.kt` compiles living entities into standard
+  - **Export (`.mobix` → `.xopp`)**: `render/XoppSynthesis.kt` (shared, in `mobix-core`) compiles living entities into standard
     `.xopp` strokes and text boxes in place through `render/LivingInk.kt` — the **single rendering
     dispatch** shared by the canvas (`PageRenderer`), PDF export (`PdfVectorPainter`), and SVG export
     (`PageSvgWriter`) — and injects a verified `<!-- mobix:meta ... -->` XML comment block (`MobixMeta`).

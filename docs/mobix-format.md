@@ -144,7 +144,8 @@ bridge:
 **Status: the format is openable and savable, the compiler is written in both directions, and the block
 that carries the semantics is written with it, and the export is wired.** The import half is `format/mobix/MobixDocument.kt` with
 `MobixBridgeFile.kt` — a `.xopp` becomes a `.mobix` document, its living elements revived where the
-block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt`, which
+block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt` in the
+desktop-shared `mobix-core`, which
 flattens a document holding living entities into ink through one compiler per family (`TableInk`,
 `PlotInk`, `ShapeInk`, `CircuitInk` — the same compilers the canvas draws through, `render/LivingInk.kt`,
 so an export is the screen and not a second opinion about it) and hands the result to the **ordinary** `.xopp`
@@ -236,7 +237,7 @@ app's policy ([mobix-schema-spec.md](mobix-schema-spec.md), rule 4).
 Flattening is a translation, not a copy, so the export states its losses in two places rather than
 hiding them.
 
-**Reported, never substituted.** `render/XoppSynthesis.kt` returns its `.xopp` document *and* a list of
+**Reported, never substituted.** `XoppSynthesis.synthesize` returns its `.xopp` document *and* a list of
 what it could not draw (`SynthesisResult.uncompiled`, each entry naming the type, the element's own
 wording and why):
 
