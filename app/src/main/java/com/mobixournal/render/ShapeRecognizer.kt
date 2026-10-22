@@ -21,8 +21,21 @@ import kotlin.math.hypot
  * nudged to its local optimum in [optimizePolygonal]). The resulting segment list is tried against
  * the known shapes — 3 segments within tolerance of a closed triangle, 4 of a rectangle, a single
  * straight segment of a line — each rebuilt from the *intersections* of the fitted lines, so the
- * emitted geometry is cleaner than anything the recognizer could have read off the samples. Only if
- * no polygon fits is the stroke tested as a circle by [CircleRecognizer].
+ * emitted geometry is cleaner than anything the recognizer could have read off the samples.
+ *
+ * When no polygon fits, the stroke is tried as an **arrow** ([ArrowRecognizer]), a **circle**
+ * ([CircleRecognizer]), an **ellipse** ([EllipseRecognizer]) and finally an **arc**
+ * ([ArcRecognizer]) — strictest first, and each one rejects rather than guesses. The last three are
+ * additions to the upstream set: desktop Xournal++ rebuilds only lines, triangles, rectangles and
+ * circles ([CircleRecognizer] notes that it refuses ovals). They are additions, not tunings, and
+ * each documents the false positives its thresholds exist to keep out — a handwritten `C` is an
+ * arc, a scribbled loop is not an ellipse.
+ *
+ * Before any of that the samples go through [StrokeSmoothing], a tremor filter with a displacement
+ * clamp. The straightness test below reads stylus jitter as curvature, so without it a drawn line
+ * can sit above the line threshold; the clamp is what keeps a corner where the user put it. Only the
+ * recogniser ever sees the filtered copy — the committed stroke is either the geometry a fit emits
+ * or the raw samples.
  *
  * Everything is measured relative to the stroke's own size ([RecoSegment.radius], the inertia
  * radius) rather than in absolute pt, so the same wobble tolerance applies to a small circle and a
@@ -89,37 +102,46 @@ object ShapeRecognizer {
      * (the caller then keeps the freehand stroke exactly as drawn). [widthPt] is the constant width
      * every emitted vertex carries.
      *
-     * Recognises: a **line** (one straight segment), a **triangle** (three), a **rectangle** (four),
-     * and a **circle**. Nothing else — an unmatched stroke, including handwriting, a V, an arrow or
-     * an oval, comes back as `null`.
+     * Recognises: a **line** (one straight segment), a **triangle** (three), a **rectangle or
+     * square** (four), an **arrow** (a shaft with two barbs), a **circle**, an **ellipse** and an
+     * **arc**. Nothing else — an unmatched stroke, including handwriting, a V or a scribble, comes
+     * back as `null`.
      */
     fun recognize(points: List<StrokePoint>, widthPt: Double): List<StrokePoint>? {
         if (points.size < 3) return null
         if (!largeEnough(points)) return null
+        // Jitter out, corners kept: every test below reads this copy, and nothing but the recogniser
+        // ever sees it.
+        val filtered = StrokeSmoothing.smooth(points)
 
         val breaks = IntArray(MAX_POLYGON_SIDES + 1)
         val fits = MutableList(MAX_POLYGON_SIDES) { Inertia() }
 
-        val count = findPolygonal(points, 0, points.size - 1, MAX_POLYGON_SIDES, breaks, fits, 0)
+        val count = findPolygonal(filtered, 0, filtered.size - 1, MAX_POLYGON_SIDES, breaks, fits, 0)
         if (count > 0) {
-            optimizePolygonal(points, count, breaks, fits)
+            optimizePolygonal(filtered, count, breaks, fits)
 
             val segments = List(count) { i ->
                 RecoSegment().also {
                     it.startpt = breaks[i]
                     it.endpt = breaks[i + 1]
-                    it.calcSegmentGeometry(points, breaks[i], breaks[i + 1], fits[i])
+                    it.calcSegmentGeometry(filtered, breaks[i], breaks[i + 1], fits[i])
                 }
             }
 
             triangle(segments, widthPt)?.let { return it }
             rectangle(segments, widthPt)?.let { return it }
             if (count == 1 && fits[0].det < LINE_MAX_DET) {
-                return line(segments[0], points, widthPt)
+                return line(segments[0], filtered, widthPt)
             }
         }
 
-        return CircleRecognizer.recognize(points, widthPt)
+        // The arrow reads the *raw* samples: its point is a corner, and the filter's clamp would
+        // round it enough to hand the "furthest sample" to a barb instead of the point itself.
+        ArrowRecognizer.recognize(points, widthPt)?.let { return it }
+        CircleRecognizer.recognize(filtered, widthPt)?.let { return it }
+        EllipseRecognizer.recognize(filtered, widthPt)?.let { return it }
+        return ArcRecognizer.recognize(filtered, widthPt)
     }
 
     /** True when the stroke spans enough of the page to be worth snapping. */

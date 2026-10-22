@@ -50,20 +50,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "freehand-shape-recognition-on-a-300ms-end-of-stroke-dwell"
-title = "Freehand shape recognition on a 300 ms end-of-stroke dwell"
-description = "Give freehand strokes the dwell recognition docs/shape-perfection-engine.md describes: a tip that travels under 3.0 pt for 300 ms before touch-up triggers the recogniser, with an exponential moving average filtering micro-jitter out of the samples first. Reuse and extend what exists rather than starting again - render/ShapeRecognizer.kt and render/CircleRecognizer.kt already name lines, polygons and circles for the hold-to-snap path in render/DrawingSurfaceHoldSnap.kt, which previews the result before lift-off and is cancelled by any move. Keep one recogniser and one switch (the recognizeShapes setting with the pen and highlighter filter), reconcile the 500 ms of hold-to-snap with the 300 ms of the doc in one named constant, and cover the classes the doc lists: line, arrow, circle, ellipse, rectangle or square, triangle, arc. Verify with JVM unit tests over the pure recogniser for each class and for a deliberately wobbly non-shape, plus a stylus check on the emulator."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 660
-created = 2026-10-13
-tags = ["shapes"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "living-parametric-shape-with-interactive-vertex-handles"
 title = "Living parametric shape with interactive vertex handles"
 description = "Commit the perfected shape as a ParametricShapeElement rather than a uniform-width stroke: the vertices are the authored geometry the editor drags, the bounds are recomputed from those vertices on read so a shape can never be picked where its handles are not, and showAngles and showSideLengths drive the readout badges (docs/mobix-elements.md). render/ElementBounds.kt must give the family a real box and hit-testability, the selection action bar gains Edit shape, and dragging a vertex deforms the shape live while updating side lengths and angles and snapping to 0, 30, 45 and 90 degrees against the page ruling. Export needs no change: render/XoppSynthesis.kt already compiles the family into ink for .xopp. Verify with JVM unit tests on the vertex maths and the synthesis, plus an emulator pass dragging a handle with a stylus."

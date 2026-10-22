@@ -105,9 +105,9 @@ fallback to the page centre before the canvas has been laid out.
 ## Hold-to-snap (`DrawingSurfaceHoldSnap.kt`)
 
 **Hold-to-snap (`DrawingSurfaceHoldSnap.kt`).** The shape recogniser is also reachable *before* lift-off:
-resting the stylus on the glass for `HOLD_SNAP_MS` (500 ms) rewrites the stroke in progress as the
+resting the stylus on the glass for `SHAPE_DWELL_MS` (300 ms) rewrites the stroke in progress as the
 recognised geometry, so the user watches the snap happen. Each sample that moves the tip past
-`HOLD_SNAP_SLOP_PX` (6 view px, converted to pt through the page's own `scale`) re-arms a
+`SHAPE_DWELL_SLOP_PT` (3 pt in page space, so it reads the same at any zoom) re-arms a
 `postDelayed` timer; the timer firing replaces `current` with the recogniser's vertex list and marks
 the stroke `holdSnapped`, so the commit that follows keeps it uniform-width like a shape tool's
 output (`commitCurrent` ORs that flag into its own `snapped`). It is a **preview, not a lock** — no
@@ -148,30 +148,12 @@ double-tap, on `Enter` (routed from `MainActivity.dispatchKeyEvent`, so the canv
 keyboard focus), or when the tool changes; `Backspace`/`undoLastSplineNode` drops the last node and
 `Escape` discards the curve. Because a tablet has no keyboard, `onSplineChanged` reports the open
 node count out to `PaneState.splineNodes`, which drives the `SplineModeBar` — the on-screen
-finish / undo-point / discard bar. The **shape recogniser**
-(`ShapeRecognizer`, with `Inertia`, `RecoSegment` and `CircleRecognizer`; all pure and tested) is the
-reverse direction, and it is a **direct port of desktop Xournal++'s**
-(`src/core/control/shaperecognizer/`): on commit, with the user's **Shape recognition** setting on
-and the pen active, the stroke's *raw* samples are classified by the same algorithm and thresholds
-the desktop uses, so the same scribble is judged the same way on both. Nothing is simplified first —
-`StrokeSimplifier` now runs only on the strokes that weren't recognised, since thinning would hide
-the dense detail the fit reads and can round a circle into facets. The method is a piecewise
-least-squares **polygon fit** (`findPolygonal` recurses over the point list on `Inertia.det`, the one
-arc-length-moment number that measures straightness, then `optimizePolygonal` nudges every break to
-its local optimum); three segments within tolerance become a **triangle**, four a **rectangle**
-(rotated onto one shared angle, which is what squares a roughly upright one to the page axes), one a
-**line**, and only if no polygon fits is the stroke tried as a **circle** — inertia roundness plus a
-length-weighted radial residual. Emitted geometry comes from the fitted lines' *intersections*, so
-it is cleaner than anything read off the samples. Every tolerance is relative to
-`RecoSegment.radius` rather than an absolute pt budget, so the same wobble passes at any size, and a
-stroke under 40 pt across (upstream's `strokeRecognizerMinSize` default) is never snapped. It runs
-for the **pen and the highlighter** alike — upstream gives both tools `TOOL_CAP_RECOGNIZER` — so a
-straight highlighter line snaps to a line too. An
-unmatched stroke returns `null`, so handwriting commits untouched. The recognised set is upstream's
-— **line, triangle, rectangle, circle** — so an oval, an arrow and an open polyline are deliberately
-left as drawn, unlike the hand-rolled recognizer this replaced. The one divergence from upstream's
-code is `RecoSegment.calcEdgeIsect` returning `null` for parallel pieces, where the C++ divides by
-zero and would write an infinite point into the `.xopp`. **Snapping** (`Snapping`, pure and tested) is
+finish / undo-point / discard bar. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a
+stroke it does not name commits exactly as drawn. Its classes, thresholds and invariants are owned by
+[`shape-perfection-engine.md`](shape-perfection-engine.md) — what belongs to the tools is that nothing
+is simplified first (`StrokeSimplifier` only sees the strokes the recogniser rejected, since thinning
+hides the detail the fit reads and can round a circle into facets), and that a recognised shape is an
+ordinary constant-width stroke, so it round-trips like any ink. **Snapping** (`Snapping`, pure and tested) is
 applied at the input edge rather than in the geometry builders: with **Snap to grid** on, the shape
 drag's start and end points are rounded onto the page background's ruling before they reach
 `ShapeBuilder`, and with **Snap rotation** on, the *swept* angle (not the absolute one) of the rotate

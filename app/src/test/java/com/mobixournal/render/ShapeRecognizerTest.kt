@@ -17,8 +17,10 @@ import org.junit.Test
  * these are hand-drawn strokes rather than the exact geometry the recognizer emits — which is the
  * only thing worth testing, since a recogniser that needs perfect input is useless on a tablet.
  *
- * The recognised set is upstream's: line, triangle, rectangle, circle. An oval, an arrow and a plain
- * polyline are *not* recognised, on purpose (desktop Xournal++ doesn't either).
+ * The recognised set is upstream's — line, triangle, rectangle, circle — plus **ellipse**, **arrow**
+ * and **arc**, which upstream leaves as drawn. Each addition is tested both ways: the shape it is for,
+ * and the handwriting nearest to it that must stay untouched (`C` is an arc but a small one is not;
+ * a check mark is not an arrow; a squiggle is not an ellipse).
  */
 class ShapeRecognizerTest {
 
@@ -173,12 +175,114 @@ class ShapeRecognizerTest {
     }
 
     @Test
-    fun `an oval is not turned into a circle`() {
-        // Recognising ellipses was the old hand-rolled recognizer's job; upstream does circles only,
-        // and a 5:1 oval is nowhere near round enough.
+    fun `a 5 to 1 oval is rebuilt as an ellipse, not forced into a circle`() {
         val oval = sample(200, jitter = 0.5) { t -> 250 + 200 * cos(2 * PI * t) to 250 + 40 * sin(2 * PI * t) }
-        assertNull(ShapeRecognizer.recognize(oval, w))
+        val out = ShapeRecognizer.recognize(oval, w)
+        assertNotNull(out)
+        // The drawn extents survive: 400 pt across, 80 pt tall. A circle fit could not do this.
+        assertEquals(450.0, out!!.maxOf { it.x }, 8.0)
+        assertEquals(50.0, out.minOf { it.x }, 8.0)
+        assertEquals(290.0, out.maxOf { it.y }, 8.0)
+        assertEquals(210.0, out.minOf { it.y }, 8.0)
+        // Closed, and every vertex on the fitted rim — an ellipse, not a bounding box.
+        assertEquals(out.first().x, out.last().x, 1e-9)
+        assertEquals(out.first().y, out.last().y, 1e-9)
+        val cx = out.sumOf { it.x } / out.size
+        val cy = out.sumOf { it.y } / out.size
+        assertTrue(
+            "every vertex satisfies the ellipse equation",
+            out.all { abs(sq((it.x - cx) / 200) + sq((it.y - cy) / 40) - 1) < 0.06 },
+        )
     }
+
+    @Test
+    fun `a tilted oval keeps its tilt`() {
+        val angle = 0.6
+        val oval = sample(240) { t ->
+            val u = 170 * cos(2 * PI * t)
+            val v = 70 * sin(2 * PI * t)
+            (300 + u * cos(angle) - v * sin(angle)) to (300 + u * sin(angle) + v * cos(angle))
+        }
+        val out = ShapeRecognizer.recognize(oval, w)
+        assertNotNull(out)
+        // The long axis runs along the drawn tilt, so the extreme projection is the semi-axis itself.
+        val along = out!!.maxOf { (it.x - 300) * cos(angle) + (it.y - 300) * sin(angle) }
+        assertEquals("long semi-axis along the tilt", 170.0, along, 10.0)
+        val across = out.maxOf { -(it.x - 300) * sin(angle) + (it.y - 300) * cos(angle) }
+        assertEquals("short semi-axis across it", 70.0, across, 10.0)
+    }
+
+    @Test
+    fun `a scribbled closed blob is not an ellipse`() {
+        // A "flower": closed, so it passes the closure gate, but nowhere near an ellipse.
+        val flower = sample(240) { t ->
+            val a = 2 * PI * t
+            (200 + (110 + 35 * sin(8 * a)) * cos(a)) to (200 + (80 + 35 * sin(8 * a)) * sin(a))
+        }
+        assertNull(ShapeRecognizer.recognize(flower, w))
+    }
+
+    @Test
+    fun `a half circle drawn in one sweep is rebuilt as an arc`() {
+        val half = sample(80, jitter = 0.6) { t ->
+            val a = -PI / 2 + PI * t
+            (200 + 120 * cos(a)) to (200 + 120 * sin(a))
+        }
+        val out = ShapeRecognizer.recognize(half, w)
+        assertNotNull(out)
+        // Open, so the two ends are where the user started and stopped, not a closing repeat.
+        assertTrue("an arc is not closed", hypot(out!!.first().x - out.last().x, out.first().y - out.last().y) > 100)
+        assertEquals(200.0, out.first().x, 3.0)
+        assertEquals(80.0, out.first().y, 3.0)
+        assertEquals(200.0, out.last().x, 3.0)
+        assertEquals(320.0, out.last().y, 3.0)
+        assertTrue("expected a sampled arc, got ${out.size}", out.size >= 16)
+        assertTrue(
+            "every vertex sits on the fitted circle",
+            out.all { abs(hypot(it.x - 200, it.y - 200) - 120) < 1.5 },
+        )
+    }
+
+    @Test
+    fun `a small C is handwriting, not an arc`() {
+        // Letter-sized: under the arc's chord gate, even though it is a perfect circular sweep.
+        val c = sample(40) { t ->
+            val a = -PI / 2 + PI * t
+            (40 + 18 * cos(a)) to (40 + 18 * sin(a))
+        }
+        assertNull(ShapeRecognizer.recognize(c, w))
+    }
+
+    @Test
+    fun `a shaft with two barbs is rebuilt as an arrow`() {
+        val shaft = 200.0
+        val arrow = openPolyline(
+            listOf(0.0 to 0.0, shaft to 0.0, 175.0 to -30.0, shaft to 0.0, 175.0 to 30.0),
+            perEdge = 20,
+        )
+        val out = ShapeRecognizer.recognize(arrow, w)
+        assertNotNull(out)
+        assertEquals("tail, tip, barb, tip, barb", 5, out!!.size)
+        assertEquals(0.0, out[0].x, 1e-9)
+        // The point is the shaft's end, and the path passes through it twice.
+        assertEquals(shaft, out[1].x, 0.5)
+        assertEquals(0.0, out[1].y, 1e-9)
+        assertEquals(out[1], out[3])
+        // One barb on each side, mirrored as drawn.
+        assertEquals(175.0, out[2].x, 2.0)
+        assertEquals(30.0, out[2].y, 2.0)
+        assertEquals(175.0, out[4].x, 2.0)
+        assertEquals(-30.0, out[4].y, 2.0)
+    }
+
+    @Test
+    fun `a check mark is not an arrow`() {
+        val v = openPolyline(listOf(0.0 to 0.0, 60.0 to 90.0, 220.0 to 0.0), perEdge = 25)
+        assertNull(ShapeRecognizer.recognize(v, w))
+    }
+
+    /** Squared value, for the ellipse-equation assertion above. */
+    private fun sq(v: Double) = v * v
 
     @Test
     fun `an open zig-zag is left alone, not straightened or closed`() {

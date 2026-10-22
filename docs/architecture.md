@@ -28,6 +28,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`data-path.md`](data-path.md) | open/save, remote staging, session cache, in-memory model | you change how documents are opened, saved, or staged |
 | [`rendering.md`](rendering.md) | paint pipeline (vsync pacing), page rasterisation, PNG/SVG export | a change affects repainting, drawing or export |
 | [`drawing-tools.md`](drawing-tools.md) | drawing and editing tools: shapes, styles, eraser, layers, hold-to-snap | you work on an active drawing or editing tool |
+| [`shape-perfection-engine.md`](shape-perfection-engine.md) | the shape recogniser: dwell trigger, tremor filter, recognised classes and their thresholds | you change what a freehand stroke snaps to |
 | [`pages-and-paper.md`](pages-and-paper.md) | ruling parameters, page templates, background chooser, bookmarks, page list | you change paper, background, or page management |
 | [`selection.md`](selection.md) | Select/Lasso tools: marquee/lasso, handles, transforms, align & distribute | you change how elements are picked or transformed |
 | [`stylus.md`](stylus.md) | input layer: tool detection, palm rejection, pressure → width, smoothing | you change stylus pointer handling or touch gestures |

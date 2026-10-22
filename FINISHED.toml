@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "freehand-shape-recognition-on-a-300ms-end-of-stroke-dwell"
+title = "Freehand shape recognition on a 300 ms end-of-stroke dwell"
+description = "Give freehand strokes the dwell recognition docs/shape-perfection-engine.md describes: a tip that travels under 3.0 pt for 300 ms before touch-up triggers the recogniser, with an exponential moving average filtering micro-jitter out of the samples first. Reuse and extend what exists rather than starting again - render/ShapeRecognizer.kt and render/CircleRecognizer.kt already name lines, polygons and circles for the hold-to-snap path in render/DrawingSurfaceHoldSnap.kt, which previews the result before lift-off and is cancelled by any move. Keep one recogniser and one switch (the recognizeShapes setting with the pen and highlighter filter), reconcile the 500 ms of hold-to-snap with the 300 ms of the doc in one named constant, and cover the classes the doc lists: line, arrow, circle, ellipse, rectangle or square, triangle, arc. Verify with JVM unit tests over the pure recogniser for each class and for a deliberately wobbly non-shape, plus a stylus check on the emulator."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-13
+completed = 2026-10-22
+tags = ["shapes"]
+
+[[task]]
 id = "desktop-editing-undo-and-save"
 title = "Desktop editing, undo and save (scope)"
 description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
