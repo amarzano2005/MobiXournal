@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "reconcile-docs-codebase-md-s-render-trees-with-the-modules"
+title = "Reconcile docs/codebase.md's render trees with the modules"
+description = "docs/codebase.md still files fourteen render/ sources under app/ that the Phase A split already moved to mobix-core: LivingInk.kt, TableInk.kt, PlotInk.kt, ShapeInk.kt, CircuitInk.kt, InkPrimitives.kt, ShapeBuilder.kt, TriangleKind.kt, TrapezoidKind.kt, FunctionPlot.kt, CircuitShapes.kt, ChemShapes.kt, ElementBounds.kt, TriangularLattice.kt — and LivingInk.kt is listed twice, once in each tree. The core tree also omits files that live there (AdvancedCurves.kt, FigureGeometry.kt, FunctionAnalysis.kt, InkTokens.kt, MeasurementText.kt, MultiFunctionPlotter.kt, PlotFrame.kt, Uncompilable.kt). Fix by checking every row against the filesystem instead of rewriting from memory: for each .kt name in the app render/ block, test app/src/main/java/com/mobixournal/render/<name> and mobix-core/src/main/java/com/mobixournal/render/<name>, move the row to the block whose directory holds the file, keep the description text, and add the core files that have no row yet. Watch the parsing trap that produced the false positives while this list was measured: the block runs to the next two-space section, and rows from markdown/, audio/ and ui/ below it are not render/ rows. Verify with DocsGuardTest (the doc must stay under 400 lines and every link must resolve) and with a fresh pass of the same script: zero rows whose file is absent from the block's module and zero core render files without a row."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
+id = "move-pagesvgwriter-into-mobix-core"
+title = "Move PageSvgWriter into mobix-core"
+description = "app/src/main/java/com/mobixournal/render/PageSvgWriter.kt (229 lines) imports only format.model and java.util.Base64 — no android.*, no Compose — so the SVG export can be shared as is, and the desktop will want it for desktop-inspector-and-export. git mv it to mobix-core/src/main/java/com/mobixournal/render/ keeping the package com.mobixournal.render, so DrawingSurfacePaint.kt:694 and LivingEntityDrawingTest need no import change. Update the docs rows that name the old path: docs/codebase.md (line 192) and docs/pages-and-paper.md (line 33); docs/architecture.md's dispatch sentence (lines 67-68) must still be true of the new location. Verify: LivingEntityDrawingTest green (it compares the SVG with and without a table, which is the behaviour that must not move), :mobix-core:test green, and the full :app:testDebugUnitTest green. Add one core test that writes a page with a stroke, a text box and a living table to SVG and asserts the stroke path, the text and the table's rules all appear once."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "move-xoppsynthesis-into-mobix-core"
 title = "Move XoppSynthesis into mobix-core"
 description = "app/src/main/java/com/mobixournal/render/XoppSynthesis.kt (179 lines) imports only format.mobix (MobixMetaBlock, PageSource, MobixMetaClaim, MobixMetaDigest) and format.model — no android.*, no Compose — so it is a compiler that can already be shared: it is what io/DocumentIo.kt:549 writes a .mobix through when the target is .xopp, and what MobixMetaBlockTest, PageSourceWalkTest and PlotShadingTest call. git mv it to mobix-core/src/main/java/com/mobixournal/render/ with the same package com.mobixournal.render (that directory already exists in the core), so call sites need no import change. Leave app-level integration tests where they are unless they only need core fixtures. Update every doc naming the old path: AGENTS.md (the .mobix export bullet), docs/architecture.md (lines 67-68), docs/mobix-format.md (lines 147 and 239), docs/codebase.md (line 227), docs/drawing-tools.md (line 94). Verify: before the move, export one fixture document containing a table through XoppSynthesis and record the SHA-256 of the resulting .xopp; after the move the same call must produce the identical digest. Then :mobix-core:test and the full :app:testDebugUnitTest green."

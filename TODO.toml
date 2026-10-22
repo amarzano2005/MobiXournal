@@ -302,20 +302,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "move-pagesvgwriter-into-mobix-core"
-title = "Move PageSvgWriter into mobix-core"
-description = "app/src/main/java/com/mobixournal/render/PageSvgWriter.kt (229 lines) imports only format.model and java.util.Base64 — no android.*, no Compose — so the SVG export can be shared as is, and the desktop will want it for desktop-inspector-and-export. git mv it to mobix-core/src/main/java/com/mobixournal/render/ keeping the package com.mobixournal.render, so DrawingSurfacePaint.kt:694 and LivingEntityDrawingTest need no import change. Update the docs rows that name the old path: docs/codebase.md (line 192) and docs/pages-and-paper.md (line 33); docs/architecture.md's dispatch sentence (lines 67-68) must still be true of the new location. Verify: LivingEntityDrawingTest green (it compares the SVG with and without a table, which is the behaviour that must not move), :mobix-core:test green, and the full :app:testDebugUnitTest green. Add one core test that writes a page with a stroke, a text box and a living table to SVG and asserts the stroke path, the text and the table's rules all appear once."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 943
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "extract-the-pdf-page-plan-into-mobix-core"
 title = "Extract the PDF page plan into mobix-core"
 description = "render/PdfVectorPainter.kt (226 lines) cannot move as it stands: it is written against com.tom_roush.pdfbox (the Android port) and android.graphics.BitmapFactory, while the desktop carries org.apache.pdfbox 3 and page images as bytes. What is portable is the drawing itself, so extract a plan instead of a painter. (1) Add mobix-core/src/main/java/com/mobixournal/render/PdfPagePlan.kt: a platform-free description of one page's vector output as an ordered list of ops — a path (points, width, colour, alpha, dash), a filled polygon, a text run (font, size, colour, anchor), an image placement (pixel size, transform) — built by a pure renderer that walks a Page exactly the way PdfVectorPainter.paint does today: strokes with their pressure taper, highlighter bands with multiply, tables, plots, parametric shapes, circuits and text boxes, with the living entities compiled through LivingInk so the plan cannot disagree with the canvas. (2) Rewrite PdfVectorPainter.paint as a consumer: one arm per op emitting PDPageContentStream calls, no geometry and no model walking of its own; PDFont/BlendMode/image handling stays there because those are PDFBox types. Behaviour must not change — the existing PDF suites (PdfExporter, PdfFonts, TextPaginator tests) are the gate. (3) Add a mobix-core test asserting the plan for one page holding a stroke, a table and a plot: op kinds in order, the stroke's width and colour, and no android or pdfbox type anywhere in the plan's signature. Note in the class doc that the desktop emitter over org.apache.pdfbox is the second consumer and arrives with desktop-inspector-and-export."
@@ -355,20 +341,6 @@ order = 946
 created = 2026-10-22
 tags = ["desktop"]
 rebuild = true
-emulator_debug = false
-
-[[task]]
-id = "reconcile-docs-codebase-md-s-render-trees-with-the-modules"
-title = "Reconcile docs/codebase.md's render trees with the modules"
-description = "docs/codebase.md still files fourteen render/ sources under app/ that the Phase A split already moved to mobix-core: LivingInk.kt, TableInk.kt, PlotInk.kt, ShapeInk.kt, CircuitInk.kt, InkPrimitives.kt, ShapeBuilder.kt, TriangleKind.kt, TrapezoidKind.kt, FunctionPlot.kt, CircuitShapes.kt, ChemShapes.kt, ElementBounds.kt, TriangularLattice.kt — and LivingInk.kt is listed twice, once in each tree. The core tree also omits files that live there (AdvancedCurves.kt, FigureGeometry.kt, FunctionAnalysis.kt, InkTokens.kt, MeasurementText.kt, MultiFunctionPlotter.kt, PlotFrame.kt, Uncompilable.kt). Fix by checking every row against the filesystem instead of rewriting from memory: for each .kt name in the app render/ block, test app/src/main/java/com/mobixournal/render/<name> and mobix-core/src/main/java/com/mobixournal/render/<name>, move the row to the block whose directory holds the file, keep the description text, and add the core files that have no row yet. Watch the parsing trap that produced the false positives while this list was measured: the block runs to the next two-space section, and rows from markdown/, audio/ and ui/ below it are not render/ rows. Verify with DocsGuardTest (the doc must stay under 400 lines and every link must resolve) and with a fresh pass of the same script: zero rows whose file is absent from the block's module and zero core render files without a row."
-status = "active"
-level = "task"
-category = "docs"
-urgency = "normal"
-order = 947
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
 emulator_debug = false
 
 [[task]]
