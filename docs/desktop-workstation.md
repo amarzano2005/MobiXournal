@@ -167,8 +167,8 @@ Measured on 2026-10-22 against the Android editing path:
 | `render/PdfVectorPainter.kt` | 226 | `BitmapFactory`, plus `com.tom_roush.pdfbox` (the Android PDFBox port) | **split** — the geometry is `PdfPagePlan` in `mobix-core`, and this is its Android emitter |
 | `io/DocumentIo.kt` | 666 | `ContentResolver`, `Uri`, `OpenableColumns` — and `resolver` is used in exactly one place, `displayName` | **split** — the write is `io/DocumentEncoder` in `mobix-core`, and the SAF shell keeps staging, the stores and the `content://` target |
 | `render/ElementEdits.kt` | 152 | `BitmapFactory`, for `inJustDecodeBounds` only | movable behind an injected image-size function |
-| `render/DrawingSurfaceInput.kt` | 680 | `MotionEvent`, `KeyEvent`, `SurfaceView`, `ViewConfiguration` | stays Android; the desktop reimplements the pointer layer over Compose |
-| `render/DrawingSurfaceStrokes.kt` | 679 | `MotionEvent` | stays Android; the stroke/erase geometry is what could move |
+| `render/DrawingSurfaceInput.kt` | 680 | `MotionEvent`, `KeyEvent`, `SurfaceView`, `ViewConfiguration` | stays Android as the adapter; the **decisions** are `InkPointer`/`InkPointerRouter` in the core (`docs/stylus.md`), and the Compose pointer is the second adapter |
+| `render/DrawingSurfaceStrokes.kt` | 679 | `MotionEvent` | stays Android; its erase geometry moved — `PageEraser`/`StrokeEraser` are in the core, and only the sampling loop remains |
 | `render/DrawingSurfaceSelection.kt` | 341 | `MotionEvent`, `ClipData`, `ClipboardManager`, `Context` | stays Android; the transform geometry is what could move |
 
 ## Decisions

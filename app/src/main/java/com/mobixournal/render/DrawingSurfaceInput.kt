@@ -305,14 +305,13 @@ internal fun DrawingSurfaceView.handleWheelScroll(event: MotionEvent): Boolean {
     return true
 }
 
-/** Map one event pointer's tool type to our device-independent [PointerKind]. */
+/**
+ * Map one event pointer's tool type to our device-independent [PointerKind]. The mapping itself is
+ * the adapter's (`MotionEventPointer.kt`), because it is the half of the input layer that cannot
+ * leave the platform and the half everything else reads.
+ */
 internal fun DrawingSurfaceView.pointerKindOf(event: MotionEvent, pointerIndex: Int): PointerKind =
-    when (event.getToolType(pointerIndex)) {
-        MotionEvent.TOOL_TYPE_STYLUS -> PointerKind.STYLUS
-        MotionEvent.TOOL_TYPE_ERASER -> PointerKind.ERASER_TIP
-        MotionEvent.TOOL_TYPE_FINGER -> PointerKind.FINGER
-        else -> PointerKind.UNKNOWN
-    }
+    event.inkPointerKind(pointerIndex)
 
 /**
  * The [PointerKind] whose buttons a `MotionEvent`'s `buttonState` describes. Button state comes from

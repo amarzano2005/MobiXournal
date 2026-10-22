@@ -304,8 +304,8 @@ emulator_debug = false
 [[task]]
 id = "give-both-shells-one-pointer-router"
 title = "Give both shells one pointer router"
-description = "render/DrawingSurfaceInput.kt (680 lines; android.view.KeyEvent, MotionEvent, SurfaceView, ViewConfiguration), DrawingSurfaceStrokes.kt (679; MotionEvent) and DrawingSurfaceSelection.kt (341; ClipData, ClipboardManager, Context, MotionEvent) are View-event code and stay in the app — the desktop cannot reuse a MotionEvent and should not try. What it needs is the decisions inside them, which a Compose pointer can feed: the pressure filter of docs/stylus.md, the gesture classification (pen versus finger, tap versus drag, the second-finger rule that turns a drag into pan/zoom) and the geometry of a partial erase and of a selection transform. (1) In mobix-core/src/main/java/com/mobixournal/render/ add an InkPointer value (x, y, pressure, tilt, azimuth, timestamp, tool type, buttons, phase) and an InkPointerRouter that turns a stream of them into the events the editor consumes: stroke start/extend/end, tap, two-finger pan/zoom, erase hit. (2) Rewrite the Android side as a thin MotionEvent adapter that produces InkPointer and keeps its current behaviour, with the app suite as the gate — if a test has to change, the adapter changed behaviour and the refactor is wrong. (3) Test the router in mobix-core with synthetic pointer streams: a pressure ramp that the filter smooths, a tap that does not draw, an erase that splits a stroke at the hit point, and a second finger that ends the stroke and starts a pan. State in the router's doc that the desktop's Compose pointer becomes the second adapter in desktop-editing-undo-and-save, and that which pointer fields Compose Desktop actually fills on Windows is measured by desktop-tablet-and-dial-input rather than assumed."
-status = "active"
+description = "LANDS: the platform-free half is done and tested. InkPointer + InkPointerRouter live in mobix-core/render (stroke start/sample/end, tap, erase hit, two-finger pan and pinch; tap does not draw unless startOnDown; a pen outranks a finger, a second finger navigates), with InkPointerRouterTest driving synthetic streams: a pressure ramp through the desktop filter, a tap that does not draw, a second finger ending the stroke and starting a pan, a resting palm, a held barrel, and an eraser hit whose PageEraser cut splits a stroke at the disc's edge. The vocabulary and geometry the router wraps moved to the core with it: InputClassifier (with PointerKind/ActiveTool/GestureIntent/InputSettings and the two click detectors), PressureCurve, PageEraser, StrokeEraser, StrokeHitTester — same package, so the app kept calling them unchanged. The adapter's platform half is MotionEventPointer.kt (tool type -> PointerKind), and pointerKindOf delegates to it. REMAINS: the surface's own state machine is still the live path (docs/stylus.md says 'library only'), so the router has no call site yet in app/src/main — that is what the child task wire-the-android-pointer-path-through-the-router does: MotionEvent -> InkPointer including historical samples, startStroke/extendStroke/commitCurrent consuming the router's stroke events with startOnDown = true, and navigation/palm rejection from PanBegin and the take-over rule, leaving barrel keys, page drag, guide drag, splines, table/plot taps, audio play mode, vertical space and the marquee as explicitly listed adapter-only entries. Keep this task open until the desktop adapter (desktop-pressure-inking-through-the-pointer-router) feeds it too, because that is the second half of 'both shells'."
+status = "in-progress"
 level = "task"
 category = "refactor"
 urgency = "normal"
@@ -646,6 +646,20 @@ level = "task"
 category = "feature"
 urgency = "normal"
 order = 1200
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "wire-the-android-pointer-path-through-the-router"
+title = "Wire the Android pointer path through the shared router"
+description = "The router is written and tested (InkPointer/InkPointerRouter in mobix-core), and the decisions it wraps are what the app already calls (InputClassifier, PressureCurve, PageEraser/StrokeEraser). What is still the surface's own is the state machine that turns MotionEvent into those calls: DrawingSurfaceInput.kt's beginPointer/addSamples and DrawingSurfaceStrokes.kt's start/extend/end (docs/stylus.md says so: status library only). This task finishes the adapter half. (1) MotionEvent to InkPointer for one pointer: tool type (MotionEventPointer.kt already maps it), x/y, pressure, event time, phase from actionMasked, buttons from buttonState, and tilt/azimuth through telemetryAxis so an undeclared axis stays null. Historical samples stay where they are: the adapter emits one InkPointer per historical point, which is what makes the pressure ramp reach the router. (2) The stroke path: startStroke/extendStroke/commitCurrent in DrawingSurfaceStrokes.kt consume InkEvent.StrokeStart/Sample/End and keep everything document-shaped (page box, guide snapping, smoother, hold-to-snap, commit, undo) in the view; the router owns only WHEN a stroke begins and ends. Configure it with startOnDown = true, because on the tablet a tap leaves a dot and moving that would change what users see. (3) Navigation and palm rejection come from the router: a second finger ends the stroke and starts a pan (InkEvent.PanBegin), the pen takes over from a finger, and a finger under a writing pen stays ignored — the cases onPointerDown implements today. (4) Not routed: barrel keys and vendor keys, page drag and its arm timer, guide drag, spline taps, table/plot double-taps, audio play mode, vertical space, background select and the marquee. They keep their own entry points, and DrawingSurfaceInput's header must list them, so the next reader knows what is adapter and what is not. (5) The gate is the existing app suite, unchanged; add a JVM test per routed decision only where the view can be driven without a MotionEvent. No emulator (the on-device StylusInputTest covers the physical paths). Docs: docs/stylus.md (drop the library-only status), docs/codebase.md rows for the two files."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 1210
 created = 2026-10-22
 tags = ["desktop"]
 rebuild = false

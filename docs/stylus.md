@@ -11,6 +11,26 @@ pure `InputClassifier`, so the pen hardware — not the on-screen toolbar — de
 matching desktop Xournal++. This section is the design home for the input layer and for the selection
 tool's parity with desktop Xournal++.
 
+## One pointer layer, two shells
+
+The input layer's **decisions** are platform-free and live in `mobix-core/render/`: `InputClassifier`
+(what a contact begins), `PressureCurve` (how hard it draws), `PageEraser` / `StrokeEraser` /
+`StrokeHitTester` (what an erase cuts), and — new — **`InkPointerRouter`**, which turns a stream of
+`InkPointer` samples into the events an editor consumes: stroke start/sample/end, a tap, an erase hit,
+a two-finger pan and a pinch. A shell keeps only what is its own: `MotionEventPointer.kt` maps a
+`MotionEvent`'s tool type to `PointerKind` and the surface keeps its state machine. The desktop's
+Compose pointer becomes the **second adapter** in `desktop-pressure-inking-through-the-pointer-router`,
+and which fields Compose Desktop actually fills on Windows (pressure, tilt) is *measured* by
+`desktop-tablet-and-dial-input` rather than assumed — the router therefore treats them as optional.
+
+What it decides: a press is held until it crosses the tap slop, so a **tap does not draw** (the tablet's
+"a tap leaves a dot" is one flag, `startOnDown`); a **second finger** ends the stroke it interrupts and
+starts a pan; once a **pen** owns a gesture, a later finger is a resting palm and is ignored; an
+**eraser** contact is reported as a hit, and the split at that hit is `PageEraser`'s, so a partial erase
+has one implementation. **Status: library only** — `DrawingSurfaceInput` still runs its own state machine
+over these same decisions, and moving it onto the router is the open task
+`wire-the-android-pointer-path-through-the-router`.
+
 ## Stylus input — implemented
 
 **Stylus input — implemented.** Android reports the source of every pointer via

@@ -120,6 +120,9 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # `attach` domain + bundled pixmap entries (pure)
     render/PdfPagePlan.kt    # a page -> PDF ops an emitter replays; PdfPageTransform.kt flips into user space
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
+    render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt # what a contact
+                             #   begins, how hard it draws, what a stream means (pure)
+    render/PageEraser.kt, StrokeEraser.kt, StrokeHitTester.kt # erase: page mode, the split, the hit
     render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
     io/DocumentEncoder.kt    # THE SAVE without Android: three formats, a SaveTarget, a SaveShape
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
@@ -230,9 +233,7 @@ app/
         MarkdownComposer.kt  # block tree -> flat groups of wrapped lines, rules and collapsed gaps (pure)
         MarkdownLayout.kt    # composed groups -> pages: block-aware page breaking, no orphaned headings
       GlyphSanitizer.kt      # maps codepoints a font can't encode onto a substitution glyph (pure)
-      StrokeHitTester.kt     # whole-stroke eraser point-to-stroke hit geometry (pure)
-      StrokeEraser.kt        # partial eraser: split a stroke into surviving pieces (pure)
-      PageEraser.kt          # eraser applied to a page: mode, tip size, hidden-layer skip (pure)
+      MotionEventPointer.kt  # the platform half of the input adapter: tool type -> PointerKind
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
@@ -249,8 +250,7 @@ app/
       SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure)
       VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
                              #   snapping the gap to the ruling when snapping is on (pure)
-      InputClassifier.kt     # pointer kind + button + active tool + settings -> gesture intent (pure); MultiFingerTapDetector.kt: a still 2/3-finger tap's finger count, FingerTapSettings.kt: the action each tap was given (pure)
-      PressureCurve.kt       # pressure -> width multiplier + sensitivity presets (pure)
+      MultiFingerTapDetector.kt # a still 2/3-finger tap's finger count; FingerTapSettings.kt: the action each tap was given (pure)
       Fling.kt               # decelerating two-axis momentum-scroll kinematics (pure)
       VelocityEstimator.kt   # pan release-velocity from a trailing sample window (pure)
       PageOps.kt             # insert / copy / move / delete pages in a page list (pure)
