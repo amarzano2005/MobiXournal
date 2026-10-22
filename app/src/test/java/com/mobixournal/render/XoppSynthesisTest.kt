@@ -276,6 +276,30 @@ class XoppSynthesisTest {
     }
 
     @Test
+    fun aDraggedCornerExportsAsTheFigureThatIsOnScreen() {
+        // What the vertex handle produces: the same element with one corner moved.
+        val original = shape()
+        val dragged = ParametricShapes.moveVertex(original, 1, 300.0, 60.0)
+        val outline = strokesOf(synthesize(dragged)).first { it.fill == null }
+
+        assertEquals("the outline still closes on itself", outline.points.first(), outline.points.last())
+        assertTrue(
+            "the moved corner is written where it was dragged: ${outline.points.map { it.x to it.y }}",
+            outline.points.any { kotlin.math.abs(it.x - 300.0) < 1e-6 && kotlin.math.abs(it.y - 60.0) < 1e-6 },
+        )
+        assertTrue(
+            "and the corners that were not touched stay put",
+            outline.points.any { kotlin.math.abs(it.x - 100.0) < 1e-6 && kotlin.math.abs(it.y - 100.0) < 1e-6 },
+        )
+        // The badges follow the new geometry: the side that changed reads its new length.
+        val side = ParametricShapes.sideLengthPt(dragged, 0)
+        assertTrue(
+            "side labels are recomputed: ${textsOf(synthesize(dragged)).map { it.content }}",
+            textsOf(synthesize(dragged)).any { it.content == measurementText(side) },
+        )
+    }
+
+    @Test
     fun aCircuitExportsInItsOwnInkPlacedByItsPins() {
         val result = synthesize(circuit())
         val strokes = strokesOf(result)

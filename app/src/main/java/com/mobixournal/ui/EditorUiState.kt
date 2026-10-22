@@ -86,6 +86,13 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     /** The existing [CircuitElement] being edited in place, or null when none is. */
     var editingCircuit by mutableStateOf<com.mobixournal.format.model.CircuitElement?>(null)
     /**
+     * The existing [ParametricShapeElement] whose **Edit shape** panel is open, or null when none is.
+     *
+     * Only the readout flags live in that panel — the geometry is edited on the canvas, by dragging
+     * the corner handles the selection draws.
+     */
+    var editingShape by mutableStateOf<com.mobixournal.format.model.ParametricShapeElement?>(null)
+    /**
      * The page whose **bookmark editor** is open (0-based), or null when none is. Opening it for a
      * page that has no bookmark adds one; opening it for a bookmarked page edits or deletes that one.
      */

@@ -86,6 +86,8 @@ fun SelectionActionBar(
     widthSlots: List<Float>,
     onAlign: (SelectionOps.SelectionAlign) -> Unit,
     onDistribute: (Boolean) -> Unit,
+    canEditShape: Boolean = false,
+    onEditShape: () -> Unit = {},
     canEditPlot: Boolean = false,
     onEditPlot: () -> Unit = {},
     canEditTable: Boolean = false,
@@ -105,6 +107,9 @@ fun SelectionActionBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (hasSelection) {
+                if (canEditShape) {
+                    BarIconButton("Edit shape", Icons.Outlined.Edit, onEditShape)
+                }
                 if (canEditPlot) {
                     BarIconButton("Edit plot", Icons.Outlined.Edit, onEditPlot)
                 }

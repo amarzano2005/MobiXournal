@@ -15,6 +15,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TableElement
 
@@ -287,6 +288,34 @@ fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
  * keeps the same layer, z-order, and id, and repaints.
  */
 fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
+    val before = doc
+    val index = pageIndexHolding(old) ?: return
+    windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
+/**
+ * Returns the currently selected [ParametricShapeElement] if the active selection consists of
+ * exactly one shape — the condition for offering its corner handles and its **Edit shape** action.
+ */
+fun DrawingSurfaceView.singleSelectedShape(): ParametricShapeElement? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+        as? ParametricShapeElement
+}
+
+/**
+ * Replace [old] shape with [new] in place: records history for undo, keeps the same layer, z-order
+ * and id, and repaints. The element is found on the page that actually holds it, so an editor that
+ * outlived its selection still edits the right figure.
+ */
+fun DrawingSurfaceView.replaceShapeElement(old: ParametricShapeElement, new: ParametricShapeElement) {
     val before = doc
     val index = pageIndexHolding(old) ?: return
     windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return

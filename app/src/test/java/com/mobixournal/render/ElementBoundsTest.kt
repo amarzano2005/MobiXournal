@@ -179,24 +179,53 @@ class ElementBoundsTest {
         assertEquals(listOf(40.0), scaled.rowHeights)
     }
 
-    @Test fun remainingLivingEntitiesAreNotPickableUntilEditorsLand() {
-        val black = 0xFF000000.toInt()
-        val others = listOf(
-            ParametricShapeElement(
-                "TRIANGLE_SCALENE",
-                listOf(ShapeVertex(1.0, 2.0), ShapeVertex(3.0, 4.0), ShapeVertex(5.0, 6.0)),
-                black,
-                id = "shp_1",
-            ),
+    @Test fun shapeIsPickableAndItsBoxFollowsItsVertices() {
+        val shape = ParametricShapeElement(
+            "TRIANGLE",
+            listOf(ShapeVertex(10.0, 20.0), ShapeVertex(50.0, 30.0), ShapeVertex(30.0, 70.0)),
+            0xFF000000.toInt(),
+            strokeWidth = 2.0,
+            id = "shp_1",
+        )
+        assertTrue("a shape with corners must be pickable", ElementBounds.isHitTestable(shape))
+        // The box is the corners grown by the outline's half-width — and nothing else.
+        assertEquals(Bounds(9.0, 19.0, 51.0, 71.0), ElementBounds.of(shape))
+
+        // A corner dragged out moves the box with it, on the very next read.
+        val dragged = shape.copy(vertices = shape.vertices.toMutableList().also { it[2] = ShapeVertex(120.0, 140.0) })
+        assertEquals(Bounds(9.0, 19.0, 121.0, 141.0), ElementBounds.of(dragged))
+
+        // A shape with no corners has nothing to pick.
+        assertFalse(ElementBounds.isHitTestable(shape.copy(vertices = emptyList())))
+        assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(shape.copy(vertices = emptyList())))
+    }
+
+    @Test fun shapeTranslatesScalesAndRestylesLikeOneStroke() {
+        val shape = ParametricShapeElement(
+            "RECTANGLE",
+            listOf(ShapeVertex(0.0, 0.0), ShapeVertex(40.0, 0.0), ShapeVertex(40.0, 20.0), ShapeVertex(0.0, 20.0)),
+            0xFF000000.toInt(),
+            strokeWidth = 2.0,
         )
 
-        for (element in others) {
-            assertFalse("${element::class.simpleName} must not be pickable", ElementBounds.isHitTestable(element))
-            assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(element))
-            assertEquals(element, SelectionOps.translate(element, 5.0, 7.0))
-            assertEquals(element, SelectionOps.affineXY(element, 2.0, 2.0, 1.0, 1.0))
-            assertEquals(element, SelectionOps.restyle(element, black, 4.0))
-        }
+        val moved = SelectionOps.translate(shape, 5.0, 7.0) as ParametricShapeElement
+        assertEquals(listOf(ShapeVertex(5.0, 7.0), ShapeVertex(45.0, 7.0)), moved.vertices.take(2))
+
+        val scaled = SelectionOps.affineXY(shape, 2.0, 3.0, 1.0, 1.0, scaleWidth = false) as ParametricShapeElement
+        assertEquals(ShapeVertex(1.0, 1.0), scaled.vertices[0])
+        assertEquals(81.0, scaled.vertices[2].x, 1e-9)
+        assertEquals(61.0, scaled.vertices[2].y, 1e-9)
+        // A resize leaves the drawn line width at its drawn size, exactly as it does for a stroke.
+        assertEquals(2.0, scaled.strokeWidth, 1e-9)
+
+        // Re-homed ink (a paste onto a page at another scale) takes the page's scale with it.
+        val rehomed = SelectionOps.affineXY(shape, 2.0, 3.0, 1.0, 1.0) as ParametricShapeElement
+        assertEquals(2.0 * kotlin.math.sqrt(6.0), rehomed.strokeWidth, 1e-9)
+
+        val restyled = SelectionOps.restyle(shape, 0xFFD84315.toInt(), 4.0) as ParametricShapeElement
+        assertEquals(0xFFD84315.toInt(), restyled.strokeColor)
+        assertEquals(4.0, restyled.strokeWidth, 1e-9)
+        assertEquals(shape.vertices, restyled.vertices)
     }
 
     @Test fun translateAndUnion() {

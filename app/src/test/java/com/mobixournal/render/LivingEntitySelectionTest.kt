@@ -79,7 +79,7 @@ class LivingEntitySelectionTest {
     )
 
     @Test
-    fun tablePlotAndCircuitAreHitTestableWhileShapeRemainsNonHitTestable() {
+    fun everyLivingEntityIsHitTestableIncludingTheShape() {
         val plot = samplePlot()
         val table = sampleTable()
         val shape = sampleShape()
@@ -88,7 +88,7 @@ class LivingEntitySelectionTest {
         assertTrue("PlotElement must be hit-testable", ElementBounds.isHitTestable(plot))
         assertTrue("TableElement must be hit-testable", ElementBounds.isHitTestable(table))
         assertTrue("CircuitElement must be hit-testable", ElementBounds.isHitTestable(circuit))
-        assertFalse("ParametricShapeElement must not be hit-testable", ElementBounds.isHitTestable(shape))
+        assertTrue("ParametricShapeElement must be hit-testable", ElementBounds.isHitTestable(shape))
 
         val halfBorder = table.borderWidth / 2.0
         val expectedTableBounds = Bounds(
@@ -98,7 +98,14 @@ class LivingEntitySelectionTest {
             table.top + table.height + halfBorder,
         )
         assertEquals(expectedTableBounds, ElementBounds.of(table))
-        assertEquals(Bounds(0.0, 0.0, 0.0, 0.0), ElementBounds.of(shape))
+        // A shape's box is its own corners, grown by the outline's half-width.
+        val xs = shape.vertices.map { it.x }
+        val ys = shape.vertices.map { it.y }
+        val half = shape.strokeWidth / 2.0
+        assertEquals(
+            Bounds(xs.min() - half, ys.min() - half, xs.max() + half, ys.max() + half),
+            ElementBounds.of(shape),
+        )
         val circuitBounds = ElementBounds.of(circuit)
         assertTrue("Circuit bounds must be non-empty", circuitBounds.width > 0.0 && circuitBounds.height > 0.0)
     }

@@ -79,10 +79,10 @@ object ElementBounds {
      */
     fun isHitTestable(element: Element): Boolean = when (element) {
         is RawElement -> false
-        // Plot, Table and Circuit are living entities with selection and move support (`docs/mobix-elements.md`).
-        // The remaining one (parametricShape) keeps an empty box and is not hit-testable until its editor lands.
+        // Every living entity is selectable and movable (`docs/mobix-elements.md`); a shape additionally
+        // has the vertex handles its editor drags, which is why its box must be the real one.
         is PlotElement, is TableElement, is CircuitElement -> true
-        is ParametricShapeElement -> false
+        is ParametricShapeElement -> element.vertices.size >= 2
         is Stroke -> element.points.isNotEmpty()
         else -> true
     }
@@ -102,9 +102,28 @@ object ElementBounds {
         // An element we don't model has no geometry we can trust; the empty box keeps it out of
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
-        // The other living entity (parametricShape) carries its own geometry and is
-        // drawn through it, but its box stays deliberately empty until its editor lands (`docs/mobix-elements.md`).
-        is ParametricShapeElement -> Bounds(0.0, 0.0, 0.0, 0.0)
+        is ParametricShapeElement -> shapeBounds(element)
+    }
+
+    /**
+     * A shape's box is **recomputed from its vertices** every time it is asked for, never stored:
+     * a corner dragged a centimetre out grows the box in the same frame, so the element can never be
+     * picked (or resized) where its handles are not. The outline's half-width is the only padding.
+     */
+    private fun shapeBounds(s: ParametricShapeElement): Bounds {
+        if (s.vertices.isEmpty()) return Bounds(0.0, 0.0, 0.0, 0.0)
+        val half = s.strokeWidth / 2.0
+        var left = Double.MAX_VALUE
+        var top = Double.MAX_VALUE
+        var right = -Double.MAX_VALUE
+        var bottom = -Double.MAX_VALUE
+        for (v in s.vertices) {
+            if (v.x - half < left) left = v.x - half
+            if (v.y - half < top) top = v.y - half
+            if (v.x + half > right) right = v.x + half
+            if (v.y + half > bottom) bottom = v.y + half
+        }
+        return Bounds(left, top, right, bottom)
     }
 
     private fun tableBounds(t: TableElement): Bounds {

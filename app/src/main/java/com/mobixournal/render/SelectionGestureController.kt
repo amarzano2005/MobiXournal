@@ -4,6 +4,7 @@ import android.view.MotionEvent
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
@@ -115,6 +116,14 @@ internal class SelectionGestureController(
     private var rotatePivotY = 0.0
     private var rotateStartAngle = 0.0
 
+    // Live corner drag on a single selected ParametricShapeElement. The base is the element as the
+    // *document* currently holds it, re-adopted after every frame, so each move replaces the live
+    // element rather than a stale copy (the same shape the table-divider drag uses).
+    var draggingVertex = false
+        private set
+    private var vertexIndex = -1
+    private var vertexBase: ParametricShapeElement? = null
+
     // Live parameter slider drag on a selected PlotElement.
     var slidingParam = false
         private set
@@ -127,7 +136,8 @@ internal class SelectionGestureController(
     private var activeDivider: TableDividerHit? = null
 
     /** True while any of the transforms or slider adjustments is mid-drag. */
-    val transforming: Boolean get() = moving || resizing || rotating || slidingParam || draggingDivider
+    val transforming: Boolean
+        get() = moving || resizing || rotating || slidingParam || draggingDivider || draggingVertex
 
     /** Drop the selection without recording anything (a view-only change). */
     fun clearSelection() {
@@ -144,6 +154,9 @@ internal class SelectionGestureController(
         banding = false
         slidingParam = false
         draggingDivider = false
+        draggingVertex = false
+        vertexIndex = -1
+        vertexBase = null
         activeDivider = null
         activeTrack = null
         sliderPlotRef = null
@@ -190,6 +203,18 @@ internal class SelectionGestureController(
                 val hit = TableDividers.hitTest(table, ref, box, viewport.scrollX, viewport.scrollY, event.x, event.y)
                 if (hit != null) {
                     beginDividerDrag(hit)
+                    return true
+                }
+            }
+            // A living shape's corners are dragged by their own handles. Tested **before** the box's
+            // corner handles: on a triangle the box corner is not a vertex, and on a rectangle the two
+            // nearly coincide — the vertex is the finer control and the one the user is aiming at.
+            val shape = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+                as? ParametricShapeElement
+            if (shape != null) {
+                val hit = vertexHandleAt(shape, box, event.x, event.y)
+                if (hit >= 0) {
+                    beginVertexDrag(shape, hit)
                     return true
                 }
             }
@@ -252,6 +277,63 @@ internal class SelectionGestureController(
             return true
         }
         return false
+    }
+
+    /**
+     * The index of the shape's vertex under a touch at ([viewX], [viewY]), or -1 when none is within
+     * [DrawingSurfaceDefaults.HANDLE_HIT_PX] of it. Runs in view px against the drawn dots, so what
+     * the user sees is what they can grab.
+     */
+    private fun vertexHandleAt(
+        shape: ParametricShapeElement,
+        box: PageBox,
+        viewX: Float,
+        viewY: Float,
+    ): Int {
+        for (i in shape.vertices.indices) {
+            val v = shape.vertices[i]
+            val x = box.toViewX(v.x, viewport.scrollX)
+            val y = box.toViewY(v.y, viewport.scrollY)
+            if (hypot(viewX - x, viewY - y) <= DrawingSurfaceDefaults.HANDLE_HIT_PX) return i
+        }
+        return -1
+    }
+
+    /** Latch the drag base and start dragging vertex [index] of [shape]. */
+    private fun beginVertexDrag(shape: ParametricShapeElement, index: Int) {
+        draggingVertex = true
+        vertexIndex = index
+        vertexBase = shape
+        snapshot()
+    }
+
+    /**
+     * Move the dragged corner to the pointer, pulled onto the page's guided directions
+     * ([ParametricShapes.snappedVertex]) so a side lands squarely on the ruling when it is close.
+     * Re-applied from the live base every frame, so the drag accumulates no rounding drift.
+     */
+    fun dragVertex(event: MotionEvent) {
+        val base = vertexBase ?: return
+        val sel = selection ?: return
+        val box = layout().boxes.getOrNull(sel.pageIndex) ?: return
+        val page = pageAt(sel.pageIndex) ?: return
+        val (x, y) = ParametricShapes.snappedVertex(
+            base, vertexIndex,
+            box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY),
+        )
+        val updated = ParametricShapes.moveVertex(base, vertexIndex, x, y)
+        if (updated === base) return
+        val edited = ElementEdits.replaceElementOn(page, base, updated) ?: return
+        setDocument(document().copy(pages = document().pages.toMutableList().also { it[sel.pageIndex] = edited }))
+        vertexBase = updated
+        refresh()
+    }
+
+    /** End a vertex drag; the whole drag records as one undo step with the rest of the gesture. */
+    fun commitVertexDrag() {
+        draggingVertex = false
+        vertexIndex = -1
+        vertexBase = null
     }
 
     /** True if every element in [sel] is a stroke (the only element whose rotation round-trips) —

@@ -20,10 +20,11 @@ bounding box (strokes grown by half-width, images/teximages are their box, text 
 metric) and `ElementBounds.TAP_PAD` is the one hit-test margin. Every consumer routes through it —
 `SelectionTester` (picking), `PageRenderer` (viewport cull), `VerticalSpaceOps` (the grab line) and
 `ElementEdits.hitsText` (tap-to-edit) — so selection handles, culling and vertical-space insertion agree
-by construction rather than by coincidence; nothing re-derives a box locally. The one deliberate
-exception is the four **living entities** (`.mobix`'s table, plot, shape, circuit): `ElementBounds`
-answers an empty box for them, because they are drawn but not editable yet, so no marquee or tap picks
-one up — each family flips its own answer when its editor lands ([mobix-elements.md](mobix-elements.md)). `SelectionTester` does
+by construction rather than by coincidence; nothing re-derives a box locally. The four **living
+entities** (`.mobix`'s table, plot, shape and circuit) answer through the same seam with a box of
+their own — a table's grid, a plot's frame, a circuit's compiled ink and a shape's **vertices**, which
+are recomputed on every read so a picked figure is always where its corners are — and each carries
+its own handles on top (dividers, sliders, vertex dots): see [mobix-elements.md](mobix-elements.md). `SelectionTester` does
 rect-containment / topmost
 tap / union-bounds, and `SelectionOps` translates or deletes the addressed elements on a page list
 (returning a new list; immutable pages/layers share structure so a snapshot stays cheap). Dragging inside

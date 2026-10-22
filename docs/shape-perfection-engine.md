@@ -92,7 +92,10 @@ write an infinite point into the `.xopp`.
 ## Status
 
 - **Live**: dwell (300 ms) and lift-off recognition, all seven classes, the tremor filter, the switch,
-  the pen/highlighter filter.
-- **Not built**: a recognised shape is still *ink*. Turning it into a living
-  `ParametricShapeElement` with draggable vertex handles is the engine's next child
-  (`living-parametric-shape-with-interactive-vertex-handles`).
+  the pen/highlighter filter, and the step that keeps the result: a recognised **triangle or
+  rectangle** drawn with the pen is committed as a living `ParametricShapeElement` whose corners are
+  dragged on the page (see *Living figures* in [drawing-tools.md](drawing-tools.md)).
+- **Not built**: the kinds whose angles are authored rather than recognised — a scaled-angle triangle
+  or trapezoid re-fitting its vertices on every drag. Those arrive with the shape-library kinds that
+  carry an angle set; a circle or an ellipse has no corners to drag and stays ink, as does every other
+  recognised class.

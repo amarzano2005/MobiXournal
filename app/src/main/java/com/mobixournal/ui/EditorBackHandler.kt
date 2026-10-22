@@ -39,9 +39,10 @@ fun EditorBackHandler(
         val surface = pane.surface
 
         when {
-            // An open table or circuit editor is the most transient surface: back discards it.
+            // An open table, circuit or shape editor is the most transient surface: back discards it.
             ui.editingTableCell != null -> ui.editingTableCell = null
             ui.editingCircuit != null -> ui.editingCircuit = null
+            ui.editingShape != null -> ui.editingShape = null
 
             // A multi-tap spline gesture in progress: back throws the open curve away, as Escape does.
             surface != null && surface.splineInProgress() -> surface.cancelSpline()

@@ -65,8 +65,11 @@ object SelectionOps {
         is CircuitElement -> element.copy(
             positionX = element.positionX + dx, positionY = element.positionY + dy,
         )
-        // The remaining living entities keep their geometry untouched until their editors land.
-        is ParametricShapeElement -> element
+        // ParametricShapeElement translates its vertices: they are the shape's geometry, so the
+        // figure moves as a whole and its editable corners travel with it.
+        is ParametricShapeElement -> element.copy(
+            vertices = element.vertices.map { it.copy(x = it.x + dx, y = it.y + dy) },
+        )
     }
 
     /**
@@ -198,8 +201,12 @@ object SelectionOps {
                     pins = scaledPins,
                 )
             }
-            // The remaining living entities keep their geometry untouched until their editors land.
-            is ParametricShapeElement -> element
+            // ParametricShapeElement scales its vertices, keeping its outline width as drawn (unless
+            // the caller is re-homing the ink, which scales that too, exactly as for a stroke).
+            is ParametricShapeElement -> element.copy(
+                vertices = element.vertices.map { it.copy(x = it.x * sx + dx, y = it.y * sy + dy) },
+                strokeWidth = element.strokeWidth * ink,
+            )
         }
     }
 
@@ -330,9 +337,15 @@ object SelectionOps {
             if (widthPt != null) e = e.copy(strokeWidth = widthPt)
             e
         }
-        // A living entity's colour is part of its own record (a plot's curves, a table's rules), not a
-        // single style this op could set, so it is left alone rather than half-restyled.
-        is TableElement, is PlotElement, is ParametricShapeElement, is RawElement -> element
+        // A shape carries exactly one outline style of its own, so it restyles like a component.
+        is ParametricShapeElement -> {
+            var e = if (color != null) element.copy(strokeColor = color) else element
+            if (widthPt != null) e = e.copy(strokeWidth = widthPt)
+            e
+        }
+        // The other living entities' colour is part of their own record (a plot's curves, a table's
+        // rules), not a single style this op could set, so they are left alone rather than half-restyled.
+        is TableElement, is PlotElement, is RawElement -> element
     }
 
     /**

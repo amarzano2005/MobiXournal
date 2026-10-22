@@ -304,4 +304,35 @@ class ShapeRecognizerTest {
     fun `a two-point stroke is not a shape`() {
         assertNull(ShapeRecognizer.recognize(pts(0.0, 0.0, 200.0, 200.0), w))
     }
+
+    // ---- the same recognition, with the kind kept ------------------------------------------------
+
+    @Test
+    fun `classify names the polygon it matched and keeps the same geometry`() {
+        val stroke = loop(listOf(10.0 to 10.0, 260.0 to 10.0, 260.0 to 150.0, 10.0 to 150.0), 30, 1.0)
+        val figure = ShapeRecognizer.classify(stroke, w)
+        assertNotNull(figure)
+        assertEquals(FigureKind.RECTANGLE, figure!!.kind)
+        assertTrue("a rectangle is a polygon whose corners can be dragged", figure.isClosedPolygon)
+        assertEquals(ShapeRecognizer.recognize(stroke, w), figure.points)
+    }
+
+    @Test
+    fun `classify names a triangle separately from a rectangle`() {
+        val figure = ShapeRecognizer.classify(
+            loop(listOf(0.0 to 0.0, 260.0 to 0.0, 130.0 to 220.0), perEdge = 40, jitter = 0.8),
+            w,
+        )
+        assertNotNull(figure)
+        assertEquals(FigureKind.TRIANGLE, figure!!.kind)
+        assertTrue(figure.isClosedPolygon)
+    }
+
+    @Test
+    fun `an open primitive keeps its own kind and is not a polygon`() {
+        val line = ShapeRecognizer.classify(sample(40, jitter = 0.4) { t -> 180 * t to 0.0 }, w)
+        assertNotNull(line)
+        assertEquals(FigureKind.LINE, line!!.kind)
+        assertTrue("a line has no corners to drag", !line.isClosedPolygon)
+    }
 }

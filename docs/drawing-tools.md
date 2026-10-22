@@ -117,6 +117,27 @@ commit, cancelled gesture and stylus takeover (`abandonInProgress`/`cancelGestur
 gesture plumbing had to know about it at all. It shares the `recognizeShapes` setting — and the pen
 and highlighter tool filter — with the on-lift path, so there is one recogniser and one switch.
 
+## Living figures
+
+**Living figures (`ParametricShapes.kt`, `ShapeEditorDialog.kt`).** A closed polygon drawn freehand is
+the one recognised figure that is kept as **geometry instead of ink**: when the recogniser's kind is a
+triangle or a rectangle, `commitCurrent` commits a `ParametricShapeElement` (its corners, the pen's
+colour and width) rather than the uniform-width stroke the same geometry would have become
+(`docs/mobix-elements.md`). Only the pen and a plain line qualify — a highlighter's ink and a dashed
+line are properties the element does not carry, so those stay strokes, and so do circles, ellipses,
+arrows, arcs and lines, whose vertices would not be corners to drag.
+
+Selecting one draws a handle on each corner. Dragging a handle deforms the figure **live** — the box,
+the selection outline and the readout badges all follow the same frame — and the side leading into the
+dragged corner snaps onto the page's guided directions, 0°, 30°, 45° and 90° in all four quadrants,
+when it is within `VERTEX_SNAP_TOLERANCE_DEG` (7°) of one; the corner keeps the pointer's distance
+from the previous corner, so a snapped drag reads as a rail under the finger rather than a jump.
+**Edit shape** on the selection bar toggles the two readouts (*Show side lengths*, *Show angles*).
+
+The maths is pure and unit-tested (`ParametricShapesTest`) — `moveVertex`, `snappedVertex`,
+`sideLengthPt`, `interiorAngleDeg` — and the labels on screen are drawn by `ShapeInk` calling those
+same functions, so what the sheet shows is what the `.xopp` export writes.
+
 ## Shapes, styles, partial eraser, layers
 
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Spline/Table) turn a

@@ -58,6 +58,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 backgroundSelecting -> backgroundSelectMove(event)
                 gestures.slidingParam -> gestures.slideParam(event)
                 gestures.draggingDivider -> gestures.dragDivider(event)
+                gestures.draggingVertex -> gestures.dragVertex(event)
                 gestures.resizing -> gestures.resizeSelect(event)
                 gestures.rotating -> gestures.rotateSelect(event)
                 gestures.moving -> {
@@ -450,7 +451,8 @@ internal fun DrawingSurfaceView.endGesture() {
     val wasErasing = erasing
     val wasPlacing = placing
     val wasMoving = gestures.moving
-    val wasTransforming = gestures.resizing || gestures.rotating || gestures.slidingParam || gestures.draggingDivider
+    val wasTransforming = gestures.resizing || gestures.rotating || gestures.slidingParam ||
+        gestures.draggingDivider || gestures.draggingVertex
     val wasBanding = gestures.banding
     val wasTextSelecting = textSelecting
     val wasVspacing = vspace.active

@@ -103,6 +103,7 @@ import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.boardFixedExtentPt
 import com.mobixournal.render.applyChromeColors
 import com.mobixournal.render.clearPenDebug
+import com.mobixournal.render.replaceShapeElement
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBoardFixedExtent
 import com.mobixournal.render.setPenDebug
@@ -116,6 +117,7 @@ import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberClosingArgument
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
@@ -1636,9 +1638,8 @@ fun EditorPaneView(
                 // tool and style the chrome is showing (see [applyLiveStyle]).
                 state.surface?.applyLiveStyle(ui)
                 // Request focus so key events arrive only when we are not editing an element or searching
-                if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null && !state.searchOpen) {
-                    state.surface?.requestFocus()
-                }
+                if (ui.editingCircuit == null && ui.editingPlot == null && ui.editingTableCell == null &&
+                    ui.editingShape == null && !state.searchOpen) state.surface?.requestFocus()
             }
         },
     ) {
@@ -1750,11 +1751,9 @@ fun EditorPaneView(
                 )
             }
             DialogPresence(ui.editingTableCell != null) {
-                TableCellEditorDialog(
-                    ui = ui,
-                    pane = state,
-                )
+                TableCellEditorDialog(ui = ui, pane = state)
             }
+            ShapeEditorHost(ui, state.surface)
             if (ui.editingCircuit != null) {
                 CircuitInspectorAnchor(
                     pane = state,

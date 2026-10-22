@@ -207,11 +207,19 @@ The circuit component is the third family: authored as a living `CircuitElement`
 `ui/CircuitEditorDialog.kt` (symbol picker, value text, stroke width, rotation, color, and pin connectivity with
 magnetic pin snapping via `render/CircuitSnapping.kt`).
 
-Until its respective editor lands, the remaining living entity (parametric shape) is
-**visible but not selectable**. `ElementBounds` answers an empty box (0,0,0,0) and `isHitTestable = false`
-for it — a real box would let a marquee pick up something whose geometry has no editor yet — so a
-marquee, move or delete leaves it alone. The `.xopp` synthesis export compiles living entities into
-standard `.xopp` ink before a file leaves the app ([mobix-format.md](mobix-format.md)).
+The parametric shape is the fourth and last family: a closed polygon the shape recogniser keeps as
+**geometry** instead of ink (`render/ParametricShapes.kt` — a triangle or rectangle drawn with the
+pen), given its real stroke box and hit-testability by `render/ElementBounds.kt` with the box
+**recomputed from its vertices on every read**, and moved, resized or restyled by
+`render/SelectionOps.kt`. It is edited on the page: a selected figure draws a handle on each corner
+(`render/DrawingSurfacePaint.kt`, hit-tested in `render/SelectionGestureController.kt`), and dragging
+one deforms the figure live while the side leading into it snaps onto the page's 0/30/45/90°
+directions. **Edit shape** on the selection bar switches its two readout badges
+(`ui/ShapeEditorDialog.kt`).
+
+The `.xopp` synthesis export compiles living entities into standard `.xopp` ink before a file leaves
+the app ([mobix-format.md](mobix-format.md)); a dragged corner is simply the figure's new outline, so
+the export needs no knowledge of the edit.
 
 ### Table (`table`)
 
@@ -304,11 +312,24 @@ commit inside the dialog at all.
 }
 ```
 
-`vertices` are the *authored* geometry and the handles the editor drags; a kind defined by an angle set
-(a scalene triangle or trapezoid, [drawing-tools.md](drawing-tools.md)) keeps its exact angles by
-re-fitting the vertices on every drag, so the two never disagree on screen. `bounds` is written for a
-reader that only wants to cull, and is **recomputed from the vertices** on read: a shape can never be
-picked where its handles are not.
+`vertices` are the *authored* geometry and the handles the editor drags. A kind defined by an angle set
+(a scalene triangle or trapezoid, [drawing-tools.md](drawing-tools.md)) will keep its exact angles by
+re-fitting the vertices on every drag, so the two never disagree on screen; the kinds the recogniser
+commits today (`TRIANGLE`, `RECTANGLE`) carry no angle set, so a dragged corner moves that corner and
+leaves the rest exactly as drawn. `bounds` is written for a reader that only wants to cull, and is
+**recomputed from the vertices** on read: a shape can never be picked where its handles are not.
+
+`showAngles` and `showSideLengths` are its two readout badges. `ShapeInk` draws them through the same
+functions the handles report (`ParametricShapes.sideLengthPt` / `interiorAngleDeg`), so a badge can
+never disagree with the figure under the pen; they are ordinary text, on the sheet and in the `.xopp`
+export (`XoppSynthesis`) alike.
+
+What becomes a shape, and what does not: a **closed polygon** the pen drew (triangle, rectangle) is
+committed as one `ParametricShapeElement` instead of the stroke it would have flattened into. Circles
+and ellipses keep the recogniser's stroke — their "vertices" would be sampling points of an
+approximation rather than corners, and this element has no centre and radius to drag instead. A
+highlighter figure and a dashed one also stay strokes: a `parametricShape` carries one outline colour
+and width and no line style, so neither would survive the round trip.
 
 ### Circuit component (`circuit`)
 

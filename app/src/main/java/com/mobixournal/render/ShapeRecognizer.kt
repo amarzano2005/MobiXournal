@@ -107,7 +107,15 @@ object ShapeRecognizer {
      * **arc**. Nothing else — an unmatched stroke, including handwriting, a V or a scribble, comes
      * back as `null`.
      */
-    fun recognize(points: List<StrokePoint>, widthPt: Double): List<StrokePoint>? {
+    fun recognize(points: List<StrokePoint>, widthPt: Double): List<StrokePoint>? =
+        classify(points, widthPt)?.points
+
+    /**
+     * The same recognition as [recognize], keeping **which** primitive was matched ([FigureKind]) —
+     * what a caller needs to decide that a closed polygon should be kept as a living shape rather
+     * than as the stroke it would otherwise flatten into ([ParametricShapes]).
+     */
+    fun classify(points: List<StrokePoint>, widthPt: Double): RecognisedFigure? {
         if (points.size < 3) return null
         if (!largeEnough(points)) return null
         // Jitter out, corners kept: every test below reads this copy, and nothing but the recogniser
@@ -129,19 +137,19 @@ object ShapeRecognizer {
                 }
             }
 
-            triangle(segments, widthPt)?.let { return it }
-            rectangle(segments, widthPt)?.let { return it }
+            triangle(segments, widthPt)?.let { return RecognisedFigure(FigureKind.TRIANGLE, it) }
+            rectangle(segments, widthPt)?.let { return RecognisedFigure(FigureKind.RECTANGLE, it) }
             if (count == 1 && fits[0].det < LINE_MAX_DET) {
-                return line(segments[0], filtered, widthPt)
+                return RecognisedFigure(FigureKind.LINE, line(segments[0], filtered, widthPt))
             }
         }
 
         // The arrow reads the *raw* samples: its point is a corner, and the filter's clamp would
         // round it enough to hand the "furthest sample" to a barb instead of the point itself.
-        ArrowRecognizer.recognize(points, widthPt)?.let { return it }
-        CircleRecognizer.recognize(filtered, widthPt)?.let { return it }
-        EllipseRecognizer.recognize(filtered, widthPt)?.let { return it }
-        return ArcRecognizer.recognize(filtered, widthPt)
+        ArrowRecognizer.recognize(points, widthPt)?.let { return RecognisedFigure(FigureKind.ARROW, it) }
+        CircleRecognizer.recognize(filtered, widthPt)?.let { return RecognisedFigure(FigureKind.CIRCLE, it) }
+        EllipseRecognizer.recognize(filtered, widthPt)?.let { return RecognisedFigure(FigureKind.ELLIPSE, it) }
+        return ArcRecognizer.recognize(filtered, widthPt)?.let { RecognisedFigure(FigureKind.ARC, it) }
     }
 
     /** True when the stroke spans enough of the page to be worth snapping. */

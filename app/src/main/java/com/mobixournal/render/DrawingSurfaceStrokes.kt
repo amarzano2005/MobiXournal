@@ -480,6 +480,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
     shaping = false
     val holdWasSnapped = holdSnapped
     holdSnapped = false
+    var figure: RecognisedFigure? = null
 
     // Shape tools emit exact geometry — only freehand samples get thinned.
     // Thin against the page's real px/pt (fit-to-width × zoom), not the zoom alone — on a large
@@ -492,22 +493,19 @@ internal fun DrawingSurfaceView.commitCurrent() {
         // With the recogniser on, a freehand stroke that clearly means a primitive is replaced by
         // clean geometry; anything it doesn't recognise is thinned and kept as drawn.
         //
-        // The recogniser gets the *raw* samples, not the thinned ones: desktop Xournal++ feeds it
-        // the whole recorded stroke, and thinning first would hide exactly the dense detail its
-        // piecewise line fit reads to find corners (and could round a circle's samples off into
-        // facets). Thinning is therefore done lazily, only on the strokes that weren't recognised.
-        // Desktop Xournal++ gives the highlighter TOOL_CAP_RECOGNIZER too (ToolEnums.cpp), so a
-        // straight highlighter line snaps to a line exactly as a pen stroke does.
-        val recognisable = tool == Tool.PEN || tool == Tool.HIGHLIGHTER
-        val shape = if (recognizeShapes && recognisable && raw.isNotEmpty()) {
-            // Keep the thickness the stroke was actually drawn at, not the un-scaled base width,
-            // so snapping to a primitive doesn't fatten the line under the user's hand.
-            ShapeRecognizer.recognize(raw, raw.map { it.width }.average())
-        } else {
-            null
-        }
-        snapped = shape != null || holdWasSnapped
-        shape ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
+        // The recogniser gets the *raw* samples, not the thinned ones: thinning is done lazily, only
+        // on the strokes that weren't recognised (see [recogniseStroke]).
+        val recognised = recogniseStroke(raw)
+        figure = recognised
+        snapped = recognised != null || holdWasSnapped
+        recognised?.points
+            ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
+    }
+    // A closed polygon is kept as geometry, not as the ink it would flatten into (`DrawingSurfaceFigures`).
+    val kept = figure != null && commitRecognisedFigure(figure, raw)
+    if (kept) {
+        render()
+        return
     }
     val finalPts = magnetised(pts, wasShaping)
     if (finalPts.size >= 2) {

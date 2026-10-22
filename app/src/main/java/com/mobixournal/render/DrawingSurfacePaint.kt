@@ -438,13 +438,8 @@ internal fun DrawingSurfaceView.drawTextSelection(canvas: Canvas) {
 }
 
 /**
- * Draw the dashed selection outline — sitting exactly on the elements' ink box — the eight resize
- * handles, and, for an all-stroke selection, the top rotate knob.
- *
- * The four corner handles resize proportionally; the four edge-midpoint handles stretch a single axis
- * (out-of-proportion resize), which is why they are drawn at all. The right-edge one sits under the
- * rotate arm's foot: the arm starts there and the knob it leads to is what the rotate hit-test
- * answers to, so the two never fight over the same touch.
+ * Draw the dashed selection outline — sitting exactly on the elements' ink box — and hand off to
+ * [drawSelectionHandleDots] for the handles themselves.
  */
 internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSelection) {
     val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
@@ -456,24 +451,7 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     val bot = (b.bottom * box.scale + box.topPx - scrollY).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
     canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
     canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
-    // Corner resize handles: proportional (both axes together).
-    for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bot)) {
-        canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
-    }
-    // Edge-midpoint handles: one axis each, the out-of-proportion resize.
-    val midX = (l + r) / 2f
-    val midY = (t + bot) / 2f
-    canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
-    canvas.drawCircle(midX, bot, HANDLE_DRAW_PX, chrome.handle)
-    canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
-    canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
-    // Rotate knob poking out midway from the right edge (strokes only).
-    if (gestures.isAllStrokes(sel)) {
-        val midY = (t + bot) / 2f
-        val knobX = r + DrawingSurfaceDefaults.ROTATE_ARM_PX
-        canvas.drawLine(r, midY, knobX, midY, chrome.handleArm)
-        canvas.drawCircle(knobX, midY, HANDLE_DRAW_PX, chrome.handle)
-    }
+    drawSelectionHandleDots(canvas, sel, box, l, t, r, bot)
     // Interactive parameter sliders for a selected plot
     val plot = singleSelectedPlot()
     if (plot != null && plot.parameters.isNotEmpty()) {

@@ -3,8 +3,6 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.StrokePoint
-import kotlin.math.atan2
-import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
@@ -68,7 +66,8 @@ object ShapeInk {
             for (index in 0 until count) {
                 val from = shape.vertices[index]
                 val to = shape.vertices[(index + 1) % count]
-                val text = measurementText(hypot(to.x - from.x, to.y - from.y)) ?: continue
+                // The same sum the editor's vertex handles report, so the badge and the drag agree.
+                val text = measurementText(ParametricShapes.sideLengthPt(shape, index)) ?: continue
                 out += InkPrimitives.text(
                     content = text,
                     x = (from.x + to.x) / 2.0 + LABEL_OFFSET_PT,
@@ -79,11 +78,9 @@ object ShapeInk {
         }
         if (shape.showAngles) {
             for (index in 0 until count) {
-                val previous = shape.vertices[(index - 1 + count) % count]
                 val vertex = shape.vertices[index]
-                val next = shape.vertices[(index + 1) % count]
                 out += InkPrimitives.text(
-                    content = "${interiorAngleDeg(previous, vertex, next).roundToInt()}°",
+                    content = "${ParametricShapes.interiorAngleDeg(shape, index).roundToInt()}°",
                     x = vertex.x + LABEL_OFFSET_PT,
                     y = vertex.y + LABEL_OFFSET_PT,
                     color = shape.strokeColor,
@@ -91,19 +88,6 @@ object ShapeInk {
             }
         }
         return out
-    }
-
-    /** The angle at [vertex], in degrees, between the segments to [from] and [to]. */
-    private fun interiorAngleDeg(
-        from: com.mobixournal.format.model.ShapeVertex,
-        vertex: com.mobixournal.format.model.ShapeVertex,
-        to: com.mobixournal.format.model.ShapeVertex,
-    ): Double {
-        val a = atan2(from.y - vertex.y, from.x - vertex.x)
-        val b = atan2(to.y - vertex.y, to.x - vertex.x)
-        var degrees = Math.toDegrees(kotlin.math.abs(a - b))
-        if (degrees > 180.0) degrees = 360.0 - degrees
-        return degrees
     }
 
     /** Whether two ARGB colours are the same *ink*, ignoring alpha — the fill is the alpha. */
