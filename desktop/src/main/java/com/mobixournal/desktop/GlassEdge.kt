@@ -97,9 +97,17 @@ internal fun Modifier.glassRim(
  * A floating surface: the fill, the corner and the edge in one modifier, so a panel cannot take the fill
  * and leave the edge behind — which is how the window's flyouts ended up as plain boxes next to a tablet
  * whose every pop-up wears a rim.
+ *
+ * The fill defaults to [DesktopTheme.floating] — the glass at `floatingPanelAlpha` — and that default is
+ * the point: a floating surface is **translucent**, and what it lies over shows through it. The first
+ * cut of this modifier filled the panels with [DesktopTheme.panel], which is the same RGB at full
+ * opacity, so the window had the edge and none of the glass: over the desk the two are identical, and
+ * over a white sheet the panel read as a solid charcoal card. Only a surface that has a written reason
+ * to be solid passes `panel` (the failed-open card does: it straddles the desk-and-sheet edge, where a
+ * translucent fill reads as two materials split down its middle).
  */
 @Composable
 internal fun Modifier.glassSurface(
-    fill: Color = DesktopTheme.panel,
+    fill: Color = DesktopTheme.floating,
     cornerRadius: Dp = DesktopTheme.panelRadius,
 ): Modifier = clip(RoundedCornerShape(cornerRadius)).background(fill).glassRim(cornerRadius)

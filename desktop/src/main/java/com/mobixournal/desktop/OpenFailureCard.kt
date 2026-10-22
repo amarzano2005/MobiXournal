@@ -40,9 +40,9 @@ internal fun OpenFailureCard(failure: OpenFailure, onDismiss: () -> Unit, modifi
     Column(
         modifier
             .widthIn(max = 520.dp)
-            // The opaque fill stays (see the note above); only the family's edge is adopted, because a
-            // card that comes and goes over the page is the same material as the menus, not a band.
-            .glassSurface()
+            // The opaque fill stays (see the note above) and is passed explicitly: every other floating
+            // surface is translucent, and this is the one that has a written reason not to be.
+            .glassSurface(DesktopTheme.panel)
             .clickable(role = Role.Button, onClick = onDismiss)
             .padding(horizontal = 18.dp, vertical = 14.dp),
     ) {

@@ -42,7 +42,7 @@ import com.mobixournal.design.PenPalette
  * glass flyouts they open.
  *
  * They are **slots, not extra bands**: each is a 40 dp capsule in the strip, exactly like a tool slot, and
- * the flyout is the floating material ([DesktopTheme.panel], the 20 dp panel corner) opening beside the
+ * the flyout is the floating material ([DesktopTheme.floating], the 20 dp panel corner) opening beside the
  * slot, so nothing is ever laid over the page. A rail opens its flyouts to the right and a ribbon below,
  * for the reason the tooltips do: the strip has no room on the other side.
  *

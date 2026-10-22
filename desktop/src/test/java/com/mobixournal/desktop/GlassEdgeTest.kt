@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,7 +9,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -36,9 +40,15 @@ class GlassEdgeTest {
     private val inset = 20
 
     @OptIn(ExperimentalComposeUiApi::class)
-    private fun panel(fill: Color = DesktopTheme.floating): BufferedImage {
+    private fun panel(
+        fill: Color = DesktopTheme.floating,
+        under: Color = DesktopTheme.desk,
+        name: String = "glass-edge",
+        underContent: DrawScope.() -> Unit = {},
+    ): BufferedImage {
         val png = ImageComposeScene(panelWidth + inset * 2, panelHeight + inset * 2, Density(1f)) {
-            Box(Modifier.fillMaxSize().background(DesktopTheme.desk)) {
+            Box(Modifier.fillMaxSize().background(under)) {
+                Canvas(Modifier.fillMaxSize()) { underContent() }
                 Box(
                     Modifier
                         .offset(inset.dp, inset.dp)
@@ -48,7 +58,7 @@ class GlassEdgeTest {
             }
         }.use { scene ->
             val bytes = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
-            File("build/desktop-render/glass-edge.png").apply { parentFile?.mkdirs() }.writeBytes(bytes)
+            File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(bytes)
             bytes
         }
         return ImageIO.read(ByteArrayInputStream(png))
@@ -109,6 +119,67 @@ class GlassEdgeTest {
         assertTrue(
             "a ${DesignTokens.PANEL_CORNER_RADIUS_DP} dp corner leaves the desk showing at the corner",
             difference(corner, desk) <= 4,
+        )
+    }
+
+    /**
+     * The one property a solid card cannot fake: what lies **under** the panel changes what it looks like.
+     *
+     * This is the check that would have caught the window's panels being painted with the opaque `panel`
+     * colour — over the black desk the two fills are the same picture, and it was only over the sheet that
+     * the glass was missing.
+     */
+    @Test
+    fun thePanelIsTranslucentOverThePage() {
+        val white = Color.White
+        val overPage = panel(under = white, name = "glass-over-page")
+            .getRGB(inset + panelWidth / 2, inset + panelHeight / 2) and 0xFFFFFF
+        val overDesk = panel().getRGB(inset + panelWidth / 2, inset + panelHeight / 2) and 0xFFFFFF
+
+        val expected = composite(
+            DesignTokens.GLASS_DARK_RGB,
+            DesignTokens.FLOATING_PANEL_ALPHA,
+            white.toArgb() and 0xFFFFFF,
+        )
+        assertTrue(
+            "over the page the fill is the glass over white (${Integer.toHexString(expected)}), " +
+                "not a solid card: got ${Integer.toHexString(overPage)}",
+            difference(overPage, expected) <= 6,
+        )
+        assertTrue(
+            "and it is visibly lighter than the same panel over the desk ($overDesk)",
+            (overPage and 0xFF) > (overDesk and 0xFF) + 20,
+        )
+    }
+
+    /**
+     * What the eye is owed when it asks for glass: the page **reads through** the panel.
+     *
+     * The ruling, the ink and the margin of the sheet must be visible under the panel, dimmed by the one
+     * alpha the ink allows, rather than covered by a card. A solid fill passes every other test in this
+     * file over the black desk (the two fills are the same picture there), so this is the one that has to
+     * look: it draws a band of black ink beneath the panel and reads the panel's own pixels above and
+     * below it.
+     */
+    @Test
+    fun thePageReadsThroughThePanel() {
+        val bandTop = inset + panelHeight / 2 - 6
+        val bandBottom = inset + panelHeight / 2 + 6
+        val image = panel(name = "glass-show-through", under = Color.White) {
+            drawRect(Color.White)
+            drawRect(
+                color = Color(0xFF1A1A1A),
+                topLeft = Offset(0f, bandTop.toFloat()),
+                size = Size(size.width, (bandBottom - bandTop).toFloat()),
+            )
+        }
+        val x = inset + panelWidth / 2
+        val onInk = image.getRGB(x, inset + panelHeight / 2) and 0xFF
+        val onPaper = image.getRGB(x, inset + 20) and 0xFF
+
+        assertTrue(
+            "the ink under the panel must still tell it is there: on ink $onInk, on paper $onPaper",
+            onPaper > onInk + 15,
         )
     }
 

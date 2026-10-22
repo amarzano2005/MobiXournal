@@ -270,7 +270,7 @@ internal fun StripPill(label: String, accent: String, offset: IntOffset) {
     Popup(offset = offset) {
         Row(
             Modifier
-                .background(DesktopTheme.panel, DesktopTheme.panelShape)
+                .glassSurface()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

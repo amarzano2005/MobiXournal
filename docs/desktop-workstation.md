@@ -113,8 +113,9 @@ pins what a failed open says in each of its three cases and how a space-split co
 together. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at — including
 `glass-parity.png`, the same panel in the tablet's material and in this window's, written by
-`GlassParityRenderTest`, and `glass-edge.png`, which `GlassEdgeTest` samples: the rim must be brighter at
-the top than at the bottom, or it is a border and not the family's edge.
+`GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which
+`GlassEdgeTest` samples: the rim must be brighter at the top than at the bottom, or it is a border and not
+the family's edge, and a band of ink under the panel must still read through it, or the fill is a slab.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
 phase order and the done criteria, and its children are the atomic tasks (orders 934–1120) and the
