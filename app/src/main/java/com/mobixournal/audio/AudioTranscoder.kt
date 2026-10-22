@@ -129,7 +129,10 @@ object AudioTranscoder {
             val outIndex = decoder.dequeueOutputBuffer(info, TIMEOUT_US)
             if (outIndex >= 0) {
                 decoderDone = (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
-                if (info.size > 0) {
+                // Codec configuration is not sound: feeding it to the encoder would put a click in
+                // the file.
+                val audio = info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0
+                if (info.size > 0 && audio) {
                     val pcm = decoder.getOutputBuffer(outIndex) ?: return false
                     pcm.position(info.offset)
                     pcm.limit(info.offset + info.size)
