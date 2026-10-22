@@ -335,7 +335,9 @@ failure).
 4. **Watch the workflow.** The release appears on GitHub with `app-debug.apk` attached.
 
 The workflow enforces the freeze rather than trusting it: every run lints both task files and runs
-`scripts/todo/test_release.py`, and a `v*` tag additionally runs
+the task CLI's own regression checks — `test_store.py` for the order the file promises, `test_done.py`
+for an archived entry recording what shipped rather than the plan it came from, `test_release.py` for
+the pending set and the changelog — and a `v*` tag additionally runs
 `scripts/todo/todo.py verify-release --version <tag>`, which fails the build when the archive does
 not record that version as released, when `docs/releases/vX.Y.Z.md` is missing, or when
 `versionName` does not match the tag — i.e. when `release` was skipped. Run the same command

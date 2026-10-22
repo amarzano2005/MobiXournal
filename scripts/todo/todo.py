@@ -7,7 +7,7 @@ Run ``python3 todo.py <command> --help`` for any command. Typical use:
     todo.py stats                     # totals by status / category / urgency
     todo.py add --title "..." --description "..." --category feature
     todo.py edit <id> --urgency high
-    todo.py done <id>                 # move a task into the archive
+    todo.py done <id> --shipped "..."  # archive it, recording what it delivered
     todo.py list --finished --unreleased   # what the next version will ship
     todo.py release --version 1.2.0   # freeze a release + draft its changelog
     todo.py validate                  # lint both files
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import io
 import json
 import os
 import re
@@ -35,13 +36,13 @@ def _today():
     return datetime.date.today()
 
 
-def _load_todo():
-    path = store.todo_path()
+def _load_todo(root=None):
+    path = store.todo_path(root)
     return path, store.load(path)
 
 
-def _load_finished():
-    path = store.finished_path()
+def _load_finished(root=None):
+    path = store.finished_path(root)
     return path, store.load(path)
 
 
@@ -199,12 +200,50 @@ def cmd_edit(args):
     print(f"updated [{task['id']}]")
 
 
-def cmd_done(args):
-    todo_path, todo = _load_todo()
-    fin_path, done = _load_finished()
+def _shipped_text(args):
+    """What a finished task's archived description says: the **delivery**, never the plan.
+
+    `FINISHED.toml` is the record of what shipped - files, behaviour, tests, docs, and what was
+    deliberately left out. The plan a task was picked up from is already served by having been
+    done, and keeping it in the archive made an entry read as if it were still pending ("will
+    move the save point") long after the code had answered the question differently. So the
+    summary is **required**: a caller who cannot say what was delivered has not finished the task,
+    and one who can say it is the only one able to write it.
+    """
+    if args.shipped and args.shipped_file:
+        sys.exit("pass --shipped or --shipped-file, not both")
+    text = args.shipped
+    if args.shipped_file:
+        try:
+            with io.open(args.shipped_file, encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError as exc:
+            sys.exit(f"cannot read --shipped-file: {exc}")
+    if text is None:
+        sys.exit(
+            "done needs the SHIPPED summary: --shipped \"what shipped\" (or --shipped-file PATH). "
+            "FINISHED.toml records what a task delivered, not the plan it was picked up from - "
+            "name the files, the behaviour, the tests and the docs it produced, and anything it "
+            "deliberately did not do."
+        )
+    text = " ".join(text.split())
+    if not text:
+        sys.exit("--shipped is empty: say what the task delivered")
+    return text
+
+
+def cmd_done(args, root=None):
+    """Archive a finished task with the summary of what it delivered.
+
+    ``root`` exists so ``test_done.py`` can drive this against a temp directory instead of the
+    repository's own two files; the command line never passes it.
+    """
+    todo_path, todo = _load_todo(root)
+    fin_path, done = _load_finished(root)
     task = store.find(todo["tasks"], args.id)
     if not task:
         sys.exit(f"no active task with id {args.id!r}")
+    shipped = _shipped_text(args)
     todo["tasks"] = [t for t in todo["tasks"] if t.get("id") != args.id]
     task["status"] = store.STATUS_FINISHED
     task["completed"] = (
@@ -212,6 +251,8 @@ def cmd_done(args):
     )
     for stray in ("order", "urgency", "rebuild", "emulator_debug"):
         task.pop(stray, None)
+    # The archive says what the task **delivered**; the plan it came from is not the record.
+    task["description"] = shipped
     done["tasks"].insert(0, task)  # newest first
     store.save_todo(todo, todo_path)
     store.save_finished(done, fin_path)
@@ -444,8 +485,9 @@ def _migrate_todo(created):
     meta["archive"] = "FINISHED.toml"
     rules = dict(raw.get("rules", {}))
     rules["finish_work"] = ("When a task is fully finished (built, tested, "
-                            "documented), run `todo.py done <id>` to move it to "
-                            "FINISHED.toml.")
+                            "documented), run `todo.py done <id> --shipped` to move "
+                            "it to FINISHED.toml; the archive records what the task "
+                            "delivered, not the plan it was picked up from.")
     meta["rules"] = rules
     tasks = []
     for i, old in enumerate(raw.get("tasks", []), start=1):
@@ -476,8 +518,9 @@ def _migrate_finished():
     meta.pop("append_only", None)
     meta["kind"] = "finished"
     rules = dict(raw.get("rules", {}))
-    rules["finish_work"] = ("Tasks arrive here via `todo.py done <id>`; newest "
-                            "first, append-only.")
+    rules["finish_work"] = ("Tasks arrive here via `todo.py done <id> --shipped`, "
+                            "which replaces the plan with what actually shipped; "
+                            "newest first, append-only.")
     meta["rules"] = rules
     tasks = []
     for old in raw.get("tasks", []):
@@ -563,8 +606,12 @@ def build_parser():
                     help="set whether this task runs the full emulator verify loop")
     ed.set_defaults(func=cmd_edit)
 
-    dn = sub.add_parser("done", help="move a task to the archive")
+    dn = sub.add_parser("done", help="archive a finished task with what it delivered")
     dn.add_argument("id")
+    dn.add_argument("--shipped", metavar="TEXT",
+                    help="what the task delivered (required): files, behaviour, tests, docs")
+    dn.add_argument("--shipped-file", metavar="PATH",
+                    help="read that summary from a file instead of the command line")
     dn.add_argument("--date", help="completion date YYYY-MM-DD (default: today)")
     dn.set_defaults(func=cmd_done)
 

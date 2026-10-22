@@ -5,7 +5,7 @@
 #   scripts/todo.sh list
 #   scripts/todo.sh stats
 #   scripts/todo.sh add --title "..." --description "..." --category feature
-#   scripts/todo.sh done <id>
+#   scripts/todo.sh done <id> --shipped "what shipped"
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 exec python3 "$root/scripts/todo/todo.py" "$@"

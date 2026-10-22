@@ -369,9 +369,11 @@ on Windows PowerShell, or `scripts/todo.sh <command>` in Git Bash; documented in
 
 - **Update both in the same commit that changes the work they describe:** add proposed
   features/tests with `add …`; drop dropped items with `remove <id> --reason "…"`.
-- **When a task is fully finished** (built, tested, documented), run `done <id>` to move it out of
-  `TODO.toml` and into `FINISHED.toml`, newest-first and dated, then run `stats` and report how
-  many open items remain. Don't leave completed items sitting in `TODO.toml`.
+- **When a task is fully finished** (built, tested, documented), run `done <id> --shipped "…"` to
+  move it out of `TODO.toml` and into `FINISHED.toml`, newest-first and dated, then run `stats` and
+  report how many open items remain. The `--shipped` text **replaces the plan** with what the task
+  delivered, so the archive never reads as pending work; `done` refuses to run without it. Don't leave
+  completed items sitting in `TODO.toml`.
 - **A release freezes the pending set — never hand-write a changelog.** Every finished
   task carries a `release` stamp once it has shipped; the tasks without one are exactly
   what the next version ships, so `release --version X.Y.Z` turns that set into the version

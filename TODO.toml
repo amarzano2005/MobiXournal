@@ -17,7 +17,7 @@ archive = "FINISHED.toml"
 [meta.rules]
 add_proposed_work = "Add proposed work unchecked."
 remove_dropped_items = "Remove dropped items with a one-line why."
-finish_work = "When a task is fully finished (built, tested, documented), run `todo.py done <id>` to move it to FINISHED.toml."
+finish_work = "When a task is fully finished (built, tested, documented), run `todo.py done <id> --shipped` to move it to FINISHED.toml; the archive records what the task delivered (files, behaviour, tests, docs, and what it deliberately did not do), not the plan it was picked up from."
 documentation_is_part_of_the_task = "Every task that writes code also writes its documentation, in the same task and the same commit. Never add a separate follow-up task for documenting work that a task already did — a task whose docs are not updated is not finished, and no `done` until they are."
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 

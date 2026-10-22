@@ -33,6 +33,7 @@ jobs:
         run: |
           python3 scripts/todo/todo.py validate
           python3 scripts/todo/test_store.py
+          python3 scripts/todo/test_done.py
           python3 scripts/todo/test_release.py
 
       - name: Verify the release was frozen

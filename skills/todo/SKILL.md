@@ -36,7 +36,7 @@ array of `[[task]]` tables. A task carries **more** metadata rather than less:
 |---------------|------------------|-----------------------------------------------------|
 | `id`          | both             | stable kebab-case slug (the handle for every command) |
 | `title`       | both             | short one-line summary                              |
-| `description` | both             | the detail                                          |
+| `description` | both             | the detail — the plan while active, **what shipped** in the archive |
 | `status`      | both             | active · in-progress · blocked (TODO) / finished (archive) |
 | `level`       | both             | task · scope · epic — how big it is, and how to work it |
 | `category`    | both             | feature · bug · docs · refactor · test · chore     |
@@ -62,7 +62,7 @@ three-tiered, smallest first:
 - **`scope`** — not yet implementable. Working it means **investigating the code**
   to find out what actually needs to happen, then running `add` for the concrete
   atomic `task`s it breaks into. A scope item produces **todos, not code**; close
-  it with `done` once its children exist.
+  it with `done <id> --shipped "broke into <the child tasks>"` once its children exist.
 - **`epic`** — a large, spanning feature (the radial palette, say). It will never
   have hyper-defined atomic steps up front. When you encounter an epic, **do not
   try to implement the whole thing**: scope out the next steps and `add` child
@@ -119,8 +119,13 @@ newest-`completed`-first.
 - **`edit <id>`** `[--title|--description|--status|--level|--category|--urgency|--order
   …] [--add-tag t] [--rebuild|--no-rebuild] [--emulator-debug|--no-emulator-debug]`
   — change fields on an active task.
-- **`done <id>`** `[--date YYYY-MM-DD]` — move an active task into
-  `FINISHED.toml`, stamped `completed` (today unless `--date`), newest-first.
+- **`done <id> --shipped TEXT`** `[--shipped-file PATH] [--date YYYY-MM-DD]` — move an active task
+  into `FINISHED.toml`, stamped `completed` (today unless `--date`), newest-first, **and replace its
+  plan with the delivery summary**: the files, the behaviour, the tests, the docs, and whatever the
+  task deliberately did not do. The summary is **required** (a `--shipped-file` is the same text for
+  a long one): the archive is history, so a finished entry that still says "will move the save point"
+  is a plan wearing a completion date. Omitting it  is refused and moves nothing. Implementation: `todo.py` (`_shipped_text`); regression check:
+  `python3 scripts/todo/test_done.py`.
 - **`release`** `--version X.Y.Z` `[--date D] [--through D] [--no-changelog]
   [--bump-gradle] [--force] [--dry-run]` — **freeze a release**: stamp every pending archive task
   with the version, record `latest_release` in the archive meta, and write the draft
@@ -150,12 +155,13 @@ newest-`completed`-first.
 - **A release freezes the pending set; never hand-pick a changelog.** Everything finished since
   the last release has no `release` stamp, and `todo.sh release --version X.Y.Z` turns exactly that
   set into a version: it stamps the tasks and drafts the changelog. So the correct workflow is
-  `done <id>` as work lands, then `release` at the tag — a finished task forgotten in `TODO.toml`
+  `done <id> --shipped "…"` as work lands, then `release` at the tag — a finished task forgotten in `TODO.toml`
   or left unstamped is a changelog that lies. The release procedure is owned by `docs/tools.md`
   (see *Cutting a release*).
-- When you finish a task (built, tested, documented), run **`done <id>`** in the
-  same commit that completes the work — don't leave shipped items in `TODO.toml`.
-- **After every `done <id>`, run `stats` and report how many open items remain in
+- When you finish a task (built, tested, documented), run **`done <id> --shipped "…"`**
+  in the same commit that completes the work — don't leave shipped items in `TODO.toml`. The summary
+  is written for the reader of `FINISHED.toml` months later: what exists now, and where.
+- **After every `done <id> --shipped`, run `stats` and report how many open items remain in
   `TODO.toml`** to the user, as part of the same reply.
 - **Documentation belongs to the task that wrote the code — never to a task of its
   own.** Whenever a task changes code, it updates `README.md` and the owning spoke doc

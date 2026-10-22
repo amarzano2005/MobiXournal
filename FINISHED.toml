@@ -20,7 +20,7 @@ order = "newest first"
 latest_release = "1.3.0"
 
 [meta.rules]
-finish_work = "Tasks arrive here via `todo.py done <id>`; newest first, append-only."
+finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
 growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
