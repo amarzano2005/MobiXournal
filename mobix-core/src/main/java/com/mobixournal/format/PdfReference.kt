@@ -1,4 +1,4 @@
-package com.mobixournal.io
+package com.mobixournal.format
 
 /**
  * How a `.xopp` names its background PDF on disk, and how those names are turned into something we

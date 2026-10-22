@@ -14,7 +14,6 @@ import com.mobixournal.format.mobix.MobixContainer
 import com.mobixournal.format.mobix.MobixDocument
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
-import com.mobixournal.format.mobix.MobixIncrementalSave
 import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
@@ -23,18 +22,10 @@ import com.mobixournal.format.mobix.PageSource
 import com.mobixournal.format.mobix.asAssetSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
-import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.withIdentity
-import com.mobixournal.render.ATTACH_DOMAIN
-import com.mobixournal.render.BackgroundResolver
 import com.mobixournal.render.PdfMerger
-import com.mobixournal.render.SynthesisResult
 import com.mobixournal.render.TextPdfGenerator
 import com.mobixournal.render.Uncompilable
-import com.mobixournal.render.XoppSynthesis
-import com.mobixournal.render.documentWithPdfDomain
-import com.mobixournal.render.documentWithPixmapAttachments
-import com.mobixournal.render.sheetDocument
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -498,71 +489,56 @@ class DocumentIo(
         transcription: com.mobixournal.audio.AudioTranscription? = null,
     ): Encoded {
         val out = staging.newFile("save")
-        var uncompiled: List<Uncompilable> = emptyList()
-        out.outputStream().use { output ->
-            when (format) {
-                SaveFormat.ORIGINAL -> {
-                    val ink = ink(exportDocument(document, canvasMode))
-                    uncompiled = ink.uncompiled
-                    Xopp.save(refs.portableReference(ink.document, target), output)
-                }
-                SaveFormat.MOBIX -> writeMobix(
-                    document = document,
-                    pdf = pdf,
-                    target = target,
-                    images = images,
-                    audioFiles = audioFiles,
-                    canvasMode = canvasMode,
-                    transcription = transcription,
-                    output = output,
-                )
-                SaveFormat.ZIPPED -> {
-                    val ink = ink(exportDocument(document, canvasMode))
-                    uncompiled = ink.uncompiled
-                    // Pictures ride inside the package as numbered entries, so a ZIP save is
-                    // self-contained for pixmap backgrounds exactly as it already is for the PDF.
-                    val bundled = documentWithPixmapAttachments(ink.document) { images[it] }
-                    XoppZip.save(
-                        if (pdf != null) documentWithPdfDomain(bundled.document, ATTACH_DOMAIN)
-                        else bundled.document,
-                        pdf,
-                        output,
-                        bundled.entries,
+        // The three formats are the core's own writers; what this class adds is the staging file and the
+        // four answers only an open session has — the shape a chunked document must keep, the archive a
+        // repack reads from, the target a reference is relativised against.
+        val uncompiled = out.outputStream().use { output ->
+            DocumentEncoder.write(
+                document = document,
+                format = format,
+                target = target?.let { UriSaveTarget(it, displayName(it, "document"), refs) },
+                out = output,
+                appVersion = appVersion,
+                shape = saveShapeOf(document, target, canvasMode),
+                pdf = pdf,
+                images = images,
+                audioFiles = audioFiles,
+                extraEntries = transcription?.let { transcript ->
+                    mapOf(
+                        MobixFormat.TRANSCRIPT_ENTRY to MobixPayload.of(
+                            com.mobixournal.audio.TranscriptionCodec.encode(transcript)
+                                .toByteArray(Charsets.UTF_8),
+                        ),
                     )
-                }
-            }
+                } ?: emptyMap(),
+                entrySource = entrySources,
+            )
         }
         return Encoded(out, uncompiled)
     }
 
     /**
-     * The document a `.xopp` write may encode: living entities are **cooked into ink** first
-     * ([XoppSynthesis]), because `.xopp` has nowhere to keep a recipe — a table is a grid of rules and
-     * cells, a plot is its curves drawn, a component is its symbol's strokes — and whatever this build
-     * cannot draw comes back in [SynthesisResult.uncompiled] for the caller to tell the user about.
+     * How this save has to be **shaped**, which no page can answer: the container an open document
+     * declared (a chunked `.mobix` stays chunked, at its own coordinates, and its board geometry is what
+     * a `.xopp` export slices by), the archive a whole-archive write reads still-referenced `assets/`
+     * entries out of, and the archive to repack over when the save lands back on the file it came from.
      *
-     * It runs on every `.xopp` write rather than only on the ones whose document is a `.mobix`: an
-     * ink-only document is the identity under synthesis (nothing to cook, and it keeps whatever bridge
-     * block it already carried), so there is one door to the writer and no way to reach it un-flattened.
+     * Asked here rather than inside the encoder because every answer is the **session's** — a document
+     * this app never opened has none of them, and the defaults the encoder then uses are the honest ones
+     * for a new document: paged, whole archive, every page built.
      */
-    private fun ink(document: Document): SynthesisResult =
-        XoppSynthesis.synthesize(document, documentId = document.documentId)
-
-    /**
-     * The document a `.xopp` write encodes: a **board** is sliced into the pages its tiles add up to
-     * ([BoardSlicer][com.mobixournal.render.BoardSlicer]), and everything else is handed over as it is.
-     *
-     * It is the export's own conversion, not the document's: a chunked `.mobix` keeps its chunks
-     * wherever it is saved, and the pages exist only in the `.xopp` being written — which is the way a
-     * board leaves this app for desktop Xournal++, a PDF reader or a printer
-     * (`docs/infinite-canvas.md` → *Auto-pagination and export slicing*).
-     *
-     * The geometry is asked for **here** rather than handed in, so the two writers (a whole-archive save
-     * and a repack) cannot disagree about it, and a document that is not a board answers null and passes
-     * through untouched.
-     */
-    private fun exportDocument(document: Document, canvasMode: CanvasMode): Document =
-        sheetDocument(document, canvasGeometryOf(document, canvasMode))
+    private fun saveShapeOf(
+        document: Document,
+        target: Uri?,
+        canvasMode: CanvasMode,
+    ): DocumentEncoder.SaveShape = DocumentEncoder.SaveShape(
+        mode = openSessions.canvasModeOf(document, canvasMode),
+        chunkCoords = openSessions.chunkCoordsOf(document),
+        canvas = openSessions.canvasOf(document),
+        geometry = canvasGeometryOf(document, canvasMode),
+        carriedFrom = openSessions.stagedOf(document),
+        repackOver = openSessions.sourceFor(document, target)?.staged,
+    )
 
     /**
      * What a write produced: the staged file to push across, and — for a `.xopp` — what the synthesis
@@ -570,85 +546,6 @@ class DocumentIo(
      */
     class Encoded(val file: File, val uncompiled: List<Uncompilable> = emptyList())
 
-    /**
-     * The `.mobix` half of [encode]: one whole-archive write, or a repack over the file this document
-     * was opened from. Split out of `encode` so the three formats stay readable side by side, and so the
-     * audio seam is memoised **once per write** — a page with four hundred strokes that replay from one
-     * lecture asks for it four hundred times.
-     */
-    private fun writeMobix(
-        document: Document,
-        pdf: File?,
-        target: Uri?,
-        images: Map<String, File>,
-        audioFiles: (String) -> File?,
-        canvasMode: CanvasMode,
-        transcription: com.mobixournal.audio.AudioTranscription?,
-        output: java.io.OutputStream,
-    ) {
-        val now = System.currentTimeMillis()
-        // Repack over the file this document was opened from when the save lands back on it: the
-        // entries whose bytes did not change stream out of that archive instead of being deflated
-        // again, and a page nothing touched is not even built — its bytes are copied out of the file it
-        // is still holding ([MobixPageReuse]). Everywhere else — a new document, a first save, a Save As
-        // to another target — there is no source to copy from, so every page is built and the whole
-        // archive is written.
-        val source = openSessions.sourceFor(document, target)
-        val backgrounds = backgroundPayloadsOf(pdf, images)
-        val payloads = HashMap<String, MobixPayload?>()
-        fun audioPayload(name: String): MobixPayload? {
-            if (payloads.containsKey(name)) return payloads[name]
-            val payload = audioFiles(name)?.takeIf(File::isFile)?.let(MobixPayload::of)
-            payloads[name] = payload
-            return payload
-        }
-        // The shape this write has to keep: a chunked document stays chunked, at its own coordinates,
-        // whether the save repacks over its file or builds a new archive — and the board geometry the
-        // file declared, which no page carries.
-        val mode = openSessions.canvasModeOf(document, canvasMode)
-        val chunkCoords = openSessions.chunkCoordsOf(document)
-        val canvas = openSessions.canvasOf(document)
-        val carried = carriedPayloads(document, openSessions.stagedOf(document), ::audioPayload).toMutableMap()
-        if (transcription != null) {
-            carried[MobixFormat.TRANSCRIPT_ENTRY] = MobixPayload.of(
-                com.mobixournal.audio.TranscriptionCodec.encode(transcription).toByteArray(Charsets.UTF_8),
-            )
-        }
-        if (source == null) {
-            // The document's own metadata, not a fresh identity: a `.mobix` opened and saved again is
-            // the same document ([Document.documentId]). A whole-archive write builds every page from
-            // the model, so a page that names `assets/…` writes that reference back — carried from the
-            // archive this document was opened from, or the new file names an entry it does not have.
-            val mobix = MobixDocument.of(
-                document = document,
-                appVersion = appVersion,
-                nowMillis = now,
-                source = target?.let { displayName(it, "document") },
-                payloads = carried,
-                canvasMode = mode,
-                chunkCoords = chunkCoords,
-                canvas = canvas,
-            )
-            MobixContainer.save(mobix.encode(now, backgrounds, ::audioPayload).entries, output)
-        } else {
-            entrySources(source.staged).use { from ->
-                MobixIncrementalSave.saveOver(
-                    source = from,
-                    document = document,
-                    appVersion = appVersion,
-                    nowMillis = now,
-                    output = output,
-                    backgrounds = backgrounds,
-                    audio = ::audioPayload,
-                    bridgeSource = target?.let { displayName(it, "document") },
-                    canvasMode = mode,
-                    chunkCoords = chunkCoords,
-                    canvas = canvas,
-                    payloads = carried,
-                )
-            }
-        }
-    }
 
     private companion object {
         /** Cache subfolder holding the local staging copies of documents in transit (see [UriStaging]). */

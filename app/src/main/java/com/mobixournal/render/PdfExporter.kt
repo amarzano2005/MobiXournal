@@ -9,7 +9,6 @@ import com.tom_roush.pdfbox.util.Matrix
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
-import com.mobixournal.io.CanvasGeometry
 import java.io.OutputStream
 
 /**

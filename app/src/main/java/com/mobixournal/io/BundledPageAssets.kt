@@ -7,6 +7,7 @@ import com.mobixournal.format.mobix.MobixPart
 import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.PageSize
 import com.mobixournal.format.mobix.PageSource
+import com.mobixournal.format.mobix.backgroundPayloadsOf
 import com.mobixournal.format.mobix.asAssetSource
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
@@ -226,24 +227,5 @@ internal class BundledPageAssets(
         is Background.Pdf -> asset ?: background.filename ?: "the document's background PDF"
         is Background.Pixmap -> asset ?: background.filename.ifEmpty { "a picture" }
         is Background.Solid -> "a background"
-    }
-}
-
-/**
- * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's
- * for a picture. Memoised per file.
- */
-internal fun backgroundPayloadsOf(pdf: File?, images: Map<String, File>): (Background) -> MobixPayload? {
-    // One payload per file, so a PDF shared by forty pages is hashed — and written — once, and is
-    // never held as a `ByteArray`: a background can be a 100 MB scan.
-    val read = HashMap<String, MobixPayload?>()
-    fun payloadOf(file: File?): MobixPayload? = file?.takeIf { it.isFile }
-        ?.let { read.getOrPut(it.path) { MobixPayload.of(it) } }
-    return { background ->
-        when (background) {
-            is Background.Pdf -> payloadOf(pdf)
-            is Background.Pixmap -> payloadOf(images[background.filename])
-            is Background.Solid -> null
-        }
     }
 }

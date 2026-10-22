@@ -6,7 +6,6 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
-import com.mobixournal.io.CanvasGeometry
 
 /**
  * A board's way **out**: the single continuous expanded page its tiles add up to
@@ -17,7 +16,7 @@ import com.mobixournal.io.CanvasGeometry
  * `chunkSizePt` (plus any printed-sheet `originOffsetPt`), and assembled onto **one single page** whose
  * dimensions cover both the board's expanded extent and the furthest reach of its ink.
  */
-internal object BoardSlicer {
+object BoardSlicer {
 
     /** Fallback paper width when a board declares none (A4, the app's own default). */
     private const val DEFAULT_WIDTH_PT = 595.28
@@ -110,7 +109,7 @@ internal object BoardSlicer {
  * [document] as the single-page document an **export** writes, or [document] itself when it is not a
  * board: the tiles assembled onto one continuous page ([BoardSlicer]), everything else untouched.
  */
-internal fun sheetDocument(document: Document, geometry: CanvasGeometry?): Document {
+fun sheetDocument(document: Document, geometry: CanvasGeometry?): Document {
     val board = geometry?.takeIf { it.isBoard } ?: return document
     return document.copy(pages = BoardSlicer.slice(document.pages, board))
 }

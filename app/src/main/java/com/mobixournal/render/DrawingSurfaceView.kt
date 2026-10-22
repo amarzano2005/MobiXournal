@@ -30,7 +30,6 @@ import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
-import com.mobixournal.io.CanvasGeometry
 import com.mobixournal.ui.keyStringFromKeyEvent
 import kotlin.math.hypot
 

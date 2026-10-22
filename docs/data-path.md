@@ -31,6 +31,11 @@ place the format changes, and then the name it proposes carries the new suffix (
 type changes with it, since a `.mobix` offered to the system as `application/x-xopp` would invite
 desktop Xournal++ to open something it cannot).
 
+**The write itself is platform-free** (`io/DocumentEncoder.kt` in `mobix-core`): one `write` holds the three format arms, and what
+is Android-shaped arrives through two seams: a `SaveTarget` (the name, and the reference arithmetic — `UriSaveTarget` on a SAF id,
+`FileSaveTarget` on a path) and a `SaveShape` (the container and board geometry a document declared, the archive `assets/` are
+carried from, the archive to repack over). `DocumentIo.encode` keeps its staging file and `Encoded`, and delegates the bytes.
+
 A `.mobix` is read as its own document, not through the `.xopp` model:
 
 - **Its identity comes with it.** The manifest's `documentId` travels into the model
@@ -187,8 +192,7 @@ possible: it reads an entry's offset out of the central directory (the only reco
 the one that still has the sizes when a local header left them zero) and writes the local headers, the
 central directory and the end record itself, because `java.util.zip` will neither hand out a compressed
 entry nor accept one it did not produce. It reads that directory **once per file** (`MobixZip.Index`):
-one directory read per copied entry made a save quadratic, which the benchmark below caught at half a
-second for a two-hundred-page notebook.
+one directory read per copied entry made a save quadratic, which the benchmark below caught at half a second on 200 pages.
 
 **A page the save is not going to write is a page it never opens.** That is the second half, and it is
 where the cost actually comes from: rebuilding a page's JSON to *hash* it costs the page its JSON, its
@@ -211,7 +215,7 @@ resolves to in the audio store, so one entry covers every stroke that replays fr
 a new document, a first save, a Save As to another target — there is no source to repack over and the
 whole archive is built from the model. The payloads such a document still **references** travel with it
 anyway: the model keeps the names it was read with (`Background.Pdf.bundledAsset`,
-`Background.Pixmap.bundledAsset`, `Stroke.bundledAudio`), and `DocumentIo.carriedAssets` reads those
+`Background.Pixmap.bundledAsset`, `Stroke.bundledAudio`), and `carriedPayloads` (in `mobix-core`) reads those
 `assets/` entries back out of the staged copy the session still holds and hands them to the writer as
 payloads — so a picture or a recording that no page has ever adopted (a page that was never read) is
 not lost to a Save As. A document whose staged copy the session no longer holds has nothing left to

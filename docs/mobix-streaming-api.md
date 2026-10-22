@@ -18,7 +18,8 @@ implementation detail. A shell implements against the table below, not against t
 | open a file without reading it | `MobixEntrySource.fromFile(file)` then `MobixPagedReader(source)` | the manifest, the canvas, and the page count — from the crate's own index, no page decoded |
 | show page *N* | `reader.getPage(n)` (or `reader.ensureWindow(n, radius)`) | a `Page` with ink, living entities and its bundled payloads resolved; the previous pages stay cached |
 | read a payload | `reader.assetSource` | bytes for a still, a **stream** for a recording |
-| write the document back | `MobixDocument.open(...)` → `encode(...)`, or `MobixIncrementalSave.saveOver(...)` | the archive's entries, or a repack that copies unchanged parts and rebuilds only the dirty ones |
+| write the document back | `DocumentEncoder.write(document, SaveFormat.MOBIX, target, out, appVersion, shape)` | the file itself, in any of the three containers — the app calls this too, so one writer serves both shells |
+| write it *as an archive* | `MobixDocument.open(...)` → `encode(...)`, or `MobixIncrementalSave.saveOver(...)` | the archive's entries, or a repack that copies unchanged parts and rebuilds only the dirty ones |
 
 `PageSource.of(reader)` is the same reader seen as the surface the editor carries (count, id, page,
 window); `PageSource.of(document)` gives the eager read the same shape, so a view is written once for

@@ -76,6 +76,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     format/XoppZip.kt        # ZIP-package open/save (PDF embedded); see the mimetype caveat
     format/SaveFormat.kt     # ORIGINAL (gzip) vs ZIPPED (single-file) — the sticky save choice
     format/FileKind.kt       # content sniffing: ZIP / GZIP / PDF / XML / TEXT / IMAGE / UNKNOWN
+    format/PdfReference.kt   # a .xopp background PDF's relative <-> absolute paths and SAF document ids
     format/mobix/            # the native .mobix engine; the public streaming contract is marked below
         MobixFormat.kt       # the format's fixed entry names and the page/chunk/asset naming scheme (pure)
         MobixContainer.kt    # the ZIP envelope: stored typed mimetype, manifest required, unknown entries kept
@@ -93,6 +94,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
         MobixSavePlan.kt     # public: what a full write produces — the entries and the order they are written in
         MobixIncrementalSave.kt # public: repack over a source, rebuilding only the parts that changed (stats)
         MobixPageReuse.kt    # the rule that decides which page/chunk may be copied out instead of rebuilt
+        BundledPayloads.kt   # which bytes a page's payload is, and the `assets/` entries a rewrite must carry
         MobixMergeEngine.kt, MobixConflictDetector.kt # public: three-way page merge and its conflicts
         MobixMeta*.kt        # the `.xopp` bridge block: what an export claims and the digest that revives it
         MobixBridgeFile.kt   # xopp-bridge/metadata.json: the .xopp a document came from (creator, version, preview)
@@ -115,11 +117,11 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   with feature detection and summaries, and the frame a plot was drawn in (pure)
     render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
     render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
-    render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # the `attach` domain and the bundled pixmap
-                             #   entries: background references rewritten for a self-contained save (pure)
-    render/PdfPagePlan.kt    # a page -> the PDF ops an emitter replays (no PDF library); PdfPageTransform.kt
-                             #   flips points into PDF user space and TextBlock.kt splits text for it (pure)
-    render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, one per tab
+    render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # `attach` domain + bundled pixmap entries (pure)
+    render/PdfPagePlan.kt    # a page -> PDF ops an emitter replays; PdfPageTransform.kt flips into user space
+    render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
+    render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
+    io/DocumentEncoder.kt    # THE SAVE without Android: three formats, a SaveTarget, a SaveShape
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
   build.gradle.kts                                         # module config (SDK levels, Compose, deps)
@@ -140,8 +142,8 @@ app/
       PdfStore.kt            # one background-PDF file per open document; never rewritten, content-cache index, byte-budget eviction
       ImageStore.kt          # one never-rewritten copy per pixmap background reference; same liveness sweep and byte budget
       TextImport.kt          # text file -> generated background PDF, cached by content hash
-      PdfReference.kt        # how a .xopp names its background PDF: relative <-> absolute paths and SAF document ids
-      DocumentIo.kt          # document I/O policy: staging + PDF stores + read (which container?) / encode / merge
+      DocumentIo.kt          # I/O policy: staging + PDF stores + read / merge; the write is the core's encoder,
+                             #   fed by saveShapeOf and aimed at UriSaveTarget
     panes/                   # split view: one or two editing panes, each with its own tabs
       EditorPane.kt          # one pane: canvas + tab session + save format + its own TabStore
       MirrorSync.kt          # keeps the several views of one document in step (mirrored tabs share the document)
@@ -152,9 +154,8 @@ app/
       TabStore.kt            # filesDir/tabs: index + one .xopp snapshot per tab
       DocColors.kt           # the dot colour that marks two tabs as views of the same document (pure)
     render/
-      DrawingSurfaceView.kt  # low-latency stylus canvas (MotionEvent pressure): the state block, the
-                             # document/zoom/page/layer facades and the View overrides; the gesture and
-                             # editing surfaces live in the DrawingSurface*.kt extension files below
+      DrawingSurfaceView.kt  # low-latency stylus canvas (MotionEvent pressure): state block, document/zoom/
+                             # page/layer facades, View overrides; gestures live in the DrawingSurface*.kt files
       DrawingSurfaceConstants.kt # DrawingSurfaceDefaults: the canvas's shared tuning constants; blankDocument/blankPage
       DrawingSurfacePaint.kt # the surface's render loop, page compositing and chrome overlays (extensions)
       DrawingSurfaceInput.kt # the surface's touch/hover state machine: pointer routing, scroll and gesture end (extensions)

@@ -3,7 +3,6 @@ package com.mobixournal.render
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.mobix.MobixCanvasFile
 import com.mobixournal.format.mobix.MobixChunk
-import com.mobixournal.io.CanvasGeometry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

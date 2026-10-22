@@ -3,7 +3,6 @@ package com.mobixournal.render
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
-import com.mobixournal.io.CanvasGeometry
 
 /**
  * A board's own reading of the view — what the page-shaped chrome asks for and cannot have on a

@@ -1,13 +1,37 @@
-package com.mobixournal.io
+package com.mobixournal.format.mobix
 
-import com.mobixournal.format.model.audioRef
-import com.mobixournal.format.mobix.MobixFormat
-import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.audioRef
 import java.io.File
 import java.util.zip.ZipFile
+
+/*
+ * The two halves of a `.mobix` write that are neither the codec nor the app: **which bytes a page's
+ * payload is** (a store's file, hashed once) and **which entries a rewrite must still carry** (read out
+ * of the archive the document was opened from). Both are pure — a `File`, a `ZipFile`, the model — so
+ * they live here and a writer without Android ([com.mobixournal.io.DocumentEncoder]) can use them.
+ */
+
+/**
+ * How a `.mobix` save finds a background's bytes: the PDF store's copy for a PDF, the image store's
+ * for a picture. Memoised per file.
+ */
+fun backgroundPayloadsOf(pdf: File?, images: Map<String, File>): (Background) -> MobixPayload? {
+    // One payload per file, so a PDF shared by forty pages is hashed — and written — once, and is
+    // never held as a `ByteArray`: a background can be a 100 MB scan.
+    val read = HashMap<String, MobixPayload?>()
+    fun payloadOf(file: File?): MobixPayload? = file?.takeIf { it.isFile }
+        ?.let { read.getOrPut(it.path) { MobixPayload.of(it) } }
+    return { background ->
+        when (background) {
+            is Background.Pdf -> payloadOf(pdf)
+            is Background.Pixmap -> payloadOf(images[background.filename])
+            is Background.Solid -> null
+        }
+    }
+}
 
 /**
  * The `assets/` entries a **source-less** `.mobix` write still has to carry, read out of the archive
@@ -31,7 +55,7 @@ import java.util.zip.ZipFile
  * answer, reported to the user where a page needs a background it cannot get
  * (`report-a-mobix-page-whose-background-is-missing`).
  */
-internal fun carriedPayloads(
+fun carriedPayloads(
     document: Document,
     archive: File?,
     suppliedAudio: (String) -> MobixPayload?,
@@ -57,7 +81,7 @@ internal fun carriedPayloads(
  * and reading it out would be the allocation this path avoids. It is carried only when nothing else
  * can supply it.
  */
-internal fun referencedAssets(
+fun referencedAssets(
     document: Document,
     suppliedAudio: (String) -> MobixPayload?,
 ): Set<String> {

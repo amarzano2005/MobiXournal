@@ -3,7 +3,7 @@ package com.mobixournal.panes
 import android.os.Handler
 import android.os.Looper
 import com.mobixournal.format.model.Document
-import com.mobixournal.io.CanvasGeometry
+import com.mobixournal.render.CanvasGeometry
 import com.mobixournal.tabs.OpenTab
 
 /**

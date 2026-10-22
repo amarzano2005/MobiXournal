@@ -6,7 +6,6 @@ import com.mobixournal.format.mobix.MobixChunk
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
-import com.mobixournal.io.CanvasGeometry
 import kotlin.math.floor
 
 /**

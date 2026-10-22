@@ -8,7 +8,6 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
-import com.mobixournal.io.CanvasGeometry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

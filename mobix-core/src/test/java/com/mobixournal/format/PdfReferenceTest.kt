@@ -1,4 +1,4 @@
-package com.mobixournal.io
+package com.mobixournal.format
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

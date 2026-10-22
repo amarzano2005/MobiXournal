@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.PdfReference
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Layer

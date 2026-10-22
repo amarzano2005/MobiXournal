@@ -3,6 +3,7 @@ package com.mobixournal.io
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.mobixournal.format.PdfReference
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.ABSOLUTE_DOMAIN

@@ -1,7 +1,6 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.mobix.CanvasMode
-import com.mobixournal.io.CanvasGeometry
 import kotlin.math.floor
 
 /**
