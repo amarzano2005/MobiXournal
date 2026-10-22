@@ -277,7 +277,10 @@ class DesktopLifecycleTest {
                 Snapshot.sendApplyNotifications()
                 // The card arrives on the family's spring, so the frame that shows it is the settled
                 // one: the animation has to be walked at the scene's frame clock, not skipped.
-                val after = png(advance(scene, to = 700))
+                val settled = advance(scene, to = 700)
+                File("build/desktop-render/lifecycle-question.png").apply { parentFile?.mkdirs() }
+                    .writeBytes(requireNotNull(settled.encodeToData()?.bytes))
+                val after = png(settled)
                 assertNotEquals(
                     "the card is drawn where the page was",
                     0xFFFFFF,
