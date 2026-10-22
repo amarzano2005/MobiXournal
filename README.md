@@ -115,6 +115,13 @@ shrunk to a sliver, so the handwriting stays readable and the wheel reads down i
 English, like the tablet app. It is **read-only** for now, and it is a separate module, so it never
 affects the Android build.
 
+The drawing tools have their two placements here as well: a vertical rail beside the page (the
+default) and a horizontal ribbon under the header. The header's **Tool placement** control switches
+between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
+is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
+tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
+the slots only choose a tool for now; drawing arrives with the editing phase.
+
 | Key | What it does |
 |---|---|
 | `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) |
@@ -124,6 +131,8 @@ affects the Android build.
 | `Ctrl + =` or the keypad's `+`, `Ctrl + -` | zoom in / out |
 | `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
 | `Page Up` / `Page Down` | previous / next page |
+| `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool (pen, highlighter, eraser, lasso, marquee, text, line, arrow, rectangle, ellipse, spline, plot, table, circuit) |
+| `Shift + X` | the axes tool (`X` alone is the text box) |
 
 Wheel scrolls the page, `Ctrl` + wheel zooms where you point, and middle-drag or `Space` + drag pans.
 A tab's name can be edited in place with a double-click, and tabs can be dragged into a new order.

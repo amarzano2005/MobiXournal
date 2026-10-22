@@ -181,10 +181,20 @@ scaling up a mobile touch interface creates clumsy, oversized controls. Desktop 
   its contrast would change with the user's wallpaper — the opposite of the pinned ramps above.
 - **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon is the
   alternative for 16:9 monitors, and **Settings → Interface → Tool placement** chooses Rail / Ribbon /
-  Both. Whichever is on, it is a band in its own lane beside the canvas, never over the page.
+  Both. Whichever is on, it is a band in its own lane beside the canvas, never over the page. Until the
+  settings window exists (`desktop-settings-and-status-ui`), the same entry is switched from a **Tool
+  placement** control in the header: both write one value, so they cannot disagree.
 
-**The shell as built (2026-10-21).** `desktop/` now has the header, tab strip, sidebar, workspace and
-status bar of the drawing above; the rail, the ribbon and the inspector are the parts still missing.
+**The shell as built (2026-10-22).** `desktop/` now has the header, tab strip, sidebar, workspace and
+status bar of the drawing above, **and both tool strips**: a 48 dp rail in its own lane beside the
+canvas, and a 48 dp ribbon in a row under the header. Each draws all fifteen tools of §3 in the doc's
+order, as monoline glyphs, with the picked slot in the steel `#38383E` and the rest in secondary ink.
+The rail scrolls vertically and the ribbon horizontally rather than hiding a tool on a short or narrow
+window, and hovering a slot reveals the name-and-hotkey pill. A slot only sets the tool **selection** —
+nothing draws with it until the editing phase. The choice is a persisted setting
+(`interface.toolPlacement`, Rail by default) in the desktop's own settings file under `%APPDATA%`, and
+the strips appear once a document is open, because the empty state has no canvas to draw on. The
+right-hand inspector is the part still missing.
 
 The window wears the app's own material, not a stock desktop theme: the bands are the tokens' glass
 (`rgba(22, 22, 24, 0.85)`) over a `#000000` desk, the tabs are 16 dp capsules and a held slot is the
@@ -210,6 +220,8 @@ Everything the chrome does can also be done from the keyboard:
 | `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
 | `Page Up` / `Page Down` | previous / next page |
 | `Space` (held) | pan with the primary button; the middle button always pans |
+| `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool — §3's shortcut table is the list |
+| `Shift + X` | the axes tool; a bare `X` is the text box |
 
 Two decisions taken while building it:
 - **The tab and view model is Compose snapshot state, not plain fields.** A `mutableListOf` and ordinary

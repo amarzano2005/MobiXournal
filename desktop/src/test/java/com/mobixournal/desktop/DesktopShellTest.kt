@@ -292,7 +292,9 @@ class DesktopShellTest {
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun `the shell paints chrome above a page that starts below the header`() {
-        val state = DesktopShellState()
+        // A settings file of this test's own: the placement a developer happens to have picked on this
+        // machine must not change what the shell's chrome test measures.
+        val state = DesktopShellState(DesktopSettings(temp.newFile("settings.properties")))
         val scene = ImageComposeScene(1000, 700, Density(1f)) {
             DesktopShell(state = state, onOpenPicker = {})
         }

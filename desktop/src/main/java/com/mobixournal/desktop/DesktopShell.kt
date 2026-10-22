@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -32,7 +33,10 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import java.io.File
 
 /**
@@ -47,7 +51,10 @@ import java.io.File
  * the active document is [DesktopTabs.active], never a second copy of it, so opening, closing and
  * switching cannot drift apart.
  */
-class DesktopShellState {
+class DesktopShellState(
+    /** The window's settings file: the tool placement today, the Interface section once it has a window. */
+    private val settings: DesktopSettings = DesktopSettings(),
+) {
 
     /** The open documents and which one is active. */
     val tabs = DesktopTabs()
@@ -63,6 +70,29 @@ class DesktopShellState {
 
     /** Page thumbnails, one map per document, kept by the shell so a scroll back is not a repaint. */
     val thumbnails = mutableMapOf<String, MutableMap<Int, ImageBitmap>>()
+
+    /** The picked tool. Nothing draws with it yet: the strips only set the selection. */
+    var tools by mutableStateOf(ToolSelection())
+        private set
+
+    /**
+     * Which tool strips the window shows, mirrored from the settings file into snapshot state: the file
+     * is where the choice *lives*, this is what the chrome reads, and [chooseToolPlacement] writes both —
+     * so the chrome never has to poll a file and a restart still finds the placement it had.
+     */
+    var toolPlacement by mutableStateOf(settings.toolPlacement)
+        private set
+
+    /** Pick a tool (a slot, or its accelerator): the only thing the strips do until the editing phase. */
+    fun selectTool(tool: DesktopTool) {
+        tools = tools.select(tool)
+    }
+
+    /** Move the tool strips, and remember the choice across restarts. */
+    fun chooseToolPlacement(placement: ToolPlacement) {
+        toolPlacement = placement
+        settings.toolPlacement = placement
+    }
 
     /** The active document, if any. */
     val active: DesktopTab? get() = tabs.active
@@ -111,6 +141,12 @@ class DesktopShellState {
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
+        // A bare letter picks a tool (`B` pen, `Shift+X` axes) before the shell's own commands, which
+        // all need Ctrl or a named key.
+        toolForKey(event.key, shift = event.isShiftPressed, ctrl = event.isCtrlPressed)?.let { tool ->
+            selectTool(tool)
+            return true
+        }
         val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed) ?: return false
         return apply(command, onOpenPicker)
     }
@@ -199,6 +235,42 @@ enum class ShellCommand {
 }
 
 /**
+ * The letters a tool is bound to, as the physical key each one arrives on.
+ *
+ * It is a letters→keys map, not a second shortcuts table: [toolForKey] looks the letter up in
+ * [DesktopTool.shortcut], so the pill's text, the doc's list and the keyboard all read one string.
+ */
+internal val toolKeyLetters = mapOf(
+    Key.B to "B",
+    Key.H to "H",
+    Key.E to "E",
+    Key.V to "V",
+    Key.S to "S",
+    Key.X to "X",
+    Key.L to "L",
+    Key.A to "A",
+    Key.R to "R",
+    Key.C to "C",
+    Key.P to "P",
+    Key.M to "M",
+    Key.T to "T",
+    Key.K to "K",
+)
+
+/**
+ * The tool a key press picks, or null when the key is not a tool's accelerator.
+ *
+ * `Shift+X` is the axes tool while a bare `X` is the text box, which is why the shift is part of the
+ * lookup instead of being ignored; `Ctrl` never picks a tool, so the shell's own commands keep their
+ * letters (`Ctrl+B` is the sidebar, not a highlighter).
+ */
+internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean): DesktopTool? {
+    if (ctrl) return null
+    val letter = toolKeyLetters[key] ?: return null
+    return toolForShortcut(if (shift) "Shift+$letter" else letter)
+}
+
+/**
  * The shortcut table of `docs/ui-modernization.md`, as a decision.
  *
  * Order matters in two places: `Ctrl + 0` is "fit page" **only** without Shift (with Shift it is the
@@ -236,11 +308,13 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
         Header(
             tabs = state.tabs,
             sidebarVisible = state.sidebarVisible,
+            placement = state.toolPlacement,
             onActivate = { index -> state.tabs.activate(index) },
             onClose = { index -> state.tabs.close(index) },
             onMove = { from, to -> state.tabs.move(from, to) },
             onOpen = onOpenPicker,
             onToggleSidebar = { state.toggleSidebar() },
+            onPlacement = state::chooseToolPlacement,
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             val tab = state.active
@@ -253,21 +327,32 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                     "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
                         "image backgrounds, read-only.",
                 )
-                else -> Row(Modifier.fillMaxSize()) {
-                    if (state.sidebarVisible) {
-                        PageSidebar(
+                // The tool strips are bands in their own lanes: the ribbon takes a row under the
+                // header, the rail a column beside the canvas, and the page keeps the rectangle that
+                // is left. Neither is ever laid over the sheet (`docs/chrome.md`).
+                else -> Column(Modifier.fillMaxSize()) {
+                    if (state.toolPlacement.showsRibbon) {
+                        ToolRibbon(selection = state.tools, onSelect = state::selectTool)
+                    }
+                    Row(Modifier.weight(1f).fillMaxWidth()) {
+                        if (state.sidebarVisible) {
+                            PageSidebar(
+                                tab = tab,
+                                cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
+                                onSelectPage = { index -> selectPage(tab, index) },
+                            )
+                        }
+                        if (state.toolPlacement.showsRail) {
+                            ToolRail(selection = state.tools, onSelect = state::selectTool)
+                        }
+                        PageCanvas(
                             tab = tab,
-                            cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
-                            onSelectPage = { index -> selectPage(tab, index) },
+                            panMode = state.panMode,
+                            onViewport = { tab.viewport = it },
+                            onFit = { tab.fit = it },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                     }
-                    PageCanvas(
-                        tab = tab,
-                        panMode = state.panMode,
-                        onViewport = { tab.viewport = it },
-                        onFit = { tab.fit = it },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
                 }
             }
             if (tab != null) {
@@ -288,11 +373,13 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
 private fun Header(
     tabs: DesktopTabs,
     sidebarVisible: Boolean,
+    placement: ToolPlacement,
     onActivate: (Int) -> Unit,
     onClose: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
     onOpen: () -> Unit,
     onToggleSidebar: () -> Unit,
+    onPlacement: (ToolPlacement) -> Unit,
 ) {
     Row(
         Modifier
@@ -320,6 +407,61 @@ private fun Header(
             onOpen = onOpen,
             modifier = Modifier.weight(1f),
         )
+        Spacer(Modifier.width(10.dp))
+        PlacementButton(placement = placement, onPlacement = onPlacement)
+    }
+}
+
+/**
+ * The placement chooser: which of the two tool strips the window shows (Rail, Ribbon, Both).
+ *
+ * It is the one control of the Interface section the future settings window will own
+ * (`desktop-settings-and-status-ui`), so until that window exists it stands in the header — and it
+ * writes the same [DesktopSettings] entry the window will edit, so there is one setting with two doors
+ * rather than two settings that can disagree.
+ */
+@Composable
+private fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlacement) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    Box {
+        HeaderGlyph(active = open, onClick = { open = !open }) { color, stroke ->
+            // Three rows of different lengths: a rail, a ribbon, and both at once.
+            drawLine(color, Offset(0f, 3f), Offset(size.width, 3f), stroke)
+            drawLine(color, Offset(size.width * 0.45f, size.height / 2f), Offset(size.width, size.height / 2f), stroke)
+            drawLine(color, Offset(0f, size.height - 3f), Offset(size.width, size.height - 3f), stroke)
+        }
+        if (open) {
+            Popup(
+                offset = with(density) { IntOffset(0, (DesktopTheme.headerHeight + 6.dp).roundToPx()) },
+                onDismissRequest = { open = false },
+            ) {
+                Column(
+                    Modifier
+                        .background(DesktopTheme.panel, DesktopTheme.panelShape)
+                        .padding(8.dp),
+                ) {
+                    Text("Tool placement", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+                    Spacer(Modifier.height(6.dp))
+                    for (option in ToolPlacement.entries) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (option == placement) DesktopTheme.activeSlot else Color.Transparent,
+                                    DesktopTheme.capsuleShape,
+                                )
+                                .pointerInput(option) {
+                                    detectTapGestures { onPlacement(option); open = false }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        ) {
+                            Text(option.label, color = DesktopTheme.ink, style = DesktopTheme.body)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

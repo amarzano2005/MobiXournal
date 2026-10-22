@@ -48,6 +48,12 @@ once per page per tab.
   page** rasterised with PDFBox (about 144 dpi) and placed under the ink, so a highlighter still
   multiplies into it. A `.mobix`'s bundled bytes are preferred over the original reference, which is
   what keeps a shared notebook looking right after the picture's file has moved away.
+- **Shows both tool placements**: a 48 dp rail in its own lane beside the page (the default) and a
+  48 dp ribbon in a row under the header, switched from the header's **Tool placement** control
+  (Rail / Ribbon / Both) and remembered in the window's settings file, so the choice survives a
+  restart. Both draw the same fifteen tools, in the order, glyphs and shortcuts of
+  [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot in the steel `#38383E` and a
+  name-and-hotkey pill on hover. A slot only sets the tool selection — nothing draws with it yet.
 - Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
   layers, the `.xopp` and `.mobix` codecs, and the shared paper/ink geometry — one codec, one ruling and
   one ink rule book rather than a fork.
@@ -86,8 +92,8 @@ What it does **not** do (all still governed by this spoke):
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no isometric paper,
   no layer visibility toggles, and no editing of a living entity — the ink is drawn, not yet made
   editable.
-- No tool rail or ribbon, no right-side property inspector, no search, and no page reordering or
-  insertion.
+- No right-side property inspector, no search, and no page reordering or insertion. The tool strips
+  pick a tool and stop there: there is no inking, no erasing and no selection.
 - No tablet/dial input, no dirty-rect GPU pacing, no installers. `run` is the only entry point;
   `nativeDistributions` is configured but not wired into a release job.
 
@@ -98,7 +104,11 @@ no document inside by name, renders page 1 of each headlessly via `ImageComposeS
 table, a parametric shape, a bundled pixmap and a PDF background — asserting the pixels, not just that
 the call returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and
 after** a document is opened and asserts the frames differ (the regression that caught a strip which
-never redrew), renders the sidebar, and checks the keyboard's fit and zoom arithmetic. `OpenFailureTest`
+never redrew), renders the sidebar, and checks the keyboard's fit and zoom arithmetic. `ToolStripsTest`
+renders the rail and the ribbon on their own (every slot must have drawn its glyph, and the picked one
+must wear the active slot), then renders the whole window in Rail, Ribbon and Both and reads the paper
+out of the pixels: the page starts after the rail's lane and below the ribbon's band, in every
+placement — the mechanical form of "a band never lies on the page". `OpenFailureTest`
 pins what a failed open says in each of its three cases and how a space-split command line is put back
 together. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at.

@@ -118,6 +118,8 @@ class DesktopThemeTest {
             "PageCanvas.kt",
             "OpenFailureCard.kt",
             "PageView.kt",
+            "ToolStrips.kt",
+            "ToolGlyphs.kt",
         )
         val offenders = mutableListOf<String>()
         for (name in chrome) {
