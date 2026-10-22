@@ -302,20 +302,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-guards-and-ci"
-title = "Desktop: structure guards and CI test job"
-description = "Two holes in the mechanical guards. (1) SourceStructureTest (app/src/test/java/com/mobixournal/guards/) budgets app/src/main and mobix-core/src/main (700-line files, 100-line functions) but not desktop/src/main, where DesktopShell.kt is already 449 lines: add the desktop source root next to the two existing ones with the same fail-loudly-if-missing check, and record any legacy ceiling in the test rather than raising the budget. (2) .github/workflows/build.yml runs only ./gradlew testDebugUnitTest and assembleDebug, so the desktop suite (:desktop:test, which renders headlessly) never runs in CI: add a job that runs :desktop:test on a windows-latest runner (the desktop is Windows-only) with JDK 21, uploading desktop/build/desktop-render/ as an artifact. Verify: run SourceStructureTest locally and see it fail when a test file in desktop/ is temporarily padded past 700 lines, then pass again; run :desktop:test locally. Document both in docs/testing.md."
-status = "active"
-level = "task"
-category = "test"
-urgency = "high"
-order = 910
-created = 2026-10-21
-tags = ["desktop", "ci"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-rail-and-ribbon-tool-strips"
 title = "Desktop: rail and ribbon tool strips, switchable"
 description = "Add BOTH drawing-tool placements to `desktop/` plus a setting (`Settings → Interface → Tool placement`: Rail (default) / Ribbon / Both): a 48dp vertical rail in its own lane beside the canvas and a horizontal ribbon under the header — never over the page in either case. Both list the same tools in the same order with the single-letter shortcuts from docs/ui-modernization.md (B pen, H highlighter, E eraser, V lasso, S marquee, X text, L line, A arrow, R rectangle, C ellipse, P spline, M plot, Shift+X axes, T table, K circuit), use monoline glyphs, show a name+hotkey pill tooltip on hover, and mark the active slot with #38383E. In this task the tools only set a `ToolSelection` (plain class, no Compose types); what the pen actually does arrives with the editing phase. Persist the placement choice in a small settings store beside the desktop module (a properties file under the user home or the app data dir), so it survives restarts. Verify: a unit test that every tool appears exactly once and every shortcut is unique, headless renders of both placements, and a real run where switching the setting moves the strip without moving the page. Document the setting in the desktop section of docs/ui-modernization.md."

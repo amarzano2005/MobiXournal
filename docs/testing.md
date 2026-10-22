@@ -59,9 +59,14 @@ change can see what will fail it:
 - **`DocsGuardTest`** (`guards/`) — every spoke doc is reachable from the index, every relative link
   and `#anchor` between docs resolves, and every doc fits its line budget, so the architecture docs
   cannot decay back into one unaddressable document.
-- **`SourceStructureTest`** (`guards/`) — a ratchet on file and function size: the entries listed in
-  it may not grow, and no new file may appear past the budget. Splitting a listed file is what the
-  test rewards; the remedy for a failure is a split, or a deliberate bump of a recorded number.
+- **`SourceStructureTest`** (`guards/`) — a ratchet on file and function size, measured over every
+  main source set rather than only the app: `app/src/main`, `mobix-core/src/main` and
+  `desktop/src/main` (keys are relative to `com/mobixournal/`, so the desktop shell's files read
+  `desktop/DesktopShell.kt`). The entries listed in it may not grow, and no new file may appear past
+  the budget. Splitting a listed file is what the test rewards; the remedy for a failure is a split,
+  or a deliberate bump of a recorded number. The app test task declares `docs/` and
+  `desktop/src/main/java` as inputs (the latter is not a compile dependency of the app, so without the
+  entry a desktop-only edit would leave the guard's task UP-TO-DATE and unrun).
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
 - **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both
@@ -90,3 +95,18 @@ change can see what will fail it:
   emit, so the format documentation cannot drift from the code.
 - **`DesktopColorParityTest`**, **`RealFileRoundTripTest`**, **`SelectionHandleRadiusTest`** and
   friends — the pinned desktop-parity values; see the spoke that owns the behaviour.
+
+## The desktop suite (`:desktop:test`)
+
+The desktop shell ([desktop-workstation.md](desktop-workstation.md)) is a Windows 11-only Compose
+Multiplatform app, and its suite runs on the JVM with no emulator and no document to hand: it drives
+`ImageComposeScene` to render pages and chrome headlessly and writes the PNGs to
+`desktop/build/desktop-render/`, so a visual claim can be looked at rather than trusted. The module
+itself depends only on `mobix-core` and Compose Desktop; the Android SDK is still what the
+multi-module build needs in order to configure the app module, so the CI runner carries both.
+
+That suite is part of CI, in its own job: `.github/workflows/build.yml` runs `:desktop:test` on
+`windows-latest` with JDK 21 (Temurin) because the shell is Windows-only, and uploads
+`desktop/build/desktop-render/` as the `desktop-render` artifact on every run — including a failed
+one, where the render is often what explains the failure. It is a separate job rather than a step in
+the Android job so Skiko's rasterising never gates or slows the APK build.

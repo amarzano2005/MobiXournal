@@ -127,10 +127,14 @@ androidComponents.onVariants { variant ->
 // test task UP-TO-DATE, so the guard that exists to catch a stale doc never runs against the doc that
 // just changed. Measured: `touch docs/codebase.md && scripts/host-build.sh testDebugUnitTest` reported
 // UP-TO-DATE in 4 s. Declaring the docs as inputs makes a doc edit re-run the guards here instead of in
-// whatever clean build happens to come next. (`src/main/java` needs no entry: a source change alters
-// the compiled classes, which the test task already tracks.)
+// whatever clean build happens to come next. (`src/main/java` and `mobix-core` need no entry: a source
+// change there alters the compiled classes, which the test task already tracks. `desktop/` is read by
+// the same guard but is not a dependency of this module, so its own edit needs the entry.)
 tasks.withType<Test>().configureEach {
     inputs.dir(rootProject.file("docs"))
         .withPropertyName("documentation")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(rootProject.file("desktop/src/main/java"))
+        .withPropertyName("desktopSources")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

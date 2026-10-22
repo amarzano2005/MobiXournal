@@ -307,12 +307,14 @@ class SourceStructureTest {
     private fun keyOf(file: File): String = file.path.replace('\\', '/').substringAfter("com/mobixournal/")
 
     /**
-     * Every Kotlin source file of the shared main source sets — the app and `mobix-core`.
+     * Every Kotlin source file of the shared main source sets — the app, `mobix-core` and the desktop
+     * shell.
      *
-     * The core was split out of `app` (Phase A of `step-3-desktop-workstation`), and the budget has to
-     * follow the code: a 700-line file must not become legal by being moved one module up. Keys stay
-     * relative to `com/mobixournal/`, exactly as before the split, so the recorded ceilings mean the
-     * same file they always did.
+     * The core was split out of `app` (Phase A of `step-3-desktop-workstation`) and the desktop shell
+     * arrived with it, and the budget has to follow the code: a 700-line file must not become legal by
+     * being moved one module out. Keys stay relative to `com/mobixournal/`, exactly as before the
+     * splits, so the recorded ceilings mean the same file they always did (`desktop/DesktopShell.kt`
+     * for the shell's own sources).
      */
     private fun mainSources(): List<File> {
         val appRoot = listOf(File("src/main/java/com/mobixournal"), File("app/src/main/java/com/mobixournal"))
@@ -329,7 +331,15 @@ class SourceStructureTest {
                 "no mobix-core source set from ${File(".").absolutePath}: the structure budget must " +
                     "cover the shared core, not only the app",
             )
-        return listOf(appRoot, coreRoot)
+        val desktopRoot = listOf(
+            File("desktop/src/main/java/com/mobixournal"),
+            File("../desktop/src/main/java/com/mobixournal"),
+        ).firstOrNull { it.isDirectory }
+            ?: error(
+                "no desktop source set from ${File(".").absolutePath}: the structure budget must " +
+                    "cover the desktop shell as well, or a mono-file can grow there unwatched",
+            )
+        return listOf(appRoot, coreRoot, desktopRoot)
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList() }
     }
 }
