@@ -24,6 +24,29 @@ class EditHistory<T>(private val maxDepth: Int = DEFAULT_MAX_DEPTH) {
     private val undoStack = ArrayDeque<T>()
     private val redoStack = ArrayDeque<T>()
 
+    /**
+     * The **identity of the state the caller is in now** — a name for "this version of the document",
+     * not a count of steps.
+     *
+     * It exists so that "is the document dirtier than the file?" is a question about the document and
+     * not a boolean somebody has to remember to clear: the editor records the id at a successful save
+     * (the *save point*) and compares it afterwards. Undoing back to a saved state returns the same id,
+     * so the document is clean again without anyone counting; a new edit, or a new branch after a redo
+     * was dropped, gets a fresh one, so it cannot be mistaken for the saved state even when the bytes
+     * happen to be identical.
+     *
+     * The ids travel on their own stacks, in step with the snapshots, and [clear] starts a new state.
+     */
+    var stateId: Long = 0L
+        private set
+
+    /** The state id each snapshot in [undoStack] / [redoStack] restores, index for index. */
+    private val undoIds = ArrayDeque<Long>()
+    private val redoIds = ArrayDeque<Long>()
+
+    /** The id the next recorded state gets — never reused, so no two states of one history collide. */
+    private var nextState = 1L
+
     /** True when there is at least one undo step available. */
     val canUndo: Boolean get() = undoStack.isNotEmpty()
     /** True when there is at least one redo step available. */
@@ -36,8 +59,14 @@ class EditHistory<T>(private val maxDepth: Int = DEFAULT_MAX_DEPTH) {
      */
     fun record(before: T) {
         undoStack.addLast(before)
-        while (undoStack.size > maxDepth) undoStack.removeFirst()
+        undoIds.addLast(stateId)
+        while (undoStack.size > maxDepth) {
+            undoStack.removeFirst()
+            undoIds.removeFirst()
+        }
         redoStack.clear()
+        redoIds.clear()
+        stateId = freshState()
     }
 
     /**
@@ -46,8 +75,12 @@ class EditHistory<T>(private val maxDepth: Int = DEFAULT_MAX_DEPTH) {
      * @return Previous state to restore, or null if no undo available.
      */
     fun undo(current: T): T? {
-        val prev = undoStack.removeLastOrNull() ?: return null
+        // The ids are the stacks' own length, so an empty history is still what decides emptiness here.
+        val previousId = undoIds.removeLastOrNull() ?: return null
+        val prev = undoStack.removeLast()
         redoStack.addLast(current)
+        redoIds.addLast(stateId)
+        stateId = previousId
         return prev
     }
 
@@ -57,14 +90,22 @@ class EditHistory<T>(private val maxDepth: Int = DEFAULT_MAX_DEPTH) {
      * @return Next state to restore, or null if no redo available.
      */
     fun redo(current: T): T? {
-        val next = redoStack.removeLastOrNull() ?: return null
+        val nextId = redoIds.removeLastOrNull() ?: return null
+        val next = redoStack.removeLast()
         undoStack.addLast(current)
+        undoIds.addLast(stateId)
+        stateId = nextId
         return next
     }
 
-    /** Clear both undo and redo stacks. */
+    /** Clear both undo and redo stacks, and start a state that is nobody's earlier state. */
     fun clear() {
         undoStack.clear()
+        undoIds.clear()
         redoStack.clear()
+        redoIds.clear()
+        stateId = freshState()
     }
+
+    private fun freshState(): Long = nextState++
 }

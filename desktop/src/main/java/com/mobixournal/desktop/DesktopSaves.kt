@@ -133,7 +133,7 @@ object DesktopSaves {
     class SaveRefused(message: String) : IllegalStateException(message)
 
     /** Move [temp] over [target] — one rename where the filesystem allows it. */
-    private fun replace(temp: File, target: File) {
+    internal fun replace(temp: File, target: File) {
         try {
             Files.move(
                 temp.toPath(),

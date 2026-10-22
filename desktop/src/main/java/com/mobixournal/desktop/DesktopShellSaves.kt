@@ -28,7 +28,11 @@ fun DesktopShellState.save(): List<Uncompilable>? {
     val tab = tabs.active ?: return null
     return runCatching { tab.saveBack() }
         .onFailure { failure = describeSaveFailure(it) }
-        .onSuccess { failure = null }
+        .onSuccess {
+            failure = null
+            // The file holds the edits now, so the crash snapshot of the old ones goes.
+            noteSaved(tab)
+        }
         .getOrNull()
 }
 
@@ -46,6 +50,8 @@ fun DesktopShellState.saveAs(file: File): List<Uncompilable>? {
         .onFailure { failure = describeSaveFailure(it) }
         .onSuccess {
             failure = null
+            // Settled before the tab moves: the snapshot is keyed by the file it stood in for.
+            noteSaved(tab)
             tab.rehome(file)
         }
         .getOrNull()

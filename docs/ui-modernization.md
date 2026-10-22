@@ -230,8 +230,8 @@ Everything the chrome does can also be done from the keyboard:
 | Key | Action |
 |---|---|
 | `Ctrl + T`, `+` | open a document; a file already open activates its tab instead of opening twice |
-| `Ctrl + W`, `×` | close the tab, activating its neighbour |
-| `Ctrl + S` | save the active document back into the container it was opened as |
+| `Ctrl + W`, `×` | close the tab, activating its neighbour — asking first while it has unsaved edits |
+| `Ctrl + S` | save the active document back into the container it was opened as; unavailable while the file already holds it |
 | `Ctrl + Shift + S` | Save As — the name's suffix chooses the container |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the active tab's last command |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
@@ -246,6 +246,11 @@ Everything the chrome does can also be done from the keyboard:
 | `1` `2` `3` | pick favourite colour 1 / 2 / 3 |
 | `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
 | `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
+
+Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the floating
+glass over the page rather than closing silently; `Esc` is Cancel. The window's X goes through the same
+path, so neither door can lose work, and a tab with unsaved edits wears a dot in the accent after its
+label (`docs/desktop-workstation.md`).
 
 **The two history commands have defined states, not just a binding.** `Ctrl + Z` and `Ctrl + Shift + Z`
 act on the **active tab's own** `EditHistory` — undoing in one document never reaches into another — and

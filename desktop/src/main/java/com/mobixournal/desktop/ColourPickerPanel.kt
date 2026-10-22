@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -105,9 +104,9 @@ internal fun ColourPickerPanel(
         }
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            PickerButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
+            PanelButton(label = "Cancel", primary = false, enabled = true, onClick = onCancel)
             Spacer(Modifier.width(8.dp))
-            PickerButton(
+            PanelButton(
                 label = "Set",
                 primary = true,
                 // An invalid field has no colour to commit: the last valid one is already the ink, so a
@@ -177,25 +176,6 @@ private fun HexField(text: String, modifier: Modifier, onText: (String) -> Unit)
             .background(DesktopTheme.activeSlot, DesktopTheme.capsuleShape)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )
-}
-
-/** One capsule button of the panel: the accent for **Set**, the steel for **Cancel**. */
-@Composable
-private fun PickerButton(label: String, primary: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .alpha(if (enabled) 1f else 0.4f)
-            .background(
-                if (primary) DesktopTheme.accent else DesktopTheme.activeSlot,
-                DesktopTheme.capsuleShape,
-            )
-            .pointerInput(label, enabled) {
-                if (enabled) detectTapGestures { onClick() }
-            }
-            .padding(horizontal = 16.dp, vertical = 7.dp),
-    ) {
-        Text(label, color = if (primary) DesktopTheme.desk else DesktopTheme.ink, style = DesktopTheme.body)
-    }
 }
 
 /** `x` as a 0..1 fraction of the node's width (pointer events arrive in pixels). */

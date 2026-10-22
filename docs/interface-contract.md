@@ -93,6 +93,11 @@ On the desktop every surface wears `Modifier.hoverFill()` (`GlassEdge.kt`), and 
 the hovered pixel against the unhovered one, so a control that answers only its tooltip — as the rail did
 — fails.
 
+A **status readout** is the one thing that is not interactive, and it is not exempt from colour: the
+desktop's dirty dot is a token mark that is either there or absent, with no hover, focus or picked state —
+those five belong to the control beside it (the close glyph). `DesktopLifecycleTest` reads the dot out of
+the strip's pixels, so a readout that stops being drawn fails the build.
+
 ## 7. Motion
 
 Only `DesignTokens.GlassMotion` (stiffness, damping, fade). No bespoke `tween`, no `animateFloatAsState`

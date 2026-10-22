@@ -277,12 +277,12 @@ Consequences worth knowing:
   on the strip while the canvas still shows the *previous* tab; `snapshotActiveTab` skips a tab whose
   parse is still in flight, for the same reason; and `TabStore.hydrate` leaves a tab **unhydrated**
   when its snapshot exists but cannot be parsed, so the unreadable bytes are never overwritten by the
-  blank stand-in. Writing is atomic for the same end — a snapshot lands through a `.tmp` sibling and a
-  rename, so a kill mid-write can't leave a truncated file that the next launch would fail to read.
-  Handing an unhydrated tab to the other pane copies the snapshot *file* (`TabStore.adopt`) rather
-  than parsing it.
-- Tabs that were opened from a file keep that `content://` URI, so **Save** after a restart still
-  writes back to the same document.
+  blank stand-in. Writing is atomic for the same end — a `.tmp` sibling and a rename, so a kill mid-write
+  can't leave a truncated file; the other pane gets a snapshot *file* (`TabStore.adopt`), not a parse.
+- Tabs opened from a file keep its `content://` URI, so **Save** after a restart still writes back there.
+- **The desktop window keeps its own crash snapshots.** While a tab is dirty, `desktop/` writes a
+  self-contained `.mobix` into `%APPDATA%\MobiXournal\recovery\` beside an `.origin` sidecar naming the
+  file; a start adopts it as a `… (recovered)` tab, and a save or a discard deletes it.
 - **The tab overview draws previews from the same snapshots.** The top bar's grid button
   (`ui/TabOverviewPopup.kt`) shows one card per tab, each the page that tab was left on, rasterised by
   `render/PageThumbnail.kt` — `BackgroundRenderer` + `PageRenderer` into a small bitmap, so a preview

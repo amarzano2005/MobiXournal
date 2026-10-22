@@ -52,6 +52,16 @@ class DesktopDocument(
     val backdrop: PageBackdrop,
     /** What a `.mobix` write has to keep: the container, the board's cells and its `canvas.json`. */
     val shape: DocumentEncoder.SaveShape = DocumentEncoder.SaveShape(),
+    /**
+     * The file whose bytes [source]'s **lazy** pages come from — the same as [file] everywhere except a
+     * **recovered** tab, whose pages were read from its crash snapshot while [file] is the origin a save
+     * writes back to.
+     *
+     * A `.mobix` save repacks over the archive its pages came from and copies the pages nobody touched.
+     * With the two confused, a recovered tab's save would copy the *origin's* untouched-looking page over
+     * the recovered edit; this is the field that keeps the repack source and the destination apart.
+     */
+    val pageSource: File = file,
 ) : AutoCloseable {
 
     /**
@@ -146,8 +156,8 @@ class DesktopDocument(
      * of being rebuilt — and everywhere else it still carries the `assets/` entries its pages name.
      */
     fun saveShapeFor(target: File): DocumentEncoder.SaveShape = shape.copy(
-        carriedFrom = file,
-        repackOver = target.takeIf { it.absoluteFile == file.absoluteFile },
+        carriedFrom = pageSource,
+        repackOver = target.takeIf { it.absoluteFile == pageSource.absoluteFile },
     )
 
     /** True once [close] ran — a tab that was replaced or deduplicated must not keep its reader alive. */
@@ -203,13 +213,56 @@ object DocumentLoader {
      * which. The entry is read directly rather than through a reader, so the wrong guess cannot leave a
      * half-open document behind.
      */
-    private fun openZip(file: File): DesktopDocument {
-        val (declared, hasContentXml) = ZipFile(file).use { zip ->
-            val mimetype = zip.getEntry("mimetype")?.let { entry ->
-                zip.getInputStream(entry).use { it.readBytes().toString(Charsets.UTF_8).trim() }
+    /**
+     * The container [load] would open [file] as, read from its **bytes** without decoding the document —
+     * or null when the bytes are not a document this window opens.
+     *
+     * Used by the crash recovery, which needs to know what a tab's own file is (a `.mobix` or a `.xopp`)
+     * before it adopts a snapshot standing in for it: saving must write the user's container, not the
+     * snapshot's.
+     */
+    fun containerOf(file: File): DesktopContainer? = runCatching {
+        when (val kind = FileKind.of(leadingBytes(file))) {
+            FileKind.GZIP, FileKind.XML -> DesktopContainer.XOPP_GZIP
+            FileKind.ZIP -> {
+                val (declared, hasContentXml) = declaration(file)
+                when {
+                    declared == MobixFormat.MIMETYPE -> DesktopContainer.MOBIX
+                    hasContentXml -> DesktopContainer.XOPP_ZIP
+                    else -> null
+                }
             }
-            mimetype to (zip.getEntry("content.xml") != null)
+            else -> null
         }
+    }.getOrNull()
+
+    /**
+     * Open the crash [snapshot] as the tab for [origin] — what a recovered tab holds.
+     *
+     * The pages come from the snapshot (they are the edits), while the **file**, the container and what
+     * a save has to carry stay the origin's: saving a recovered `.xopp` must write a `.xopp` back to the
+     * name the user knows, never a `.mobix` archive with a `.xopp` name. Backgrounds travel inside the
+     * snapshot (`DesktopRecovery` writes a self-contained `.mobix`), so a PDF or a picture still paints;
+     * an *external* reference beside a `.xopp` is the one thing a snapshot cannot carry, and it comes
+     * back when the file itself is reopened.
+     */
+    fun loadRecovered(snapshot: File, origin: File): DesktopDocument {
+        val recovered = load(snapshot)
+        return DesktopDocument(
+            file = origin,
+            source = recovered.source,
+            model = recovered.model,
+            container = containerOf(origin) ?: recovered.container,
+            backdrop = recovered.backdrop,
+            shape = recovered.shape,
+            // The pages are the snapshot's: a save must rebuild from them, never repack the origin's
+            // entries over the edits (which would write the old page back under a clean-looking save).
+            pageSource = snapshot,
+        )
+    }
+
+    private fun openZip(file: File): DesktopDocument {
+        val (declared, hasContentXml) = declaration(file)
         return when {
             declared == MobixFormat.MIMETYPE ->
                 openMobix(file)
@@ -262,6 +315,14 @@ object DocumentLoader {
             reader.close()
             throw failure
         }
+    }
+
+    /** What a ZIP declares: its `mimetype` entry (null when absent) and whether it holds `content.xml`. */
+    private fun declaration(file: File): Pair<String?, Boolean> = ZipFile(file).use { zip ->
+        val mimetype = zip.getEntry("mimetype")?.let { entry ->
+            zip.getInputStream(entry).use { it.readBytes().toString(Charsets.UTF_8).trim() }
+        }
+        mimetype to (zip.getEntry("content.xml") != null)
     }
 
     private fun openZippedXopp(file: File): DesktopDocument {

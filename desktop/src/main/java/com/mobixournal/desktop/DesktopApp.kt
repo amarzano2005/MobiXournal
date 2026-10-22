@@ -29,8 +29,12 @@ import java.io.File
  * carries no palette of its own.
  */
 @Composable
-fun FrameWindowScope.DesktopApp(initial: File? = null) {
-    val state = remember { DesktopShellState() }
+fun FrameWindowScope.DesktopApp(
+    initial: File? = null,
+    state: DesktopShellState = remember { DesktopShellState(recovery = DesktopRecovery()) },
+    /** What the window does once every dirty tab has been answered — `exitApplication`, in `Main.kt`. */
+    onExit: () -> Unit,
+) {
     val focus = remember { FocusRequester() }
 
     /** The system picker. `FileDialog`'s filter is ignored on Windows, so it is a convenience only. */
@@ -60,8 +64,15 @@ fun FrameWindowScope.DesktopApp(initial: File? = null) {
         if (dir != null && name != null) state.saveAs(File(dir, name))
     }
 
-    LaunchedEffect(initial) { initial?.let(state::open) }
+    // Recovery first: a snapshot is newer than the file it stands for, so a file named on the command
+    // line then lands on its recovered tab instead of opening a second view of the older bytes.
+    LaunchedEffect(initial) {
+        state.recover()
+        initial?.let(state::open)
+    }
     LaunchedEffect(Unit) { focus.requestFocus() }
+    // The window's X asked the shell first (`Main`), and the shell says when every answer is in.
+    LaunchedEffect(state.exitAllowed) { if (state.exitAllowed) onExit() }
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.
     DisposableEffect(Unit) { onDispose { state.tabs.closeAll() } }
 

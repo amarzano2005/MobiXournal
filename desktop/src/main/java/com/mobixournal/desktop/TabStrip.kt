@@ -5,11 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
@@ -43,7 +45,8 @@ import kotlin.math.roundToInt
  *
  * Each tab shows its document's label and a monoline close glyph; the active one is the only one drawn
  * as a raised surface, so "which document am I in" is answered by one thing instead of by a border, a
- * colour and a shadow at once. A **double-click edits the label in place** — a tab label is a label,
+ * colour and a shadow at once. A tab whose edits are not in the file yet carries a small accent dot after
+ * the label — the strip's only status readout, and the reason closing it asks before it goes. A **double-click edits the label in place** — a tab label is a label,
  * not the file's name — and **dragging sideways reorders** the strip. The `+` at the end is the same
  * open action the header button and `Ctrl+T` invoke.
  *
@@ -116,6 +119,14 @@ fun TabStrip(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 160.dp),
                     )
+                }
+                if (tab.isDirty) {
+                    // An **unsaved edit**, as the family's one status readout on the strip: a single
+                    // accent dot beside the label, absent when the file holds everything on the page.
+                    // It is not a control — the clickable thing beside it is the close glyph — so it
+                    // carries no hover, focus or disabled state (`docs/interface-contract.md` §6).
+                    Spacer(Modifier.width(6.dp))
+                    Box(Modifier.size(DIRTY_DOT_DP.dp).background(DesktopTheme.accent, CircleShape))
                 }
                 Spacer(Modifier.weight(1f))
                 CloseGlyph(onClose = { onClose(index) })
@@ -206,3 +217,6 @@ private fun AddTabButton(onOpen: () -> Unit) {
 
 /** Fallback width of a tab before its first layout pass has been measured. */
 private const val TAB_FALLBACK_PX = 140f
+
+/** The dirty dot's diameter: the smallest mark the strip can show and still be seen at arm's length. */
+private const val DIRTY_DOT_DP = 6

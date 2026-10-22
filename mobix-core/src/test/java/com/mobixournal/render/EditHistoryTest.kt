@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -80,5 +81,35 @@ class EditHistoryTest {
         h.clear()
         assertFalse(h.canUndo)
         assertFalse(h.canRedo)
+    }
+
+    /**
+     * The identity a save point is kept as: an undo back to a recorded state answers **that** state's
+     * id, so "do I match the file?" survives walking the history. A new edit is a new id even when the
+     * bytes look the same, and [EditHistory.clear] never reuses one.
+     */
+    @Test fun stateIdFollowsTheHistoryAndReturnsOnUndo() {
+        val h = EditHistory<String>()
+        val opened = h.stateId
+        h.record("a")
+        val firstEdit = h.stateId
+        assertNotEquals("an edit is a new state", opened, firstEdit)
+
+        h.undo("b")
+        assertEquals("an undo back to an untouched state is that state's id", opened, h.stateId)
+        h.redo("a")
+        assertEquals("and a redo returns to the edited one", firstEdit, h.stateId)
+
+        h.record("a")
+        assertNotEquals("a new edit gets a new id even when it restores the same bytes", firstEdit, h.stateId)
+    }
+
+    @Test fun clearStartsAStateNoEarlierStepNames() {
+        val h = EditHistory<String>()
+        h.record("a")
+        val before = h.stateId
+        h.clear()
+        assertNotEquals(before, h.stateId)
+        assertFalse("nothing to undo after a clear", h.canUndo)
     }
 }

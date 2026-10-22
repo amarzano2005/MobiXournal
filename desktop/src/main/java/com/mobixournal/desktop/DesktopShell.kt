@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.PenPalette
 import java.io.File
+import kotlinx.coroutines.delay
+
+/**
+ * How quiet the edits have to be before a crash snapshot is written: a snapshot is the whole notebook,
+ * so it is taken between bursts of drawing rather than during one. Short enough that a crash loses
+ * seconds, long enough that a continuous stroke never writes one.
+ */
+private const val RECOVERY_QUIET_MS = 3_000L
 
 /**
  * The window's content, and everything it needs to be driven — **without a window**.
@@ -62,10 +71,35 @@ import java.io.File
 class DesktopShellState(
     /** The window's settings file: the tool placement today, the Interface section once it has a window. */
     private val settings: DesktopSettings = DesktopSettings(),
+    /**
+     * The crash snapshots dirty tabs are written to, or null for a shell that must not touch the disk
+     * (a render or command test). The window passes [DesktopRecovery] and nothing else does.
+     */
+    val recovery: DesktopRecovery? = null,
 ) {
 
     /** The open documents and which one is active. */
     val tabs = DesktopTabs()
+
+    /**
+     * The close the window is asking about, or null while nothing is being asked ([CloseRequest]).
+     *
+     * It lives on the shell, not on the tab, because the answers — Save, Discard, Cancel — are the
+     * window's decisions: a tab cannot close itself without them.
+     */
+    var closeRequest: CloseRequest? by mutableStateOf(null)
+        internal set
+
+    /** Set once every dirty tab has been answered: the window's X may go on and close it. */
+    var exitAllowed: Boolean by mutableStateOf(false)
+        internal set
+
+    /**
+     * Bumped by every committed edit, so the shell can write a crash snapshot after a **quiet** burst
+     * rather than per stroke ([flushRecovery]). Not the dirty state itself: that is the tab's save point.
+     */
+    var editRevision: Int by mutableStateOf(0)
+        internal set
 
     /** The last failed open, or null — cleared on the next successful one or by [dismissFailure]. */
     var failure by mutableStateOf<OpenFailure?>(null)
@@ -211,7 +245,7 @@ class DesktopShellState(
             .onFailure { failure = describeOpenFailure(it) }
     }
 
-    /** Close the active tab, activating its neighbour. */
+    /** Close the active tab, activating its neighbour. A dirty tab must go through [requestCloseActive]. */
     fun closeActive() {
         tabs.closeActive()
     }
@@ -241,6 +275,11 @@ class DesktopShellState(
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
+        // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.
+        if (event.key == Key.Escape && closeRequest != null) {
+            cancelClose()
+            return true
+        }
         // A colour panel that is up owns `Esc`: it closes before anything else the key might mean.
         if (event.key == Key.Escape && editing != null) {
             cancelColourEdit()
@@ -296,8 +335,13 @@ class DesktopShellState(
                 onSavePicker()
                 return true
             }
+            // Ctrl+S is **unavailable** on a tab whose file already holds it: there is nothing to
+            // write, and a command that does nothing must say so by not being handled (the state a
+            // header control greys out on). Save As stays available — a clean document can still be
+            // written somewhere else.
             ShellCommand.SAVE -> {
-                if (tabs.active == null) return false
+                val tab = tabs.active ?: return false
+                if (!tab.isDirty) return false
                 save()
                 return true
             }
@@ -306,7 +350,7 @@ class DesktopShellState(
         val tab = tabs.active ?: return false
         return when (command) {
             ShellCommand.CLOSE_TAB -> {
-                closeActive(); true
+                requestCloseActive(); true
             }
             ShellCommand.NEXT_TAB -> {
                 tabs.next(); true
@@ -369,6 +413,21 @@ class DesktopShellState(
  * comes and goes with a gesture.
  */
 /**
+ * The crash snapshot, written once the edits have been quiet for a moment: a snapshot is the whole
+ * notebook, so per-stroke writes would trade one risk for another. A cancelled coroutine **is** the
+ * debounce — the next edit cancels the write the previous one scheduled — and the shell's state bump
+ * ([DesktopShellState.editRevision]) is the only thing that starts it.
+ */
+@Composable
+private fun RecoverySnapshots(state: DesktopShellState) {
+    LaunchedEffect(state.editRevision) {
+        if (state.editRevision == 0) return@LaunchedEffect
+        delay(RECOVERY_QUIET_MS)
+        state.flushRecovery()
+    }
+}
+
+/**
  * The colour panel, held for its exit.
  *
  * It is a transient surface: it may lie over the page (a band may not), and it is centred so the strip
@@ -400,13 +459,14 @@ private fun BoxScope.ColourPanelHost(state: DesktopShellState) {
 
 @Composable
 fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: Modifier = Modifier) {
+    RecoverySnapshots(state)
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
         Header(
             tabs = state.tabs,
             sidebarVisible = state.sidebarVisible,
             placement = state.toolPlacement,
             onActivate = { index -> state.tabs.activate(index) },
-            onClose = { index -> state.tabs.close(index) },
+            onClose = { index -> state.requestCloseTab(index) },
             onMove = { from, to -> state.tabs.move(from, to) },
             onOpen = onOpenPicker,
             onToggleSidebar = { state.toggleSidebar() },
@@ -467,8 +527,12 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                             onViewport = { tab.viewport = it },
                             onFit = { tab.fit = it },
                             // An edit changes the page's picture, so the thumbnail cached for it is
-                            // stale; the other pages keep theirs.
-                            onEdited = { index -> state.thumbnails[tab.key]?.remove(index) },
+                            // stale; the other pages keep theirs. It also starts the clock on the
+                            // crash snapshot: the shell writes one after the edits go quiet.
+                            onEdited = { index ->
+                                state.thumbnails[tab.key]?.remove(index)
+                                state.noteEdit()
+                            },
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                     }
@@ -484,6 +548,7 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                 }
             }
             ColourPanelHost(state)
+            CloseDialogHost(state)
         }
         StatusBar(state.active)
     }
@@ -621,75 +686,6 @@ private fun HeaderGlyph(
             // The chrome ink, lit or not: on the tablet a header glyph is white and only its capsule
             // changes tone when it is active.
             draw(DesktopTheme.chromeInk, DesktopTheme.glyphStroke.toPx())
-        }
-    }
-}
-
-/** The bottom bar: page, zoom, container and how far through the document the page is. */
-@Composable
-private fun StatusBar(tab: DesktopTab?) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(DesktopTheme.statusHeight)
-            .bandSurface()
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (tab == null) {
-            Text("no document", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-            return@Row
-        }
-        val zoom = tab.viewport.zoom
-        // The label names the fit that is *in use*: `AUTO` is a question (is this page a sheet or a
-        // strip?), and a status bar that answered it differently from the canvas would be lying about
-        // what its own zoom readout means. The page is already in the reader's cache either way.
-        val page = remember(tab, tab.page) { runCatching { tab.document.page(tab.page) }.getOrNull() }
-        val fit = page?.let { tab.fitFor(it.width.toFloat(), it.height.toFloat()) } ?: tab.fit
-        Text(pageLabel(tab.page, tab.pageCount), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
-        Spacer(Modifier.width(14.dp))
-        Text(zoomLabel(zoom), color = DesktopTheme.inkSecondary, style = DesktopTheme.numeric)
-        Spacer(Modifier.width(14.dp))
-        Text(
-            text = when (fit) {
-                FitMode.NONE -> "free zoom"
-                FitMode.WIDTH -> "fit width"
-                FitMode.PAGE, FitMode.AUTO -> "fit page"
-            },
-            color = DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-        )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = "${tab.document.container.label} · ${tab.file.name}",
-            color = DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-            maxLines = 1,
-        )
-        Spacer(Modifier.width(12.dp))
-        ProgressBar(pageProgress(tab.page, tab.pageCount))
-    }
-}
-
-@Composable
-private fun ProgressBar(fraction: Float) {
-    Box(Modifier.width(90.dp).height(3.dp).background(DesktopTheme.activeSlot)) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .background(DesktopTheme.accent),
-        )
-    }
-}
-
-@Composable
-private fun Notice(title: String, detail: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(title, color = DesktopTheme.ink, style = DesktopTheme.title)
-            Spacer(Modifier.height(8.dp))
-            Text(detail, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         }
     }
 }

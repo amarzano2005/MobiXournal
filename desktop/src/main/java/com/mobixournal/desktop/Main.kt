@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -32,12 +33,16 @@ internal fun initialDocument(args: Array<String>): File? {
 fun main(args: Array<String>) {
     val initial = initialDocument(args)
     application {
+        // The window's close request is a **question** first: the shell answers whether it may go, and a
+        // dirty tab turns the X into the same Save / Discard / Cancel dialog the tab's own close glyph
+        // raises. The X must not be able to bypass it, which is why the state is created here.
+        val state = remember { DesktopShellState(recovery = DesktopRecovery()) }
         Window(
-            onCloseRequest = ::exitApplication,
+            onCloseRequest = { if (state.requestExit()) exitApplication() },
             state = rememberWindowState(width = 1100.dp, height = 1000.dp),
             title = "MobiXournal Desktop",
         ) {
-            DesktopApp(initial)
+            DesktopApp(initial = initial, state = state, onExit = ::exitApplication)
         }
     }
 }

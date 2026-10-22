@@ -153,14 +153,36 @@ arguments and `File(args[0])` does not exist: `initialDocument` puts the pieces 
 first one is not itself a file, so a path with spaces works from the command line as it does from the
 picker.
 
+### Unsaved edits: the dot, the question, and a snapshot
+
+A tab is **dirty** when the document holds commands its file does not, and the window does not answer that
+with a flag somebody clears: it is the tab's history **state id** compared with the **save point** recorded
+on open and on every successful save (`EditHistory.stateId`). Undoing back to the saved state makes the tab
+clean again, and a new edit gets a new id even when the bytes happen to match, so nothing can be mistaken for
+the file. The strip draws it as one accent dot after the label — a status readout, absent when the tab is
+clean.
+
+Closing a dirty tab (its `×`, `Ctrl+W`) or the window (its X) is a **question**, not a close: *Save*,
+*Discard*, *Cancel*, in the floating glass over the page, naming the document at stake. The X goes through
+the same path (`requestExit`), so it cannot bypass the question; with several dirty tabs the dialog stays up
+and asks about the next one, and the window closes only when none is left. A failed save **keeps the tab open
+and dirty** with the reason on screen — the one outcome that cannot lose the work. `Ctrl+S` is unavailable
+while the file already holds the document.
+
+While a tab is dirty the window also writes a **crash snapshot**: a self-contained `.mobix` in
+`%APPDATA%\MobiXournal\recovery\`, keyed by a digest of the file's path, with a two-line `.origin` sidecar
+naming the tab and the file. It is written once per quiet burst of edits (three seconds), not per stroke,
+because a snapshot is the whole notebook. A start that finds one opens it as `… (recovered)`, dirty, standing
+for the original path: `loadRecovered` keeps the **origin** as the save target and the **snapshot** as the
+repack source, so a save rebuilds the pages from the recovered copy instead of copying the file's older ones
+back over them. Saving, discarding or closing the tab deletes the snapshot; nothing in `recovery/` is a save.
+
 ### What the window does not do
 
 - No **selection** (marquee, lasso), no text, shape, plot or circuit authoring, and no layer editing:
   pen, highlighter and eraser are the tools that work, and every other slot only picks a tool
-  (`desktop-eraser-and-selection-on-shared-geometry`). There is no dirty state and no close confirmation
-  yet (`desktop-dirty-state-close-confirmation-and-crash-safety`), and no header buttons for undo and
-  redo — the commands exist and know when they are unavailable, so a control only has to read
-  `canUndo`/`canRedo`.
+  (`desktop-eraser-and-selection-on-shared-geometry`). There are no header buttons for undo and redo —
+  the commands exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
 - No **tablet pressure, tilt or azimuth**: the pen draws at the strip's width through the shared pressure
@@ -199,7 +221,12 @@ highlighter stays one width, and the page-point mapping undoes the display densi
 undo half drives the **shell's own commands**: a stroke, `Ctrl+Z` (the model's stroke count and the
 page's painted ink both return to what they were), a second undo that reports nothing left, a redo
 that repaints the stroke, an eraser drag that is a single step however many times its tip bites, and a
-save that starts a new history because the archive the old steps named is closed. Every render is
+save that starts a new history because the archive the old steps named is closed. `DesktopLifecycleTest`
+is the lifecycle headless: an edit makes a tab dirty, a save and an undo back to the save point make it
+clean again, closing a dirty tab reports the question instead of closing it, the window asks about each
+dirty tab before it exits, a snapshot written by one shell is adopted by the next and deleted once it is
+saved, the strip's dot is drawn in the token's accent only while there are unsaved edits, and the question
+itself is rendered over the page. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at — including
 `glass-parity.png`, the same panel in the tablet's material and in this window's, written by
 `GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which

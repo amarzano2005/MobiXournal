@@ -30,6 +30,12 @@ class DesktopTab(
     page: Int = 0,
     viewport: Viewport = Viewport(),
     fit: FitMode = FitMode.AUTO,
+    /**
+     * The crash snapshot this tab was adopted from, or null when the tab came from its own file
+     * ([DesktopRecovery]). A recovered tab is dirty from the start: the snapshot holds edits the file
+     * does not.
+     */
+    recoveredFrom: File? = null,
 ) {
     /**
      * The document this tab shows. A Save As **re-homes** the tab onto the file it just wrote, so the
@@ -72,6 +78,35 @@ class DesktopTab(
     /** True while an undone step can be re-applied. */
     var canRedo: Boolean by mutableStateOf(false)
         private set
+
+    /**
+     * The [EditHistory.stateId] the file on disk matches — the **save point**, moved on open, on a
+     * successful save and on a Save As.
+     *
+     * Deliberately not a boolean edited by hand at every command: a flag is one early return away from
+     * losing work, while an id compared with the history cannot disagree with the history. Undoing back
+     * to the saved state makes the tab clean again, which is exactly what the user sees.
+     */
+    private var savePoint: Long = history.stateId
+
+    /**
+     * True when the document holds edits the file does not — what the strip's dot shows and what makes
+     * closing the tab (or the window) ask first. Snapshot state, because both of those read it.
+     */
+    var isDirty: Boolean by mutableStateOf(false)
+        private set
+
+    /** The crash snapshot this tab was recovered from, if any; cleared once its edits are in the file. */
+    var recoveredFrom: File? = recoveredFrom
+        private set
+
+    init {
+        if (recoveredFrom != null) {
+            // The snapshot is newer than the file it stands for, so the tab starts with unpublished work.
+            savePoint = NO_SAVE_POINT
+            isDirty = true
+        }
+    }
 
     /** The layers switched off on [page] — the set the painter and the thumbnails skip. */
     fun hiddenOn(page: Int): Set<Int> = hidden[page].orEmpty()
@@ -129,16 +164,26 @@ class DesktopTab(
         return true
     }
 
-    /** The two flags the commands and a header control read, kept in step with the stacks. */
+    /** The three readouts the commands and the chrome keep, kept in step with the history. */
     private fun syncHistory() {
         canUndo = history.canUndo
         canRedo = history.canRedo
+        isDirty = history.stateId != savePoint
     }
 
-    /** Drop every step: the document was replaced wholesale (a save, a Save As, a closed archive). */
+    /**
+     * Drop every step and move the **save point** to where the document stands now: the file was just
+     * replaced wholesale (a save, a Save As), so it is the new baseline and the tab is clean.
+     */
     private fun forgetHistory() {
         history.clear()
+        savePoint = history.stateId
         syncHistory()
+    }
+
+    /** Forget the crash snapshot this tab was adopted from — a save or a discard has settled it. */
+    fun forgetRecovery() {
+        recoveredFrom = null
     }
 
     /**
@@ -166,7 +211,7 @@ class DesktopTab(
         // original, and a tab must never be left holding a document whose handle it already released.
         document = DocumentLoader.load(target)
         // The closed archive's pages are what the old steps would restore; after a save the file is the
-        // new baseline, so the history starts here (and `desktop-dirty-state-*` will move the save point).
+        // new baseline, so the history starts here and the save point moves with it.
         forgetHistory()
         failure?.let { throw it }
         return staged.uncompiled
@@ -201,6 +246,9 @@ class DesktopTab(
  *  - closing the last tab empties the shell;
  *  - reordering never changes which tab is active.
  */
+/** A save point no history state can hold: a recovered tab starts dirty, whatever it was opened on. */
+private const val NO_SAVE_POINT = Long.MIN_VALUE
+
 class DesktopTabs {
 
     private val tabs = mutableStateListOf<DesktopTab>()
@@ -248,6 +296,23 @@ class DesktopTabs {
 
     /** Close the active tab; returns true when a document is still open. */
     fun closeActive(): Boolean = close(activeIndex)
+
+    /**
+     * Add an already-built tab — a **recovered** one, which carries its own snapshot and dirty state —
+     * unless its document is already open: then the caller's copy is closed and the open tab activated,
+     * the same rule [open] follows for a second open of one file.
+     */
+    fun adopt(tab: DesktopTab): DesktopTab {
+        val existing = tabs.indexOfFirst { it.key == tab.key }
+        if (existing >= 0) {
+            tab.document.close()
+            activeIndex = existing
+            return tabs[existing]
+        }
+        tabs += tab
+        activeIndex = tabs.lastIndex
+        return tab
+    }
 
     fun activate(index: Int): DesktopTab? {
         if (index !in tabs.indices) return null
