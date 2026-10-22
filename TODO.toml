@@ -372,20 +372,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "draw-the-desktop-glass-rim-and-its-inner-feather"
-title = "Draw the desktop glass rim and its inner feather"
-description = "Once the rim's numbers are tokens (task order 976), the desktop must actually wear the edge. Add desktop/src/main/java/com/mobixournal/desktop/GlassEdge.kt: a Modifier.glassRim() that draws, after the content, the same two strokes the app's drawFloatingRim draws — a 1 dp round-rect stroke inset by half its width, filled with a vertical gradient from RIM_ALPHA_TOP to RIM_ALPHA_BOTTOM of the ambient ink, and a second, feathered stroke at RIM_INNER_WIDTH_SCALE * width inset past the first, at RIM_INNER_ALPHA_SCALE of that alpha — plus a Modifier.glassSurface(shape) that composes fill + clip + rim so a surface cannot take one without the other. Apply it to every floating surface the window puts over the page: the colour flyout, the size flyout, the colour picker panel, the tool-placement popup and the failed-open card (the card keeps its opaque panel fill, by the reason documented in DesktopTheme.panel, but adopts the rim). The bands (header, rail/ribbon, status bar, sidebar) must NOT take it — docs/chrome.md says a band is not a floating surface. Verify headlessly in a desktop test: render a floating panel over the desk, sample the top edge row and the bottom edge row and assert the top edge is brighter than the bottom one (the gradient, which a flat border cannot produce), assert the panel's fill is still the floating alpha, and re-run the existing render suite so no band moved."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 977
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-floating-glass-motion"
 title = "Desktop floating glass motion"
 description = "The app's floating surfaces open with a liquid-glass spring: scale from 0.82 to 1 (damping 0.74, stiffness 550) while the alpha fades in over 110 ms, and draw back to 0.82 and out over 170 ms while the host holds the window for 230 ms (app/src/main/java/com/mobixournal/ui/theme/FloatingGlass.kt). The desktop's picker panel and flyouts appear and disappear instantly. Move the numbers into mobix-core's design tokens as a GlassMotion block (start scale, damping, stiffness, fade-in ms, fade-out ms, exit hold ms), have the app read them, and give the desktop a Modifier.glassSpring(visible) with the same behaviour on its in-composition surfaces — the colour picker panel first, since it is drawn inside the shell and not in a Popup. Popups are a known gap: a desktop Popup has no exit animation to hold, so document that they simply appear (as they do today) rather than pretending otherwise. Verify headlessly: compose the picker panel in a scene, step the animation at t=0 and at its end, and assert the panel's drawn alpha rises from about 0.0 to 1.0 and its bounds grow from the 0.82 scale to full, with the total inside the documented timings."
@@ -394,20 +380,6 @@ level = "task"
 category = "feature"
 urgency = "normal"
 order = 978
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "render-the-two-glass-materials-side-by-side"
-title = "Render the two glass materials side by side"
-description = "Parity that is only described is parity nobody checks. Add desktop/src/test/java/com/mobixournal/desktop/GlassParityRenderTest.kt: compose the same panel twice in one headless ImageComposeScene — once in the app's floating material (DESIGN tokens GLASS_DARK at FLOATING_PANEL_ALPHA, the rim, the 20 dp corner) and once in the desktop's DesktopTheme material — over the same true-black desk at the same size, and write desktop/build/desktop-render/glass-parity.png with the two side by side and a label under each. Then assert what can be asserted: both panels' fill alpha rounds to the same tone over the desk, both draw a rim whose top edge is brighter than its bottom edge, both use the same corner radius, and the two panels' interior pixels differ from the desk. This is the artefact a person opens when the question is \"does the PC look like the tablet\" — the test keeps it current, and the render is looked at rather than trusted."
-status = "active"
-level = "task"
-category = "test"
-urgency = "low"
-order = 979
 created = 2026-10-22
 tags = ["desktop"]
 rebuild = false
