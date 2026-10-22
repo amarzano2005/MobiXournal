@@ -7,9 +7,15 @@
  * It is the same recogniser the on-lift path uses ([ShapeRecognizer], and it shares that path's
  * `recognizeShapes` setting), just triggered by stillness rather than by release: each time the
  * stroke advances the tip by a slop, a short timer is armed; if the tip rests for [SHAPE_DWELL_MS]
- * the timer fires and rewrites the stroke in place. Any further sample moves the tip, re-arms the
- * timer, and if the snapped geometry is then extended the recogniser simply runs again on the new
- * samples — a hold is a *preview* of the snap, not a lock.
+ * the timer fires and the recognised figure is **painted in place of the stroke**.
+ *
+ * A hold is a preview, not a rewrite. The samples stay exactly as drawn — the figure is drawn *over*
+ * them for as long as the stroke has not grown (`holdFigure` on the view) — so a hand that keeps
+ * going gets its own ink back rather than a stroke made of clean geometry with raw samples stitched
+ * onto its end. Rewriting `current` instead, which is what this used to do, also made the commit
+ * re-read the recogniser's own output: a held square is four corners plus the closing repeat, too
+ * few points for the polygon fit but a perfectly round set for the circle fit — so a square came
+ * back a *circle*. The figure the hold found is therefore carried to the commit.
  *
  * Extensions on [DrawingSurfaceView], so they read the stroke state directly; the timer fields live
  * on the view in `DrawingSurfaceView.kt`.
@@ -41,6 +47,12 @@ internal const val SHAPE_DWELL_SLOP_PT = 3.0
  * last sample. Idempotent, so it is safe on every MOVE.
  */
 internal fun DrawingSurfaceView.maybeArmHoldSnap(points: List<StrokePoint>) {
+    // The pen has drawn on since the snap: the figure on screen was a preview of a stroke that no
+    // longer exists, so the user's own ink comes back and the timer starts over.
+    if (holdFigure != null && points.size != holdSamples) {
+        holdFigure = null
+        holdSnapped = false
+    }
     if (!recognizeShapes || shaping) return
     val last = points.lastOrNull() ?: return
     if (hypot(last.x - holdAnchorX, last.y - holdAnchorY) >= SHAPE_DWELL_SLOP_PT) {
@@ -75,8 +87,10 @@ internal fun DrawingSurfaceView.fireHoldSnap() {
     if (tool != Tool.PEN && tool != Tool.HIGHLIGHTER) return
     val pts = current ?: return
     if (pts.size < 3) return
-    val shape = ShapeRecognizer.recognize(pts, pts.map { it.width }.average()) ?: return
-    current = ArrayList(shape)
+    val figure = ShapeRecognizer.classify(pts, pts.map { it.width }.average()) ?: return
+    // The raw samples stay exactly as drawn; only what is *painted* changes (see `holdFigure`).
+    holdFigure = figure
+    holdSamples = pts.size
     holdSnapped = true
     render()
 }

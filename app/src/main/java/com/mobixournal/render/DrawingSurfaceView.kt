@@ -229,6 +229,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var holdAnchorY = 0.0
     /** True once the in-progress stroke was snapped by a hold, so the commit keeps the clean shape. */
     internal var holdSnapped = false
+    /** The hold's figure: painted instead of the ink, and the shape kept at lift-off if still (see
+     * `DrawingSurfaceHoldSnap.kt`). */
+    internal var holdFigure: RecognisedFigure? = null
+    /** [current]'s sample count when [holdFigure] fired; a grown stroke is no longer that figure. */
+    internal var holdSamples = 0
     internal var erasing = false
     internal var placing = false
     internal var placeDownX = 0f

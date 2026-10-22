@@ -359,7 +359,10 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
         }
         return
     }
-    val pts = current ?: return
+    // A held stroke paints the figure the hold found, in place of the ink — the raw samples stay
+    // untouched underneath (`holdFigure` in `DrawingSurfaceView.kt`).
+    val preview = holdFigure?.takeIf { holdSamples == current?.size }
+    val pts = preview?.points ?: current ?: return
     strokePainter.draw(
         canvas, pts, tool, strokeColor(), box.scale, box.leftPx - scrollX, box.topPx - scrollY,
         currentLineStyle,

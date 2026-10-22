@@ -105,17 +105,19 @@ fallback to the page centre before the canvas has been laid out.
 ## Hold-to-snap (`DrawingSurfaceHoldSnap.kt`)
 
 **Hold-to-snap (`DrawingSurfaceHoldSnap.kt`).** The shape recogniser is also reachable *before* lift-off:
-resting the stylus on the glass for `SHAPE_DWELL_MS` (300 ms) rewrites the stroke in progress as the
-recognised geometry, so the user watches the snap happen. Each sample that moves the tip past
-`SHAPE_DWELL_SLOP_PT` (3 pt in page space, so it reads the same at any zoom) re-arms a
-`postDelayed` timer; the timer firing replaces `current` with the recogniser's vertex list and marks
-the stroke `holdSnapped`, so the commit that follows keeps it uniform-width like a shape tool's
-output (`commitCurrent` ORs that flag into its own `snapped`). It is a **preview, not a lock** — no
-state outside the stroke is touched until lift-off, so carrying on drawing simply gives the recogniser
-a longer stroke to read, and a wrong guess costs nothing. The timer is cancelled by every move,
-commit, cancelled gesture and stylus takeover (`abandonInProgress`/`cancelGesture`), which is why the
-gesture plumbing had to know about it at all. It shares the `recognizeShapes` setting — and the pen
-and highlighter tool filter — with the on-lift path, so there is one recogniser and one switch.
+resting the stylus on the glass for `SHAPE_DWELL_MS` (300 ms) **paints** the recognised geometry in
+place of the stroke in progress, so the user watches the snap happen. Each sample that moves the tip
+past `SHAPE_DWELL_SLOP_PT` (3 pt in page space, so it reads the same at any zoom) re-arms a
+`postDelayed` timer; the timer firing stores the figure in `holdFigure` with the stroke's sample
+count, and `drawCurrent` paints that figure instead of the samples. The samples themselves are never
+rewritten: `commitCurrent` keeps the held figure only while the count still matches, so lift-off on a
+resting tip commits the shape (uniform-width, like a shape tool's output) and a hand that draws on
+gets its own ink back the moment a sample arrives. (Rewriting `current` instead — what this used to do
+— left a half-clean, half-raw stroke and made the commit re-read the recogniser's own output, turning
+a held square into a circle.) The timer is cancelled by every move, commit, cancelled gesture and
+stylus takeover (`abandonInProgress`/`cancelGesture`), which is why the gesture plumbing had to know
+about it at all. It shares the `recognizeShapes` setting — and the pen and highlighter tool filter —
+with the on-lift path, so there is one recogniser and one switch.
 
 ## Living figures
 

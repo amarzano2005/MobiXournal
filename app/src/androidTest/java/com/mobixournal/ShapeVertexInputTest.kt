@@ -53,6 +53,25 @@ class ShapeVertexInputTest {
         assertTrue(ElementBounds.isHitTestable(shape))
     }
 
+    /**
+     * A figure whose stroke was **held** (dwell-snapped) before lift-off is committed as the shape the
+     * hold found, not as a fresh reading of its own clean geometry.
+     *
+     * The snapped square is four corners plus the closing repeat; the recogniser's polygon fit treats
+     * that as too few points for four sides and falls through to the circle match, so re-reading it at
+     * lift-off turned a held square into a circle — a stroke, and no figure to edit.
+     */
+    @Test
+    fun aHeldSquareIsCommittedAsTheSquareTheDwellFound() = onView { view ->
+        view.tool = Tool.PEN
+        drawWobblySquareAndHold(view)
+
+        val shapes = elementsOf(view).filterIsInstance<ParametricShapeElement>()
+        assertEquals("the held square is one living figure, not a circle stroke", 1, shapes.size)
+        assertEquals("four corners", 4, shapes.single().vertices.size)
+        assertEquals(0, elementsOf(view).filterIsInstance<Stroke>().size)
+    }
+
     /** Dragging a corner handle moves **that** corner and leaves the other two where they were. */
     @Test
     fun draggingACornerHandleDeformsTheShape() = onView { view ->
@@ -113,6 +132,28 @@ class ShapeVertexInputTest {
         stylus(view, tokens)
     }
 
+    /**
+     * A hand-drawn square with a **rest** before the pen leaves the glass: the stylus stays down for
+     * longer than [HOLD_MS], which is what arms and fires the dwell, and the lift then commits.
+     */
+    private fun drawWobblySquareAndHold(view: DrawingSurfaceView) {
+        val corners = listOf(120.0 to 120.0, 380.0 to 120.0, 380.0 to 330.0, 120.0 to 330.0)
+        val tokens = ArrayList<Pair<Float, Float>>()
+        for (c in corners.indices) {
+            val (x0, y0) = corners[c]
+            val (x1, y1) = corners[(c + 1) % corners.size]
+            for (i in 0 until 24) {
+                val t = i / 24.0
+                // A millimetre of wobble, so the stroke is hand-drawn rather than exact.
+                val wobble = if (i % 3 == 0) 1.5 else 0.0
+                tokens += pageMap().x(x0 + (x1 - x0) * t + wobble) to
+                    pageMap().y(y0 + (y1 - y0) * t + wobble)
+            }
+        }
+        tokens += pageMap().x(corners[0].first) to pageMap().y(corners[0].second)
+        stylusHeld(view, tokens)
+    }
+
     private fun shapeOf(view: DrawingSurfaceView): ParametricShapeElement =
         elementsOf(view).filterIsInstance<ParametricShapeElement>().single()
 
@@ -143,6 +184,42 @@ class ShapeVertexInputTest {
             x0 + (x1 - x0) * t to y0 + (y1 - y0) * t
         }
         stylus(view, listOf(x0 to y0) + path, liftAt = path.last())
+    }
+
+    /**
+     * A stylus gesture that **rests** on the glass at the end for longer than the dwell threshold
+     * before lifting, which is the gesture hold-to-snap exists for.
+     */
+    private fun stylusHeld(view: DrawingSurfaceView, points: List<Pair<Float, Float>>) {
+        val downTime = SystemClock.uptimeMillis()
+        val props = arrayOf(MotionEvent.PointerProperties().apply {
+            id = 0
+            toolType = MotionEvent.TOOL_TYPE_STYLUS
+        })
+        fun send(action: Int, x: Float, y: Float) {
+            val coords = arrayOf(MotionEvent.PointerCoords().apply {
+                this.x = x
+                this.y = y
+                pressure = 1f
+                size = 1f
+            })
+            val event = MotionEvent.obtain(
+                downTime, SystemClock.uptimeMillis(), action, 1, props, coords,
+                0, 0, 1f, 1f, 0, 0, SOURCE_STYLUS, 0,
+            )
+            try {
+                view.onTouchEvent(event)
+            } finally {
+                event.recycle()
+            }
+        }
+        val (x0, y0) = points.first()
+        send(MotionEvent.ACTION_DOWN, x0, y0)
+        for ((x, y) in points.drop(1)) send(MotionEvent.ACTION_MOVE, x, y)
+        // The tip rests: the view's `postDelayed` timer needs the main looper to run, so the wait has
+        // to happen here on the test thread while it is idle.
+        SystemClock.sleep(HOLD_MS)
+        send(MotionEvent.ACTION_UP, points.last().first, points.last().second)
     }
 
     /** A whole stylus gesture through view px, ending with a lift at [liftAt] (default: the last). */
@@ -217,6 +294,9 @@ class ShapeVertexInputTest {
         const val VIEW_W = 800
         const val VIEW_H = 1400
         const val SOURCE_STYLUS = 0x00004002
+
+        /** Comfortably past `SHAPE_DWELL_MS` (300 ms), which is internal to the render package. */
+        const val HOLD_MS = 600L
         /** Mirrors `DrawingSurfaceDefaults.GAP_PX`. */
         const val GAP_PX = 24f
     }

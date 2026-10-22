@@ -28,6 +28,8 @@ import com.mobixournal.render.Snapping
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.zoomOut
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -149,11 +151,12 @@ class StylusInputTest {
 
     /**
      * The ring has a second summon: with the barrel left on its default *erase*, binding the button's
-     * **double-click** to *Radial HUD* opens it on the second press, and that press's release commits
-     * the slot under the pen — the same flick, one click longer, without giving up the held eraser.
+     * **double-click** to *Radial HUD* opens it on the second press — and it stays there as a picker.
+     * The release that follows that press is the release of the click that opened it, so it must not
+     * double as the pick: a slot is chosen by tapping it.
      */
     @Test
-    fun barrelDoubleClickOpensTheHud() = onView { view ->
+    fun barrelDoubleClickOpensTheHudAndItStaysUntilASlotIsTapped() = onView { view ->
         view.tool = Tool.PEN
         view.inputSettings = InputSettings(
             barrelAction = BarrelAction.ERASE,
@@ -180,20 +183,27 @@ class StylusInputTest {
         )
         assertTrue("the second click opened the ring", view.hud != null)
 
-        // Flick onto the width slot (slot 1, after the single swatch) and release to commit it.
+        // The release of the opening click leaves the picker up and picks nothing.
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS)
+        assertTrue("the opening click's release keeps the ring up", view.hud != null)
+        assertEquals("and picks nothing", null, picked)
+
+        // The pen leaving hover range is not a pick either.
+        hoverAt(view, MotionEvent.ACTION_HOVER_EXIT, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS)
+        assertTrue("the ring waits for a tap, not for the pen", view.hud != null)
+
+        // Tap the width slot (slot 1, after the single swatch): that is the pick.
         val density = view.resources.displayMetrics.density
         val (sx, sy) = RadialHud.slotCenter(
             200f, 300f, 1, view.hudSlots.size, RadialHud.RING_RADIUS_DP * density,
         )
-        hoverAt(
-            view, MotionEvent.ACTION_HOVER_MOVE, sx, sy, MotionEvent.TOOL_TYPE_STYLUS,
-            MotionEvent.BUTTON_STYLUS_PRIMARY,
-        )
-        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, sx, sy, MotionEvent.TOOL_TYPE_STYLUS)
+        val downTime = now()
+        send(view, downTime, downTime, MotionEvent.ACTION_DOWN, floatArrayOf(sx), floatArrayOf(sy), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
+        send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(sx), floatArrayOf(sy), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
 
-        assertEquals("the release committed the flicked slot", HudSlot.Width(width), picked)
-        assertEquals("the release took the ring away", null, view.hud)
-        assertEquals("a flick writes no ink", 0, strokesOf(view).size)
+        assertEquals("the tap committed the slot it landed on", HudSlot.Width(width), picked)
+        assertEquals("the tap took the ring away", null, view.hud)
+        assertEquals("a tap on the ring writes no ink", 0, strokesOf(view).size)
     }
 
     /** Two clicks *slower* than the double-click window are two singles, and do nothing. */
@@ -261,6 +271,10 @@ class StylusInputTest {
     @Test
     fun sameGestureKeepsItsDetailAtEveryZoom() = onView { view ->
         view.tool = Tool.PEN
+        // What this measures is decimation, not snapping: a 200 pt ripple 2.5 pt off a straight line
+        // is exactly what the shape recogniser legitimately flattens into a two-point line, which
+        // would leave no vertices to compare. The recogniser has its own tests.
+        view.recognizeShapes = false
 
         val wide = drawRipple(view, zoom = 1f)
         // Six zoom-out steps ≈ 26% — the magnification of a multi-page overview.
@@ -562,17 +576,21 @@ class StylusInputTest {
     }
 
     /**
-     * The snap itself: a hand-drawn near-horizontal line, held still, is replaced *in place* by one
-     * clean segment **before lift-off** — the whole point of the hold, since the stroke visible while
-     * the tip is still down is the recognised one, and the user can keep drawing if it guessed wrong.
+     * The snap itself: a hand-drawn near-horizontal line, held still, is **previewed** as one clean
+     * segment before lift-off — the whole point of the hold, since what the tip is looking at while it
+     * rests is the recognised geometry.
      *
-     * The armed callback is run directly rather than waiting out its 500 ms: the timer is a
+     * It is a preview and not a rewrite: the samples stay exactly as drawn, so a hand that keeps
+     * going gets its own stroke back instead of a stroke made of clean geometry with raw samples
+     * stitched onto the end.
+     *
+     * The armed callback is run directly rather than waiting out its 300 ms: the timer is a
      * `postDelayed` on the view, and this harness's view is never attached to a window, so the
      * framework only queues that post until an attach that never comes. What the hold *does* when it
      * fires is what these assertions pin; the timing is `aStillTipKeepsTheHoldArmedAndLiftOffDropsIt`'s.
      */
     @Test
-    fun aHeldStrokeIsSnappedInPlaceBeforeLiftOff() = onView { view ->
+    fun aHeldStrokeIsPreviewedAsGeometryBeforeLiftOff() = onView { view ->
         view.tool = Tool.PEN
         val map = pageMap()
         val downTime = now()
@@ -584,28 +602,37 @@ class StylusInputTest {
             send(view, downTime, if (i == 0) downTime else now(), action, floatArrayOf(map.x(px)), floatArrayOf(map.y(py)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
         }
 
-        val freehand = view.current!!
-        assertTrue("the freehand stroke has many samples (${freehand.size})", freehand.size > 20)
+        val freehand = view.current!!.size
+        assertTrue("the freehand stroke has many samples ($freehand)", freehand > 20)
         val armed = view.holdSnapRunnable
         assertTrue("the resting tip has the hold armed", armed != null)
 
         armed!!.run()
 
         assertTrue("the held stroke was snapped while the tip was still down", view.holdSnapped)
-        val snappedShape = view.current!!
-        val snappedSize = snappedShape.size
-        val snappedYs = snappedShape.map { it.y }
-        assertEquals("the wobble became one clean segment", 2, snappedSize)
-        assertEquals("flattened onto the line's own direction", snappedYs[0], snappedYs[1], 1.0)
-        assertTrue("and the segment spans what was drawn", kotlin.math.abs(snappedShape[1].x - snappedShape[0].x) > 150.0)
+        val preview = view.holdFigure
+        assertNotNull("the hold found a figure to preview", preview)
+        assertEquals("the preview is one clean segment", 2, preview!!.points.size)
+        assertEquals(
+            "flattened onto the line's own direction",
+            preview.points[0].y,
+            preview.points[1].y,
+            1.0,
+        )
+        assertTrue(
+            "and the segment spans what was drawn",
+            kotlin.math.abs(preview.points[1].x - preview.points[0].x) > 150.0,
+        )
+        assertEquals("the samples themselves are untouched", freehand, view.current!!.size)
 
-        // A preview, not a lock: further movement grows the stroke again, and it can be re-snapped.
+        // A preview, not a lock: drawing on drops it and the user's own stroke is what is left.
         send(view, downTime, now(), MotionEvent.ACTION_MOVE, floatArrayOf(map.x(420.0)), floatArrayOf(map.y(300.5)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
-        assertTrue("drawing on extends the snapped stroke (${view.current!!.size})", view.current!!.size > snappedSize)
+        assertTrue("drawing on extends the raw stroke (${view.current!!.size})", view.current!!.size > freehand)
+        assertNull("and takes the preview away", view.holdFigure)
 
         send(view, downTime, now(), MotionEvent.ACTION_UP, floatArrayOf(map.x(420.0)), floatArrayOf(map.y(300.5)), intArrayOf(MotionEvent.TOOL_TYPE_STYLUS))
         assertEquals("the lift committed one stroke", 1, strokesOf(view).size)
-        assertTrue("and it is not the raw sample list", strokesOf(view)[0].points.size < freehand.size)
+        assertTrue("and it is not the raw sample list", strokesOf(view)[0].points.size < freehand)
     }
 
     // --- harness -------------------------------------------------------------------------------

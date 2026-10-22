@@ -97,6 +97,33 @@ class ShapeHandleScreenshotTest {
         instrumentation.waitForIdleSync()
         assertTrue("the Edit shape panel opened", hasText(instrumentation, "Show side lengths"))
         capture("shape-panel.png")
+
+        // Both readouts on, so the capture shows where the labels land: outside each side, inside
+        // each corner — the placement that used to put every number on the outline.
+        assertTrue("the panel's two switches are there", clickAllSwitches(instrumentation) == 2)
+        assertTrue("the panel's Done button takes the tap", clickText(instrumentation, "Done"))
+        SystemClock.sleep(1200)
+        instrumentation.waitForIdleSync()
+        capture("shape-labels.png")
+    }
+
+    /**
+     * Tap every switch in the open panel, and answer how many there were. Compose exposes a
+     * `SwitchRow`'s toggle as a checkable node, which is the one thing here that is not addressed by
+     * its text.
+     */
+    private fun clickAllSwitches(instrumentation: android.app.Instrumentation): Int {
+        val found = ArrayList<android.view.accessibility.AccessibilityNodeInfo>()
+        fun walk(node: android.view.accessibility.AccessibilityNodeInfo?) {
+            if (node == null) return
+            if (node.isCheckable) found += node
+            for (i in 0 until node.childCount) walk(node.getChild(i))
+        }
+        walk(instrumentation.uiAutomation.rootInActiveWindow)
+        for (node in found) {
+            if (!node.isChecked) node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)
+        }
+        return found.size
     }
 
     // ---- the figure ----------------------------------------------------------------------------
@@ -186,13 +213,27 @@ class ShapeHandleScreenshotTest {
         resolver.openOutputStream(uri)!!.use { shot.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
+    /** Click the node carrying [text], or its nearest clickable ancestor (a button's label is not). */
+    private fun clickText(instrumentation: android.app.Instrumentation, text: String): Boolean {
+        var node = find(instrumentation.uiAutomation.rootInActiveWindow, null, text)
+        while (node != null) {
+            if (node.isClickable) {
+                return node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)
+            }
+            node = node.parent
+        }
+        return false
+    }
+
     private fun find(
         node: android.view.accessibility.AccessibilityNodeInfo?,
-        label: String,
+        label: String?,
+        text: String? = null,
     ): android.view.accessibility.AccessibilityNodeInfo? {
         if (node == null) return null
-        if (node.contentDescription?.toString() == label) return node
-        for (i in 0 until node.childCount) find(node.getChild(i), label)?.let { return it }
+        if (label != null && node.contentDescription?.toString() == label) return node
+        if (text != null && node.text?.toString() == text) return node
+        for (i in 0 until node.childCount) find(node.getChild(i), label, text)?.let { return it }
         return null
     }
 

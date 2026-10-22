@@ -27,6 +27,7 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
     shaping = shapeKind != null
     cancelHoldSnap()
     holdSnapped = false
+    holdFigure = null
     gestureStartDoc = doc
     gesturePointerId = event.getPointerId(pointerIndex)
     val box = gestureBoxAt(event.getX(pointerIndex), event.getY(pointerIndex))
@@ -480,6 +481,10 @@ internal fun DrawingSurfaceView.commitCurrent() {
     shaping = false
     val holdWasSnapped = holdSnapped
     holdSnapped = false
+    // What the hold found is the figure to keep, but only while the stroke has not grown since it
+    // fired: a stroke the user carried on drawing is theirs again and gets re-read below.
+    val heldFigure = holdFigure?.takeIf { holdSamples == raw.size }
+    holdFigure = null
     var figure: RecognisedFigure? = null
 
     // Shape tools emit exact geometry — only freehand samples get thinned.
@@ -495,7 +500,7 @@ internal fun DrawingSurfaceView.commitCurrent() {
         //
         // The recogniser gets the *raw* samples, not the thinned ones: thinning is done lazily, only
         // on the strokes that weren't recognised (see [recogniseStroke]).
-        val recognised = recogniseStroke(raw)
+        val recognised = heldFigure ?: recogniseStroke(raw)
         figure = recognised
         snapped = recognised != null || holdWasSnapped
         recognised?.points
