@@ -211,7 +211,7 @@ internal fun PaletteFlyout(
 ) {
     Row(
         Modifier
-            .background(DesktopTheme.panel, DesktopTheme.panelShape)
+            .glassSurface()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -295,7 +295,7 @@ private fun SizeFlyout(ink: DesktopInk, onPick: (Float) -> Unit) {
     val picked = PenPalette.widthSlot(ink.width)
     Row(
         Modifier
-            .background(DesktopTheme.panel, DesktopTheme.panelShape)
+            .glassSurface()
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),

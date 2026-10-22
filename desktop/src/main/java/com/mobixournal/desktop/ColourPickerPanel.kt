@@ -62,8 +62,7 @@ internal fun ColourPickerPanel(
     Column(
         modifier
             .width(320.dp)
-            .background(DesktopTheme.panel, DesktopTheme.panelShape)
-            .border(1.dp, DesktopTheme.hairline, DesktopTheme.panelShape)
+            .glassSurface()
             .padding(16.dp),
     ) {
         Text(title, color = DesktopTheme.ink, style = DesktopTheme.title)

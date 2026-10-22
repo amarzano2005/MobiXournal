@@ -37,12 +37,12 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 internal fun OpenFailureCard(failure: OpenFailure, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    val shape = DesktopTheme.panelShape
     Column(
         modifier
             .widthIn(max = 520.dp)
-            .background(DesktopTheme.panel, shape)
-            .border(1.dp, DesktopTheme.hairline, shape)
+            // The opaque fill stays (see the note above); only the family's edge is adopted, because a
+            // card that comes and goes over the page is the same material as the menus, not a band.
+            .glassSurface()
             .clickable(role = Role.Button, onClick = onDismiss)
             .padding(horizontal = 18.dp, vertical = 14.dp),
     ) {

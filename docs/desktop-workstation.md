@@ -111,7 +111,10 @@ out of the pixels: the page starts after the rail's lane and below the ribbon's 
 placement — the mechanical form of "a band never lies on the page". `OpenFailureTest`
 pins what a failed open says in each of its three cases and how a space-split command line is put back
 together. Every render is
-written under `desktop/build/desktop-render/` so it can be looked at.
+written under `desktop/build/desktop-render/` so it can be looked at — including
+`glass-parity.png`, the same panel in the tablet's material and in this window's, written by
+`GlassParityRenderTest`, and `glass-edge.png`, which `GlassEdgeTest` samples: the rim must be brighter at
+the top than at the bottom, or it is a border and not the family's edge.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
 phase order and the done criteria, and its children are the atomic tasks (orders 934–1120) and the

@@ -503,7 +503,7 @@ private fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlacemen
             ) {
                 Column(
                     Modifier
-                        .background(DesktopTheme.panel, DesktopTheme.panelShape)
+                        .glassSurface()
                         .padding(8.dp),
                 ) {
                     Text("Tool placement", color = DesktopTheme.inkMuted, style = DesktopTheme.label)

@@ -51,7 +51,11 @@ object DesktopTheme {
      */
     val panel: Color = tokenColour(DesignTokens.GLASS_DARK_RGB)
 
-    /** One edge, one pixel, 12 % white — the rim of a floating surface, never a second rule on a band. */
+    /**
+     * One edge, one pixel, 12 % white — the hairline a *control* wears (a swatch's ring), never a second
+     * rule on a band. A floating surface takes [glassRim] instead: a flat border was what made the
+     * window's panels look like boxes while the tablet's looked like glass.
+     */
     val hairline: Color = tokenColour(DesignTokens.HAIRLINE_RGB, DesignTokens.HAIRLINE_ALPHA)
 
     /** The luminescent accent: what is active, never a wash. */
@@ -72,8 +76,11 @@ object DesktopTheme {
     /** The ink a refusal is written in (a page that cannot be read). */
     val danger: Color = tokenColour(DesignTokens.DANGER_DARK_RGB)
 
+    /** The corner every panel turns at (`panelCornerRadiusDp`), as a value the glass edge can take. */
+    val panelRadius = DesignTokens.PANEL_CORNER_RADIUS_DP.dp
+
     /** The corner every panel turns at (`panelCornerRadiusDp`). */
-    val panelShape: RoundedCornerShape = RoundedCornerShape(DesignTokens.PANEL_CORNER_RADIUS_DP.dp)
+    val panelShape: RoundedCornerShape = RoundedCornerShape(panelRadius)
 
     /** The corner a capsule turns at (`capsuleCornerRadiusDp`): tabs, chips, round buttons. */
     val capsuleShape: RoundedCornerShape = RoundedCornerShape(DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp)

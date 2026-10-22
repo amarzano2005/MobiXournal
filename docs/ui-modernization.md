@@ -193,7 +193,14 @@ The rail scrolls vertically and the ribbon horizontally rather than hiding a too
 window, and hovering a slot reveals the name-and-hotkey pill. A slot only sets the tool **selection** —
 nothing draws with it until the editing phase. At the tail of each strip sit the two **ink slots** — the
 colour in use in a capsule and a dot at the current width — each opening a glass flyout: the palette as
-one horizontally scrolling row of swatches, and the three width slots `S`/`M`/`L`. Picking one writes it
+one horizontally scrolling row of swatches, and the three width slots `S`/`M`/`L`. Every floating
+surface the window puts over the page — the two flyouts, the colour panel, the placement pop-up and the
+failed-open card — wears the family's **drawn edge** (`Modifier.glassSurface()` in `GlassEdge.kt`: the
+shared rim tokens, lit at the top and feathered inward) rather than a flat border; the bands do not,
+because a band is not a panel lying over the page (`docs/chrome.md`). The panel corner is the shared
+`panelCornerRadiusDp`, so the PC's pop-up and the tablet's are cut the same way, and
+`GlassParityRenderTest` writes the two materials side by side to `glass-parity.png` so that claim can be
+looked at instead of believed. Picking one writes it
 straight to the settings file (`ink.colour`, `ink.width`), and the palette itself is `palette.colours`,
 read through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour, a duplicate
 or an empty palette in front of the picker. The row ends in the **editable custom slot** — empty until
