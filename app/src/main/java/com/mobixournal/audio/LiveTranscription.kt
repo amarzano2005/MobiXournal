@@ -297,11 +297,9 @@ internal class LiveTranscription(
         worker?.interrupt()
         worker?.join(WORKER_JOIN_MS)
         // A worker that did not finish its window is still inside the recogniser: closing a native
-        // recogniser under a running decode is worse than letting the last one go.
-        if (worker?.isAlive != true) {
-            recognizer?.close()
-            recognizer = null
-        }
+        // recogniser under a running decode is worse than letting the last one go, so that case is
+        // left to the worker's own exit (work() closes it in its finally).
+        if (worker?.isAlive != true) closeRecognizer()
         writeTranscript()
         return transcript()
     }
@@ -311,14 +309,24 @@ internal class LiveTranscription(
 
     private fun work() {
         val open = openRecognizer() ?: return
-        while (!stopped) {
-            val span = try {
-                spans.poll(POLL_MS, TimeUnit.MILLISECONDS)
-            } catch (_: InterruptedException) {
-                break
-            } ?: continue
-            process(open, span)
+        try {
+            while (!stopped) {
+                val span = try {
+                    spans.poll(POLL_MS, TimeUnit.MILLISECONDS)
+                } catch (_: InterruptedException) {
+                    break
+                } ?: continue
+                process(open, span)
+            }
+        } finally {
+            closeRecognizer()
         }
+    }
+
+    /** Free the native recogniser once, whether the worker exited or [stop] beat it to it. */
+    private fun closeRecognizer() {
+        val open = synchronized(lock) { recognizer.also { recognizer = null } } ?: return
+        open.close()
     }
 
     private fun openRecognizer(): WhisperOfflineTranscriber? {
