@@ -147,6 +147,55 @@ class StylusInputTest {
         assertEquals("the double-click undid the stroke", 0, strokesOf(view).size)
     }
 
+    /**
+     * The ring has a second summon: with the barrel left on its default *erase*, binding the button's
+     * **double-click** to *Radial HUD* opens it on the second press, and that press's release commits
+     * the slot under the pen — the same flick, one click longer, without giving up the held eraser.
+     */
+    @Test
+    fun barrelDoubleClickOpensTheHud() = onView { view ->
+        view.tool = Tool.PEN
+        view.inputSettings = InputSettings(
+            barrelAction = BarrelAction.ERASE,
+            barrelDoubleAction = QuickAction.HUD,
+        )
+        val width = 1.5f
+        view.hudSlots = RadialHud.slots(
+            colors = listOf(0xFF000000.toInt()),
+            customColor = null,
+            widths = listOf(width),
+            tools = listOf(Tool.PEN),
+        )
+        var picked: HudSlot? = null
+        view.onHudPick = { picked = it }
+
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS)
+        hoverClick(view)
+        assertEquals("the first click of the pair opens nothing", null, view.hud)
+
+        // The second press is the double-click: it opens the ring and holds it open.
+        hoverAt(
+            view, MotionEvent.ACTION_HOVER_MOVE, 200f, 300f, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY,
+        )
+        assertTrue("the second click opened the ring", view.hud != null)
+
+        // Flick onto the width slot (slot 1, after the single swatch) and release to commit it.
+        val density = view.resources.displayMetrics.density
+        val (sx, sy) = RadialHud.slotCenter(
+            200f, 300f, 1, view.hudSlots.size, RadialHud.RING_RADIUS_DP * density,
+        )
+        hoverAt(
+            view, MotionEvent.ACTION_HOVER_MOVE, sx, sy, MotionEvent.TOOL_TYPE_STYLUS,
+            MotionEvent.BUTTON_STYLUS_PRIMARY,
+        )
+        hoverAt(view, MotionEvent.ACTION_HOVER_MOVE, sx, sy, MotionEvent.TOOL_TYPE_STYLUS)
+
+        assertEquals("the release committed the flicked slot", HudSlot.Width(width), picked)
+        assertEquals("the release took the ring away", null, view.hud)
+        assertEquals("a flick writes no ink", 0, strokesOf(view).size)
+    }
+
     /** Two clicks *slower* than the double-click window are two singles, and do nothing. */
     @Test
     fun slowBarrelClicksDoNotUndo() = onView { view ->

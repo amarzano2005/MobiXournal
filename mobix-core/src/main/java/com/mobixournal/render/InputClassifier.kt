@@ -109,6 +109,20 @@ enum class QuickAction {
 
     /** Show/hide the chrome (full-page view). */
     TOGGLE_FULL_PAGE,
+
+    /**
+     * Open the pen-tip radial HUD at the nib (`docs/ui-modernization.md`, *The pen-tip HUD*).
+     *
+     * It is the **second** way to summon the ring: [BarrelAction.HUD] opens it on every press of the
+     * held button, this opens it on a double-click instead, so a pen whose button is wanted for
+     * erasing (the default) can still reach the ring. The press that completes the double-click is
+     * what holds the ring open, and its release commits the slot under the pen — exactly the held-HUD
+     * gesture, one click longer.
+     *
+     * Deliberately **not offered to the finger taps**: the ring is anchored at the nib and a tap has
+     * none, so `FingerGesturesSection` filters this value out of its pickers.
+     */
+    HUD,
 }
 
 /**

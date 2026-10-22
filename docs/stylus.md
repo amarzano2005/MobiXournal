@@ -105,9 +105,9 @@ toolbar":
    the hover/generic event stream — never while the tip is down, so it can't interrupt a stroke —
    and it only ever sees *edges*: both streams a pen can report its button on pass through the one
    latch first, so a single press reported twice (a motion bit *and* a key event) is one edge, not a
-   pair,
    and runs the configured `QuickAction` (undo/redo on the surface; the tool and full-page
-   toggles are handed to `EditorScreen` through `onQuickAction`).
+   toggles go to `EditorScreen` through `onQuickAction`; `HUD` opens the ring — its second summon,
+   for a pen that keeps the held button on erasing).
 3. **Finger-draw gate.** With the Settings **"finger draws"** toggle off, a finger **always pans** and
    actuates no tool at all — pen, highlighter, eraser, text, selection and placement all become
    stylus-only. Palm-safe writing on non-stylus devices. It is **off by default** on a first launch
@@ -351,8 +351,8 @@ pinch/scroll paths take it — so a pan or a pinch never fires a tap.
 
 **Detection and meaning are separate.** The detector stops at the finger count; the action comes from
 `FingerTapSettings.twoFingerTapAction` / `threeFingerTapAction` (the same `QuickAction` vocabulary the
-barrel's double-click uses: `NONE`, `UNDO`, `REDO`, `TOGGLE_ERASER`, `TOGGLE_SELECT`,
-`TOGGLE_FULL_PAGE`), resolved by the pure `fingerTapQuickAction()` and run by the surface's one
+barrel's double-click uses, minus `HUD` — the ring needs a nib and a release, so the tap pickers filter
+it out), resolved by the pure `fingerTapQuickAction()` and run by the surface's one
 `runQuickAction()`. Undo and redo are the surface's own, so history, toolbar buttons and the barrel
 shortcut stay one implementation; the tool/chrome toggles go to the editor through `onQuickAction`.
 Both choices live in **Settings → Input → Finger gestures**, are round-tripped by the settings backup,

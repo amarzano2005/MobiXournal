@@ -14,6 +14,7 @@ fun quickActionLabel(action: QuickAction): String = when (action) {
     QuickAction.TOGGLE_ERASER -> "Toggle eraser"
     QuickAction.TOGGLE_SELECT -> "Toggle select"
     QuickAction.TOGGLE_FULL_PAGE -> "Toggle full page"
+    QuickAction.HUD -> "Radial HUD"
 }
 
 /**
@@ -53,7 +54,9 @@ private fun TapActionPicker(selected: QuickAction, onSelect: (QuickAction) -> Un
     OptionGroup(
         title = "Action",
         subtitle = "$hint A tap that turns into a pan or a pinch never fires it.",
-        options = QuickAction.values().toList(),
+        // The ring is anchored at the nib and closed by the button's release; a tap has neither, so
+        // `HUD` is the barrel double-click's alone and is kept out of this list.
+        options = QuickAction.values().filter { it != QuickAction.HUD },
         selected = selected,
         label = { quickActionLabel(it) },
         onSelect = onSelect,

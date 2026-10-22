@@ -155,6 +155,9 @@ internal fun DrawingSurfaceView.runQuickAction(action: QuickAction) {
         QuickAction.NONE -> Unit
         QuickAction.UNDO -> undo()
         QuickAction.REDO -> redo()
+        // The ring's second summon: the click that completes the double-click opens it, and that
+        // press's release is its commit — the held-HUD gesture with one click in front of it.
+        QuickAction.HUD -> summonRadialHud()
         // TOGGLE_ERASER / TOGGLE_SELECT / TOGGLE_FULL_PAGE are applied by the editor, which owns the
         // UI state a toggle needs; the surface just reports the action.
         else -> onQuickAction?.invoke(action)
