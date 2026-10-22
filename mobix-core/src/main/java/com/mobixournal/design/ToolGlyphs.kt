@@ -151,35 +151,73 @@ object ToolGlyphCatalogue {
         GlyphPart.Line(14.4f, 5.8f, 18.2f, 9.6f),
     )
 
-    /** A wide chisel nib over the band it just laid down. */
+    /**
+     * A marker on the pencil's own 45° axis: fat barrel, **flared chisel nib**, and the band it laid.
+     *
+     * The first cut was three strokes — two parallel lines and an underline — which at 20 dp reads as a
+     * struck-through line rather than as a tool. A highlighter is recognised by two things: a body much
+     * fatter than a pen's, and a nib wider than that body. Both are here, and the band underneath is what
+     * separates it from the pencil beside it in the rail.
+     */
     private fun highlighter(): List<GlyphPart> = listOf(
-        GlyphPart.Line(6.7f, 14.4f, 13.9f, 7.2f),
-        GlyphPart.Line(10.1f, 17.8f, 17.3f, 10.6f),
-        GlyphPart.Line(5.3f, 20.6f, 17.8f, 20.6f),
-    )
-
-    /** The block eraser: a parallelogram lying on its corner. */
-    private fun eraser(): List<GlyphPart> = listOf(
+        // A barrel nearly twice the pencil's width, filling the grid corner to corner: the width *is*
+        // the message, and a slim marker beside a pencil is two pencils.
         GlyphPart.Polyline(
             listOf(
-                GlyphPoint(7.2f, 15.8f), GlyphPoint(12f, 10.6f),
-                GlyphPoint(18.7f, 14.4f), GlyphPoint(13.9f, 20.2f),
+                GlyphPoint(15.4f, 1.2f), GlyphPoint(21.4f, 7.2f),
+                GlyphPoint(9f, 19.6f), GlyphPoint(3f, 13.6f),
             ),
             closed = true,
         ),
+        // The collar: the one line that says the wide part is a *nib* and not the end of a card.
+        GlyphPart.Line(5.3f, 11.3f, 11.3f, 17.3f),
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(3f, 13.6f), GlyphPoint(0.8f, 14.6f),
+                GlyphPoint(7.8f, 21.6f), GlyphPoint(9f, 19.6f),
+            ),
+        ),
+        GlyphPart.Line(0.8f, 22.9f, 12.6f, 22.9f),
     )
 
-    /** The whole-stroke eraser: the same block, with two sweeps under it where the stroke was. */
+    /**
+     * The block eraser: a rubber lying on its corner, **split by the crease** where rubber meets sleeve.
+     *
+     * A bare parallelogram is the rhombus tool with a tilt; the crease is the one stroke that says
+     * "eraser" and the only thing that tells this glyph from the whole-stroke one below it.
+     */
+    private fun eraser(): List<GlyphPart> = listOf(
+        // A long, low block, not a small diamond: at 20 dp the old 10-unit square was a blob, and an
+        // eraser needs its length to read as something held in the hand.
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(18f, 5.5f), GlyphPoint(20.9f, 11.6f),
+                GlyphPoint(6f, 18.6f), GlyphPoint(3.1f, 12.5f),
+            ),
+            closed = true,
+        ),
+        // The crease sits a third of the way along, not across the middle: a rubber with its sleeve at
+        // one end reads as an eraser, a block split in half reads as a folded card.
+        GlyphPart.Line(12.9f, 7.8f, 15.8f, 14f),
+    )
+
+    /**
+     * The whole-stroke eraser: the same split block, smaller, over the two sweeps the stroke left.
+     *
+     * The sweeps are what mark it as *whole stroke* rather than *pixel*: the block alone would be the
+     * eraser above, and a second, subtly different eraser is the worst pair a rail can show.
+     */
     private fun eraserWhole(): List<GlyphPart> = listOf(
         GlyphPart.Polyline(
             listOf(
-                GlyphPoint(5.5f, 12.5f), GlyphPoint(10f, 7.5f),
-                GlyphPoint(16f, 12f), GlyphPoint(11.5f, 17f),
+                GlyphPoint(17.1f, 6.4f), GlyphPoint(19.5f, 11.7f),
+                GlyphPoint(6.9f, 17.6f), GlyphPoint(4.5f, 12.3f),
             ),
             closed = true,
         ),
-        GlyphPart.Line(5f, 20.5f, 19f, 20.5f),
-        GlyphPart.Line(8.5f, 17.8f, 15.5f, 17.8f),
+        GlyphPart.Line(12.8f, 8.4f, 15.2f, 13.7f),
+        GlyphPart.Line(2.6f, 20.2f, 21.4f, 20.2f),
+        GlyphPart.Line(6.2f, 22.6f, 17.8f, 22.6f),
     )
 
     /**
@@ -187,16 +225,21 @@ object ToolGlyphCatalogue {
      * other candidate and reads as "move object"; a hand is what every editor uses for "move the view".
      */
     private fun pan(): List<GlyphPart> = listOf(
+        // The mitt: palm and wrist closed as one outline, the way a hand pictogram is built.
         GlyphPart.Polyline(
             listOf(
-                GlyphPoint(7.5f, 11.5f), GlyphPoint(7.5f, 19f), GlyphPoint(9.5f, 21f),
-                GlyphPoint(14.5f, 21f), GlyphPoint(17f, 18f), GlyphPoint(17f, 11.5f),
+                GlyphPoint(7.6f, 11.6f), GlyphPoint(7.6f, 18.4f), GlyphPoint(9.4f, 20.6f),
+                GlyphPoint(15.2f, 20.6f), GlyphPoint(17.2f, 18.2f), GlyphPoint(17.2f, 11.6f),
             ),
+            closed = true,
         ),
-        GlyphPart.Line(9.7f, 11.5f, 9.7f, 5.6f),
-        GlyphPart.Line(12f, 11.5f, 12f, 4.2f),
-        GlyphPart.Line(14.3f, 11.5f, 14.3f, 6.4f),
-        GlyphPart.Line(7.5f, 14.5f, 5f, 11.8f),
+        // Four fingers of four heights, so the silhouette is a hand and not a comb.
+        GlyphPart.Line(9.1f, 11.6f, 9.1f, 6.6f),
+        GlyphPart.Line(11.4f, 11.6f, 11.4f, 4.8f),
+        GlyphPart.Line(13.7f, 11.6f, 13.7f, 6.2f),
+        GlyphPart.Line(16f, 11.6f, 16f, 8.6f),
+        // The thumb leaves the palm's left edge on a curve, not as a stick bolted to it.
+        GlyphPart.Cubic(7.6f, 13.8f, 6.2f, 13.4f, 5.2f, 12.2f, 4.8f, 10.4f),
     )
 
     // --- Selection and authoring ---------------------------------------------------------------
@@ -208,12 +251,43 @@ object ToolGlyphCatalogue {
      * parameter, so a dash drawn as a style would be one picture on the desktop and a solid frame on the
      * tablet. Generated from the same rectangle on both sides, they cannot disagree.
      */
-    private fun marquee(): List<GlyphPart> = dashedRect(4f, 5f, 20f, 19f)
+    private fun marquee(): List<GlyphPart> = listOf(
+        // Four solid corner brackets: the frame's own corners, which is what the eye reads as a
+        // selection handle. Without them the dashes are a rectangle and nothing more.
+        GlyphPart.Line(4f, 8f, 4f, 5f),
+        GlyphPart.Line(4f, 5f, 7.5f, 5f),
+        GlyphPart.Line(16.5f, 5f, 20f, 5f),
+        GlyphPart.Line(20f, 5f, 20f, 8f),
+        GlyphPart.Line(20f, 16f, 20f, 19f),
+        GlyphPart.Line(20f, 19f, 16.5f, 19f),
+        GlyphPart.Line(7.5f, 19f, 4f, 19f),
+        GlyphPart.Line(4f, 19f, 4f, 16f),
+        // One dash at each edge's middle keeps it a *selection* boundary rather than a crop frame.
+        GlyphPart.Line(10.2f, 5f, 13.8f, 5f),
+        GlyphPart.Line(20f, 10.2f, 20f, 13.8f),
+        GlyphPart.Line(10.2f, 19f, 13.8f, 19f),
+        GlyphPart.Line(4f, 10.2f, 4f, 13.8f),
+    )
 
-    /** A loop with its tail. */
+    /**
+     * A lasso: an organic loop whose **tail grows out of the rope** and crosses it.
+     *
+     * A circle with a straight stick under it — the first cut — is a balloon. The loop is drawn as four
+     * Béziers so it has no corners at 20 dp, and the tail starts just **inside** the loop so the two
+     * strokes read as one rope doubling back.
+     */
     private fun lasso(): List<GlyphPart> = listOf(
-        GlyphPart.Circle(12f, 10f, 5.3f),
-        GlyphPart.Line(10f, 15.3f, 7.2f, 20.2f),
+        // Wider than tall and slightly asymmetric: a perfect circle with anything hanging from it is a
+        // magnifying glass, which this window already uses for zoom.
+        GlyphPart.Cubic(12.4f, 4.8f, 15.8f, 4.8f, 18.6f, 6.6f, 18.6f, 9.2f),
+        GlyphPart.Cubic(18.6f, 9.2f, 18.6f, 11.8f, 15.6f, 14.2f, 11.8f, 14.4f),
+        GlyphPart.Cubic(11.8f, 14.4f, 8.6f, 14.6f, 6f, 12.2f, 6f, 9.4f),
+        GlyphPart.Cubic(6f, 9.4f, 6f, 6.8f, 9f, 4.8f, 12.4f, 4.8f),
+        // The rope leaves the loop's **lower left**, drops and hooks back up: a magnifier's handle is a
+        // straight bar leaving at 45°, so a curled tail that turns back on itself cannot be one.
+        GlyphPart.Cubic(8.4f, 13.6f, 6.6f, 14.6f, 5.6f, 16f, 5.8f, 17.6f),
+        GlyphPart.Cubic(5.8f, 17.6f, 6f, 19.6f, 8f, 20.6f, 8.6f, 22.2f),
+        GlyphPart.Cubic(8.6f, 22.2f, 9.8f, 22.8f, 10.6f, 21.6f, 10f, 20.2f),
     )
 
     /** The letter T. */
