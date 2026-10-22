@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
@@ -37,6 +38,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import com.mobixournal.design.PenPalette
 import java.io.File
 
 /**
@@ -91,8 +93,13 @@ class DesktopShellState(
     var palette by mutableStateOf(settings.paletteColours)
         private set
 
+    /** The three colours keys `1`–`3` pick, and `Alt`+digit redefines. */
+    var favourites by mutableStateOf(settings.colourFavourites)
+        private set
+
     /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
-    val stripState: ToolStripState get() = ToolStripState(selection = tools, ink = ink, palette = palette)
+    val stripState: ToolStripState
+        get() = ToolStripState(selection = tools, ink = ink, palette = palette, favourites = favourites)
 
     /** Pick a tool (a slot, or its accelerator): the only thing the strips do until the editing phase. */
     fun selectTool(tool: DesktopTool) {
@@ -109,6 +116,28 @@ class DesktopShellState(
     fun pickWidth(width: Float) {
         ink = ink.withWidth(width)
         settings.inkWidth = ink.width
+    }
+
+    /** Pick favourite [index] — what keys `1`–`3` do. */
+    fun pickFavourite(index: Int) {
+        favourites.getOrNull(index)?.let(::pickColour)
+    }
+
+    /** Make the colour in use favourite [index] — what `Alt`+digit does. */
+    fun setFavourite(index: Int) {
+        if (index !in favourites.indices) return
+        favourites = favourites.toMutableList().also { it[index] = ink.colour }
+        settings.colourFavourites = favourites
+    }
+
+    /**
+     * Step the width one slot up ([direction] `+1`, `]`) or down (`-1`, `[`), stopping at the ends
+     * rather than wrapping: a thin pen must not jump to the thickest one.
+     */
+    fun stepWidth(direction: Int) {
+        val widths = PenPalette.DEFAULT_WIDTHS
+        val slot = PenPalette.widthSlot(ink.width) + direction
+        pickWidth(widths[slot.coerceIn(0, widths.lastIndex)])
     }
 
     /** Move the tool strips, and remember the choice across restarts. */
@@ -164,14 +193,23 @@ class DesktopShellState(
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
-        // A bare letter picks a tool (`B` pen, `Shift+X` axes) before the shell's own commands, which
-        // all need Ctrl or a named key.
+        // The order is the table's: a `Ctrl` command first (`Ctrl+1` stays fit width), then the ink keys
+        // (digits and brackets, none of which is a tool's letter), then the tools.
+        val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed)
+        if (command != null) return apply(command, onOpenPicker)
+        inkCommand(event.key, alt = event.isAltPressed, ctrl = event.isCtrlPressed)?.let { pressed ->
+            when (pressed) {
+                is InkCommand.PickFavourite -> pickFavourite(pressed.index)
+                is InkCommand.SetFavourite -> setFavourite(pressed.index)
+                is InkCommand.StepWidth -> stepWidth(pressed.direction)
+            }
+            return true
+        }
         toolForKey(event.key, shift = event.isShiftPressed, ctrl = event.isCtrlPressed)?.let { tool ->
             selectTool(tool)
             return true
         }
-        val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed) ?: return false
-        return apply(command, onOpenPicker)
+        return false
     }
 
     /**
@@ -255,6 +293,42 @@ enum class ShellCommand {
     PREVIOUS_PAGE,
     START_PAN,
     DISMISS_FAILURE,
+}
+
+/** What an ink key means, independent of the platform's event type (and therefore testable). */
+sealed interface InkCommand {
+    /** Pick favourite colour [index] (`1`, `2`, `3`). */
+    data class PickFavourite(val index: Int) : InkCommand
+
+    /** Make the colour in use favourite [index] (`Alt` + `1`…`3`). */
+    data class SetFavourite(val index: Int) : InkCommand
+
+    /** One width slot up (`+1`) or down (`-1`): `]` and `[`. */
+    data class StepWidth(val direction: Int) : InkCommand
+}
+
+/**
+ * The ink's keys: `1`/`2`/`3` pick a favourite, `Alt`+digit redefines it, `]`/`[` step the width.
+ *
+ * `Ctrl` is refused outright so the shell's own `Ctrl+1` (fit width) and `Ctrl+0` (fit page) keep their
+ * meaning; the numpad digits count as the same keys, because they are the same number on another pad.
+ */
+internal fun inkCommand(key: Key, alt: Boolean, ctrl: Boolean): InkCommand? {
+    if (ctrl) return null
+    val favourite = when (key) {
+        Key.One, Key.NumPad1 -> 0
+        Key.Two, Key.NumPad2 -> 1
+        Key.Three, Key.NumPad3 -> 2
+        else -> null
+    }
+    if (favourite != null) {
+        return if (alt) InkCommand.SetFavourite(favourite) else InkCommand.PickFavourite(favourite)
+    }
+    return when (key) {
+        Key.RightBracket -> InkCommand.StepWidth(1)
+        Key.LeftBracket -> InkCommand.StepWidth(-1)
+        else -> null
+    }
 }
 
 /**

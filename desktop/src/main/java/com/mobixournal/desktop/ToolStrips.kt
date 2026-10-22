@@ -82,6 +82,7 @@ data class ToolStripState(
     val selection: ToolSelection = ToolSelection(),
     val ink: DesktopInk = DesktopInk(),
     val palette: List<Int> = PenPalette.COLORS,
+    val favourites: List<Int> = PenPalette.COLORS.take(PaletteCodec.FAVOURITES),
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -116,7 +117,7 @@ fun ToolRail(
             ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.RIGHT)
         }
         StripDivider(vertical = true)
-        ColourSlot(state.ink, state.palette, onColour, side = StripSide.RIGHT)
+        ColourSlot(state.ink, state.palette, state.favourites, onColour, side = StripSide.RIGHT)
         SizeSlot(state.ink, onWidth, side = StripSide.RIGHT)
     }
 }
@@ -149,7 +150,7 @@ fun ToolRibbon(
             ToolSlot(tool, active = tool == state.selection.current, onSelect = onSelect, side = StripSide.BELOW)
         }
         StripDivider(vertical = false)
-        ColourSlot(state.ink, state.palette, onColour, side = StripSide.BELOW)
+        ColourSlot(state.ink, state.palette, state.favourites, onColour, side = StripSide.BELOW)
         SizeSlot(state.ink, onWidth, side = StripSide.BELOW)
     }
 }
@@ -228,6 +229,17 @@ private fun ToolSlot(
 /** The subtle pill: the tool's name in the chrome's ink, its accelerator in the accent. */
 @Composable
 private fun TooltipPill(tool: DesktopTool, offset: IntOffset) {
+    StripPill(label = tool.label, accent = tool.shortcut, offset = offset)
+}
+
+/**
+ * The one hover pill of a strip: a name in the chrome's ink and its accelerator in the accent.
+ *
+ * Shared with the ink slots ([ColourSlot], [SizeSlot]) so the strip's own words — a tool's key, a
+ * favourite's digit, a width's `S`/`M`/`L` — are drawn by one component and cannot drift in style.
+ */
+@Composable
+internal fun StripPill(label: String, accent: String, offset: IntOffset) {
     Popup(offset = offset) {
         Row(
             Modifier
@@ -235,9 +247,9 @@ private fun TooltipPill(tool: DesktopTool, offset: IntOffset) {
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(tool.label, color = DesktopTheme.ink, style = DesktopTheme.label)
+            Text(label, color = DesktopTheme.ink, style = DesktopTheme.label)
             Spacer(Modifier.width(6.dp))
-            Text(tool.shortcut, color = DesktopTheme.accent, style = DesktopTheme.numeric)
+            Text(accent, color = DesktopTheme.accent, style = DesktopTheme.numeric)
         }
     }
 }

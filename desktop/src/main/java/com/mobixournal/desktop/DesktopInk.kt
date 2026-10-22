@@ -39,11 +39,25 @@ data class DesktopInk(
  */
 internal object PaletteCodec {
 
+    /** How many favourite colours the digit keys bind to. */
+    const val FAVOURITES: Int = 3
+
     fun encode(colors: List<Int>): String = colors.joinToString(",") { hex(it) }
 
     fun decode(raw: String?): List<Int> {
         val parsed = raw?.split(',')?.mapNotNull { entry -> entry.trim().toLongOrNull(16)?.toInt() }
         return if (parsed.isNullOrEmpty()) PenPalette.COLORS else PenPalette.sanitised(parsed)
+    }
+
+    /**
+     * The three favourite colours: opaque, de-duplicated, and always exactly [FAVOURITES] long — a
+     * missing or short entry is filled from the factory palette, so keys 1–3 always have a colour.
+     */
+    fun decodeFavourites(raw: String?): List<Int> {
+        val parsed = raw?.split(',')?.mapNotNull { entry -> entry.trim().toLongOrNull(16)?.toInt() }
+            ?.map(PenPalette::opaque)
+            ?: emptyList()
+        return (parsed + PenPalette.COLORS).distinct().take(FAVOURITES)
     }
 
     /** One colour as the eight-digit hex the file holds. */

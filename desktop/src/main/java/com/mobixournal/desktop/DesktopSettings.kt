@@ -81,6 +81,20 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /**
+     * The three favourite colours keys `1`–`3` pick, and `Alt`+digit redefines. Always exactly
+     * [PaletteCodec.FAVOURITES] long: a short or hand-edited entry is filled from the factory palette.
+     */
+    var colourFavourites: List<Int>
+        get() = PaletteCodec.decodeFavourites(properties.getProperty(KEY_COLOUR_FAVOURITES))
+        set(value) {
+            properties.setProperty(
+                KEY_COLOUR_FAVOURITES,
+                PaletteCodec.encode(value.map(PenPalette::opaque).take(PaletteCodec.FAVOURITES)),
+            )
+            save()
+        }
+
     /** The stroke width the strips show, in points, clamped to [PenPalette]'s range. */
     var inkWidth: Float
         get() = properties.getProperty(KEY_INK_WIDTH)?.toFloatOrNull()
@@ -108,6 +122,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The colour the strips show, as [PaletteCodec] hex. */
         const val KEY_INK_COLOUR = "ink.colour"
+
+        /** The three favourite colours keys `1`–`3` pick, as [PaletteCodec]'s hex list. */
+        const val KEY_COLOUR_FAVOURITES = "interface.colourFavourites"
 
         /** The stroke width the strips show, in points. */
         const val KEY_INK_WIDTH = "ink.width"

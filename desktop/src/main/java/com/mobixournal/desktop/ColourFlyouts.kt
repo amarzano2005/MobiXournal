@@ -22,8 +22,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -62,18 +65,32 @@ internal object InkSlotMetrics {
 internal fun dotSize(width: Float): Dp = (width * 3f).coerceIn(2f, 14f).dp
 
 /**
+ * The key that picks [colour]: its favourite's digit, or all three digits when the colour is not one.
+ *
+ * The pill reads the same [PenPalette] values the keyboard handler does, so "what the strip says" and
+ * "what the key does" cannot disagree.
+ */
+internal fun colourKeyLabel(favourites: List<Int>, colour: Int): String {
+    val index = favourites.indexOf(colour)
+    return if (index in 0 until PaletteCodec.FAVOURITES) "${index + 1}" else "1 2 3"
+}
+
+/**
  * The colour slot: the ink's colour in a capsule. A click opens the palette flyout, which is drawn in
  * the floating material with the swatches in one horizontally scrolling row — the compact shape
  * `docs/colours.md` asks for, so a long palette widens the flyout instead of growing it downward.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun ColourSlot(
     ink: DesktopInk,
     palette: List<Int>,
+    favourites: List<Int> = emptyList(),
     onPick: (Int) -> Unit,
     side: StripSide,
 ) {
     var open by remember { mutableStateOf(false) }
+    var hovered by remember { mutableStateOf(false) }
     val anchor = flyoutOffset(side)
     Box {
         Box(
@@ -83,6 +100,8 @@ internal fun ColourSlot(
                     if (open) DesktopTheme.activeSlot else Color.Transparent,
                     DesktopTheme.capsuleShape,
                 )
+                .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                .onPointerEvent(PointerEventType.Exit) { hovered = false }
                 .pointerInput(Unit) { detectTapGestures { open = !open } },
             contentAlignment = Alignment.Center,
         ) {
@@ -90,10 +109,13 @@ internal fun ColourSlot(
                 Modifier
                     .size(InkSlotMetrics.swatchSize)
                     .background(Color(ink.colour), DesktopTheme.capsuleShape)
-                    // The ink can be black or white, and the glass is neither: one hairline keeps a
-                    // black ink visible on the dark strip instead of a hole in it.
+                    // The ink can be black or white, and the glass is neither: one ring keeps a black
+                    // ink visible on the dark strip instead of reading as a hole in it.
                     .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape),
             )
+        }
+        if (hovered) {
+            StripPill(label = "Colour", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)
         }
         if (open) {
             Popup(offset = anchor, onDismissRequest = { open = false }) {
@@ -114,9 +136,11 @@ internal fun ColourSlot(
  * The size slot: a dot at the current width, in the current colour. Its flyout offers the three width
  * slots (`S`/`M`/`L` from [PenPalette]), the one in use wearing the steel.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide) {
     var open by remember { mutableStateOf(false) }
+    var hovered by remember { mutableStateOf(false) }
     val anchor = flyoutOffset(side)
     Box {
         Box(
@@ -126,6 +150,8 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
                     if (open) DesktopTheme.activeSlot else Color.Transparent,
                     DesktopTheme.capsuleShape,
                 )
+                .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                .onPointerEvent(PointerEventType.Exit) { hovered = false }
                 .pointerInput(Unit) { detectTapGestures { open = !open } },
             contentAlignment = Alignment.Center,
         ) {
@@ -134,6 +160,13 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
                     .size(dotSize(ink.width))
                     .background(Color(ink.colour), CircleShape)
                     .border(1.dp, DesktopTheme.inkMuted, CircleShape),
+            )
+        }
+        if (hovered) {
+            StripPill(
+                label = "Width",
+                accent = PenPalette.WIDTH_LABELS.getOrElse(PenPalette.widthSlot(ink.width)) { "?" },
+                offset = anchor,
             )
         }
         if (open) {

@@ -228,6 +228,9 @@ Everything the chrome does can also be done from the keyboard:
 | `Space` (held) | pan with the primary button; the middle button always pans |
 | `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool — §3's shortcut table is the list |
 | `Shift + X` | the axes tool; a bare `X` is the text box |
+| `1` `2` `3` | pick favourite colour 1 / 2 / 3 |
+| `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
+| `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
 
 Two decisions taken while building it:
 - **The tab and view model is Compose snapshot state, not plain fields.** A `mutableListOf` and ordinary

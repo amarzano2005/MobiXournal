@@ -133,6 +133,9 @@ the slots only choose a tool for now; drawing arrives with the editing phase.
 | `Page Up` / `Page Down` | previous / next page |
 | `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool (pen, highlighter, eraser, lasso, marquee, text, line, arrow, rectangle, ellipse, spline, plot, table, circuit) |
 | `Shift + X` | the axes tool (`X` alone is the text box) |
+| `1` `2` `3` | pick favourite colour 1 / 2 / 3 (the favourites are remembered between runs) |
+| `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
+| `]` / `[` | wider / thinner one step (S, M, L) |
 
 Wheel scrolls the page, `Ctrl` + wheel zooms where you point, and middle-drag or `Space` + drag pans.
 A tab's name can be edited in place with a double-click, and tabs can be dragged into a new order.
