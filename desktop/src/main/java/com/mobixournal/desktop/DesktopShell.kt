@@ -584,7 +584,9 @@ private fun HeaderGlyph(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.width(14.dp).height(14.dp)) {
-            draw(if (lit) DesktopTheme.ink else DesktopTheme.inkSecondary, DesktopTheme.glyphStroke.toPx())
+            // The chrome ink, lit or not: on the tablet a header glyph is white and only its capsule
+            // changes tone when it is active.
+            draw(DesktopTheme.chromeInk, DesktopTheme.glyphStroke.toPx())
         }
     }
 }

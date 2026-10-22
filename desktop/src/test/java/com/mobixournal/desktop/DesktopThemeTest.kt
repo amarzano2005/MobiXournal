@@ -54,11 +54,10 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.COMPACT_BUTTON_SIZE_DP, number("compactButtonSizeDp").toInt())
         assertEquals(DesignTokens.HAIRLINE_STROKE_WIDTH_DP, number("hairlineStrokeWidthDp"), 1e-4)
 
-        // The raised glass: the lift under a band and a capsule, and the sheen that makes it read.
+        // The raised glass: the lift under a band and a capsule, and the chrome's own ink.
         assertEquals(DesignTokens.BAND_SHADOW_DP, number("bandShadowDp").toInt())
         assertEquals(DesignTokens.CAPSULE_SHADOW_DP, number("capsuleShadowDp").toInt())
-        assertEquals(DesignTokens.SHEEN_ALPHA_TOP, number("sheenAlphaTop").toFloat(), 1e-4f)
-        assertEquals(DesignTokens.SHEEN_ALPHA_BOTTOM, number("sheenAlphaBottom").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.CHROME_INK_DARK_RAW, string("chromeInkDark"))
 
         // The rail both shells draw: one capsule, one lane, one slot corner, one glyph grid.
         assertEquals(DesignTokens.RAIL_CAPSULE_WIDTH_DP, number("railCapsuleWidthDp").toInt())
@@ -130,9 +129,10 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.RAIL_OUTER_PADDING_DP.dp, DesktopTheme.railOuterPadding)
         assertEquals(DesignTokens.RAIL_SLOT_CORNER_RADIUS_DP.dp, DesktopTheme.railSlotRadius)
         assertEquals(DesignTokens.HEADER_CONTROL_SIZE_DP.dp, DesktopTheme.headerControlSize)
-        // Compose stores alpha in 8 bits, so a token's 0.10 lands on 26/255: compare the quantised value.
-        assertEquals(DesignTokens.SHEEN_ALPHA_TOP, DesktopTheme.sheenTop.alpha, 1f / 255f)
-        assertEquals(DesignTokens.SHEEN_ALPHA_BOTTOM, DesktopTheme.sheenBottom.alpha, 1f / 255f)
+        assertEquals("the chrome ink is white, as on the tablet", 1f, DesktopTheme.chromeInk.alpha, 1e-4f)
+        assertEquals(1f, DesktopTheme.chromeInk.red, 1e-4f)
+        assertEquals(1f, DesktopTheme.chromeInk.green, 1e-4f)
+        assertEquals(1f, DesktopTheme.chromeInk.blue, 1e-4f)
     }
 
     /** The window sets Inter, and the three weights travel with the module (no OS font guess). */

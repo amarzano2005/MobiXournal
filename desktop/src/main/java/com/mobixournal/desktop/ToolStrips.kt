@@ -135,16 +135,14 @@ fun ToolRail(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    // The lane is a band of chrome; the rail itself is a **capsule** lying in it, exactly as the tablet
-    // draws it: 52 dp inside a 64 dp lane, 6 dp of air each side and 8 dp above and below, its own
-    // shadow, its own rim and the sheen down its face. The first cut drew the rail as the lane — a
-    // full-height slab with the slots running edge to edge — which is why it read flat next to the
-    // tablet's floating capsule.
+    // The lane is **air**, not a band: the rail itself is the capsule, exactly as the tablet draws it —
+    // 52 dp inside a 64 dp lane, 6 dp of air each side and 8 dp above and below, its own shadow and its
+    // own rim. Painting the lane as a band as well stacked two layers of 0.85 glass under the capsule
+    // (0.85 over 0.85 is 0.98), so the window's rail came out #161618 where the tablet's is #131314.
     Box(
         modifier
             .width(DesktopTheme.railLaneWidth)
-            .fillMaxHeight()
-            .bandSurface(),
+            .fillMaxHeight(),
         contentAlignment = Alignment.TopCenter,
     ) {
         Box(
@@ -202,13 +200,12 @@ fun ToolRibbon(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    // The ribbon is the rail laid on its side, and it wears the same material: a capsule inside its
-    // lane rather than a band with the slots glued to its edges.
+    // The ribbon is the rail laid on its side, and it wears the same material: a capsule floating in
+    // its lane's air, not a band with a second sheet of glass behind it (see the rail's note).
     Box(
         modifier
             .fillMaxWidth()
-            .height(ToolStripMetrics.ribbonHeight)
-            .bandSurface(),
+            .height(ToolStripMetrics.ribbonHeight),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -270,8 +267,9 @@ private fun StripDivider(vertical: Boolean) {
 
 
 /**
- * One tool: its glyph in a 40 dp capsule, the active one wearing the steel [`DesktopTheme.activeSlot`]
- * rather than the accent — the app's rule for a *picked* slot (`docs/ui-modernization.md`).
+ * One tool: its glyph in a 40 dp slot, the active one wearing the steel [`DesktopTheme.activeSlot`]
+ * rather than the accent — the app's rule for a *picked* slot, and the tablet's own `primaryContainer`
+ * (the steel `#38383E`) with the glyph in the accent (`docs/ui-modernization.md`).
  *
  * Hovering shows the name-and-hotkey pill the doc asks for. It is a [Popup] rather than a box inside
  * the strip because the strip is a narrow band: a pill laid out inside it would be clipped by it.
@@ -303,9 +301,11 @@ private fun ToolSlot(
             contentAlignment = Alignment.Center,
         ) {
             Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
+                // The tablet's rule: a glyph on the glass is the chrome ink, and the picked one is the
+                // accent. A grey glyph beside a white one reads as disabled, not as a different tool.
                 drawToolGlyph(
                     tool,
-                    color = if (active) DesktopTheme.ink else DesktopTheme.inkSecondary,
+                    color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
                 )
             }
         }

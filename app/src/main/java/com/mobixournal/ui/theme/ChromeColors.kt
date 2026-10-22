@@ -98,7 +98,8 @@ fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(chromeIs
  * in both themes.
  */
 @Composable
-fun rememberChromeInk(): Color = if (chromeIsDark()) Color.White else MaterialTheme.colorScheme.onSurface
+fun rememberChromeInk(): Color =
+    if (chromeIsDark()) ModernTheme.chromeInkDark else MaterialTheme.colorScheme.onSurface
 
 /**
  * The **plate** colour: the opaque neutral step for a surface *inside* a floating one — the function

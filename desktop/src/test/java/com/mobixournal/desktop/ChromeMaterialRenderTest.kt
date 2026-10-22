@@ -33,8 +33,9 @@ import org.junit.Test
  * consequence, and each consequence is asserted here:
  *
  *  1. a band darkens what lies under it — a cast shadow, not a flat rectangle;
- *  2. its top is lighter than its bottom — the sheen, the light falling on glass;
- *  3. a capsule is brighter along its top edge than in its fill — the drawn rim.
+ *  2. a capsule is brighter along its top edge than in its fill — the drawn rim;
+ *  3. and both keep the shared fill: no gradient of the window's own, which is what made the PC's
+ *     bands a shade lighter than the tablet's.
  *
  * The renders are written to `build/desktop-render/` so the claim can be looked at as well as checked.
  */
@@ -89,10 +90,13 @@ class ChromeMaterialRenderTest {
         )
     }
 
-    /** A band's face is lit at the top and shaded at the bottom: the sheen, not a flat fill. */
+    /**
+     * A band's face is the **shared glass fill**, flat: the tablet's bands have no gradient, and a sheen
+     * here made the same material a shade lighter on the PC.
+     */
     @Test
-    fun aBandIsLitFromAbove() {
-        val image = render("chrome-band-sheen") {
+    fun aBandIsTheFlatSharedFill() {
+        val image = render("chrome-band-flat") {
             Box(
                 Modifier
                     .width(220.dp)
@@ -100,9 +104,19 @@ class ChromeMaterialRenderTest {
                     .bandSurface(),
             )
         }
-        val top = luminance(image.getRGB(width / 2, 3))
-        val bottom = luminance(image.getRGB(width / 2, 37))
-        assertTrue("the sheen must fall away downwards: top $top, bottom $bottom", top > bottom + 2)
+        // Inside the band, away from the two rows the graphics layer's own shadow tints: the face is one
+        // tone, which is what tells a shared fill from a gradient of the window's own.
+        val upper = luminance(image.getRGB(width / 2, 10))
+        val lower = luminance(image.getRGB(width / 2, 34))
+        assertTrue("a band must not carry a gradient of its own: upper $upper, lower $lower", kotlin.math.abs(upper - lower) <= 2)
+        // The glass at 0.85 over the white underlay: 22·0.85 + 255·0.15 ≈ 57 on every channel.
+        val token = DesignTokens.GLASS_DARK_RGB
+        val expected = (((token shr 16) and 0xFF) * DesignTokens.GLASS_DARK_ALPHA +
+            255f * (1f - DesignTokens.GLASS_DARK_ALPHA))
+        assertTrue(
+            "the fill must be the glass token over the underlay, not a lighter charcoal: $upper vs $expected",
+            kotlin.math.abs(upper - expected) <= 4f,
+        )
     }
 
     /** A capsule wears the family's edge: brighter at its top than its own fill. */
@@ -117,9 +131,11 @@ class ChromeMaterialRenderTest {
                     .glassCapsule(),
             )
         }
-        val rim = luminance(image.getRGB(width / 2, 42))
+        // The rim is one hairline on the capsule's top edge, so take the brightest of its first rows;
+        // sampling two pixels in lands on the fill, which is what the first version of this test did.
+        val rim = (40..44).maxOf { y -> luminance(image.getRGB(width / 2, y)) }
         val fill = luminance(image.getRGB(width / 2, 80))
-        assertTrue("the rim is the lit edge of the capsule: rim $rim, fill $fill", rim > fill + 2)
+        assertTrue("the rim is the lit edge of the capsule: rim $rim, fill $fill", rim > fill + 8)
     }
 
     /** The capsule casts one too — a smaller one than a band, but visible over a light backdrop. */

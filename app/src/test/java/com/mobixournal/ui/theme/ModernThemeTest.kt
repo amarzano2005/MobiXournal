@@ -134,8 +134,12 @@ class ModernThemeTest {
         // The raised glass and the rail geometry the desktop reads from the same block.
         assertEquals(DesignTokens.BAND_SHADOW_DP, extractNumber("bandShadowDp").toInt())
         assertEquals(DesignTokens.CAPSULE_SHADOW_DP, extractNumber("capsuleShadowDp").toInt())
-        assertEquals(ModernTheme.SHEEN_ALPHA_TOP_VAL, extractNumber("sheenAlphaTop").toFloat(), 0.0001f)
-        assertEquals(ModernTheme.SHEEN_ALPHA_BOTTOM_VAL, extractNumber("sheenAlphaBottom").toFloat(), 0.0001f)
+        // The chrome ink is white, as on the glass.
+        assertEquals("#FFFFFF", extractString("chromeInkDark"))
+        assertEquals(1f, ModernTheme.chromeInkDark.red, 0.0001f)
+        assertEquals(1f, ModernTheme.chromeInkDark.green, 0.0001f)
+        assertEquals(1f, ModernTheme.chromeInkDark.blue, 0.0001f)
+        assertEquals(1f, ModernTheme.chromeInkDark.alpha, 0.0001f)
         assertEquals(ModernTheme.railSlotCornerRadiusDp.value, extractNumber("railSlotCornerRadiusDp").toFloat(), 0.0001f)
         assertEquals(ModernTheme.railCapsuleWidthDp.value, extractNumber("railCapsuleWidthDp").toFloat(), 0.0001f)
         assertEquals(ModernTheme.railLanePaddingDp.value, extractNumber("railLanePaddingDp").toFloat(), 0.0001f)

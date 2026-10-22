@@ -105,17 +105,8 @@ object ModernTheme {
     /** The cast shadow under a floating capsule (the rail, a header control): 6 dp. */
     val capsuleShadowDp: Dp = DesignTokens.CAPSULE_SHADOW_DP.dp
 
-    /** The sheen's alpha at a glass surface's lit top edge. */
-    const val SHEEN_ALPHA_TOP_VAL: Float = DesignTokens.SHEEN_ALPHA_TOP
-
-    /** The sheen's alpha where it has fallen away at the bottom edge. */
-    const val SHEEN_ALPHA_BOTTOM_VAL: Float = DesignTokens.SHEEN_ALPHA_BOTTOM
-
-    /** The sheen's lit end, as the colour a gradient paints. */
-    val sheenTop: Color get() = Color.White.copy(alpha = SHEEN_ALPHA_TOP_VAL)
-
-    /** The sheen's shaded end. */
-    val sheenBottom: Color get() = Color.White.copy(alpha = SHEEN_ALPHA_BOTTOM_VAL)
+    /** The ink a glyph on the glass is drawn in: pure white, the tablet's chrome ink. */
+    val chromeInkDark: Color = tokenColour(DesignTokens.CHROME_INK_DARK_RGB, 1f)
 
     // --- Rail geometry (shared with the desktop's rail) ---
 

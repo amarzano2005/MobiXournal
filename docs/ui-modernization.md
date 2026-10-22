@@ -190,23 +190,24 @@ bar and both tool strips of the drawing above; [`desktop-workstation.md`](deskto
 shell's inventory. From **this** spoke it takes four rules, and the parity work of 2026-10-22 is what
 put them all in the window:
 
-- **A band is chrome, a capsule is an object.** The header, status bar, sidebar and the strips' lanes
-take the glass fill with **one 4 dp cast shadow** and a vertical sheen, and **no rim** (the rule above).
-The rail is a **52 dp capsule in a 64 dp lane** — the tablet's own geometry, 6 dp of side air and 8 dp
-above and below — and the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp lift**, the
-family's rim and the sheen. A header control is the same capsule at 36 dp. Without those two lifts the
-bands were a flat fill, because over a true-black desk the glass' alpha is invisible: the shadow and the
-sheen are the only depth the window has (`Modifier.bandSurface()` / `glassCapsule()`, `GlassEdge.kt`).
-- **One icon set.** The fifteen tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry
-on the 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`;
-the window no longer keeps a second, hand-drawn set. The picked slot is a 10 dp squircle in the steel
-`#38383E`. Floating surfaces keep the drawn rim over the 0.88 fill, as documented above.
+- **A band is chrome, a capsule is an object.** The header, status bar and sidebar take the glass fill
+and **one 4 dp cast shadow**, and **no rim** (the rule above). A strip's lane is **air, not a band** —
+painting it too stacked two sheets of 0.85 glass and the rail read #161618. The rail is a **52 dp capsule
+in a 64 dp lane** (6 dp of side air, 8 above and below) and the ribbon a 48 dp capsule in a 56 dp band;
+each takes its **own 6 dp lift** and the family's rim, and a header control is the same capsule at 36 dp.
+Without those lifts the bands were a flat fill, because over a true-black desk the glass' alpha is
+invisible: the shadow is the only depth the window has (`Modifier.bandSurface()` / `glassCapsule()`,
+`GlassEdge.kt`). The fill is the **shared token with no gradient of the window's own** — the tablet's
+bands are flat, and a sheen over the PC's made the same material a shade lighter — and glyphs are the
+chrome ink (white), the picked slot steel with the glyph in the accent, exactly as the rail draws them.
+- **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
+24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`; the
+window keeps no second set. The picked slot is a 10 dp squircle in the steel `#38383E`.
 - **No motion of its own**: the windows' surfaces arrive on `DesignTokens.GlassMotion` too. The `Popup`
 flyouts still appear instantly — a desktop popup has no composition to hold open once its flag clears.
 - **The colours and corners are the tokens**: 16 dp tab capsules, the 20 dp panel corner, a 40 dp header,
 a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block
-above, `ChromeMaterialRenderTest` proves the lift, the sheen and the rim as pixels, and
-`ToolGlyphCatalogueTest` pins the geometry both shells read.
+above and `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.
 
 Picking a colour writes it straight to the settings file (`ink.colour`, `ink.width`), and the palette is
 `palette.colours` through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour,
@@ -349,8 +350,7 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "rimInnerAlphaScale": 0.35,
       "bandShadowDp": 4,
       "capsuleShadowDp": 6,
-      "sheenAlphaTop": 0.10,
-      "sheenAlphaBottom": 0.02
+      "chromeInkDark": "#FFFFFF"
     },
     "geometry": {
       "capsuleCornerRadiusDp": 16,

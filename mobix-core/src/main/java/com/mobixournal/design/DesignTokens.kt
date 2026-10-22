@@ -72,22 +72,13 @@ object DesignTokens {
     // `Surface`, the desktop draws the same lift with `Modifier.shadow`, so "raised" means one thing.
     //
     // Over the true-black desk the glass' alpha is invisible (a near-black at 0.85 and an opaque one
-    // are the same pixels), so the shadow and the sheen are the **only** depth cue the window has.
+    // are the same pixels), so the shadow is the **only** depth cue the window has.
 
     /** The cast shadow under a **band**: 4 dp — the tablet's header, status bar and rail lane. */
     const val BAND_SHADOW_DP: Int = 4
 
     /** The cast shadow under a **floating capsule**: 6 dp — the tablet's rail, a header control. */
     const val CAPSULE_SHADOW_DP: Int = 6
-
-    /**
-     * The sheen along a glass surface's **lit top edge**, as a white alpha: strong enough to read as
-     * light falling on glass instead of as a flat charcoal fill, faint enough not to be a gradient bar.
-     */
-    const val SHEEN_ALPHA_TOP: Float = 0.10f
-
-    /** Where the sheen has fallen away by the bottom edge — the shaded end of the same gradient. */
-    const val SHEEN_ALPHA_BOTTOM: Float = 0.02f
 
     // --- The floating glass's edge --------------------------------------------------------------
     //
@@ -222,6 +213,16 @@ object DesignTokens {
 
     /** The chrome's own ink on the dark glass. */
     const val INK_DARK_RGB: Int = 0xE6E6EF
+
+    /**
+     * The ink a **glyph on the glass** is drawn in: pure white, which is what the tablet's chrome uses
+     * (`rememberChromeInk`). It is a token rather than a `Color.White` because the window draws the same
+     * icons and the two shells must not disagree about how bright a tool is.
+     */
+    const val CHROME_INK_DARK_RGB: Int = 0xFFFFFF
+
+    /** Raw definition of [CHROME_INK_DARK_RGB], as the doc's token block writes it. */
+    const val CHROME_INK_DARK_RAW: String = "#FFFFFF"
 
     /** The secondary ink: status-bar figures, layer names. */
     const val INK_SECONDARY_DARK_RGB: Int = 0x9A9AA6

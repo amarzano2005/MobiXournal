@@ -117,10 +117,13 @@ class GlassMotionTest {
             val full = advance(scene, to = 700).getRGB(centreX, centreY)
 
             visible.value = false
-            val closing = advance(scene, to = 760)
+            // Samples a third of the way into the 230 ms hold rather than 60 ms in: the first frame of
+            // the fade can land on the same tone as the settled panel, which made this assertion read
+            // a timing artefact instead of the property it is about (the exit is played, not snapped).
+            val closing = advance(scene, to = 700L + DesignTokens.GlassMotion.FADE_OUT_MS * 2 / 3)
 
             assertTrue(
-                "60 ms into the exit the panel is still composed, drawing back: " +
+                "a third into the exit the panel is still composed, drawing back: " +
                     Integer.toHexString(closing.getRGB(centreX, centreY)),
                 luminance(closing.getRGB(centreX, centreY)) > luminance(full),
             )

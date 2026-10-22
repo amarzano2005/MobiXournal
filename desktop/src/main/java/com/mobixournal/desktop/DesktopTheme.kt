@@ -99,11 +99,14 @@ object DesktopTheme {
     /** The cast shadow under a floating capsule — the rail, the ribbon, a header control: 6 dp. */
     val capsuleShadow = DesignTokens.CAPSULE_SHADOW_DP.dp
 
-    /** The sheen's lit end, painted along a glass surface's top edge. */
-    val sheenTop: Color = Color.White.copy(alpha = DesignTokens.SHEEN_ALPHA_TOP)
-
-    /** The sheen's shaded end, where the same gradient has fallen away at the bottom. */
-    val sheenBottom: Color = Color.White.copy(alpha = DesignTokens.SHEEN_ALPHA_BOTTOM)
+    /**
+     * The ink a **glyph on the glass** is drawn in: pure white, the tablet's chrome ink.
+     *
+     * The window used to tint its tool glyphs with [inkSecondary] — a grey — while the tablet's rail
+     * draws them white. Two toolbars of different brightness are two different materials, whatever the
+     * fill underneath is the same, so the icons take the chrome's own ink on both shells.
+     */
+    val chromeInk: Color = tokenColour(DesignTokens.CHROME_INK_DARK_RGB)
 
     /** The rail's floating capsule: 52 dp, inside a [railLaneWidth] lane. */
     val railCapsuleWidth = DesignTokens.RAIL_CAPSULE_WIDTH_DP.dp

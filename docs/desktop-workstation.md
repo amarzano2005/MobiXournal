@@ -60,19 +60,23 @@ preview can never show a layer the sheet beside it is missing.
 - **Shows both tool placements**: a **52 dp rail capsule in a 64 dp lane** beside the page (the
   default, the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the
   header, switched from the header's **Tool placement** control (Rail / Ribbon / Both) and remembered in
-  the window's settings file, so the choice survives a restart. A lane is chrome; inside it the strip is
-  a **capsule** with its own 6 dp lift, the family's rim and the sheen down its face, and each header
-  control is the same object at 36 dp. Both placements draw the same fifteen tools, in the order, glyphs
+  the window's settings file, so the choice survives a restart. The lane is **air, not a second sheet of
+  glass**: painting it too made 0.85 over 0.85, and the rail read #161618. The strip is a **capsule** with
+  its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
+  header control is the same object at 36 dp. Both placements draw the same fifteen tools, in the order, glyphs
   and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
   squircle in the steel `#38383E` and a name-and-hotkey pill on hover. A slot only sets the tool
   selection — nothing draws with it yet.
-- **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar, tool
-  lanes) takes the band lift and a vertical sheen instead of a bare fill, and every surface that floats
-  takes the drawn rim. The fifteen tool glyphs are no longer the window's own art: they come from
-  `ToolGlyphCatalogue` in `mobix-core` — plain geometry on the 24-unit grid — which the tablet turns into
-  an `ImageVector` and this shell draws into a `DrawScope`, so the PC's pen and the tablet's pen are the
-  same strokes. `ChromeMaterialRenderTest` proves the lift, the sheen and the rim as pixels, and
-  `ToolGlyphCatalogueTest` pins the geometry both shells read.
+- **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
+  band lift instead of a bare fill, every surface that floats takes the drawn rim, and
+  both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
+  same charcoal read a shade lighter on the PC. Glyphs are drawn in the chrome's ink (white, the tablet's
+  `#FFFFFF`), with the picked slot in the steel and its glyph in the accent. The fifteen tool glyphs are
+  no longer the window's own art: they come from `ToolGlyphCatalogue` in `mobix-core` — plain geometry on
+  the 24-unit grid — which the tablet turns into an `ImageVector` and this shell draws into a
+  `DrawScope`, so the PC's pen and the tablet's pen are the same strokes. `ChromeMaterialRenderTest`
+  proves the lift, the flat fill and the rim as pixels, and `ToolGlyphCatalogueTest` pins the geometry
+  both shells read.
 - Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
   layers, the `.xopp` and `.mobix` codecs, and the shared paper/ink geometry — one codec, one ruling and
   one ink rule book rather than a fork.

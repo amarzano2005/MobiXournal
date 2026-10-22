@@ -6,6 +6,7 @@ import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Density
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.mobix.SyntheticNotebook
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -217,12 +218,15 @@ class ToolStripsTest {
             val image = ImageIO.read(ByteArrayInputStream(png))
 
             fun paperAt(x: Int, y: Int) = (image.getRGB(x, y) and 0xFFFFFF) == PAPER
-
+            // A **run** of paper, not a single white pixel: the tool glyphs are drawn in the chrome ink
+            // (pure white, as on the tablet), so a one-pixel probe would find a glyph in the rail's lane
+            // and call it the page. The sheet is hundreds of pixels tall; a glyph stroke is dozens.
+            val minRun = 40
             val paperColumns = (0 until image.width).filter { x ->
-                (header until image.height).any { y -> paperAt(x, y) }
+                (header until image.height).count { y -> paperAt(x, y) } >= minRun
             }
             val paperRows = (header until image.height).filter { y ->
-                (0 until image.width).any { x -> paperAt(x, y) }
+                (0 until image.width).count { x -> paperAt(x, y) } >= minRun
             }
             assertTrue("$placement: the page is on screen", paperColumns.isNotEmpty() && paperRows.isNotEmpty())
             val lane = if (placement.showsRail) railLane else 0
@@ -235,6 +239,19 @@ class ToolStripsTest {
                 "$placement: the page starts below the ribbon's band (first paper row ${paperRows.min()})",
                 paperRows.min() >= band,
             )
+            if (placement.showsRail) {
+                // One layer of glass, as on the tablet. A lane painted as a band as well put 0.85 over
+                // 0.85 (0.98) and the rail came out #161618 instead of the tablet's #131314.
+                // Under BOTH the rail's strip starts below the ribbon, so its top is the ribbon's band.
+                val midGap = band + ToolStripMetrics.railSlotTop.value.toInt() +
+                    ToolStripMetrics.slotSize.value.toInt() + gapPx / 2
+                val capsule = image.getRGB(ToolStripMetrics.railWidth.value.toInt() / 2, midGap) and 0xFFFFFF
+                assertTrue(
+                    "$placement: the rail's fill is the tablet's glass, not a lane's band under it " +
+                        "(sampled #%06X, expected #%06X)".format(capsule, tabletGlass),
+                    difference(capsule, tabletGlass) <= 3,
+                )
+            }
             state.tabs.closeAll()
         }
     }
@@ -248,6 +265,13 @@ class ToolStripsTest {
     private val slotStride: Int get() = ToolStripMetrics.slotSize.value.toInt() + gapPx
 
     private val activeSlotArgb: Int get() = DesktopTheme.activeSlot.toArgb() and 0xFFFFFF
+
+    /** The glass composited over the desk, as the tablet's rail measures it: #131314. */
+    private val tabletGlass: Int get() {
+        fun channel(shift: Int) =
+            (((DesignTokens.GLASS_DARK_RGB shr shift) and 0xFF) * DesignTokens.GLASS_DARK_ALPHA).toInt()
+        return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
+    }
 
     /**
      * Every slot must have drawn its glyph: the slot is sampled against its own background (the steel
