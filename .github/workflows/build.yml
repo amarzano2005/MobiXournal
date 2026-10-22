@@ -32,6 +32,7 @@ jobs:
       - name: Check the task list and the release tooling
         run: |
           python3 scripts/todo/todo.py validate
+          python3 scripts/todo/test_store.py
           python3 scripts/todo/test_release.py
 
       - name: Verify the release was frozen

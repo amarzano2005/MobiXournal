@@ -109,8 +109,11 @@ newest-`completed`-first.
   a grouped tally.
 - **`add --title T --description D`** `[--category C] [--urgency U]
   [--level L] [--status S] [--tag t …] [--id ID] [--no-rebuild] [--emulator-debug]` —
-  append an active task. The `id` is a slug of the title (made unique) and
-  `order` auto-increments unless given. `urgency` defaults to normal.
+  add an active task. The `id` is a slug of the title (made unique) and
+  `order` auto-increments unless given. `urgency` defaults to normal. **The file
+  is kept in `order` sequence**: every write sorts the tasks (ties by id), so a
+  new item lands where its order says it falls and `edit <id> --order N` moves
+  the entry instead of leaving it where it was added.
   `level` defaults to `task`. `rebuild` defaults to yes (`--no-rebuild` turns it off); `emulator_debug`
   defaults to no (`--emulator-debug` turns it on).
 - **`edit <id>`** `[--title|--description|--status|--level|--category|--urgency|--order
@@ -128,6 +131,8 @@ newest-`completed`-first.
   narrows the stamp to tasks finished by that date — the one-shot backfill for a release older than
   this field. `--dry-run` prints the draft and changes nothing. Implementation: `release.py`;
   regression check: `python3 scripts/todo/test_release.py`.
+- **`sort`** — rewrite `TODO.toml` in `order` sequence without changing any field; the
+  normaliser to run after hand-editing the file.
 - **`remove <id>`** `[--reason "…"]` — drop an active task (e.g. descoped).
 - **`verify-release --version X.Y.Z`** — check a version was frozen before it is tagged: the
   archive must record that version as released, `docs/releases/vX.Y.Z.md` must exist, and

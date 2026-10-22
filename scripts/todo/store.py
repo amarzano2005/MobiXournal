@@ -131,6 +131,15 @@ def _dump(doc, header, meta_order):
 
 
 def save_todo(doc, path):
+    """Write TODO.toml, **sorted by `order`** (ties broken by id).
+
+    The file is the thing a reader scans, and `add` appends while `edit --order`
+    moves a single entry, so without this the file would slowly stop matching the
+    order the plan is written in. Sorting here rather than in each command means
+    every writer — add, edit, done, remove, migrate — produces the same layout,
+    and the sort is in place so the caller's document matches the file.
+    """
+    doc["tasks"] = sort_by_order(doc["tasks"])
     order = ("title", "kind", "purpose", "documentation_map", "archive")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(_dump(doc, _TODO_HEADER, order))
@@ -148,6 +157,11 @@ def save_finished(doc, path):
 def urgency_rank(task):
     """Higher = more urgent; unknown urgencies sort lowest."""
     return _URGENCY_RANK.get(task.get("urgency"), -1)
+
+
+def sort_by_order(tasks):
+    """The file's layout: `order` ascending, then id so an unset/tied order is stable."""
+    return sorted(tasks, key=lambda t: (t.get("order", 1_000_000), t.get("id", "")))
 
 
 def sort_active(tasks):

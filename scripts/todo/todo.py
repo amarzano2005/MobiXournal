@@ -218,6 +218,16 @@ def cmd_done(args):
     print(f"finished [{task['id']}] on {task['completed']}")
 
 
+def cmd_sort(args):
+    """Rewrite TODO.toml in `order` sequence (what every write already does)."""
+    path, doc = _load_todo()
+    before = [t.get("id") for t in doc["tasks"]]
+    store.save_todo(doc, path)
+    after = [t.get("id") for t in doc["tasks"]]
+    moved = sum(1 for a, b in zip(before, after) if a != b)
+    print(f"sorted [{len(after)} tasks by order], {moved} moved")
+
+
 def cmd_remove(args):
     path, doc = _load_todo()
     task = store.find(doc["tasks"], args.id)
@@ -590,6 +600,9 @@ def build_parser():
     vr.add_argument("--version", required=True,
                     help="release version, X.Y.Z or the vX.Y.Z tag")
     vr.set_defaults(func=cmd_verify_release)
+
+    so = sub.add_parser("sort", help="rewrite TODO.toml in `order` sequence")
+    so.set_defaults(func=cmd_sort)
 
     va = sub.add_parser("validate", help="lint both task files")
     va.set_defaults(func=cmd_validate)
