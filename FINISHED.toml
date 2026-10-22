@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "move-xoppsynthesis-into-mobix-core"
+title = "Move XoppSynthesis into mobix-core"
+description = "app/src/main/java/com/mobixournal/render/XoppSynthesis.kt (179 lines) imports only format.mobix (MobixMetaBlock, PageSource, MobixMetaClaim, MobixMetaDigest) and format.model — no android.*, no Compose — so it is a compiler that can already be shared: it is what io/DocumentIo.kt:549 writes a .mobix through when the target is .xopp, and what MobixMetaBlockTest, PageSourceWalkTest and PlotShadingTest call. git mv it to mobix-core/src/main/java/com/mobixournal/render/ with the same package com.mobixournal.render (that directory already exists in the core), so call sites need no import change. Leave app-level integration tests where they are unless they only need core fixtures. Update every doc naming the old path: AGENTS.md (the .mobix export bullet), docs/architecture.md (lines 67-68), docs/mobix-format.md (lines 147 and 239), docs/codebase.md (line 227), docs/drawing-tools.md (line 94). Verify: before the move, export one fixture document containing a table through XoppSynthesis and record the SHA-256 of the resulting .xopp; after the move the same call must produce the identical digest. Then :mobix-core:test and the full :app:testDebugUnitTest green."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "move-edithistory-into-mobix-core"
 title = "Move EditHistory into mobix-core"
 description = "app/src/main/java/com/mobixournal/render/EditHistory.kt (69 lines) is a generic undo/redo over immutable snapshots with zero imports — the one piece of the editing path that is already platform-free, and the desktop editor needs it (child (3) of desktop-editing-undo-and-save). Move the file unchanged: the package com.mobixournal.render is already shared (mobix-core/src/main/java/com/mobixournal/render/ holds LivingInk and the other compilers), so no import anywhere changes but the file's module does. Use git mv for EditHistory.kt, and for app/src/test/java/com/mobixournal/render/EditHistoryTest.kt. Update the one row of docs/codebase.md that lists EditHistory.kt in the app's render tree (line 254) so the tree stays a mirror of the code. Verify: :mobix-core:test and :app:testDebugUnitTest --tests \"*EditHistory*\" green, then the whole :app:testDebugUnitTest green; the moved file must still carry no imports at all."
