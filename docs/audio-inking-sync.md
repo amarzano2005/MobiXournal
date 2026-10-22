@@ -172,7 +172,10 @@ During playback of a lecture or meeting:
 ### 3. Floating frosted-glass mini-player (`AudioMiniPlayer`)
 - **HUD pill (`AudioMiniPlayer`)**: A modern, draggable frosted-glass pill floating over the canvas with real
   amplitude waveform visualization, inking density heatmap, subtitle previews, +/- 5s skips, and speed selector
-  (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch preservation.
+  (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch preservation. Its width is fixed (300 dp), so the header is a
+  weighted Row: the controls (transcript, speed, close) are measured first and the clip title — which carries
+  the document's name — gets the leftover space and ellipsizes there. Before that the title was unweighted and
+  an uncapped name pushed the speed selector out of the pill.
 - **Waveform extractor (`AudioWaveformExtractor`)**: Decodes normalized amplitude vectors from local audio recordings
   with in-memory caching to avoid redundant file reads.
 

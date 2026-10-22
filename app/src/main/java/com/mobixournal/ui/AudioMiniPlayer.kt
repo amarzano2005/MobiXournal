@@ -55,6 +55,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.TransformOrigin
@@ -253,7 +254,14 @@ private fun MiniPlayerHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The title half yields, the controls never do: the pill is a fixed 300 dp, so an uncapped
+        // document name used to grow this Row until the speed selector and close button were pushed
+        // out of the surface. The weight measures the controls at their own size first and gives the
+        // title whatever is left, where it truncates instead.
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Icon(
                 imageVector = Icons.Outlined.GraphicEq,
                 contentDescription = null,
@@ -273,7 +281,10 @@ private fun MiniPlayerHeader(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
+                        .weight(1f, fill = false)
                         .clip(RoundedCornerShape(4.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                         .padding(horizontal = 4.dp, vertical = 1.dp),
@@ -378,6 +389,7 @@ private fun SubtitleOrTranscriptSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
