@@ -50,20 +50,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "living-parametric-shape-with-interactive-vertex-handles"
-title = "Living parametric shape with interactive vertex handles"
-description = "Commit the perfected shape as a ParametricShapeElement rather than a uniform-width stroke: the vertices are the authored geometry the editor drags, the bounds are recomputed from those vertices on read so a shape can never be picked where its handles are not, and showAngles and showSideLengths drive the readout badges (docs/mobix-elements.md). render/ElementBounds.kt must give the family a real box and hit-testability, the selection action bar gains Edit shape, and dragging a vertex deforms the shape live while updating side lengths and angles and snapping to 0, 30, 45 and 90 degrees against the page ruling. Export needs no change: render/XoppSynthesis.kt already compiles the family into ink for .xopp. Verify with JVM unit tests on the vertex maths and the synthesis, plus an emulator pass dragging a handle with a stylus."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 680
-created = 2026-10-13
-tags = ["shapes", "mobix"]
-rebuild = true
-emulator_debug = true
-
-[[task]]
 id = "on-device-latex-typst-typesetting-engine"
 title = "On-device scientific typesetting engine (KaTeX and Typst, living math blocks)"
 description = "docs/latex-typst-rendering.md asks for a self-contained offline typesetting core - KaTeX compiling in under 15 ms, Typst as an embedded WASM or KMP compiler in under 5 ms - rendering into a living MathBlockElement whose source is preserved in the .mobix container, reopening for editing when the formula is double-tapped and exporting as vector glyphs to PDF and as a .xopp TexImage with the source kept in metadata. Part of this exists, smaller: render/LatexParser.kt (source to node tree, pure) and render/LatexRenderer.kt (fractions, scripts, roots) draw real math behind the LaTeX placement tool, ui/LatexPalette.kt inserts STEM symbols, and the element that round-trips today is the .xopp TexImage (docs/data-path.md, docs/mobix-elements.md). Establish the real gap: whether an embedded JS or WASM runtime, or a native port, fits this project dependency-light and containerised build (docs/stack.md); how a mathBlock is modelled (docs/mobix-schema-spec.md); how double-tap re-editing and the source metadata round-trip work; and what the PDF vector-glyph export needs. Then add the task-level children. Produce tasks, not code."
