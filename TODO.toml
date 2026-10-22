@@ -302,20 +302,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "extract-the-pdf-page-plan-into-mobix-core"
-title = "Extract the PDF page plan into mobix-core"
-description = "render/PdfVectorPainter.kt (226 lines) cannot move as it stands: it is written against com.tom_roush.pdfbox (the Android port) and android.graphics.BitmapFactory, while the desktop carries org.apache.pdfbox 3 and page images as bytes. What is portable is the drawing itself, so extract a plan instead of a painter. (1) Add mobix-core/src/main/java/com/mobixournal/render/PdfPagePlan.kt: a platform-free description of one page's vector output as an ordered list of ops — a path (points, width, colour, alpha, dash), a filled polygon, a text run (font, size, colour, anchor), an image placement (pixel size, transform) — built by a pure renderer that walks a Page exactly the way PdfVectorPainter.paint does today: strokes with their pressure taper, highlighter bands with multiply, tables, plots, parametric shapes, circuits and text boxes, with the living entities compiled through LivingInk so the plan cannot disagree with the canvas. (2) Rewrite PdfVectorPainter.paint as a consumer: one arm per op emitting PDPageContentStream calls, no geometry and no model walking of its own; PDFont/BlendMode/image handling stays there because those are PDFBox types. Behaviour must not change — the existing PDF suites (PdfExporter, PdfFonts, TextPaginator tests) are the gate. (3) Add a mobix-core test asserting the plan for one page holding a stroke, a table and a plot: op kinds in order, the stroke's width and colour, and no android or pdfbox type anywhere in the plan's signature. Note in the class doc that the desktop emitter over org.apache.pdfbox is the second consumer and arrives with desktop-inspector-and-export."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 944
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "split-documentio-into-a-core-file-layer-and-a-saf-shell"
 title = "Split DocumentIo into a core file layer and a SAF shell"
 description = "io/DocumentIo.kt (666 lines) imports android.content.ContentResolver, android.net.Uri and android.provider.OpenableColumns, but the URI work is confined: private resolver is used only by displayName (line 166), the staged files come from DocumentStaging, and read(staged: File), identifyForSave, encode, merge, adoptPdf and prune all work on Files and streams. Split it so the desktop can open and save a local path without SAF. (1) In mobix-core add DocumentFileIo: the byte-level half — picking the family by bytes and mimetype (FileKind/SaveFormat), reading a File into the same loaded document the app sees, encoding a document into a File through the same temporary-then-replace staging, the image store, and the failure sentences read() already produces — with the staging directory as a constructor File and the callbacks as plain lambdas instead of a ContentResolver. (2) Leave app/src/main/java/com/mobixournal/io/DocumentIo.kt as the SAF shell: stageIn/stageOut/persist/isWritable/displayName and the Uri overloads stay, every other method delegates, so MainActivity's call sites do not change. This is child (4) of desktop-editing-undo-and-save and lands before it: the desktop save path is this core class plus a local staging directory. Verify: a new mobix-core test writes a document to a temp directory as .mobix and as .xopp, reads both back and compares the documents; the full :app:testDebugUnitTest suite green (DocumentIoTest and the io integration tests are the behaviour gate, including the failure sentences describeOpenFailure relies on); no emulator."
