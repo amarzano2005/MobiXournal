@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import com.mobixournal.design.DesignTokens
 
 /**
  * The chrome colours the canvas needs, as plain ARGB ints.
@@ -140,11 +141,15 @@ fun rememberScrollThumbColor(): Color = if (chromeIsDark()) TextSecondaryOnDark 
 @Composable
 fun rememberMenuRimColor(): Color = MaterialTheme.colorScheme.onSurface
 
-/** Strength of the pop-up rim along the panel's lit top edge. */
-const val MENU_RIM_ALPHA_TOP = 0.12f
+/**
+ * Strength of the pop-up rim along the panel's lit top edge, and the shaded bottom one: the shared
+ * tokens (`DesignTokens.RIM_ALPHA_TOP` / `RIM_ALPHA_BOTTOM`), read from here so the desktop can draw
+ * the same edge without a second definition of what "faint" means.
+ */
+const val MENU_RIM_ALPHA_TOP = DesignTokens.RIM_ALPHA_TOP
 
 /** Strength of the pop-up rim along the panel's shaded bottom edge. */
-const val MENU_RIM_ALPHA_BOTTOM = 0.04f
+const val MENU_RIM_ALPHA_BOTTOM = DesignTokens.RIM_ALPHA_BOTTOM
 
 /** Derives the canvas chrome colours from the ambient Material 3 scheme. */
 @Composable

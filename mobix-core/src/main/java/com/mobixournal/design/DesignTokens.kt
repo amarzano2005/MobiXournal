@@ -64,6 +64,29 @@ object DesignTokens {
     /** Backdrop blur radius behind the glass, in dp. */
     const val BLUR_RADIUS_DP: Int = 24
 
+    // --- The floating glass's edge --------------------------------------------------------------
+    //
+    // A floating surface is not a filled box with a border: it wears one drawn edge — a hairline shaded
+    // along its length, bright at the top and faint at the bottom, so the panel reads as lit from above,
+    // plus a feathered inner ring that walks the outer stroke into the fill instead of stopping at it.
+    // The four numbers below are that edge, and they live here rather than in the Android module because
+    // the desktop draws the same one over its own true-black desk (`docs/ui-modernization.md`).
+
+    /** How thick the rim's stroke is, in dp: one hairline, drawn inside the surface's edge. */
+    const val RIM_WIDTH_DP: Double = 1.0
+
+    /** The rim's alpha at the top of the surface — the lit end of the gradient. */
+    const val RIM_ALPHA_TOP: Float = 0.12f
+
+    /** The rim's alpha at the bottom — the end that falls away into the desk. */
+    const val RIM_ALPHA_BOTTOM: Float = 0.04f
+
+    /** The feathered inner ring's width, as a multiple of [RIM_WIDTH_DP]. */
+    const val RIM_INNER_WIDTH_SCALE: Float = 1.5f
+
+    /** The inner ring's alpha, as a fraction of the rim's own at the same height. */
+    const val RIM_INNER_ALPHA_SCALE: Float = 0.35f
+
     // --- Geometry tokens ------------------------------------------------------------------------
 
     /** A capsule's corner (tool slots, tabs, chips), in dp. */

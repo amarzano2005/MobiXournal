@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "share-the-glass-rim-spec-in-designtokens"
+title = "Share the glass rim spec in DesignTokens"
+description = "The floating glass's edge is drawn from four numbers that today exist only in the app: app/src/main/java/com/mobixournal/ui/theme/ChromeColors.kt declares MENU_RIM_ALPHA_TOP = 0.12f and MENU_RIM_ALPHA_BOTTOM = 0.04f, and app/src/main/java/com/mobixournal/ui/theme/FloatingGlass.kt adds MENU_RIM_WIDTH = 1.dp and, inside drawFloatingRim, an inner feather of width * 1.5f drawn at 0.35f of the rim's alpha. Move all four into mobix-core/src/main/java/com/mobixournal/design/DesignTokens.kt as documented constants (RIM_WIDTH_DP: Double, RIM_ALPHA_TOP: Float, RIM_ALPHA_BOTTOM: Float, RIM_INNER_WIDTH_SCALE: Float, RIM_INNER_ALPHA_SCALE: Float), keeping the current values exactly, and make ChromeColors/FloatingGlass read them — the app's drawing must not change by a single pixel: the rim stays the same stroke at the same alphas. Do not delete the app-side names if something else references them; alias them to the tokens instead (const val MENU_RIM_ALPHA_TOP = DesignTokens.RIM_ALPHA_TOP). Update docs/ui-modernization.md where the floating rim is described, so the numbers are documented where the tokens live. Verify: the app suite green, and a headless render of a floating surface (FloatingSurface, or the toolbar menu) before and after is byte-identical in its flattened pixels — if the values were touched, that comparison is what catches it."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-glass-chrome-parity-with-mobile-scope"
+title = "Desktop glass chrome parity with mobile (scope)"
+description = "The material is shared in colour but not in treatment. Both shells read mobix-core's DesignTokens for the desk, the glass fill and the hairline, and DesktopThemeTest forbids a local colour in the desktop chrome — but the *drawing* of the glass lives only in the app: ui/theme/FloatingGlass.kt owns the floating rim (a 1 dp stroke shaded by a vertical gradient, 0.12 alpha at the top and 0.04 at the bottom, plus a feathered inner ring at 1.5x the width and 0.35x the alpha), the 20 dp corner, the soft shadow, and the liquid-glass spring (0.82 scale, damping 0.74 / stiffness 550, 110 ms fade in, 230 ms held exit, 170 ms fade out). The desktop has the colours and the panel radius, and no rim and no spring: its popovers are a flat fill with a padding, its flyouts a flat hairline border, its picker panel a plain box — which is exactly the difference a person notices putting the tablet and the PC side by side. Break down: (1) move the rim's numbers into DesignTokens so both shells draw the same edge; (2) a desktop Modifier that draws that rim and feather, applied to every floating surface the window puts over the page, verified headlessly by pixels; (3) the same spring language for the desktop's floating surfaces, with the numbers shared; (4) one headless side-by-side render (mobile material and desktop material, same panel) so parity is looked at, not asserted from memory. Constraint: mobix-core takes no Compose dependency, so anything that draws stays per shell and only the numbers and the specification are shared until a Compose module exists (docs/desktop-workstation.md, the target layout)."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "split-documentio-into-a-core-file-layer-and-a-saf-shell"
 title = "Split DocumentIo into a core file layer and a SAF shell"
 description = "Investigated 2026-10-22 and re-scoped: the byte-level half is separable, the class is not. DocumentIo's encode/read do write through core codecs (Xopp.save, XoppZip.save, MobixContainer.save, MobixIncrementalSave.saveOver), but four seams keep the class in the app — staging (UriStaging makes the scratch file), openSessions (MobixOpenSessions answers the incremental-repack source and the canvas mode, chunk coords and canvas), refs.portableReference (relativises against a Uri) and displayName(Uri) (names the bridge). ImageStore, the store the task expected to move, turned out not to be platform-free: it is built on ScratchDir and UriStaging, so a move was attempted and reverted. What did land: PdfBackgroundDomain and PixmapBackgroundDomain (the background-reference rewrites) are in mobix-core, so both shells can produce an attach save. The remaining work is one task, order 948: a DocumentEncoder in the core with a SaveTarget, a PageReuseSource seam and the three format arms, with DocumentIo.encode delegating to it."

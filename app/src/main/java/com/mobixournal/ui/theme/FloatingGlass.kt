@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.mobixournal.design.DesignTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -93,14 +94,14 @@ internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
         style = Stroke(width = width),
     )
     // Soft inner transition that feathers the outer border seamlessly into the transparent central fill
-    val innerWidth = width * 1.5f
+    val innerWidth = width * DesignTokens.RIM_INNER_WIDTH_SCALE
     val innerInset = width + innerWidth / 2f
     if (size.width > innerInset * 2 && size.height > innerInset * 2) {
         drawRoundRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    rim.copy(alpha = MENU_RIM_ALPHA_TOP * 0.35f),
-                    rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM * 0.35f),
+                    rim.copy(alpha = MENU_RIM_ALPHA_TOP * DesignTokens.RIM_INNER_ALPHA_SCALE),
+                    rim.copy(alpha = MENU_RIM_ALPHA_BOTTOM * DesignTokens.RIM_INNER_ALPHA_SCALE),
                 ),
                 startY = 0f,
                 endY = size.height,
@@ -113,8 +114,8 @@ internal fun DrawScope.drawFloatingRim(cornerRadiusPx: Float, rim: Color) {
     }
 }
 
-/** The rim's thickness — one hairline, drawn inside the surface's edge. */
-internal val MENU_RIM_WIDTH = 1.dp
+/** The rim's thickness — one hairline, drawn inside the surface's edge (a shared token). */
+internal val MENU_RIM_WIDTH = DesignTokens.RIM_WIDTH_DP.dp
 
 /**
  * How long a floating surface takes to **draw back** when it closes: the closing spring settles in
