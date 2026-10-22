@@ -60,8 +60,8 @@ data class Bounds(val left: Double, val top: Double, val right: Double, val bott
 object ElementBounds {
 
     /** Rough per-em width factor and line-height factor for the text-box approximation. */
-    private const val TEXT_CHAR_W = 0.62
-    private const val TEXT_LINE_H = 1.3
+    private const val TEXT_CHAR_W = InkTokens.FIGURE_LABEL_CHAR_W
+    private const val TEXT_LINE_H = InkTokens.FIGURE_LABEL_LINE_H
 
     /**
      * Extra pt margin around an element's box when tap-testing, so thin strokes and empty text
