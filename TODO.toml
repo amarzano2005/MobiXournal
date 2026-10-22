@@ -302,20 +302,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-kmp-module-split"
-title = "Desktop: KMP module split (scope)"
-description = "Prerequisite of the desktop editor (Phase 3 of docs/desktop-workstation.md). The Android render, ui, tabs and io packages are still Android-bound, so desktop editing cannot reuse them. Investigate which of EditHistory, DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfaceSelection, ElementEdits, PdfVectorPainter, PageSvgWriter, XoppSynthesis and io/DocumentIo are platform-free enough to move into mobix-core (or a new mobix-render behind a small canvas abstraction), and which must be reimplemented for desktop. Target is Windows 11 only, but keep the shared core OS-independent. Per candidate state: what moves, what stays, the size of the change and how the Android app keeps compiling and passing its unit suite. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "refactor"
-urgency = "high"
-order = 940
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-editing-undo-and-save"
 title = "Desktop editing, undo and save (scope)"
 description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
@@ -565,4 +551,88 @@ order = 1120
 created = 2026-10-21
 tags = []
 rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "move-edithistory-into-mobix-core"
+title = "Move EditHistory into mobix-core"
+description = "app/src/main/java/com/mobixournal/render/EditHistory.kt (69 lines) is a generic undo/redo over immutable snapshots with zero imports — the one piece of the editing path that is already platform-free, and the desktop editor needs it (child (3) of desktop-editing-undo-and-save). Move the file unchanged: the package com.mobixournal.render is already shared (mobix-core/src/main/java/com/mobixournal/render/ holds LivingInk and the other compilers), so no import anywhere changes but the file's module does. Use git mv for EditHistory.kt, and for app/src/test/java/com/mobixournal/render/EditHistoryTest.kt. Update the one row of docs/codebase.md that lists EditHistory.kt in the app's render tree (line 254) so the tree stays a mirror of the code. Verify: :mobix-core:test and :app:testDebugUnitTest --tests \"*EditHistory*\" green, then the whole :app:testDebugUnitTest green; the moved file must still carry no imports at all."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 941
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "move-xoppsynthesis-into-mobix-core"
+title = "Move XoppSynthesis into mobix-core"
+description = "app/src/main/java/com/mobixournal/render/XoppSynthesis.kt (179 lines) imports only format.mobix (MobixMetaBlock, PageSource, MobixMetaClaim, MobixMetaDigest) and format.model — no android.*, no Compose — so it is a compiler that can already be shared: it is what io/DocumentIo.kt:549 writes a .mobix through when the target is .xopp, and what MobixMetaBlockTest, PageSourceWalkTest and PlotShadingTest call. git mv it to mobix-core/src/main/java/com/mobixournal/render/ with the same package com.mobixournal.render (that directory already exists in the core), so call sites need no import change. Leave app-level integration tests where they are unless they only need core fixtures. Update every doc naming the old path: AGENTS.md (the .mobix export bullet), docs/architecture.md (lines 67-68), docs/mobix-format.md (lines 147 and 239), docs/codebase.md (line 227), docs/drawing-tools.md (line 94). Verify: before the move, export one fixture document containing a table through XoppSynthesis and record the SHA-256 of the resulting .xopp; after the move the same call must produce the identical digest. Then :mobix-core:test and the full :app:testDebugUnitTest green."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 942
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "move-pagesvgwriter-into-mobix-core"
+title = "Move PageSvgWriter into mobix-core"
+description = "app/src/main/java/com/mobixournal/render/PageSvgWriter.kt (229 lines) imports only format.model and java.util.Base64 — no android.*, no Compose — so the SVG export can be shared as is, and the desktop will want it for desktop-inspector-and-export. git mv it to mobix-core/src/main/java/com/mobixournal/render/ keeping the package com.mobixournal.render, so DrawingSurfacePaint.kt:694 and LivingEntityDrawingTest need no import change. Update the docs rows that name the old path: docs/codebase.md (line 192) and docs/pages-and-paper.md (line 33); docs/architecture.md's dispatch sentence (lines 67-68) must still be true of the new location. Verify: LivingEntityDrawingTest green (it compares the SVG with and without a table, which is the behaviour that must not move), :mobix-core:test green, and the full :app:testDebugUnitTest green. Add one core test that writes a page with a stroke, a text box and a living table to SVG and asserts the stroke path, the text and the table's rules all appear once."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 943
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "extract-the-pdf-page-plan-into-mobix-core"
+title = "Extract the PDF page plan into mobix-core"
+description = "render/PdfVectorPainter.kt (226 lines) cannot move as it stands: it is written against com.tom_roush.pdfbox (the Android port) and android.graphics.BitmapFactory, while the desktop carries org.apache.pdfbox 3 and page images as bytes. What is portable is the drawing itself, so extract a plan instead of a painter. (1) Add mobix-core/src/main/java/com/mobixournal/render/PdfPagePlan.kt: a platform-free description of one page's vector output as an ordered list of ops — a path (points, width, colour, alpha, dash), a filled polygon, a text run (font, size, colour, anchor), an image placement (pixel size, transform) — built by a pure renderer that walks a Page exactly the way PdfVectorPainter.paint does today: strokes with their pressure taper, highlighter bands with multiply, tables, plots, parametric shapes, circuits and text boxes, with the living entities compiled through LivingInk so the plan cannot disagree with the canvas. (2) Rewrite PdfVectorPainter.paint as a consumer: one arm per op emitting PDPageContentStream calls, no geometry and no model walking of its own; PDFont/BlendMode/image handling stays there because those are PDFBox types. Behaviour must not change — the existing PDF suites (PdfExporter, PdfFonts, TextPaginator tests) are the gate. (3) Add a mobix-core test asserting the plan for one page holding a stroke, a table and a plot: op kinds in order, the stroke's width and colour, and no android or pdfbox type anywhere in the plan's signature. Note in the class doc that the desktop emitter over org.apache.pdfbox is the second consumer and arrives with desktop-inspector-and-export."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 944
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "split-documentio-into-a-core-file-layer-and-a-saf-shell"
+title = "Split DocumentIo into a core file layer and a SAF shell"
+description = "io/DocumentIo.kt (666 lines) imports android.content.ContentResolver, android.net.Uri and android.provider.OpenableColumns, but the URI work is confined: private resolver is used only by displayName (line 166), the staged files come from DocumentStaging, and read(staged: File), identifyForSave, encode, merge, adoptPdf and prune all work on Files and streams. Split it so the desktop can open and save a local path without SAF. (1) In mobix-core add DocumentFileIo: the byte-level half — picking the family by bytes and mimetype (FileKind/SaveFormat), reading a File into the same loaded document the app sees, encoding a document into a File through the same temporary-then-replace staging, the image store, and the failure sentences read() already produces — with the staging directory as a constructor File and the callbacks as plain lambdas instead of a ContentResolver. (2) Leave app/src/main/java/com/mobixournal/io/DocumentIo.kt as the SAF shell: stageIn/stageOut/persist/isWritable/displayName and the Uri overloads stay, every other method delegates, so MainActivity's call sites do not change. This is child (4) of desktop-editing-undo-and-save and lands before it: the desktop save path is this core class plus a local staging directory. Verify: a new mobix-core test writes a document to a temp directory as .mobix and as .xopp, reads both back and compares the documents; the full :app:testDebugUnitTest suite green (DocumentIoTest and the io integration tests are the behaviour gate, including the failure sentences describeOpenFailure relies on); no emulator."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 945
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "give-both-shells-one-pointer-router"
+title = "Give both shells one pointer router"
+description = "render/DrawingSurfaceInput.kt (680 lines; android.view.KeyEvent, MotionEvent, SurfaceView, ViewConfiguration), DrawingSurfaceStrokes.kt (679; MotionEvent) and DrawingSurfaceSelection.kt (341; ClipData, ClipboardManager, Context, MotionEvent) are View-event code and stay in the app — the desktop cannot reuse a MotionEvent and should not try. What it needs is the decisions inside them, which a Compose pointer can feed: the pressure filter of docs/stylus.md, the gesture classification (pen versus finger, tap versus drag, the second-finger rule that turns a drag into pan/zoom) and the geometry of a partial erase and of a selection transform. (1) In mobix-core/src/main/java/com/mobixournal/render/ add an InkPointer value (x, y, pressure, tilt, azimuth, timestamp, tool type, buttons, phase) and an InkPointerRouter that turns a stream of them into the events the editor consumes: stroke start/extend/end, tap, two-finger pan/zoom, erase hit. (2) Rewrite the Android side as a thin MotionEvent adapter that produces InkPointer and keeps its current behaviour, with the app suite as the gate — if a test has to change, the adapter changed behaviour and the refactor is wrong. (3) Test the router in mobix-core with synthetic pointer streams: a pressure ramp that the filter smooths, a tap that does not draw, an erase that splits a stroke at the hit point, and a second finger that ends the stroke and starts a pan. State in the router's doc that the desktop's Compose pointer becomes the second adapter in desktop-editing-undo-and-save, and that which pointer fields Compose Desktop actually fills on Windows is measured by desktop-tablet-and-dial-input rather than assumed."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "normal"
+order = 946
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = true
 emulator_debug = false

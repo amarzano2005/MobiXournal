@@ -114,7 +114,7 @@ together. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
-phase order and the done criteria, and its children are the atomic tasks (orders 910–1030) and the
+phase order and the done criteria, and its children are the atomic tasks (orders 934–1120) and the
 three phase scopes still to be broken down. Three decisions were taken on 2026-10-21 and recorded in
 `docs/ui-modernization.md` (the owning spoke for desktop layout and materials): the chrome is the app's
 own glass on a true-black desk rather than Mica/Vibrancy, **both** tool placements ship — vertical rail
@@ -151,6 +151,29 @@ MobiXournal
 ├── app-android/          # Android shell: MotionEvent, SurfaceView, SAF document picker, AudioRecord
 └── app-desktop/          # Desktop shell: Window chrome, Wacom/Windows Ink/evdev stylus, menu bar
 ```
+
+### What is already shareable (measured 2026-10-22)
+
+The diagram above is the *target*. Measured against the code, the Android editing path splits cleanly
+into three groups, and `TODO.toml` carries one task per move (`desktop-kmp-module-split`'s children,
+orders 941–946).
+
+| Type | Lines | Android imports | Verdict |
+|---|---|---|---|
+| `render/XoppSynthesis.kt` | 179 | none — only `format.mobix` and `format.model` | moves to `mobix-core` unchanged |
+| `render/PageSvgWriter.kt` | 229 | none — model and `java.util.Base64` | moves to `mobix-core` unchanged |
+| `render/EditHistory.kt` | 69 | none, no imports at all | moves to `mobix-core` unchanged |
+| `render/PdfVectorPainter.kt` | 226 | `BitmapFactory`, plus `com.tom_roush.pdfbox` (the Android PDFBox port) | the geometry moves as a **page plan** in `mobix-core`; the emitter stays per shell (the desktop has `org.apache.pdfbox` 3) |
+| `io/DocumentIo.kt` | 666 | `ContentResolver`, `Uri`, `OpenableColumns` — and `resolver` is used in exactly one place, `displayName` | splits: a `File`-based core layer plus the existing SAF shell |
+| `render/ElementEdits.kt` | 152 | `BitmapFactory`, for `inJustDecodeBounds` only | movable behind an injected image-size function |
+| `render/DrawingSurfaceInput.kt` | 680 | `MotionEvent`, `KeyEvent`, `SurfaceView`, `ViewConfiguration` | stays; the desktop reimplements the pointer layer over Compose |
+| `render/DrawingSurfaceStrokes.kt` | 679 | `MotionEvent` | stays; the stroke/erase geometry is what moves, into the pointer router |
+| `render/DrawingSurfaceSelection.kt` | 341 | `MotionEvent`, `ClipData`, `ClipboardManager`, `Context` | stays; the transform geometry is what moves |
+
+The rule behind the split is the one `mobix-core`'s own header already states: nothing in the core may
+import `android.*` or Compose. A file that meets it moves as a whole; a file that meets it *almost*
+(the painter's two PDFBox flavours, `DocumentIo`'s single URI lookup) is cut along the seam rather than
+copied, so there is never a second renderer with its own opinion of the drawing.
 
 ---
 
