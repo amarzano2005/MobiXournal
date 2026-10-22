@@ -279,8 +279,11 @@ self-contained folder, runtime included, to
 `desktop/build/compose/binaries/main/app/MobiXournal/` (about 140 MB). Run `MobiXournal.exe` from
 it; a document path after it opens that document, and no argument opens an empty window. It is **not
 an installer and not signed**: Windows SmartScreen may warn on first run, and the folder is only as
-current as the last build. The MSI installer and a CI artifact are the open task
-`desktop-packaging-installers-and-ci-artifact`.
+current as the last build. **Regenerate it at the end of every completed task** — the rule is in
+`AGENTS.md` (build flags) and it applies to every task, not only the ones that touch `desktop/`, because
+the packaged window carries `mobix-core` too. A stale `.exe` is a feature delivered only in source: the
+person double-clicking it cannot tell that apart from a feature nobody built. The MSI installer and a CI
+artifact are the open task `desktop-packaging-installers-and-ci-artifact`.
 
 ---
 

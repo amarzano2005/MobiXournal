@@ -252,6 +252,20 @@ change with a runtime surface. When flags are off for a run of quick tweaks, you
 (e.g. ad-hoc work outside `TODO.toml`), fall back to the defaults: build and run the unit tests,
 but no emulator pass unless asked.
 
+**Every completed task finishes with a current desktop executable.** The packaged desktop build is the
+artefact the owner actually opens, so closing a task means regenerating it in the same task:
+
+```powershell
+.\gradlew.bat :desktop:createDistributable   # JAVA_HOME = JDK 21 (Profile B/D)
+```
+
+`desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` must contain what the task just
+implemented. This holds for **all** tasks, not only ones that touch `desktop/`: the packaged window
+carries `mobix-core`, so shared code lands in it too, and a stale `.exe` is a feature delivered only in
+source — indistinguishable, to the person double-clicking it, from a feature that was never built. The
+folder is build output (not versioned, not committed); only the rule to refresh it lives here. Owning
+spoke for the command: `docs/tools.md`.
+
 ---
 
 ## Development style guide — technology defaults (standing preferences)
