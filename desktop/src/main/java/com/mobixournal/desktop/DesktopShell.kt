@@ -339,6 +339,19 @@ class DesktopShellState(
             ShellCommand.START_PAN -> {
                 panMode = true; true
             }
+            // Undo and redo are the tab's own history, so they are **unavailable** — not merely no-ops —
+            // while it is empty, which is the state a header control greys the command out on. A step
+            // may restore a page's picture, so the tab's cached thumbnails are dropped with it.
+            ShellCommand.UNDO -> {
+                if (!tab.undo()) return false
+                thumbnails[tab.key]?.clear()
+                true
+            }
+            ShellCommand.REDO -> {
+                if (!tab.redo()) return false
+                thumbnails[tab.key]?.clear()
+                true
+            }
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.SAVE, ShellCommand.SAVE_AS -> false

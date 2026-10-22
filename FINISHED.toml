@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-undo-redo-per-tab-history"
+title = "Desktop: undo, redo and one history per tab"
+description = "render/EditHistory.kt is already in mobix-core and its header says what it is for: one history per editor, one per tab. The app holds exactly one, on the canvas (DrawingSurfaceView.history = EditHistory<Document>()). (1) DesktopTab gets its own EditHistory<Document> (or <DesktopEditable> once the page-window child lands), recorded with the pre-edit snapshot by every committing command (stroke end, erase, selection transform) — not by pointer moves, so one drag is one step. (2) ShellCommand gains UNDO and REDO, bound to Ctrl+Z and Ctrl+Shift+Z (the table in docs/ui-modernization.md is the owner of shortcuts and gains the rows), disabled by canUndo/canRedo so the header can grey them. (3) Undo restores the snapshot into the tab's editable document and resets the page window, as the app's resetPageWindow does, so a redo cannot rebuild from a stale page. (4) Verification, headless: a desktop test drives stroke, undo, undo, redo through the shell state and asserts the model's stroke counts and that the painter's pixels follow; a core test already covers the stack. No emulator. Docs: docs/ui-modernization.md (shortcut table, and the states the two commands must have), docs/desktop-workstation.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "editable-page-window-for-a-paged-desktop"
 title = "Desktop: an editable page window over a paged document"
 description = "DesktopDocument holds no Document on purpose: it presents a PageSource so a 200-page .mobix opens without reading it (DocumentLoader.kt). Editing needs the other half the app already has: the bounded read cache plus the overlay of edited pages that eviction never touches (render/PageWindow.kt in the app: windowEditPage, pin, resetPageWindow, followDocument). (1) Move PageWindow into mobix-core (it is PageSource + immutable pages; check with grep for android imports and cut along the seam if it has any) with the app still calling it, so its suite is the gate. (2) Give DesktopTab an overlay: edited pages are collected in a Map<Int, Page> the window paints first, so a .mobix edit never inflates the rest of the document; the tab exposes the edited document to save as the source's pages plus the overlay. (3) The painter (PageCanvas/PageView) reads through that window, so a page the user just drew on is the page the preview shows and the page the thumbnail shows. (4) Verification, headless: a desktop test opens a .mobix fixture, edits page 3 through the window, asserts (a) page 3 comes back edited, (b) no other page entry was inflated (a counting entry source), and (c) the painted pixels of page 3 changed; plus a core test for the overlay surviving an eviction. No emulator. Docs: docs/desktop-workstation.md (how it opens and paints), docs/mobix-streaming-api.md (the window as contract)."

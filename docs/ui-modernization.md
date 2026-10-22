@@ -227,6 +227,7 @@ Everything the chrome does can also be done from the keyboard:
 | `Ctrl + W`, `×` | close the tab, activating its neighbour |
 | `Ctrl + S` | save the active document back into the container it was opened as |
 | `Ctrl + Shift + S` | Save As — the name's suffix chooses the container |
+| `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the active tab's last command |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
 | `Ctrl + B`, `≡` | show or hide the sidebar |
 | `Ctrl + =`, `Ctrl + NumPad +` | zoom in — see the layout note below |
@@ -239,6 +240,15 @@ Everything the chrome does can also be done from the keyboard:
 | `1` `2` `3` | pick favourite colour 1 / 2 / 3 |
 | `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
 | `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
+
+**The two history commands have defined states, not just a binding.** `Ctrl + Z` and `Ctrl + Shift + Z`
+act on the **active tab's own** `EditHistory` — undoing in one document never reaches into another — and
+both are **unavailable while their stack is empty**: the command is not handled at all, and `canUndo` /
+`canRedo` are the state a header control greys the action out on (there is no such control yet, so
+`apply` answering false is the whole visible effect). One gesture is one step: a stroke records on its
+lift and an eraser drag on its first bite, so a single undo never takes back half a line; an eraser
+stroke that touches no ink records nothing. A save starts a new history, because the pages of the
+archive it just closed are not steps a tab may restore.
 
 Two decisions taken while building it:
 - **The tab and view model is Compose snapshot state, not plain fields.** A `mutableListOf` and ordinary

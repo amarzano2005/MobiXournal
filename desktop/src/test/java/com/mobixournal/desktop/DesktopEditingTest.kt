@@ -267,6 +267,120 @@ class DesktopEditingTest {
         }
     }
 
+    /**
+     * Undo and redo, through the shell's own commands: one stroke is one step, the painter follows the
+     * model back and forth, and with an empty stack the command is **not handled** — the state a header
+     * control shows as disabled.
+     */
+    @Test
+    fun aStrokeIsOneUndoStepAndTheShellKnowsWhenThereAreNone() {
+        val state = DesktopShellState(DesktopSettings(temp.newFile("undo-settings.properties")))
+        try {
+            state.open(notebook())
+            val tab = state.active!!
+            val before = inkPixels(renderPageBitmap(tab.document.page(0), 1f))
+            assertFalse("a freshly opened tab has nothing to undo", state.apply(ShellCommand.UNDO))
+            assertFalse("nor to redo", state.apply(ShellCommand.REDO))
+
+            dragPen(tab)
+            assertTrue("the lift recorded one step", tab.canUndo)
+            assertFalse(tab.canRedo)
+            assertEquals(2, strokeCount(tab.document.page(0)))
+            val inked = inkPixels(renderPageBitmap(tab.document.page(0), 1f))
+            assertTrue("the stroke is painted ($before -> $inked)", inked > before + 100)
+
+            assertTrue("Ctrl+Z takes it back", state.apply(ShellCommand.UNDO))
+            assertEquals(1, strokeCount(tab.document.page(0)))
+            assertEquals(
+                "the painted page is the page before the stroke again",
+                before,
+                inkPixels(renderPageBitmap(tab.document.page(0), 1f)),
+            )
+            assertEquals("and the document the save writes is the old one", 1, strokeCount(tab.document.model.pages[0]))
+            assertTrue(tab.canRedo)
+            assertFalse("one stroke is one step, so the stack is empty now", state.apply(ShellCommand.UNDO))
+
+            assertTrue("Ctrl+Shift+Z re-applies it", state.apply(ShellCommand.REDO))
+            assertEquals(2, strokeCount(tab.document.page(0)))
+            assertEquals(inked, inkPixels(renderPageBitmap(tab.document.page(0), 1f)))
+            assertFalse("and there is nothing further to redo", state.apply(ShellCommand.REDO))
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    /** A save is the new baseline: the closed archive's pages are not steps a history may restore. */
+    @Test
+    fun aSaveStartsANewHistory() {
+        val state = DesktopShellState(DesktopSettings(temp.newFile("save-settings.properties")))
+        try {
+            state.open(notebook())
+            val tab = state.active!!
+            dragPen(tab)
+            assertTrue(tab.canUndo)
+
+            assertTrue("Ctrl+S writes the edit", state.apply(ShellCommand.SAVE))
+            assertNull("the save reported nothing", state.failure)
+            assertFalse("the file is the new baseline, so there is nothing to undo", state.apply(ShellCommand.UNDO))
+            assertFalse(tab.canUndo)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    /** An eraser drag is **one** step, however many times the tip bites. */
+    @Test
+    fun anEraserDragIsOneStep() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        try {
+            tab.document.editPage(0) { page -> page.withElement(horizontalBar("stk_bar")) }
+            assertEquals(2, strokeCount(tab.document.page(0)))
+
+            val draft = mutableStateListOf<InkSample>()
+            val gesture = PageInkGesture(
+                tab = tab,
+                tool = DesktopTool.ERASER,
+                ink = DesktopInk(width = 10f),
+                view = Viewport(zoom = 1f),
+                pageW = SyntheticNotebook.WIDTH_PT.toFloat(),
+                pageH = SyntheticNotebook.HEIGHT_PT.toFloat(),
+                density = 1f,
+                draft = draft,
+                onEdited = {},
+            )
+            gesture.down(pen(250f, 200f, pressed = true, time = 1_000L), InkPointer.PRIMARY)
+            gesture.move(pen(300f, 200f, pressed = true, time = 1_016L), InkPointer.PRIMARY)
+            gesture.up(pen(300f, 200f, pressed = false, time = 1_032L), 0)
+            assertEquals("the bar became three pieces", 4, strokeCount(tab.document.page(0)))
+
+            assertTrue("the drag recorded a step", tab.canUndo)
+            assertTrue(tab.undo())
+            assertEquals("one undo puts the whole bar back", 2, strokeCount(tab.document.page(0)))
+            assertFalse("the drag was one step, not two", tab.canUndo)
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    /** Drag the pen across page 0 once, through the real gesture machine: one committed stroke. */
+    private fun dragPen(tab: DesktopTab) {
+        val gesture = PageInkGesture(
+            tab = tab,
+            tool = DesktopTool.PEN,
+            ink = DesktopInk(width = 4f),
+            view = Viewport(zoom = 1f),
+            pageW = SyntheticNotebook.WIDTH_PT.toFloat(),
+            pageH = SyntheticNotebook.HEIGHT_PT.toFloat(),
+            density = 1f,
+            draft = mutableStateListOf(),
+            onEdited = {},
+        )
+        gesture.down(pen(100f, 100f, pressed = true, time = 1_000L), InkPointer.PRIMARY)
+        gesture.move(pen(160f, 160f, pressed = true, time = 1_016L), InkPointer.PRIMARY)
+        gesture.move(pen(260f, 220f, pressed = true, time = 1_032L), InkPointer.PRIMARY)
+        gesture.up(pen(260f, 220f, pressed = false, time = 1_048L), 0)
+    }
+
     @Test
     fun aPressureSampleBecomesItsFilteredWidthAndAHighlighterStaysOneWidth() {
         val pointer = InkPointer(

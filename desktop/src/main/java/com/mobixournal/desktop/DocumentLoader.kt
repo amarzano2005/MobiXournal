@@ -99,6 +99,35 @@ class DesktopDocument(
     }
 
     /**
+     * The document as it is **now**, cheaply — the snapshot a per-tab undo history records before an
+     * edit (`EditHistory`).
+     *
+     * Both halves are already immutable and share their pages with the documents around them: the model
+     * is a `Document` whose edit is an overlay over the reader's own page list, and the window's overlay
+     * holds the pages those edits produced. Copying the overlay is one map copy, not a page copy — a
+     * 200-page notebook snapshots at the cost of the pages a session touched.
+     */
+    fun snapshot(): Snapshot = Snapshot(model, window.dirtyPages)
+
+    /**
+     * Adopt [snapshot] wholesale — what undo and redo call.
+     *
+     * The window is **reset first** and then given the snapshot's own edited pages: its read cache and
+     * overlay describe pages the document no longer has, and a redo rebuilt from a stale overlay would
+     * resurrect an edit that had been undone. Untouched pages are read through the source again, so an
+     * undo never materialises the rest of a notebook either.
+     */
+    fun restore(snapshot: Snapshot) {
+        model = snapshot.model
+        window.reset()
+        for ((index, page) in snapshot.overlay) window.set(index, page)
+        edits++
+    }
+
+    /** A document at one instant: the model a save would write and the pages the window produced. */
+    class Snapshot internal constructor(val model: Document, val overlay: Map<Int, Page>)
+
+    /**
      * How many ink strokes the whole document holds, or **null when counting them would cost a full
      * read** — a `.mobix` page count is free, a `.mobix` *ink* count is not, and the preview's header
      * must not turn opening a notebook into inflating every page of it.

@@ -159,7 +159,13 @@ internal class PageInkGesture(
     var drawing: Boolean = false
         private set
 
-    fun down(change: PointerInputChange, buttons: Int) = feed(change, InkPointerPhase.DOWN, buttons)
+    /** True once this gesture has taken its one undo step: an eraser drag is one step, not one per bite. */
+    private var recorded = false
+
+    fun down(change: PointerInputChange, buttons: Int) {
+        recorded = false
+        feed(change, InkPointerPhase.DOWN, buttons)
+    }
 
     fun move(change: PointerInputChange, buttons: Int) = feed(change, InkPointerPhase.MOVE, buttons)
 
@@ -218,20 +224,32 @@ internal class PageInkGesture(
         if (drawing) draft.add(InkSample(x, y, event.widthFactor, start))
     }
 
-    /** The lift: the drawn samples become one `Stroke` on the page's top layer, as one edit. */
+    /**
+     * The lift: the drawn samples become one `Stroke` on the page's top layer, as one edit — and one
+     * undo step, recorded with the page as it was before the stroke.
+     */
     private fun commit() {
         val samples = draft.toList()
         draft.clear()
         val stroke = tool.inkTool()?.let { strokeOf(it, ink.colour, ink.width, samples) } ?: return
         val index = tab.page
+        val before = tab.document.snapshot()
         tab.document.editPage(index) { page -> page.withElement(stroke) }
+        tab.record(before)
         onEdited(index)
     }
 
-    /** Rub out at a page point, at the tip the ink width sizes (`eraserRadiusPt`). */
+    /**
+     * Rub out at a page point, at the tip the ink width sizes (`eraserRadiusPt`).
+     *
+     * The drag's undo step is taken **before its first bite** — a snapshot of a page nobody has touched
+     * is cheap, and taking it only once an edit really happened keeps a stroke past the ink from
+     * leaving an empty step behind.
+     */
     private fun eraseAt(x: Double, y: Double) {
         val index = tab.page
         val radius = eraserRadiusPt(ink.width)
+        val before = if (recorded) null else tab.document.snapshot()
         val edited = tab.document.editPage(index) { page ->
             PageEraser.erase(
                 page = page,
@@ -242,7 +260,12 @@ internal class PageInkGesture(
                 hiddenLayers = tab.hiddenOn(index),
             ) ?: page
         }
-        if (edited != null) onEdited(index)
+        if (edited == null) return
+        if (before != null) {
+            tab.record(before)
+            recorded = true
+        }
+        onEdited(index)
     }
 }
 

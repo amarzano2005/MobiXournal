@@ -582,20 +582,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-undo-redo-per-tab-history"
-title = "Desktop: undo, redo and one history per tab"
-description = "render/EditHistory.kt is already in mobix-core and its header says what it is for: one history per editor, one per tab. The app holds exactly one, on the canvas (DrawingSurfaceView.history = EditHistory<Document>()). (1) DesktopTab gets its own EditHistory<Document> (or <DesktopEditable> once the page-window child lands), recorded with the pre-edit snapshot by every committing command (stroke end, erase, selection transform) — not by pointer moves, so one drag is one step. (2) ShellCommand gains UNDO and REDO, bound to Ctrl+Z and Ctrl+Shift+Z (the table in docs/ui-modernization.md is the owner of shortcuts and gains the rows), disabled by canUndo/canRedo so the header can grey them. (3) Undo restores the snapshot into the tab's editable document and resets the page window, as the app's resetPageWindow does, so a redo cannot rebuild from a stale page. (4) Verification, headless: a desktop test drives stroke, undo, undo, redo through the shell state and asserts the model's stroke counts and that the painter's pixels follow; a core test already covers the stack. No emulator. Docs: docs/ui-modernization.md (shortcut table, and the states the two commands must have), docs/desktop-workstation.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1180
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-dirty-state-close-confirmation-and-crash-safety"
 title = "Desktop: dirty state, close confirmation and crash safety"
 description = "The last of the editing scope, and the one that decides whether a window can lose work. (1) A tab is dirty when its editable document differs from what was last written or opened; implement it as a save point in the per-tab history (the snapshot count at the last successful save, plus a flag for edits made after an undo back to that point), not as a boolean somebody forgets to clear — the app has no dirty flag at all today because it saves on command only. (2) The tab shows it (the strip's title gains a dot, per docs/interface-contract.md: a token colour, all five states), and Ctrl+S / Ctrl+Shift+S are enabled accordingly. (3) Closing a dirty tab or the window asks first, with three answers — Save, Discard, Cancel — in English, and the window's close request goes through the same path (ExitRequest / onCloseRequest) so the X button cannot bypass it. (4) Crash safety: while a tab is dirty, its edited document is written as a snapshot beside the window's settings file (the app's TabStore does this for its tabs, in filesDir/tabs), and a start that finds one offers it as a recovered tab; the snapshot is deleted after a successful save. (5) Verification, headless: a test edits, saves, edits again and asserts the dirty flag at each step and that the save point survives an undo; a close request on a dirty tab reports what it would ask rather than closing; a snapshot written by one shell instance is offered by the next. No emulator. Docs: docs/desktop-workstation.md (the lifecycle), docs/data-path.md (tabs and what is cached between launches), docs/interface-contract.md if the dot is a new UI element."

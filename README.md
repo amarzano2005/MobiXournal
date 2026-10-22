@@ -116,7 +116,8 @@ point under the cursor stays where it is while you zoom. A page saved as one lon
 written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
 shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. You can **write on the
 page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
-draw and lands in the document when you lift — and `Ctrl + S` writes it back to the file you opened
+draw and lands in the document when you lift, and `Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to
+put it again) — and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.
@@ -138,6 +139,7 @@ one, and the palette, the favourites and the width are remembered between runs.
 |---|---|
 | `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) |
 | `Ctrl + S` / `Ctrl + Shift + S` | save back to the file / Save As (the name's suffix picks the format) |
+| `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the last edit in the current document |
 | `Ctrl + W`, `×` on a tab | close the tab |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
 | `Ctrl + B`, `≡` | show or hide the sidebar |
@@ -160,8 +162,8 @@ A tab's name can be edited in place with a double-click, and tabs can be dragged
 
 Start it without an argument and use the **Open** button (or `Ctrl + T`) to pick a file — a path with spaces works either way. A
 file that cannot be read leaves the document you already have on screen and says why in a card at the top
-of the page, which a click or `Esc` dismisses. Undo, selection and the in-place editors for tables, graphs
-and circuits are still to come; the status with the next steps lives in
+of the page, which a click or `Esc` dismisses. Selection and the in-place editors for tables, graphs and
+circuits are still to come; the status with the next steps lives in
 [`docs/desktop-workstation.md`](docs/desktop-workstation.md).
 
 ---

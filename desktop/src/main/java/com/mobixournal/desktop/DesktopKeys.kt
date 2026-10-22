@@ -39,6 +39,16 @@ enum class ShellCommand {
     /** Write it somewhere else, choosing the container by the name: `Ctrl+Shift+S`. */
     SAVE_AS,
 
+    /**
+     * Take back the active tab's last command (`Ctrl+Z`). **Unavailable while its history is empty** —
+     * the command is then not handled at all (`apply` answers false), which is the state a header
+     * control greys the action out on.
+     */
+    UNDO,
+
+    /** Re-apply the step an undo took back (`Ctrl+Shift+Z`); unavailable with nothing to redo. */
+    REDO,
+
     DISMISS_FAILURE,
 }
 
@@ -124,6 +134,7 @@ internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean): DesktopTool? {
 internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
     key == Key.Escape -> ShellCommand.DISMISS_FAILURE
     ctrl && key == Key.T -> ShellCommand.OPEN
+    ctrl && key == Key.Z -> if (shift) ShellCommand.REDO else ShellCommand.UNDO
     ctrl && key == Key.S -> if (shift) ShellCommand.SAVE_AS else ShellCommand.SAVE
     ctrl && key == Key.W -> ShellCommand.CLOSE_TAB
     ctrl && key == Key.Tab -> if (shift) ShellCommand.PREVIOUS_TAB else ShellCommand.NEXT_TAB

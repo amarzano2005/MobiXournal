@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobixournal.render.EditHistory
 import com.mobixournal.render.Uncompilable
 import java.io.File
 
@@ -52,6 +53,26 @@ class DesktopTab(
      */
     private val hidden = mutableStateMapOf<Int, Set<Int>>()
 
+    /**
+     * This tab's **own** undo history, as `EditHistory` says it should be: one per editor, one per tab
+     * (`docs/ui-modernization.md` §3). A snapshot is the document at one instant — the immutable model
+     * plus the page window's overlay — so a step costs the pages the session touched, not the notebook,
+     * and undo of an untouched page never reads it.
+     *
+     * Every command records **one** step, taken before it changes anything: a stroke records on its
+     * lift and an eraser drag records on its first bite, never per pointer sample. Recording a new step
+     * discards the redo branch, as in every editor.
+     */
+    private val history = EditHistory<DesktopDocument.Snapshot>()
+
+    /** True while there is a step to undo — false is what greys the command out. */
+    var canUndo: Boolean by mutableStateOf(false)
+        private set
+
+    /** True while an undone step can be re-applied. */
+    var canRedo: Boolean by mutableStateOf(false)
+        private set
+
     /** The layers switched off on [page] — the set the painter and the thumbnails skip. */
     fun hiddenOn(page: Int): Set<Int> = hidden[page].orEmpty()
 
@@ -77,7 +98,47 @@ class DesktopTab(
         val previous = document
         document = reloaded
         title = target.name
+        // The write just made the new file the truth, and the snapshots name pages of the archive
+        // that was closed; a history across a Save As would undo onto a document that no longer is one.
+        forgetHistory()
         previous.close()
+    }
+
+    /**
+     * Record the state **before** one command, so `Ctrl+Z` returns to it. Called by the tool that is
+     * about to change the page — once per gesture, never per sample.
+     */
+    fun record(before: DesktopDocument.Snapshot) {
+        history.record(before)
+        syncHistory()
+    }
+
+    /** Undo the last command of **this tab**, restoring the page window with it. False when empty. */
+    fun undo(): Boolean {
+        val previous = history.undo(document.snapshot()) ?: return false
+        document.restore(previous)
+        syncHistory()
+        return true
+    }
+
+    /** Re-apply the step [undo] took back. False when there is nothing to redo. */
+    fun redo(): Boolean {
+        val next = history.redo(document.snapshot()) ?: return false
+        document.restore(next)
+        syncHistory()
+        return true
+    }
+
+    /** The two flags the commands and a header control read, kept in step with the stacks. */
+    private fun syncHistory() {
+        canUndo = history.canUndo
+        canRedo = history.canRedo
+    }
+
+    /** Drop every step: the document was replaced wholesale (a save, a Save As, a closed archive). */
+    private fun forgetHistory() {
+        history.clear()
+        syncHistory()
     }
 
     /**
@@ -104,6 +165,9 @@ class DesktopTab(
         // The file is read again whether the move happened or not: after a failed move it is still the
         // original, and a tab must never be left holding a document whose handle it already released.
         document = DocumentLoader.load(target)
+        // The closed archive's pages are what the old steps would restore; after a save the file is the
+        // new baseline, so the history starts here (and `desktop-dirty-state-*` will move the save point).
+        forgetHistory()
         failure?.let { throw it }
         return staged.uncompiled
     }

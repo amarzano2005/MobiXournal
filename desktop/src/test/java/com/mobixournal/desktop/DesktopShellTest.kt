@@ -187,6 +187,8 @@ class DesktopShellTest {
         assertSame("Ctrl+Shift+0 is zoom in, not fit page", ShellCommand.ZOOM_IN, shellCommand(Key.Zero, ctrl = true, shift = true))
         assertSame(ShellCommand.FIT_PAGE, shellCommand(Key.Zero, ctrl = true, shift = false))
         assertSame(ShellCommand.FIT_WIDTH, shellCommand(Key.One, ctrl = true, shift = false))
+        assertSame("Ctrl+Z is undo", ShellCommand.UNDO, shellCommand(Key.Z, ctrl = true, shift = false))
+        assertSame("Ctrl+Shift+Z is redo", ShellCommand.REDO, shellCommand(Key.Z, ctrl = true, shift = true))
         assertSame(ShellCommand.NEXT_PAGE, shellCommand(Key.PageDown, ctrl = false, shift = false))
         assertSame("Ctrl+PageDown is not page-down", null, shellCommand(Key.PageDown, ctrl = true, shift = false))
         assertSame(ShellCommand.DISMISS_FAILURE, shellCommand(Key.Escape, ctrl = false, shift = false))

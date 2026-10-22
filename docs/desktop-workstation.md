@@ -73,6 +73,12 @@ What it does today:
   crosses and splits it in two, at a tip the pen width sizes — and a highlighter band keeps its
   multiply. Pressure is the shared filter's: a mouse reports none, which draws at the tool's width,
   exactly as the tablet's cursor does.
+- **Takes it back and puts it again** — `Ctrl + Z` / `Ctrl + Shift + Z`, each tab with its own
+  `EditHistory` of document snapshots. One gesture is one step (a stroke records on its lift, an eraser
+  drag on its first bite, and a drag that touches no ink records nothing), undo restores the page window
+  with the document so the page that comes back is the page that was there, and both commands are
+  **unavailable** — not merely no-ops — while the stack is empty, which is the state a header control
+  would grey out. A save starts a fresh history: it closed the archive whose pages the old steps named.
 - **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
   running the same compiler the Android canvas and every export use (`LivingInk`, now platform-free in
   `mobix-core`), then drawing the ink it produces. A table on the PC is the table on the tablet, not a
@@ -149,10 +155,12 @@ picker.
 
 ### What the window does not do
 
-- No **undo or redo**, no selection (marquee, lasso), no text, shape, plot or circuit authoring, and no
-  layer editing: pen, highlighter and eraser are the tools that work, and every other slot only picks a
-  tool (`desktop-undo-redo-per-tab-history`, `desktop-eraser-and-selection-on-shared-geometry`). There is
-  no dirty state and no close confirmation yet (`desktop-dirty-state-close-confirmation-and-crash-safety`).
+- No **selection** (marquee, lasso), no text, shape, plot or circuit authoring, and no layer editing:
+  pen, highlighter and eraser are the tools that work, and every other slot only picks a tool
+  (`desktop-eraser-and-selection-on-shared-geometry`). There is no dirty state and no close confirmation
+  yet (`desktop-dirty-state-close-confirmation-and-crash-safety`), and no header buttons for undo and
+  redo — the commands exist and know when they are unavailable, so a control only has to read
+  `canUndo`/`canRedo`.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
 - No **tablet pressure, tilt or azimuth**: the pen draws at the strip's width through the shared pressure
@@ -187,7 +195,11 @@ with its file byte-identical, and the version the window stamps into a `.mobix` 
 that page and no other, the page's rendered ink grows, the model the save writes carries it and a
 40-page repack round-trips it while the untouched pages keep their own ink; the eraser splits a bar
 where it crosses it and the gap reads as paper again; a pressure sample becomes its filtered width, a
-highlighter stays one width, and the page-point mapping undoes the display density and the zoom. Every render is
+highlighter stays one width, and the page-point mapping undoes the display density and the zoom. Its
+undo half drives the **shell's own commands**: a stroke, `Ctrl+Z` (the model's stroke count and the
+page's painted ink both return to what they were), a second undo that reports nothing left, a redo
+that repaints the stroke, an eraser drag that is a single step however many times its tip bites, and a
+save that starts a new history because the archive the old steps named is closed. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at — including
 `glass-parity.png`, the same panel in the tablet's material and in this window's, written by
 `GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which
