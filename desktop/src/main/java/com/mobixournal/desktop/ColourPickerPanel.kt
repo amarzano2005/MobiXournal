@@ -62,6 +62,12 @@ internal fun ColourPickerPanel(
     Column(
         modifier
             .width(320.dp)
+            // The family's arrival: it grows from 82 % on the shared spring and is held on the way out
+            // by the shell's GlassPresence, so a picker that comes and goes moves like the tablet's.
+            // It is applied **outside** the fill: an alpha layer placed after `background` fades the
+            // empty space under the panel, not the panel itself — the first cut of this composed at a
+            // full-size, fully opaque panel and the animation was invisible.
+            .glassSpring()
             .glassSurface()
             .padding(16.dp),
     ) {

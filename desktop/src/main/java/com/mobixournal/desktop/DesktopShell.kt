@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -334,6 +336,36 @@ class DesktopShellState(
  * (`docs/chrome.md`). Everything that floats — the failed-open card — may sit over the page, because it
  * comes and goes with a gesture.
  */
+/**
+ * The colour panel, held for its exit.
+ *
+ * It is a transient surface: it may lie over the page (a band may not), and it is centred so the strip
+ * that opened it stays visible. [GlassPresence] keeps it composed while its spring draws back — the
+ * shell clears `editing` the instant Set or Cancel is pressed, and without the hold the panel would
+ * vanish between two frames — and the target is remembered for the same reason: the closing surface
+ * still has to know which colour it was editing.
+ */
+@Composable
+private fun BoxScope.ColourPanelHost(state: DesktopShellState) {
+    var lastEdit by remember { mutableStateOf<ColourEditorTarget?>(null) }
+    val editing = state.editing
+    SideEffect { if (editing != null) lastEdit = editing }
+    GlassPresence(visible = editing != null) {
+        val target = editing ?: lastEdit ?: return@GlassPresence
+        ColourPickerPanel(
+            title = if (target == ColourEditorTarget.CUSTOM) "Custom colour" else "New colour",
+            initial = if (target == ColourEditorTarget.CUSTOM) {
+                state.ink.custom ?: state.ink.colour
+            } else {
+                state.ink.colour
+            },
+            onSet = { colour -> state.commitColour(colour) },
+            onCancel = { state.cancelColourEdit() },
+            modifier = Modifier.align(Alignment.Center),
+        )
+    }
+}
+
 @Composable
 fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
@@ -414,21 +446,7 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                     )
                 }
             }
-            // The colour panel is a transient surface: it may lie over the page (a band may not), and it
-            // is centred so the strip that opened it stays visible.
-            state.editing?.let { target ->
-                ColourPickerPanel(
-                    title = if (target == ColourEditorTarget.CUSTOM) "Custom colour" else "New colour",
-                    initial = if (target == ColourEditorTarget.CUSTOM) {
-                        state.ink.custom ?: state.ink.colour
-                    } else {
-                        state.ink.colour
-                    },
-                    onSet = { colour -> state.commitColour(colour) },
-                    onCancel = { state.cancelColourEdit() },
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
+            ColourPanelHost(state)
         }
         StatusBar(state.active)
     }

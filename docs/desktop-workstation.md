@@ -116,6 +116,10 @@ written under `desktop/build/desktop-render/` so it can be looked at — includi
 `GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which
 `GlassEdgeTest` samples: the rim must be brighter at the top than at the bottom, or it is a border and not
 the family's edge, and a band of ink under the panel must still read through it, or the fill is a slab.
+`GlassMotionTest` drives the arrival through a scene's frame clock (`render(nanoTime)`) and reads the
+pixels at successive instants: at t=0 nothing is painted, 40 ms later the panel is faint and still inside
+its 82 % box, by 700 ms it is the glass at full size — and gating it with `GlassPresence` keeps it
+composed through the 230 ms exit hold before releasing it.
 
 **The execution plan lives in `TODO.toml`, not here**: the epic `step-3-desktop-workstation` carries the
 phase order and the done criteria, and its children are the atomic tasks (orders 934–1120) and the

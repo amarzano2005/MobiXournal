@@ -195,11 +195,25 @@ class ColourPickerTest {
 
     // --- rendering ------------------------------------------------------------------------------
 
+    /**
+     * Renders [content] **after it has landed**.
+     *
+     * The picker arrives on the family's spring (`Modifier.glassSpring()`), so the first frame of the
+     * scene is a panel at 82 % of its size with its alpha still at zero: a still frame taken there would
+     * be a picture of nothing. These tests are about the *settled* panel, so the clock is stepped until
+     * the arrival is over (the same settle `GlassMotionTest` measures).
+     */
     @OptIn(ExperimentalComposeUiApi::class)
     private fun render(name: String, content: @androidx.compose.runtime.Composable () -> Unit): ByteArray {
         val scene = ImageComposeScene(420, 360, Density(1f), content = content)
         val png = try {
-            scene.render().encodeToData()?.bytes
+            var image = scene.render(0L)
+            var millis = 0L
+            while (millis < 700L) {
+                millis += 16L
+                image = scene.render(millis * 1_000_000L)
+            }
+            image.encodeToData()?.bytes
         } finally {
             scene.close()
         }

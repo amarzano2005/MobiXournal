@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-floating-glass-motion"
+title = "Desktop floating glass motion"
+description = "The app's floating surfaces open with a liquid-glass spring: scale from 0.82 to 1 (damping 0.74, stiffness 550) while the alpha fades in over 110 ms, and draw back to 0.82 and out over 170 ms while the host holds the window for 230 ms (app/src/main/java/com/mobixournal/ui/theme/FloatingGlass.kt). The desktop's picker panel and flyouts appear and disappear instantly. Move the numbers into mobix-core's design tokens as a GlassMotion block (start scale, damping, stiffness, fade-in ms, fade-out ms, exit hold ms), have the app read them, and give the desktop a Modifier.glassSpring(visible) with the same behaviour on its in-composition surfaces — the colour picker panel first, since it is drawn inside the shell and not in a Popup. Popups are a known gap: a desktop Popup has no exit animation to hold, so document that they simply appear (as they do today) rather than pretending otherwise. Verify headlessly: compose the picker panel in a scene, step the animation at t=0 and at its end, and assert the panel's drawn alpha rises from about 0.0 to 1.0 and its bounds grow from the 0.82 scale to full, with the total inside the documented timings."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "decode-transcription-in-windows"
 title = "Decode transcription in 28 s windows on all cores"
 description = """

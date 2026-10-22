@@ -55,6 +55,16 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.SPRING_STIFFNESS, number("springStiffness").toFloat(), 1e-4f)
         assertEquals(DesignTokens.SPRING_DAMPING, number("springDamping").toFloat(), 1e-4f)
         assertEquals(DesignTokens.FADE_TRANSITION_MS, number("fadeTransitionMs").toInt())
+
+        // The glass' arrival: the same numbers the tablet's panels move by.
+        assertEquals(DesignTokens.GlassMotion.START_SCALE, number("startScale").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.OPEN_DAMPING_RATIO, number("openDamping").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.OPEN_STIFFNESS, number("openStiffness").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.FADE_IN_MS, number("fadeInMs").toInt())
+        assertEquals(DesignTokens.GlassMotion.CLOSE_DAMPING_RATIO, number("closeDamping").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.CLOSE_STIFFNESS, number("closeStiffness").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.FADE_OUT_MS, number("fadeOutMs").toInt())
+        assertEquals(DesignTokens.GlassMotion.EXIT_HOLD_MS, number("exitHoldMs").toInt())
     }
 
     @Test

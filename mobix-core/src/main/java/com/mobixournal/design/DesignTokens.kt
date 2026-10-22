@@ -106,6 +106,46 @@ object DesignTokens {
     /** The auto-dim / crossfade duration, in ms. */
     const val FADE_TRANSITION_MS: Int = 150
 
+    /**
+     * The floating glass's **motion** — how a panel arrives and leaves. Plain Kotlin, because both
+     * shells draw the same arrival and the numbers are the app's motion language, not one platform's
+     * taste (`docs/ui-modernization.md`).
+     *
+     * A surface opens from [START_SCALE] to 1 on an under-damped spring while its alpha fades in over
+     * [FADE_IN_MS]; it draws back to the same scale on the slightly stiffer [CLOSE_STIFFNESS] spring
+     * while fading out over [FADE_OUT_MS]. A host that tears its surface down the instant the flag
+     * clears has to hold it for [EXIT_HOLD_MS] instead, or the exit is cut off mid-flight.
+     */
+    object GlassMotion {
+
+        /** Where a panel starts (and ends) its arrival: 82 % of its size, around the anchor. */
+        const val START_SCALE: Float = 0.82f
+
+        /** The arrival spring's damping — under-damped, so it settles with a cushioned snap. */
+        const val OPEN_DAMPING_RATIO: Float = 0.74f
+
+        /** The arrival spring's stiffness. */
+        const val OPEN_STIFFNESS: Float = 550f
+
+        /** The arrival's alpha fade, in ms. */
+        const val FADE_IN_MS: Int = 110
+
+        /** The closing spring's damping: stiffer, so the panel leaves without a visible bounce. */
+        const val CLOSE_DAMPING_RATIO: Float = 0.85f
+
+        /** The closing spring's stiffness. */
+        const val CLOSE_STIFFNESS: Float = 850f
+
+        /** The closing alpha fade, in ms. */
+        const val FADE_OUT_MS: Int = 170
+
+        /**
+         * How long a host keeps a closing surface composed. A shorter hold played the exit out in
+         * ~8 frames, which read as no animation at all.
+         */
+        const val EXIT_HOLD_MS: Int = 230
+    }
+
     // --- Palette --------------------------------------------------------------------------------
 
     /** The desk both shells lie the page on: true OLED black. */

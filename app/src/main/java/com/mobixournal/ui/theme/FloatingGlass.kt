@@ -122,7 +122,7 @@ internal val MENU_RIM_WIDTH = DesignTokens.RIM_WIDTH_DP.dp
  * about 200 ms and the fade lands at 170 ms, so the window is held for 230 ms — long enough for the
  * exit to read (a shorter hold played it out in ~8 frames, which looked exactly like a snap).
  */
-const val FLOATING_EXIT_MS = 230
+const val FLOATING_EXIT_MS = DesignTokens.GlassMotion.EXIT_HOLD_MS
 
 /**
  * Whether the floating surface being composed is on its way **out**. [DialogPresence] provides it while
@@ -141,26 +141,32 @@ fun Modifier.liquidGlassSpringAnimation(
     expanded: Boolean = true,
     origin: TransformOrigin = TransformOrigin(0f, 0f),
 ): Modifier {
-    val scale = remember { Animatable(if (expanded) 0.82f else 1f) }
+    val start = DesignTokens.GlassMotion.START_SCALE
+    val scale = remember { Animatable(if (expanded) start else 1f) }
     val alpha = remember { Animatable(if (expanded) 0f else 1f) }
 
     LaunchedEffect(expanded) {
         if (expanded) {
-            scale.snapTo(0.82f)
+            scale.snapTo(start)
             alpha.snapTo(0f)
             launch {
                 scale.animateTo(
                     targetValue = 1f,
                     animationSpec = spring(
-                        dampingRatio = 0.74f, // Apple iOS fluid spring: rapid release with organic deceleration and cushioned snap (no cartoon bouncing)
-                        stiffness = 550f,
+                        // Apple iOS fluid spring: rapid release with organic deceleration and cushioned
+                        // snap (no cartoon bouncing). The numbers are the shared glass tokens.
+                        dampingRatio = DesignTokens.GlassMotion.OPEN_DAMPING_RATIO,
+                        stiffness = DesignTokens.GlassMotion.OPEN_STIFFNESS,
                     ),
                 )
             }
             launch {
                 alpha.animateTo(
                     targetValue = 1f,
-                    animationSpec = tween(durationMillis = 110, easing = FastOutSlowInEasing),
+                    animationSpec = tween(
+                        durationMillis = DesignTokens.GlassMotion.FADE_IN_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
                 )
             }
         } else {
@@ -171,14 +177,20 @@ fun Modifier.liquidGlassSpringAnimation(
                 // A spring on the way out too, so the panel reads as drawing back rather than as being
                 // cut: lightly damped, so it settles in ~200 ms without a visible bounce.
                 scale.animateTo(
-                    targetValue = 0.82f,
-                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 850f),
+                    targetValue = start,
+                    animationSpec = spring(
+                        dampingRatio = DesignTokens.GlassMotion.CLOSE_DAMPING_RATIO,
+                        stiffness = DesignTokens.GlassMotion.CLOSE_STIFFNESS,
+                    ),
                 )
             }
             launch {
                 alpha.animateTo(
                     targetValue = 0f,
-                    animationSpec = tween(durationMillis = 170, easing = FastOutSlowInEasing),
+                    animationSpec = tween(
+                        durationMillis = DesignTokens.GlassMotion.FADE_OUT_MS,
+                        easing = FastOutSlowInEasing,
+                    ),
                 )
             }
         }

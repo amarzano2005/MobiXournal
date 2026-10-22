@@ -201,7 +201,7 @@ ink read through it as they do on the tablet: both numbers are the shared tokens
 `panelCornerRadiusDp`. `GlassParityRenderTest` writes the two materials side by side to `glass-parity.png`,
 and `GlassEdgeTest` proves the show-through — a band of ink under a panel — in `glass-show-through.png`.
 One limit, stated rather than faked: over the true-black desk a 0.88 near-black glass and an opaque one
-are the same picture, so the transparency reads where a panel overlaps the sheet. The bands take neither
+are the same picture, so the transparency reads where a panel overlaps the sheet. Nor does the window invent a motion language of its own: it arrives on `DesignTokens.GlassMotion` too — 82 % → 1 on the 0.74/550 spring with a 110 ms fade, held 230 ms on the way out by `GlassPresence` so the draw-back is not cut off between two frames (`Modifier.glassSpring()` in `GlassMotion.kt`, applied *outside* the fill or the alpha fades empty space). The `Popup` flyouts still appear instantly, and that is stated rather than faked: a desktop popup has no composition of its own to hold open once its flag clears, so there is no departure to play. The bands take neither
 the fill nor the edge, because a band is not a panel lying over the page (`docs/chrome.md`). Picking one
 writes it
 straight to the settings file (`ink.colour`, `ink.width`), and the palette itself is `palette.colours`,
@@ -367,7 +367,8 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
     "animation": {
       "springStiffness": 380,
       "springDamping": 28,
-      "fadeTransitionMs": 150
+      "fadeTransitionMs": 150,
+      "glassMotion": { "startScale": 0.82, "openDamping": 0.74, "openStiffness": 550, "fadeInMs": 110, "closeDamping": 0.85, "closeStiffness": 850, "fadeOutMs": 170, "exitHoldMs": 230 }
     }
   }
 }
