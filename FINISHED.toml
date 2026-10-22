@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "move-edithistory-into-mobix-core"
+title = "Move EditHistory into mobix-core"
+description = "app/src/main/java/com/mobixournal/render/EditHistory.kt (69 lines) is a generic undo/redo over immutable snapshots with zero imports — the one piece of the editing path that is already platform-free, and the desktop editor needs it (child (3) of desktop-editing-undo-and-save). Move the file unchanged: the package com.mobixournal.render is already shared (mobix-core/src/main/java/com/mobixournal/render/ holds LivingInk and the other compilers), so no import anywhere changes but the file's module does. Use git mv for EditHistory.kt, and for app/src/test/java/com/mobixournal/render/EditHistoryTest.kt. Update the one row of docs/codebase.md that lists EditHistory.kt in the app's render tree (line 254) so the tree stays a mirror of the code. Verify: :mobix-core:test and :app:testDebugUnitTest --tests \"*EditHistory*\" green, then the whole :app:testDebugUnitTest green; the moved file must still carry no imports at all."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-kmp-module-split"
 title = "Desktop: KMP module split (scope)"
 description = "Prerequisite of the desktop editor (Phase 3 of docs/desktop-workstation.md). The Android render, ui, tabs and io packages are still Android-bound, so desktop editing cannot reuse them. Investigate which of EditHistory, DrawingSurfaceInput, DrawingSurfaceStrokes, DrawingSurfaceSelection, ElementEdits, PdfVectorPainter, PageSvgWriter, XoppSynthesis and io/DocumentIo are platform-free enough to move into mobix-core (or a new mobix-render behind a small canvas abstraction), and which must be reimplemented for desktop. Target is Windows 11 only, but keep the shared core OS-independent. Per candidate state: what moves, what stays, the size of the change and how the Android app keeps compiling and passing its unit suite. Produce tasks, no code."
