@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-editing-undo-and-save"
+title = "Desktop editing, undo and save (scope)"
+description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-22
+tags = []
+
+[[task]]
+id = "core-encoder-so-the-desktop-can-write-a-document"
+title = "Core encoder so the desktop can write a document"
+description = "The desktop can open a document but not write one: encode() lives in app/src/main/java/com/mobixournal/io/DocumentIo.kt and is entangled with SAF through four seams — staging (UriStaging) creates the scratch file, openSessions (MobixOpenSessions) supplies the incremental-repack source, the canvas mode, the chunk coords and the canvas, refs.portableReference relativises against a Uri, and displayName(Uri) names the bridge. Everything that actually writes bytes is already in the core: Xopp.save, XoppZip.save, MobixContainer.save, MobixIncrementalSave.saveOver, MobixDocument.of, XoppSynthesis.synthesize — and the two reference transforms (PdfBackgroundDomain, PixmapBackgroundDomain) moved there too. Note from the split: ImageStore cannot follow, it is not platform-free (ScratchDir + UriStaging). Add mobix-core/src/main/java/com/mobixournal/io/DocumentEncoder.kt with (1) a SaveTarget value a plain File and a SAF Uri can both produce (document name, its folder, and the base a relative reference is computed against); (2) write(document, format, target, out: OutputStream, pdf, images, audioFiles, canvasMode, transcription) holding the three format arms exactly as DocumentIo.encode has them, returning the list of Uncompilable a .xopp export could not draw; (3) an optional PageReuseSource with the four answers writeMobix asks openSessions for, so the incremental repack keeps working when the source exists (the app passes its MobixOpenSessions, the desktop passes null). DocumentIo.encode then delegates to it: it keeps staging.newFile and its Encoded return, so no call site changes. Verify: the app's io suite is the gate and must not change — DeferredPayloadSaveTest, SaveIdentityTest, SaveTargetTest, ChunkedMobixRoundTripTest, InfiniteExportTest, PagedMobixOpenTest; add one core test that writes the same document to a temp .xopp (gzip), a zipped .xopp and a .mobix through DocumentEncoder and reads each back with the core codecs, asserting the document that comes back. No emulator. Docs: the io rows of docs/codebase.md and the sticky-format paragraph of docs/data-path.md."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-22
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-layer-visibility-and-isometric-paper"
 title = "Desktop: layer visibility toggles and isometric paper"
 description = "In desktop/ add (1) an eye toggle per layer in the sidebar's layer list that hides and shows the layer on the page and in thumbnails without changing the document, kept per tab; (2) isometric paper in the shared paper geometry used by the Android editor (mobix-core ruling code) so both shells draw the same grid. Files: the sidebar layer list and the page painter under desktop/src/main, the paper geometry in mobix-core. Verify: a unit test that a hidden layer is absent from the rendered pixels and a headless render of isometric paper compared with the shared ruling output. Document in docs/desktop-workstation.md."

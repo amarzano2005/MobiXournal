@@ -316,34 +316,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "core-encoder-so-the-desktop-can-write-a-document"
-title = "Core encoder so the desktop can write a document"
-description = "The desktop can open a document but not write one: encode() lives in app/src/main/java/com/mobixournal/io/DocumentIo.kt and is entangled with SAF through four seams — staging (UriStaging) creates the scratch file, openSessions (MobixOpenSessions) supplies the incremental-repack source, the canvas mode, the chunk coords and the canvas, refs.portableReference relativises against a Uri, and displayName(Uri) names the bridge. Everything that actually writes bytes is already in the core: Xopp.save, XoppZip.save, MobixContainer.save, MobixIncrementalSave.saveOver, MobixDocument.of, XoppSynthesis.synthesize — and the two reference transforms (PdfBackgroundDomain, PixmapBackgroundDomain) moved there too. Note from the split: ImageStore cannot follow, it is not platform-free (ScratchDir + UriStaging). Add mobix-core/src/main/java/com/mobixournal/io/DocumentEncoder.kt with (1) a SaveTarget value a plain File and a SAF Uri can both produce (document name, its folder, and the base a relative reference is computed against); (2) write(document, format, target, out: OutputStream, pdf, images, audioFiles, canvasMode, transcription) holding the three format arms exactly as DocumentIo.encode has them, returning the list of Uncompilable a .xopp export could not draw; (3) an optional PageReuseSource with the four answers writeMobix asks openSessions for, so the incremental repack keeps working when the source exists (the app passes its MobixOpenSessions, the desktop passes null). DocumentIo.encode then delegates to it: it keeps staging.newFile and its Encoded return, so no call site changes. Verify: the app's io suite is the gate and must not change — DeferredPayloadSaveTest, SaveIdentityTest, SaveTargetTest, ChunkedMobixRoundTripTest, InfiniteExportTest, PagedMobixOpenTest; add one core test that writes the same document to a temp .xopp (gzip), a zipped .xopp and a .mobix through DocumentEncoder and reads each back with the core codecs, asserting the document that comes back. No emulator. Docs: the io rows of docs/codebase.md and the sticky-format paragraph of docs/data-path.md."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 948
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-editing-undo-and-save"
-title = "Desktop editing, undo and save (scope)"
-description = "Scope for the editing phase. Investigate the Android editing paths against the desktop shell and add task-level children for: (1) pressure inking on desktop — which Compose Desktop pointer fields actually carry pressure/tilt on Windows and Linux, and whether the filter in docs/stylus.md and the logic in `render/DrawingSurfaceInput.kt` can be reused; (2) eraser (partial stroke splitting in `render/DrawingSurfaceStrokes.kt`) and selection/transform (docs/selection.md, `render/DrawingSurfaceSelection.kt`); (3) undo/redo — whether `render/EditHistory.kt` is platform-free enough to move to `mobix-core`, and what per-tab history means once tabs exist; (4) Save and Save As through `io/DocumentIo.kt` under the sticky per-document format policy (docs/data-path.md), including the desktop write path (local files, atomic temp-file replace, no SAF); (5) dirty state, close confirmation and crash safety. State for each child which existing type is reused, which must be reimplemented, and how it is verified headlessly (no emulator). Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 950
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-tablet-and-dial-input"
 title = "Desktop graphics tablet and rotary dial input (scope)"
 description = "Scope for hardware input (Step 3 of docs/desktop-workstation.md), WINDOWS 11 ONLY (decision 2026-10-21, no Linux or macOS). Nothing about real tablet pressure on desktop is proven yet: Compose Desktop exposes PointerInputChange.pressure, but whether it carries a graphics-tablet value through Windows Ink or Wintab is unknown, and talking to those APIs from the JVM is new work for this repo. Investigate and add tasks for: (1) a measuring spike that logs the raw pressure, tilt and azimuth the JVM receives on this Windows host, with the concrete library or API chosen (JNA + Wintab, Windows Ink WM_POINTER, AWT) and a pass/fail criterion; (2) the input abstraction the editor consumes, so mouse and tablet are two backends; (3) aspect-ratio lock and window-bounded mapping for screenless tablets; (4) the tablet's ROTARY DIAL or touch ring (owner requirement): events mapped to continuous zoom at the cursor, stroke width with a diameter-ring preview, and radial-HUD navigation, including whether the driver delivers the ring as mouse-wheel or key events (cheapest path) or only through Wintab ExpressKeys; (4b) the tablet's ExpressKeys and pen barrel buttons mapped to the same remappable actions as the keyboard shortcuts; (5) honest fallback behaviour when no tablet is present. Record the chosen backend in docs/desktop-workstation.md. Produce tasks, no code."
@@ -590,6 +562,90 @@ level = "task"
 category = "feature"
 urgency = "normal"
 order = 1140
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pressure-inking-through-the-pointer-router"
+title = "Desktop: pressure inking through the shared pointer router"
+description = "The window picks a tool and stops there (docs/desktop-workstation.md, What the window does not do). Once give-both-shells-one-pointer-router lands, the desktop inks by feeding its Compose pointer into that router instead of reimplementing gesture logic. (1) DesktopShell.PageCanvas (desktop/src/main/java/com/mobixournal/desktop/DesktopShell.kt, the pointerInput block that pans and zooms today) becomes the second adapter: PointerInputChange -> InkPointer (position, pressure, tilt/azimuth if present, timestamp, type, buttons, phase) -> InkPointerRouter; a press with the pen tool starts a stroke, a drag extends it, a release ends it, and the existing Space/middle-drag pan keeps working beside it. (2) The stroke is committed to the tab's editable document through the page window child, not to a copy of the page. (3) Which fields Compose Desktop fills on Windows is NOT measured here: desktop-tablet-and-dial-input measures the hardware, and this task assumes only that pressure may be absent (fall back to the tool's width, as the app does for a mouse). (4) Verification, headless: a JVM test that drives the shell state with synthetic pointer events through a scene (ImageComposeScene, as ToolStripsTest does) and asserts a stroke appeared on the model with the filtered pressure ramp; a mouse stream with no pressure must still draw. No emulator. Docs: docs/desktop-workstation.md (what it does today, and the measured table row for DrawingSurfaceInput/DrawingSurfaceStrokes which this task narrows), docs/ui-modernization.md if a shortcut is added."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1150
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "editable-page-window-for-a-paged-desktop"
+title = "Desktop: an editable page window over a paged document"
+description = "DesktopDocument holds no Document on purpose: it presents a PageSource so a 200-page .mobix opens without reading it (DocumentLoader.kt). Editing needs the other half the app already has: the bounded read cache plus the overlay of edited pages that eviction never touches (render/PageWindow.kt in the app: windowEditPage, pin, resetPageWindow, followDocument). (1) Move PageWindow into mobix-core (it is PageSource + immutable pages; check with grep for android imports and cut along the seam if it has any) with the app still calling it, so its suite is the gate. (2) Give DesktopTab an overlay: edited pages are collected in a Map<Int, Page> the window paints first, so a .mobix edit never inflates the rest of the document; the tab exposes the edited document to save as the source's pages plus the overlay. (3) The painter (PageCanvas/PageView) reads through that window, so a page the user just drew on is the page the preview shows and the page the thumbnail shows. (4) Verification, headless: a desktop test opens a .mobix fixture, edits page 3 through the window, asserts (a) page 3 comes back edited, (b) no other page entry was inflated (a counting entry source), and (c) the painted pixels of page 3 changed; plus a core test for the overlay surviving an eviction. No emulator. Docs: docs/desktop-workstation.md (how it opens and paints), docs/mobix-streaming-api.md (the window as contract)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1160
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-eraser-and-selection-on-shared-geometry"
+title = "Desktop: eraser and selection on the shared geometry"
+description = "Two editing tools the app has and the window does not (docs/desktop-workstation.md, What the window does not do). Both are geometry plus a document edit, and both live behind MotionEvent today: partial erase in render/DrawingSurfaceStrokes.kt (the stroke split at the hit point) and selection/transform in render/DrawingSurfaceSelection.kt (docs/selection.md). (1) The split, the hit test and the transform maths move into mobix-core as pure functions over a Page/Element — the router from give-both-shells-one-pointer-router decides WHEN, these decide WHAT — with the app calling the moved code (its suite is the gate). (2) The desktop gets an eraser tool that erases whole strokes on a tap and splits a stroke where a drag crosses it, and a selection tool that drags a marquee and moves/rotates/scales what it holds, each committed through the tab's page overlay. (3) Undo is not reimplemented here: each command records one snapshot in the per-tab history child. (4) Verification, headless: core tests for a split at the hit point (both halves keep the untouchable points), a hit test on a tapered stroke, and a transform round trip; a desktop render test that erases across a stroke and asserts the pixels between the halves are page-coloured and both ends still inked. No emulator. Docs: docs/selection.md (the shared maths), docs/desktop-workstation.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1170
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-undo-redo-per-tab-history"
+title = "Desktop: undo, redo and one history per tab"
+description = "render/EditHistory.kt is already in mobix-core and its header says what it is for: one history per editor, one per tab. The app holds exactly one, on the canvas (DrawingSurfaceView.history = EditHistory<Document>()). (1) DesktopTab gets its own EditHistory<Document> (or <DesktopEditable> once the page-window child lands), recorded with the pre-edit snapshot by every committing command (stroke end, erase, selection transform) — not by pointer moves, so one drag is one step. (2) ShellCommand gains UNDO and REDO, bound to Ctrl+Z and Ctrl+Shift+Z (the table in docs/ui-modernization.md is the owner of shortcuts and gains the rows), disabled by canUndo/canRedo so the header can grey them. (3) Undo restores the snapshot into the tab's editable document and resets the page window, as the app's resetPageWindow does, so a redo cannot rebuild from a stale page. (4) Verification, headless: a desktop test drives stroke, undo, undo, redo through the shell state and asserts the model's stroke counts and that the painter's pixels follow; a core test already covers the stack. No emulator. Docs: docs/ui-modernization.md (shortcut table, and the states the two commands must have), docs/desktop-workstation.md."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1180
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-save-and-save-as-through-the-core-encoder"
+title = "Desktop: Save and Save As through the core encoder"
+description = "The write is now platform-free (io/DocumentEncoder in mobix-core, task core-encoder-so-the-desktop-can-write-a-document), so the window can save a document it opened without SAF. (1) DesktopTab remembers the format it was opened as (DesktopContainer MOBIX -> SaveFormat.MOBIX, both .xopp containers -> ORIGINAL or ZIPPED, whichever the file was) and Save writes back in it: sticky per-document format, the rule docs/data-path.md owns. (2) Save writes beside the original through DocumentEncoder.write with FileSaveTarget: a temp file in the same folder then an atomic move over the target, so a crash mid-write cannot truncate the document (the app stages locally for the same reason). (3) Save As opens the FileDialog, switches the format by the chosen suffix, and re-points the tab; a document that has never been saved (none yet, the window only opens files) would take the same road. (4) The .mobix arm needs the page overlay (from the page-window child) and the shape an open document must keep: build a SaveShape from what DocumentLoader read (canvas mode, chunk coords, canvas) so a chunked board is not rewritten as a paginated one. (5) After a successful write the tab is clean and no longer points at a stale source. (6) Verification, headless: save a .xopp and a .mobix fixture after an edit and reopen each with DocumentLoader, asserting the edit survived and the container is unchanged; a refused destination leaves the original byte-identical. No emulator. Docs: docs/data-path.md (the sticky format, now two shells), docs/desktop-workstation.md (What the window does and does not do)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1190
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-dirty-state-close-confirmation-and-crash-safety"
+title = "Desktop: dirty state, close confirmation and crash safety"
+description = "The last of the editing scope, and the one that decides whether a window can lose work. (1) A tab is dirty when its editable document differs from what was last written or opened; implement it as a save point in the per-tab history (the snapshot count at the last successful save, plus a flag for edits made after an undo back to that point), not as a boolean somebody forgets to clear — the app has no dirty flag at all today because it saves on command only. (2) The tab shows it (the strip's title gains a dot, per docs/interface-contract.md: a token colour, all five states), and Ctrl+S / Ctrl+Shift+S are enabled accordingly. (3) Closing a dirty tab or the window asks first, with three answers — Save, Discard, Cancel — in English, and the window's close request goes through the same path (ExitRequest / onCloseRequest) so the X button cannot bypass it. (4) Crash safety: while a tab is dirty, its edited document is written as a snapshot beside the window's settings file (the app's TabStore does this for its tabs, in filesDir/tabs), and a start that finds one offers it as a recovered tab; the snapshot is deleted after a successful save. (5) Verification, headless: a test edits, saves, edits again and asserts the dirty flag at each step and that the save point survives an undo; a close request on a dirty tab reports what it would ask rather than closing; a snapshot written by one shell instance is offered by the next. No emulator. Docs: docs/desktop-workstation.md (the lifecycle), docs/data-path.md (tabs and what is cached between launches), docs/interface-contract.md if the dot is a new UI element."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1200
 created = 2026-10-22
 tags = ["desktop"]
 rebuild = false
