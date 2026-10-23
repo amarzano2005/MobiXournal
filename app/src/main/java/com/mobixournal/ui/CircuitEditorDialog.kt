@@ -1,12 +1,15 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.RotateRight
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -55,11 +59,14 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 
 /**
- * Compact anchored inspector for editing a living [CircuitElement].
+ * Compact anchored inspector for editing a living [CircuitElement], plus its **own keyboard**.
  *
  * Sits beside the selected component on the canvas, is freely draggable, and allows quick editing of
- * the component's value/designation — typed, or assembled from the circuit symbol keyboard below the
- * field — which side of the symbol that label is written on, and its 90° rotation.
+ * the component's value/designation, which side of the symbol that label is written on, and its 90°
+ * rotation. The value is typed on [CircuitValueKeyboard] — docked at the foot of the canvas — rather
+ * than on the system IME, so the panel that edits the component neither grows a symbol strip nor
+ * disappears under a keyboard it did not ask for; while the keyboard is up, the inspector is laid out
+ * against the space above it.
  */
 @Composable
 fun CircuitInspectorAnchor(
@@ -71,35 +78,14 @@ fun CircuitInspectorAnchor(
 ) {
     val circuit = ui.editingCircuit ?: return
     val surface = pane.surface
-    val rect = pane.selectionRect
-
-    var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
-    val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
-    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
-
-    val initialAnchorRect = remember(circuit.id ?: circuit.hashCode()) { rect }
-    val effectiveRect = initialAnchorRect ?: rect
-
-    var dragDelta by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(Offset.Zero) }
-
-    val baseOffset = plotInspectorOffset(
-        selectionLeft = effectiveRect?.left,
-        selectionTop = effectiveRect?.top,
-        selectionRight = effectiveRect?.right,
-        selectionBottom = effectiveRect?.bottom,
-        inspectorSize = inspectorSize,
-        canvasSize = canvasSizePx,
-        gapPx = gapPx,
-        marginPx = marginPx,
-    )
-
-    val finalOffset = clampInspectorOffset(baseOffset, dragDelta, canvasSizePx, inspectorSize, marginPx)
 
     var field by remember(circuit.id ?: circuit.hashCode()) {
         mutableStateOf(TextFieldValue(circuit.value ?: "", TextRange((circuit.value ?: "").length)))
     }
     var rotation by remember(circuit.id ?: circuit.hashCode()) { mutableDoubleStateOf(circuit.rotation) }
     var labelSide by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.labelSide) }
+    var keyboardOpen by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(false) }
+    var keyboardHeight by remember { mutableStateOf(0) }
 
     /** The element as the inspector currently reads it — what every control below applies. */
     fun edited() = circuit.copy(
@@ -114,21 +100,17 @@ fun CircuitInspectorAnchor(
         ui.editingCircuit = updated
     }
 
-    FloatingSurface(
-        modifier = modifier
-            .offset { finalOffset }
-            .widthIn(min = 240.dp, max = 290.dp)
-            .padding(4.dp)
-            .liquidGlassSpringAnimation(
-                    expanded = !LocalFloatingSurfaceClosing.current,
-                    origin = TransformOrigin(0.5f, 0.5f),
-                )
-            .onSizeChanged { inspectorSize = it },
-    ) {
-        CircuitInspectorContent(
+    Box(modifier = modifier.fillMaxSize()) {
+        CircuitInspectorSurface(
             circuit = circuit,
+            selectionRect = pane.selectionRect,
+            canvasSize = IntSize(
+                canvasSizePx.width,
+                (canvasSizePx.height - if (keyboardOpen) keyboardHeight else 0).coerceAtLeast(0),
+            ),
             field = field,
             onFieldChange = { field = it },
+            onOpenKeyboard = { keyboardOpen = true },
             labelSide = labelSide,
             onLabelSideChange = { side ->
                 labelSide = side
@@ -149,6 +131,86 @@ fun CircuitInspectorAnchor(
                 apply()
                 onDismiss()
             },
+        )
+        if (keyboardOpen) {
+            CircuitValueKeyboard(
+                field = field,
+                onFieldChange = { field = it },
+                onDone = { keyboardOpen = false },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .onSizeChanged { keyboardHeight = it.height },
+            )
+        }
+    }
+}
+
+/**
+ * The inspector itself: a floating panel anchored beside [circuit]'s selection box and kept inside
+ * [canvasSize] as the user drags it.
+ */
+@Composable
+private fun CircuitInspectorSurface(
+    circuit: CircuitElement,
+    selectionRect: android.graphics.RectF?,
+    canvasSize: IntSize,
+    field: TextFieldValue,
+    onFieldChange: (TextFieldValue) -> Unit,
+    onOpenKeyboard: () -> Unit,
+    labelSide: CircuitLabelSide,
+    onLabelSideChange: (CircuitLabelSide) -> Unit,
+    rotation: Double,
+    onRotate: () -> Unit,
+    onStraighten: () -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+) {
+    var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
+    val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
+    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
+
+    val initialAnchorRect = remember(circuit.id ?: circuit.hashCode()) { selectionRect }
+    val effectiveRect = initialAnchorRect ?: selectionRect
+
+    var dragDelta by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(Offset.Zero) }
+
+    val baseOffset = plotInspectorOffset(
+        selectionLeft = effectiveRect?.left,
+        selectionTop = effectiveRect?.top,
+        selectionRight = effectiveRect?.right,
+        selectionBottom = effectiveRect?.bottom,
+        inspectorSize = inspectorSize,
+        canvasSize = canvasSize,
+        gapPx = gapPx,
+        marginPx = marginPx,
+    )
+    val finalOffset = clampInspectorOffset(baseOffset, dragDelta, canvasSize, inspectorSize, marginPx)
+
+    FloatingSurface(
+        modifier = Modifier
+            .offset { finalOffset }
+            .widthIn(min = 240.dp, max = 290.dp)
+            .padding(4.dp)
+            .liquidGlassSpringAnimation(
+                expanded = !LocalFloatingSurfaceClosing.current,
+                origin = TransformOrigin(0.5f, 0.5f),
+            )
+            .onSizeChanged { inspectorSize = it },
+    ) {
+        CircuitInspectorContent(
+            circuit = circuit,
+            field = field,
+            onFieldChange = onFieldChange,
+            onOpenKeyboard = onOpenKeyboard,
+            labelSide = labelSide,
+            onLabelSideChange = onLabelSideChange,
+            rotation = rotation,
+            onRotate = onRotate,
+            onStraighten = onStraighten,
+            onDismiss = onDismiss,
+            onSave = onSave,
             onDrag = { dragDelta += it },
         )
     }
@@ -177,6 +239,7 @@ private fun CircuitInspectorContent(
     circuit: CircuitElement,
     field: TextFieldValue,
     onFieldChange: (TextFieldValue) -> Unit,
+    onOpenKeyboard: () -> Unit,
     labelSide: CircuitLabelSide,
     onLabelSideChange: (CircuitLabelSide) -> Unit,
     rotation: Double,
@@ -196,15 +259,26 @@ private fun CircuitInspectorContent(
             onDrag = onDrag,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        // Read-only on purpose: the value is typed on the circuit keyboard, so the field never asks
+        // the system IME for a panel that would cover the canvas this inspector is anchored to.
         OutlinedTextField(
             value = field,
             onValueChange = onFieldChange,
+            readOnly = true,
             label = { Text("Value / Label") },
             placeholder = { Text("e.g. 10 kΩ, Vcc, R1") },
+            trailingIcon = {
+                Icon(
+                    Icons.Outlined.Keyboard,
+                    contentDescription = "Open the circuit keyboard",
+                    modifier = Modifier.size(18.dp),
+                )
+            },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) { detectTapGestures { onOpenKeyboard() } },
         )
-        CircuitSymbolKeyboard(onInsert = { symbol -> onFieldChange(insertSnippetAtCursor(field, symbol)) })
         CircuitLabelPlacementControl(
             labelSide = labelSide,
             onSelect = onLabelSideChange,

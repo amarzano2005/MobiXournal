@@ -349,11 +349,11 @@ and width and no line style, so neither would survive the round trip.
 `labelSide` places the `value` on one of four sides of the drawn symbol — `"above"` (the default, and
 so omitted), `"below"`, `"left"` or `"right"` — a *side of the drawing*, not a coordinate: the label
 is laid out **around** the symbol (centred across it for above/below, along it for left/right, with
-air between), so it never lies over the drawing — which is what it used to do as soon as a component
-was rotated, since the ink turns and a value does not. The inspector chooses the side and writes the
-value with a circuit symbol keyboard (Ω, µ, k, ±, °C…), moving the label at once
-(`render/CircuitInk.kt`, `ui/CircuitEditorDialog.kt`); the key it replaced, `labelBelow: true` is
-still read, so an older document shows what it meant.
+air between), so it never lies over the drawing — which it used to do once a component was rotated
+(the ink turns, a value does not). The inspector chooses the side, and its value field opens the
+**circuit keyboard** docked at the foot of the canvas — digits, designator letters and the circuit
+symbols on three pages, in place of the system IME — moving the label at once (`render/CircuitInk.kt`,
+`ui/CircuitEditorDialog.kt`); the key it replaced, `labelBelow: true` is still read.
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:

@@ -1751,11 +1751,13 @@ fun EditorPaneView(
             }
             ShapeEditorHost(ui, state.surface)
             if (ui.editingCircuit != null) {
+                // The inspector places itself inside the canvas and hosts its own keyboard along the
+                // bottom edge, so the overlay takes the whole box rather than an aligned corner of it.
                 CircuitInspectorAnchor(
                     pane = state,
                     ui = ui,
                     canvasSizePx = canvasSizePx,
-                    modifier = Modifier.align(Alignment.TopStart),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }
