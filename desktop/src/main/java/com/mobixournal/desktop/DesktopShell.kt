@@ -190,6 +190,7 @@ class DesktopShellState(
         pickWidth(widths[slot.coerceIn(0, widths.lastIndex)])
     }
 
+
     /** Open the panel on the custom slot (`CUSTOM`) or on a colour to append (`NEW`). */
     fun editColour(target: ColourEditorTarget) {
         editing = target
@@ -458,7 +459,13 @@ private fun BoxScope.ColourPanelHost(state: DesktopShellState) {
 }
 
 @Composable
-fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DesktopShell(
+    state: DesktopShellState,
+    onOpenPicker: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** The window's devices, or null in a test that has none — the canvas then keeps the mouse path. */
+    tablet: DesktopTablet? = null,
+) {
     RecoverySnapshots(state)
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
         Header(
@@ -483,60 +490,8 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
                     "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
                         "image backgrounds, read-only.",
                 )
-                // The tool strips are bands in their own lanes: the ribbon takes a row under the
-                // header, the rail a column beside the canvas, and the page keeps the rectangle that
-                // is left. Neither is ever laid over the sheet (`docs/chrome.md`).
-                else -> Column(Modifier.fillMaxSize()) {
-                    if (state.toolPlacement.showsRibbon) {
-                        ToolRibbon(
-                            state = state.stripState,
-                            onSelect = state::selectTool,
-                            ink = InkActions(
-                                onColour = state::pickColour,
-                                onWidth = state::pickWidth,
-                                onEditCustom = { state.editColour(ColourEditorTarget.CUSTOM) },
-                                onAddColour = { state.editColour(ColourEditorTarget.NEW) },
-                            ),
-                        )
-                    }
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        if (state.sidebarVisible) {
-                            PageSidebar(
-                                tab = tab,
-                                cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
-                                onSelectPage = { index -> selectPage(tab, index) },
-                            )
-                        }
-                        if (state.toolPlacement.showsRail) {
-                            ToolRail(
-                                state = state.stripState,
-                                onSelect = state::selectTool,
-                                ink = InkActions(
-                                    onColour = state::pickColour,
-                                    onWidth = state::pickWidth,
-                                    onEditCustom = { state.editColour(ColourEditorTarget.CUSTOM) },
-                                    onAddColour = { state.editColour(ColourEditorTarget.NEW) },
-                                ),
-                            )
-                        }
-                        PageCanvas(
-                            tab = tab,
-                            panMode = state.panMode,
-                            tool = state.tools.current,
-                            ink = state.ink,
-                            onViewport = { tab.viewport = it },
-                            onFit = { tab.fit = it },
-                            // An edit changes the page's picture, so the thumbnail cached for it is
-                            // stale; the other pages keep theirs. It also starts the clock on the
-                            // crash snapshot: the shell writes one after the edits go quiet.
-                            onEdited = { index ->
-                                state.thumbnails[tab.key]?.remove(index)
-                                state.noteEdit()
-                            },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                        )
-                    }
-                }
+                // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
+                else -> PageWorkspace(state, tab, tablet)
             }
             if (tab != null) {
                 state.failure?.let { reported ->
@@ -550,7 +505,7 @@ fun DesktopShell(state: DesktopShellState, onOpenPicker: () -> Unit, modifier: M
             ColourPanelHost(state)
             CloseDialogHost(state)
         }
-        StatusBar(state.active)
+        StatusBar(state.active, tablet)
     }
 }
 

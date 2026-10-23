@@ -74,10 +74,12 @@ What it does today:
   multiply. Pressure is the shared filter's: a mouse reports none, which draws at the tool's width,
   exactly as the tablet's cursor does. What Compose actually hands over was measured, not assumed: the
   pointer carries `pressure` and its button bits, and **no tilt or azimuth at all** (there is no such
-  field on `PointerInputChange` in 1.7.3), so a stroke drawn here stores null telemetry where the tablet
-  stores axes — `docs/stylus.md` records that difference. `DesktopPointerSceneTest` proves the wire: real
-  pointer events pushed through an `ImageComposeScene` into this canvas, and the stroke that reaches the
-  model carries the filtered pressure ramp (0.2 → 0.5 → 1.0 becomes 0.8 → 2.0 → 4.0 pt at a 4 pt pen).
+  field on `PointerInputChange` in 1.7.3) — and on this machine's Huion it reports the pen as a **mouse**
+  with `pressure = 1.0`. So the pen's own stream is read beside it (below): for a contact Windows has just
+  delivered, its pressure, tilt, twist and eraser end replace the mouse's, and a device that declares no
+  pressure keeps the tool's width instead of drawing nothing. `DesktopPointerSceneTest` proves the wire:
+  real pointer events pushed through an `ImageComposeScene` into this canvas, and the stroke that reaches
+  the model carries the filtered pressure ramp (0.2 → 0.5 → 1.0 becomes 0.8 → 2.0 → 4.0 pt at a 4 pt pen).
 - **Takes it back and puts it again** — `Ctrl + Z` / `Ctrl + Shift + Z`, each tab with its own
   `EditHistory` of document snapshots. One gesture is one step (a stroke records on its lift, an eraser
   drag on its first bite, and a drag that touches no ink records nothing), undo restores the page window
@@ -190,13 +192,81 @@ back over them. Saving, discarding or closing the tab deletes the snapshot; noth
   the commands exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
-- No **tablet pressure, tilt or azimuth**: the pen draws at the strip's width through the shared pressure
-  filter, and what Compose Desktop reports on Windows is measured by `desktop-tablet-and-dial-input`
-  rather than assumed here.
 - No right-side property inspector, no search, and no page reordering or insertion.
-- No tablet backend of its own and no dial input — whatever the pen reports reaches the router through
-  Compose; no dirty-rect GPU pacing and no installer. `run` is the only entry point; `nativeDistributions`
-  is configured but not wired into a release job.
+- No **absolute pen mapping**: the pen's readings are folded into the Compose pointer, so its position is
+  the window's, which Windows has already transformed from the tablet's area — the driver's own active-area
+  and aspect settings are respected and this window adds no second mapping. No dirty-rect GPU pacing and no
+  installer: `run` is the only entry point; `nativeDistributions` is configured but not wired into a release
+  job.
+
+### The tablet on Windows: Windows Ink, and the dial
+
+Three readers sit beside Compose — `desktop/TabletInk.kt` (the pen), `desktop/TabletWheel.kt` (which wheel
+turned) and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by
+`DesktopTablet` from `DesktopApp` and closed with the window. None is a second input path: the canvas
+still takes Compose's pointer events, and what they add is the pen's reading for the event being handled
+and the dial's notch as a zoom.
+
+**What was measured, not assumed** (`--probe-tablet`, `Main.kt`, writing `tablet-probe.csv`):
+
+- The pen reaches Compose as a **mouse** — `type=Mouse`, `pressure=1.0000`, no tilt — so no amount of
+  Compose code can recover the pressure. AWT's pointer model has no pen in it.
+- **Wintab is not the answer on this tablet.** A context opened (172 bytes of `LOGCONTEXT`) and the driver
+  reported **no axes at all** — no pressure, no azimuth, no altitude, no twist — so the packets it handed
+  back carried nothing usable. That file was deleted rather than kept as a fallback that says it works.
+- The pen's real readings are in `WM_POINTER`: `TabletInk` subclasses the window procedure
+  (`SetWindowLongPtrW`), reads `POINTER_PEN_INFO` through `GetPointerPenInfo` (pressure 0–1024, rotation
+  0–359°, tiltX/tiltY −90…+90) and **passes every message on** with `CallWindowProcW`, so AWT behaves
+  exactly as before. A sample counts only while `POINTER_FLAG_INCONTACT` is set, and a contact is "fresh"
+  for 120 ms — Windows sends `WM_POINTER` *before* the mouse message it promotes the same contact to, so
+  the newest contact is the one that belongs to the pointer event being translated. The two clocks are
+  never compared (AWT's event time and `GetTickCount` share no epoch); freshness is
+  `System.nanoTime` since the message arrived.
+- **No `WM_POINTER` arrived on this machine at all**, with the pen down or hovering: every sample the
+  probe wrote is a mouse message (`pointer,Move,…,1.0000,Mouse`), which is the same fact as the first
+  bullet seen from the other side — the driver is reporting the pen as a mouse, so Windows has no pointer
+  stream to send. The Ink reader is therefore **live but idle** here: it installs, sees the mouse
+  messages, finds no `PT_PEN`, and the status bar says `pen: mouse`. Pressure on this host is the
+  driver's Windows Ink mode, not the window's code; the day that mode is on, the same reader is what
+  carries the pressure into the stroke.
+- **The dial is a wheel, not a pointer.** Turning it sends `WM_MOUSEWHEEL` with `delta=+120` — the mouse
+  wheel's own message, its own unit, no modifier, and `GetMessageExtraInfo` empty (`extra=-`), so the
+  extra-info signature does not name the device either. The WinRT `RadialController` route therefore has
+  nothing to bind to here (`TabletDial` still binds one and adds its **MobiXournal** item, so a real
+  radial controller would work; its rotation becomes `DesktopShellState.dialZoom`, `exp(0.002 × degrees)`,
+  and its button `dialFit`).
+- **Raw Input is where the two wheels part company.** `WM_INPUT` carries the `RAWINPUTHEADER.hDevice` the
+  report came from, and `GetRawInputDeviceInfoW` turns that handle into the device's interface path
+  (`\\?\HID#TABLETHID&COL01#…` for this tablet's virtual mouse, `\\?\HID#VID_046D…` for the Logitech),
+  which is the one difference the message itself loses. `TabletWheel` registers for the mouse's raw
+  reports with `RIDEV_INPUTSINK` (so the dial works without focus), decodes `RAWMOUSE` — 24-byte header,
+  16-byte device block, 24-byte `RAWMOUSE`, asserted against the SDK's sizes — and calls a notch the
+  dial's when its path is the tablet's. Raw input is **observational**: the same notch is still the
+  `WM_MOUSEWHEEL` Compose receives, and the canvas asks `DesktopTablet.dialWheelRecently()` whose wheel it
+  was. The dial's notch takes the zoom path at the cursor (`wheelViewport(…, forceZoom = …)`) with no
+  `Ctrl` held; the mouse's wheel keeps scrolling. One notch, one action, whichever way round the two
+  messages arrive. `DialWheelSceneTest` pushes both through a headless `ImageComposeScene`: the dial's
+  notch zooms in and leaves the fit, the mouse's scrolls and keeps the zoom.
+
+The calls are **COM by vtable slot**, because a JVM has no C++ headers: the slots and the interop GUIDs
+are quoted from the SDK's generated `windows.ui.input.h` and `RadialControllerInterop.h` in the file's
+constants. The handler is a JVM-implemented WinRT object, and three measurement runs found what it has to
+be — each one is a comment at the slot it fixed:
+
+1. **seven slots**, `IInspectable` + `Invoke`: a four-slot table died with `Invalid memory access` when
+   WinRT asked it for `GetIids`;
+2. `IMarshal` answered by a **free-threaded marshaler** (`CoCreateFreeThreadedMarshaler`), not by writing
+   the interface out;
+3. a **whitelist** in `QueryInterface` — `IUnknown`, `IInspectable`, `IAgileObject`, `IMarshal`, and the
+   two delegate IIDs the probe logged — with `INoMarshal` and `IdentityUnmarshal` refused. Claiming
+   `INoMarshal` (a promise never to be marshaled) produced `CO_E_NOT_SUPPORTED` from both registrations,
+   and claiming `IdentityUnmarshal` sent COM into slot 6 of the table, which holds `Invoke`.
+
+The live run registers both events and reports it: `dial: rotation hr=0x00000000, button hr=0x00000000`.
+The window says what it has in the status bar — `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
+controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can
+tell" can never be confused. With no device, both readers answer null after logging the step that said
+so, and the window keeps the wheel, the keyboard and the mouse.
 
 ### Verification, runnable on any JVM host (no emulator)
 

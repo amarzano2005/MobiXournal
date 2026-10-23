@@ -48,10 +48,11 @@ internal suspend fun PointerInputScope.pageGestures(
     viewW: Float,
     viewH: Float,
     draft: SnapshotStateList<InkSample>,
+    pen: TabletInk? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
-    val gesture = PageInkGesture(tab, tool, ink, viewport, pageW, pageH, density, draft, onEdited)
+    val gesture = PageInkGesture(tab, tool, ink, viewport, pageW, pageH, density, draft, onEdited, pen)
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
         val buttons = currentEvent.buttons
@@ -84,6 +85,11 @@ internal const val WHEEL_STEP_DP = 64f
  * 300 % feel alike), otherwise it scrolls. Either way the viewport comes back for the caller to apply;
  * null when the event carried no change. A scroll keeps the fit, so reading down a width-fitted strip
  * does not silently turn it into a free zoom.
+ *
+ * [forceZoom] is the tablet dial's notch: Windows delivers it as a plain `WM_MOUSEWHEEL` with no `Ctrl`
+ * held (`docs/desktop-workstation.md` measured it), so the caller says which wheel turned — identified
+ * by the device that sent it (`TabletWheel`) — and the notch takes the zoom path with no modifier. It is
+ * the same zoom as `Ctrl + wheel`, cursor anchor and all, because a dial has no second opinion to add.
  */
 internal fun wheelViewport(
     event: PointerEvent,
@@ -95,11 +101,12 @@ internal fun wheelViewport(
     viewW: Float,
     viewH: Float,
     onFit: (FitMode) -> Unit,
+    forceZoom: Boolean = false,
 ): Viewport? {
     val change = event.changes.firstOrNull() ?: return null
     val delta = change.scrollDelta
     val fitted = viewport.copy(zoom = zoom)
-    return if (event.keyboardModifiers.isCtrlPressed) {
+    return if (forceZoom || event.keyboardModifiers.isCtrlPressed) {
         // One notch is roughly 0.1 of a zoom step.
         val factor = exp((-delta.y * 0.12f)).coerceIn(0.5f, 2f)
         val anchor = change.position / density
@@ -150,6 +157,8 @@ internal class PageInkGesture(
     private val density: Float,
     private val draft: SnapshotStateList<InkSample>,
     private val onEdited: (Int) -> Unit,
+    /** Windows Ink's pen reading, when the window has one — see [inkPointer]. */
+    private val pen: TabletInk? = null,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
@@ -180,17 +189,31 @@ internal class PageInkGesture(
     private fun feed(change: PointerInputChange, phase: InkPointerPhase, buttons: Int) =
         handle(router.onPointer(inkPointer(change, phase, buttons)))
 
-    private fun inkPointer(change: PointerInputChange, phase: InkPointerPhase, buttons: Int): InkPointer =
-        InkPointer(
+    /**
+     * One Compose pointer, with the pen's own readings folded in where Windows Ink has them.
+     *
+     * The order matters and is the reason this is one adapter and not two: Windows sends `WM_POINTER`
+     * **before** the mouse message it promotes the same contact to, so the newest pen contact belongs to
+     * the pointer change being translated. A device that declares no pressure keeps `change.pressure`
+     * (which is `1.0`, the tool's width) rather than a zero that would draw nothing, and the eraser end of
+     * a pen reclassifies the pointer as [PointerKind.ERASER_TIP] — the router then rubs out, which it
+     * would not do for the mouse this driver otherwise looks like.
+     */
+    private fun inkPointer(change: PointerInputChange, phase: InkPointerPhase, buttons: Int): InkPointer {
+        val contact = pen?.contact()
+        return InkPointer(
             id = change.id.value.toInt(),
             x = change.position.x,
             y = change.position.y,
-            pressure = change.pressure,
+            pressure = contact?.pressure ?: change.pressure,
             timeMs = change.uptimeMillis,
-            tool = change.pointerKind(),
+            tool = if (contact?.eraser == true) PointerKind.ERASER_TIP else change.pointerKind(),
             phase = phase,
+            tiltRad = contact?.tiltRad,
+            azimuthRad = contact?.azimuthRad,
             buttons = buttons,
         )
+    }
 
     private fun handle(events: List<InkEvent>) {
         for (event in events) {

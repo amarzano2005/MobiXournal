@@ -27,9 +27,21 @@ import androidx.compose.ui.unit.dp
  * make about it, while the shell file holds the state and the commands.
  */
 
+/**
+ * What the window's pen is, in one label: `Windows Ink` when the device's own stream is open, `mouse`
+ * when it is not, and `dial` when a radial controller is bound to the window.
+ *
+ * A separate function because it is a **claim** and a test can read it: the window must never say
+ * `Windows Ink` on the strength of a driver that reported nothing.
+ */
+internal fun penLabel(source: PenSource, dial: Boolean): String = buildString {
+    append("pen: ").append(source.label)
+    if (dial) append(" · dial")
+}
+
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
 @Composable
-internal fun StatusBar(tab: DesktopTab?) {
+internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -58,6 +70,14 @@ internal fun StatusBar(tab: DesktopTab?) {
                 FitMode.WIDTH -> "fit width"
                 FitMode.PAGE, FitMode.AUTO -> "fit page"
             },
+            color = DesktopTheme.inkMuted,
+            style = DesktopTheme.label,
+        )
+        Spacer(Modifier.width(14.dp))
+        // The pen's source, not the pen's absence: a window with no Windows Ink says `mouse`, which is
+        // what the canvas is actually reading. The dial is named only while one is bound.
+        Text(
+            text = penLabel(tablet?.source ?: PenSource.MOUSE, tablet?.dial == true),
             color = DesktopTheme.inkMuted,
             style = DesktopTheme.label,
         )

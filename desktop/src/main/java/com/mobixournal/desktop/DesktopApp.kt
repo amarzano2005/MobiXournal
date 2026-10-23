@@ -10,6 +10,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.window.FrameWindowScope
+import java.awt.EventQueue
 import java.awt.FileDialog
 import java.io.File
 
@@ -76,10 +77,25 @@ fun FrameWindowScope.DesktopApp(
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.
     DisposableEffect(Unit) { onDispose { state.tabs.closeAll() } }
 
+    // The pen and the dial. Both are opened after the window exists and closed with it, and both answer
+    // `null` on a host without them, which the status bar then says in words. The dial's events arrive on
+    // Windows' own thread, so they are posted to the window's event queue before they touch any state.
+    val tablet = remember { DesktopTablet() }
+    DisposableEffect(Unit) {
+        tablet.open(
+            window = window,
+            onRotation = { degrees -> EventQueue.invokeLater { state.dialZoom(degrees) } },
+            onClick = { EventQueue.invokeLater { state.dialFit() } },
+            log = { println("MobiXournal tablet: $it") },
+        )
+        onDispose { tablet.close() }
+    }
+
     DesktopTheme.Apply {
         DesktopShell(
             state = state,
             onOpenPicker = ::pick,
+            tablet = tablet,
             modifier = Modifier
                 .focusRequester(focus)
                 .focusable()

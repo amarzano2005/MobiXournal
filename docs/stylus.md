@@ -22,9 +22,9 @@ a two-finger pan and a pinch. Each shell keeps only its **adapter**, and both ar
 one per event — with `MotionEventPointer.kt` reading the platform vocabulary, and the window's is
 `desktop/PageCanvasInput.kt` (`PageInkGesture`). What each platform actually fills is *measured*, not
 assumed, so the router treats every field as optional: Android fills the tool type, pressure (per
-historical sample too), tilt/azimuth and the barrel, while the window's pointer fills the tool type,
+historical sample too), tilt/azimuth and the barrel; the window's Compose pointer fills the tool type,
 pressure and its buttons but **no tilt or azimuth at all** (Compose 1.7.3 has no such axis on a
-`PointerInputChange`, and its historical samples carry position only).
+`PointerInputChange`), so it folds in `desktop/TabletInk.kt`'s `WM_POINTER` readings for the same contact.
 
 What it decides: a press is held until it crosses the tap slop, so a **tap does not draw** (the tablet's
 "a tap leaves a dot" is one flag, `startOnDown`, and the tablet sets it); a **second finger** ends the

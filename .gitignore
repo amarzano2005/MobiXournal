@@ -24,3 +24,6 @@ captures/
 __pycache__/
 *.pyc
 /build-logs/
+
+# The tablet probe writes its rows beside the running directory (`--probe-tablet`).
+tablet-probe.csv

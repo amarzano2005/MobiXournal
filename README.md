@@ -122,6 +122,20 @@ put it again) — and `Ctrl + S` writes it back to the file you opened
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.
 
+The graphics tablet is read directly where Windows offers its own stream, so the pen behaves like a pen:
+strokes taper with the pressure you actually apply, the pen's tilt and twist travel with the ink, and
+turning the pen round to its eraser end rubs out. The status bar says which stream the window has —
+`pen: Windows Ink` or `pen: mouse` — and on `pen: mouse` the pen draws at the tool's width, because the
+driver is reporting it as a mouse and the window cannot reach past the driver. Setting the pen to
+**Windows Ink** in the tablet driver's own settings is what turns the richer stream on.
+
+Turn the tablet's **rotary dial** to zoom — clockwise in, anticlockwise out, at the cursor, exactly as
+`Ctrl` and the wheel do — while the mouse's wheel keeps scrolling the page: the window tells the two
+apart by the device the notch came from, so neither takes the other's action. Pressing a dial that
+Windows exposes as a radial controller returns to the page's fitted view; that one lists **MobiXournal**
+among its tools (choose it there once if your tablet asks), and the status bar adds `dial` while it is
+bound.
+
 A tab with edits the file does not have yet shows a small blue dot beside its name. Closing it — the
 `×`, `Ctrl + W`, or the window's own close button — asks first: **Save**, **Discard** or **Cancel**. If
 the window is interrupted with unsaved work still open (a crash, a forced shutdown), those tabs come

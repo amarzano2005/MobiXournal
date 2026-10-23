@@ -15,6 +15,9 @@ pdfboxAndroid = "2.0.27.0"
 # The desktop shell runs on a plain JVM, where the Android port cannot render; same 2.0 API.
 pdfbox = "2.0.31"
 mlkitDigitalInk = "19.0.0"
+# The tablet's raw pen stream (pressure, tilt, the dial's ring, ExpressKeys) is not on AWT's pointer,
+# so the Windows window reads it through Wintab — the same API desktop Xournal++ uses there.
+jna = "5.14.0"
 sherpaOnnx = "v1.13.8"
 
 [libraries]
@@ -36,6 +39,7 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 mlkit-digital-ink = { group = "com.google.mlkit", name = "digital-ink-recognition", version.ref = "mlkitDigitalInk" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 sherpa-onnx = { group = "com.github.k2-fsa", name = "sherpa-onnx", version.ref = "sherpaOnnx" }
 
 [plugins]

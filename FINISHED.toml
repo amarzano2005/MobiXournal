@@ -25,6 +25,61 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-tablet-absent-fallback"
+title = "Desktop: say honestly when there is no tablet"
+description = "`PenSource` (`mouse` / `Windows Ink`) and `DesktopTablet`'s dial flag reach the status bar as `pen: Windows Ink · dial` (or `pen: mouse`), so the window cannot claim a stream it does not have and the difference between \"the pen draws at one width\" and \"the pen is a mouse as far as this window can tell\" is visible. `TabletInkTest.penLabel` pins the words. Both readers answer null after logging the step that refused them — `ink: window procedure installed`, `dial: no factory …`, `RoInitialize`, `CreateForWindow`, and each event's HRESULT — and the canvas keeps the Compose pointer, the wheel and the keyboard, which is the fallback `docs/desktop-workstation.md` now documents."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-dial-zoom-and-width"
+title = "Desktop: the dial zooms at the cursor and sizes the pen"
+description = "The dial **zooms at the cursor**; the shipped delivery route is the tablet's own wheel, with the radial controller kept as the second one (corrected after the live pass). *Radial controller:* `dialZoomFactor` = `exp(0.002 × degrees)` clamped to 0.5–2 per event (one full turn ≈ 2×, one degree ≈ 0.2 %), applied by `DesktopShellState.dialZoom` through `zoomBy` around the page centre and dropping a fitted tab to free zoom, like every other manual zoom; the dial's button is `dialFit`, back to the tab's automatic fit (`AUTO`). Every event is posted to the window's event queue before it touches state, because Windows raises it on its own thread. *What the machine actually does:* the dial sends `WM_MOUSEWHEEL` (delta ±120) from the tablet's own HID device, so this route never fires here; `desktop-dial-wheel-zoom` is the one that ships the behaviour (`TabletWheel` names the device, the notch takes the zoom path at the cursor, the mouse's wheel keeps scrolling). **Not shipped, and deliberately so:** the stroke-width control, the diameter-ring preview and the `tablet.dial=zoom|width` setting — the width half is recorded as its own task. `TabletDialTest` covers the GUID byte order, the exponential and its symmetry, both shell commands, and a dial with nothing open."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-tablet-dial-spike"
+title = "Desktop: measure what the tablet's rotary dial sends"
+description = "The dial produced **no pointer and no key**, and Win32 has no dial pointer type, so the recorded decision was WinRT: the dial is a wheel device, bound to the window by `IRadialControllerInterop::CreateForWindow`, rotation arriving as `RotationChanged` with `RotationDeltaInDegrees`. (The probe's first shapes logged pointers, scroll rows and keys, so its `WM_MOUSEWHEEL` notches went unrecorded; the raw-message logger added afterwards caught them as `wheel msg=0x20a delta=120 extra=-`, and `desktop-dial-wheel-zoom` is the task that routed them.) `desktop/TabletDial.kt` implements it by COM vtable slot, with the slots and the interop GUIDs quoted from the SDK headers in its constants. Measured on the machine, in order: no apartment (`0x800401F0`), then `S_OK` for the factory, the window binding, 1° rotation resolution, the menu item's creation, append and selection, and finally **both event registrations `S_OK`**. Three handler shapes were tried and rejected on the way, each recorded at the slot it fixed: a four-slot vtable (`Invalid memory access` on `GetIids`), a handler claiming `INoMarshal` (`CO_E_NOT_SUPPORTED` from both registrations) and one claiming `IdentityUnmarshal` (COM entered slot 6, which holds `Invoke`). The working shape is seven slots (`IInspectable` + `Invoke`), `IMarshal` answered by a free-threaded marshaler, and a `QueryInterface` whitelist whose two delegate IIDs were read out of the probe (`8FE73AC9…` rotation, `D09D9FCC…` button)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-tablet-input-backend"
+title = "Desktop: put the tablet's own input behind one seam"
+description = "`desktop/TabletInk.kt` reads the pen's own stream: it subclasses the window procedure (`SetWindowLongPtrW`/`CallWindowProcW`, every message passed on so AWT is unchanged), parses `POINTER_PEN_INFO` through `GetPointerPenInfo` (pressure 0–1024 → 0–1, tiltX/tiltY → tilt and azimuth in radians, rotation, `PEN_FLAG_ERASER`), counts only `POINTER_FLAG_INCONTACT` samples and keeps the newest contact fresh for 120 ms by `System.nanoTime` (never comparing AWT's clock with `GetTickCount`). `DesktopTablet.kt` is the seam. `PageCanvasInput.PageInkGesture` folds that contact into the Compose pointer it already receives, so **one contact is one sample**: pressure and tilt replace the mouse's `1.0`, an eraser-end pen reclassifies the pointer as `ERASER_TIP`, and an axis the device does not declare stays null (the tool's width, never zero). `TabletInkTest` pins the 120-byte structure layout, the unit conversions and the freshness rule."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-tablet-pressure-spike"
+title = "Desktop: measure the tablet's pressure, tilt and azimuth on Windows"
+description = "Measured on ANTONIOFISSO-PC with the Huion, through the new `--probe-tablet` window (`TabletProbe.kt`, `Main.kt`, `tablet-probe.csv`): Compose reports the pen as `type=Mouse` with `pressure=1.0000` and no tilt, so no Compose code can recover the pressure, and a Wintab context opened (172-byte `LOGCONTEXT`) but the driver declared **no axes at all** — pressure, azimuth, altitude and twist all absent — while its packets carried nothing usable. Both FAIL, so Wintab was deleted rather than kept as a fallback that says it works, and the backend the rest of the scope builds on is Windows Ink (`WM_POINTER`). The probe logs pointer, scroll and key rows plus `ink` and `dial` device rows; the reading table and the verdict are in `docs/desktop-workstation.md` (*The tablet on Windows*)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
 id = "give-both-shells-one-pointer-router"
 title = "Give both shells one pointer router"
 description = "Closed on both halves. The platform-free layer (InkPointer, InkPointerRouter, InputClassifier, PressureCurve, PageEraser/StrokeEraser/StrokeHitTester, MotionEventPointer's tool-type mapping) was already in mobix-core; what was missing was a call site on each shell, and both now exist. Tablet: a new adapter (render/DrawingSurfaceRouter.kt + MotionEventPointer.inkPointer) feeds every drawing/erasing gesture through the router — the press, each historical sample of a MOVE batch, the lift, the eraser hit and the second-finger PanBegin — while the view keeps the document-shaped half and its own entry points (barrel and vendor keys, the mid-stroke barrel switch, page and guide drag, spline, place, select, the marquee). Window: PageInkGesture in desktop/PageCanvasInput.kt feeds Compose's pointer the same way, and the two shells now open a stroke, filter its pressure and reject a palm with one implementation. Proof for the window is DesktopPointerSceneTest, which pushes real Compose pointer events through an ImageComposeScene into PageCanvas and asserts the stroke that reaches the model with the filtered ramp; the tablet's proof is the router's own suite plus the app's 1552 unit tests, with the on-device StylusInputTest deliberately not run (no emulator pass for this work). The vocabulary itself needed no change: each shell builds its router per gesture so live settings and the pressure filter are the ones in force. Docs: docs/stylus.md ('One pointer layer, two shells' rewritten: both adapters live, what each platform actually fills, the not-routed list), docs/codebase.md rows and docs/desktop-workstation.md's measured rows."

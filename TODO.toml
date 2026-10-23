@@ -232,104 +232,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-tablet-pressure-spike"
-title = "Desktop: measure the tablet's pressure, tilt and azimuth on Windows"
-description = "First child of desktop-tablet-and-dial-input, and every other child reads its answer. Nothing about a real pen on Windows is proven: Compose's `PointerInputChange` has a `pressure` field, but whether a Huion through Windows Ink or its own driver fills it is unknown, and Compose 1.7.3 has no tilt or azimuth field at all. (1) Add a probe: a `--probe-tablet` argument handled in `desktop/src/main/java/com/mobixournal/desktop/Main.kt` opens the window with the page canvas logging, and appends one CSV row per pointer event to `tablet-probe.csv` beside the executable (`File(...).appendText`; `DesktopRecovery` is the pattern for a file next to the running app) holding `uptimeMillis`, x, y, `pressure`, `type`, `buttons` and `PointerInputChange.historical.size`. (2) Add a throwaway raw probe in `desktop/src/test/java/com/mobixournal/desktop/TabletProbeTool.kt` (a `main()`, not a test) that reads the same pen through JNA + Wintab (`net.java.dev.jna:jna-platform` declared in `gradle/libs.versions.toml` and `desktop/build.gradle.kts`): open the context, loop `WTPacketsGet`, print `pkNormalPressure`, `pkOrientation`/`pkTilt` and `pkButtons`, so both streams can be compared in one session. (3) Run both on ANTONIOFISSO-PC with the Huion (`docs/desktop-workstation.md` -> Profile D): drag a light-to-hard ramp and roll the pen between fingers, then record in a new section of that doc the table of readings, the PASS/FAIL and which backend the rest of the scope builds on. PASS means Compose's `pressure` varies with force (at least eight distinct values across the ramp, never a constant 1.0 or 0.0) and repeats across a second pass; otherwise it is FAIL and the doc names JNA + Wintab as the backend, quoting the raw axis values the tool printed. No Android build, no emulator."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 961
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tablet-input-backend"
-title = "Desktop: put the tablet's own input behind one seam"
-description = "Second child of desktop-tablet-and-dial-input; do what desktop-tablet-pressure-spike's doc section decided. Add `desktop/src/main/java/com/mobixournal/desktop/TabletPointerSource.kt`: a seam that turns one device reading into the shared `InkPointer` (id, view px, raw pressure, `tiltRad`, `azimuthRad`, buttons, time) and answers `available` plus whether a pen is in range. If the spike PASSED on Compose, this file is a thin adapter over `PointerInputChange` that fills what Compose supplies and leaves tilt/azimuth null; if it FAILED, it owns the JNA + Wintab loop (`WTOpen`, `WTPacketsGet`, `pkNormalPressure`, `pkOrientation`/`pkTilt`, `pkButtons`) on a daemon thread and converts each packet (with the library declared in `gradle/libs.versions.toml` and `desktop/build.gradle.kts`). Either way `PageInkGesture` in `PageCanvasInput.kt` takes its samples from the seam, and **one physical sample never arrives twice**: while the tablet owns the pen, Compose's stylus and eraser pointer events are dropped (mouse and touch still come from Compose), and a pen leaving range hands the canvas back. Wire it in `PageCanvas` beside the existing `pointerInput`. Tests, all JVM and none needing a tablet: a synthetic raw packet maps to an `InkPointer` (pressure 0..1, tilt and azimuth in radians, an undeclared axis as null), the available flag picks the Compose path when the backend cannot start, and a mouse stream still draws at the tool's width (`DesktopPointerSceneTest` is the harness to copy). Docs: docs/desktop-workstation.md -- the backend, the seam, and the duplicate-suppression rule."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 962
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tablet-absolute-mapping"
-title = "Desktop: map a screenless tablet's area onto the page"
-description = "A screenless tablet reports absolute coordinates in its own active area while the user watches the window, so the canvas needs a mapping rather than a 1:1 drag: the tablet's area maps onto the **page rectangle** the viewport shows, aspect-ratio locked by default (a square drawn on the tablet is square on the page, never stretched), with an opt-in FILL mode that uses the whole window. (1) Put the pure mapping in `desktop/src/main/java/com/mobixournal/desktop/TabletMapping.kt`: inputs are the raw area (Wintab's `pkX`/`pkY` in the tablet's own units, or a Compose position), the page rect at the current `Viewport` (`offsetX`/`offsetY`/`zoom`, page width and height, view size) and the mode; the output is the page point in pt. No Compose types, so it is JVM-testable. (2) The lock letterboxes: the area's shorter side maps to the page's shorter side and the leftover becomes dead zone along the longer axis, **clamped** rather than wrapped, so lifting and re-placing the pen does not jump the cursor. (3) Persist the mode and the area in `DesktopSettings.kt` (`tablet.mapping=locked|fill`, `tablet.area=0,0,w,h`). Tests: a corner of the area maps to the page's corner at zoom 2 with an offset; a point outside the page maps outside it, where the canvas already refuses to ink because the desk is not paper; LOCKED keeps a square square while FILL stretches it; the dead zone clamps instead of wrapping. Docs: docs/desktop-workstation.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 963
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tablet-dial-spike"
-title = "Desktop: measure what the tablet's rotary dial sends"
-description = "Third child of desktop-tablet-and-dial-input, and the dial half of the hardware work depends on it (the owner's rotary dial is a requirement, not a nicety). A Huion/Wacom touch ring or dial reaches Windows as *something* -- a wheel notch, a media or arrow key, a Wintab ring/express packet -- and which one decides how cheap the feature is. (1) Extend the probe from desktop-tablet-pressure-spike (`--probe-tablet`, `tablet-probe.csv` beside the executable) to log every pointer event's `nativeEvent`/`PointerEventType`, and route unconsumed key events in `DesktopApp.kt`'s window to the probe too, so a dial delivered as keys is seen. (2) Turn the dial through several full turns in both directions and record in docs/desktop-workstation.md: what each detent produced (count, direction, magnitude), whether a fast turn coalesces, and whether the driver has to be configured to send wheel instead of its default. (3) Decide and record the cheapest path that still gives **continuous** control: wheel notches (preferred when the driver offers them), key repeats, or a Wintab ring axis, with a PASS/FAIL criterion -- a full clockwise turn must produce a monotonic sequence whose direction is distinguishable, with at least 12 steps per turn, because zoom that only stepped 0..2 would feel like a switch. No Android build, no emulator."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 964
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-dial-zoom-and-width"
-title = "Desktop: the dial zooms at the cursor and sizes the pen"
-description = "Where the dial actually does something, on the backend desktop-tablet-dial-spike chose. Two continuous controls, selected the way the hardware allows: **(1) zoom at the cursor** -- one detent is a fixed *factor*, not a fixed amount, so 30 % and 300 % feel alike: reuse `wheelViewport`'s exponential (`exp(+/-0.12)` per notch) and `Viewport.zoomBy(factor, anchorX, anchorY, pageW, pageH, viewW, viewH)` so the page point under the cursor stays put, clamped at `Viewport.MIN_ZOOM`/`MAX_ZOOM`, and call `onFit(FitMode.NONE)` as the wheel path does so a detent never leaves a stale fit behind. **(2) stroke width** -- `DesktopInk.withWidth` stepped through `PenPalette.DEFAULT_WIDTHS` or by a ratio and clamped by `PenPalette.clampWidth`, with a **diameter-ring preview** at the cursor while the dial moves and for a beat after: a circle whose radius is the prospective width in page pt times `zoom` times density, drawn in the window's own chrome and tokens (`docs/interface-contract.md`), not a second HUD. Which control the dial drives is a setting in `DesktopSettings.kt` (`tablet.dial=zoom|width`), and every dial action has a keyboard twin editing the same value, so a mouse-only window can do it too -- the key goes in `DesktopKeys.kt` and in the shortcut table of `docs/ui-modernization.md` section 3 (read the table first and never reuse a taken key). Tests: pure step accumulation (N detents give one factor, monotonic, clamped at both ends), width steps clamp at the palette's ends, and an `ImageComposeScene` render test that the ring's radius follows the width. Docs: docs/desktop-workstation.md and the keyboard table."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 965
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tablet-buttons-to-actions"
-title = "Desktop: tablet buttons to the same actions as the keys"
-description = "The tablets this window targets carry ExpressKeys and a barrel button, and today a press either does nothing or only what the driver decided. Map them onto the **same action vocabulary as the keyboard**: `DesktopKeys.kt` (`toolForKey`, `toolKeyLetters`, `ShellCommand`) and the table in docs/ui-modernization.md section 3 are the catalogue. (1) A device button reaches the JVM as a mouse button (`PointerButtons`' secondary/tertiary) or as a key event depending on the driver -- desktop-tablet-dial-spike's log is the evidence for which -- so handle both at the one place `DesktopApp.kt`/`DesktopShell` already route keys, making a tablet button and its key one implementation. (2) A binding table in `DesktopSettings.kt` (`tablet.button.<code>=<action>`) maps the measured codes to `DesktopTool`s and `ShellCommand`s, defaulting to what the driver sends today (a middle click still pans in `PageCanvasInput.panByDrag`, a barrel keeps the primary/selection meaning) and never stealing the pen's own tip. (3) A settings row that lists what was last pressed, so the codes are discovered by pressing rather than guessed -- the same affordance the tablet app's `KeyDetectionDialog` gives. Tests: a bound code resolves to its action, an unbound code does nothing, a rebound middle click stops panning and runs its action, and the defaults are unchanged for an empty settings file. Docs: docs/desktop-workstation.md, plus section 3's table if a default changes."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 966
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tablet-absent-fallback"
-title = "Desktop: say honestly when there is no tablet"
-description = "The window must stay usable, and stay honest, on a machine with no tablet: no Huion, a missing DLL, a Wintab context refused, or a non-Windows host. (1) `TabletPointerSource.available` answers whether the backend started; when it did not, the canvas falls back to Compose's pointer with no ceremony -- the pen draws, pressure is whatever the device reports (a mouse reports none and draws at the tool width, which docs/desktop-workstation.md already promises), and tilt/azimuth stay null rather than 0. (2) The status bar (`desktop/src/main/java/com/mobixournal/desktop/DesktopStatus.kt`, `StatusBar(tab)`) names the input in use -- \"Mouse\", \"Tablet - pressure\", \"Tablet - no pressure\" -- so a pen that silently reports a constant 1.0 is visible instead of looking like a bug in the ink; extend the composable's parameters (it reads the tab today) rather than threading state through the document. (3) No modal and no error dialog: a machine without a tablet is a normal machine. Tests: a JVM test with the seam's fake backend unavailable asserts the Compose source is chosen and the status text is the mouse's, the same test with a fake tablet asserts its text, and `DesktopEditingTest`'s pen drag still passes through the fallback (it already runs without a device). Docs: docs/desktop-workstation.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 967
-created = 2026-10-23
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-pen-tip-radial-hud"
 title = "Desktop: pen-tip radial HUD (scope)"
 description = "The radial HUD of docs/ui-modernization.md (summoned by a barrel button under the nib, dismissed on release, holds the user's swatches first, then widths, then tools) exists on desktop only as a word in the tablet scope. Investigate after the tablet spike: how the barrel button reaches the JVM (Windows Ink or Wintab, desktop-tablet-and-dial-input), whether the HUD's geometry and selection logic can be shared with Android as pure Kotlin in mobix-core, the dial's role in it, and the mouse fallback (a key or a middle click). Add task-level children. Depends on desktop-tablet-and-dial-input and the Android HUD. Produce tasks, no code."
@@ -591,6 +493,34 @@ category = "feature"
 urgency = "normal"
 order = 1220
 created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-dial-width-and-ring"
+title = "Desktop: the dial's second control — stroke width and its diameter ring"
+description = "The half of desktop-dial-zoom-and-width that did not ship, on the rotation backend that did. (1) Delivery: the dial's rotation runs `DesktopShellState.dialZoom` today; add `tablet.dial=zoom|width` to `desktop/DesktopSettings.kt`, read it into `DesktopShellState` (a `dialControl` snapshot state), and route `dialZoom(degrees)` to `stepWidth(+1/-1)` while the setting says width — every dial action keeps a keyboard twin editing the same value (`DesktopKeys.kt` and the shortcut table of `docs/ui-modernization.md` section 3; read the table first and never reuse a taken key). (2) Ring: while the width control moves, and for about 700 ms after, draw a circle at the pen's last page position whose radius is the prospective width in page pt × `zoom` × density, in the window's own chrome and tokens (`DesktopTheme`, `docs/interface-contract.md`: one material class, a glyph only if one is needed, all five states, English copy), not a second HUD — a `Canvas` overlay in `PageCanvas.kt` above the page transform, fed by a `ringWidth` state the shell clears on a timer. (3) Tests: width steps clamp at `PenPalette.DEFAULT_WIDTHS`' ends, the setting routes rotation to the right control (pure state test beside `TabletDialTest`), and an `ImageComposeScene` render test that the ring's radius follows the width and that it disappears after the hold. (4) Docs: `docs/desktop-workstation.md` (The tablet on Windows), the shortcut table if a key is added, and `README.md`'s desktop paragraph. No vendor HID and no Android change; verify with `:desktop:test` plus one live pass on the Huion."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1230
+created = 2026-10-23
+tags = ["desktop", "tablet", "ui"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-dial-wheel-zoom"
+title = "Desktop: the dial's notch zooms, told apart from the mouse wheel"
+description = "The dial turned nothing in the window: Windows delivers its rotation as WM_MOUSEWHEEL (delta +/-120, no modifier, extra-info empty), the same message and the same unit as the mouse's wheel, so routing every notch to zoom would take scrolling away from the mouse. Give the notch a device: register the window for raw mouse reports (WM_INPUT, RIDEV_INPUTSINK so the dial works unfocused), turn RAWINPUTHEADER.hDevice into the device's interface path with GetRawInputDeviceInfoW, and call a notch the dial's when the path is the tablet's (tablethid/huion/vmidi/vid_256c). Keep it observational: the same notch stays the WM_MOUSEWHEEL Compose receives, and the canvas asks DesktopTablet.dialWheelRecently() whose wheel it was, so one notch is one action whichever message arrives first. The dial's notch takes wheelViewport's zoom path at the cursor with no Ctrl held; the mouse's wheel keeps scrolling. Verify with DialWheelSceneTest (an ImageComposeScene, both devices through Compose's real dispatch): the dial's notch zooms in and leaves the fit, the mouse's scrolls and keeps the 100 % zoom. Docs: docs/desktop-workstation.md (measured rows for the dial and raw input) and README's desktop paragraph."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1240
+created = 2026-10-24
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false

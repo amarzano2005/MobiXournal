@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -14,7 +15,10 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.text.TextMeasurer
+import com.mobixournal.format.model.Page
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -40,6 +44,8 @@ import kotlin.math.roundToInt
  * Input, in the conventions a document viewer has already taught everyone:
  *  - **wheel** scrolls (vertically, and horizontally for a wide page); **Ctrl + wheel** zooms at the
  *    cursor, which is the *page point under the cursor* staying still, not the page's centre;
+ *  - the tablet's **dial** zooms at the cursor with no modifier held — its notches arrive as wheel
+ *    notches from the tablet's own device, which is how they are told apart from the mouse's;
  *  - **middle-drag** or **space-drag** pans;
  *  - a **primary drag with the pen or highlighter** draws, and with the eraser rubs out — the gesture
  *    is decided by the shared `InkPointerRouter` (`PageCanvasInput.kt`), so the window has no second
@@ -52,7 +58,7 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun PageCanvas(
+internal fun PageCanvas(
     tab: DesktopTab,
     panMode: Boolean,
     onViewport: (Viewport) -> Unit,
@@ -60,6 +66,19 @@ fun PageCanvas(
     tool: DesktopTool = DesktopTool.PEN,
     ink: DesktopInk = DesktopInk(),
     onEdited: (Int) -> Unit = {},
+    /**
+     * The window's Windows Ink reader, when it has one: the pen's pressure, tilt and eraser end are
+     * folded into the pointer events this canvas already receives, so a stroke is still one stroke.
+     */
+    pen: TabletInk? = null,
+    /**
+     * True when the wheel notch Compose is delivering right now came from the tablet's **dial** rather
+     * than the mouse. Windows sends both as `WM_MOUSEWHEEL` with the same ±120 delta and no modifier,
+     * so the notch's *device* is what decides (`TabletWheel`): the dial's turns zoom at the cursor, and
+     * the mouse's wheel keeps scrolling. One notch, one action — the raw report is a reading and the
+     * Compose event is still the only thing that moves the page.
+     */
+    dialWheel: () -> Boolean = { false },
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -74,12 +93,7 @@ fun PageCanvas(
         val viewW = maxWidth.value
         val viewH = maxHeight.value
         if (loaded == null) {
-            Text(
-                text = "Could not read this page: ${page.exceptionOrNull()?.message}",
-                color = DesktopTheme.danger,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.align(Alignment.Center),
-            )
+            PageReadFailure(page.exceptionOrNull()?.message)
             return@BoxWithConstraints
         }
 
@@ -103,10 +117,12 @@ fun PageCanvas(
         Canvas(
             Modifier.fillMaxSize()
                 .onPointerEvent(PointerEventType.Scroll) { event ->
-                    wheelViewport(event, viewport, zoom, density, pageW, pageH, viewW, viewH, onFit)
-                        ?.let(onViewport)
+                    wheelViewport(
+                        event, viewport, zoom, density, pageW, pageH, viewW, viewH, onFit,
+                        forceZoom = dialWheel(),
+                    )?.let(onViewport)
                 }
-                .pointerInput(tab, panMode, tool, ink, pageW, pageH, viewW, viewH, viewport) {
+                .pointerInput(tab, panMode, tool, ink, pen, pageW, pageH, viewW, viewH, viewport) {
                     pageGestures(
                         tab = tab,
                         panMode = panMode,
@@ -118,33 +134,76 @@ fun PageCanvas(
                         viewW = viewW,
                         viewH = viewH,
                         draft = draft,
+                        pen = pen,
                         onViewport = onViewport,
                         onEdited = onEdited,
                     )
                 },
         ) {
-            // The page is painted in its own coordinate space and moved by the viewport: the paper,
-            // the picture and the ink all scale together, which is what makes a zoomed stroke keep the
-            // width it was drawn with.
-            // Resolved before the transform: inside it the receiver is a DrawTransform, which has no
-            // display density of its own.
-            val pxPerPt = zoom * density
-            val dx = viewport.offsetX * density
-            val dy = viewport.offsetY * density
-            withTransform({ translate(dx, dy) }) {
-                // (page, scale, measurer, backdrop, hidden layers) — the last one is the sidebar's eyes.
-                drawPageContent(loaded, pxPerPt, measurer, tab.document.backdrop, tab.hiddenOn(tab.page))
-                // The stroke in progress, painted with the same rule as the committed ink: a preview
-                // that looked different from what the lift writes would be a lie about the file.
-                val inkTool = tool.inkTool()
-                if (inkTool != null && draft.isNotEmpty()) {
-                    strokeOf(inkTool, ink.colour, ink.width, draft.toList())?.let { draftStroke ->
-                        drawInkStroke(draftStroke, pxPerPt)
-                    }
-                }
+            paintSheet(
+                page = loaded,
+                viewport = viewport,
+                zoom = zoom,
+                density = density,
+                measurer = measurer,
+                backdrop = tab.document.backdrop,
+                hiddenLayers = tab.hiddenOn(tab.page),
+                tool = tool,
+                ink = ink,
+                draft = draft.toList(),
+            )
+        }
+    }
+}
+
+/**
+ * The sheet and the stroke being drawn, in the **page's own** coordinate space, carried by [viewport]:
+ * paper, picture and ink scale together, which is what makes a zoomed stroke keep the width it was
+ * drawn with.
+ *
+ * Split out of the composable so the canvas keeps its layout, its scroll and its gestures
+ * (`SourceStructureTest` caps a function's length) — and because the preview is painted with the same
+ * rule as the committed ink: a preview that looked different from what the lift writes would be a lie
+ * about the file.
+ */
+private fun DrawScope.paintSheet(
+    page: Page,
+    viewport: Viewport,
+    zoom: Float,
+    density: Float,
+    measurer: TextMeasurer,
+    backdrop: PageBackdrop?,
+    hiddenLayers: Set<Int>,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    draft: List<InkSample>,
+) {
+    // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
+    // density of its own.
+    val pxPerPt = zoom * density
+    withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
+        drawPageContent(page, pxPerPt, measurer, backdrop, hiddenLayers)
+        val inkTool = tool.inkTool()
+        if (inkTool != null && draft.isNotEmpty()) {
+            strokeOf(inkTool, ink.colour, ink.width, draft)?.let { draftStroke ->
+                drawInkStroke(draftStroke, pxPerPt)
             }
         }
     }
+}
+
+/**
+ * What a page that cannot be read says — the same sentence in the same place, so a broken page is one
+ * line about the page and not a stack of chrome around it.
+ */
+@Composable
+private fun BoxScope.PageReadFailure(reason: String?) {
+    Text(
+        text = "Could not read this page: ${reason ?: "no reason given"}",
+        color = DesktopTheme.danger,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.align(Alignment.Center),
+    )
 }
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */

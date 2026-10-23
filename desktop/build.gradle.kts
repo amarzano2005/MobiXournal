@@ -24,6 +24,8 @@ dependencies {
     implementation(compose.material3)
     // Rasterising a page's PDF background needs the JVM PDFBox; the Android port cannot run here.
     implementation(libs.pdfbox)
+    // The pen's pressure, tilt and the dial's ring are not in AWT's pointer stream; Wintab is.
+    implementation(libs.jna)
     testImplementation(libs.junit)
     // The `.mobix` fixtures are shared through `mobix-core`'s test fixtures, so this shell's suite
     // opens the same synthetic notebook the core and app suites do instead of growing its own writer.
