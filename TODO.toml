@@ -524,3 +524,17 @@ created = 2026-10-24
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false
+
+[[task]]
+id = "desktop-tablet-stroke-from-packets"
+title = "Desktop: draw the pen from the tablet's packets, not from the mouse emulation"
+description = "Measured on ANTONIOFISSO-PC (docs/desktop-workstation.md): TabletWintab now reads the driver's own packets (400/s, pressure 0..16383, tilt) and the stroke width follows them, but a stroke still BEGINS from the pointer event Windows' mouse emulation delivers — so a very light touch is sometimes dropped before any stroke exists, which Xournal++ does not do because it starts from the packet's tip button. Move the pen's start, samples and lift onto the packet stream: (1) map a packet's x/y from the system context (screen px) through ScreenToClient and the canvas's own bounds to the page point the canvas uses today, with the same density/zoom/viewport arithmetic PageInkGesture applies; (2) feed InkPointerRouter from that stream on the window's thread, one InkPointer per packet (tip button = PRIMARY, pressure and tilt from the packet), so the shared router still decides what a press means and PressureCurve still sizes the width; (3) keep the Compose pointer for the mouse and touch, and make sure one physical contact is never delivered twice — while the pen stream is in a stroke, the Compose pointer for the same contact is ignored; (4) test with an ImageComposeScene render of a packet-driven ramp (rising widths) and a suite for the coordinate mapping, and verify live on the Huion: a barely-touching stroke must land. Docs: docs/desktop-workstation.md (The tablet on Windows), README's desktop paragraph."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1250
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false

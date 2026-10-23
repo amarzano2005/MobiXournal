@@ -57,9 +57,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 panMode = state.panMode,
                 tool = state.tools.current,
                 ink = state.ink,
-                // The pen's own stream, when the window has Windows Ink (`desktop/TabletInk.kt`); null
-                // leaves the canvas on the Compose pointer it always had.
-                pen = tablet?.ink,
+                // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
+                // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
+                pen = tablet?.pen,
                 // Which wheel turned: the dial's notches arrive from the tablet's own HID device, so
                 // they zoom at the cursor while the mouse's wheel keeps scrolling.
                 dialWheel = { tablet?.dialWheelRecently() == true },

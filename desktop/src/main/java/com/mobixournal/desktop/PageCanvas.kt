@@ -67,10 +67,11 @@ internal fun PageCanvas(
     ink: DesktopInk = DesktopInk(),
     onEdited: (Int) -> Unit = {},
     /**
-     * The window's Windows Ink reader, when it has one: the pen's pressure, tilt and eraser end are
-     * folded into the pointer events this canvas already receives, so a stroke is still one stroke.
+     * The window's pen stream, when it has one — Wintab's packets or Windows Ink's samples: the pen's
+     * pressure, tilt and eraser end are folded into the pointer events this canvas already receives, so
+     * a stroke is still one stroke.
      */
-    pen: TabletInk? = null,
+    pen: PenContactStream? = null,
     /**
      * True when the wheel notch Compose is delivering right now came from the tablet's **dial** rather
      * than the mouse. Windows sends both as `WM_MOUSEWHEEL` with the same ±120 delta and no modifier,

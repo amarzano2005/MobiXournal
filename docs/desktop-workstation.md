@@ -199,21 +199,28 @@ back over them. Saving, discarding or closing the tab deletes the snapshot; noth
   installer: `run` is the only entry point; `nativeDistributions` is configured but not wired into a release
   job.
 
-### The tablet on Windows: Windows Ink, and the dial
+### The tablet on Windows: Wintab, Windows Ink, and the dial
 
-Three readers sit beside Compose — `desktop/TabletInk.kt` (the pen), `desktop/TabletWheel.kt` (which wheel
-turned) and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by
-`DesktopTablet` from `DesktopApp` and closed with the window. None is a second input path: the canvas
-still takes Compose's pointer events, and what they add is the pen's reading for the event being handled
-and the dial's notch as a zoom.
+Four readers sit beside Compose — `desktop/TabletWintab.kt` (the pen's packet stream), `desktop/TabletInk.kt`
+(the same pen through Windows Ink, when a driver offers it), `desktop/TabletWheel.kt` (which wheel turned)
+and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by `DesktopTablet` from
+`DesktopApp` and closed with the window. None is a second input path: the canvas still takes Compose's
+pointer events, and what they add is the pen's reading for the event being handled and the dial's notch as
+a zoom. `DesktopTablet` asks **Wintab first**, then Windows Ink, and the status bar names whichever
+answered: `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`.
 
 **What was measured, not assumed** (`--probe-tablet`, `Main.kt`, writing `tablet-probe.csv`):
 
 - The pen reaches Compose as a **mouse** — `type=Mouse`, `pressure=1.0000`, no tilt — so no amount of
   Compose code can recover the pressure. AWT's pointer model has no pen in it.
-- **Wintab is not the answer on this tablet.** A context opened (172 bytes of `LOGCONTEXT`) and the driver
-  reported **no axes at all** — no pressure, no azimuth, no altitude, no twist — so the packets it handed
-  back carried nothing usable. That file was deleted rather than kept as a fallback that says it works.
+- **Wintab is the stream this machine actually has, at 400 packets a second.** `wintab32.dll` in
+  `System32` (the driver's own) declares a full set of axes: `x` 0…50800, `y` 0…31750, **pressure
+  0…16383** (fourteen bits) and an orientation triple at 0…3600 tenths of a degree. A context opened on a
+  real window at **400 packets/s** with `CXO_MESSAGES`, mask `0x15C2`. The earlier "Wintab has no axes at
+  all" reading was a **constants bug**, not a hardware fact: `wintab.h` puts `DVC_X` at **12** and
+  `DVC_NPRESSURE` at **15**, and the first probe asked for indices 1 and 7. That is also why Xournal++
+  draws this pen perfectly while this window did not — it reads this packet stream, not the desktop's
+  coalesced mouse moves.
 - The pen's real readings are in `WM_POINTER`: `TabletInk` subclasses the window procedure
   (`SetWindowLongPtrW`), reads `POINTER_PEN_INFO` through `GetPointerPenInfo` (pressure 0–1024, rotation
   0–359°, tiltX/tiltY −90…+90) and **passes every message on** with `CallWindowProcW`, so AWT behaves
@@ -224,11 +231,30 @@ and the dial's notch as a zoom.
   `System.nanoTime` since the message arrived.
 - **No `WM_POINTER` arrived on this machine at all**, with the pen down or hovering: every sample the
   probe wrote is a mouse message (`pointer,Move,…,1.0000,Mouse`), which is the same fact as the first
-  bullet seen from the other side — the driver is reporting the pen as a mouse, so Windows has no pointer
-  stream to send. The Ink reader is therefore **live but idle** here: it installs, sees the mouse
-  messages, finds no `PT_PEN`, and the status bar says `pen: mouse`. Pressure on this host is the
-  driver's Windows Ink mode, not the window's code; the day that mode is on, the same reader is what
-  carries the pressure into the stroke.
+  bullet seen from the other side — the driver reports the pen as a mouse to the pointer stack, so
+  Windows has no pointer stream to send. The Ink reader is therefore **live but idle** here: it installs,
+  sees the mouse messages, finds no `PT_PEN`. It is kept as the fallback for a driver that does report the
+  pointer stream, and it is what carries the pressure on such a host.
+- **The queue is read, not the message.** `WT_PACKET` arrives about **400 times a second**, and the two
+  arguments it carries gave this reader no usable serial (decoding them produced **zero** samples, while
+  the probe logged 2 122 of those messages): `WTPacketsGet` by the context handle is what Wintab
+  documents for a high-rate device, and it cannot lose a packet to a coalesced message. Two strokes on
+  the probe then decoded 328 samples with `raw` pressure from **106 to 15 156** of 16 383 and a tilt that
+  varied with the hold — a full ramp, which is what `PressureCurve` expects.
+- **One window procedure, two readers.** `TabletWintab` opens its context on the same window and Wintab
+  delivers packets as `WT_PACKET` (0x7FF0) to whoever subclassed it, so `TabletInk`'s procedure hands
+  every message on to a hook instead of a second procedure fighting it for the window. Each packet is
+  decoded in the mask's own bit order (status, buttons, x, y, pressure, orientation) into the shared
+  `PenContact` — fourteen-bit pressure over the driver's declared range, altitude measured up from the
+  glass (900 = upright) into a tilt, azimuth and twist in radians, `TPS_INVERT` for the eraser end — and
+  kept for 120 ms, the same freshness rule the Ink reader uses. A lift clears it, so a mouse stroke that
+  follows never wears a stale pressure; a hovering pen reports packets with no tip and is not a contact.
+  Both readers implement `PenContactStream`, and `PageInkGesture` folds whichever answered into the
+  Compose pointer, so a stroke is one stroke and its width is the shared filter's answer either way.
+- **What that leaves open, measured:** a stroke still *begins* from the pointer event Windows' mouse
+  emulation delivers, so a very light touch can be dropped before a stroke exists (the packets carry the
+  pressure, not the decision to start) — `desktop-tablet-stroke-from-packets` is the task that moves the
+  start, the samples and the lift onto the packet stream itself, which is how Xournal++ draws.
 - **The dial is a wheel, not a pointer.** Turning it sends `WM_MOUSEWHEEL` with `delta=+120` — the mouse
   wheel's own message, its own unit, no modifier, and `GetMessageExtraInfo` empty (`extra=-`), so the
   extra-info signature does not name the device either. The WinRT `RadialController` route therefore has
@@ -263,7 +289,7 @@ be — each one is a comment at the slot it fixed:
    and claiming `IdentityUnmarshal` sent COM into slot 6 of the table, which holds `Invoke`.
 
 The live run registers both events and reports it: `dial: rotation hr=0x00000000, button hr=0x00000000`.
-The window says what it has in the status bar — `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
+The window says what it has in the status bar — `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`, plus `dial` while a
 controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can
 tell" can never be confused. With no device, both readers answer null after logging the step that said
 so, and the window keeps the wheel, the keyboard and the mouse.

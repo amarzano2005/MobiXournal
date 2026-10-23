@@ -23,8 +23,8 @@ one per event — with `MotionEventPointer.kt` reading the platform vocabulary, 
 `desktop/PageCanvasInput.kt` (`PageInkGesture`). What each platform actually fills is *measured*, not
 assumed, so the router treats every field as optional: Android fills the tool type, pressure (per
 historical sample too), tilt/azimuth and the barrel; the window's Compose pointer fills the tool type,
-pressure and its buttons but **no tilt or azimuth at all** (Compose 1.7.3 has no such axis on a
-`PointerInputChange`), so it folds in `desktop/TabletInk.kt`'s `WM_POINTER` readings for the same contact.
+pressure and its buttons but **no tilt or azimuth** (Compose 1.7.3 has no such axis), so it folds in the
+pen's own reading for the same contact — `TabletWintab.kt`'s packets, `TabletInk.kt`'s samples otherwise.
 
 What it decides: a press is held until it crosses the tap slop, so a **tap does not draw** (the tablet's
 "a tap leaves a dot" is one flag, `startOnDown`, and the tablet sets it); a **second finger** ends the

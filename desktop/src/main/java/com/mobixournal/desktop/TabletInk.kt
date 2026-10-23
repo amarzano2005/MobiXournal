@@ -253,7 +253,15 @@ internal class TabletInk private constructor(
     private val onEvent: ((String) -> Unit)? = null,
     /** Receives the `lParam` of every `WM_INPUT`, which is where a raw wheel report lives. */
     private val onRawInput: ((Long) -> Unit)? = null,
-) : InkWindowProcedure, AutoCloseable {
+    /**
+     * Receives every other message this procedure sees, as `(message, wParam, lParam)`.
+     *
+     * One window procedure, two readers: `TabletWintab` opens its context on the same window, and
+     * Wintab delivers packets as `WT_PACKET` messages (0x7FF0) to whoever subclassed it. A reader that
+     * installed a second procedure would be fighting this one for the window.
+     */
+    private val onWindowMessage: ((Int, Long, Long) -> Unit)? = null,
+) : InkWindowProcedure, PenContactStream, AutoCloseable {
 
     /** The procedure this one was installed in front of. */
     private var previous: Pointer? = null
@@ -281,6 +289,7 @@ internal class TabletInk private constructor(
     }
 
     private fun observe(message: Int, wParam: Long, lParam: Long) {
+        runCatching { onWindowMessage?.invoke(message, wParam, lParam) }
         if (message == RawInputUser32.WM_INPUT) {
             // The raw report names the device; `TabletWheel` is the only thing that needs it.
             runCatching { onRawInput?.invoke(lParam) }
@@ -334,7 +343,10 @@ internal class TabletInk private constructor(
      * handled. [maxAgeMs] is generous enough for a slow frame and short enough that a lifted pen never
      * colours a mouse stroke.
      */
-    fun contact(maxAgeMs: Long = CONTACT_MS): PenContact? {
+    override fun contact(): PenContact? = contactWithin(CONTACT_MS)
+
+    /** The contact, if it is younger than [maxAgeMs] — the freshness rule, on its own. */
+    fun contactWithin(maxAgeMs: Long): PenContact? {
         val contact = latest ?: return null
         return if (contact.fresh(System.nanoTime(), maxAgeMs)) contact else null
     }
@@ -362,6 +374,7 @@ internal class TabletInk private constructor(
             onSample: ((PenContact) -> Unit)? = null,
             onEvent: ((String) -> Unit)? = null,
             onRawInput: ((Long) -> Unit)? = null,
+            onWindowMessage: ((Int, Long, Long) -> Unit)? = null,
         ): TabletInk? {
             val user32 = runCatching {
                 Native.load("user32", InkUser32::class.java) as InkUser32
@@ -374,7 +387,7 @@ internal class TabletInk private constructor(
                 log("ink: the window has no handle yet")
                 return null
             }
-            val ink = TabletInk(user32, handle, onSample, onEvent, onRawInput)
+            val ink = TabletInk(user32, handle, onSample, onEvent, onRawInput, onWindowMessage)
             val installed = user32.SetWindowLongPtrW(
                 handle,
                 InkUser32.GWLP_WNDPROC,

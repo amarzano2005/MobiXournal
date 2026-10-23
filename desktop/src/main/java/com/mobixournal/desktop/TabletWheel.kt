@@ -194,6 +194,9 @@ internal class TabletWheel private constructor(
                 usUsagePage = RawInputUser32.HID_USAGE_PAGE_GENERIC
                 usUsage = RawInputUser32.HID_USAGE_GENERIC_MOUSE
                 dwFlags = RawInputUser32.RIDEV_REMOVE
+                // JNA writes a Structure's fields to native memory only when asked: passing the
+                // pointer without this hands Windows sixteen zero bytes, which is `error 87`.
+                write()
             }
             library.RegisterRawInputDevices(device.pointer, 1, device.size())
         }
@@ -229,6 +232,7 @@ internal class TabletWheel private constructor(
                 usUsage = RawInputUser32.HID_USAGE_GENERIC_MOUSE
                 dwFlags = RawInputUser32.RIDEV_INPUTSINK
                 hwndTarget = hwnd
+                write()
             }
             val registered = library.RegisterRawInputDevices(device.pointer, 1, device.size())
             if (!registered) {

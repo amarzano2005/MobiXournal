@@ -122,12 +122,12 @@ put it again) — and `Ctrl + S` writes it back to the file you opened
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.
 
-The graphics tablet is read directly where Windows offers its own stream, so the pen behaves like a pen:
-strokes taper with the pressure you actually apply, the pen's tilt and twist travel with the ink, and
-turning the pen round to its eraser end rubs out. The status bar says which stream the window has —
-`pen: Windows Ink` or `pen: mouse` — and on `pen: mouse` the pen draws at the tool's width, because the
-driver is reporting it as a mouse and the window cannot reach past the driver. Setting the pen to
-**Windows Ink** in the tablet driver's own settings is what turns the richer stream on.
+The graphics tablet is read directly, through the tablet driver's own packet stream (Wintab) rather than
+the desktop's mouse pointer, so the pen behaves like a pen: strokes taper with the pressure you actually
+apply, the pen's tilt and the way you hold it travel with the ink, and turning the pen round to its eraser
+end rubs out. The status bar says which stream the window has — `pen: Wintab`, `pen: Windows Ink` or
+`pen: mouse` — and on `pen: mouse` the pen draws at the tool's width, because nothing richer reached the
+window.
 
 Turn the tablet's **rotary dial** to zoom — clockwise in, anticlockwise out, at the cursor, exactly as
 `Ctrl` and the wheel do — while the mouse's wheel keeps scrolling the page: the window tells the two

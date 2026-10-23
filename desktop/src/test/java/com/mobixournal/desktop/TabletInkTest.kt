@@ -108,6 +108,7 @@ class TabletInkTest {
     @Test
     fun `the status bar names what the pen really is`() {
         assertEquals("pen: mouse", penLabel(PenSource.MOUSE, dial = false))
+        assertEquals("pen: Wintab", penLabel(PenSource.WINTAB, dial = false))
         assertEquals("pen: Windows Ink", penLabel(PenSource.INK, dial = false))
         assertEquals("pen: Windows Ink · dial", penLabel(PenSource.INK, dial = true))
     }

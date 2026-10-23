@@ -48,7 +48,7 @@ internal suspend fun PointerInputScope.pageGestures(
     viewW: Float,
     viewH: Float,
     draft: SnapshotStateList<InkSample>,
-    pen: TabletInk? = null,
+    pen: PenContactStream? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
@@ -157,8 +157,8 @@ internal class PageInkGesture(
     private val density: Float,
     private val draft: SnapshotStateList<InkSample>,
     private val onEdited: (Int) -> Unit,
-    /** Windows Ink's pen reading, when the window has one — see [inkPointer]. */
-    private val pen: TabletInk? = null,
+    /** The pen's own reading, when the window has a stream — see [inkPointer]. */
+    private val pen: PenContactStream? = null,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
