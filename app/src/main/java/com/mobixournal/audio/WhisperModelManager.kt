@@ -43,6 +43,9 @@ object WhisperModelManager {
     private const val HF_TINY_BASE_URL = "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny/resolve/main"
     private const val HF_BASE_BASE_URL = "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base/resolve/main"
 
+    private const val PREFS = "whisper_models"
+    private const val KEY_SELECTED = "selected_model"
+
     /**
      * Directory containing local Whisper model weights.
      */
@@ -75,13 +78,36 @@ object WhisperModelManager {
             tokens.isFile && tokens.length() > 100_000L
     }
 
+    /** The model [id] names, or [WhisperModelType.TINY] for anything unrecognised. */
+    fun fromId(id: String?): WhisperModelType =
+        WhisperModelType.entries.firstOrNull { it.id == id } ?: WhisperModelType.TINY
+
     /**
-     * Checks if any Whisper model is installed and ready to use, preferring Tiny.
+     * The model the user chose in the audio pop-up, or Tiny when they never chose one.
+     *
+     * It lives beside the downloads rather than in `AppSettings` because it is a statement about this
+     * device's downloaded weights: pointing at a model that is not here would transcribe with a fallback
+     * the choice never named.
      */
-    fun getAvailableModel(context: Context): WhisperModelType? {
-        if (isModelInstalled(context, WhisperModelType.TINY)) return WhisperModelType.TINY
-        if (isModelInstalled(context, WhisperModelType.BASE)) return WhisperModelType.BASE
-        return null
+    fun selectedModel(context: Context): WhisperModelType = fromId(
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SELECTED, null),
+    )
+
+    /** Remember the user's choice; what runs next depends on the weights being present ([downloadModel]). */
+    fun selectModel(context: Context, modelType: WhisperModelType) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_SELECTED, modelType.id)
+            .apply()
+    }
+
+    /**
+     * A model that can transcribe right now: [preferred] when its weights are installed, otherwise any
+     * installed model, otherwise null (which sends the caller to the platform recogniser).
+     */
+    fun getAvailableModel(context: Context, preferred: WhisperModelType? = null): WhisperModelType? {
+        if (preferred != null && isModelInstalled(context, preferred)) return preferred
+        return WhisperModelType.entries.firstOrNull { isModelInstalled(context, it) }
     }
 
     /**

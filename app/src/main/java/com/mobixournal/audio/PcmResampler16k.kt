@@ -1,5 +1,10 @@
 package com.mobixournal.audio
 
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
+
 /**
  * Turns a 16-bit PCM stream into **16 kHz mono**, a chunk at a time.
  *
@@ -10,9 +15,15 @@ package com.mobixournal.audio
  * the engine needs anyway) plus one read chunk, so a recording costs what it will be used for and no
  * more.
  *
- * The mapping is the one the old whole-array resampler used — output `i` is source sample
- * `i * srcRate / dstRate` — applied incrementally, so a stream produces exactly the bytes a whole-array
- * pass would have produced. Channels are averaged ([write] reads interleaved frames).
+ * **Decimation is filtered.** Dropping from 44.1 kHz to 16 kHz by keeping every third sample folds
+ * everything between 8 kHz and 22 kHz back into the speech band, so hiss, keyboard clicks and
+ * sibilance land as noise the recogniser then has to guess through. Every source sample therefore
+ * passes through a fourth-order Butterworth low-pass ([LowPass], 7 kHz) *before* it can be picked, and
+ * the pass is causal — it needs no look-ahead — so a stream still produces exactly the bytes a
+ * whole-array pass would have produced. The first sample seeds the filter's state with itself, which
+ * keeps DC at unity and stops a startup transient from adding a click to every recording.
+ *
+ * Channels are averaged ([write] reads interleaved frames).
  */
 internal class PcmResampler16k(
     private val sourceRate: Int,
@@ -50,9 +61,15 @@ internal class PcmResampler16k(
     /** The next output frame still to be produced. */
     private var outFrame = 0L
 
+    /** The anti-alias filter, absent when nothing is being thrown away (no decimation). */
+    private val lowPass: LowPass? = if (sourceRate > targetRate) LowPass(sourceRate, CUTOFF_HZ) else null
+
     /**
      * Consume [count] bytes of interleaved 16-bit PCM, starting at [offset] in [pcm], and append what
      * they produce. Reads have to end on a frame boundary — PCM from a decoder or a WAV does.
+     *
+     * Every source frame is filtered, and output frame `n` is taken from source frame
+     * `n * sourceRate / targetRate`, which is the mapping a whole-array pass uses.
      */
     fun write(pcm: ByteArray, offset: Int, count: Int) {
         if (count <= 0) return
@@ -60,14 +77,16 @@ internal class PcmResampler16k(
         val available = count / frameBytes
         if (available == 0) return
         val start = sourceFrames
-        sourceFrames += available
-        while (true) {
-            val source = if (sourceRate == targetRate) outFrame else outFrame * sourceRate / targetRate
-            if (source >= sourceFrames) break
-            val local = (source - start).toInt()
-            emit(mix(pcm, offset + local * frameBytes, frameBytes))
-            outFrame++
+        for (frame in 0 until available) {
+            val index = start + frame
+            val sample = mix(pcm, offset + frame * frameBytes, frameBytes)
+            val value = lowPass?.process(sample) ?: sample
+            while (index == outFrame * sourceRate / targetRate) {
+                emit(value)
+                outFrame++
+            }
         }
+        sourceFrames += available
     }
 
     /** The 16 kHz mono bytes written so far. */
@@ -134,10 +153,90 @@ internal class PcmResampler16k(
         const val TARGET_RATE = 16_000
         const val BYTES_PER_SAMPLE = 2
 
+        /**
+         * Where the anti-alias filter turns over: just under the 7 kHz that still carries the
+         * consonant detail speech recognition needs, and low enough that the band which would fold
+         * back into it is well down.
+         */
+        const val CUTOFF_HZ = 7_000.0
+
         /** The growth step for a stream whose length nobody declared. */
         private const val CHUNK_BYTES = 1024 * 1024
 
         /** A sanity ceiling for a declared length, so a corrupt header cannot ask for terabytes. */
         private const val MAX_BYTES = 512L * 1024 * 1024
+    }
+}
+
+/**
+ * A fourth-order Butterworth low-pass, run at the recording's own rate: two biquads in series.
+ *
+ * A causal filter, deliberately — a speech recogniser does not care about phase, and needing no
+ * samples from the future is what keeps a chunked pass identical to a whole-array one.
+ */
+private class LowPass(rate: Int, cutoffHz: Double) {
+
+    private val first = Biquad(rate, cutoffHz, FIRST_Q)
+    private val second = Biquad(rate, cutoffHz, SECOND_Q)
+    private var seeded = false
+
+    /** Filter one source-rate sample; the first seeds both stages so DC passes at unity. */
+    fun process(sample: Int): Int {
+        if (!seeded) {
+            first.seed(sample.toDouble())
+            second.seed(sample.toDouble())
+            seeded = true
+        }
+        return second.process(first.process(sample.toDouble())).roundToInt()
+    }
+
+    private companion object {
+        /** The two Q values of a 4th-order Butterworth response. */
+        const val FIRST_Q = 0.54119610
+        const val SECOND_Q = 1.30656296
+    }
+}
+
+/** One biquad section (Direct Form I) with the RBJ cookbook low-pass coefficients. */
+private class Biquad(rate: Int, cutoffHz: Double, q: Double) {
+
+    private val b0: Double
+    private val b1: Double
+    private val b2: Double
+    private val a1: Double
+    private val a2: Double
+
+    private var x1 = 0.0
+    private var x2 = 0.0
+    private var y1 = 0.0
+    private var y2 = 0.0
+
+    init {
+        val w0 = 2.0 * PI * cutoffHz / rate
+        val alpha = sin(w0) / (2.0 * q)
+        val cosW0 = cos(w0)
+        val a0 = 1.0 + alpha
+        b0 = ((1.0 - cosW0) / 2.0) / a0
+        b1 = (1.0 - cosW0) / a0
+        b2 = b0
+        a1 = (-2.0 * cosW0) / a0
+        a2 = (1.0 - alpha) / a0
+    }
+
+    /** Start from a steady state at [value], so a constant input comes out unchanged from sample one. */
+    fun seed(value: Double) {
+        x1 = value
+        x2 = value
+        y1 = value
+        y2 = value
+    }
+
+    fun process(x: Double): Double {
+        val y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+        x2 = x1
+        x1 = x
+        y2 = y1
+        y1 = y
+        return y
     }
 }

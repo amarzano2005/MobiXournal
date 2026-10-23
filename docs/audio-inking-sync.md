@@ -53,7 +53,12 @@ Rather than relying on vulnerable loose sidecars in user folders:
   reason (`io/BundledAudio.kt` takes an `InputStream`).
 - **Transcription streams too** (`audio/AudioPcmExtractor.kt` → `audio/PcmResampler16k.kt`): the WAV or
   the decoded Opus/AAC is resampled to 16 kHz mono as it is read, keeping only the output the engine
-  needs, instead of loading the recording and then resampling it into a second array.
+  needs, instead of loading the recording and then resampling it into a second array. The decimation is
+  **filtered**: a fourth-order low-pass at 7 kHz runs on every source sample before one can be picked,
+  because taking every third sample of a 44.1 kHz microphone folds 8–22 kHz — hiss, clicks, sibilance —
+  back into the band the recogniser reads as speech. The filter is causal, so a chunked pass still
+  produces exactly what a whole-array pass does, and it seeds its state from the first sample so DC
+  passes at unity from the start.
 - The audio is bound to the document and cannot be detached when sharing or syncing; a `.xopp`
   exported from it is the one shape that still needs a sidecar file on disk.
 - **Why a `.mobix` can still be large.** The codec follows the *document's* format at the moment
@@ -94,13 +99,23 @@ Rather than relying on vulnerable loose sidecars in user folders:
   required to provide — writing `<same timestamp>.m4a` in the cache, which is the file the media store
   receives. Nothing is ever lost to the conversion: a recording already in M4A is copied as it is, and a
   transcode that fails (unsupported source stream, no encoder, a busy codec) exports the original bytes
-  under their own name and media type instead. The export runs on a background thread, since re-encoding
-  a lecture takes longer than a tap.
+  under their own name and media type instead. It runs on a background thread, and only for a recording
+  the tap did not already encode.
+- **What the closing process did not finish resumes next launch (`audio/AudioPendingWork.kt`).** The
+  export and the deferred transcription each leave an entry in `audio-pending.txt` when they start and
+  remove it when they finish. A lecture that ends with the app being closed therefore has its work
+  written down before it begins: `resumePendingAudioWork` copies the pre-encoded `.m4a` out on the next
+  launch, and restarts a transcription whose service was killed — which itself resumes from the sidecar
+  it already wrote, so nothing is transcribed twice. A job whose recording and pre-encoded copy are both
+  gone is dropped instead of being retried forever.
 
 ### On-device Speech-to-Text and stroke synchronization
 - **Temporal transcript segments (`TranscriptionSegment`)**: Stores recognized speech with start and end timestamps
   in milliseconds (`startTimeMs`, `endTimeMs`, `text`, `confidence`), serialized in `.mobix` via
-  `TranscriptionCodec` into `transcript.json`.
+  `TranscriptionCodec` into `transcript.json`. What a save writes is the transcript in memory, or — when
+  the lecture was saved before the transcription finished — the sidecar already on disk
+  (`audio/<name>.transcript.json`), so closing the app right after saving no longer drops it: without that
+  fallback the file would carry no transcript, and the next open would have nothing to put back in memory.
 - **Where its progress is shown**: only inside the Audio pop-up (draft status line with a spinner) and
   the mini-player's transcript section. The recording capsule in the top bar keeps showing play/pause
   throughout — a background job must not turn a control into a status display that the user then cannot
@@ -110,18 +125,33 @@ Rather than relying on vulnerable loose sidecars in user folders:
   without network requests or microphone timeouts. The first
   transcription downloads `whisper-tiny` automatically (with visible progress), so transcription needs no
   manual model setup; when no model is present the service falls back to the platform recognizer.
+- **The model is a choice (`WhisperModelManager.selectedModel`)**: the audio pop-up names the model in use
+  and offers Tiny (fast) and Base (more accurate); picking one the device does not hold downloads it with
+  a visible progress notification, and the choice lives beside the weights rather than in the settings
+  backup. Live and post-stop transcription both use the chosen model when its weights are present and fall
+  back to whatever else is installed — before this, `getAvailableModel` preferred Tiny even when Base was
+  installed, and the first-run download always fetched Tiny whatever the user had picked.
+- **Segments follow the words, not the clock (`segmentsFromTokens`)**: each decode is asked for token
+  timestamps (`OfflineWhisperModelConfig.enableTokenTimestamps`), and every token is filed under the VAD
+  phrase whose span contains the moment it was said. Asking for them costs the engine a word-alignment
+  pass on top of the decode — the one thing this pipeline change adds whose cost has not been measured on a
+  device, and the reason the live job's bounded span queue matters: a slower decode falls behind and the
+  post-stop run finishes the tail, and the transcript stays correct either way because a decode that
+  reports no timing takes the proportional path. `distributeText` stays as the fallback for a model or
+  stream that reports no usable timing. A line therefore reads like the sentence actually spoken during
+  it, and a tap on that line lands at the second the words were said.
 - **It decodes windows, not phrases (`TranscriptionWindows`)**: Whisper's encoder always works on a 30-second mel
   window and pads shorter audio up to it, so decoding one 2–6 s VAD phrase costs what decoding 30 s costs. The
   phrases are therefore grouped into consecutive windows of 28 s (`WINDOW_MS`, cut only between phrases at a
   silence) and each window is one decode: on ten minutes of speech the VAD produces ~230 phrases and the grouping
   ~24 windows, i.e. 9–10× fewer padded encoder passes for the same bytes and the same model (pinned by
-  `TranscriptionWindowsTest`). The recognised text is distributed back over the phrases the window covers by their
-  share of it (`distributeText`), so segments keep the VAD's real timestamps, stay chronological, none is empty and
-  every word is kept — Whisper reports no per-phrase boundary here, so a word can land one phrase early or late when
-  speech speed changes sharply inside a window. Windows carry their audio lazily (`pcm()`): grouping an hour of
+  `TranscriptionWindowsTest`). The recognised text is filed back over the phrases the window covers by the words' own timings
+  (`segmentsFromTokens`, with `distributeText` as the fallback), so segments keep the VAD's real timestamps, stay
+  chronological, none is empty and every word is kept — and a word lands in the phrase it was spoken in, not in the
+  share of the window that phrase happens to fill. Windows carry their audio lazily (`pcm()`): grouping an hour of
   speech must not hold a second copy of the recording. Inference uses the device's cores, capped at six
   (`WhisperOfflineTranscriber.inferenceThreads`), where it used to be a literal 4.
-- **It runs during the recording too (`LiveTranscription`)**: while the microphone is open the recorder's PCM goes into a live job (`AudioSession.onPcmData` → `LiveResampler16k` → `LiveSpanCutter` → one worker thread). The stream is resampled to 16 kHz as it arrives and cut into **spans** at silences (≥6 s, ≤28 s, never inside a word unless the maximum forces it); each span then runs the same pipeline the file path runs (VAD phrases → windows → Whisper) and the transcript file is rewritten after every span. The post-stop job **resumes from the last segment it finds there**, so nothing is transcribed twice and a session that keeps up leaves only its final seconds for Stop. The queue holds four spans and then the live job gives up on its own: inference that falls behind the microphone must not take the machine from the app being written in, and whatever it did not reach is exactly what the post-stop path already does. It runs in the app's process, kept alive and awake by the recording foreground service, so a screen that is off changes nothing. The honest limit: this moves the wait into the recording, it does not make the engine faster — if inference is slower than real time, the tail is simply longer and the file path finishes it.
+- **It runs during the recording too (`LiveTranscription`)**: while the microphone is open the recorder's PCM goes into a live job (`AudioSession.addPcmListener` → `LiveResampler16k` → `LiveSpanCutter` → one worker thread). The stream is resampled to 16 kHz as it arrives and cut into **spans** at silences (≥6 s, ≤28 s, never inside a word unless the maximum forces it); each span then runs the same pipeline the file path runs (VAD phrases → windows → Whisper) and the transcript file is rewritten after every span. The post-stop job **resumes from the last segment it finds there**, so nothing is transcribed twice and a session that keeps up leaves only its final seconds for Stop. The queue holds four spans and then the live job gives up on its own: inference that falls behind the microphone must not take the machine from the app being written in, and whatever it did not reach is exactly what the post-stop path already does. It runs in the app's process, kept alive and awake by the recording foreground service, so a screen that is off changes nothing. The honest limit: this moves the wait into the recording, it does not make the engine faster — if inference is slower than real time, the tail is simply longer and the file path finishes it.
 - **Background execution (`AudioTranscriptionService`)**: Android foreground service (`FOREGROUND_SERVICE_DATA_SYNC`)
   holding a partial wake lock with ongoing notification progress bar. Allows hour-long lectures to finish processing
   even when the device screen is locked or another application is active. Progress reports windows, and the final

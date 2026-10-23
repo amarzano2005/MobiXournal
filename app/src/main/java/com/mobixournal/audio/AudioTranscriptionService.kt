@@ -56,6 +56,7 @@ class AudioTranscriptionService : Service() {
                     return START_NOT_STICKY
                 }
                 val lang = intent.getStringExtra(EXTRA_LANGUAGE) ?: "it-IT"
+                val model = WhisperModelManager.fromId(intent.getStringExtra(EXTRA_MODEL))
                 val file = File(filePath)
                 if (!file.isFile) {
                     stopSelf()
@@ -63,13 +64,13 @@ class AudioTranscriptionService : Service() {
                 }
                 currentFile = file
                 isCancelled = false
-                startForegroundTask(file, lang)
+                startForegroundTask(file, lang, model)
             }
         }
         return START_NOT_STICKY
     }
 
-    private fun startForegroundTask(file: File, lang: String) {
+    private fun startForegroundTask(file: File, lang: String, model: WhisperModelType) {
         acquireWakeLock()
         isRunning = true
         val notification = buildProgressNotification("Avvio analisi audio...", 0, 100)
@@ -90,11 +91,11 @@ class AudioTranscriptionService : Service() {
         }
 
         serviceScope.launch {
-            processTranscription(file, lang)
+            processTranscription(file, lang, model)
         }
     }
 
-    private suspend fun processTranscription(file: File, lang: String) {
+    private suspend fun processTranscription(file: File, lang: String, model: WhisperModelType) {
         val startedMs = System.currentTimeMillis()
         // What the recording's own live job already finished, if it ran (LiveTranscription). Its last
         // segment is where this one starts: a session that kept up with the microphone leaves only
@@ -116,7 +117,7 @@ class AudioTranscriptionService : Service() {
         val segments = when {
             isCancelled -> emptyList()
             chunks.isEmpty() -> emptyList()
-            else -> transcribeChunks(chunks, lang)
+            else -> transcribeChunks(chunks, lang, model)
         }
         if (isCancelled) {
             finishWithResult(file, null, "Transcription cancelled")
@@ -142,8 +143,13 @@ class AudioTranscriptionService : Service() {
         finishWithResult(file, transcript, completed(all.size, startedMs))
     }
 
-    private suspend fun transcribeChunks(chunks: List<AudioChunk>, lang: String): List<TranscriptionSegment> {
-        val model = WhisperModelManager.getAvailableModel(this) ?: return transcribeWithPlatformRecognizer(chunks, lang)
+    private suspend fun transcribeChunks(
+        chunks: List<AudioChunk>,
+        lang: String,
+        preferred: WhisperModelType,
+    ): List<TranscriptionSegment> {
+        val model = WhisperModelManager.getAvailableModel(this, preferred)
+            ?: return transcribeWithPlatformRecognizer(chunks, lang)
         return transcribeWithWhisper(model, chunks, lang)
     }
 
@@ -346,6 +352,7 @@ class AudioTranscriptionService : Service() {
         const val ACTION_CANCEL = "com.mobixournal.action.CANCEL_TRANSCRIPTION"
         const val EXTRA_FILE_PATH = "extra_file_path"
         const val EXTRA_LANGUAGE = "extra_language"
+        const val EXTRA_MODEL = "extra_model"
 
         @Volatile
         var isRunning: Boolean = false
@@ -354,11 +361,12 @@ class AudioTranscriptionService : Service() {
         var onProgressUpdated: ((status: String, current: Int, total: Int) -> Unit)? = null
         var onTranscriptionCompleted: ((file: File, transcript: AudioTranscription?, statusMsg: String) -> Unit)? = null
 
-        fun start(context: Context, file: File, language: String) {
+        fun start(context: Context, file: File, language: String, model: WhisperModelType) {
             val intent = Intent(context, AudioTranscriptionService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_FILE_PATH, file.absolutePath)
                 putExtra(EXTRA_LANGUAGE, language)
+                putExtra(EXTRA_MODEL, model.id)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)

@@ -48,6 +48,9 @@ class WhisperOfflineTranscriber(
                 decoder = decoder.absolutePath,
                 language = langCode,
                 task = "transcribe",
+                // When each word was spoken, not just the text of the window: the transcript's
+                // segments are filed by these times ([TranscriptionWindows.segmentsFromTokens]).
+                enableTokenTimestamps = true,
             )
 
             val modelConfig = OfflineModelConfig().apply {
@@ -68,11 +71,14 @@ class WhisperOfflineTranscriber(
     }
 
     /**
-     * Transcribes 16 kHz 16-bit mono PCM [pcmBytes] into text.
+     * Transcribes 16 kHz 16-bit mono PCM [pcmBytes] into text plus when each token was spoken.
+     *
+     * The timings are seconds from the first sample of [pcmBytes]; null when the recogniser is not
+     * open or the audio is empty.
      */
-    fun transcribePcm(pcmBytes: ByteArray, sampleRate: Int = 16000): String {
-        val rec = recognizer ?: return ""
-        if (pcmBytes.size < 2) return ""
+    fun transcribeDecode(pcmBytes: ByteArray, sampleRate: Int = 16000): WhisperDecode? {
+        val rec = recognizer ?: return null
+        if (pcmBytes.size < 2) return null
 
         val samples = FloatArray(pcmBytes.size / 2)
         for (i in samples.indices) {
@@ -87,7 +93,7 @@ class WhisperOfflineTranscriber(
             stream.acceptWaveform(samples, sampleRate)
             rec.decode(stream)
             val result = rec.getResult(stream)
-            result.text.trim()
+            WhisperDecode(result.text.trim(), result.tokens, result.timestamps)
         } finally {
             stream.release()
         }
@@ -111,8 +117,13 @@ class WhisperOfflineTranscriber(
         for ((index, window) in windows.withIndex()) {
             if (isCancelled()) break
             onProgress(index + 1, total)
-            val text = transcribePcm(window.pcm(), 16000)
-            if (text.isNotBlank()) results.addAll(TranscriptionWindows.distributeText(window, text))
+            val decoded = transcribeDecode(window.pcm(), 16_000) ?: continue
+            if (decoded.text.isBlank()) continue
+            // The words go to the phrase they were spoken in; a model that reports no timing (or a
+            // stream whose timings do not line up) falls back to the proportional split.
+            val segments = TranscriptionWindows.segmentsFromTokens(window, decoded.tokens, decoded.timestampsSec)
+                ?: TranscriptionWindows.distributeText(window, decoded.text)
+            results.addAll(segments)
         }
         return results
     }
@@ -137,3 +148,15 @@ class WhisperOfflineTranscriber(
             cores.coerceIn(2, MAX_THREADS)
     }
 }
+
+/**
+ * One decode: the text Whisper produced, the pieces it is made of, and when each piece was spoken.
+ *
+ * [timestampsSec] are seconds from the first sample of the audio that was decoded, which is what lets
+ * [TranscriptionWindows.segmentsFromTokens] file every word under the phrase it belongs to.
+ */
+class WhisperDecode(
+    val text: String,
+    val tokens: Array<out String>,
+    val timestampsSec: FloatArray,
+)

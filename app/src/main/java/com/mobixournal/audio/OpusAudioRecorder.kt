@@ -103,6 +103,8 @@ class OpusAudioRecorder {
         if (minBuffer <= 0) return null
         val bufferBytes = minBuffer * BUFFER_MULTIPLIER
         val sources = intArrayOf(
+            // Speech-tuned source first (gain + noise suppression), plain microphone as the fallback.
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
             MediaRecorder.AudioSource.MIC,
             MediaRecorder.AudioSource.DEFAULT,
         )

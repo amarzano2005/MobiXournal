@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mobixournal.audio.LanguagePackStatus
 import com.mobixournal.audio.SUPPORTED_TRANSCRIPTION_LANGUAGES
+import com.mobixournal.audio.WhisperModelType
+import com.mobixournal.audio.resolveTranscriptionLanguageTag
 import com.mobixournal.audio.checkSpeechLanguagePack
 import com.mobixournal.audio.triggerSpeechLanguageDownload
 import com.mobixournal.ui.theme.AlertOrange
@@ -251,6 +253,7 @@ private fun PlayCapsuleButton(
 @Composable
 private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) {
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showModelDialog by remember { mutableStateOf(false) }
 
     MenuHeading("Audio")
     DropdownMenuItem(
@@ -302,6 +305,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
     AudioCapsuleTranscriptionItems(
         audio = audio,
         onShowLanguageDialog = { showLanguageDialog = true },
+        onShowModelDialog = { showModelDialog = true },
     )
     HorizontalDivider()
     DropdownMenuItem(
@@ -330,12 +334,25 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
             },
         )
     }
+
+    DialogPresence(showModelDialog) {
+        TranscriptionModelDialog(
+            currentModel = audio.transcriptionModel,
+            installedModels = audio.installedModels,
+            onModelSelected = { audio.onModelChange(it) },
+            onDismiss = {
+                showModelDialog = false
+                onDismiss()
+            },
+        )
+    }
 }
 
 @Composable
 private fun AudioCapsuleTranscriptionItems(
     audio: AudioUiState,
     onShowLanguageDialog: () -> Unit,
+    onShowModelDialog: () -> Unit,
 ) {
     // The transcription's progress is reported **here**, inside the pop-up, and nowhere else — a
     // background job the user asked for from this menu should be watchable by reopening it, not by
@@ -357,13 +374,10 @@ private fun AudioCapsuleTranscriptionItems(
     }
     DropdownMenuItem(
         text = {
-            val currentLangName = SUPPORTED_TRANSCRIPTION_LANGUAGES.firstOrNull {
-                it.code == audio.transcriptionLanguage
-            }?.displayName ?: audio.transcriptionLanguage
             Column {
                 Text("Transcription language")
                 Text(
-                    text = currentLangName,
+                    text = languageLabel(audio.transcriptionLanguage),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -372,6 +386,119 @@ private fun AudioCapsuleTranscriptionItems(
         leadingIcon = { Icon(Icons.Outlined.Subtitles, contentDescription = null) },
         onClick = onShowLanguageDialog,
     )
+    DropdownMenuItem(
+        text = {
+            Column {
+                Text("Transcription model")
+                Text(
+                    text = modelLabel(WhisperModelType.entries.firstOrNull { it.id == audio.transcriptionModel }
+                        ?: WhisperModelType.TINY),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        },
+        leadingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) },
+        onClick = onShowModelDialog,
+    )
+}
+
+/**
+ * What the language row says. "System default" resolved the device locale, so the row names the tag
+ * that will actually be transcribed — otherwise an English tablet silently decodes an Italian lecture
+ * as English.
+ */
+private fun languageLabel(pref: String): String {
+    val chosen = SUPPORTED_TRANSCRIPTION_LANGUAGES.firstOrNull { it.code == pref }?.displayName ?: pref
+    return if (pref == "auto" || pref.isBlank()) "$chosen (${resolveTranscriptionLanguageTag(pref)})" else chosen
+}
+
+/** One line for a model: what it costs and what it buys. */
+private fun modelLabel(type: WhisperModelType): String =
+    if (type.isTiny) "Whisper Tiny — fast" else "Whisper Base — accurate"
+
+@Composable
+private fun TranscriptionModelDialog(
+    currentModel: String,
+    installedModels: Set<String>,
+    onModelSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = rememberFloatingSurfaceColor(),
+            shadowElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Transcription model",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "A larger model hears more words correctly and needs longer to transcribe. " +
+                        "Everything runs on this device, and a model downloads when you pick it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                for (type in WhisperModelType.entries) {
+                    ModelChoiceRow(
+                        type = type,
+                        selected = type.id == currentModel,
+                        installed = type.id in installedModels,
+                        onSelect = { onModelSelected(type.id) },
+                    )
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                    Text("Close")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModelChoiceRow(
+    type: WhisperModelType,
+    selected: Boolean,
+    installed: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
+            )
+            .clickable { onSelect() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = modelLabel(type),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "${type.approximateSizeMb} MB · " +
+                    if (installed) "downloaded" else "downloads when selected",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (selected) {
+            Icon(Icons.Outlined.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+        }
+    }
 }
 
 @Composable

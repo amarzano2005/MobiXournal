@@ -65,6 +65,9 @@ object TranscriptionWindows {
 
     private val WHITESPACE = Regex("\\s+")
 
+    /** A piece that is nothing but punctuation, which attaches to the word before it. */
+    private val PUNCTUATION = Regex("^[\\p{Punct}]+$")
+
     /**
      * Group [chunks] into consecutive windows of at most [maxWindowMs], cutting only between chunks —
      * never inside a phrase. The windows cover every chunk, in order, and each chunk is in exactly one.
@@ -137,6 +140,72 @@ object TranscriptionWindows {
             spoken = boundary
         }
         return segments
+    }
+
+    /**
+     * Give the tokens Whisper reported for [window] back to the phrases they were **spoken** in.
+     *
+     * A decode returns the words of the whole window together with when each one started (seconds
+     * from the window's first sample), so each token is filed under the VAD phrase whose span
+     * contains its time — clamped into the first or last phrase at the edges. Unlike [distributeText]
+     * nothing is estimated here: the words a segment gets are the words said during it, which is what
+     * makes a line read like the sentence it is and a tap on it land where the words were spoken.
+     *
+     * Returns null when the decode carries no usable timing — no tokens, a length mismatch, or the
+     * flat all-zero starts a model without token timestamps reports — so the caller can fall back to
+     * [distributeText].
+     */
+    fun segmentsFromTokens(
+        window: AudioWindow,
+        tokens: Array<out String>,
+        timestampsSec: FloatArray,
+        confidence: Double = 0.95,
+    ): List<TranscriptionSegment>? {
+        if (window.chunks.isEmpty() || tokens.isEmpty() || tokens.size != timestampsSec.size) return null
+        if (timestampsSec.all { it <= 0f }) return null
+        val originMs = window.chunks.first().startMs
+        val times = IntArray(tokens.size) { index -> originMs + (timestampsSec[index] * 1_000f).roundToInt() }
+        // Out-of-order starts mean the array is not what it claims to be; the distribution is safer.
+        for (index in 1 until times.size) if (times[index] < times[index - 1]) return null
+
+        val wordsIn = Array(window.chunks.size) { mutableListOf<String>() }
+        var chunk = 0
+        for (index in tokens.indices) {
+            val time = times[index]
+            while (chunk < window.chunks.lastIndex && time >= window.chunks[chunk].endMs) chunk++
+            wordsIn[chunk] += tokens[index]
+        }
+
+        val segments = mutableListOf<TranscriptionSegment>()
+        for ((index, words) in wordsIn.withIndex()) {
+            val text = joinTokens(words)
+            if (text.isEmpty()) continue
+            segments += TranscriptionSegment(
+                startTimeMs = window.chunks[index].startMs,
+                endTimeMs = window.chunks[index].endMs,
+                text = text,
+                confidence = confidence,
+            )
+        }
+        return segments.ifEmpty { null }
+    }
+
+    /**
+     * Whisper's pieces joined back into text: a piece carries its own leading space in most models,
+     * and one that does not still starts a word — unless it is punctuation, which attaches.
+     */
+    private fun joinTokens(tokens: List<String>): String {
+        val out = StringBuilder()
+        for (token in tokens) {
+            if (token.isEmpty()) continue
+            val needsSpace = out.isNotEmpty() &&
+                !token.first().isWhitespace() &&
+                !out.last().isWhitespace() &&
+                !PUNCTUATION.matches(token)
+            if (needsSpace) out.append(' ')
+            out.append(token)
+        }
+        return out.toString().replace(WHITESPACE, " ").trim()
     }
 
     private fun windowOf(chunks: List<AudioChunk>): AudioWindow = AudioWindow(

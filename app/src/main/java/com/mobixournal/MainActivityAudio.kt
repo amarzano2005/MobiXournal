@@ -16,9 +16,9 @@ import kotlinx.coroutines.withContext
 import com.mobixournal.audio.AudioRecordingService
 import com.mobixournal.audio.AudioRef
 import com.mobixournal.audio.AudioSession
-import com.mobixournal.audio.AudioStandaloneExporter
-import com.mobixournal.audio.AudioTranscoder
 import com.mobixournal.audio.AudioWaveformExtractor
+import com.mobixournal.audio.WhisperModelManager
+import com.mobixournal.audio.WhisperModelType
 import com.mobixournal.audio.WavWriter
 import com.mobixournal.format.model.audioRef
 import com.mobixournal.audio.documentAudioFiles
@@ -120,11 +120,14 @@ internal fun MainActivity.followRecording(view: DrawingSurfaceView) {
 internal fun MainActivity.detachAudio() {
     karaokeDriver?.stop()
     karaokeDriver = null
+    // A recording torn down with the activity must not leave the `.m4a` encoder running: the tap is
+    // finalised first, so whatever was captured is still a playable file.
+    endStandaloneExport()
 }
 
 private val transcriptDiskCache = mutableMapOf<String, com.mobixournal.audio.AudioTranscription?>()
 
-private fun MainActivity.resolveTranscriptionForClip(activeClip: String?): com.mobixournal.audio.AudioTranscription? {
+internal fun MainActivity.resolveTranscriptionForClip(activeClip: String?): com.mobixournal.audio.AudioTranscription? {
     val live = activeTranscription.value
     if (audio.isRecording && live != null) return live
     if (activeClip == null) return live
@@ -215,6 +218,11 @@ internal fun MainActivity.audioUiState(): AudioUiState {
             settingsStore.save(settingsStore.load().copy(transcriptionLanguage = lang))
             audioTick.value++
         },
+        transcriptionModel = WhisperModelManager.selectedModel(this).id,
+        installedModels = WhisperModelType.entries
+            .filter { WhisperModelManager.isModelInstalled(this, it) }
+            .mapTo(mutableSetOf()) { it.id },
+        onModelChange = { id -> chooseTranscriptionModel(WhisperModelManager.fromId(id)) },
         onChooseFolder = { audioFolderLauncher.launch(null) },
         onToggleSaveStandalone = { enabled ->
             settingsStore.save(settingsStore.load().copy(saveStandaloneAudio = enabled))
@@ -254,8 +262,13 @@ private fun MainActivity.resolveActiveClipTitle(activeClip: String?): String? = 
     else -> null
 }
 
-/** Pause or resume the active recording. */
-/** Pause or resume the active recording. */
+/**
+ * Pause or resume the active recording, from whichever surface asked — the mini capsule, the audio
+ * pop-up, or the notification's own Pause/Resume button.
+ *
+ * The notification is told the new state here rather than by the caller, so a pause made in the app
+ * and a pause made in the shade cannot leave the shade saying the opposite of what is happening.
+ */
 internal fun MainActivity.togglePauseRecording() {
     if (!audio.isRecording) return
     if (audio.isRecordingPaused) {
@@ -285,17 +298,16 @@ internal fun MainActivity.toggleRecording() {
             }
             transcribeDeferredAudio(file)
         }
+        // The parallel encoder is unhooked before anything else can feed it, whether or not a
+        // standalone copy is still wanted.
+        val standaloneTap = detachStandaloneTap()
         if (file != null && settingsStore.load().saveStandaloneAudio) {
-            // Off the main thread: a long recording is re-encoded to `.m4a` first (Ogg/Opus and WAV
-            // are what the app records, M4A is what a phone or an uploader accepts), which takes a
-            // moment for a lecture and must not freeze the editor while it runs.
-            val toExport = file
-            lifecycleScope.launch(Dispatchers.IO) {
-                val exported = AudioStandaloneExporter.exportStandalone(this@toggleRecording, toExport)
-                withContext(Dispatchers.Main) {
-                    if (exported) toast("Standalone audio exported as ${AudioTranscoder.CONTAINER_SUFFIX}")
-                }
-            }
+            // Nothing is converted here any more: the `.m4a` was encoded while the microphone was
+            // open (`StandaloneAudioTap`), so the export is a copy. The job is queued first, so a
+            // copy the closing app interrupts is picked up on the next launch instead of lost.
+            exportStandaloneInBackground(file, standaloneTap)
+        } else {
+            discardStandaloneExport(standaloneTap)
         }
         pushAudioSidecars()
         audioTick.value++
@@ -331,6 +343,7 @@ internal fun MainActivity.beginRecording() {
         beginLiveTranscription(name)
         // The standalone `.m4a` is produced while the lecture is still going, so the end of it costs
         // a copy rather than a conversion.
+        if (settingsStore.load().saveStandaloneAudio) beginStandaloneExport(name)
         AudioRecordingService.onStopRequested = {
             runOnUiThread { if (audio.isRecording) toggleRecording() }
         }
@@ -360,7 +373,8 @@ internal fun MainActivity.beginRecording() {
  * a machine whose encoder is missing would only compete with the writing.
  */
 internal fun MainActivity.beginLiveTranscription(fileName: String) {
-    val model = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this) ?: return
+    val preferred = WhisperModelManager.selectedModel(this)
+    val model = WhisperModelManager.getAvailableModel(this, preferred) ?: return
     val live = com.mobixournal.audio.LiveTranscription(
         fileName = fileName,
         dir = filesDir,
@@ -370,12 +384,15 @@ internal fun MainActivity.beginLiveTranscription(fileName: String) {
     )
     if (!live.start()) return
     liveTranscription = live
-    audio.onPcmData = { buffer, count, rate -> live.feed(buffer, count, rate) }
+    val listener: (ByteArray, Int, Int) -> Unit = { buffer, count, rate -> live.feed(buffer, count, rate) }
+    livePcmListener = listener
+    audio.addPcmListener(listener)
 }
 
 /** Stop the live job and hand the capture back (the post-stop transcription reads its transcript). */
 internal fun MainActivity.endLiveTranscription() {
-    audio.onPcmData = null
+    livePcmListener?.let { audio.removePcmListener(it) }
+    livePcmListener = null
     liveTranscription?.stop()
     liveTranscription = null
 }
@@ -384,19 +401,57 @@ internal fun MainActivity.transcribeDeferredAudio(file: File) {
     val selectedLang = settingsStore.load().transcriptionLanguage
     val resolvedLang = com.mobixournal.audio.resolveTranscriptionLanguageTag(selectedLang)
 
+    // Written down before the work starts: the lecture is over and the app is about to be closed, so
+    // a service the user (or the system) kills has to be restarted by the next launch.
+    markTranscriptionPending(file.name)
+
     isTranscribing.value = true
     transcriptionStatus.value = "Starting transcription..."
     audioTick.value++
 
-    val availableModel = com.mobixournal.audio.WhisperModelManager.getAvailableModel(this)
+    val preferred = WhisperModelManager.selectedModel(this)
+    val availableModel = WhisperModelManager.getAvailableModel(this, preferred)
     if (availableModel != null) {
-        startTranscriptionService(file, resolvedLang)
+        startTranscriptionService(file, resolvedLang, availableModel)
     } else {
-        downloadWhisperAndTranscribe(file, resolvedLang)
+        downloadWhisperAndTranscribe(file, resolvedLang, preferred)
     }
 }
 
-private fun MainActivity.startTranscriptionService(file: File, resolvedLang: String) {
+/**
+ * Save the model the user picked, and fetch its weights when this device does not have them yet.
+ *
+ * The download is deliberately not silent: it is the one setting here that costs tens of megabytes
+ * and minutes on a slow connection, so the pop-up's choice ends with a status saying what happened
+ * and when the new model will actually be used.
+ */
+internal fun MainActivity.chooseTranscriptionModel(type: WhisperModelType) {
+    WhisperModelManager.selectModel(this, type)
+    audioTick.value++
+    if (WhisperModelManager.isModelInstalled(this, type)) return
+
+    toast("Downloading ${type.id} (${type.approximateSizeMb} MB)…")
+    lifecycleScope.launch(Dispatchers.IO) {
+        val downloaded = WhisperModelManager.downloadModel(
+            context = this@chooseTranscriptionModel,
+            modelType = type,
+            onProgress = { _, _, _ -> },
+        )
+        withContext(Dispatchers.Main) {
+            toast(
+                if (downloaded) "${type.id} is ready — used from the next transcription"
+                else "${type.id} could not be downloaded; ${WhisperModelType.TINY.id} stays in use",
+            )
+            audioTick.value++
+        }
+    }
+}
+
+private fun MainActivity.startTranscriptionService(
+    file: File,
+    resolvedLang: String,
+    model: WhisperModelType,
+) {
     com.mobixournal.audio.AudioTranscriptionService.onProgressUpdated = { status, _, _ ->
         runOnUiThread {
             transcriptionStatus.value = status
@@ -406,6 +461,7 @@ private fun MainActivity.startTranscriptionService(file: File, resolvedLang: Str
     com.mobixournal.audio.AudioTranscriptionService.onTranscriptionCompleted = { completedFile, transcript, statusMsg ->
         runOnUiThread {
             isTranscribing.value = false
+            markTranscriptionDone(completedFile.name)
             if (transcript != null) {
                 commitTranscriptionSegments(completedFile, transcript.segments, resolvedLang)
                 transcriptionStatus.value = null
@@ -417,21 +473,31 @@ private fun MainActivity.startTranscriptionService(file: File, resolvedLang: Str
             audioTick.value++
         }
     }
-    com.mobixournal.audio.AudioTranscriptionService.start(this, file, resolvedLang)
+    com.mobixournal.audio.AudioTranscriptionService.start(this, file, resolvedLang, model)
 }
 
-private fun MainActivity.downloadWhisperAndTranscribe(file: File, resolvedLang: String) {
-    transcriptionStatus.value = "Download Whisper Tiny (39 MB)... 0%"
+/**
+ * Fetch the model the user chose, then transcribe with it.
+ *
+ * The first transcription on a fresh install has no weights at all, and the old path always fetched
+ * Tiny whatever the setting said — so a device that chose Base never got it.
+ */
+private fun MainActivity.downloadWhisperAndTranscribe(
+    file: File,
+    resolvedLang: String,
+    model: WhisperModelType,
+) {
+    transcriptionStatus.value = "Download ${model.id} (${model.approximateSizeMb} MB)... 0%"
     audioTick.value++
 
     lifecycleScope.launch(Dispatchers.IO) {
-        val success = com.mobixournal.audio.WhisperModelManager.downloadModel(
+        val success = WhisperModelManager.downloadModel(
             context = this@downloadWhisperAndTranscribe,
-            modelType = com.mobixournal.audio.WhisperModelType.TINY,
+            modelType = model,
             onProgress = { _, _, ratio ->
                 val percent = (ratio * 100).toInt().coerceIn(0, 99)
                 runOnUiThread {
-                    transcriptionStatus.value = "Download Whisper Tiny ($percent%)..."
+                    transcriptionStatus.value = "Download ${model.id} ($percent%)..."
                     audioTick.value++
                 }
             },
@@ -440,12 +506,12 @@ private fun MainActivity.downloadWhisperAndTranscribe(file: File, resolvedLang: 
 
         withContext(Dispatchers.Main) {
             if (success) {
-                toast("Whisper Tiny downloaded! Starting transcription.")
-                startTranscriptionService(file, resolvedLang)
+                toast("${model.id} downloaded! Starting transcription.")
+                startTranscriptionService(file, resolvedLang, model)
             } else {
                 transcriptionStatus.value = "Using system recognition..."
                 audioTick.value++
-                startTranscriptionService(file, resolvedLang)
+                startTranscriptionService(file, resolvedLang, model)
             }
         }
     }

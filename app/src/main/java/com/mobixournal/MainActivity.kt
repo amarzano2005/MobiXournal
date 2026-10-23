@@ -161,6 +161,12 @@ class MainActivity : ComponentActivity() {
     /** The job transcribing the recording that is being made, if one is running ([beginLiveTranscription]). */
     internal var liveTranscription: com.mobixournal.audio.LiveTranscription? = null
 
+    /** The PCM listener feeding [liveTranscription], kept so it can be unhooked by identity. */
+    internal var livePcmListener: ((ByteArray, Int, Int) -> Unit)? = null
+
+    /** The encoder producing the standalone `.m4a` while this recording runs ([beginStandaloneExport]). */
+    internal var standaloneTap: com.mobixournal.audio.StandaloneAudioTap? = null
+
     /** Whether speech-to-text deferred transcription is currently running in background. */
     internal val isTranscribing = mutableStateOf(false)
 
@@ -435,6 +441,9 @@ class MainActivity : ComponentActivity() {
         restoreSplitWorkspace(savedInstanceState)
         applyEdgeToEdge(isDarkTheme(initialSettings))
         initSubsystems(initialSettings)
+        // Whatever the last session could not finish (a standalone export, a transcription the user
+        // closed the app on) is picked up here — closing after a lecture must never mean losing it.
+        resumePendingAudioWork()
 
         setContent {
             var settings by remember {

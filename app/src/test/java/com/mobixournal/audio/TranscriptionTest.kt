@@ -264,6 +264,14 @@ class TranscriptionTest {
     }
 
     @Test
+    fun aModelIdResolvesToItsModelAndFallsBackToTiny() {
+        assertEquals(WhisperModelType.BASE, WhisperModelManager.fromId("whisper-base"))
+        assertEquals(WhisperModelType.TINY, WhisperModelManager.fromId("whisper-tiny"))
+        assertEquals(WhisperModelType.TINY, WhisperModelManager.fromId(null))
+        assertEquals(WhisperModelType.TINY, WhisperModelManager.fromId("not-a-model"))
+    }
+
+    @Test
     fun whisperModelManagerDetectsEmptyOrMissingModel() {
         val tempDir = java.nio.file.Files.createTempDirectory("whisper_test").toFile()
         try {

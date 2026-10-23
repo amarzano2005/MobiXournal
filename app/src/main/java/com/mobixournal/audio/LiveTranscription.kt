@@ -347,8 +347,12 @@ internal class LiveTranscription(
         val produced = mutableListOf<TranscriptionSegment>()
         for (window in TranscriptionWindows.of(chunks)) {
             if (stopped) break
-            val text = open.transcribePcm(window.pcm(), SAMPLE_RATE)
-            if (text.isNotBlank()) produced += TranscriptionWindows.distributeText(window, text)
+            val decoded = open.transcribeDecode(window.pcm(), SAMPLE_RATE) ?: continue
+            if (decoded.text.isBlank()) continue
+            // Same filing as the post-stop path: real word times when the model reports them.
+            val segments = TranscriptionWindows.segmentsFromTokens(window, decoded.tokens, decoded.timestampsSec)
+                ?: TranscriptionWindows.distributeText(window, decoded.text)
+            produced += segments
         }
         if (stopped) return
         synchronized(lock) {

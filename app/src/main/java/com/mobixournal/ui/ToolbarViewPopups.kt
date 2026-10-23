@@ -183,6 +183,12 @@ data class AudioUiState(
     val transcriptionLanguage: String = "auto",
     /** Callback to set transcription language tag. */
     val onLanguageChange: (String) -> Unit = {},
+    /** Id of the on-device Whisper model transcription uses (`whisper-tiny`, `whisper-base`). */
+    val transcriptionModel: String = "whisper-tiny",
+    /** Ids of the Whisper models whose weights this device already holds. */
+    val installedModels: Set<String> = emptySet(),
+    /** Callback to choose a transcription model; its weights download when absent. */
+    val onModelChange: (String) -> Unit = {},
     /** Callback to open the folder picker. */
     val onChooseFolder: () -> Unit = {},
     /** Callback to toggle standalone audio export. */

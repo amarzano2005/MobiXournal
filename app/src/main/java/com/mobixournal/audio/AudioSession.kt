@@ -59,14 +59,39 @@ class AudioSession(
     /** Notified whenever recording starts or stops, so the chrome can re-render its state. */
     var onStateChanged: (() -> Unit)? = null
 
-    /** Optional listener receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)` while recording. */
-    var onPcmData: ((ByteArray, Int, Int) -> Unit)?
-        get() = opus.onPcmData ?: aac.onPcmData ?: wav.onPcmData
-        set(value) {
-            opus.onPcmData = value
-            aac.onPcmData = value
-            wav.onPcmData = value
+    /**
+     * The listeners receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)` while
+     * recording.
+     *
+     * A **set**, not one slot: two consumers legitimately want the same microphone — the live
+     * transcription and the standalone `.m4a` encoder, which produces the export's file during the
+     * lecture — and one setting the slot would silently unhook the other. Install order is delivery
+     * order, so the recorder's capture thread never waits on a listener to make room.
+     */
+    private val pcmListeners = java.util.concurrent.CopyOnWriteArrayList<(ByteArray, Int, Int) -> Unit>()
+
+    /** Add a listener for captured PCM; see [pcmListeners]. */
+    fun addPcmListener(listener: (ByteArray, Int, Int) -> Unit) {
+        pcmListeners += listener
+        installPcmTap()
+    }
+
+    /** Remove a listener added by [addPcmListener]. */
+    fun removePcmListener(listener: (ByteArray, Int, Int) -> Unit) {
+        pcmListeners -= listener
+        installPcmTap()
+    }
+
+    private fun installPcmTap() {
+        val tap: ((ByteArray, Int, Int) -> Unit)? = if (pcmListeners.isEmpty()) {
+            null
+        } else {
+            { buffer, count, rate -> for (listener in pcmListeners) listener(buffer, count, rate) }
         }
+        opus.onPcmData = tap
+        aac.onPcmData = tap
+        wav.onPcmData = tap
+    }
 
     /**
      * The sidecar name of the clip that is **on** — sounding, or paused at a position — or null when
@@ -273,6 +298,8 @@ class AudioSession(
     /** Tear everything down (the host's `onDestroy`); a running recording is finalised first. */
     fun release() {
         stopRecording()
+        pcmListeners.clear()
+        installPcmTap()
         player.release()
     }
 }

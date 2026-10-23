@@ -550,7 +550,7 @@ internal fun MainActivity.saveDocument(uri: Uri) {
             // archive streams in ([AudioSession.recordingFile]) — a long lecture is never materialised
             // to be saved.
             val encoded = io.encode(
-                document, pdf, saveFormat, uri, images, audio::recordingFile, canvasMode, activeTranscription.value,
+                document, pdf, saveFormat, uri, images, audio::recordingFile, canvasMode, transcriptionForSave(),
             )
             try {
                 io.stageOut(encoded.file, uri)
