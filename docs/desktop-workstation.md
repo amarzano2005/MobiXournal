@@ -72,7 +72,12 @@ What it does today:
   paper. The eraser is the shared `PageEraser` in standard mode — it rubs out the part of a stroke it
   crosses and splits it in two, at a tip the pen width sizes — and a highlighter band keeps its
   multiply. Pressure is the shared filter's: a mouse reports none, which draws at the tool's width,
-  exactly as the tablet's cursor does.
+  exactly as the tablet's cursor does. What Compose actually hands over was measured, not assumed: the
+  pointer carries `pressure` and its button bits, and **no tilt or azimuth at all** (there is no such
+  field on `PointerInputChange` in 1.7.3), so a stroke drawn here stores null telemetry where the tablet
+  stores axes — `docs/stylus.md` records that difference. `DesktopPointerSceneTest` proves the wire: real
+  pointer events pushed through an `ImageComposeScene` into this canvas, and the stroke that reaches the
+  model carries the filtered pressure ramp (0.2 → 0.5 → 1.0 becomes 0.8 → 2.0 → 4.0 pt at a 4 pt pen).
 - **Takes it back and puts it again** — `Ctrl + Z` / `Ctrl + Shift + Z`, each tab with its own
   `EditHistory` of document snapshots. One gesture is one step (a stroke records on its lift, an eraser
   drag on its first bite, and a drag that touches no ink records nothing), undo restores the page window
@@ -248,7 +253,7 @@ that keeps the two shells honest: **nothing in the core may import `android.*` o
 meets it moves as a whole; a file that meets it *almost* is cut along the seam rather than copied, so
 there is never a second renderer with its own opinion of the drawing.
 
-Measured on 2026-10-22 against the Android editing path:
+Measured on 2026-10-22 against the Android editing path (line counts re-checked 2026-10-23):
 
 | Type | Lines | Android imports | Verdict |
 |---|---|---|---|
@@ -258,8 +263,8 @@ Measured on 2026-10-22 against the Android editing path:
 | `render/PdfVectorPainter.kt` | 226 | `BitmapFactory`, plus `com.tom_roush.pdfbox` (the Android PDFBox port) | **split** — the geometry is `PdfPagePlan` in `mobix-core`, and this is its Android emitter |
 | `io/DocumentIo.kt` | 666 | `ContentResolver`, `Uri`, `OpenableColumns` — and `resolver` is used in exactly one place, `displayName` | **split** — the write is `io/DocumentEncoder` in `mobix-core`, and the SAF shell keeps staging, the stores and the `content://` target |
 | `render/ElementEdits.kt` | 152 | `BitmapFactory`, for `inJustDecodeBounds` only | movable behind an injected image-size function |
-| `render/DrawingSurfaceInput.kt` | 680 | `MotionEvent`, `KeyEvent`, `SurfaceView`, `ViewConfiguration` | stays Android as the adapter; the **decisions** are `InkPointer`/`InkPointerRouter` in the core (`docs/stylus.md`), and the Compose pointer is the second adapter |
-| `render/DrawingSurfaceStrokes.kt` | 679 | `MotionEvent` | stays Android; its erase geometry moved — `PageEraser`/`StrokeEraser` are in the core, and only the sampling loop remains |
+| `render/DrawingSurfaceInput.kt` | 581 | `MotionEvent`, `KeyEvent`, `SurfaceView`, `ViewConfiguration` | stays Android as the adapter, and it is **live**: it feeds `InkPointerRouter`, so the decisions are the core's (`docs/stylus.md`) and the Compose pointer is the second adapter |
+| `render/DrawingSurfaceStrokes.kt` | 683 | `MotionEvent` | stays Android; its erase geometry moved (`PageEraser`/`StrokeEraser` are in the core) and its stroke now arrives as router events — `startStrokeFrom`, `extendStrokeFrom`, `eraseAtPointer` — so only the document-shaped half is left |
 | `render/DrawingSurfaceSelection.kt` | 341 | `MotionEvent`, `ClipData`, `ClipboardManager`, `Context` | stays Android; the transform geometry is what could move |
 
 ## Decisions
