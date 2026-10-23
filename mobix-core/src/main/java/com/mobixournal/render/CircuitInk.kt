@@ -1,10 +1,10 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
-import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -40,9 +40,6 @@ object CircuitInk {
 
     /** Air between the symbol and its value label, in pt. */
     private const val LABEL_GAP_PT = 3.0
-
-    /** How far the value label sits off the component's axis when there is no symbol to clear. */
-    private const val VALUE_OFFSET_PT = 12.0
 
     /** [circuit] as ink, or null when its symbol is not one this build has a drawing for. */
     fun ink(circuit: CircuitElement): List<Element>? {
@@ -90,11 +87,6 @@ object CircuitInk {
 
     /** The drag a symbol's library function takes, in the component's unrotated frame. */
     private data class Axis(val startX: Double, val startY: Double, val endX: Double, val endY: Double) {
-        val midX: Double get() = (startX + endX) / 2.0
-        val midY: Double get() = (startY + endY) / 2.0
-
-        /** Whether the axis runs left to right, which is what decides where a label goes. */
-        val horizontal: Boolean get() = abs(endX - startX) >= abs(endY - startY)
     }
 
     private fun axisOf(circuit: CircuitElement): Axis {
@@ -141,10 +133,13 @@ object CircuitInk {
     }
 
     /**
-     * Where the value label goes: **above or below the drawn symbol**, centred on it, never on top of
-     * it ([CircuitElement.labelBelow]). It used to be dropped a dozen points off the axis' middle,
-     * with the text's top-left corner on the midpoint — which put the value across the symbol as soon
-     * as a component was rotated, because the ink turns and the label does not.
+     * Where the value label goes: **on the chosen side of the drawn symbol**, never on top of it
+     * ([CircuitElement.labelSide]). Above and below are centred horizontally on the symbol; left and
+     * right are centred vertically on it, which is what a turned part with wired leads wants.
+     *
+     * It used to be dropped a dozen points off the axis' middle, with the text's top-left corner on
+     * the midpoint — which put the value across the symbol as soon as a component was rotated,
+     * because the ink turns and the label does not.
      *
      * The label is *not* rotated with the component, even so: a value is read, not turned. That is why
      * the side is measured on the turned symbol's own box, in page space.
@@ -158,18 +153,21 @@ object CircuitInk {
         val size = InkTokens.FIGURE_LABEL_SIZE_PT
         val labelWidth = value.length * size * InkTokens.FIGURE_LABEL_CHAR_W
         val labelHeight = size * InkTokens.FIGURE_LABEL_LINE_H
-        if (drawn == null) {
-            // A symbol with no geometry this build can draw: fall back to the axis, so the value is
-            // still somewhere sensible beside where the component sits.
-            val x = if (axis.horizontal) axis.midX else axis.midX + VALUE_OFFSET_PT
-            val y = if (axis.horizontal) axis.midY - VALUE_OFFSET_PT else axis.midY
-            return x to y
+        // A symbol with no geometry this build can draw still has an axis: laying the value out
+        // around that degenerate box keeps every side meaning the same thing.
+        val box = drawn ?: Bounds(
+            minOf(axis.startX, axis.endX), minOf(axis.startY, axis.endY),
+            maxOf(axis.startX, axis.endX), maxOf(axis.startY, axis.endY),
+        )
+        val x = when (circuit.labelSide) {
+            CircuitLabelSide.ABOVE, CircuitLabelSide.BELOW -> (box.left + box.right) / 2.0 - labelWidth / 2.0
+            CircuitLabelSide.LEFT -> box.left - LABEL_GAP_PT - labelWidth
+            CircuitLabelSide.RIGHT -> box.right + LABEL_GAP_PT
         }
-        val x = (drawn.left + drawn.right) / 2.0 - labelWidth / 2.0
-        val y = if (circuit.labelBelow) {
-            drawn.bottom + LABEL_GAP_PT
-        } else {
-            drawn.top - LABEL_GAP_PT - labelHeight
+        val y = when (circuit.labelSide) {
+            CircuitLabelSide.ABOVE -> box.top - LABEL_GAP_PT - labelHeight
+            CircuitLabelSide.BELOW -> box.bottom + LABEL_GAP_PT
+            CircuitLabelSide.LEFT, CircuitLabelSide.RIGHT -> (box.top + box.bottom) / 2.0 - labelHeight / 2.0
         }
         return x to y
     }

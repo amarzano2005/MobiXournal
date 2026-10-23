@@ -3,6 +3,8 @@ package com.mobixournal.ui
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,10 +40,13 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.render.replaceCircuitElement
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
@@ -53,8 +58,8 @@ import kotlin.math.roundToInt
  * Compact anchored inspector for editing a living [CircuitElement].
  *
  * Sits beside the selected component on the canvas, is freely draggable, and allows quick editing of
- * the component's value/designation, which side of the symbol that label is written on, and its 90°
- * rotation.
+ * the component's value/designation — typed, or assembled from the circuit symbol keyboard below the
+ * field — which side of the symbol that label is written on, and its 90° rotation.
  */
 @Composable
 fun CircuitInspectorAnchor(
@@ -88,25 +93,18 @@ fun CircuitInspectorAnchor(
         marginPx = marginPx,
     )
 
-    val finalOffset = IntOffset(
-        x = (baseOffset.x + dragDelta.x.roundToInt()).coerceIn(
-            marginPx,
-            maxOf(marginPx, canvasSizePx.width - inspectorSize.width - marginPx),
-        ),
-        y = (baseOffset.y + dragDelta.y.roundToInt()).coerceIn(
-            marginPx,
-            maxOf(marginPx, canvasSizePx.height - inspectorSize.height - marginPx),
-        ),
-    )
+    val finalOffset = clampInspectorOffset(baseOffset, dragDelta, canvasSizePx, inspectorSize, marginPx)
 
-    var valueText by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.value ?: "") }
+    var field by remember(circuit.id ?: circuit.hashCode()) {
+        mutableStateOf(TextFieldValue(circuit.value ?: "", TextRange((circuit.value ?: "").length)))
+    }
     var rotation by remember(circuit.id ?: circuit.hashCode()) { mutableDoubleStateOf(circuit.rotation) }
-    var labelBelow by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.labelBelow) }
+    var labelSide by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.labelSide) }
 
     /** The element as the inspector currently reads it — what every control below applies. */
     fun edited() = circuit.copy(
-        value = valueText.ifBlank { null },
-        labelBelow = labelBelow,
+        value = field.text.ifBlank { null },
+        labelSide = labelSide,
         rotation = rotation,
     )
 
@@ -129,11 +127,11 @@ fun CircuitInspectorAnchor(
     ) {
         CircuitInspectorContent(
             circuit = circuit,
-            valueText = valueText,
-            onValueTextChange = { valueText = it },
-            labelBelow = labelBelow,
-            onLabelBelowChange = { below ->
-                labelBelow = below
+            field = field,
+            onFieldChange = { field = it },
+            labelSide = labelSide,
+            onLabelSideChange = { side ->
+                labelSide = side
                 apply()
             },
             rotation = rotation,
@@ -156,13 +154,31 @@ fun CircuitInspectorAnchor(
     }
 }
 
+/** The inspector's place: its anchored offset plus wherever the user dragged it, kept in the canvas. */
+private fun clampInspectorOffset(
+    base: IntOffset,
+    drag: Offset,
+    canvasSize: IntSize,
+    inspectorSize: IntSize,
+    marginPx: Int,
+): IntOffset = IntOffset(
+    x = (base.x + drag.x.roundToInt()).coerceIn(
+        marginPx,
+        maxOf(marginPx, canvasSize.width - inspectorSize.width - marginPx),
+    ),
+    y = (base.y + drag.y.roundToInt()).coerceIn(
+        marginPx,
+        maxOf(marginPx, canvasSize.height - inspectorSize.height - marginPx),
+    ),
+)
+
 @Composable
 private fun CircuitInspectorContent(
     circuit: CircuitElement,
-    valueText: String,
-    onValueTextChange: (String) -> Unit,
-    labelBelow: Boolean,
-    onLabelBelowChange: (Boolean) -> Unit,
+    field: TextFieldValue,
+    onFieldChange: (TextFieldValue) -> Unit,
+    labelSide: CircuitLabelSide,
+    onLabelSideChange: (CircuitLabelSide) -> Unit,
     rotation: Double,
     onRotate: () -> Unit,
     onStraighten: () -> Unit,
@@ -181,16 +197,17 @@ private fun CircuitInspectorContent(
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         OutlinedTextField(
-            value = valueText,
-            onValueChange = onValueTextChange,
+            value = field,
+            onValueChange = onFieldChange,
             label = { Text("Value / Label") },
             placeholder = { Text("e.g. 10 kΩ, Vcc, R1") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
+        CircuitSymbolKeyboard(onInsert = { symbol -> onFieldChange(insertSnippetAtCursor(field, symbol)) })
         CircuitLabelPlacementControl(
-            labelBelow = labelBelow,
-            onSelect = onLabelBelowChange,
+            labelSide = labelSide,
+            onSelect = onLabelSideChange,
         )
         CircuitRotationControl(
             rotation = rotation,
@@ -250,40 +267,48 @@ private fun CircuitInspectorHeader(
 }
 
 /**
- * Where the value label is written: above the symbol, or below it.
+ * Where the value label is written: above, below, left or right of the symbol.
  *
- * The label is laid out around the drawn symbol either way, so this picks a **side**, not a
- * position — above is where a dimension is written, below keeps a crowded row of wires free. The
- * choice is applied at once, so the user sees the value move while the inspector is still open.
+ * The label is laid out around the drawn symbol whichever side is chosen, so this picks a **side**,
+ * not a position — above is where a dimension is written, below keeps a crowded wire row free, and
+ * left/right serve a component whose leads already own the space above and below. The choice is
+ * applied at once, so the user sees the value move while the inspector is still open.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CircuitLabelPlacementControl(
-    labelBelow: Boolean,
-    onSelect: (Boolean) -> Unit,
+    labelSide: CircuitLabelSide,
+    onSelect: (CircuitLabelSide) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Label",
             style = MaterialTheme.typography.bodyMedium,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(
-                selected = !labelBelow,
-                onClick = { onSelect(false) },
-                label = { Text("Above") },
-            )
-            FilterChip(
-                selected = labelBelow,
-                onClick = { onSelect(true) },
-                label = { Text("Below") },
-            )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            for (side in CircuitLabelSide.entries) {
+                FilterChip(
+                    selected = side == labelSide,
+                    onClick = { onSelect(side) },
+                    label = { Text(side.label, style = MaterialTheme.typography.labelSmall) },
+                )
+            }
         }
     }
 }
+
+/** The words the four sides are offered under — the user's own names, not the enum's. */
+private val CircuitLabelSide.label: String
+    get() = when (this) {
+        CircuitLabelSide.ABOVE -> "Above"
+        CircuitLabelSide.BELOW -> "Below"
+        CircuitLabelSide.LEFT -> "Left"
+        CircuitLabelSide.RIGHT -> "Right"
+    }
 
 @Composable
 private fun CircuitRotationControl(

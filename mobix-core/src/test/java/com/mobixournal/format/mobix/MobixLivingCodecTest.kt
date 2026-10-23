@@ -6,6 +6,7 @@ import com.mobixournal.format.json.JsonParser
 import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
@@ -336,11 +337,39 @@ class MobixLivingCodecTest {
     fun aCircuitRemembersWhichSideItsLabelIsWrittenOn() {
         // The side is the reader's choice, not a layout accident, so it has to travel with the file —
         // in `.mobix` and in the `.xopp` bridge claim, which share this codec.
-        val below = circuit().copy(labelBelow = true)
-        assertEquals(below, roundTrip(below))
-        assertTrue("a label below is written down", encode(below).has("labelBelow"))
-        assertFalse("the default is absence, not a stored false", encode(circuit()).has("labelBelow"))
-        assertFalse("and reading a file without it means above", (roundTrip(circuit()) as CircuitElement).labelBelow)
+        for (side in CircuitLabelSide.entries) {
+            val placed = circuit().copy(labelSide = side)
+            assertEquals("$side survives the round trip", placed, roundTrip(placed))
+        }
+        assertEquals(
+            "a non-default side is written as its own name",
+            "right",
+            encode(circuit().copy(labelSide = CircuitLabelSide.RIGHT)).getStrOrNull("labelSide"),
+        )
+        assertFalse(
+            "the default is absence, not a stored value",
+            encode(circuit()).has("labelSide"),
+        )
+        assertEquals(
+            "and reading a file without it means above",
+            CircuitLabelSide.ABOVE,
+            (roundTrip(circuit()) as CircuitElement).labelSide,
+        )
+    }
+
+    @Test
+    fun aCircuitStillReadsTheBooleanLabelSideOlderFilesCarry() {
+        // The label used to be a boolean (`labelBelow`). A document written then is still the user's
+        // document: below is read as below, and the absence of the key as above.
+        val legacyBelow = decode(
+            """{"type":"circuit","symbol":"RESISTOR","position":{"x":10.0,"y":20.0},"labelBelow":true}""",
+        ) as CircuitElement
+        assertEquals(CircuitLabelSide.BELOW, legacyBelow.labelSide)
+        val legacyAbove = decode(
+            """{"type":"circuit","symbol":"RESISTOR","position":{"x":10.0,"y":20.0}}""",
+        ) as CircuitElement
+        assertEquals(CircuitLabelSide.ABOVE, legacyAbove.labelSide)
+        assertTrue("and it is written back in the current spelling", encode(legacyBelow).has("labelSide"))
     }
 
     @Test

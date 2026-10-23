@@ -1539,13 +1539,9 @@ private fun DrawingSurfaceView.bindEditorActions(
             PlaceKind.IMAGE -> onPickImage(placement)
         }
     }
-    onTableCellDoubleTap = { table, row, col ->
+    onLivingDoubleTap = { target ->
         onActivePane(index)
-        ui.editingTableCell = EditingTableCell(table, row, col)
-    }
-    onPlotDoubleTap = { plot ->
-        onActivePane(index)
-        ui.openPlotInspector(plot)
+        ui.openLivingEditor(target)
     }
     // Remember where an instrument was posed, so it comes back there after a restart. Only the
     // instruments qualify: the ruling snap and the chemistry lattice re-derive their anchor from the

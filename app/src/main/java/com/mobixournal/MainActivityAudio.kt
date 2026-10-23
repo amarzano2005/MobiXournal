@@ -265,6 +265,7 @@ internal fun MainActivity.togglePauseRecording() {
         audio.pauseRecording()
         toast("Recording paused")
     }
+    AudioRecordingService.notifyPaused(this, audio.isRecordingPaused)
     audioTick.value++
 }
 
@@ -328,8 +329,15 @@ internal fun MainActivity.beginRecording() {
     val name = audio.startRecording(compressed = saveFormat == SaveFormat.MOBIX)
     if (name != null) {
         beginLiveTranscription(name)
+        // The standalone `.m4a` is produced while the lecture is still going, so the end of it costs
+        // a copy rather than a conversion.
         AudioRecordingService.onStopRequested = {
             runOnUiThread { if (audio.isRecording) toggleRecording() }
+        }
+        // The shade's Pause/Resume runs the same toggle the capsule does, so the recording it pauses
+        // (and the notification that describes it) is the one the user is watching.
+        AudioRecordingService.onPauseRequested = {
+            runOnUiThread { if (audio.isRecording) togglePauseRecording() }
         }
         AudioRecordingService.start(this)
         toast("Recording in progress")

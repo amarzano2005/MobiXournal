@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "recording-notification-controls"
+title = "Manage a background recording from its notification"
+description = "Landed: the recording notification carries Pause/Resume and Stop. AudioRecordingService gained ACTION_PAUSE, an onPauseRequested callback, a companion-built notification and notifyPaused(context, paused), so the shade is rebuilt from the one state the session reports (chronometer only while recording, paused title/text, only-alert-once). MainActivityAudio wires the callback and reports the state from togglePauseRecording. The mini capsule's Resume button now wears a record dot instead of the playback triangle. VERIFIED: 1547 app JVM tests / 0 failures and assembleDebug; the shade path itself (button -> session -> re-post) needs a device to press, so it is built and unit-covered but not exercised on hardware in this pass. Docs: audio-inking-sync (background capture)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = []
+
+[[task]]
+id = "circuit-value-sides-and-keyboard"
+title = "Circuit value on four sides, with a circuit symbol keyboard"
+description = "Landed: CircuitElement.labelSide (CircuitLabelSide ABOVE/BELOW/LEFT/RIGHT) replaces the labelBelow boolean; CircuitInk lays the value out from the symbol's drawn box on all four sides and MobixCircuitCodec writes labelSide (omitted for ABOVE) while still reading the old labelBelow boolean. The inspector offers four chips applied live and a circuit symbol keyboard (ui/CircuitSymbolKeyboard.kt: multipliers, units and operators, inserted at the field's cursor through insertSnippetAtCursor). VERIFIED: CircuitLabelTest (4 sides x rotations 0/45/90/180/270, centred either way), codec round-trip + legacy-boolean test, LivingLabelClearanceTest, CircuitSymbolKeyboardTest (3), 1547 app + 388 core JVM tests / 0 failures. Docs: mobix-elements (circuit example, labelSide, keyboard)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = []
+
+[[task]]
+id = "living-label-clearance"
+title = "Living labels never overlap the element they describe"
+description = "Landed: mobix-core LivingLabelClearanceTest is the guard — it compiles all four living families and fails when a label's estimated box is crossed by a stroke of the element it belongs to (circuit value on every side and rotation, shape lengths/angles, table cell text, plot ticks and summary), using an inclusive Liang-Barsky segment-vs-box test pinned by its own case. The guard found one real violation: ShapeInk's angle label cleared the corner with the box's extent along the bisector, which under-measures on an asymmetric corner; angleLabelOffset now takes the max over both sides of (box support along that side's normal + air) / sin(bisector, side) and places the label OUTSIDE along the outward bisector when the corner is too sharp to hold it. VERIFIED: 388 mobix-core tests / 0 failures (the wide-triangle case failed before the fix). Docs: mobix-elements (label rule)."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-23
+completed = 2026-10-23
+tags = []
+
+[[task]]
+id = "living-double-tap-editor"
+title = "Double-tap opens every living element's editor"
+description = "Landed: one dispatch (render/LivingEditTargets.kt: sealed LivingEditTarget + livingEditHit walking layers top-most first + LivingEditFamily) answers which editor a living element opens, one gesture (render/DrawingSurfaceLivingTap.kt, Select/Lasso only, keyed to the element under the first tap) fires it, and one UI seam (ui/LivingEditors.kt openLivingEditor) opens the table dialog, plot inspector, circuit inspector or shape readouts. The two per-family callbacks (onTableCellDoubleTap, onPlotDoubleTap) are gone; circuits and parametric shapes — previously reachable only from the selection bar — now open on a double-tap too. VERIFIED: app LivingEditCoverageTest (6: all four families hit, top-most wins, ink opens nothing, per-cell table hit, each family's slot opens), 1547 app + core JVM tests / 0 failures. Docs: mobix-elements (editing rule), selection."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = []
+
+[[task]]
 id = "circuit-label-side-and-clearance"
 title = "Circuit value label clear of its symbol, with a chosen side"
 description = "Landed: CircuitInk lays the value out from the symbol's own drawn bounds after rotation - centred horizontally, above the box by default or below when CircuitElement.labelBelow is set, with 3 pt of air - so a turned component no longer has its value over the body; the old rule put the text's top-left corner a dozen points off the axis' middle. labelBelow is written by MobixCircuitCodec only when true (default above) and therefore travels in both .mobix and the .xopp bridge claim. ui/CircuitEditorDialog.kt gains an Above/Below FilterChip pair applied live, and its inspector state was collapsed into edited()/apply() helpers to stay under the function-length ratchet. VERIFIED: mobix-core CircuitLabelTest (5, including rotations 45/90/180/270 in both placements) and the codec round-trip test, 1538 app + 378 core JVM tests / 0 failures with the guards; on the Pixel_Tablet CircuitLabelScreenshotTest captured three resistors (above, below, rotated 90 degrees) with every value clear of its symbol. Docs: mobix-elements (circuit example and labelBelow)."

@@ -2,6 +2,7 @@ package com.mobixournal.format.mobix
 
 import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.ElementId
 
@@ -34,8 +35,16 @@ internal object MobixCircuitCodec {
     private const val PINS = "pins"
     private const val POSITION = "position"
 
-    /** Where the value label sits, relative to the drawn symbol (`CircuitElement.labelBelow`). */
-    private const val LABEL_BELOW = "labelBelow"
+    /** Which side of the drawn symbol the value label sits on (`CircuitElement.labelSide`). */
+    private const val LABEL_SIDE = "labelSide"
+
+    /**
+     * The older boolean spelling of the same choice, read and no longer written.
+     *
+     * A file written before the label could sit on the left or the right says `labelBelow: true` for
+     * below and says nothing for above; reading it keeps those documents showing what they meant.
+     */
+    private const val LEGACY_LABEL_BELOW = "labelBelow"
 
     /** [circuit] as JSON. */
     fun encode(circuit: CircuitElement): JsonNode.Obj = MobixJson.obj { out ->
@@ -45,7 +54,9 @@ internal object MobixCircuitCodec {
         circuit.value?.let { out["value"] = JsonNode.of(it) }
         // Only when it differs from the default: a label above its symbol is the ordinary reading,
         // and a file full of default values is noise in the one place a person reads by hand.
-        if (circuit.labelBelow) out[LABEL_BELOW] = JsonNode.of(true)
+        if (circuit.labelSide != CircuitLabelSide.ABOVE) {
+            out[LABEL_SIDE] = JsonNode.of(circuit.labelSide.name.lowercase())
+        }
         out[POSITION] = MobixJson.obj { position ->
             position["x"] = JsonNode.of(circuit.positionX)
             position["y"] = JsonNode.of(circuit.positionY)
@@ -78,12 +89,20 @@ internal object MobixCircuitCodec {
             strokeColor = MobixJson.colourOrNull(node, "strokeColor") ?: CircuitElement.DEFAULT_INK,
             strokeWidth = node.getDouble("strokeWidth", 1.0),
             value = node.getStrOrNull("value"),
-            labelBelow = node.getBool(LABEL_BELOW, false),
+            labelSide = labelSide(node),
             pins = pins,
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.CIRCUIT),
         )
     }
+
+    /**
+     * The side [node] puts its value label on: the current key first, then the boolean it replaced,
+     * and above when the file says neither — which is what a file without a label means.
+     */
+    private fun labelSide(node: JsonNode.Obj): CircuitLabelSide =
+        CircuitLabelSide.parse(node.getStrOrNull(LABEL_SIDE))
+            ?: if (node.getBool(LEGACY_LABEL_BELOW, false)) CircuitLabelSide.BELOW else CircuitLabelSide.ABOVE
 
     /** The pins of [node]; an empty list when the symbol has no anchors, null when one is unreadable. */
     private fun decodePins(node: JsonNode.Obj): List<CircuitPin>? {

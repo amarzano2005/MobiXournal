@@ -9,7 +9,6 @@ package com.mobixournal.render
 import android.view.MotionEvent
 import android.view.SurfaceView
 import android.view.ViewConfiguration
-import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.Tool
 import kotlin.math.hypot
 
@@ -177,10 +176,8 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // A finger laid on the guide manipulates it, whatever the active tool — the pen keeps
     // drawing against it meanwhile, exactly as you'd hold a real setsquare down and rule along it.
     if (kind == PointerKind.FINGER && guideDrag.begin(event, pointerIndex)) return
-    // Double-tap on a table cell opens in-place cell editing.
-    if (tryTableCellDoubleTap(event)) return
-    // Double-tap on a living plot opens in-place plot editing.
-    if (tryPlotDoubleTap(event)) return
+    // Double-tap on a living element (a table cell, a plot, a component, a figure) opens its editor.
+    if (tryLivingDoubleTap(event)) return
     // Touching a slider anchored to an active plot adjusts the parameter — never a stroke.
     if (gestures.tryBeginSlide(event)) return
     // Touching a divider line inside an active table resizes that column or row.
@@ -220,40 +217,6 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
             else startStroke(event, pointerIndex)
         GestureIntent.IGNORE -> Unit
     }
-}
-
-private var lastTableTapTime = 0L
-private var lastTableTapX = 0f
-private var lastTableTapY = 0f
-private var lastTableTapRow = -1
-private var lastTableTapCol = -1
-
-private fun DrawingSurfaceView.tryTableCellDoubleTap(event: MotionEvent): Boolean {
-    val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return false
-    val xPt = box.toPtX(event.x, scrollX)
-    val yPt = box.toPtY(event.y, scrollY)
-    val page = pageAt(box.index) ?: return false
-    val table = page.layers.asSequence().flatMap { it.elements.asSequence() }
-        .filterIsInstance<TableElement>()
-        .firstOrNull { xPt in it.left..(it.left + it.width) && yPt in it.top..(it.top + it.height) }
-        ?: return false
-    val cell = TableDividers.cellAt(table, xPt, yPt) ?: return false
-    val (r, c) = cell
-    val now = event.eventTime
-    val isDouble = now - lastTableTapTime <= doubleTapTimeoutMs &&
-        hypot(event.x - lastTableTapX, event.y - lastTableTapY) <= doubleTapSlopPx &&
-        lastTableTapRow == r && lastTableTapCol == c
-    lastTableTapTime = if (isDouble) 0L else now
-    lastTableTapX = event.x
-    lastTableTapY = event.y
-    lastTableTapRow = r
-    lastTableTapCol = c
-    if (isDouble) {
-        // The editor opens as a fixed dialog, so it needs no cell geometry here.
-        onTableCellDoubleTap?.invoke(table, r, c)
-        return true
-    }
-    return false
 }
 
 /**

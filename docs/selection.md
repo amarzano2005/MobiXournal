@@ -20,7 +20,12 @@ bounding box (strokes grown by half-width, images/teximages are their box, text 
 metric) and `ElementBounds.TAP_PAD` is the one hit-test margin. Every consumer routes through it —
 `SelectionTester` (picking), `PageRenderer` (viewport cull), `VerticalSpaceOps` (the grab line) and
 `ElementEdits.hitsText` (tap-to-edit) — so selection handles, culling and vertical-space insertion agree
-by construction rather than by coincidence; nothing re-derives a box locally. The four **living
+by construction rather than by coincidence; nothing re-derives a box locally. A **double-tap while a
+Select tool is active** opens the editor of the living element under the point — a table cell, a plot,
+a component, a figure — through one dispatch (`render/LivingEditTargets.kt`) and one UI seam
+(`ui/LivingEditors.kt`), the same target the action bar's **Edit** button opens; ink is not a living
+entity, so a double-tap over a plain page stays the marquee (see [mobix-elements.md](mobix-elements.md)
+and `LivingEditCoverageTest`). The four **living
 entities** (`.mobix`'s table, plot, shape and circuit) answer through the same seam with a box of
 their own — a table's grid, a plot's frame, a circuit's compiled ink and a shape's **vertices**, which
 are recomputed on every read so a picked figure is always where its corners are — and each carries

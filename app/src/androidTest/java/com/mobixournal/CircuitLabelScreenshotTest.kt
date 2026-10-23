@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Layer
 import com.mobixournal.render.CircuitInk
@@ -25,8 +26,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * A **visual** capture of a circuit component's value label: above its symbol, below it, and beside a
- * turned symbol — the three placements the label work exists for.
+ * A **visual** capture of a circuit component's value label: above its symbol, below it, on its left
+ * and its right, and beside a turned symbol — the placements the label work exists for.
  *
  * The components are written straight into the page (`view.doc`) rather than dragged out with the
  * circuit tools: what is being looked at is where the *label* lands, and the placement rules are the
@@ -68,9 +69,10 @@ class CircuitLabelScreenshotTest {
             val layer = page.layers.firstOrNull() ?: Layer(emptyList())
             val placed = layer.copy(
                 elements = layer.elements + listOf(
-                    component("R1 10 kΩ", x = 150.0, y = 140.0, rotation = 0.0, below = false),
-                    component("R2 4.7 kΩ", x = 150.0, y = 260.0, rotation = 0.0, below = true),
-                    component("R3 220 Ω", x = 430.0, y = 140.0, rotation = 90.0, below = false),
+                    component("R1 10 kΩ", x = 150.0, y = 140.0, rotation = 0.0, side = CircuitLabelSide.ABOVE),
+                    component("R2 4.7 kΩ", x = 150.0, y = 260.0, rotation = 0.0, side = CircuitLabelSide.BELOW),
+                    component("R3 220 Ω", x = 430.0, y = 140.0, rotation = 90.0, side = CircuitLabelSide.LEFT),
+                    component("R4 1 MΩ", x = 430.0, y = 300.0, rotation = 90.0, side = CircuitLabelSide.RIGHT),
                 ),
             )
             view.doc = document.copy(
@@ -107,7 +109,7 @@ class CircuitLabelScreenshotTest {
     }
 
     /** A resistor with two pins on its horizontal axis, so its ink is derived like a placed one. */
-    private fun component(value: String, x: Double, y: Double, rotation: Double, below: Boolean) =
+    private fun component(value: String, x: Double, y: Double, rotation: Double, side: CircuitLabelSide) =
         CircuitElement(
             symbol = "RESISTOR",
             positionX = x,
@@ -115,7 +117,7 @@ class CircuitLabelScreenshotTest {
             rotation = rotation,
             strokeWidth = 1.6,
             value = value,
-            labelBelow = below,
+            labelSide = side,
             pins = listOf(CircuitPin("p1", -40.0, 0.0), CircuitPin("p2", 40.0, 0.0)),
             id = "ckt_shot_${value.hashCode()}",
         )

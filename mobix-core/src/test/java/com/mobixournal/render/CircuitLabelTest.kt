@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
@@ -9,8 +10,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Where a circuit component's value is written: **above the drawn symbol or below it**, centred on
- * it, never across it.
+ * Where a circuit component's value is written: **above, below, left or right of the drawn symbol**,
+ * never across it ([CircuitLabelSide]).
  *
  * The label used to be dropped a dozen points off the axis' middle with its top-left corner on the
  * midpoint, so a rotated component — whose symbol turns but whose label does not — had its value
@@ -20,7 +21,7 @@ import org.junit.Test
 class CircuitLabelTest {
 
     private fun resistor(
-        below: Boolean = false,
+        side: CircuitLabelSide = CircuitLabelSide.ABOVE,
         rotation: Double = 0.0,
         value: String = "10 kΩ",
     ) = CircuitElement(
@@ -29,7 +30,7 @@ class CircuitLabelTest {
         positionY = 200.0,
         rotation = rotation,
         value = value,
-        labelBelow = below,
+        labelSide = side,
         pins = listOf(CircuitPin("p1", -30.0, 0.0), CircuitPin("p2", 30.0, 0.0)),
         id = "ckt_test",
     )
@@ -55,69 +56,63 @@ class CircuitLabelTest {
     private fun label(circuit: CircuitElement): TextElement =
         CircuitInk.ink(circuit)!!.filterIsInstance<TextElement>().single()
 
-    /** The label box, as the bounds code estimates it. */
-    private fun labelBox(text: TextElement): Bounds = Bounds(
-        text.x,
-        text.y,
-        text.x + text.content.length * text.size * InkTokens.FIGURE_LABEL_CHAR_W,
-        text.y + text.size * InkTokens.FIGURE_LABEL_LINE_H,
-    )
+    /** The label box, as the bounds code estimates it — what [ElementBounds] calls its box. */
+    private fun labelBox(text: TextElement): Bounds = ElementBounds.of(text)
+
+    private fun overlaps(a: Bounds, b: Bounds): Boolean =
+        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 
     @Test
     fun `the label is above the symbol by default`() {
         val circuit = resistor()
         val symbol = symbolBounds(circuit)
         val box = labelBox(label(circuit))
+        assertEquals(CircuitLabelSide.ABOVE, circuit.labelSide)
         assertTrue("the label's bottom (${box.bottom}) clears the symbol top (${symbol.top})", box.bottom <= symbol.top)
         assertTrue("and sits close to it", symbol.top - box.bottom <= 4.0)
     }
 
     @Test
-    fun `below puts the label under the symbol instead`() {
-        val circuit = resistor(below = true)
-        val symbol = symbolBounds(circuit)
-        val box = labelBox(label(circuit))
-        assertTrue("the label starts under the symbol (${box.top} vs ${symbol.bottom})", box.top >= symbol.bottom)
-        assertTrue("and sits close to it", box.top - symbol.bottom <= 4.0)
-    }
-
-    @Test
-    fun `the two sides differ only in which side of the symbol the label is on`() {
-        val above = resistor()
-        val below = resistor(below = true)
-        val aboveBox = labelBox(label(above))
-        val belowBox = labelBox(label(below))
-        assertEquals(
-            "both are centred on the symbol",
-            (aboveBox.left + aboveBox.right) / 2,
-            (belowBox.left + belowBox.right) / 2,
-            1e-9,
-        )
-        assertTrue("and they are on opposite sides", aboveBox.bottom < belowBox.top)
-    }
-
-    @Test
-    fun `a turned component keeps its label beside the turned symbol`() {
-        // A resistor turned 90° is drawn vertically: the label must read above or below *that* box,
-        // which is the case the old midpoint offset got wrong.
-        for (rotation in listOf(90.0, 180.0, 270.0, 45.0)) {
-            for (below in listOf(false, true)) {
-                val circuit = resistor(below = below, rotation = rotation)
+    fun `each side puts the label on that side of the drawn symbol`() {
+        for (rotation in listOf(0.0, 45.0, 90.0, 180.0, 270.0)) {
+            for (side in CircuitLabelSide.entries) {
+                val circuit = resistor(side = side, rotation = rotation)
                 val symbol = symbolBounds(circuit)
                 val box = labelBox(label(circuit))
-                val overlaps = box.left < symbol.right && box.right > symbol.left &&
-                    box.top < symbol.bottom && box.bottom > symbol.top
                 assertTrue(
-                    "rotation $rotation, below=$below: the label overlaps the symbol",
-                    !overlaps,
+                    "$side at $rotation: the label overlaps the symbol",
+                    !overlaps(box, symbol),
                 )
-                if (below) {
-                    assertTrue("rotation $rotation: below means under", box.top >= symbol.bottom)
-                } else {
-                    assertTrue("rotation $rotation: above means over", box.bottom <= symbol.top)
+                val where = "$side at $rotation"
+                when (side) {
+                    CircuitLabelSide.ABOVE -> assertTrue("$where: above means over the symbol", box.bottom <= symbol.top)
+                    CircuitLabelSide.BELOW -> assertTrue("$where: below means under the symbol", box.top >= symbol.bottom)
+                    CircuitLabelSide.LEFT -> assertTrue("$where: left means clear of it to the left", box.right <= symbol.left)
+                    CircuitLabelSide.RIGHT -> assertTrue("$where: right means clear of it to the right", box.left >= symbol.right)
                 }
             }
         }
+    }
+
+    @Test
+    fun `above and below are centred across the symbol, left and right along it`() {
+        val above = labelBox(label(resistor(CircuitLabelSide.ABOVE)))
+        val below = labelBox(label(resistor(CircuitLabelSide.BELOW)))
+        assertEquals(
+            "above and below share the symbol's horizontal centre",
+            (above.left + above.right) / 2,
+            (below.left + below.right) / 2,
+            1e-9,
+        )
+        val left = labelBox(label(resistor(CircuitLabelSide.LEFT)))
+        val right = labelBox(label(resistor(CircuitLabelSide.RIGHT)))
+        assertEquals(
+            "left and right share the symbol's vertical centre",
+            (left.top + left.bottom) / 2,
+            (right.top + right.bottom) / 2,
+            1e-9,
+        )
+        assertTrue("left is left of right", left.right < right.left)
     }
 
     @Test

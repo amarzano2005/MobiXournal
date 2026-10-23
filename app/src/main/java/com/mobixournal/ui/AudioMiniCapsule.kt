@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.FiberManualRecord
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
@@ -169,10 +171,12 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
             if (isDark) MutedTintDark else MutedTintLight,
             Icons.Outlined.Pause,
         )
+        // Resuming a **recording** is not starting **playback**: a record dot says "the microphone
+        // is open again", where the play triangle said the same thing as the button below it.
         isPaused -> Triple(
             SignalGreen,
             Color.White,
-            Icons.Outlined.PlayArrow,
+            Icons.Outlined.FiberManualRecord,
         )
         else -> Triple(
             SignalAmber,
@@ -264,7 +268,7 @@ private fun AudioCapsuleMenuContent(audio: AudioUiState, onDismiss: () -> Unit) 
             text = { Text(if (audio.recordingPaused) "Resume recording" else "Pause") },
             leadingIcon = {
                 Icon(
-                    if (audio.recordingPaused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause,
+                    if (audio.recordingPaused) Icons.Outlined.FiberManualRecord else Icons.Outlined.Pause,
                     contentDescription = null,
                 )
             },

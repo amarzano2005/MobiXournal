@@ -31,13 +31,23 @@ import kotlin.math.roundToInt
  * corner's bisector. Both used to be dropped a flat 6 pt down-right of the midpoint or the vertex,
  * which put every label across the outline it described — on a narrow triangle that meant three
  * numbers stacked on the ink.
+ *
+ * A corner **too sharp to hold its own label** — the box would reach back across one of the two sides
+ * — gets that label on the *outside* of the corner instead, still on the bisector: behind the vertex
+ * the two sides diverge, so the same box clears both. Without that branch a sharp corner (a scalene
+ * triangle's tip, any vertex dragged close to its neighbour) put its angle number over the ink, which
+ * is exactly what "a label never sits on the figure" rules out (`LivingLabelClearanceTest`).
  */
 object ShapeInk {
 
     /** Air between the outline and a label's box, in pt. */
     private const val LABEL_GAP_PT = 3.0
 
-    /** How far into a corner its angle label may reach, as a share of the shorter adjacent side. */
+    /**
+     * How far into a corner its angle label may reach, as a share of the shorter adjacent side: past
+     * this the label would be nearer the middle of the figure than the corner it belongs to, and the
+     * outside placement takes over.
+     */
     private const val MAX_ANGLE_INSET = 0.4
 
     /** A figure needs two points to be a figure; one is a dot and none is nothing. */
@@ -109,12 +119,11 @@ object ShapeInk {
                 val next = shape.vertices[(index + 1) % count]
                 val text = "${ParametricShapes.interiorAngleDeg(shape, index).roundToInt()}°"
                 val (width, height) = labelSize(text)
-                val (ux, uy) = inwardBisector(vertex, previous, next, centerX, centerY)
-                val inset = angleInset(vertex, previous, next, width, height, ux, uy)
+                val (dx, dy) = angleLabelOffset(vertex, previous, next, centerX, centerY, width, height)
                 out += InkPrimitives.text(
                     content = text,
-                    x = vertex.x + ux * inset - width / 2.0,
-                    y = vertex.y + uy * inset - height / 2.0,
+                    x = vertex.x + dx - width / 2.0,
+                    y = vertex.y + dy - height / 2.0,
                     color = shape.strokeColor,
                 )
             }
@@ -191,32 +200,58 @@ object ShapeInk {
     }
 
     /**
-     * How far along the bisector an angle label of [labelHeight] pt can sit and stay inside the
-     * corner: far enough that its box clears both sides, never further than [MAX_ANGLE_INSET] of the
-     * shorter adjacent side (a very sharp corner has no room, and the label would otherwise be
-     * pushed into the middle of the figure, over everything else).
+     * Where an angle label of [labelWidth] × [labelHeight] pt goes, as a vector from its vertex: along
+     * the inward bisector far enough that its box clears both sides, or — when the corner is too sharp
+     * for that distance to stay inside [MAX_ANGLE_INSET] of the shorter side — the same distance along
+     * the **outward** bisector, where the two sides diverge and the box clears them from behind.
+     *
+     * The box has to clear both sides with all four corners, not only with its centre, which is why
+     * the distance carries the box's own extent along the bisector.
      */
-    private fun angleInset(
+    private fun angleLabelOffset(
         vertex: ShapeVertex,
         previous: ShapeVertex,
         next: ShapeVertex,
+        centerX: Double,
+        centerY: Double,
         labelWidth: Double,
         labelHeight: Double,
-        ux: Double,
-        uy: Double,
-    ): Double {
-        val half = Math.toRadians(ParametricShapes.interiorAngleDeg(previous, vertex, next)) / 2.0
-        val sine = kotlin.math.sin(half).coerceAtLeast(0.15)
-        // How far the box's own far corner sits along the bisector — the box has to clear both
-        // sides with all four corners, not only with its centre.
-        val extent = abs(ux) * labelWidth / 2.0 + abs(uy) * labelHeight / 2.0
-        val needed = (extent + LABEL_GAP_PT) / sine
+    ): Pair<Double, Double> {
+        val (ux, uy) = inwardBisector(vertex, previous, next, centerX, centerY)
+        val halfWidth = labelWidth / 2.0
+        val halfHeight = labelHeight / 2.0
+        var inside = 0.0
+        var outside = 0.0
+        // Distance is asked of **each side on its own terms**: a step along the bisector turns into
+        // distance from a side by the sine of the angle between them, while the box reaches at the
+        // side with its own half-extent along that side's normal — not with its extent along the
+        // bisector, which is what made an asymmetric corner (a long side against a short one) put the
+        // label on the long line anyway.
+        for (corner in listOf(previous, next)) {
+            val dx = corner.x - vertex.x
+            val dy = corner.y - vertex.y
+            val length = hypot(dx, dy)
+            if (length < SAME_POINT_PT) continue
+            val vx = dx / length
+            val vy = dy / length
+            val across = halfWidth * abs(vy) + halfHeight * abs(vx)
+            val along = halfWidth * abs(vx) + halfHeight * abs(vy)
+            val towardSide = abs(ux * vy - uy * vx).coerceAtLeast(MIN_BISECTOR_SINE)
+            val towardCorner = abs(ux * vx + uy * vy).coerceAtLeast(MIN_BISECTOR_SINE)
+            inside = maxOf(inside, (across + LABEL_GAP_PT) / towardSide)
+            outside = maxOf(outside, (along + LABEL_GAP_PT) / towardCorner)
+        }
+        if (inside <= 0.0) return 0.0 to 0.0
         val room = MAX_ANGLE_INSET * minOf(
             hypot(previous.x - vertex.x, previous.y - vertex.y),
             hypot(next.x - vertex.x, next.y - vertex.y),
         )
-        return minOf(needed, room)
+        return if (inside <= room) ux * inside to uy * inside
+        else -ux * outside to -uy * outside
     }
+
+    /** A corner whose bisector runs along a side (or across it) is degenerate: this keeps it finite. */
+    private const val MIN_BISECTOR_SINE = 0.15
 
     /** Whether two ARGB colours are the same *ink*, ignoring alpha — the fill is the alpha. */
     private fun sameInk(left: Int, right: Int): Boolean = (left and 0x00FFFFFF) == (right and 0x00FFFFFF)

@@ -171,51 +171,51 @@ looks like: they compile the same element with the same code. Compiled ink is me
 identity, so a table is compiled once, not once per frame.
 
 **The plot is the first family to become editable** (same decision). It is the one entity the app can
-already author — the graph dialog's own output *is* a list of plot curves and a range — so the work is a
-shortening rather than a new surface, and it is under way: the graph dialog now inserts a **living
-`PlotElement`** where the ink used to be baked (`render/PlotElementFactory.kt` turns the dialog's answer
-into the recipe, on the placement `insertMultiPlot` had always computed, so the graph on screen is the
-same graph and only the file changed). `ElementBounds` provides `PlotElement` with its frame's padded
-bounding box and marks it hit-testable: marquee, lasso and tap gestures pick it up, drag gestures move it
-(translating its page-local frame while preserving mathematical ranges), handles resize it, and delete
-removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`). When a single plot is selected,
-the selection action bar offers **Edit plot**, which opens the anchored micro-inspector `PlotInspectorAnchor` beside
-the selection on canvas, pre-filled with the element's curves, range, flags and shaded area; confirming applies the edits
-in place (`PlotElementFactory.applyPlotEdit`) preserving the fields the dialog has no input for (`samples`,
-`parameters`, `axisColor`, `id`), with full undo support and instant re-rendering. The panel is
-**freely draggable and owns its place**: it is anchored once, beside the plot it was opened on, and after
-that only the user moves it — an Apply (which replaces the element with its edited copy), a curve row
-appearing or the viewport changing never re-anchors or teleports it, and its editing state is keyed to
-the *open* rather than to the element, so what was typed survives an Apply. Its drag is an absolute
-move bounded by the canvas, not a delta re-measured from the anchor, so it can always be moved even
-when it already sits against an edge. Because the
-inspector is anchored, the on-screen keyboard can cover it; its focused field is therefore mirrored
-into a one-line cell pinned to the canvas' bottom edge above the IME (`ui/PlotInputEcho.kt`), which
-shows the same label and text as the field being typed in and disappears with the keyboard.
-The dialog owns the
-shaded integral area (`shadeIntegral`), whose from/to pair drives the wash, the integral the summary
-reports and the ink an export compiles ([math-engine.md](math-engine.md), section 3).
-The table is the second family to become editable: authored as a living `TableElement` by the table tool
-(`render/TableElementFactory.kt`), given its real grid bounding box and hit-testability by `render/ElementBounds.kt`,
-and moved and resized by `render/SelectionOps.kt` (where a move shifts its origin and keeps `colWidths`/`rowHeights`
-authoritative, while handles rescale the grid columns and rows, leaving the rule thickness alone —
-a resize stretches geometry, never ink: `docs/selection.md`).
+already author — the graph dialog's output *is* a list of curves and a range — so it inserts a **living
+`PlotElement`** where ink used to be baked (`render/PlotElementFactory.kt`, on the placement
+`insertMultiPlot` had always computed). `ElementBounds` gives it a hit-testable frame box, so marquee,
+lasso and tap pick it, drag moves it (translating the frame while keeping the mathematical ranges),
+handles resize it and delete removes it (`render/SelectionOps.kt`, `render/LivingEntitySelectionTest.kt`).
+A single selected plot offers **Edit plot**, which opens `PlotInspectorAnchor` beside the selection,
+pre-filled with its curves, range, flags and shaded area; confirming applies in place
+(`PlotElementFactory.applyPlotEdit`), preserving the fields the panel has no input for (`samples`,
+`parameters`, `axisColor`, `id`), undoable and re-rendered at once. The panel **owns its place**:
+anchored once beside the plot it opened on, never re-anchored by an Apply, a curve row or a viewport
+change, its editing state keyed to the *open* rather than the element so what was typed survives an
+Apply, and its absolute canvas-bounded drag always movable. Because it is anchored the IME can cover
+it, so the focused field is mirrored into a one-line cell above the keyboard (`ui/PlotInputEcho.kt`).
+The dialog owns the shaded integral (`shadeIntegral`), whose from/to pair drives the wash, the
+summary's integral and the exported ink ([math-engine.md](math-engine.md), section 3).
+The table is the second family to become editable: a living `TableElement` authored by the table tool
+(`render/TableElementFactory.kt`), with its grid box and hit-testability from `render/ElementBounds.kt` and
+move/resize from `render/SelectionOps.kt` (a move shifts the origin and keeps `colWidths`/`rowHeights`
+authoritative; handles rescale the grid, leaving the rule thickness alone — a resize stretches geometry,
+never ink: `docs/selection.md`).
 
-The circuit component is the third family: authored as a living `CircuitElement` by circuit tools
-(`render/CircuitElementFactory.kt`), given its rotated stroke bounding box and hit-testability by
-`render/ElementBounds.kt`, moved, rotated, and restyled by `render/SelectionOps.kt`, and edited in place via
-`ui/CircuitEditorDialog.kt` (symbol picker, value text, stroke width, rotation, color, and pin connectivity with
-magnetic pin snapping via `render/CircuitSnapping.kt`).
+The circuit component is the third family: a living `CircuitElement` authored by circuit tools
+(`render/CircuitElementFactory.kt`), with a hit-testable rotated stroke box and move/rotate/restyle from
+`render/SelectionOps.kt`, edited in place via `ui/CircuitEditorDialog.kt` (symbol, value, stroke, rotation,
+colour, and pins with `render/CircuitSnapping.kt`'s magnet). Its inspector writes the value with a **circuit
+symbol keyboard** (Ω, µ, k, M, ±, °C…, inserted at the cursor) and puts it on any of the symbol's four
+sides (`labelSide`, above).
 
-The parametric shape is the fourth and last family: a closed polygon the shape recogniser keeps as
-**geometry** instead of ink (`render/ParametricShapes.kt` — a triangle or rectangle drawn with the
-pen), given its real stroke box and hit-testability by `render/ElementBounds.kt` with the box
-**recomputed from its vertices on every read**, and moved, resized or restyled by
-`render/SelectionOps.kt`. It is edited on the page: a selected figure draws a handle on each corner
-(`render/DrawingSurfacePaint.kt`, hit-tested in `render/SelectionGestureController.kt`), and dragging
-one deforms the figure live while the side leading into it snaps onto the page's 0/30/45/90°
-directions. **Edit shape** on the selection bar switches its two readout badges
-(`ui/ShapeEditorDialog.kt`).
+The parametric shape is the fourth family: a closed polygon the recogniser keeps as **geometry** instead
+of ink (`render/ParametricShapes.kt`), with a stroke box `render/ElementBounds.kt` **recomputes from its
+vertices on every read** and move/resize/restyle from `render/SelectionOps.kt`. It is edited on the page
+— a handle on each corner (`render/DrawingSurfacePaint.kt`, hit-tested in
+`render/SelectionGestureController.kt`), and dragging one deforms the figure live with the side leading
+into it snapped to 0/30/45/90° — and **Edit shape** on the selection bar switches its two readout
+badges (`ui/ShapeEditorDialog.kt`).
+
+**A double-tap in the Select tool opens whichever family is under the finger** — a table cell, a plot, a
+component, a figure — through one dispatch (`render/LivingEditTargets.kt`) and one UI seam
+(`ui/LivingEditors.kt`), the same target the action bar's **Edit** buttons open (`LivingEditCoverageTest`).
+Ink is not a living element, and outside Select each tool's second tap keeps its own meaning.
+
+**A label never sits on the element it describes**: every family lays its writing out from the *drawn*
+geometry — a value around the symbol, a figure's lengths outside their edges and its angles inside a
+corner (or outside one too sharp to hold them), a cell's text inside its cell, a plot's numbers and
+summary outside its frame — guarded by `LivingLabelClearanceTest`.
 
 The `.xopp` synthesis export compiles living entities into standard `.xopp` ink before a file leaves
 the app ([mobix-format.md](mobix-format.md)); a dragged corner is simply the figure's new outline, so
@@ -336,7 +336,7 @@ and width and no line style, so neither would survive the round trip.
 ```json
 {
   "type": "circuit", "id": "ckt_res_01", "symbol": "RESISTOR",
-  "value": "10 kΩ", "labelBelow": true,
+  "value": "10 kΩ", "labelSide": "below",
   "position": { "x": 300.0, "y": 150.0 }, "rotation": 90.0,
   "strokeColor": "#d84315ff", "strokeWidth": 1.6,
   "pins": [
@@ -346,12 +346,14 @@ and width and no line style, so neither would survive the round trip.
 }
 ```
 
-`labelBelow` places the `value` under the drawn symbol instead of above it, and is omitted when it is
-`false` — a label above its part is the ordinary reading. Either way the label is laid out **around**
-the symbol (centred on the turned symbol's own box, with air between the two), so it never lies over
-the drawing — which is what it used to do as soon as a component was rotated, since the ink turns and
-a value does not. The side is chosen in the circuit inspector, and changing it there moves the label
-at once (`render/CircuitInk.kt`, `ui/CircuitEditorDialog.kt`).
+`labelSide` places the `value` on one of four sides of the drawn symbol — `"above"` (the default, and
+so omitted), `"below"`, `"left"` or `"right"` — a *side of the drawing*, not a coordinate: the label
+is laid out **around** the symbol (centred across it for above/below, along it for left/right, with
+air between), so it never lies over the drawing — which is what it used to do as soon as a component
+was rotated, since the ink turns and a value does not. The inspector chooses the side and writes the
+value with a circuit symbol keyboard (Ω, µ, k, ±, °C…), moving the label at once
+(`render/CircuitInk.kt`, `ui/CircuitEditorDialog.kt`); the key it replaced, `labelBelow: true` is
+still read, so an older document shows what it meant.
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
@@ -392,8 +394,7 @@ a build that does not know a symbol cannot draw it, and says so rather than inve
 ### LaTeX today
 
 `.xopp`'s `teximage` is the only math element the model carries: `TexImageElement` keeps the LaTeX source,
-its colour, and the rendered PNG bytes (either may be absent), and round-trips through `.xopp` unchanged.
-The app draws that source itself — `render/LatexParser.kt` builds a node tree and `render/LatexRenderer.kt`
-draws fractions, scripts and roots — and `ui/LatexPalette.kt` inserts the STEM symbols the keyboard cannot.
-There is no living `mathBlock` element: the format does not model one, so a document carrying one from a
-newer build is preserved verbatim as a `RawElement` (rule 1 above) rather than drawn.
+its colour and the rendered PNG bytes (either may be absent) and round-trips unchanged. The app draws that
+source itself (`render/LatexParser.kt` → `render/LatexRenderer.kt`); `ui/LatexPalette.kt` inserts the STEM
+symbols the keyboard cannot. There is no living `mathBlock` element: one from a newer build is preserved
+verbatim as a `RawElement` (rule 1) rather than drawn.

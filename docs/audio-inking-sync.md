@@ -64,11 +64,27 @@ Rather than relying on vulnerable loose sidecars in user folders:
 
 ### Background capture and standalone media export
 - **Background capture (`AudioRecordingService`)**: Android foreground service (`FOREGROUND_SERVICE_MICROPHONE`)
-  holding a partial wake lock and showing an ongoing notification with elapsed chronometer and Stop action.
-  Prevents OS microphone muting or capture termination when switching apps or locking the screen.
+  holding a partial wake lock and showing an ongoing notification with an elapsed chronometer and two actions —
+  **Pause/Resume** and **Stop**. The shade is the recording's remote control for the whole of a lecture written
+  elsewhere in the app: both buttons call the same session methods the mini capsule calls (`onPauseRequested` →
+  `AudioSession.pauseRecording`/`resumeRecording`, `onStopRequested` → the editor's Stop), and the notification is
+  rebuilt from that one state (`AudioRecordingService.notifyPaused`), so it never says "recording" for a paused
+  session or the reverse. The mini capsule's own resume button reads as a **record dot**, not the play triangle of
+  the playback button beside it: resuming a recording and starting playback are two different acts. A paused recording keeps the microphone open — the capture is muted, not closed — so
+  resuming costs no new file and no gap.
+  Prevents OS microphone muting or capture termination when switching apps or locking the screen. All three
+  recorders ask for `MediaRecorder.AudioSource.VOICE_RECOGNITION` first — the source Android tunes for
+  speech (automatic gain, noise suppression) — and fall back to `MIC`/`DEFAULT` when a device does not offer it.
 - **Standalone export (`AudioStandaloneExporter`)**: Option (`saveStandaloneAudio` in settings and audio popup)
   that automatically exports an independent copy of each completed recording into the device's public
   `Music/MobiXournal` or `Recordings/MobiXournal` collection via MediaStore.
+- **The `.m4a` is encoded during the lecture (`audio/StandaloneAudioTap.kt`).** The same PCM the
+  recorder captures also feeds a second sink, which encodes MP4/AAC (`MediaCodec` + `MediaMuxer`, 48 kbps
+  mono) into `audio-standalone/<recording stem>.m4a` on its own thread. A lecture therefore ends with the
+  file the export needs already on disk, and Stop costs a copy instead of a conversion — the moment the
+  user closes the app is the one moment a transcode cannot run. The sink is bounded: an encoder that
+  falls behind drops chunks rather than slowing the microphone, and one that cannot open at all leaves
+  the work to `audio/AudioTranscoder.kt`, which decodes and re-encodes the finished recording.
 - **What leaves is `.m4a`, never the recorded container.** The app records Ogg/Opus (`.mobix`) or WAV
   (`.xopp`), and the player decodes both, but outside the app Ogg/Opus is the format uploaders most often
   refuse: an assistant that does not recognise it answers that the file "was not processed by the audio

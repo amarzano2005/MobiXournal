@@ -27,7 +27,6 @@ import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
-import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import com.mobixournal.ui.keyStringFromKeyEvent
@@ -441,10 +440,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
     var onScrollChanged: ((Float, Float, Float, Float) -> Unit)? = null
     /** Notified when a placement tap lands, so the editor can prompt for content / pick an image. */
     var onPlace: ((PlaceKind, Placement) -> Unit)? = null
-    /** Notified when a double-tap lands on a table cell: (table, row, col) — the editor opens fixed, so it needs no geometry. */
-    var onTableCellDoubleTap: ((TableElement, Int, Int) -> Unit)? = null
-    /** Notified when a double-tap lands on a living plot: (plot). */
-    var onPlotDoubleTap: ((com.mobixournal.format.model.PlotElement) -> Unit)? = null
+    /**
+     * Notified when a double-tap in selection mode lands on a living element, with the editor it
+     * opens ([LivingEditTargets]) — one callback for the whole family, so no kind can be left out.
+     */
+    var onLivingDoubleTap: ((LivingEditTarget) -> Unit)? = null
     /** Notified when the Hand tool receives a centre double-tap, so the editor can toggle full-page (chrome-hidden) view. */
     var onToggleFullPage: (() -> Unit)? = null
     /**

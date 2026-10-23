@@ -266,6 +266,24 @@ data class CircuitPin(
 )
 
 /**
+ * Which side of a component's **drawn** symbol its value is written on.
+ *
+ * The label is laid out around whatever the symbol library actually drew (after the component's
+ * rotation), never over it, so this names a side of that box rather than a position: [ABOVE] and
+ * [BELOW] read a value like a dimension, [LEFT] and [RIGHT] keep a crowded wire row above and below
+ * the part free — the choice a vertical lead with neighbours on both sides needs.
+ */
+enum class CircuitLabelSide {
+    ABOVE, BELOW, LEFT, RIGHT;
+
+    companion object {
+        /** The side [raw] names, case-insensitively, or null when it names none of them. */
+        fun parse(raw: String?): CircuitLabelSide? =
+            raw?.let { name -> entries.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) } }
+    }
+}
+
+/**
  * A circuit component: the electronics symbol `.xopp` can only store as a set of strokes.
  *
  * [symbol] is the symbol library's key (`RESISTOR_IEEE`, `CAPACITOR`, …) and an open string for the
@@ -283,9 +301,10 @@ data class CircuitPin(
  * @param strokeWidth The component's line width in points.
  * @param value The component's value as the user wrote it (`10 kΩ`, `V1`) — a string, because it is a
  *   label and not a quantity this build computes with.
- * @param labelBelow Whether that label is written **below** the symbol instead of above it. The label
- *   is laid out around the drawn symbol, never over it, so this is the reader's choice of side rather
- *   than a position: above is where a dimension is written, below keeps a crowded wire row free.
+ * @param labelSide Which side of the drawn symbol that label is written on ([CircuitLabelSide]).
+ *   The label is laid out around the symbol, never over it, so this is the reader's choice of side
+ *   rather than a position: above is where a dimension is written, below keeps a crowded wire row
+ *   free, and left/right serve a component whose leads already own the space above and below.
  * @param pins The magnetic anchors, relative to the position and before the rotation.
  * @param extraAttrs Attributes a later schema added, preserved for round-trip.
  * @param id The element's stable identity; see [ElementId].
@@ -298,7 +317,7 @@ data class CircuitElement(
     val strokeColor: Int = DEFAULT_INK,
     val strokeWidth: Double = 1.0,
     val value: String? = null,
-    val labelBelow: Boolean = false,
+    val labelSide: CircuitLabelSide = CircuitLabelSide.ABOVE,
     val pins: List<CircuitPin> = emptyList(),
     val extraAttrs: Map<String, String> = emptyMap(),
     val id: String? = null,
