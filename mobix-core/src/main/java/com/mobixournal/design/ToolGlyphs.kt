@@ -161,32 +161,49 @@ object ToolGlyphCatalogue {
     )
 
     /**
-     * A marker on the pencil's own 45° axis: fat barrel, **flared chisel nib**, and the band it laid.
+     * A marker on the **opposite 45°** from the pencil and the eraser, over the thick band it laid.
      *
-     * The first cut was three strokes — two parallel lines and an underline — which at 20 dp reads as a
-     * struck-through line rather than as a tool. A highlighter is recognised by two things: a body much
-     * fatter than a pen's, and a nib wider than that body. Both are here, and the band underneath is what
-     * separates it from the pencil beside it in the rail.
+     * Interference on the rail was the problem, not detail: the barrel used to run from bottom-left to
+     * top-right — the eraser's own diagonal — at the eraser's own width, so beside it the two read as
+     * one picture and only the small nib told them apart. Four things now separate them at 20 dp:
+     * the marker runs the other way, its barrel **tapers** (a wedge, not a block), it carries a collar
+     * near the cap, and the band it paints is a **closed, thick swipe** rather than a hairline at the
+     * grid's edge, which is what makes "I write with this" legible without a caption.
+     *
+     * A highlighter is recognised by its body being fatter than a pen and by the wide chisel that body
+     * ends in; the swipe underneath is what keeps it apart from the pencil beside it in the rail.
      */
     private fun highlighter(): List<GlyphPart> = listOf(
-        // A barrel nearly twice the pencil's width, filling the grid corner to corner: the width *is*
-        // the message, and a slim marker beside a pencil is two pencils.
+        // The barrel: narrower at the cap than at the nib, so it reads as a wedge held in the hand and
+        // not as the eraser's long, even block.
         GlyphPart.Polyline(
             listOf(
-                GlyphPoint(15.4f, 1.2f), GlyphPoint(21.4f, 7.2f),
-                GlyphPoint(9f, 19.6f), GlyphPoint(3f, 13.6f),
+                GlyphPoint(4.2f, 8.3f), GlyphPoint(8.3f, 4.2f),
+                GlyphPoint(15.3f, 11.3f), GlyphPoint(10.4f, 15.4f),
             ),
             closed = true,
         ),
-        // The collar: the one line that says the wide part is a *nib* and not the end of a card.
-        GlyphPart.Line(5.3f, 11.3f, 11.3f, 17.3f),
+        // The collar: the one line that says the wide end is a *nib* and the narrow end a cap.
+        GlyphPart.Line(6f, 10.5f, 10.5f, 6f),
+        // The chisel: a straight taper from the barrel's width to a flat tip, which is what a marker
+        // ends in — an eraser has nothing at its end at all.
         GlyphPart.Polyline(
             listOf(
-                GlyphPoint(3f, 13.6f), GlyphPoint(0.8f, 14.6f),
-                GlyphPoint(7.8f, 21.6f), GlyphPoint(9f, 19.6f),
+                GlyphPoint(10.4f, 15.4f), GlyphPoint(15.3f, 11.3f),
+                GlyphPoint(16.9f, 13.8f), GlyphPoint(14.1f, 16.9f),
             ),
+            closed = true,
         ),
-        GlyphPart.Line(0.8f, 22.9f, 12.6f, 22.9f),
+        // The band it laid: closed, and only as tall as the stroke is thick plus a hairline, so at
+        // 20 dp its two long edges read as one painted stroke rather than as an empty tray — a taller
+        // loop leaves a visible slit and stops looking like colour.
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(2.2f, 19.6f), GlyphPoint(21.8f, 19.6f),
+                GlyphPoint(21.8f, 21.6f), GlyphPoint(2.2f, 21.6f),
+            ),
+            closed = true,
+        ),
     )
 
     /**
