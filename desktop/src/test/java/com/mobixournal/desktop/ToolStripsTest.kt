@@ -220,15 +220,29 @@ class ToolStripsTest {
             val image = ImageIO.read(ByteArrayInputStream(png))
 
             fun paperAt(x: Int, y: Int) = (image.getRGB(x, y) and 0xFFFFFF) == PAPER
-            // A **run** of paper, not a single white pixel: the tool glyphs are drawn in the chrome ink
-            // (pure white, as on the tablet), so a one-pixel probe would find a glyph in the rail's lane
-            // and call it the page. The sheet is hundreds of pixels tall; a glyph stroke is dozens.
+            // The longest **unbroken** run of paper along a line, not a count of paper pixels in it: the
+            // tool glyphs are drawn in the chrome ink (pure white, as on the tablet), and twenty glyphs
+            // summed along the ribbon's row add up to a page-wide-looking count. No glyph is forty pixels
+            // wide, while the sheet is hundreds.
+            fun longestPaperRun(lines: IntRange, at: (Int) -> Boolean): Int {
+                var best = 0
+                var run = 0
+                for (index in lines) {
+                    if (at(index)) {
+                        run++
+                        if (run > best) best = run
+                    } else {
+                        run = 0
+                    }
+                }
+                return best
+            }
             val minRun = 40
             val paperColumns = (0 until image.width).filter { x ->
-                (header until image.height).count { y -> paperAt(x, y) } >= minRun
+                longestPaperRun(header until image.height) { y -> paperAt(x, y) } >= minRun
             }
             val paperRows = (header until image.height).filter { y ->
-                (0 until image.width).count { x -> paperAt(x, y) } >= minRun
+                longestPaperRun(0 until image.width) { x -> paperAt(x, y) } >= minRun
             }
             assertTrue("$placement: the page is on screen", paperColumns.isNotEmpty() && paperRows.isNotEmpty())
             val lane = if (placement.showsRail) railLane else 0
