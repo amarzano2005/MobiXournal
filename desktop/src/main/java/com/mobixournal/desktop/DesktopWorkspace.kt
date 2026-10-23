@@ -60,6 +60,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
                 // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
                 pen = tablet?.pen,
+                // And, when the driver has packets, the stroke is drawn from those: the same contact,
+                // without waiting for Windows' mouse emulation to notice the touch.
+                packets = tablet?.wintab,
                 // Which wheel turned: the dial's notches arrive from the tablet's own HID device, so
                 // they zoom at the cursor while the mouse's wheel keeps scrolling.
                 dialWheel = { tablet?.dialWheelRecently() == true },

@@ -167,6 +167,33 @@ internal class WintabPacket(pointer: Pointer? = null) : Structure(pointer) {
 }
 
 /**
+ * The system context's y axis, in Windows screen pixels.
+ *
+ * Measured on this machine — and then confirmed in the context itself: `WTInfo` reports
+ * `sysOrgY = 0, sysExtY = 1440`, i.e. the system coordinate runs **upward from the bottom** of a 1440-pixel
+ * desktop, and a contact the pointer put at screen `y = 415` arrived as system `y = 1025` (`1440 − 1025`).
+ * A driver that declares a negative extent has already reversed the axis, and its reading is taken as it
+ * comes.
+ *
+ * This is a reading of the driver's own numbers, not a guess: the earlier "whichever reading lands inside
+ * the window" heuristic failed exactly where both readings fit inside a tall window.
+ */
+internal data class ScreenYMapping(private val bottom: Int, val bottomUp: Boolean) {
+
+    /** The Windows screen pixel for a system coordinate [y]. */
+    fun of(y: Int): Int = if (bottomUp) bottom - y else y
+
+    fun describe(): String =
+        if (bottomUp) "bottom-up from $bottom" else "already top-down (sysExtY is negative)"
+
+    companion object {
+        /** From `LOGCONTEXT.sysOrgY`/`sysExtY`. */
+        fun of(sysOrgY: Int, sysExtY: Int): ScreenYMapping =
+            if (sysExtY >= 0) ScreenYMapping(sysOrgY + sysExtY, bottomUp = true) else ScreenYMapping(sysOrgY, false)
+    }
+}
+
+/**
  * The window's Wintab reader: one context, the newest packet, and nothing else.
  *
  * [open] answers null on a host without the driver or without a pressure axis, and the window then keeps
@@ -174,16 +201,31 @@ internal class WintabPacket(pointer: Pointer? = null) : Structure(pointer) {
  */
 internal class TabletWintab private constructor(
     private val api: WintabApi,
+    private val user32: InkUser32,
+    private val hwnd: Pointer,
     private val context: Pointer,
+    /** How the driver's system y maps onto Windows screen pixels. */
+    private val screenY: ScreenYMapping,
     /** The driver's full-scale pressure reading, 0 when it declares pressure but no range. */
     private val pressureMax: Int,
     private val log: (String) -> Unit,
     private val onSample: ((PenContact) -> Unit)?,
     private val onEvent: ((String) -> Unit)?,
-) : PenContactStream, AutoCloseable {
+) : PenContactStream, PenPacketSource, AutoCloseable {
 
     @Volatile
     private var latest: PenContact? = null
+
+    /** The canvases listening for packets; a stroke is drawn by the one the pen is over. */
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<(PenPacket) -> Unit>()
+
+    override fun listen(listener: (PenPacket) -> Unit): () -> Unit {
+        listeners.add(listener)
+        return { listeners.remove(listener) }
+    }
+
+    /** Whether the previous packet had the tip down, so a stroke's first packet can be logged. */
+    private var wasTip = false
 
     /** Packets decoded this session, for the probe's counter. */
     @Volatile
@@ -218,18 +260,66 @@ internal class TabletWintab private constructor(
 
     private fun consume(packet: WintabPacket) {
         val tip = packet.buttons and 0xFFFF
-        val inContact = tip and WintabApi.BTN_TIP != 0 || packet.pressure > 0
-        if (!inContact) {
+        val onGlass = tip and WintabApi.BTN_TIP != 0 || packet.pressure > 0
+        val sample = PenContact.of(packet, pressureMax, System.nanoTime())
+        if (!onGlass) {
             latest = null
+            // The lift is a packet too, and it is what ends a stroke: a canvas that drew from these
+            // never waits for the mouse message Windows may or may not send for the same contact.
+            emit(packet, sample, tip = false)
             return
         }
-        val sample = PenContact.of(packet, pressureMax, System.nanoTime())
         latest = sample
         samples++
         if (samples % 200 == 1) {
-            onEvent?.invoke("wintab sample ${sample.describe()} tilt=yes buttons=$tip")
+            onEvent?.invoke("wintab sample ${sample.describe()} buttons=$tip")
         }
+        emit(packet, sample, tip = true)
         onSample?.invoke(sample)
+    }
+
+    /**
+     * A packet's screen coordinates as the window's client pixels, or null when it cannot be converted.
+     *
+     * The y axis is read through [screenY]'s mapping and then `ScreenToClient` applies the window's own
+     * position — so the canvas only has to subtract its own corner.
+     */
+    private fun clientPoint(x: Int, y: Int): InkPoint? {
+        val point = InkPoint().apply {
+            this.x = x
+            this.y = screenY.of(y)
+        }
+        return if (runCatching { user32.ScreenToClient(hwnd, point) }.getOrDefault(false)) point else null
+    }
+
+    /** One packet to every listening canvas, in the window's client pixels. */
+    private fun emit(packet: WintabPacket, sample: PenContact, tip: Boolean) {
+        // The context is the system one, so x/y are screen pixels; the canvas needs client pixels, and
+        // the y axis's direction is settled by which reading lands inside the window.
+        val point = clientPoint(packet.x, packet.y) ?: return
+        // One line at each stroke's first packet: the raw reading beside the converted one, which is how
+        // a scale or an origin error in the mapping is seen instead of guessed at.
+        if (tip && !wasTip) {
+            onEvent?.invoke(
+                "wintab stroke start screen=${packet.x},${packet.y} client=${point.x},${point.y}",
+            )
+        }
+        wasTip = tip
+        if (listeners.isEmpty()) return
+        val next = PenPacket(
+            x = point.x.toFloat(),
+            y = point.y.toFloat(),
+            pressure = sample.pressure,
+            tiltRad = sample.tiltRad,
+            azimuthRad = sample.azimuthRad,
+            rotationRad = sample.rotationRad,
+            tip = tip,
+            eraser = sample.eraser,
+            atNanos = sample.atNanos,
+        )
+        for (listener in listeners) {
+            runCatching { listener(next) }
+        }
     }
 
     override fun contact(): PenContact? {
@@ -298,11 +388,30 @@ internal class TabletWintab private constructor(
                 log("wintab: WTOpenA refused")
                 return null
             }
+            val user32 = runCatching {
+                Native.load("user32", InkUser32::class.java) as InkUser32
+            }.getOrElse {
+                log("wintab: user32 unavailable (${it.message})")
+                return null
+            }
+            val screenY = ScreenYMapping.of(context.sysOrgY, context.sysExtY)
+            log("wintab: y ${screenY.describe()} (sysOrgY=${context.sysOrgY} sysExtY=${context.sysExtY})")
             log(
                 "wintab: context opened, pressure 0..${pressure.axMax}, " +
                     "rate ${context.pktRate}/s, mask 0x${context.pktData.toString(16)}",
             )
-            return TabletWintab(api, handle, pressure.axMax, log, onSample, onEvent)
+            // The window's own geometry, so a coordinate that looks wrong can be attributed: screen
+            // pixels, client pixels and the display's scale factor belong together in one reading.
+            // Wrapped, because a window that is not on screen yet has no location to report.
+            runCatching {
+                val scale = window.graphicsConfiguration.defaultTransform.scaleX
+                val insets = window.insets
+                log(
+                    "wintab: window origin ${window.locationOnScreen} scale=$scale " +
+                        "insets=${insets.left},${insets.top}",
+                )
+            }.onFailure { log("wintab: window geometry unavailable (${it.message})") }
+            return TabletWintab(api, user32, hwnd, handle, screenY, pressure.axMax, log, onSample, onEvent)
         }
     }
 }

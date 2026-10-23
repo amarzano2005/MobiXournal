@@ -47,9 +47,28 @@ internal interface InkUser32 : StdCallLibrary {
     /** The extra information the message carries — how a driver marks *which* device sent a wheel. */
     fun GetMessageExtraInfo(): Pointer?
 
+    /** Screen pixels → the window's client pixels: where a Wintab packet's `x`/`y` live. */
+    fun ScreenToClient(hwnd: Pointer, point: InkPoint): Boolean
+
+    /** The window's client rectangle, which is what a converted packet has to fall inside. */
+    fun GetClientRect(hwnd: Pointer, rect: InkRect): Boolean
+
+    /** `GetSystemMetrics`: the screen the tablet maps onto, for the y axis's two conventions. */
+    fun GetSystemMetrics(index: Int): Int
+
     companion object {
         /** `GWLP_WNDPROC`: the index [SetWindowLongPtrW] takes to swap a window's procedure. */
         const val GWLP_WNDPROC = -4
+
+        /**
+         * `SM_YVIRTUALSCREEN` / `SM_CYVIRTUALSCREEN`: the top and height of the whole desktop.
+         *
+         * 79 is the *height*; 78 is the width, and reading the width as a height mirrored every packet
+         * by 3440 pixels — off the window entirely, so the direct reading was kept and the stroke stayed
+         * displaced.
+         */
+        const val SM_YVIRTUALSCREEN = 77
+        const val SM_CYVIRTUALSCREEN = 79
 
         const val WM_POINTERUPDATE = 0x0245
         const val WM_POINTERDOWN = 0x0246
@@ -87,6 +106,19 @@ internal interface InkUser32 : StdCallLibrary {
  */
 internal fun interface InkWindowProcedure : StdCallLibrary.StdCallCallback {
     fun callback(hwnd: Pointer, message: Int, wParam: Long, lParam: Long): Pointer?
+}
+
+/** `RECT`, for the window's client area. */
+internal class InkRect : Structure() {
+    @JvmField var left: Int = 0
+    @JvmField var top: Int = 0
+    @JvmField var right: Int = 0
+    @JvmField var bottom: Int = 0
+
+    override fun getFieldOrder(): List<String> = listOf("left", "top", "right", "bottom")
+
+    /** True when [x],[y] are inside it. */
+    fun holds(x: Int, y: Int): Boolean = x in left until right && y in top until bottom
 }
 
 /** `POINT`, as the pointer structures embed it. */

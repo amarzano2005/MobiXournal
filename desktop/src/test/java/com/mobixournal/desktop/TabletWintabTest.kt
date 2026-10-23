@@ -81,6 +81,20 @@ class TabletWintabTest {
     }
 
     @Test
+    fun `the system y is bottom-up, as the driver's own context declares`() {
+        // WTInfo on this machine: sysOrgY = 0, sysExtY = 1440 — and a contact the pointer put at screen
+        // y 415 arrived as system y 1025.
+        val mapping = ScreenYMapping.of(sysOrgY = 0, sysExtY = 1440)
+        assertTrue(mapping.bottomUp)
+        assertEquals("the top of the desktop is the extent", 0, mapping.of(1440))
+        assertEquals("and a contact is measured up from its bottom", 415, mapping.of(1025))
+
+        val reversed = ScreenYMapping.of(sysOrgY = 0, sysExtY = -1440)
+        assertFalse("a driver that declares a negative extent has reversed the axis itself", reversed.bottomUp)
+        assertEquals("so its reading is taken as it comes", 1025, reversed.of(1025))
+    }
+
+    @Test
     fun `the inverted cursor is the eraser end`() {
         assertTrue(contact(pressure = 500, pressureMax = 16383, status = WintabApi.TPS_INVERT).eraser)
         assertFalse(contact(pressure = 500, pressureMax = 16383, status = 0).eraser)

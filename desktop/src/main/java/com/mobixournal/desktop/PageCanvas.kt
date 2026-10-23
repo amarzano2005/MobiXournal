@@ -8,9 +8,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.toSize
+import kotlinx.coroutines.delay
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,7 +34,9 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import com.mobixournal.format.model.Page
 import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -73,6 +89,11 @@ internal fun PageCanvas(
      */
     pen: PenContactStream? = null,
     /**
+     * The tablet's own packets, when the host has them: a stroke is drawn from them rather than from the
+     * mouse Windows emulates the same contact as (`PenPacketStroke`).
+     */
+    packets: PenPacketSource? = null,
+    /**
      * True when the wheel notch Compose is delivering right now came from the tablet's **dial** rather
      * than the mouse. Windows sends both as `WM_MOUSEWHEEL` with the same ±120 delta and no modifier,
      * so the notch's *device* is what decides (`TabletWheel`): the dial's turns zoom at the cursor, and
@@ -83,14 +104,30 @@ internal fun PageCanvas(
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
+    // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
+    val density = LocalDensity.current.density
     val page = remember(tab, tab.page, tab.document.edits) {
         runCatching { tab.document.page(tab.page) }
     }
     val loaded = page.getOrNull()
-    // The stroke in progress, in page pt: the canvas draws it every frame, and the lift commits it.
+    // The strokes in progress, in page pt — the Compose pointer's and the tablet's, one draft each.
     val draft = remember(tab, tab.page) { mutableStateListOf<InkSample>() }
+    val penDraft = remember(tab, tab.page) { mutableStateListOf<InkSample>() }
+    // Where this canvas sits in the window, so a packet in client pixels becomes a point inside it.
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    var extent by remember { mutableStateOf(Size.Zero) }
+    // True while the tablet's packets own the pen: the mouse path stands aside for that stroke.
+    val penOwns = remember(tab, tab.page) { mutableStateOf(false) }
 
-    BoxWithConstraints(modifier.background(DESK).clipToBounds()) {
+    BoxWithConstraints(
+        modifier
+            .background(DESK)
+            .clipToBounds()
+            .onGloballyPositioned { coordinates ->
+                origin = coordinates.boundsInWindow().topLeft
+                extent = coordinates.size.toSize()
+            },
+    ) {
         val viewW = maxWidth.value
         val viewH = maxHeight.value
         if (loaded == null) {
@@ -98,62 +135,162 @@ internal fun PageCanvas(
             return@BoxWithConstraints
         }
 
-        val pageW = loaded.width.toFloat()
-        val pageH = loaded.height.toFloat()
-        val zoom = tab.fit.zoomFor(pageW, pageH, viewW, viewH) ?: tab.viewport.zoom
-        // A fitted page is re-centred every layout pass; a free one keeps its own offsets, clamped.
-        val viewport = tab.viewport.copy(zoom = zoom).clamped(pageW, pageH, viewW, viewH)
-        // The status bar reports the *effective* zoom, which for a fitted page is the window's answer and
-        // not the tab's stored one: publishing it keeps the readout true without a second source of truth.
-        //
-        // Only while a fit mode is on. Publishing it unconditionally is a stale-write race: a zoom the user
-        // asked for can be overwritten by the fitted value of the *previous* frame, which lands as a tab
-        // that says 98 % and refuses to zoom.
-        LaunchedEffect(zoom, viewW, viewH, tab.fit) {
-            if (tab.fit != FitMode.NONE && tab.viewport.zoom != zoom) {
-                tab.viewport = tab.viewport.copy(zoom = zoom)
-            }
-        }
+        val sheet = sheetLayout(tab, loaded, viewW, viewH)
+        // The tablet's packets, drawing the stroke themselves (see `PenPacketStrokes`).
+        PenPacketStrokes(
+            tab = tab,
+            tool = tool,
+            ink = ink,
+            density = density,
+            pageW = sheet.pageW,
+            pageH = sheet.pageH,
+            viewport = sheet.viewport,
+            draft = penDraft,
+            onEdited = onEdited,
+            origin = { origin },
+            extent = { extent },
+            owns = penOwns,
+            packets = packets,
+        )
+        SheetCanvas(
+            tab = tab,
+            page = loaded,
+            sheet = sheet,
+            tool = tool,
+            ink = ink,
+            draft = draft,
+            penDraft = penDraft,
+            pen = pen,
+            penOwns = penOwns,
+            measurer = measurer,
+            density = density,
+            panMode = panMode,
+            dialWheel = dialWheel,
+            onViewport = onViewport,
+            onFit = onFit,
+            onEdited = onEdited,
+        )
+    }
+}
 
-        Canvas(
-            Modifier.fillMaxSize()
-                .onPointerEvent(PointerEventType.Scroll) { event ->
-                    wheelViewport(
-                        event, viewport, zoom, density, pageW, pageH, viewW, viewH, onFit,
-                        forceZoom = dialWheel(),
-                    )?.let(onViewport)
-                }
-                .pointerInput(tab, panMode, tool, ink, pen, pageW, pageH, viewW, viewH, viewport) {
-                    pageGestures(
-                        tab = tab,
-                        panMode = panMode,
-                        tool = tool,
-                        ink = ink,
-                        viewport = viewport,
-                        pageW = pageW,
-                        pageH = pageH,
-                        viewW = viewW,
-                        viewH = viewH,
-                        draft = draft,
-                        pen = pen,
-                        onViewport = onViewport,
-                        onEdited = onEdited,
-                    )
-                },
-        ) {
-            paintSheet(
-                page = loaded,
-                viewport = viewport,
-                zoom = zoom,
-                density = density,
-                measurer = measurer,
-                backdrop = tab.document.backdrop,
-                hiddenLayers = tab.hiddenOn(tab.page),
-                tool = tool,
-                ink = ink,
-                draft = draft.toList(),
-            )
+/** A page's size and the viewport in force for it, in the window it is being shown in. */
+private data class SheetLayout(
+    val pageW: Float,
+    val pageH: Float,
+    val zoom: Float,
+    val viewW: Float,
+    val viewH: Float,
+    val viewport: Viewport,
+)
+
+/**
+ * The page's box and the zoom that fits it — and the one write the canvas makes to the tab's own
+ * viewport.
+ *
+ * The status bar reports the *effective* zoom, which for a fitted page is the window's answer and not the
+ * tab's stored one: publishing it keeps the readout true without a second source of truth. It happens
+ * **only while a fit mode is on** — publishing it unconditionally is a stale-write race, where a zoom the
+ * user asked for is overwritten by the fitted value of the *previous* frame.
+ */
+@Composable
+private fun sheetLayout(tab: DesktopTab, page: Page, viewW: Float, viewH: Float): SheetLayout {
+    val pageW = page.width.toFloat()
+    val pageH = page.height.toFloat()
+    val zoom = tab.fit.zoomFor(pageW, pageH, viewW, viewH) ?: tab.viewport.zoom
+    // A fitted page is re-centred every layout pass; a free one keeps its own offsets, clamped.
+    val viewport = tab.viewport.copy(zoom = zoom).clamped(pageW, pageH, viewW, viewH)
+    LaunchedEffect(zoom, viewW, viewH, tab.fit) {
+        if (tab.fit != FitMode.NONE && tab.viewport.zoom != zoom) {
+            tab.viewport = tab.viewport.copy(zoom = zoom)
         }
+    }
+    return SheetLayout(pageW, pageH, zoom, viewW, viewH, viewport)
+}
+
+/**
+ * The page on screen: the scroll, the pointer gestures, and the painted sheet.
+ *
+ * Split out of [PageCanvas] so the composable that owns a page is layout and wiring, and this one is the
+ * surface (`SourceStructureTest` caps a function's length).
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun SheetCanvas(
+    tab: DesktopTab,
+    page: Page,
+    sheet: SheetLayout,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    draft: SnapshotStateList<InkSample>,
+    /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
+    penDraft: SnapshotStateList<InkSample>,
+    pen: PenContactStream?,
+    penOwns: MutableState<Boolean>,
+    measurer: TextMeasurer,
+    density: Float,
+    panMode: Boolean,
+    dialWheel: () -> Boolean,
+    onViewport: (Viewport) -> Unit,
+    onFit: (FitMode) -> Unit,
+    onEdited: (Int) -> Unit,
+) {
+    // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
+    var hover by remember { mutableStateOf<Offset?>(null) }
+    val ringPx = toolCursorDiameterPx(tool, ink.width, sheet.zoom, density)
+    val penIcon = rememberBlankPointerIcon()
+
+    Canvas(
+        Modifier.fillMaxSize()
+            .pointerHoverIcon(if (ringPx != null) penIcon else PointerIcon.Default)
+            .onPointerEvent(PointerEventType.Enter) { event ->
+                hover = event.changes.firstOrNull()?.position
+            }
+            .onPointerEvent(PointerEventType.Move) { event ->
+                hover = event.changes.firstOrNull()?.position
+            }
+            .onPointerEvent(PointerEventType.Exit) { hover = null }
+            .onPointerEvent(PointerEventType.Scroll) { event ->
+                wheelViewport(
+                    event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
+                    sheet.viewW, sheet.viewH, onFit,
+                    forceZoom = dialWheel(),
+                )?.let(onViewport)
+            }
+            .pointerInput(tab, panMode, tool, ink, pen, sheet) {
+                pageGestures(
+                    tab = tab,
+                    panMode = panMode,
+                    tool = tool,
+                    ink = ink,
+                    viewport = sheet.viewport,
+                    pageW = sheet.pageW,
+                    pageH = sheet.pageH,
+                    viewW = sheet.viewW,
+                    viewH = sheet.viewH,
+                    draft = draft,
+                    pen = pen,
+                    penActive = { penOwns.value },
+                    onViewport = onViewport,
+                    onEdited = onEdited,
+                )
+            },
+    ) {
+        paintSheet(
+            page = page,
+            viewport = sheet.viewport,
+            zoom = sheet.zoom,
+            density = density,
+            measurer = measurer,
+            backdrop = tab.document.backdrop,
+            hiddenLayers = tab.hiddenOn(tab.page),
+            tool = tool,
+            ink = ink,
+            drafts = listOf(draft.toList(), penDraft.toList()),
+        )
+        // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
+        val ring = ringPx
+        val at = hover
+        if (ring != null && at != null) drawToolCursor(at, ring)
     }
 }
 
@@ -177,7 +314,14 @@ private fun DrawScope.paintSheet(
     hiddenLayers: Set<Int>,
     tool: DesktopTool,
     ink: DesktopInk,
-    draft: List<InkSample>,
+    /**
+     * The strokes in progress, one list per input path.
+     *
+     * Two, not one: the tablet's packets and the Compose pointer each own their draft, so a cancelled
+     * mouse gesture can never erase the samples of a stroke the pen is still drawing. They are painted as
+     * separate previews because they are separate strokes until one of them is committed.
+     */
+    drafts: List<List<InkSample>>,
 ) {
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
@@ -185,10 +329,79 @@ private fun DrawScope.paintSheet(
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
         drawPageContent(page, pxPerPt, measurer, backdrop, hiddenLayers)
         val inkTool = tool.inkTool()
-        if (inkTool != null && draft.isNotEmpty()) {
+        if (inkTool == null) return@withTransform
+        for (draft in drafts) {
+            if (draft.isEmpty()) continue
             strokeOf(inkTool, ink.colour, ink.width, draft)?.let { draftStroke ->
                 drawInkStroke(draftStroke, pxPerPt)
             }
+        }
+    }
+}
+
+/**
+ * The tablet's packets, drawing this canvas's stroke.
+ *
+ * The gesture is the canvas's **own**, not the one `pageGestures` builds per pointer gesture: a packet
+ * stream has no beginning and no end to wrap, it simply stops when the pen lifts. Everything else is the
+ * shared path — `PenPacketStroke` converts, `PageInkGesture` routes, the router and the pressure filter
+ * decide — and this only keeps the subscription tied to the canvas's lifetime, plus the tick that finishes a
+ * stroke whose packets stop arriving.
+ *
+ * [draft] is the pen's **own** list: the Compose pointer keeps [PageCanvas]'s other draft, so the emulated
+ * mouse neither begins, extends nor ends this stroke.
+ */
+@Composable
+private fun PenPacketStrokes(
+    tab: DesktopTab,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    density: Float,
+    pageW: Float,
+    pageH: Float,
+    viewport: Viewport,
+    draft: SnapshotStateList<InkSample>,
+    onEdited: (Int) -> Unit,
+    origin: () -> Offset,
+    extent: () -> Size,
+    owns: MutableState<Boolean>,
+    packets: PenPacketSource?,
+) {
+    // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
+    val liveViewport by rememberUpdatedState(viewport)
+    val gesture = remember(tab, tool, ink, pageW, pageH) {
+        // `startOnDown = true`: a pen on the glass starts its stroke at the press, so a touch that never
+        // travels is a dot and a very light stroke is not mistaken for a click.
+        PageInkGesture(
+            tab = tab,
+            tool = tool,
+            ink = ink,
+            view = { liveViewport },
+            pageW = pageW,
+            pageH = pageH,
+            density = density,
+            draft = draft,
+            onEdited = onEdited,
+            startOnDown = true,
+        )
+    }
+    val stroke = remember(gesture) {
+        PenPacketStroke(
+            gesture = gesture,
+            origin = origin,
+            size = extent,
+            onOwnership = { owns.value = it },
+        )
+    }
+    DisposableEffect(packets, stroke) {
+        val stop = packets?.listen(stroke::packet)
+        onDispose { stop?.invoke() }
+    }
+    // A pen lifted without its last packet must not leave a stroke half drawn.
+    LaunchedEffect(stroke) {
+        while (true) {
+            delay(100)
+            stroke.finishIfStale(System.nanoTime())
         }
     }
 }

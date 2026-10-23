@@ -204,10 +204,10 @@ back over them. Saving, discarding or closing the tab deletes the snapshot; noth
 Four readers sit beside Compose — `desktop/TabletWintab.kt` (the pen's packet stream), `desktop/TabletInk.kt`
 (the same pen through Windows Ink, when a driver offers it), `desktop/TabletWheel.kt` (which wheel turned)
 and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by `DesktopTablet` from
-`DesktopApp` and closed with the window. None is a second input path: the canvas still takes Compose's
-pointer events, and what they add is the pen's reading for the event being handled and the dial's notch as
-a zoom. `DesktopTablet` asks **Wintab first**, then Windows Ink, and the status bar names whichever
-answered: `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`.
+`DesktopApp` and closed with the window. The pen's stream **draws** the stroke (`PenPacketStroke`, below)
+while the mouse keeps Compose's own pointer events; what the other readers add is a reading for the event
+being handled and the dial's notch as a zoom. `DesktopTablet` asks **Wintab first**, then Windows Ink, and
+the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`.
 
 **What was measured, not assumed** (`--probe-tablet`, `Main.kt`, writing `tablet-probe.csv`):
 
@@ -251,10 +251,34 @@ answered: `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`.
   follows never wears a stale pressure; a hovering pen reports packets with no tip and is not a contact.
   Both readers implement `PenContactStream`, and `PageInkGesture` folds whichever answered into the
   Compose pointer, so a stroke is one stroke and its width is the shared filter's answer either way.
-- **What that leaves open, measured:** a stroke still *begins* from the pointer event Windows' mouse
-  emulation delivers, so a very light touch can be dropped before a stroke exists (the packets carry the
-  pressure, not the decision to start) — `desktop-tablet-stroke-from-packets` is the task that moves the
-  start, the samples and the lift onto the packet stream itself, which is how Xournal++ draws.
+- **Both ends of the stroke are the packets', not the mouse emulation's.** Waiting for a pointer press
+  was the bug the owner could feel: Windows' emulation is a *copy* of the contact, so a light touch was
+  sometimes dropped before any stroke existed. `PenPacketStroke` takes the tip-down, every sample and the
+  lift straight from the packet stream — the same contact, at the tablet's own 400 Hz. The stroke's
+  **begin and end are therefore the driver's**: it is born from a tip-down packet and committed by the
+  lift packet, and the Compose pointer stands aside for it (`pageGestures`'s `penActive`, so one contact
+  is one stroke and never two). The two paths keep **separate drafts** (`PageCanvas` holds the pointer's,
+  `PenPacketStrokes` the pen's), because a cancelled mouse gesture clears its own draft: sharing one list
+  let the emulation's release wipe the samples of the stroke the tablet was still drawing, which is a
+  light, quick contact losing its ink. It only *converts*: a packet becomes an `InkPointer` in the
+  canvas's pixels (client coordinates minus the canvas origin) and goes to the same `PageInkGesture`, so
+  the shared router still decides what a press means, `PressureCurve` still sizes the width, the eraser
+  end still rubs out and the lift still commits one edit. A packet off the sheet starts nothing. A pen
+  resting on the glass sends **no** packets at all (the driver reports changes), so silence is not a
+  lift: a stroke may go quiet for `PenPacketStroke.STALE_MS` (1 s) and keep drawing, and a silence longer
+  than that **finishes** it where it stopped — committed, not thrown away — while a tip-down after the
+  silence begins the next stroke instead of stitching onto the old one. `PenPacketStrokeTest` and
+  `PenPacketSceneTest` prove it headless: a tip-down ramping to a full press produces one tapered stroke
+  with no pointer press anywhere in the test, and with the emulated mouse pressing, moving past the tap
+  slop and releasing *around* the same contact the page still gets exactly one stroke, the packets'.
+- **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
+  line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a
+  drawing tool is active — so every hit test and hover event still works — and `drawToolCursor` paints the
+  ring at the pointer, in the window's own tokens ([`DesktopTheme`]`desk` under [`DesktopTheme`]`ink`, so
+  it reads on paper, on the black desk and over ink of either colour). Its diameter is the stroke's stored
+  width × zoom × density with a 7 px floor, and the **eraser's** ring is its radius doubled
+  (`eraserRadiusPt`), not its width — a ring that said 4 pt over a 12 pt stroke would be worse than the
+  arrow. A tool that draws nothing keeps the arrow.
 - **The dial is a wheel, not a pointer.** Turning it sends `WM_MOUSEWHEEL` with `delta=+120` — the mouse
   wheel's own message, its own unit, no modifier, and `GetMessageExtraInfo` empty (`extra=-`), so the
   extra-info signature does not name the device either. The WinRT `RadialController` route therefore has

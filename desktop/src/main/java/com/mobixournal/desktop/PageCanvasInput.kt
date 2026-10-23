@@ -49,12 +49,33 @@ internal suspend fun PointerInputScope.pageGestures(
     viewH: Float,
     draft: SnapshotStateList<InkSample>,
     pen: PenContactStream? = null,
+    /**
+     * True while the tablet's own packets are drawing a stroke.
+     *
+     * The pen reaches this window twice — as the tablet's packets and as the mouse Windows emulates it
+     * as — and a stroke drawn from both would land twice. The packets are authoritative
+     * (`PenPacketStroke`), so a Compose gesture that begins while they own the pen does nothing, and one
+     * that is already running drops its draft and leaves.
+     */
+    penActive: () -> Boolean = { false },
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
-    val gesture = PageInkGesture(tab, tool, ink, viewport, pageW, pageH, density, draft, onEdited, pen)
+    val gesture = PageInkGesture(
+        tab = tab,
+        tool = tool,
+        ink = ink,
+        view = { viewport },
+        pageW = pageW,
+        pageH = pageH,
+        density = density,
+        draft = draft,
+        onEdited = onEdited,
+        pen = pen,
+    )
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
+        if (penActive()) return@awaitEachGesture
         val buttons = currentEvent.buttons
         // Middle-drag always pans; a primary drag pans only while Space is held, so the pen gets the
         // primary button.
@@ -65,6 +86,10 @@ internal suspend fun PointerInputScope.pageGestures(
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
         gesture.down(down, buttonsOf(currentEvent))
         while (true) {
+            if (penActive()) {
+                gesture.cancel()
+                return@awaitEachGesture
+            }
             val change = awaitPointerEvent().changes.firstOrNull() ?: break
             if (change.changedToUpIgnoreConsumed()) {
                 gesture.up(change, buttonsOf(currentEvent))
@@ -151,18 +176,31 @@ internal class PageInkGesture(
     private val tab: DesktopTab,
     private val tool: DesktopTool,
     private val ink: DesktopInk,
-    private val view: Viewport,
-    pageW: Float,
-    pageH: Float,
+    /**
+     * The viewport in force **now**, not the one at press time: a tablet packet can arrive after a
+     * zoom, and the page point it maps to must be the one the reader is looking at.
+     */
+    private val view: () -> Viewport,
+    private val pageW: Float,
+    private val pageH: Float,
     private val density: Float,
     private val draft: SnapshotStateList<InkSample>,
     private val onEdited: (Int) -> Unit,
     /** The pen's own reading, when the window has a stream — see [inkPointer]. */
     private val pen: PenContactStream? = null,
+    /**
+     * Whether the press itself opens the stroke.
+     *
+     * False for the window's mouse: a click selects, so a drag has to cross the tap slop before it is
+     * ink. **True for the tablet's packets**, because there a press is a pen on paper — a touch that
+     * never travels is a dot, exactly as it is on the tablet, and a very light stroke is no longer
+     * discarded for having moved less than a mouse's slop.
+     */
+    private val startOnDown: Boolean = false,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
-    private val router = InkPointerRouter(activeTool = { tool.activeTool() }, startOnDown = false)
+    private val router = InkPointerRouter(activeTool = { tool.activeTool() }, startOnDown = startOnDown)
 
     /** True while a stroke this gesture started is on the sheet and will be committed. */
     var drawing: Boolean = false
@@ -180,10 +218,44 @@ internal class PageInkGesture(
 
     fun up(change: PointerInputChange, buttons: Int) = feed(change, InkPointerPhase.UP, buttons)
 
-    /** A gesture that ended without the router saying so leaves no ink behind. */
+    /**
+     * A sample that is already in the router's vocabulary — the tablet's own packet, in view pixels.
+     *
+     * This is the entry point a stroke is drawn from when the pen's stream exists: the packet carries
+     * its own position and pressure, so nothing here depends on the mouse message Windows may or may not
+     * have sent for the same contact.
+     */
+    fun down(pointer: InkPointer) {
+        recorded = false
+        handle(router.onPointer(pointer.copy(phase = InkPointerPhase.DOWN)))
+    }
+
+    fun move(pointer: InkPointer) = handle(router.onPointer(pointer.copy(phase = InkPointerPhase.MOVE)))
+
+    fun up(pointer: InkPointer) = handle(router.onPointer(pointer.copy(phase = InkPointerPhase.UP)))
+
+    /**
+     * A gesture that ended without the router saying so leaves no ink behind — **its own** ink.
+     *
+     * [draft] is this gesture's list and no other path writes to it (`PageCanvas` gives the tablet's
+     * packets a draft of their own), so a Compose gesture that stands aside for the pen cannot take a
+     * sample away from the stroke the pen is still drawing.
+     */
     fun cancel() {
         drawing = false
         draft.clear()
+    }
+
+    /**
+     * End the stroke where it is, as the lift would — for a stroke whose lift never arrived.
+     *
+     * The packets' path ends a stroke on the driver's own lift; when that packet does not come, the ink
+     * the hand already drew is still the user's, so it is committed at its last sample rather than thrown
+     * away. Called from `PenPacketStroke` when the packet stream goes quiet.
+     */
+    fun finish() {
+        if (drawing) commit()
+        cancel()
     }
 
     private fun feed(change: PointerInputChange, phase: InkPointerPhase, buttons: Int) =
@@ -221,7 +293,7 @@ internal class PageInkGesture(
                 is InkEvent.StrokeStart -> start(event)
                 is InkEvent.StrokeSample -> if (drawing) {
                     val sample = event.sample
-                    val (x, y) = pagePointOf(sample.x, sample.y, density, view)
+                    val (x, y) = pagePointOf(sample.x, sample.y, density, view())
                     draft.add(InkSample(x, y, event.widthFactor, sample))
                 }
                 is InkEvent.StrokeEnd -> {
@@ -229,7 +301,7 @@ internal class PageInkGesture(
                     cancel()
                 }
                 is InkEvent.Erase -> {
-                    val (x, y) = pagePointOf(event.x, event.y, density, view)
+                    val (x, y) = pagePointOf(event.x, event.y, density, view())
                     eraseAt(x, y)
                 }
                 is InkEvent.Tap, InkEvent.PanBegin, InkEvent.GestureEnd -> cancel()
@@ -241,7 +313,7 @@ internal class PageInkGesture(
     /** The press that crossed the tap slop: ink from here on, unless it began on the desk. */
     private fun start(event: InkEvent.StrokeStart) {
         val start = event.start
-        val (x, y) = pagePointOf(start.x, start.y, density, view)
+        val (x, y) = pagePointOf(start.x, start.y, density, view())
         drawing = x in 0.0..pageWidth && y in 0.0..pageHeight
         draft.clear()
         if (drawing) draft.add(InkSample(x, y, event.widthFactor, start))
