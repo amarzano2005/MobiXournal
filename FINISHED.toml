@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "give-both-shells-one-pointer-router"
+title = "Give both shells one pointer router"
+description = "Closed on both halves. The platform-free layer (InkPointer, InkPointerRouter, InputClassifier, PressureCurve, PageEraser/StrokeEraser/StrokeHitTester, MotionEventPointer's tool-type mapping) was already in mobix-core; what was missing was a call site on each shell, and both now exist. Tablet: a new adapter (render/DrawingSurfaceRouter.kt + MotionEventPointer.inkPointer) feeds every drawing/erasing gesture through the router — the press, each historical sample of a MOVE batch, the lift, the eraser hit and the second-finger PanBegin — while the view keeps the document-shaped half and its own entry points (barrel and vendor keys, the mid-stroke barrel switch, page and guide drag, spline, place, select, the marquee). Window: PageInkGesture in desktop/PageCanvasInput.kt feeds Compose's pointer the same way, and the two shells now open a stroke, filter its pressure and reject a palm with one implementation. Proof for the window is DesktopPointerSceneTest, which pushes real Compose pointer events through an ImageComposeScene into PageCanvas and asserts the stroke that reaches the model with the filtered ramp; the tablet's proof is the router's own suite plus the app's 1552 unit tests, with the on-device StylusInputTest deliberately not run (no emulator pass for this work). The vocabulary itself needed no change: each shell builds its router per gesture so live settings and the pressure filter are the ones in force. Docs: docs/stylus.md ('One pointer layer, two shells' rewritten: both adapters live, what each platform actually fills, the not-routed list), docs/codebase.md rows and docs/desktop-workstation.md's measured rows."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-pressure-inking-through-the-pointer-router"
+title = "Desktop: pressure inking through the shared pointer router"
+description = "The proof this task owed is in, and the adapter needed no gap filling. New desktop/src/test/java/com/mobixournal/desktop/DesktopPointerSceneTest.kt drives **real** Compose pointer events through an ImageComposeScene into PageCanvas — the multi-pointer sendPointerEvent overload, whose ComposeScenePointer carries a pressure (the single-position one cannot) — and asserts what reaches the model: press at 0.2, wobble inside the tap slop (no ink), two moves at 0.5 and 1.0, release, and exactly one stroke with three points at 0.8/2.0/4.0 pt on a 4 pt pen, x in page points, uniformWidth false, one undo step. A second test presses and releases without moving and asserts a tap draws nothing and records no step (the window's startOnDown = false). Both green, so the adapter itself — Compose dispatch, PageInkGesture, the router, DesktopDocument.editPage — is exercised, not only the hand-built translation. Measurement for item (3): Compose 1.7.3's PointerInputChange has no tilt or azimuth field at all, and its historical samples carry position and time but no pressure, so there is nothing for the adapter to fill — the window stores null telemetry by the documented rule; which values the real Huion delivers is left to desktop-tablet-and-dial-input's spike. Docs: docs/desktop-workstation.md (the measured bullet in 'Draws and erases', and the two measured table rows re-checked, DrawingSurfaceInput 581 / DrawingSurfaceStrokes 683, now described as the live adapter feeding the router) and docs/stylus.md (the window's adapter and its scene test are named). Note: :desktop:test has one pre-existing failure on this host, ToolStripsTest 'the strips are lanes beside the page, never bands over it' — reproduced on a clean HEAD with these changes stashed, so it is not caused by this work."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "wire-the-android-pointer-path-through-the-router"
+title = "Wire the Android pointer path through the shared router"
+description = "The tablet's pointer path now runs through the shared router, so docs/stylus.md no longer says 'library only'. New app/src/main/java/com/mobixournal/render/DrawingSurfaceRouter.kt: newPointerRouter() builds an InkPointerRouter per gesture (settings, pressure filter, active tool, startOnDown = true), routePointer() turns one MotionEvent pointer into an InkPointer and applies the answers, feedPointerSamples() feeds a MOVE batch historical-first so the pressure ramp is not flattened, and applyInkEvent() maps StrokeStart/StrokeSample/Erase/PanBegin/Pan to startStrokeFrom/extendStrokeFrom/eraseAtPointer/beginScroll. MotionEventPointer.kt gained inkPointer(pointerIndex, phase, barrelHeld, history) — x/y/pressure/time from the event or its historical sample, tilt/azimuth through telemetryAxis so an undeclared axis stays null, buttons from buttonState plus the barrel latch. DrawingSurfaceStrokes.kt replaced startStroke/extendStroke/addSamples/startErase with startStrokeFrom/extendStrokeFrom/eraseAtPointer (the document-shaped half: page box, guide snap, smoother, hold-to-snap, commit, undo — and one repaint per batch, one erase per event); eraseMove survives only for the barrel-switched-mid-stroke gesture, which is explicitly not routed, along with barrel/vendor keys, page drag, guide drag, spline taps, table/plot double-taps, audio play, vertical space, background select and the marquee (listed in the router file's header). Palm rejection and the second-finger pan now come from the router (a palm under a pen is dropped, a pen takes over a finger after abandonInProgress resets the router); routed/pointerRouter live on DrawingSurfaceView and are reset in abandonInProgress, cancelGesture, endGesture and switchStrokeToErase. Verified: 1552 app unit tests (guards included: 400-line doc budget and the 700-line/100-line structure ratchet, DrawingSurfaceView.kt held at its 1823 ceiling), assembleDebug green. The on-device StylusInputTest was not run (emulator_debug = false for this work; nothing here changes the JNI/physical paths it exercises). Docs: docs/stylus.md (the router is live in both shells, what each platform fills, the adapter-only list, palm rejection and smoothing paragraphs updated) and docs/codebase.md rows."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-23
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-tablet-and-dial-input"
+title = "Desktop graphics tablet and rotary dial input (scope)"
+description = "Broke into seven atomic children, all active and in order 961-967: desktop-tablet-pressure-spike (measure what Compose/JNA+Wintab actually deliver for pressure, tilt and azimuth on ANTONIOFISSO-PC with the Huion, and pick the backend with a PASS/FAIL criterion), desktop-tablet-input-backend (the TabletPointerSource seam, the Wintab reader if the spike demands one, and the rule that one physical sample never arrives twice), desktop-tablet-absolute-mapping (area -> page rect, aspect locked by default, clamped dead zone, persisted in DesktopSettings), desktop-tablet-dial-spike (which stream the rotary dial produces: wheel, keys or a Wintab ring/express packet, with a 12-steps-per-turn criterion), desktop-dial-zoom-and-width (exponential zoom at the cursor plus width stepping with a diameter-ring preview, dial mode a setting, keyboard twins in the documented table), desktop-tablet-buttons-to-actions (ExpressKeys and the barrel onto DesktopKeys' action vocabulary with a binding table and a press-to-see settings row) and desktop-tablet-absent-fallback (no tablet = the Compose pointer, null telemetry, and a status bar that names the live input). Investigation was code reading only: desktop/build.gradle.kts has no JNA, PageCanvasInput fills InkPointer.pressure from PointerInputChange, Compose 1.7.3 has no tilt/azimuth field, and the window has no logging surface, which is why the first child is a measurement. No code was written for the scope itself."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-23
+tags = []
+
+[[task]]
 id = "circuit-value-keyboard"
 title = "Type a circuit value on a keyboard of its own"
 description = "Landed: the circuit inspector's value field opens a keyboard of its own instead of the system IME. ui/CircuitValueKeyboard.kt carries three pages (digits/separators, the alphabet with a case switch, and the circuit symbols) on one key grid, docked bottom-centre over the canvas with backspace and cursor keys; CircuitInspectorAnchor hosts it in a fillMaxSize Box, keeps the inspector above it while open, and the field is read-only so no IME appears. Keys are 44dp (a tool slot) and the panel is a FloatingSurface. VERIFIED: CircuitValueKeyboardTest (7: every digit, the whole alphabet in both cases, the circuit symbols, no blank key, insert-at-cursor replacing a selection, backspace of a selection and of one character, caret bounds), 1551 app + 388 core JVM tests / 0 failures with the guards, assembleDebug and the desktop distributable. Docs: mobix-elements (circuit section), README."
