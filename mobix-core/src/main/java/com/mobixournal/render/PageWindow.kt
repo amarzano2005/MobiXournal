@@ -34,7 +34,7 @@ import java.util.Collections
  * replaced wholesale (load, undo/redo, a mirrored pane, a page-list edit), because then the overlay
  * describes pages the document no longer has.
  */
-internal class PageWindow(
+class PageWindow(
     private val source: PageSource,
     /** How many *unedited* pages the read cache may hold at once. */
     private val budget: Int = DEFAULT_BUDGET,
