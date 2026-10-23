@@ -160,8 +160,8 @@ app/
       DrawingSurfaceView.kt  # low-latency stylus canvas (MotionEvent pressure): state block, document/zoom/page/layer facades, View overrides; gestures live in the DrawingSurface*.kt files
       DrawingSurfaceConstants.kt # DrawingSurfaceDefaults: the canvas's shared tuning constants; blankDocument/blankPage
       DrawingSurfacePaint.kt # the surface's render loop, page compositing and chrome overlays (extensions)
-      DrawingSurfaceInput.kt # the surface's touch/hover state machine: pointer routing, scroll and gesture end (extensions)
-      DrawingSurfaceStrokes.kt # the surface's ink capture: stroke, spline, erase and place gestures (extensions)
+      DrawingSurfaceInput.kt # the surface's touch/hover state machine: gesture dispatch, scroll and gesture end (extensions)
+      DrawingSurfaceStrokes.kt # ink capture from the router's events, plus spline and place; DrawingSurfaceRouter.kt is the MotionEvent -> InkPointer feeding
       DrawingSurfacePlots.kt # the plot insertions: insertMultiPlot's ink and insertPlotElement's living plot (extensions); PlotElementFactory.kt holds the box and the element, Android-free
       DrawingSurfaceHoldSnap.kt # hold-to-snap: the stillness timer that rewrites a stroke in progress as geometry (extensions)
       DrawingSurfacePenDebug.kt # the surface's pen-diagnostics trace hooks: raw pointer/key events into PenInputLog
@@ -233,7 +233,7 @@ app/
         MarkdownComposer.kt  # block tree -> flat groups of wrapped lines, rules and collapsed gaps (pure)
         MarkdownLayout.kt    # composed groups -> pages: block-aware page breaking, no orphaned headings
       GlyphSanitizer.kt      # maps codepoints a font can't encode onto a substitution glyph (pure)
-      MotionEventPointer.kt  # the platform half of the input adapter: tool type -> PointerKind
+      MotionEventPointer.kt  # the platform half of the input adapter: tool type -> PointerKind, and one pointer sample (history too) -> InkPointer
       ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)

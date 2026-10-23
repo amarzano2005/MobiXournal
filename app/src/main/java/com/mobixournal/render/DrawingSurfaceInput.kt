@@ -58,7 +58,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             if (current != null && !shaping) switchStrokeToErase(event)
             when {
                 scrolling -> doScroll(event)
-                erasing -> eraseMove(event)
+                erasing -> if (routed) feedPointerSamples(event) else eraseMove(event)
                 placing -> placeMove(event)
                 backgroundSelecting -> backgroundSelectMove(event)
                 gestures.slidingParam -> gestures.slideParam(event)
@@ -81,7 +81,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 }
                 textSelecting -> textSelectMove(event)
                 splineDragging -> splineMove(event)
-                (current != null || currentStrokes != null) -> extendStroke(event)
+                routed && (current != null || currentStrokes != null) -> feedPointerSamples(event)
                 else -> Unit
             }
         }
@@ -94,7 +94,10 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             else -> {
                 cancelPageDrag()
                 if (scrolling && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
-                captureReleaseVelocity(event); handleHandTapUp(event); endGesture()
+                captureReleaseVelocity(event); handleHandTapUp(event)
+                // The router hears the lift too, so its contact map is empty for the next gesture.
+                if (routed) routePointer(event, event.actionIndex, InkPointerPhase.UP)
+                endGesture()
             }
         }
         MotionEvent.ACTION_CANCEL -> {
@@ -163,6 +166,9 @@ internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
 
 /** Begin a gesture for the pointer at [pointerIndex], its intent decided by [InputClassifier]. */
 internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: Int) {
+    // Cleared here and set only by the branches that hand the gesture to the shared router: a
+    // gesture it does not own must never have its moves and its lift fed to it as well.
+    routed = false
     val kind = pointerKindOf(event, pointerIndex)
     if (isReadOnly) {
         val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
@@ -204,7 +210,14 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     stylusOwner = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&
         (intent == GestureIntent.DRAW || intent == GestureIntent.ERASE)
     when (intent) {
-        GestureIntent.ERASE -> startErase(event, pointerIndex)
+        // Ink and the eraser go through the shared router, which decides when a stroke begins and
+        // ends and reports an erase hit (`DrawingSurfaceRouter.kt`). A fresh router per gesture keeps
+        // the pressure filter and the input settings the ones in force now.
+        GestureIntent.ERASE -> {
+            routed = true
+            pointerRouter = newPointerRouter()
+            routePointer(event, pointerIndex, InkPointerPhase.DOWN)
+        }
         GestureIntent.PLACE -> beginPlace(event, pointerIndex)
         GestureIntent.PAN -> beginScroll(event)
         GestureIntent.SELECT -> beginSelect(event)
@@ -213,8 +226,13 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         GestureIntent.VERTICAL_SPACE -> beginVerticalSpace(event)
         // The spline tool is laid down over many taps, so it gets its own gesture path.
         GestureIntent.DRAW ->
-            if (shapeKind == ShapeKind.SPLINE) splineDown(event, pointerIndex)
-            else startStroke(event, pointerIndex)
+            if (shapeKind == ShapeKind.SPLINE) {
+                splineDown(event, pointerIndex)
+            } else {
+                routed = true
+                pointerRouter = newPointerRouter()
+                routePointer(event, pointerIndex, InkPointerPhase.DOWN)
+            }
         GestureIntent.IGNORE -> Unit
     }
 }
@@ -223,6 +241,10 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
  * A second pointer arrived. A stylus/eraser tip takes over any in-progress finger gesture (so a
  * palm that landed first can't block the pen); while a stylus already owns the gesture, extra
  * finger/palm pointers are ignored (palm rejection); otherwise two fingers pan.
+ *
+ * The first two rules are the router's on a routed gesture: it drops a finger that arrives under a
+ * pen and answers [InkEvent.PanBegin] when a second contact ends the stroke. A gesture the router does
+ * not own (spline, guide, placement, select) keeps the surface's own two-finger pan below.
  */
 internal fun DrawingSurfaceView.onPointerDown(event: MotionEvent) {
     val idx = event.actionIndex
@@ -232,7 +254,14 @@ internal fun DrawingSurfaceView.onPointerDown(event: MotionEvent) {
             abandonInProgress()
             beginPointer(event, idx)
         }
-        stylusOwner -> Unit // palm / finger resting while the pen writes: ignore
+        // Palm / finger resting while the pen writes: the router drops it as well, and answers nothing.
+        stylusOwner -> if (routed) routePointer(event, idx, InkPointerPhase.DOWN)
+        // A second contact on the stroke: the router ends it (no commit — the partial ink is dropped)
+        // and starts navigation, which the surface's `doScroll` carries frame by frame.
+        routed -> {
+            multiTap.onPointerDown(event.eventTime, event.getX(idx), event.getY(idx), event.getPointerId(idx), event.pointerCount)
+            routePointer(event, idx, InkPointerPhase.DOWN)
+        }
         else -> {
             multiTap.onPointerDown(event.eventTime, event.getX(idx), event.getY(idx), event.getPointerId(idx), event.pointerCount)
             beginScroll(event)
@@ -246,6 +275,9 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
     val upIdx = event.actionIndex
     val upId = event.getPointerId(upIdx)
     multiTap.onPointerUp(upId)
+    // The router learns about every lift, so a contact it is holding (a palm, a second finger) leaves
+    // its map instead of looking like a finger that never came up.
+    if (routed) routePointer(event, upIdx, InkPointerPhase.UP)
     if (upId == gesturePointerId && (current != null || erasing)) {
         endGesture()
         return
@@ -265,6 +297,9 @@ internal fun DrawingSurfaceView.abandonInProgress() {
     current = null; currentStrokes = null; shaping = false; erasing = false; placing = false
     scrolling = false; textSelecting = false; backgroundSelecting = false; vspace.reset()
     gestureCell = null; gestures.reset(); multiTap.reset()
+    // The gesture is gone, so its contacts are too: a router left holding them would read the next
+    // sample as a two-finger navigation.
+    pointerRouter.reset(); routed = false
 }
 
 internal fun DrawingSurfaceView.cancelGesture() {
@@ -275,6 +310,7 @@ internal fun DrawingSurfaceView.cancelGesture() {
     backgroundSelecting = false; gestures.reset(); gestureStartDoc = null
     textSelecting = false; vspace.reset(); gestureCell = null
     gesturePointerId = -1; stylusOwner = false; multiTap.reset()
+    pointerRouter.reset(); routed = false
 }
 
 /**
@@ -447,6 +483,8 @@ internal fun DrawingSurfaceView.endGesture() {
     finishGesture()
     gesturePointerId = -1
     stylusOwner = false
+    // The gesture is over: nothing of it may reach the next one through the router.
+    pointerRouter.reset(); routed = false
     if (wasScrolling) momentum.launch(panSensitivity)
     if (searchQuery.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
         rebuildSearch()

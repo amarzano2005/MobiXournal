@@ -188,6 +188,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var gesturePointerId = -1
     /** True while a stylus/eraser tip owns the current draw/erase gesture (drives palm rejection). */
     internal var stylusOwner = false
+    internal var routed = false // fed to [pointerRouter] for this gesture? `DrawingSurfaceRouter.kt`
     // Hover preview position (view px) and whether a stylus is currently hovering.
     internal var hovering = false
     internal var hoverX = 0f
@@ -475,6 +476,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * sample still draws a light line at this fraction of the tool's width.
      */
     var minimumPressure: Float = PressureCurve.MINIMUM_PRESSURE_DEFAULT
+    /** The shared pointer router for the gesture in flight; rebuilt per gesture ([newPointerRouter]). */
+    internal var pointerRouter: InkPointerRouter = newPointerRouter()
     /** Jitter filter for the in-progress freehand stroke; reset at the start of each stroke. */
     internal val smoother = StrokeSmoother()
     /** How much digitiser detail freehand strokes keep (see [StrokePrecision]); from Settings. */

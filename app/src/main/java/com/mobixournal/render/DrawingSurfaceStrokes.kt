@@ -21,16 +21,21 @@ import kotlin.math.hypot
 
 internal var strokeStartEventTimeMs: Long = 0L
 
-internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: Int) {
-    strokeStartEventTimeMs = event.eventTime
+/**
+ * The press that the shared router ([DrawingSurfaceRouter]) turned into a stroke: everything the
+ * document needs — the page the gesture works on, its undo baseline, the smoother's scale — is set up
+ * here, and the sample itself becomes the stroke's first point.
+ */
+internal fun DrawingSurfaceView.startStrokeFrom(start: InkPointer) {
+    strokeStartEventTimeMs = start.timeMs
     scrolling = false
     shaping = shapeKind != null
     cancelHoldSnap()
     holdSnapped = false
     holdFigure = null
     gestureStartDoc = doc
-    gesturePointerId = event.getPointerId(pointerIndex)
-    val box = gestureBoxAt(event.getX(pointerIndex), event.getY(pointerIndex))
+    gesturePointerId = start.id
+    val box = gestureBoxAt(start.x, start.y)
         ?: run { current = null; return }
     currentPage = box.index
     if (shaping) {
@@ -39,8 +44,8 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
         // so an isometric sheet's node (which rules no axis) can still capture the endpoint.
         val (gx, gy) = snappedPoint(
             box,
-            box.toPtX(event.getX(pointerIndex), scrollX),
-            box.toPtY(event.getY(pointerIndex), scrollY),
+            box.toPtX(start.x, scrollX),
+            box.toPtY(start.y, scrollY),
             shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
         )
         val (sx, sy) = guided(box, gx, gy)
@@ -55,7 +60,14 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
         // Decimate against this page's real px/pt, so a stroke drawn zoomed out or in a
         // multi-column view keeps the same document-space detail as one drawn at 100%.
         smoother.reset(strokePrecision.stepPxFor(box.scale))
-        current = ArrayList<StrokePoint>().also { addSamples(event, pointerIndex, box, it) }
+        // The press is the stroke's first sample, through the same filter as every other one: the
+        // smoother still low-passes position and pressure, and `point` still turns that pressure into
+        // a width with [PressureCurve].
+        current = ArrayList<StrokePoint>().also { points ->
+            smoother.accept(start.x, start.y, start.pressure, force = true)?.let {
+                points += point(box, it.x, it.y, it.pressure, start.timeMs, start.tiltRad, start.azimuthRad)
+            }
+        }
         // Hold-to-snap starts counting from where the tip first landed.
         holdAnchorX = current?.lastOrNull()?.x ?: 0.0
         holdAnchorY = current?.lastOrNull()?.y ?: 0.0
@@ -63,15 +75,18 @@ internal fun DrawingSurfaceView.startStroke(event: MotionEvent, pointerIndex: In
     }
 }
 
-internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
-    val pointerIndex = event.findPointerIndex(gesturePointerId)
-    if (pointerIndex < 0) return
+/**
+ * One sample the router passed on: a point of the stroke in progress. [force] is the smoother's
+ * "this is the newest sample of the batch", so the drawn line always reaches the pen — and it is
+ * also what limits the repaint to one per batch rather than one per coalesced historical sample.
+ */
+internal fun DrawingSurfaceView.extendStrokeFrom(sample: InkPointer, force: Boolean) {
     val box = gestureBox() ?: return
     if (shaping) {
         val (gx, gy) = snappedPoint(
             box,
-            box.toPtX(event.getX(pointerIndex), scrollX),
-            box.toPtY(event.getY(pointerIndex), scrollY),
+            box.toPtX(sample.x, scrollX),
+            box.toPtY(sample.y, scrollY),
             shapeKind?.let { CircuitSnapping.gestureTargets(it, box.page) },
         )
         val (ex, ey) = guided(box, gx, gy)
@@ -97,11 +112,13 @@ internal fun DrawingSurfaceView.extendStroke(event: MotionEvent) {
         }
         render()
     } else {
-        current?.let {
-            addSamples(event, pointerIndex, box, it)
+        current?.let { points ->
+            smoother.accept(sample.x, sample.y, sample.pressure, force)?.let {
+                points += point(box, it.x, it.y, it.pressure, sample.timeMs, sample.tiltRad, sample.azimuthRad)
+            }
             // Rest the tip and the stroke snaps to geometry before lift-off.
-            maybeArmHoldSnap(it)
-            render()
+            maybeArmHoldSnap(points)
+            if (force) render()
         }
     }
 }
@@ -267,18 +284,29 @@ internal fun DrawingSurfaceView.clearSpline() {
     if (wasOpen) onSplineChanged?.invoke(0)
 }
 
-/** The eraser: touch/drag deletes any stroke it passes over on the page under the pointer. */
-internal fun DrawingSurfaceView.startErase(event: MotionEvent, pointerIndex: Int) {
-    scrolling = false
-    erasing = true
-    gestureStartDoc = doc
-    gesturePointerId = event.getPointerId(pointerIndex)
-    val box = gestureBoxAt(event.getX(pointerIndex), event.getY(pointerIndex)) ?: return
-    currentPage = box.index
+/**
+ * The eraser: a contact the router reports as a hit deletes whatever is under it.
+ *
+ * The **first** hit of a gesture is what sets the gesture up — the pointer that owns it, its undo
+ * baseline and the page it rubs (`gestureBoxAt`, which is also where a board fixes its cell) — and
+ * every later hit rubs on that same page, so dragging off the sheet does not erase a neighbour.
+ */
+internal fun DrawingSurfaceView.eraseAtPointer(pointer: InkPointer) {
+    if (!erasing) {
+        scrolling = false
+        erasing = true
+        gestureStartDoc = doc
+        gesturePointerId = pointer.id
+        currentPage = gestureBoxAt(pointer.x, pointer.y)?.index ?: return
+    }
+    val box = gestureBox() ?: return
     // Eraser tip and barrel button both use WHOLE_STROKE mode to delete entire strokes.
-    val isEraserTip = event.getToolType(pointerIndex) == android.view.MotionEvent.TOOL_TYPE_ERASER
-    val mode = if (isEraserTip || barrelButton.held) EraserMode.WHOLE_STROKE else eraserMode
-    eraseAt(box, event.getX(pointerIndex), event.getY(pointerIndex), mode)
+    val mode = if (pointer.tool == PointerKind.ERASER_TIP || pointer.hasSecondaryButton) {
+        EraserMode.WHOLE_STROKE
+    } else {
+        eraserMode
+    }
+    eraseAt(box, pointer.x, pointer.y, mode)
 }
 
 /**
@@ -294,19 +322,21 @@ internal fun DrawingSurfaceView.switchStrokeToErase(event: MotionEvent) {
     if (pointerIndex < 0) return
     val start = gestureStartDoc
     commitCurrent()
-    startErase(event, pointerIndex)
+    eraseAtPointer(event.inkPointer(pointerIndex, InkPointerPhase.DOWN, barrelHeld = true))
     // The ink drawn and the erase it turned into stay one undo step.
     gestureStartDoc = start
+    // A barrel pressed mid-gesture is the **barrel key** half of the input layer, which the router
+    // does not route (it decided this gesture was a stroke when the tip landed). The rest of the
+    // gesture is the view's own eraser then, and the router is told so it keeps no stale contact.
+    routed = false
+    pointerRouter.reset()
 }
 
+/** A hit from an eraser drag the router does not own (the barrel switched mid-stroke). */
 internal fun DrawingSurfaceView.eraseMove(event: MotionEvent) {
     val pointerIndex = event.findPointerIndex(gesturePointerId)
     if (pointerIndex < 0) return
-    val box = gestureBox() ?: return
-    // Eraser tip and barrel button both use WHOLE_STROKE mode to delete entire strokes.
-    val isEraserTip = event.getToolType(pointerIndex) == android.view.MotionEvent.TOOL_TYPE_ERASER
-    val mode = if (isEraserTip || barrelButton.held) EraserMode.WHOLE_STROKE else eraserMode
-    eraseAt(box, event.getX(pointerIndex), event.getY(pointerIndex), mode)
+    eraseAtPointer(event.inkPointer(pointerIndex, InkPointerPhase.MOVE, barrelButton.held))
 }
 
 internal fun DrawingSurfaceView.eraseAt(box: PageBox, vx: Float, vy: Float, mode: EraserMode = eraserMode) {
@@ -353,35 +383,6 @@ internal fun DrawingSurfaceView.commitPlace() {
     val existing = if (kind == PlaceKind.TEXT) textEdits.pickForEditing(box.index, xPt, yPt) else null
     onPlace?.invoke(kind, Placement(box.index, xPt, yPt, existing))
 }
-/**
- * Append every sample for the gesture's pointer — historical first — as pressure-scaled
- * page-local points. Sampling only [pointerIndex] (not pointer 0) is what lets a resting palm
- * coexist with the pen: the palm is a different pointer and is never read here.
- */
-internal fun DrawingSurfaceView.addSamples(event: MotionEvent, pointerIndex: Int, box: PageBox, into: MutableList<StrokePoint>) {
-    // Raw telemetry, stored and never drawn with (`docs/stylus.md`). Zero is a *reading* - a pen held
-    // upright - so it is kept when the tablet declares the axis; only a tablet without it stores null.
-    val tilt = event.telemetryAxis(MotionEvent.AXIS_TILT, pointerIndex)
-    val azimuth = event.telemetryAxis(MotionEvent.AXIS_ORIENTATION, pointerIndex)
-
-    for (h in 0 until event.historySize) {
-        smoother.accept(
-            event.getHistoricalX(pointerIndex, h),
-            event.getHistoricalY(pointerIndex, h),
-            event.getHistoricalPressure(pointerIndex, h),
-        )?.let {
-            val hTime = event.getHistoricalEventTime(h)
-            into += point(box, it.x, it.y, it.pressure, hTime, tilt, azimuth)
-        }
-    }
-    // The batch's newest sample is always kept, so the drawn line reaches the pen.
-    smoother.accept(
-        event.getX(pointerIndex), event.getY(pointerIndex), event.getPressure(pointerIndex), force = true,
-    )?.let {
-        into += point(box, it.x, it.y, it.pressure, event.eventTime, tilt, azimuth)
-    }
-}
-
 /**
  * The stroke width one sample of the current tool draws at, in pt. A highlighter lays down a
  * broad, constant-width band and ignores pressure; every other tool tapers with pressure. Shapes

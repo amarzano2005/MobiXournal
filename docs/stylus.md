@@ -15,21 +15,26 @@ tool's parity with desktop Xournal++.
 
 The input layer's **decisions** are platform-free and live in `mobix-core/render/`: `InputClassifier`
 (what a contact begins), `PressureCurve` (how hard it draws), `PageEraser` / `StrokeEraser` /
-`StrokeHitTester` (what an erase cuts), and — new — **`InkPointerRouter`**, which turns a stream of
+`StrokeHitTester` (what an erase cuts), and **`InkPointerRouter`**, which turns a stream of
 `InkPointer` samples into the events an editor consumes: stroke start/sample/end, a tap, an erase hit,
-a two-finger pan and a pinch. A shell keeps only what is its own: `MotionEventPointer.kt` maps a
-`MotionEvent`'s tool type to `PointerKind` and the surface keeps its state machine. The desktop's
-Compose pointer becomes the **second adapter** in `desktop-pressure-inking-through-the-pointer-router`,
-and which fields Compose Desktop actually fills on Windows (pressure, tilt) is *measured* by
-`desktop-tablet-and-dial-input` rather than assumed — the router therefore treats them as optional.
+a two-finger pan and a pinch. Each shell keeps only its **adapter**, and both are live: the tablet's is
+`render/DrawingSurfaceRouter.kt` — a `MotionEvent` → `InkPointer`, one per historical sample as well as
+one per event — with `MotionEventPointer.kt` reading the platform vocabulary, and the window's is
+`desktop/PageCanvasInput.kt` (`PageInkGesture`). What each platform actually fills is *measured*, not
+assumed, so the router treats every field as optional: Android fills the tool type, pressure (per
+historical sample too), tilt/azimuth and the barrel, while the window's pointer fills the tool type,
+pressure and its buttons but **no tilt or azimuth at all** (Compose 1.7.3 has no such axis on a
+`PointerInputChange`, and its historical samples carry position only).
 
 What it decides: a press is held until it crosses the tap slop, so a **tap does not draw** (the tablet's
-"a tap leaves a dot" is one flag, `startOnDown`); a **second finger** ends the stroke it interrupts and
-starts a pan; once a **pen** owns a gesture, a later finger is a resting palm and is ignored; an
-**eraser** contact is reported as a hit, and the split at that hit is `PageEraser`'s, so a partial erase
-has one implementation. **Status: library only** — `DrawingSurfaceInput` still runs its own state machine
-over these same decisions, and moving it onto the router is the open task
-`wire-the-android-pointer-path-through-the-router`.
+"a tap leaves a dot" is one flag, `startOnDown`, and the tablet sets it); a **second finger** ends the
+stroke it interrupts and starts a pan; once a **pen** owns a gesture, a later finger is a resting palm
+and is ignored; an **eraser** contact is reported as a hit, and the split at that hit is `PageEraser`'s.
+The Android surface keeps the document-shaped half — page box, guide snapping, `StrokeSmoother`,
+hold-to-snap, the commit and its undo step — and the entry points the router does **not** own, each
+listed in `DrawingSurfaceRouter.kt`'s header: barrel and vendor keys, the barrel pressed mid-stroke
+(`switchStrokeToErase`), page drag, guide drag, spline taps, table/plot double-taps, audio play mode,
+vertical space, background select and the marquee.
 
 ## Stylus input — implemented
 
@@ -156,24 +161,18 @@ overlay.
 
 ## Graphics tablets and ExpressKeys
 
-**Graphics tablets and ExpressKeys.** External USB or Bluetooth drawing tablets (Huion, Wacom, XP-Pen,
-Gaomon) send their physical button presses as standard Android `KeyEvent`s. The input pipeline supports
-them through two complementary paths:
-1. **Direct 1-click detection:** in **Settings → Shortcuts**, `KeyDetectionDialog` listens via
-   `Modifier.onPreviewKeyEvent` for the next `ACTION_DOWN` event, extracting the character code via
-   `keyStringFromKeyEvent` (supporting `unicodeChar`, `displayLabel`, space, digits, numpad and letters) and assigning it
-   immediately to any tool or colour shortcut. Manual text input remains available side by side.
-2. **Runtime routing:** `MainActivity.dispatchKeyEvent` forwards unconsumed key events to
-   `DrawingSurfaceView.dispatchKeyEvent`, which routes them to `onKeyPressed` in `EditorRegions.kt`, matching
-   against `toolShortcutKeys` and `colorShortcutKeys`. `DrawingSurfaceView.onTouchEvent` also requests focus
-   on touch down so the canvas maintains key focus.
-3. **Fidelity and pressure harmonization:** graphics tablets with pressure-sensitive pens write with
-   dynamic line widths governed by `PressureCurve`. Since geometric figures are drawn at a fixed nominal
-   width, users can harmonize them by setting `AppSettings.defaultShapeSlot` under **Settings → Figures**
-   (choosing a narrower slot like `S` to match handwriting pressure) or turning pressure sensitivity off
-   in **Settings → Stylus** to ensure byte-identical uniform widths across both freehand and shapes.
-4. **Touch & palm isolation:** with `AppSettings.fingerDraws = false`, tablets equipped with capacitive
-   multi-touch reserve touch strictly for navigation (pan/zoom), preventing stray marks from a resting palm.
+**Graphics tablets and ExpressKeys.** External USB or Bluetooth tablets (Huion, Wacom, XP-Pen, Gaomon)
+send their physical buttons as standard Android `KeyEvent`s, through two paths: **direct detection** —
+**Settings → Shortcuts**' `KeyDetectionDialog` listens via `Modifier.onPreviewKeyEvent` for the next
+`ACTION_DOWN`, extracts the character with `keyStringFromKeyEvent` (`unicodeChar`, `displayLabel`,
+space, digits, numpad, letters) and assigns it to any tool or colour shortcut, manual text input beside
+it; and **runtime routing** — `MainActivity.dispatchKeyEvent` forwards unconsumed keys to
+`DrawingSurfaceView.dispatchKeyEvent`, which matches them against `toolShortcutKeys` /
+`colorShortcutKeys` in `EditorRegions.kt` (the canvas requests focus on touch down to keep it). Two
+consequences: a pressure pen and a shape drawn at the fixed nominal width are harmonised with
+`AppSettings.defaultShapeSlot` (**Settings → Figures**) or by switching pressure sensitivity off
+(**Settings → Stylus**), and with `AppSettings.fingerDraws = false` a tablet's capacitive multi-touch is
+navigation only, so a resting palm marks nothing.
 
 ## A figure is resized, not thickened
 
@@ -235,12 +234,12 @@ untouched and the same scroll clamps apply, so a wheel at a bound is left uncons
 
 ## Palm rejection
 
-**Palm rejection** is the stateful half, handled in the view around the classifier: the active
-draw/erase gesture is *owned by a pointer id* (`gesturePointerId`) and only that pointer is sampled
-(`addSamples` reads `pointerIndex`, never pointer 0), so a resting palm — a different pointer — can't
-perturb the stroke. A stylus/eraser pointer arriving mid-gesture **takes over** any gesture a finger
-started (`onPointerDown` → `abandonInProgress`), and once a stylus owns the stroke (`stylusOwner`)
-extra finger/palm pointers are ignored rather than treated as a second-finger pan.
+**Palm rejection** is the stateful half. The router owns the rule where a contact begins: a pen outranks
+a hand that landed first (its gesture is abandoned, not finished), and once a pen owns the gesture a later
+finger is dropped. The view keeps the document-shaped half — the active draw/erase gesture is *owned by
+a pointer id* (`gesturePointerId`) and only that pointer is sampled, never pointer 0 — so a resting palm
+can't perturb the stroke. A pen arriving mid-gesture still runs `onPointerDown` → `abandonInProgress`,
+which also resets the router so it holds no stale contact.
 
 ## Pressure → width (`PressureCurve`)
 
@@ -259,7 +258,8 @@ switched off returns the full width, matching a shape (`PressureCurveTest`).
 ragged polyline. Two pure pieces:
 
 - `StrokeSmoother` — per-stroke streaming filter over the view-pixel samples, reset in
-  `startStroke` and fed by `addSamples`. It exponentially smooths position (α 0.55) and, harder,
+  `startStrokeFrom` and fed by `extendStrokeFrom`, one call per sample the router passes on. It
+  exponentially smooths position (α 0.55) and, harder,
   pressure (α 0.3), then **decimates** samples that moved less than `minStepPx` with less than 0.02
   pressure change. A decimated sample still advances the filter, but the decimation distance is
   measured from the last **emitted** point, so a run of sub-threshold steps that adds up to a real
@@ -292,7 +292,8 @@ stylus, via `onHoverEvent`) draws a preview ring where the tip will land. All of
 `AppSettings`, persisted by `SettingsStore` (SharedPreferences) and pushed live onto the surface by
 `EditorScreen.applySettings`; the on-device `StylusInputTest` drives synthetic tool-typed
 `MotionEvent`s — carrying a tool type, a button state, a per-sample **pressure** and a **hover**, none
-of which `adb shell input` can send and a JVM test cannot build — to prove the wiring: the eraser tip, barrel
+of which `adb shell input` can send and a JVM test cannot build — to prove the wiring (the window's
+half of the same wiring, the Compose pointer through the router, is the JVM `DesktopPointerSceneTest`): the eraser tip, barrel
 erase (motion button *and* the vendor key a Bluetooth pen sends), barrel double-click, the
 finger-draw gate, palm rejection, the pressure stream (a rising press stores rising vertex widths,
 and **Pressure sensitivity** off stores one width), the **guide hook** (a stylus stroke 8pt off
