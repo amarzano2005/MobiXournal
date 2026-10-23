@@ -190,6 +190,20 @@ rebuild = true
 emulator_debug = true
 
 [[task]]
+id = "desktop-pen-lag-behind-the-nib"
+title = "Desktop: the pen's ink must not lag behind the nib"
+description = "On ANTONIOFISSO-PC the ink trails the nib: the line appears a visible distance behind the pen, which makes handwriting on the window feel slow next to the tablet. The path is PenPacketStroke (desktop/src/main/java/com/mobixournal/desktop/PenPacketStroke.kt, fed by DesktopTablet -> TabletWintab.drain at ~400 packets/s) painting through PageCanvas.paintSheet, which repaints the WHOLE sheet - paper, picture and every element - on each frame and draws the live stroke on top of it; dirty-rect invalidation is not built (item (3) of desktop-144hz-render-pacing, which stays that scope's job - this task takes its item (4), ink latency). Work in this order, measuring before changing: (1) MEASURE, so the claim is a number: add a `--probe-ink` mode beside `--probe-tablet` (Main.kt) writing ink-probe.csv with, per sample, the packet's atNanos, the nanoTime of the frame that first painted it, the delta in ms and that frame's time, over the same three strokes the tablet probe uses; run it on a light page and on udiff.xopp (6 pages, ~4000 strokes), because the lag is expected to grow with the page. State the numbers and the target in the task's own report: at 144 Hz the ink must be within one frame (6.9 ms) of the nib, and the same on a heavy page. (2) COALESCE: PenPacketStroke.packet() writes the draft state list once per packet, so 400 packets a second mean 400 Canvas invalidations and 400 full-sheet repaints; buffer the packets and publish them once per frame instead (one batch per frame tick, every filtered sample kept in order with its own width, so the line is identical), and let a lift still commit exactly once. (3) If the measured delta is still above target, publish the stroke's HEAD at the raw packet position while the filtered body trails it (POSITION_SMOOTHING keeps applying to the body): the eye judges latency by the tip, and at 400 packets/s the one-pole filters must not add a frame of their own - check that arithmetic rather than assuming it. (4) Tests: a JVM test of the batch reducer (N packets in, one frame's samples out, order and widths preserved, the lift ends exactly once) beside PenPacketStrokeTest, and the existing PenPacketStrokeTest/PenPacketSceneTest/DesktopPointerSceneTest stay green; the latency figure itself is measured on this host, not in a unit test. (5) Docs in the same change: docs/desktop-workstation.md (The tablet on Windows: what the measurement showed and the batch rule), README's desktop paragraph if what the user sees changes. Finish with :desktop:createDistributable and a live pass on the Huion by the owner."
+status = "active"
+level = "task"
+category = "bug"
+urgency = "high"
+order = 800
+created = 2026-10-24
+tags = ["desktop", "tablet"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
 id = "external-content-ingestion-drag-and-drop-to-canvas"
 title = "External content ingestion drag-and-drop to canvas"
 description = "Handle dropping external images, PDFs, math strings, and CSV/TSV tables directly onto the active canvas page as living entities."
