@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "circuit-value-keyboard"
+title = "Type a circuit value on a keyboard of its own"
+description = "Landed: the circuit inspector's value field opens a keyboard of its own instead of the system IME. ui/CircuitValueKeyboard.kt carries three pages (digits/separators, the alphabet with a case switch, and the circuit symbols) on one key grid, docked bottom-centre over the canvas with backspace and cursor keys; CircuitInspectorAnchor hosts it in a fillMaxSize Box, keeps the inspector above it while open, and the field is read-only so no IME appears. Keys are 44dp (a tool slot) and the panel is a FloatingSurface. VERIFIED: CircuitValueKeyboardTest (7: every digit, the whole alphabet in both cases, the circuit symbols, no blank key, insert-at-cursor replacing a selection, backspace of a selection and of one character, caret bounds), 1551 app + 388 core JVM tests / 0 failures with the guards, assembleDebug and the desktop distributable. Docs: mobix-elements (circuit section), README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-23
+completed = 2026-10-23
+tags = []
+
+[[task]]
 id = "recording-notification-controls"
 title = "Manage a background recording from its notification"
 description = "Landed: the recording notification carries Pause/Resume and Stop. AudioRecordingService gained ACTION_PAUSE, an onPauseRequested callback, a companion-built notification and notifyPaused(context, paused), so the shade is rebuilt from the one state the session reports (chronometer only while recording, paused title/text, only-alert-once). MainActivityAudio wires the callback and reports the state from togglePauseRecording. The mini capsule's Resume button now wears a record dot instead of the playback triangle. VERIFIED: 1547 app JVM tests / 0 failures and assembleDebug; the shade path itself (button -> session -> re-post) needs a device to press, so it is built and unit-covered but not exercised on hardware in this pass. Docs: audio-inking-sync (background capture)."
