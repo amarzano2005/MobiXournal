@@ -1,7 +1,8 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +12,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.RotateRight
 import androidx.compose.material.icons.filled.DragIndicator
@@ -28,7 +32,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,13 +42,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -109,7 +115,7 @@ fun CircuitInspectorAnchor(
                 (canvasSizePx.height - if (keyboardOpen) keyboardHeight else 0).coerceAtLeast(0),
             ),
             field = field,
-            onFieldChange = { field = it },
+            keyboardOpen = keyboardOpen,
             onOpenKeyboard = { keyboardOpen = true },
             labelSide = labelSide,
             onLabelSideChange = { side ->
@@ -139,9 +145,17 @@ fun CircuitInspectorAnchor(
                 onDone = { keyboardOpen = false },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    // Measured first, so the height reserved for it is the whole keyboard — the insets
+                    // and the air around it included — and the panel above clears every key.
+                    .onSizeChanged { keyboardHeight = it.height }
+                    // A keyboard, not a grid across the whole tablet: the keys keep a thumb's width
+                    // instead of stretching to a quarter of the canvas each.
+                    .widthIn(max = KEYBOARD_MAX_WIDTH)
                     .fillMaxWidth()
-                    .padding(8.dp)
-                    .onSizeChanged { keyboardHeight = it.height },
+                    // The window is edge-to-edge, so without this the last row (the pages, the arrows,
+                    // Done) would sit under the gesture bar and be unreachable.
+                    .navigationBarsPadding()
+                    .padding(8.dp),
             )
         }
     }
@@ -157,7 +171,7 @@ private fun CircuitInspectorSurface(
     selectionRect: android.graphics.RectF?,
     canvasSize: IntSize,
     field: TextFieldValue,
-    onFieldChange: (TextFieldValue) -> Unit,
+    keyboardOpen: Boolean,
     onOpenKeyboard: () -> Unit,
     labelSide: CircuitLabelSide,
     onLabelSideChange: (CircuitLabelSide) -> Unit,
@@ -202,7 +216,7 @@ private fun CircuitInspectorSurface(
         CircuitInspectorContent(
             circuit = circuit,
             field = field,
-            onFieldChange = onFieldChange,
+            keyboardOpen = keyboardOpen,
             onOpenKeyboard = onOpenKeyboard,
             labelSide = labelSide,
             onLabelSideChange = onLabelSideChange,
@@ -238,7 +252,7 @@ private fun clampInspectorOffset(
 private fun CircuitInspectorContent(
     circuit: CircuitElement,
     field: TextFieldValue,
-    onFieldChange: (TextFieldValue) -> Unit,
+    keyboardOpen: Boolean,
     onOpenKeyboard: () -> Unit,
     labelSide: CircuitLabelSide,
     onLabelSideChange: (CircuitLabelSide) -> Unit,
@@ -259,25 +273,10 @@ private fun CircuitInspectorContent(
             onDrag = onDrag,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        // Read-only on purpose: the value is typed on the circuit keyboard, so the field never asks
-        // the system IME for a panel that would cover the canvas this inspector is anchored to.
-        OutlinedTextField(
-            value = field,
-            onValueChange = onFieldChange,
-            readOnly = true,
-            label = { Text("Value / Label") },
-            placeholder = { Text("e.g. 10 kΩ, Vcc, R1") },
-            trailingIcon = {
-                Icon(
-                    Icons.Outlined.Keyboard,
-                    contentDescription = "Open the circuit keyboard",
-                    modifier = Modifier.size(18.dp),
-                )
-            },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .pointerInput(Unit) { detectTapGestures { onOpenKeyboard() } },
+        CircuitValueDisplay(
+            value = field.text,
+            caretAt = if (keyboardOpen) field.selection.min else null,
+            onClick = onOpenKeyboard,
         )
         CircuitLabelPlacementControl(
             labelSide = labelSide,
@@ -293,6 +292,86 @@ private fun CircuitInspectorContent(
             onSave = onSave,
         )
     }
+}
+
+/**
+ * The value line: a **display**, not a text field.
+ *
+ * It used to be a read-only `OutlinedTextField`, which was the wrong object for the job: a text field
+ * takes the tap for itself (it asks for focus, and the IME answers), so the tap never reached the
+ * panel's own handler — the keyboard underneath never opened, and the system keyboard was asked for a
+ * panel this inspector does not want. Nothing here is focusable: the whole line is one click target
+ * that opens [CircuitValueKeyboard], and the value is painted as text with the caret drawn in place
+ * while that keyboard is up, so the arrows still show where the next key lands.
+ */
+@Composable
+private fun CircuitValueDisplay(
+    value: String,
+    caretAt: Int?,
+    onClick: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(4.dp)
+    Column {
+        Text(
+            text = "Value / Label",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (caretAt != null) scheme.primary else scheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(shape)
+                .border(1.dp, if (caretAt != null) scheme.primary else scheme.outline, shape)
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Open the circuit keyboard",
+                    onClick = onClick,
+                )
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (value.isEmpty() && caretAt == null) PLACEHOLDER else valueWithCaret(value, caretAt),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (value.isEmpty()) scheme.onSurfaceVariant else scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.Outlined.Keyboard,
+                contentDescription = "Open the circuit keyboard",
+                tint = scheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/** The placeholder the value line shows while it is empty. */
+private const val PLACEHOLDER = "e.g. 10 kΩ, Vcc, R1"
+
+/**
+ * How wide the circuit keyboard may get, whatever the screen: past this the keys stop being keys and
+ * become a grid of tiles — a 7-column letter row on a 1280 dp canvas would give each key 170 dp.
+ */
+private val KEYBOARD_MAX_WIDTH = 480.dp
+
+/** The caret a value is edited with — a thin bar between the characters it sits between. */
+internal const val VALUE_CARET = "|"
+
+/**
+ * [value] with [VALUE_CARET] drawn at [caretAt] (clamped to the text), or [value] unchanged when the
+ * keyboard is closed ([caretAt] null). Pure so the drawn line can be checked on the JVM.
+ */
+internal fun valueWithCaret(value: String, caretAt: Int?): String {
+    if (caretAt == null) return value
+    val at = caretAt.coerceIn(0, value.length)
+    return value.substring(0, at) + VALUE_CARET + value.substring(at)
 }
 
 @Composable

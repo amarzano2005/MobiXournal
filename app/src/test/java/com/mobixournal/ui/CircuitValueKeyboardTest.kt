@@ -87,6 +87,15 @@ class CircuitValueKeyboardTest {
     }
 
     @Test
+    fun `the value line draws the caret where the keyboard will type, and none when it is closed`() {
+        assertEquals("a caret sits between the characters it edits", "10 |kΩ", valueWithCaret("10 kΩ", 3))
+        assertEquals("the ends are inside the line", "|10", valueWithCaret("10", 0))
+        assertEquals("10|", valueWithCaret("10", 2))
+        assertEquals("a caret past the end is clamped to it", "10|", valueWithCaret("10", 9))
+        assertEquals("no keyboard, no caret", "10 kΩ", valueWithCaret("10 kΩ", null))
+    }
+
+    @Test
     fun `the caret moves without touching the text and stops at the ends`() {
         val left = moveCircuitCaret(field("10 k", caret = 2), -1)
         assertEquals("10 k", left.text)

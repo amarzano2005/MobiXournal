@@ -194,10 +194,8 @@ never ink: `docs/selection.md`).
 
 The circuit component is the third family: a living `CircuitElement` authored by circuit tools
 (`render/CircuitElementFactory.kt`), with a hit-testable rotated stroke box and move/rotate/restyle from
-`render/SelectionOps.kt`, edited in place via `ui/CircuitEditorDialog.kt` (symbol, value, stroke, rotation,
-colour, and pins with `render/CircuitSnapping.kt`'s magnet). Its inspector writes the value with a **circuit
-symbol keyboard** (Ω, µ, k, M, ±, °C…, inserted at the cursor) and puts it on any of the symbol's four
-sides (`labelSide`, above).
+`render/SelectionOps.kt`, edited in place via `ui/CircuitEditorDialog.kt` (value, stroke, rotation, colour,
+`labelSide`, pins). Its value has a keyboard of its own instead of the system IME — see `circuit` below.
 
 The parametric shape is the fourth family: a closed polygon the recogniser keeps as **geometry** instead
 of ink (`render/ParametricShapes.kt`), with a stroke box `render/ElementBounds.kt` **recomputes from its
@@ -350,10 +348,12 @@ and width and no line style, so neither would survive the round trip.
 so omitted), `"below"`, `"left"` or `"right"` — a *side of the drawing*, not a coordinate: the label
 is laid out **around** the symbol (centred across it for above/below, along it for left/right, with
 air between), so it never lies over the drawing — which it used to do once a component was rotated
-(the ink turns, a value does not). The inspector chooses the side, and its value field opens the
-**circuit keyboard** docked at the foot of the canvas — digits, designator letters and the circuit
-symbols on three pages, in place of the system IME — moving the label at once (`render/CircuitInk.kt`,
-`ui/CircuitEditorDialog.kt`); the key it replaced, `labelBelow: true` is still read.
+(the ink turns, a value does not). The inspector chooses the side; its **value line** is a line of text
+and not a text field, so a tap anywhere on it opens the **circuit keyboard** docked at the foot of the
+canvas — digits, designator letters and the circuit symbols on three pages, in place of the system IME —
+and no system keyboard is ever asked for (`render/CircuitInk.kt`, `ui/CircuitEditorDialog.kt`); the key
+it replaced, `labelBelow: true` is still read. The keyboard is capped at 480 dp wide — keys stay keys on a
+tablet — and sits clear of the gesture bar, the panel above laid out against the space it leaves.
 
 `pins` are the magnetic anchors, relative to `position` and before `rotation`; `connectedTo` names the
 net a pin is snapped to and is omitted for a floating pin. The magnet serves **connector gestures only**:
