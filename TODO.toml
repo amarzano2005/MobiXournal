@@ -22,44 +22,212 @@ documentation_is_part_of_the_task = "Every task that writes code also writes its
 scope = "Only build features the .mobix or .xopp formats can represent on disk (per AGENTS.md and docs/mobix-format.md). If a capability cannot round-trip through either format, it is out of scope."
 
 [[task]]
-id = "step-3-desktop-workstation"
-title = "Step 3 — Desktop workstation program (epic)"
-description = "Step 3 of docs/future-roadmap.md, defined across docs/desktop-workstation.md and the desktop section of docs/ui-modernization.md: MobiXournal Desktop, a native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the Android editor on a graphics tablet, optimised for 21:9 monitors and 144 Hz, with bimanual shortcuts, a property inspector for living entities and tablet rotary-dial support. A read-only viewer already ships in desktop/ with headless render tests. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the window chrome is the app's own glass on a true-black desk (NOT Mica), the drawing tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is a plain kotlin-jvm module that both shells depend on. Phases, in execution order: (A) shared core - mobix-core plus ink and paper geometry (done); (B) complete reader - .mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom/pan, the decided chrome, both tool placements (rail and ribbon open); (C) KMP module split (desktop-kmp-module-split) then editing - pressure inking, eraser, selection, undo, Save and Save As under the sticky format policy, in-place living-entity editors, images and import, page management and search, layer visibility; (D) graphics-tablet and rotary-dial hardware; (E) 21:9 layout and 144 Hz render pacing, with the settings window that exposes them (desktop-settings-and-status-ui); (F) living-entity property inspector and PDF/SVG export; (G) MSI installer and CI artifact. Parity scopes added 2026-10-21, each broken down when picked up: colour and width palette, shape perfection / text / math, PDF annotation and outline, pen-tip radial HUD, audio recording and replay, infinite canvas, multiple windows and monitors, light theme and header extras, and desktop-guards-and-ci (structure budget and CI job for desktop/). Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
+id = "desktop-every-tool-does-what-it-does-on-the-tablet"
+title = "Desktop: every tool in the strip does what it does on the tablet (scope)"
+description = "Priority 1 of the window, and the map of who owns which remaining slot: every slot the strip offers must do what the same tool does on the tablet, and no tool may be offered without acting. Shipped since this scope was opened: pen and highlighter inking through the shared router and pressure filter, both erasers (standard and whole-stroke), the seven geometry slots (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) and Vertical space - each through mobix-core, each one gesture and one undo step. Still open, and owned by exactly one child so nothing is planned twice: TEXT and TEXIMAGE -> desktop-shape-text-and-math-tools; MARQUEE, LASSO and BG_SELECT -> desktop-eraser-and-selection-on-shared-geometry (the eraser half has shipped); PLOT, AXES, TABLE and CIRCUIT -> desktop-stem-slot-placement; pictures and import -> desktop-images-and-import; the setsquare and compass guides -> desktop-guides-setsquare-compass; the audio tap, the Y key and karaoke replay -> desktop-audio-replay; PDF text selection and the magnetic highlighter -> desktop-pdf-annotation; what exposes a group's members at all (chevrons, glass pickers, grouping) -> desktop-tool-groups-and-pickers; every slot face's glyph -> unify-remaining-stem-tool-glyphs; the barrel-button ring of tools, widths and colours -> desktop-pen-tip-radial-hud. Every tablet tool now has an owner, and a tool whose task has not landed is simply not shown on the strip rather than shown dead. Rules every child follows: the shared router decides what a press means (docs/stylus.md), width and colour come from the strip through the same PressureCurve, a drag previews exactly what the lift commits, one gesture is one edit and one undo step, a packet-driven stroke and a mouse drag never draw the same contact twice (DesktopTool.inksByPackets is the one gate), every UI element answers docs/interface-contract.md, and the owning spoke plus README change in the same commit. Done when every slot either acts or is not shown. This scope is the map, not the work: picking it up means breaking the listed children down, never implementing here."
 status = "active"
-level = "epic"
+level = "scope"
 category = "feature"
 urgency = "high"
-order = 900
+order = 10
+created = 2026-10-24
+tags = ["desktop", "ui"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "unify-remaining-stem-tool-glyphs"
+title = "Complete the icon-to-glyph adaptation: every slot face comes from the catalogue"
+description = "Priority 1 work, and the closing half of the iconography seam: ToolGlyphCatalogue (mobix-core) holds the thirty glyphs either shell can put on a toolbar slot face - the rail's tools, the STEM dock's default faces, every shape and arrow variant, and the window's. What is left is the rest of the catalogue and the sweep that makes it the only glyph source in both shells. (1) Add a GlyphPart entry for each tablet picker member that still draws its original ImageVector: capacitor, inductor, ground, the switch pair, junction, LED, zener, op-amp, both BJTs, the two sources, transformer, OR/NOT/NAND/NOR/XOR/XNOR/buffer gates, the three chem bonds, TEXIMAGE, TEXT_SELECT, BG_SELECT and PLAY_OBJECT (they are already monoline paths on the 24-unit grid in app/src/main/java/com/mobixournal/ui/CircuitGlyphs.kt and ChemGlyphs.kt, so this is transcription, not new art) and map each in EditorTool.ToolInfo. (2) Sweep the tool surfaces of BOTH shells - the tablet's rail, its STEM dock and every picker row, and the window's rail and ribbon - for a slot that still draws a Material icon or a hand-drawn vector instead of a catalogue glyph, and replace it; the header's own chrome glyphs (sidebar, placement, undo/redo) are not tool faces and stay where docs/interface-contract.md section 4 puts them. (3) Tighten ToolGlyphCoverageTest's waiting bound to zero, so a new EditorTool with no catalogue glyph fails the build instead of being tolerated. (4) Keep the glyphs identical in both shells: one grid, one stroke weight, one set of joints (docs/ui-modernization.md section 4), with a render test per shell that a slot's face is the catalogue's glyph and not a fallback. Done when no EditorTool and no desktop DesktopTool lacks a catalogue glyph, the app and desktop suites pass, and docs/ui-modernization.md's iconography bullet no longer names a seam. Desktop rebuild not needed for the app-only halves; run :desktop:test and regenerate the distributable at the end because the window's faces change."
+status = "active"
+level = "task"
+category = "refactor"
+urgency = "high"
+order = 20
+created = 2026-10-22
+tags = ["desktop", "mobile"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-tool-groups-and-pickers"
+title = "Give the desktop tool strips the tablet's tool groups"
+description = "Priority 1 work on the strips themselves, because a group is how the window exposes a tool the tablet already offers: the tablet's rail shows one slot per tool group (pen, highlighter, eraser partial/whole, pan, select rectangle/lasso, insert, text, vertical space) with a chevron that opens the group's picker, and its STEM dock does the same for the shapes, arrows, passive and active circuits, logic gates and chemistry families. The desktop's rail and ribbon still draw the window's slots flat, with no grouping and no picker, so the two toolbars share their material and their glyphs but not their structure. Port ToolGroup/pickerRows semantics to a desktop model beside ToolSelection.kt (a group holds its members and remembers which one faces the slot), add the chevron affordance to the slot and a glass picker popup anchored to it (docs/interface-contract.md: one material class, the five states, English copy), and keep the shortcuts of docs/ui-modernization.md section 3 meaning the same tools - the picker only re-faces a slot, it never changes a key. Members that act are the ones desktop-every-tool-does-what-it-does-on-the-tablet lists; a member whose tool does not act yet is not shown, so this lands behind that map rather than ahead of it. Verify headlessly: a render test asserting each group's slot shows its selected member's glyph and that a pick re-faces the slot, plus the picker opened and closed by keyboard and by pointer, and a keyboard test that every member of a group is reachable without the picker. Docs: the tool-placement section of docs/desktop-workstation.md and the iconography bullet of docs/ui-modernization.md. Regenerate the distributable at the end."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 30
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-eraser-and-selection-on-shared-geometry"
+title = "Desktop: marquee and lasso selection on the shared geometry"
+description = "What is left of the selection half; the eraser half shipped with editable-page-window-for-a-paged-desktop (2026-10-22) and is closed here: the window's eraser erases through the shared PageEraser in STANDARD and WHOLE_STROKE modes with eraserRadiusPt sizing the tip, committed through the tab's page window (DesktopEditingTest renders a bar, erases across it and asserts the gap is paper again with both halves still inked). Still owed: (1) the three marquee tools - MARQUEE drags a rectangle, LASSO a freehand loop and BG_SELECT the same region flattened onto the background - each painting the window's own marching outline over the page (not a material of their own, docs/interface-contract.md) and each committing through the page window as one undo step; (2) what a selection then does - move by dragging, scale from the corner handles, rotate once a handle is turned (desktop-living-entity-editors owns editing a living entity's own handles, this owns the selection transform), with the transform maths taken from the app's SelectionOps, which still lives in the app module because it uses ElementRef, FigureRedraw and TableElementFactory; the per-element move is already cut out into mobix-core's ElementShift (the seam VerticalSpaceOps and SelectionOps both walk), so continue along that seam and move the rest, or split it the same way, rather than starting a second geometry; (3) core tests for whatever maths moves plus a desktop render test that a marquee drag paints an outline and a lift moves exactly what it caught; (4) the packets gate: a selection drag is not ink, so DesktopTool.inksByPackets must stay false for it and the pen's packets must not take the drag (DesktopVerticalSpaceTest is the pattern). Docs: docs/selection.md (the shared maths) and docs/desktop-workstation.md. No emulator; run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 40
+created = 2026-10-22
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-shape-text-and-math-tools"
+title = "Desktop: shape perfection, text boxes and math blocks (scope)"
+description = "Desktop parity for the three Android engines that are not geometry slots; the geometry itself has shipped (the seven shape slots draw through ShapeBuilder). (1) Hold-to-perfect shapes (docs/shape-perfection-engine.md): decide whether the recogniser is platform-free enough for mobix-core, then make a pen held still for 300 ms perfect the ink already on the page instead of only the shape slots - the tablet's dwell, not a new gesture. (2) The text box tool (X) and markdown text (docs/text-and-markdown.md): what a press creates, how the editor opens without a dialog over the page (the window's glass: an in-place field or the inspector row, owned for living elements by desktop-living-entity-editors), what the element writes on commit, and how Enter/Esc and the caret behave; the model (TextElement with its font, size, colour, alignment) already round-trips through both formats. (3) Math blocks: the viewer already draws a math block through LivingInk, so what is missing is authoring - an editor for the LaTeX source and the typesetting path (docs/latex-typst-rendering.md), reusing the tablet's offline KaTeX/Typst path so the two shells do not compile differently. Add task-level children in dependency order (text before math, perfect-shapes independent), each with its JVM test of what the edit writes, an ImageComposeScene test that the gesture writes one element and one undo step, and its docs (README, docs/desktop-workstation.md, the owning engine doc). Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 50
 created = 2026-10-21
-tags = []
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
 id = "desktop-stem-slot-placement"
 title = "Desktop: the STEM slots place a living element (scope)"
-description = "Four slots - PLOT, AXES, TABLE, CIRCUIT - are on the strip and pan the page, because DesktopPen.activeTool() reduces them to HAND; they are the tools that CREATE a living element, while desktop-living-entity-editors only edits one that exists. The tablet asks first (a formula for a plot, rows/columns for a table, a component for a circuit) and the app's dialogs are Compose-for-Android, so nothing carries over unchanged: mobix-core has the geometry (PlotInk, PlotFrame, FunctionPlot, TableInk, CircuitInk, CircuitShapes, ParametricShapes) and the element types (PlotElement, TableElement, CircuitElement, ParametricShapeElement), but not the question the user answers when the tool is picked. Investigate and then add the atomic tasks: (1) how a press places an element on the desktop - drag a box (the tablet's gesture) or place at the click with a default size - and where the size/position lands in each element's own fields; (2) what the user fills in first, per family, and where that happens without a modal over the page (the window's glass: a header-tethered editor, an inspector row, or the same popup the tablet opens, re-drawn in Compose Desktop), reusing the apply functions the Android editors already call (render/ElementEdits.kt, applyPlotEdit) so both shells write the same element; (3) the order of families - plot first (the formula is one line and the geometry is already shared), then axes, table, circuit - and what each still lacks in mobix-core to be placed without the app module; (4) the tests each child owes (a JVM test of what the placement writes, an ImageComposeScene test that picking the tool and dragging writes exactly one element and one undo step); (5) the doc updates (docs/mobix-elements.md, docs/desktop-workstation.md, README). Produce tasks, not code; it is a child of desktop-every-tool-does-what-it-does-on-the-tablet and depends on desktop-living-entity-editors for the editor surface."
+description = "Four slots - PLOT, AXES, TABLE, CIRCUIT - are on the strip and pan the page, because DesktopPen.activeTool() reduces them to HAND; they are the tools that CREATE a living element, while desktop-living-entity-editors edits one that exists and desktop-export-pdf-svg writes files - three jobs, three owners, no overlap. The tablet asks first (a formula for a plot, rows/columns for a table, a component for a circuit) and its dialogs are Compose-for-Android, so nothing carries over unchanged: mobix-core has the geometry (PlotInk, PlotFrame, FunctionPlot, TableInk, CircuitInk, CircuitShapes, ParametricShapes) and the element types (PlotElement, TableElement, CircuitElement, ParametricShapeElement), but not the question the user answers when the tool is picked. Investigate and then add the atomic tasks: (1) how a press places an element on the desktop - drag a box (the tablet's gesture) or place at the click with a default size - and where the size and position land in each element's own fields; (2) what the user fills in first, per family, and where that happens without a modal over the page (the window's glass: a header-tethered editor, an inspector row, or the same question the tablet asks, re-drawn in Compose Desktop), reusing the apply functions the Android editors already call (render/ElementEdits.kt, applyPlotEdit) so both shells write the same element; (3) the order of families - plot first (the formula is one line and the geometry is already shared), then axes, table, circuit - and what each still lacks in mobix-core to be placed without the app module; (4) the tests each child owes (a JVM test of what the placement writes, an ImageComposeScene test that picking the tool and dragging writes exactly one element and one undo step, and that the pen's packets do not take the drag); (5) the doc updates (docs/mobix-elements.md, docs/desktop-workstation.md, README). Depends on desktop-living-entity-editors for the editor surface it opens after placing. Produce tasks, not code."
 status = "active"
 level = "scope"
 category = "feature"
-urgency = "normal"
-order = 950
+urgency = "high"
+order = 60
 created = 2026-10-24
 tags = ["desktop", "ui"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-every-tool-does-what-it-does-on-the-tablet"
-title = "Desktop: every tool in the strip does what it does on the tablet (scope)"
-description = "Every slot in the window's strip must do what the same tool does on the tablet. The desktop has fifteen slots today (desktop/src/main/java/com/mobixournal/desktop/ToolSelection.kt, DesktopTool): PEN and HIGHLIGHTER ink, ERASER rubs out, and the other twelve reduce to ActiveTool.HAND in DesktopPen.kt's activeTool(), so a drag with Line, Text, Marquee, Plot or Table silently pans the page. This scope is the umbrella for closing that gap and the map of who owns which slot: (1) LINE, ARROW, RECTANGLE, ELLIPSE, SPLINE -> desktop-geometry-tools-line-arrow-rectangle-ellipse-spline (new; the pure geometry, ShapeBuilder/ShapeKind, already exists in mobix-core, so the work is canvas plumbing); (2) MARQUEE, LASSO -> desktop-eraser-and-selection-on-shared-geometry, which also owes the SelectionOps move to mobix-core that two of these tasks need; (3) TEXT (and the TeX image) -> the desktop-shape-text-and-math-tools scope; (4) the ERASER's second member, whole-stroke -> desktop-eraser-whole-stroke-mode (new); (5) VERTICAL_SPACE -> desktop-vertical-space-tool (new); (6) PLOT, AXES, TABLE, CIRCUIT -> desktop-stem-slot-placement (new scope: how a press places a living element and what the user edits first); (7) pictures, sketches and import -> desktop-images-and-import; (8) the strip's own structure (groups, chevrons, glass pickers) -> desktop-tool-groups-and-pickers, which every group with two or more members needs. Slots the tablet has and the strip does not (double arrow, coordinate axes, the STEM figure set, logic gates, chemistry, background select, guides, laser) are added by the task that makes them act, never as an empty slot. Rules every child follows: the shared router decides what a press means (docs/stylus.md), width and colour come from the strip through the same PressureCurve, a drag previews exactly what the lift commits, one gesture is one edit and one undo step, a packet-driven stroke and a mouse drag never draw the same contact twice, every new UI element answers docs/interface-contract.md, and the owning spoke plus README are updated in the same change. Done when every slot in the strip either acts or is not shown; this scope stays active as the map until then, and its children are the tasks."
+id = "desktop-living-entity-editors"
+title = "Desktop: editing a living entity in place and in the inspector (scope)"
+description = "One owner for every way the window CHANGES a living element that already exists: the on-page gestures and the non-modal property inspector, merged here so the same edit is not specified twice. Not here: creating one (desktop-stem-slot-placement) and exporting pages (desktop-export-pdf-svg). Investigate, then add the atomic tasks in this order: (1) the selection bridge - what the inspector and the on-page handles read: the element under the selection, its family and its current values (this depends on desktop-eraser-and-selection-on-shared-geometry for the selection itself); (2) the inspector as a 300 dp right lane, sections per family (plot: formula, interval, resolution, stroke; table: rows and columns, headers, alignment; circuit: component values; parametric shape: parameters), never a dialog over the page, committing into the same undo stack as a stroke - reusing the codecs in format/mobix/ and the apply functions the Android inspectors call (render/ElementEdits.kt, applyPlotEdit), so both shells write the same element; (3) the on-page gestures per family: double-click to edit, vertex and pin handles, drag to resize without changing line weight, each a preview that is exactly what the commit writes; (4) layout and keyboard: the inspector docks at a fixed width and shows and hides without moving the page, every field is reachable by keyboard, Esc cancels a field edit rather than the whole element; (5) tests: a JVM test of each apply path (the element that comes out is the one the tablet's editor would write), an ImageComposeScene test that a handle drag is one undo step and that the inspector's field commits, and a render test of the lane beside the page (no band over the sheet). Docs: docs/mobix-elements.md per family, docs/desktop-workstation.md, README. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 70
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pdf-annotation"
+title = "Desktop: PDF annotation and outline (scope)"
+description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it, while the tablet has the tools. Investigate for desktop (PDFBox, not pdfbox-android) and then add the atomic tasks: (1) PDF text selection - what the text layer gives on a JVM, how a selection's rectangles are built, and how the selected text reaches the clipboard; (2) the snap-to-text magnetic highlighter (docs/pdf-annotation-engine.md, docs/pdf.md) - whether its geometry is platform-free enough for mobix-core so both shells snap the same way, and what a highlighter stroke stores so it round-trips; (3) the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there), including a lazily loaded outline for a big document; (4) the tools' slots: PDF text select and the magnetic highlighter are entries of the strip, so their slot faces and shortcuts follow the same rules as every other tool (unify-remaining-stem-tool-glyphs, docs/ui-modernization.md section 3) and a drag with them is not ink, so the pen's packets must not take it (DesktopTool.inksByPackets). Leaving the page's PDF untouched until a save writes it is the Android rule and applies here. Export is not in this scope: desktop-export-pdf-svg owns it. Verification per child: a JVM test over a fixture PDF for the geometry, a render test that a selection or a highlight lands where the text is. Docs: docs/pdf.md, docs/desktop-workstation.md, README. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 80
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-images-and-import"
+title = "Desktop: images as elements and content import (scope)"
+description = "Today desktop/ shows images only as page backgrounds. This scope owns BOTH halves of the tablet's picture tools: an image as a movable, resizable page element, and bringing content into the document (paste, drag a file onto the page, insert a picture). Investigate, then add the atomic tasks: (1) what a .xopp image element stores versus what a .mobix element stores (the content-hash assets are the native path; a .xopp carries the bytes inline or beside the file), and what the window must write so the document round-trips on both shells (docs/mobix-format.md, docs/xopp-format.md); (2) which slice of the app's image and PDF import path (io/, render/) can be reused unchanged, and what a dropped or pasted file becomes (one element, a new page, a background - three different outcomes that must not be conflated); (3) the element's handles: move and resize without resampling, one undo step per gesture, the same handles the selection transform gives (desktop-eraser-and-selection-on-shared-geometry); (4) the drop target itself: what Windows gives drag-and-drop on Compose Desktop, the visual affordance while a file is over the window (docs/interface-contract.md), and what happens to an unsupported file; (5) import of a PDF and of a sketch, under the sticky format policy - an imported PDF becomes a page background, never a silent conversion. Tests: a JVM round-trip that writes and reopens a document with an image element (both formats), and an ImageComposeScene test of the drop and the handles. Docs: README, docs/desktop-workstation.md, the owning format doc. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 90
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-guides-setsquare-compass"
+title = "Desktop: the setsquare and compass guides (scope)"
+description = "The tablet's rail carries a guides slot (docs/drawing-tools.md: the setsquare/compass guides beside BackgroundRenderer, PdfBackgroundPainter and Snapping) and the window has none, so this is one of the tools the parity map still has to reach - and the last one without an owner. Investigate and then add the atomic tasks: (1) how much of the tablet's guide geometry and its snapping is already platform-free in mobix-core (the guide lines, the snap candidates, the angle readout) - whatever is, moves or is reused rather than re-derived, so a guide placed on the tablet and one placed here behave the same; (2) how a guide is placed and moved with a pointer: a press anchors the compass, a drag turns it, a second press drops it, and whether a guide is a document element at all or page view state (the tablet answers this and the window must give the same answer, because only one of the two survives a save - the scope rule of AGENTS.md decides it); (3) the slot: guides are not ink, so DesktopTool.inksByPackets stays false for the slot and the pen's packets must not take the drag (DesktopVerticalSpaceTest is the pattern), and the face comes from the shared catalogue like every other slot (unify-remaining-stem-tool-glyphs); (4) the readout: the angle and the snap marker in the window's own chrome and tokens, English copy, the five states (docs/interface-contract.md); (5) tests: a pure geometry test for the guides and their snapping beside the shared maths, an ImageComposeScene test that a drag places a guide and that snapping holds a line at 0/45/90 degrees with Shift, and a render test of the guide over a page. Docs: docs/drawing-tools.md (the guides section), docs/desktop-workstation.md, README. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 92
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-pen-tip-radial-hud"
+title = "Desktop: pen-tip radial HUD (scope)"
+description = "The radial HUD of docs/ui-modernization.md - summoned by a barrel button under the nib, dismissed on release, holding the user's swatches first, then widths, then tools - exists on the desktop only as a word in the tablet scope, and it is a tool surface, so it belongs to the tools-parity group. Investigate, then add the atomic tasks: (1) how the barrel button reaches the JVM with the stream this machine has (Wintab reports it as a pressure shoulder or a button bit; Windows Ink as a pointer property - TabletWintab already decodes buttons, so find the exact reading), and what a mouse gets instead (a key or a middle-click summon); (2) whether the HUD's geometry and its hit-testing and selection logic can live in mobix-core as pure Kotlin and be drawn by both shells, so the tablet's HUD and this one cannot disagree; (3) what the ring holds on the desktop: the palette the strip already uses (PenPalette), the three width slots and the acting tools only - a member whose tool does not act is not offered; (4) the dial's role in it (docs/desktop-workstation.md: the dial is a separate wheel device, so decide whether a turn steps the highlighted swatch) and the dismissal rules (release, Esc, a click outside); (5) tests: pure hit-testing and selection tests beside the shared geometry, a render test of the HUD over a page, and one scene test that a barrel press summons it and a release dismisses it. Depends on the Android HUD (app) for the ring's contents, not on a second drawing. Docs: docs/ui-modernization.md, docs/desktop-workstation.md, README. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "high"
+order = 95
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-settings-and-status-ui"
+title = "Desktop: the Settings section and the status bar (scope)"
+description = "Priority 2 of the window: one place where every choice the app already has - and the ones the tasks in TODO.toml are about to add - can be seen and changed, instead of a properties file edited by hand. Settings persist through the existing store (desktop/DesktopSettings.kt, which owns tool placement today) so a restart finds them; every option is English copy and the window's own glass (docs/interface-contract.md), never a dialog over the page. Investigate and then add the atomic tasks: (1) the Settings window itself - a section per lane, opened from the header and from a key, with the sections Interface (tool placement, page spread and fit, sidebar and inspector defaults), Display (light or dark theme, target refresh rate, the frame-time readout), Tablet (which pen stream: Windows Ink or Wintab, aspect-ratio lock, active-area mapping, pressure curve), Dial (what the ring controls - it reads the setting desktop-dial-width-and-ring introduces - and its step size), Audio (input device and level, when desktop-audio-replay has landed), and Shortcuts; (2) the status bar additions that are reads, not settings - refresh rate and frame time, the pen stream, and the tablet and dial indicators that already exist (docs/desktop-workstation.md); (3) a shortcut table that can be remapped, sharing the Android remapping model of docs/ui-modernization.md so a key means the same tool in both shells, with a conflict check and a reset; (4) what each setting does when it changes live (a new density re-records the page picture, a new placement re-lays the strips) and the one test per setting; (5) tests: a render test per Settings section (the window's chrome, no band over the page), a state test that each option survives a restart through DesktopSettings, and one test that a remapped key reaches the same command the old key did. Behaviour an option exposes is owned elsewhere and is linked, not re-specified here: the dial's width ring by desktop-dial-width-and-ring, the spread by desktop-ultrawide-21x9-layout, the theme by desktop-light-theme-and-header-extras, audio devices by desktop-audio-replay. Docs: docs/desktop-workstation.md (a Settings section), docs/ui-modernization.md (the shortcut and theming sections), README. Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 960
-created = 2026-10-24
+order = 100
+created = 2026-10-21
 tags = ["desktop", "ui"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-dial-width-and-ring"
+title = "Desktop: the dial's second control — stroke width and its diameter ring"
+description = "One of the two settings-driven tablet controls, and the other half of the dial work (the notch already zooms through TabletWheel). (1) Delivery: the dial's rotation runs DesktopShellState.dialZoom today; add tablet.dial=zoom|width to desktop/DesktopSettings.kt, read it into DesktopShellState as a dialControl snapshot state, and route the rotation to the stroke-width steps while the setting says width (the same stepWidth the keys and the strip use) - every dial action keeps a keyboard twin that edits the same value (DesktopKeys.kt and the shortcut table of docs/ui-modernization.md section 3; read the table first and never reuse a taken key). (2) Ring: while the width control moves, and for about 700 ms after, draw a circle at the pen's last page position whose radius is the prospective width in page pt times zoom times density, in the window's own chrome and tokens (DesktopTheme, docs/interface-contract.md: one material class, the five states, English copy), not a second HUD - a Canvas overlay in PageCanvas.kt above the page transform, fed by a ringWidth state the shell clears on a timer. (3) Tests: the width steps clamp at PenPalette.DEFAULT_WIDTHS ends, the setting routes rotation to the right control (a pure state test beside TabletDialTest), and an ImageComposeScene render test that the ring's radius follows the width and that it disappears after the hold. (4) The Settings window that exposes the choice is desktop-settings-and-status-ui (Interface/Dial section): this task adds the key and the state, that one draws the control, so neither specifies the other's surface. Docs: docs/desktop-workstation.md (The tablet on Windows), the shortcut table if a key is added, README's desktop paragraph. No vendor HID and no Android change; verify with :desktop:test plus one live pass on the Huion."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 110
+created = 2026-10-23
+tags = ["desktop", "tablet", "ui"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-light-theme-and-header-extras"
+title = "Desktop: light theme, breadcrumb and Share (scope)"
+description = "The parts of the header and the theme the window still lacks, narrowed so nothing here is somebody else's: (1) light-theme tokens for the glass, the desk and the sheet, with a setting and the system default - the window is dark-first today and docs/desktop-workstation.md says the light theme waits until the tokens cover it, so the work is the token set plus the proof that every surface (bands, desk, sheet, sheet shadow, slot states, ink-on-paper) reads in both, and a switch that does not change what a document looks like; (2) the document path breadcrumb in the header, for the open document's path, which shortens from the left when the window is narrow; (3) Share: reveal the document in Explorer, copy its path, and open the export command that desktop-export-pdf-svg adds - three actions in one glass menu, English copy. Not here, and owned elsewhere: the Settings entry opens desktop-settings-and-status-ui's window; the header's search field belongs to desktop-page-management-and-search (a search field with nothing behind it is not built); the tool faces are unify-remaining-stem-tool-glyphs; the layout of the bands on an ultrawide window is desktop-ultrawide-21x9-layout. Each child owes a render test in both themes and, for the breadcrumb and Share, the pixel check that they carry the band's material and no more. Docs: the chrome and theming sections of docs/ui-modernization.md, docs/desktop-workstation.md, README. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 120
+created = 2026-10-21
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-audio-replay"
+title = "Desktop: audio recording, playback and karaoke replay (scope)"
+description = "Priority 3 of the window, and an owner decision that has not changed: audio must work on the desktop, RECORDING INCLUDED (2026-10-21). Documents carry audio the window cannot yet handle: a .mobix bundles Opus, a .xopp has a WAV sidecar, and every stroke point records its own audio timestamp (docs/audio-inking-sync.md, docs/audio.md). This scope owns the whole audio lane, including the Y audio tap / replay key and the audio entry of the tool strip, so the tools-parity map points here instead of keeping a second copy of it. Investigate, then add the atomic tasks in this order: (1) recording on Windows through javax.sound.sampled (TargetDataLine) or a native alternative - microphone choice, the buffer that keeps latency low, and what happens when the device or the permission is missing (an English notice, never a crash or a silent no-op); (2) the codec policy the tablet already follows (WAV for a .xopp document, Opus for a .mobix) and what an Opus encoder costs on a JVM - a library or a native binary packaged with the MSI - plus the WAV to Opus compaction the tablet already does for a .mobix; (3) stamping every stroke point with its audio timestamp while recording, through the shared stroke model, so the file replays on Android too (this is the one part that must not be re-invented: the field already exists in StrokePoint); (4) playback, including an Opus decoder, a transport that stays in step with the page, and what happens when a document's audio is missing; (5) the Y audio tap and karaoke replay of strokes (the pen's own ink replayed with the recording, one stroke at a time); (6) scrubbing from the timeline and from the tablet dial, decided together with desktop-dial-width-and-ring so the dial has one meaning at a time; (7) the recording indicator and level in the status bar, with the settings that expose the input device living in desktop-settings-and-status-ui. Verification: a JVM test that records from a fake line, writes a .mobix and a .xopp, and reads both back with the same stroke-to-audio mapping the Android reader uses; plus one render test of the transport and the indicator. Docs: docs/audio.md, docs/audio-inking-sync.md, docs/desktop-workstation.md, README. Produce tasks, no code."
+status = "active"
+level = "scope"
+category = "feature"
+urgency = "normal"
+order = 200
+created = 2026-10-21
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false
 
@@ -71,36 +239,8 @@ status = "active"
 level = "task"
 category = "feature"
 urgency = "normal"
-order = 965
+order = 300
 created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-and-status-ui"
-title = "Desktop: settings window and status bar additions (scope)"
-description = "UI surface for the new desktop features, in the app's own glass and English copy per docs/ui-modernization.md. Specify and break into tasks: (1) a Settings window, not a dialog over the page - sections Interface (tool placement Rail / Ribbon / Both, page spread, sidebar and inspector defaults), Display (target refresh rate, show frame-time overlay), Tablet (backend Windows Ink / Wintab, aspect-ratio lock, active-area mapping, pressure curve) and Dial (what the ring controls: zoom, stroke width, radial HUD, step size); (2) status bar additions: refresh rate and frame time (optional), tablet connected state; (3) dial feedback - stroke-width diameter ring around the cursor and a zoom percentage pill; (4) a shortcut table that can be remapped, shared with the Android remapping model. Settings persist in the small store introduced by desktop-rail-and-ribbon-tool-strips. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 970
-created = 2026-10-21
-tags = ["desktop", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-pen-tip-radial-hud"
-title = "Desktop: pen-tip radial HUD (scope)"
-description = "The radial HUD of docs/ui-modernization.md (summoned by a barrel button under the nib, dismissed on release, holds the user's swatches first, then widths, then tools) exists on desktop only as a word in the tablet scope. Investigate after the tablet spike: how the barrel button reaches the JVM (Windows Ink or Wintab, desktop-tablet-and-dial-input), whether the HUD's geometry and selection logic can be shared with Android as pure Kotlin in mobix-core, the dial's role in it, and the mouse fallback (a key or a middle click). Add task-level children. Depends on desktop-tablet-and-dial-input and the Android HUD. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 980
-created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false
@@ -108,83 +248,27 @@ emulator_debug = false
 [[task]]
 id = "desktop-ultrawide-21x9-layout"
 title = "Desktop: 21:9 ultrawide layout (scope)"
-description = "Optimise desktop/ for 21:9 monitors (3440x1440 and 2560x1080). UI changes to specify and break into tasks: (1) multi-page spread - 2 or 3 pages side by side with fit-to-height, chosen per tab and remembered, with a status-bar indicator and keys; (2) sidebar (240 dp) and right inspector (300 dp) stay docked at fixed width so the extra width goes to the desk, never stretching the page or the chrome; (3) rail and ribbon placement on ultrawide (rail in its own lane, ribbon optional) per docs/ui-modernization.md; (4) the AUTO fit mode learns the window aspect ratio; (5) thumbnails and AUTO fit for long-strip pages. Document the layout in the desktop section of docs/ui-modernization.md. Verify headlessly with ImageComposeScene renders at 3440x1440 and 2560x1080 into desktop/build/desktop-render/, asserting pixel regions (no band over the page, pages side by side), plus one manual check on the owner's monitor."
+description = "Optimise desktop/ for 21:9 monitors (3440x1440 and 2560x1080). This scope owns the LAYOUT and nothing of the settings that expose it: the page spread, the fixed widths and the fits are specified here, and the window that offers them is desktop-settings-and-status-ui's. Investigate and break into tasks: (1) multi-page spread - 2 or 3 pages side by side with fit-to-height, chosen per tab and remembered, with a status-bar indicator and keys; (2) sidebar (240 dp) and inspector (300 dp) stay docked at fixed width so the extra width goes to the desk, never stretching the page or the chrome; (3) rail and ribbon placement on ultrawide (rail in its own lane, ribbon optional) per docs/ui-modernization.md; (4) the AUTO fit mode learns the window's aspect ratio; (5) thumbnails and AUTO fit for long-strip pages. Document the layout in the desktop section of docs/ui-modernization.md. Verify headlessly with ImageComposeScene renders at 3440x1440 and 2560x1080 into desktop/build/desktop-render/, asserting pixel regions (no band over the page, pages side by side), plus one manual check on the owner's monitor."
 status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 990
+order = 310
 created = 2026-10-21
 tags = ["desktop", "ui"]
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-inspector-and-export"
-title = "Desktop property inspector and PDF/SVG export (scope)"
-description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
+id = "desktop-export-pdf-svg"
+title = "Desktop: PDF and SVG export (scope)"
+description = "The window writes .xopp and .mobix and nothing else; exporting a PDF or an SVG is the missing half of printing a notebook from the workstation. This scope owns the exporters and nothing about editing: the property inspector belongs to desktop-living-entity-editors and creating a living element to desktop-stem-slot-placement. Investigate, then add the atomic tasks: (1) what the shared renderers need to run on a JVM at all - render/PdfVectorPainter.kt, render/PageSvgWriter.kt and render/XoppSynthesis.kt are clear of Compose but some of their call sites are bound to android.graphics.Canvas and to Android text metrics, so decide whether a small canvas-and-text abstraction in mobix-core (the same seam LivingInk already gives both shells) lets them run unchanged, and estimate each renderer by what it must swap; (2) an SVG export of a whole document, one file per page beside the document or a single file, matching the tablet's output for the same page where the format allows; (3) a PDF export with the page backgrounds the document already carries (a .mobix's bundled assets, a .xopp's sidecar or package entry), reusing PdfPagePlan's ops so both shells emit the same page; (4) a PDF background path on the desktop (PDFBox, not pdfbox-android) for pages written over a PDF; (5) where the command lives in the window (the Share menu or a key from the shortcut table of docs/ui-modernization.md), what it writes, and how a failure is reported in English. Verification per child: a JVM test that exports the same document from the desktop and compares the produced PDF/SVG with the Android exporter's output for that page, plus one render of the result. Docs: docs/pdf.md, docs/rendering.md, docs/desktop-workstation.md and README in the same commit. Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1010
-created = 2026-10-21
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-living-entity-editors"
-title = "Desktop: in-place editors for living entities (scope)"
-description = "Editing of living elements directly on the desktop page, one family at a time (plot, table, circuit, parametric shape), reusing the codecs in format/mobix/ and the apply functions the Android editors use (render/ElementEdits.kt, applyPlotEdit). Complements the non-modal inspector in desktop-inspector-and-export: this scope is the on-page gestures (double-click to edit, vertex and pin handles, drag to resize without changing line weight). Investigate what each family needs from the desktop selection and undo model, state the order of families and add task-level children. Depends on desktop-kmp-module-split and desktop-editing-undo-and-save. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1020
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-shape-text-and-math-tools"
-title = "Desktop: shape perfection, text boxes and math blocks (scope)"
-description = "Desktop editing parity for three Android engines: (1) 300 ms hold-to-perfect shapes (docs/shape-perfection-engine.md) - whether the recogniser is platform-free enough for mobix-core; (2) the text box tool (X) and markdown text (docs/text-and-markdown.md); (3) MathBlockElement typesetting with KaTeX and Typst (docs/latex-typst-rendering.md): first whether the desktop viewer already draws a math block through LivingInk, and what an offline compiler on a JVM costs (the Android core is task embedded-katex-and-typst-offline-compilation-core). Add task-level children, in dependency order. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1030
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-pdf-annotation"
-title = "Desktop: PDF annotation and outline (scope)"
-description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it. Investigate for desktop (PDFBox, not pdfbox-android): PDF text selection, the snap-to-text magnetic highlighter (docs/pdf-annotation-engine.md, docs/pdf.md), the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there) and where each engine lives today. Add task-level children. Export is in desktop-inspector-and-export. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1040
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-audio-replay"
-title = "Desktop: audio recording, playback and karaoke replay (scope)"
-description = "Audio must work on the desktop, RECORDING INCLUDED (owner decision 2026-10-21). Documents carry audio the desktop cannot yet handle: a .mobix bundles Opus, a .xopp has a WAV sidecar, and every stroke records its audio timestamp (docs/audio-inking-sync.md, docs/audio.md). Investigate and add task-level children for: (1) recording on Windows through javax.sound.sampled (TargetDataLine) or a native alternative - microphone choice, latency, and what happens when permission or the device is missing; (2) the codec policy the Android app already follows (WAV for a .xopp document, Opus for a .mobix) and what an Opus encoder costs on a JVM (a library or a native binary packaged with the MSI), including the later WAV to Opus compaction of task compress-wav-on-mobix-conversion; (3) stamping every stroke point with its audio timestamp while recording, using the shared stroke model so the file replays on Android too; (4) playback, including an Opus decoder; (5) the Y audio tap/replay key and karaoke replay of strokes; (6) scrubbing from the timeline and from the tablet dial; (7) a recording indicator in the status bar. Verification: a JVM test that records from a fake line, writes a .mobix and a .xopp, and reads them back with the same stroke-to-audio mapping the Android reader uses. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1050
-created = 2026-10-21
+order = 320
+created = 2026-10-24
 tags = ["desktop"]
 rebuild = false
 emulator_debug = false
@@ -192,12 +276,12 @@ emulator_debug = false
 [[task]]
 id = "desktop-page-management-and-search"
 title = "Desktop: page management and document search (scope)"
-description = "Insert, delete, duplicate and reorder pages from the sidebar (drag thumbnails), and search the document (text boxes, math blocks, PDF text) with results listed in the sidebar and highlighted on the page. Investigate how the .mobix paged reader and the .xopp model take a page insert or reorder, what undo means for them, and how to search a lazily loaded .mobix without inflating every page. Add task-level children. Produce tasks, no code."
+description = "Pages and finding things in them, one owner for both: insert, delete, duplicate and reorder pages from the sidebar (drag thumbnails), and search the document (text boxes, math blocks, PDF text) with the results listed in the sidebar and highlighted on the page. This scope also owns the header's search field, which desktop-light-theme-and-header-extras deliberately does not build ahead of it: a field over nothing is not chrome. Investigate how the .mobix paged reader and the .xopp model take a page insert or reorder, what undo means for them (one structural step per gesture, and what a page identity means for a tab's viewport), and how to search a lazily loaded .mobix without inflating every page - the same PageSource/PageWindow seam the canvas already uses. Reading a PDF's text layer for the search belongs to desktop-pdf-annotation when the document is a PDF. Docs: docs/desktop-workstation.md, the format doc for whatever a reorder writes, README. Add task-level children. Produce tasks, no code."
 status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1060
+order = 330
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -211,35 +295,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "normal"
-order = 1070
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-images-and-import"
-title = "Desktop: images as elements and content import (scope)"
-description = "Today desktop/ shows images only as page backgrounds. Add images as movable, resizable page elements, and import of sketches, PDFs and text (paste and drag onto the page) into the document under the sticky format policy, bundling the bytes in .mobix assets and as sidecar or embedded data in .xopp. Investigate what the Android image and PDF import paths (io/, render/) can be reused, how a dropped file becomes an element, and add task-level children. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1080
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-light-theme-and-header-extras"
-title = "Desktop: light theme and header extras (scope)"
-description = "docs/desktop-workstation.md and ui-modernization.md say the desktop is dark-first and the light theme waits until the tokens cover it, and the header drawing lists a document path breadcrumb, a search field, Share and Settings. Break down: (1) light-theme tokens for the glass, desk and sheet, with a setting and the system default; (2) the breadcrumb for the open document's path; (3) the search field wired to desktop-page-management-and-search; (4) Share (reveal in Explorer, export, copy path); (5) the Settings entry opening desktop-settings-and-status-ui. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "low"
-order = 1100
+order = 340
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -253,7 +309,7 @@ status = "active"
 level = "scope"
 category = "feature"
 urgency = "low"
-order = 1110
+order = 350
 created = 2026-10-21
 tags = ["desktop"]
 rebuild = false
@@ -267,92 +323,36 @@ status = "active"
 level = "task"
 category = "chore"
 urgency = "low"
-order = 1120
+order = 360
 created = 2026-10-21
 tags = []
 rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "unify-remaining-stem-tool-glyphs"
-title = "Port the remaining STEM family glyphs into the shared catalogue"
-description = "ToolGlyphCatalogue (mobix-core) now holds the thirty glyphs either shell can put on a toolbar slot face: the rail's tools, the STEM dock's default faces, every shape and arrow variant, and the window's fifteen. The tablet's deeper picker members still draw their original ImageVectors — capacitor, inductor, ground, the switch pair, junction, LED, zener, op-amp, both BJTs, the two sources, transformer, OR/NOT/NAND/NOR/XOR/XNOR/buffer gates, the three chem bonds, TEXIMAGE, TEXT_SELECT, BG_SELECT and PLAY_OBJECT. Add a GlyphPart entry for each (they are already monoline paths on the 24-unit grid in app/src/main/java/com/mobixournal/ui/CircuitGlyphs.kt and ChemGlyphs.kt, so this is transcription, not new art), map it in EditorTool.ToolInfo, and tighten ToolGlyphCoverageTest's waiting bound to zero. Done when no EditorTool lacks a catalogue glyph, the app and desktop suites pass, and docs/ui-modernization.md's iconography bullet no longer names a seam."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "normal"
-order = 1130
-created = 2026-10-22
-tags = ["desktop", "mobile"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tool-groups-and-pickers"
-title = "Give the desktop tool strips the tablet's tool groups"
-description = "The tablet's rail shows one slot per tool group (pen, highlighter, eraser partial/whole, pan, select rectangle/lasso, insert, text, vertical space) with a chevron that opens the group's picker, and its STEM dock does the same for the shapes, arrows, passive and active circuits, logic gates and chemistry families. The desktop's rail and ribbon still draw the window's fifteen tools as fifteen flat slots with no grouping and no picker, so the two toolbars now share their material and their glyphs but not their structure. Port ToolGroup/pickerRows semantics to a desktop model (documents are read-only today, so a slot still only sets a selection), add the chevron affordance and a glass picker popup anchored to the slot, and keep the shortcuts of docs/ui-modernization.md section 3 meaning the same tools. Verify headlessly: a render test asserting each group's slot shows its selected member's glyph and that a pick re-faces the slot, plus the picker opened/closed by keyboard and pointer. Docs: the desktop tool-placement section of docs/desktop-workstation.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1140
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-eraser-and-selection-on-shared-geometry"
-title = "Desktop: eraser and selection on the shared geometry"
-description = "Half of this landed with editable-page-window-for-a-paged-desktop (2026-10-22): the desktop's eraser tool now erases through the shared PageEraser in STANDARD mode (partial erase, the stroke split where the disc crosses it) with a tip radius from eraserRadiusPt, committed through the tab's page window — DesktopEditingTest renders a bar, erases across it and asserts the gap is paper again with both halves still inked. Done in the core already: StrokeEraser, StrokeHitTester and PageEraser are pure and Android-free, so the 'move the maths into mobix-core' half of (1) is complete; what is not moved is the app's own call sites, which keep working through them. What this task still owes: (1) a desktop selection tool — drag a marquee, move/rotate/scale what it holds, committed through the page overlay; the transform maths is the app's SelectionOps, which still lives in the app module and has to move to mobix-core (or be cut along the same seam) for the window to use it; (2) core tests for the carried-over selection maths if it moves; (3) a desktop render test for the marquee (the eraser half is already covered). Docs: docs/selection.md (the shared maths), docs/desktop-workstation.md. No emulator."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1170
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-dial-width-and-ring"
-title = "Desktop: the dial's second control — stroke width and its diameter ring"
-description = "The half of desktop-dial-zoom-and-width that did not ship, on the rotation backend that did. (1) Delivery: the dial's rotation runs `DesktopShellState.dialZoom` today; add `tablet.dial=zoom|width` to `desktop/DesktopSettings.kt`, read it into `DesktopShellState` (a `dialControl` snapshot state), and route `dialZoom(degrees)` to `stepWidth(+1/-1)` while the setting says width — every dial action keeps a keyboard twin editing the same value (`DesktopKeys.kt` and the shortcut table of `docs/ui-modernization.md` section 3; read the table first and never reuse a taken key). (2) Ring: while the width control moves, and for about 700 ms after, draw a circle at the pen's last page position whose radius is the prospective width in page pt × `zoom` × density, in the window's own chrome and tokens (`DesktopTheme`, `docs/interface-contract.md`: one material class, a glyph only if one is needed, all five states, English copy), not a second HUD — a `Canvas` overlay in `PageCanvas.kt` above the page transform, fed by a `ringWidth` state the shell clears on a timer. (3) Tests: width steps clamp at `PenPalette.DEFAULT_WIDTHS`' ends, the setting routes rotation to the right control (pure state test beside `TabletDialTest`), and an `ImageComposeScene` render test that the ring's radius follows the width and that it disappears after the hold. (4) Docs: `docs/desktop-workstation.md` (The tablet on Windows), the shortcut table if a key is added, and `README.md`'s desktop paragraph. No vendor HID and no Android change; verify with `:desktop:test` plus one live pass on the Huion."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1230
-created = 2026-10-23
-tags = ["desktop", "tablet", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-dial-wheel-zoom"
-title = "Desktop: the dial's notch zooms, told apart from the mouse wheel"
-description = "The dial turned nothing in the window: Windows delivers its rotation as WM_MOUSEWHEEL (delta +/-120, no modifier, extra-info empty), the same message and the same unit as the mouse's wheel, so routing every notch to zoom would take scrolling away from the mouse. Give the notch a device: register the window for raw mouse reports (WM_INPUT, RIDEV_INPUTSINK so the dial works unfocused), turn RAWINPUTHEADER.hDevice into the device's interface path with GetRawInputDeviceInfoW, and call a notch the dial's when the path is the tablet's (tablethid/huion/vmidi/vid_256c). Keep it observational: the same notch stays the WM_MOUSEWHEEL Compose receives, and the canvas asks DesktopTablet.dialWheelRecently() whose wheel it was, so one notch is one action whichever message arrives first. The dial's notch takes wheelViewport's zoom path at the cursor with no Ctrl held; the mouse's wheel keeps scrolling. Verify with DialWheelSceneTest (an ImageComposeScene, both devices through Compose's real dispatch): the dial's notch zooms in and leaves the fit, the mouse's scrolls and keeps the 100 % zoom. Docs: docs/desktop-workstation.md (measured rows for the dial and raw input) and README's desktop paragraph."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1240
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-predict-the-stroke-head-to-hide-the-frame-s-latency"
 title = "Desktop: predict the stroke head to hide the frame's latency"
-description = "On the 60 Hz laptop the probe says a packet becomes ink in a median ~12.5 ms, which is the wait for the next vsync plus the paint; the paint itself is now 0.1-0.3 ms, so what is left is the frame interval. At 144 Hz that halves but does not vanish, and the eye reads it as the line trailing the nib. Work: extend the DRAFT only (never the committed stroke) by one predicted sample along the velocity of the last few packets, capped in distance, cleared on direction change and skipped below a slow speed so a resting pen does not jitter; keep it in PenPacketStroke so the shared router and filter are untouched, and add a test that the committed stroke has exactly the packets' samples while the draft may carry one extra. Measure the perceived lead with --probe-ink on the owner's PC (a number cannot be measured on this 60 Hz laptop)."
+description = "What is left of the pen's latency is the frame interval, not this code: the packet ticker applies a batch as it arrives, so the measured gap between a packet and the frame that first drew it is 1.48 ms median / 5.22 ms p95 / 7.82 ms max on a blank A4 page and 1.96 / 5.10 / 7.48 ms on udiff.xopp on the owner's PC (docs/desktop-tablet.md has the table). What remains is the wait for the next vsync, which the eye reads as the line trailing the nib. Work: extend the DRAFT only (never the committed stroke) by one predicted sample along the velocity of the last few packets, capped in distance, cleared on a direction change and skipped below a slow speed so a resting pen does not jitter; keep it in PenPacketStroke so the shared router and the ink filter are untouched, and add a test that the committed stroke holds exactly the packets' samples while the draft may carry one extra. This is polish, not a defect: measure the perceived lead with --probe-ink on the owner's PC (the 144 Hz effect cannot be measured on a 60 Hz laptop) and record the before and after rows in docs/desktop-tablet.md before deciding it is worth keeping."
 status = "active"
 level = "task"
 category = "feature"
 urgency = "low"
-order = 1270
+order = 370
 created = 2026-10-24
 tags = ["desktop", "perf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "step-3-desktop-workstation"
+title = "Step 3 — Desktop workstation program (epic)"
+description = "The milestone, and the decisions behind it. MobiXournal Desktop is the native workstation app for WINDOWS 11 ONLY (decision 2026-10-21: no Linux, no macOS, no plugin system) that opens the same documents as the tablet editor, on a graphics tablet, for 21:9 monitors and 144 Hz, with bimanual shortcuts, living-entity editing and tablet rotary-dial support. Decisions taken 2026-10-21 and recorded in docs/ui-modernization.md: the chrome is the app's own glass on a true-black desk (not Mica), the tools live in BOTH a vertical rail and a top ribbon with a setting that switches between them, and the shared core is the plain kotlin-jvm module both shells depend on (mobix-core). Shipped phases: the shared core (mobix-core: ink, paper and paper geometry), the complete reader (.mobix and ZIP .xopp, tabs, Ctrl+B sidebar, zoom and pan, the decided chrome, both placements), editing (pressure inking through the shared router, both erasers, the geometry slots, vertical space, undo and redo, Save and Save As under the sticky format policy, the paged page window), the graphics tablet (Wintab and Windows Ink, the packets path, the dial's notch) and 144 Hz render pacing (the page recorded once, scroll and zoom as replays, a lift costing the stroke). What remains is the open work of TODO.toml and nothing else: this epic owns no plan of its own, so read the list. Its ordering is the owner's: (1) every tool equivalent to the tablet's, including the complete icon-to-glyph adaptation, (2) the Settings section, (3) audio recording and playback, (4) everything else - the strip's groups and pickers, selection, text and math, STEM placement, living-entity editing, PDF annotation, images, the radial HUD, undo/redo controls, ultrawide layout, export, page management and search, boards, extra windows, the MSI, and stroke-head prediction. Done means: every phase closed with its docs updated in the owning spoke, the desktop suite green on the host (no emulator), a packaged binary that opens .mobix and .xopp, README documenting it, and the 144 Hz and tablet results confirmed by the owner on real hardware. Never implement in one pass: children are scopes where the code must be investigated first, tasks where the work is already clear."
+status = "active"
+level = "epic"
+category = "feature"
+urgency = "normal"
+order = 990
+created = 2026-10-21
+tags = []
 rebuild = false
 emulator_debug = false
