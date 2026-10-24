@@ -66,10 +66,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   `DrawScope`. A shell may not keep a hand-drawn set of its own, and `material.icons` is not an import the
   desktop's chrome may have.
 - The `when` in `ToolGlyphCatalogue.parts` is exhaustive: a new tool does not compile without art.
-  `ToolGlyphCoverageTest` additionally requires every slot the UI shows to come from the catalogue, and
-  **names the tools still on Material vectors** by identity — today only the deep STEM picker members
-  (capacitor, the gates beyond AND, the chemistry bonds). A tool leaving that list, or a rail mode
-  slipping back to a Material icon, fails the build by name.
+  `ToolGlyphCoverageTest` additionally requires **every** `EditorTool` — the rail's slots, the STEM dock's
+  families, every member a picker row offers, the variant faces a slot takes on and the authoring modes —
+  to come from the catalogue, and requires no two tools to share a picture. The tolerated set is empty; a
+  tool added without a glyph, or a slot slipping back to a Material icon, fails the build.
 - Art rules, learned the hard way: the glyph must read at **20 dp**; it must use the grid's area (a small
   shape in a big box reads as a blob); a pair of tools that differ only in subtlety (eraser vs whole-stroke
   eraser) must differ by a whole stroke (the crease, the sweeps), never by a shade.

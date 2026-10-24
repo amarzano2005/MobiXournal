@@ -24,11 +24,14 @@ import com.mobixournal.design.ToolGlyphCatalogue
  * weight here as the same glyph at 20 dp on the tablet: a monoline icon is one line, not one width at
  * one zoom level.
  */
-internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color) {
+internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color) = drawToolGlyph(tool.glyph, color)
+
+/** The same glyph, addressed by its catalogue entry — what a slot face ultimately is. */
+internal fun DrawScope.drawToolGlyph(glyph: ToolGlyph, color: Color) {
     val grid = DesktopTheme.TOOL_GLYPH_GRID
     val scale = size.minDimension / grid
     val stroke = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * scale
-    for (part in ToolGlyphCatalogue.parts(tool.glyph)) {
+    for (part in ToolGlyphCatalogue.parts(glyph)) {
         when (part) {
             is GlyphPart.Line -> drawLine(
                 color = color,

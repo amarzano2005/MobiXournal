@@ -16,9 +16,10 @@ package com.mobixournal.design
  * the shell's theme, exactly as it does for every other chrome glyph.
  *
  * The catalogue covers every tool either shell can put on a **toolbar slot face** — the rail's tools,
- * the STEM dock's families, and the window's fifteen. The tablet's *pickers* still hold a few deeper
- * members (the other circuit components, gate variants, chemistry bonds) on their existing vectors;
- * unifying those is tracked as its own task, and is the one seam this file does not pretend to close.
+ * the STEM dock's families, the window's fifteen, and every member a STEM picker row can show. It is
+ * the **only** source of tool art: the tablet's vectors for the deeper circuit, gate and bond members
+ * were transcribed into [ToolGlyphsCircuit] and [ToolGlyphsChemistry] and deleted, so a picker row and
+ * a rail slot now show the same picture by construction rather than by two artists agreeing.
  */
 enum class ToolGlyph {
     PEN,
@@ -48,17 +49,49 @@ enum class ToolGlyph {
     RECTANGLE,
     ELLIPSE,
     TRIANGLE,
+    TRIANGLE_EQUILATERAL,
+    TRIANGLE_ISOSCELES,
+    TRIANGLE_RIGHT,
+    TRIANGLE_SCALENE,
     SQUARE,
     RHOMBUS,
     TRAPEZOID,
+    TRAPEZOID_RIGHT,
+    TRAPEZOID_SCALENE,
     PENTAGON,
     HEXAGON,
 
     TABLE,
     RESISTOR,
+    CAPACITOR,
+    INDUCTOR,
+    GROUND,
     DIODE,
+    LED,
+    ZENER_DIODE,
+    OPAMP,
+    BJT_NPN,
+    BJT_PNP,
+    DC_SOURCE,
+    CURRENT_SOURCE,
+    TRANSFORMER,
+    SWITCH_OPEN,
+    SWITCH_CLOSED,
+    JUNCTION,
+
     AND_GATE,
+    OR_GATE,
+    NOT_GATE,
+    NAND_GATE,
+    NOR_GATE,
+    XOR_GATE,
+    XNOR_GATE,
+    BUFFER_GATE,
+
     BENZENE,
+    CHEM_BOND_SINGLE,
+    CHEM_BOND_DOUBLE,
+    CHEM_BOND_TRIPLE,
 }
 
 /** One point on the 24-unit glyph grid. */
@@ -134,16 +167,48 @@ object ToolGlyphCatalogue {
         ToolGlyph.RECTANGLE -> polygon(3f, 6f, 21f, 6f, 21f, 18f, 3f, 18f)
         ToolGlyph.ELLIPSE -> listOf(GlyphPart.Circle(12f, 12f, 9f))
         ToolGlyph.TRIANGLE -> polygon(12f, 4f, 20f, 18f, 4f, 18f)
+        // The variants the rail can put on the slot face when the user picks one: each one's
+        // proportions are what tells it apart at 18 dp, so they are the tool's own outlines.
+        ToolGlyph.TRIANGLE_EQUILATERAL -> polygon(12f, 4f, 20f, 17f, 4f, 17f)
+        ToolGlyph.TRIANGLE_ISOSCELES -> polygon(12f, 2.5f, 18f, 19f, 6f, 19f)
+        ToolGlyph.TRIANGLE_RIGHT -> polygon(4f, 4f, 4f, 19f, 20f, 19f)
+        ToolGlyph.TRIANGLE_SCALENE -> polygon(8.5f, 3f, 20f, 19f, 4f, 19f)
         ToolGlyph.SQUARE -> polygon(4f, 4f, 20f, 4f, 20f, 20f, 4f, 20f)
         ToolGlyph.RHOMBUS -> polygon(12f, 3f, 21f, 12f, 12f, 21f, 3f, 12f)
         ToolGlyph.TRAPEZOID -> polygon(8f, 7f, 16f, 7f, 20f, 19f, 4f, 19f)
+        ToolGlyph.TRAPEZOID_RIGHT -> polygon(5f, 7f, 12f, 7f, 20f, 19f, 5f, 19f)
+        ToolGlyph.TRAPEZOID_SCALENE -> polygon(9f, 7f, 17f, 7f, 20f, 19f, 4f, 19f)
         ToolGlyph.PENTAGON -> polygon(*regular(5, radius = 9f))
         ToolGlyph.HEXAGON -> polygon(*regular(6, radius = 9f))
         ToolGlyph.TABLE -> table()
         ToolGlyph.RESISTOR -> resistor()
+        ToolGlyph.CAPACITOR -> capacitor()
+        ToolGlyph.INDUCTOR -> inductor()
+        ToolGlyph.GROUND -> ground()
         ToolGlyph.DIODE -> diode()
+        ToolGlyph.LED -> led()
+        ToolGlyph.ZENER_DIODE -> zenerDiode()
+        ToolGlyph.OPAMP -> opAmp()
+        ToolGlyph.BJT_NPN -> bjtNpn()
+        ToolGlyph.BJT_PNP -> bjtPnp()
+        ToolGlyph.DC_SOURCE -> dcSource()
+        ToolGlyph.CURRENT_SOURCE -> currentSource()
+        ToolGlyph.TRANSFORMER -> transformer()
+        ToolGlyph.SWITCH_OPEN -> switchOpen()
+        ToolGlyph.SWITCH_CLOSED -> switchClosed()
+        ToolGlyph.JUNCTION -> junction()
         ToolGlyph.AND_GATE -> andGate()
+        ToolGlyph.OR_GATE -> orGate()
+        ToolGlyph.NOT_GATE -> notGate()
+        ToolGlyph.NAND_GATE -> nandGate()
+        ToolGlyph.NOR_GATE -> norGate()
+        ToolGlyph.XOR_GATE -> xorGate()
+        ToolGlyph.XNOR_GATE -> xnorGate()
+        ToolGlyph.BUFFER_GATE -> bufferGate()
         ToolGlyph.BENZENE -> benzene()
+        ToolGlyph.CHEM_BOND_SINGLE -> bondSingle()
+        ToolGlyph.CHEM_BOND_DOUBLE -> bondDouble()
+        ToolGlyph.CHEM_BOND_TRIPLE -> bondTriple()
     }
 
     // --- Inking tools --------------------------------------------------------------------------

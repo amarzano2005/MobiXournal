@@ -206,8 +206,10 @@ invisible: the shadow is the only depth the window has (`Modifier.bandSurface()`
 bands are flat, and a sheen over the PC's made the same material a shade lighter — and glyphs are the
 chrome ink (white), the picked slot steel with the glyph in the accent, exactly as the rail draws them.
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
-24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`; the
-window keeps no second set. The picked slot is a 10 dp squircle in the steel `#38383E`.
+24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither
+shell keeps a set of its own: the tablet's vectors for the deep circuit, gate, bond and shape-variant
+members were transcribed into the catalogue and deleted, so a picker row and a slot face cannot disagree
+about a tool. The picked slot is a 10 dp squircle in the steel `#38383E`.
 - **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option, the open and
   close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
   short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only

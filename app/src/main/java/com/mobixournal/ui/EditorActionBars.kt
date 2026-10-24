@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.SelectionOps
 import com.mobixournal.ui.theme.FloatingSurface
 
@@ -371,7 +372,7 @@ fun TableModeBar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                TableIcon,
+                ToolGlyph.TABLE.imageVector(),
                 contentDescription = null,
                 modifier = Modifier.padding(start = 4.dp).size(20.dp),
                 tint = MaterialTheme.colorScheme.primary,

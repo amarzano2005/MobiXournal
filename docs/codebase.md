@@ -273,8 +273,7 @@ app/
       EditorTool.kt          # the editor's tool modes + their labels/icons (pure)
       ToolbarColorPopup.kt   # rail slot: the compact colour + tip-size + line-style drop-down
       ToolbarSizePopup.kt    # the three pen-width slots as one compact bar + their long-press resize dialog; ToolbarStylePopup.kt: shared line-style chips
-      ToolGlyphs.kt          # custom rail glyphs (hollow rectangle, rhombus, trapezoid, square); Material has no outline variants
-      CircuitGlyphs.kt       # custom vector glyphs for circuit components and logic gates
+      ToolGlyphs.kt          # the triangle/trapezoid variants' catalogue mapping; every tool's art lives in mobix-core's ToolGlyphCatalogue now
       DrawingGuidePopup.kt   # drawing guide popups (rail + compact) with categorized instruments/lattices & custom glyphs
       ToolbarViewPopups.kt   # rail slots: zoom, page background, audio
       ToolbarPagesPopup.kt   # rail slot: page navigation/clipboard, overview grid controls, page-size dialog
