@@ -143,9 +143,10 @@ internal fun runInkProbe(document: File?) {
     val probe = InkProbe()
     println("MobiXournal ink probe: ${file.name} -> ${probe.file.absolutePath}")
     application {
+        val (probeWidth, probeHeight) = probeWindowSize()
         Window(
             onCloseRequest = ::exitApplication,
-            state = rememberWindowState(width = 1100.dp, height = 900.dp),
+            state = rememberWindowState(width = probeWidth.dp, height = probeHeight.dp),
             title = "MobiXournal ink probe",
         ) {
             val packets = InkProbe.SyntheticPackets()
@@ -186,6 +187,22 @@ internal fun runInkProbe(document: File?) {
     }
     probe.finish().forEach { println("ink probe: $it") }
     tab.document.close()
+}
+
+/**
+ * The probe window's size in dp, `-Dmobix.probe.size=3440x1400`, defaulting to the small window.
+ *
+ * The size matters to the measurement and is not cosmetic: the cached page is blitted **at the window's
+ * own pixel size**, so the owner's 21:9 screen asks for four times the pixels this laptop's default
+ * window does. A number measured at 1100 × 900 says nothing about a 3440 × 1440 window unless the same
+ * window is measured, which is what this property makes possible.
+ */
+private fun probeWindowSize(): Pair<Int, Int> {
+    val raw = System.getProperty("mobix.probe.size") ?: return 1100 to 900
+    val parts = raw.lowercase().split('x')
+    val width = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 1100
+    val height = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 900
+    return width to height
 }
 
 /** A blank A4 page written once, so the light-page run needs no fixture on disk. */

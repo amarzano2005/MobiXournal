@@ -90,6 +90,9 @@ internal class PenPacketStroke(
      */
     private val inbox = java.util.concurrent.ConcurrentLinkedQueue<PenPacket>()
 
+    /** One token per batch of packets — the frame request, coalesced. */
+    private val wake = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
+
     /**
      * The samples of the stroke in progress that the gesture has not been told about yet.
      *
@@ -135,7 +138,25 @@ internal class PenPacketStroke(
         // The driver's thread does nothing but this: no state, no lock, no gesture. Anything more here
         // runs on the message thread while a frame is being painted.
         inbox.add(packet)
+        // Wake the frame once per batch: a conflated channel keeps a single token however many packets
+        // arrive before the canvas gets to it, so 400 packets a second still cost at most one frame each.
+        wake.trySend(Unit)
+        DesktopDiagnostics.packet()
     }
+
+    /**
+     * Suspend until the driver has something newer to paint.
+     *
+     * This is what keeps the window from rendering at the display's full rate for ever: a frame is asked
+     * for when a packet arrives, not on a loop (`DesktopDiagnostics` caught the loop at ~120 fps on an
+     * idle window, which is what starved the message thread and read as the window seizing up).
+     */
+    suspend fun awaitPacket() {
+        wake.receive()
+    }
+
+    /** Packets waiting for the next frame — the watchdog's "is the frame loop falling behind" number. */
+    fun backlog(): Int = inbox.size
 
     /**
      * One packet, applied on the frame thread — the state machine that was [packet]'s body.
@@ -314,5 +335,14 @@ internal class PenPacketStroke(
          * between two packets (a heavy frame) does not make the ring jump to the emulated position.
          */
         const val HOVER_STALE_NANOS = 150_000_000L
+
+        /**
+         * How often a stroke's silence is checked — a timer, not a frame.
+         *
+         * The check has to happen when nothing is being painted (that is exactly the case it looks for),
+         * so it runs on `delay` and commits at most once; making it a frame would put the window back on
+         * the perpetual-repaint loop this file exists to avoid.
+         */
+        const val STALE_CHECK_MS = 200L
     }
 }

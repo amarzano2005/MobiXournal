@@ -2,19 +2,21 @@ package com.mobixournal.desktop
 
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import com.mobixournal.format.model.Page
+import org.jetbrains.skia.Rect
+import org.jetbrains.skia.SamplingMode
+import org.jetbrains.skia.Surface
+import org.jetbrains.skia.Image as SkiaImage
 import kotlin.math.roundToInt
 
 /**
@@ -35,11 +37,22 @@ import kotlin.math.roundToInt
  * Recomputed on: an edit (a new [Page] instance), a scroll or a zoom (the viewport), a window resize, a
  * layer switched off, or a page open at another picture (`PageBackdrop` identity).
  *
+ * **The sheet is a Skia image, not a Compose `ImageBitmap`.** The first version blitted the `ImageBitmap`
+ * and the owner's 21:9 window measured **9 ms per frame** at 3400 × 1400 — more than a whole frame at
+ * 144 Hz, which starved the message thread and read as the window seizing up as soon as a stroke began.
+ * Compose's `drawImage(ImageBitmap)` builds a Skia image for the bitmap as it draws, so every frame copied
+ * the sheet; holding the [SkiaImage] the rasterisation produced and drawing it through the native canvas
+ * is one textured quad, and Skia keeps it cached across frames.
+ *
  * Plain values in, [DrawScope] out, so a JVM test drives it without a window (`PageRasterTest`).
  */
 internal class PageRaster {
 
-    private var image: ImageBitmap? = null
+    /** The rasterisation's own surface, reused while the window keeps its size. */
+    private var surface: Surface? = null
+
+    /** The page as one immutable image — what a frame draws, and all it draws. */
+    private var image: SkiaImage? = null
     private var key: Key? = null
     private val canvasScope = CanvasDrawScope()
 
@@ -94,37 +107,35 @@ internal class PageRaster {
             backdrop = backdrop,
             hiddenLayers = hiddenLayers,
         )
-        var bitmap = image
-        // A resize reallocates; anything else repaints into the image it already has, so scrolling and
-        // zooming do not churn a multi-megabyte bitmap per notch.
-        if (bitmap == null || bitmap.width != width || bitmap.height != height) {
-            bitmap = ImageBitmap(width, height)
-            image = bitmap
+        var target0 = surface
+        // A resize reallocates; anything else repaints into the surface it already has, so scrolling and
+        // zooming do not churn a multi-megabyte buffer per notch.
+        if (target0 == null || target0.width != width || target0.height != height) {
+            target0 = Surface.makeRasterN32Premul(width, height)
+            surface = target0
             key = null
         }
         if (wanted != key) {
-            paint(bitmap, wanted, measurer)
+            paint(target0, wanted, measurer)
+            image = target0.makeImageSnapshot()
             key = wanted
             builds++
         }
-        target.drawImage(
-            image = bitmap,
-            srcOffset = IntOffset.Zero,
-            srcSize = IntSize(width, height),
-            dstOffset = IntOffset.Zero,
-            dstSize = IntSize(width, height),
-            filterQuality = FilterQuality.None,
-        )
+        val sheet = image ?: return
+        // One quad, at 1:1: the page is already in the window's pixels, so the blit must not resample.
+        val box = Rect.makeWH(width.toFloat(), height.toFloat())
+        target.drawIntoCanvas { canvas ->
+            canvas.nativeCanvas.drawImageRect(sheet, box, box, SamplingMode.DEFAULT, null, true)
+        }
         blits++
     }
 
-    /** The one place the page becomes pixels — the direct paint path, into an offscreen image. */
-    private fun paint(bitmap: ImageBitmap, key: Key, measurer: TextMeasurer) {
-        val canvas = Canvas(bitmap)
+    /** The one place the page becomes pixels — the direct paint path, into an offscreen surface. */
+    private fun paint(surface: Surface, key: Key, measurer: TextMeasurer) {
         canvasScope.draw(
             density = Density(key.density),
             layoutDirection = LayoutDirection.Ltr,
-            canvas = canvas,
+            canvas = surface.canvas.asComposeCanvas(),
             size = Size(key.width.toFloat(), key.height.toFloat()),
         ) {
             // The image is reused across scrolls, so the previous frame's sheet has to go first.

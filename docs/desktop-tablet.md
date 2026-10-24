@@ -79,12 +79,20 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
 - **One publish per frame, and the latency measured** (`--probe-ink`, `InkProbe.kt`, writing
   `ink-probe.csv`). The driver sends 400 packets a second while the window repaints at the screen's own
   rate; handing every packet to the gesture made 400 snapshot writes and 400 invalidations for one
-  frame's ink. `PenPacketStroke` now buffers the moves and `flush()`es them from the canvas's
-  `withFrameNanos` ticker — every filtered sample in order, with its own width, so the drawn line is
-  identical — while the **tip-down stays immediate**, because it is the sample that starts the stroke
-  and tells the mouse path to stand aside; a lift or a silence flushes the tail before it commits, so a
-  stroke never loses its last millimetres to the frame it ended on. `PenPacketStrokeTest` pins the batch
-  rule beside the existing stroke tests.
+  frame's ink. `PenPacketStroke` buffers the moves and `flush()`es them once per screen frame — every
+  filtered sample in order, with its own width, so the drawn line is identical; a lift or a silence
+  flushes the tail before it commits, so a stroke never loses its last millimetres to the frame it
+  ended on. `PenPacketStrokeTest` pins the batch rule beside the existing stroke tests.
+
+  **A frame is asked for by a packet, never by a loop.** The first version of that ticker was
+  `while (true) { withFrameNanos {} ; flush() }`, and a `withFrameNanos` call requests a frame: the
+  window repainted at the display's full rate for ever. The watchdog (`--diagnose`, `DesktopDiagnostics`)
+  caught it on an idle sheet — **~120 paints a second with nothing happening** — and on a 21:9 window
+  that is a saturated message thread: input queues behind the repaints, which reads as the window
+  freezing the moment a stroke begins. The ticker now `await`s a conflated channel that `packet()`
+  signals, so one batch of packets costs one frame and an idle window paints nothing at all (measured:
+  zero paints per second, one rasterisation). The silence that ends a stroke is *absence*, which no
+  packet announces, so it is checked by a 200 ms `delay` — a timer asks for no repaint.
 
   That hand-off crosses two threads — packets are delivered on the **window procedure's thread**, the
   gesture is drawn by the **frame ticker** — and the first two shapes of it both failed on the running
@@ -110,6 +118,12 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   `ConcurrentLinkedQueue` — because a rare race would otherwise be caught only by luck.
   `PenPacketStrokeTest` asserts the same rule from the other side: a packet with no frame behind it draws
   nothing at all.
+
+  The **watchdog** that found the repaint loop ships with the window: `MobiXournal.exe --diagnose` writes
+  `mobix-diagnose.log` beside the working directory, one line per second *in which anything was painted* —
+  `paints/s`, the worst interval, the sheet's rebuild count, and the thread names of the packet path and
+  the paint path. An idle run leaves the header and a single `paints/s=0` line, which is itself the answer
+  to "is the window repainting for no reason".
 
   The probe paints with the editor's own `PageCanvas` and feeds the real `PenPacketStroke`, recording for
   every sample the packet's time and the `nanoTime` of the frame that first drew it. On a host with no

@@ -27,3 +27,8 @@ __pycache__/
 
 # The tablet probe writes its rows beside the running directory (`--probe-tablet`).
 tablet-probe.csv
+
+# The desktop window's own measurements: probes and the frame watchdog write these beside the
+# working directory they are started from.
+/ink-probe.csv
+/mobix-diagnose.log

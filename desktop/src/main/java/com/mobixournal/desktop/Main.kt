@@ -17,11 +17,16 @@ import java.io.File
  * together and the joined path is tried — a real path with a space keeps working either way.
  */
 internal fun initialDocument(args: Array<String>): File? {
-    val first = args.firstOrNull() ?: return null
+    // Switches (`--diagnose`) are not documents: a path is the argument that does not start with `--`.
+    val paths = args.filterNot { it.startsWith("--") }
+    val first = paths.firstOrNull() ?: return null
     val single = File(first)
     if (single.isFile) return single
-    return File(args.joinToString(" ")).takeIf { it.isFile } ?: single
+    return File(paths.joinToString(" ")).takeIf { it.isFile } ?: single
 }
+
+/** The argument that turns the frame/packet watchdog on (`DesktopDiagnostics`). */
+internal const val DIAGNOSE = "--diagnose"
 
 /** The argument that opens the tablet probe instead of the editor. */
 internal const val PROBE_TABLET = "--probe-tablet"
@@ -81,6 +86,13 @@ private fun Double.asDegrees(): String = String.format(java.util.Locale.ROOT, "%
  * fresh one if it reports "The preview has fallen behind" ([describeOpenFailure]).
  */
 fun main(args: Array<String>) {
+    // `--diagnose` turns on the frame/packet watchdog (`DesktopDiagnostics`): a one-line-per-second
+    // record of frames, the worst interval, the packet backlog and the sheet's rebuild count, written
+    // to `mobix-diagnose.log`. It is set before anything opens a document so the first second counts.
+    if (args.contains(DIAGNOSE)) {
+        System.setProperty("mobix.diagnose", "true")
+        DesktopDiagnostics.start()
+    }
     // The measuring window first: `--probe-tablet` is not a document, and the probe must not try to open
     // one (`desktop-tablet-pressure-spike`, `desktop-tablet-dial-spike`).
     if (args.contains(PROBE_TABLET)) {

@@ -40,6 +40,8 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.text.rememberTextMeasurer
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
@@ -130,6 +132,8 @@ internal fun PageCanvas(
     // whole frame unless it is driven by the newest reading rather than by the emulated mouse's copy.
     val hover = remember { mutableStateOf<Offset?>(null) }
     val penAtNanos = remember { mutableStateOf(0L) }
+    // The page's rasterised sheet, owned here so the frame ticker can report its rebuild count.
+    val raster = remember(tab, tab.page) { PageRaster() }
 
     BoxWithConstraints(
         modifier
@@ -164,6 +168,7 @@ internal fun PageCanvas(
             owns = penOwns,
             hover = hover,
             penAtNanos = penAtNanos,
+            raster = raster,
             packets = packets,
         )
         SheetCanvas(
@@ -178,6 +183,7 @@ internal fun PageCanvas(
             penOwns = penOwns,
             hover = hover,
             penAtNanos = penAtNanos,
+            raster = raster,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
@@ -247,6 +253,8 @@ private fun SheetCanvas(
     hover: MutableState<Offset?>,
     /** `nanoTime` of the newest driver reading; a mouse move is ignored while this is fresh. */
     penAtNanos: MutableState<Long>,
+    /** The page's cached sheet — the ticker reports its rebuilds to the watchdog. */
+    raster: PageRaster,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     measurer: TextMeasurer,
     density: Float,
@@ -260,9 +268,6 @@ private fun SheetCanvas(
     // Its position is [hover], lifted into `PageCanvas` so the driver's own readings can move it.
     val ringPx = toolCursorDiameterPx(tool, ink.width, sheet.zoom, density)
     val penIcon = rememberBlankPointerIcon()
-    // The page is rasterised once per viewport and blitted while a stroke is drawn (`PageRaster`): the
-    // frame a packet is painted on then costs the same on a blank sheet and on a four-thousand-stroke one.
-    val raster = remember(tab, tab.page) { PageRaster() }
     // A mouse move that is a *copy* of the contact must not drag the ring back to a position the driver
     // has already left behind; the packets win for as long as they are arriving.
     val followMouse = { System.nanoTime() - penAtNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
@@ -373,6 +378,9 @@ private fun DrawScope.paintSheet(
     }
     // The probe times the paint itself, after the ink was laid down: that is the frame the eye saw.
     paintProbe?.invoke(drafts, System.nanoTime())
+    // The watchdog counts every repaint, whichever path caused it — a window that paints while nothing is
+    // happening is the failure it exists to catch.
+    DesktopDiagnostics.painted(raster.builds)
 }
 
 /**
@@ -405,6 +413,8 @@ private fun PenPacketStrokes(
     hover: MutableState<Offset?>,
     /** When that reading arrived, so a mouse move can tell whether the driver is still talking. */
     penAtNanos: MutableState<Long>,
+    /** The cached sheet, only so the watchdog can report how often it was rebuilt. */
+    raster: PageRaster,
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
@@ -448,11 +458,23 @@ private fun PenPacketStrokes(
     // here, so 400 packets a second cost one invalidation per frame instead of 400 — and the same
     // point also notices a pen lifted without its last packet, which must not leave a stroke half drawn.
     LaunchedEffect(stroke) {
+        // The silence that ends a stroke is *absence*, and absence produces no packets to wait for — so it
+        // is a timer, not a frame. It runs on `delay`, which asks for no repaint at all.
+        launch {
+            while (true) {
+                delay(PenPacketStroke.STALE_CHECK_MS)
+                stroke.finishIfStale(System.nanoTime())
+            }
+        }
+        // Frames are **asked for by packets**, never by a loop: a `withFrameNanos` loop that never ends
+        // renders the window at the display's full rate for ever — measured at ~120 fps on a window with
+        // nothing happening, which on a 21:9 sheet is what starved the message thread and read as the
+        // window freezing. One token per batch means the ink still costs at most one frame per screen.
         while (true) {
+            stroke.awaitPacket()
             withFrameNanos { }
             stroke.flush()
             stroke.publishHover()
-            stroke.finishIfStale(System.nanoTime())
         }
     }
 }
