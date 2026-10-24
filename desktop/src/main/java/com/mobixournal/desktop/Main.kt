@@ -26,6 +26,9 @@ internal fun initialDocument(args: Array<String>): File? {
 /** The argument that opens the tablet probe instead of the editor. */
 internal const val PROBE_TABLET = "--probe-tablet"
 
+/** The argument that measures ink latency instead of opening the editor (`InkProbe`). */
+internal const val PROBE_INK = "--probe-ink"
+
 /**
  * The probe window: pointer, wheel, key, pen and dial rows written to `tablet-probe.csv` beside the
  * running directory, with the keys observed at the window because that is where a tablet button arrives.
@@ -82,6 +85,13 @@ fun main(args: Array<String>) {
     // one (`desktop-tablet-pressure-spike`, `desktop-tablet-dial-spike`).
     if (args.contains(PROBE_TABLET)) {
         runTabletProbe()
+        return
+    }
+    // The latency probe paints a page with the editor's own canvas: `--probe-ink` alone measures a
+    // blank A4 sheet, `--probe-ink udiff.xopp` the heavy page of that document.
+    val ink = args.indexOf(PROBE_INK)
+    if (ink >= 0) {
+        runInkProbe(initialDocument(args.drop(ink + 1).toTypedArray()))
         return
     }
     val initial = initialDocument(args)

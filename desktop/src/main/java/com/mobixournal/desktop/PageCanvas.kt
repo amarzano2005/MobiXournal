@@ -18,13 +18,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.delay
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,6 +94,12 @@ internal fun PageCanvas(
      */
     packets: PenPacketSource? = null,
     /**
+     * A diagnostics sink for the ink-latency probe (`InkProbe`): called after each paint with the
+     * drafts that were drawn and the clock at that paint. Null in the editor, where this is one branch
+     * per frame and no state.
+     */
+    paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
+    /**
      * True when the wheel notch Compose is delivering right now came from the tablet's **dial** rather
      * than the mouse. Windows sends both as `WM_MOUSEWHEEL` with the same ±120 delta and no modifier,
      * so the notch's *device* is what decides (`TabletWheel`): the dial's turns zoom at the cursor, and
@@ -162,6 +168,7 @@ internal fun PageCanvas(
             penDraft = penDraft,
             pen = pen,
             penOwns = penOwns,
+            paintProbe = paintProbe,
             measurer = measurer,
             density = density,
             panMode = panMode,
@@ -226,6 +233,7 @@ private fun SheetCanvas(
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
     penOwns: MutableState<Boolean>,
+    paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     measurer: TextMeasurer,
     density: Float,
     panMode: Boolean,
@@ -286,6 +294,7 @@ private fun SheetCanvas(
             tool = tool,
             ink = ink,
             drafts = listOf(draft.toList(), penDraft.toList()),
+            paintProbe = paintProbe,
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
         val ring = ringPx
@@ -322,6 +331,8 @@ private fun DrawScope.paintSheet(
      * separate previews because they are separate strokes until one of them is committed.
      */
     drafts: List<List<InkSample>>,
+    /** The ink probe's sink; null in the editor. Called after the ink, at the same clock reading. */
+    paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
 ) {
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
@@ -337,6 +348,8 @@ private fun DrawScope.paintSheet(
             }
         }
     }
+    // The probe times the paint itself, after the ink was laid down: that is the frame the eye saw.
+    paintProbe?.invoke(drafts, System.nanoTime())
 }
 
 /**
@@ -397,10 +410,13 @@ private fun PenPacketStrokes(
         val stop = packets?.listen(stroke::packet)
         onDispose { stop?.invoke() }
     }
-    // A pen lifted without its last packet must not leave a stroke half drawn.
+    // One publish per frame: the packets buffered since the last repaint are handed to the gesture
+    // here, so 400 packets a second cost one invalidation per frame instead of 400 — and the same
+    // point also notices a pen lifted without its last packet, which must not leave a stroke half drawn.
     LaunchedEffect(stroke) {
         while (true) {
-            delay(100)
+            withFrameNanos { }
+            stroke.flush()
             stroke.finishIfStale(System.nanoTime())
         }
     }

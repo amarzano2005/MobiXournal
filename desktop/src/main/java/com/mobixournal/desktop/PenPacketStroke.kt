@@ -45,6 +45,18 @@ internal class PenPacketStroke(
     private var lastPacketNanos = 0L
 
     /**
+     * The samples that have arrived since the last frame, in the driver's own order.
+     *
+     * The driver sends 400 packets a second, while the window repaints at the screen's rate; feeding
+     * every packet straight to the gesture made 400 snapshot writes and 400 invalidations for one
+     * frame's worth of ink. They are buffered here and handed over once per frame by [flush] — every
+     * filtered sample in order, with its own width — so the drawn line is identical while the canvas
+     * repaints once. The tip-down itself is not delayed: it is the sample that starts the stroke and
+     * tells the mouse path to stand aside.
+     */
+    private val pending = ArrayDeque<InkPointer>()
+
+    /**
      * The point the stroke is being drawn at, low-passed.
      *
      * The system context maps the pen onto **whole screen pixels**, so a slow stroke at 400 packets a
@@ -88,12 +100,17 @@ internal class PenPacketStroke(
         val inside = local.x >= 0f && local.y >= 0f && local.x <= size().width && local.y <= size().height
         if (!packet.tip) {
             if (drawing) {
+                // The lift ends the stroke, so the samples still waiting for a frame are part of it.
+                flush()
                 gesture.up(pointer(packet, local))
                 release()
             }
             return
         }
-        if (drawing && packet.atNanos - lastPacketNanos >= STALE_NANOS) finishStroke()
+        if (drawing && packet.atNanos - lastPacketNanos >= STALE_NANOS) {
+            flush()
+            finishStroke()
+        }
         if (!drawing) {
             if (!inside) return
             drawing = true
@@ -103,9 +120,20 @@ internal class PenPacketStroke(
             gesture.down(pointer(packet, raw))
         } else {
             smoothedAt = local
-            gesture.move(pointer(packet, local))
+            pending.addLast(pointer(packet, local))
         }
         lastPacketNanos = packet.atNanos
+    }
+
+    /**
+     * Hand the samples buffered since the last frame to the gesture, in the order they arrived.
+     *
+     * Called once per frame by the canvas (`PageCanvas`'s ticker), and before a lift or a silence so a
+     * stroke never loses its tail to the frame it ended on. A no-op between packets, and cheap enough
+     * to call every frame.
+     */
+    fun flush() {
+        while (pending.isNotEmpty()) gesture.move(pending.removeFirst())
     }
 
     /**
@@ -120,16 +148,19 @@ internal class PenPacketStroke(
     fun finishIfStale(nowNanos: Long) {
         if (!drawing) return
         if (nowNanos - lastPacketNanos < STALE_NANOS) return
+        flush()
         finishStroke()
     }
 
     private fun finishStroke() {
+        pending.clear()
         gesture.finish()
         release()
     }
 
     private fun release() {
         drawing = false
+        pending.clear()
         smoothedPressure = null
         smoothedAt = null
         onOwnership(false)

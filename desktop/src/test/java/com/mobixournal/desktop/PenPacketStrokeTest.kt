@@ -144,6 +144,56 @@ class PenPacketStrokeTest {
         }
     }
 
+    /**
+     * The driver sends 400 packets a second and the window paints at its own rate: the samples are
+     * buffered and published once per frame (`flush`), so one frame's ink costs one invalidation
+     * instead of eight. What must not change is the line itself — every sample in the driver's order,
+     * with its own width — and a lift still commits exactly once.
+     */
+    @Test
+    fun `packets are published once per frame, in order and with their widths`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook("batch.mobix")))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        try {
+            val draft = mutableStateListOf<InkSample>()
+            val path = path(tab, draft = draft)
+            val before = strokes(tab).size
+            var nanos = 1_000_000_000L
+
+            // The tip-down is the stroke's start, so it is drawn immediately (the mouse path stands
+            // aside from it) — only the moves wait for the frame.
+            path.packet(packet(40f, 40f, pressure = 0.1f, atNanos = nanos))
+            assertEquals("the press is the first sample", 1, draft.size)
+            repeat(8) { index ->
+                nanos += 2_500_000L
+                path.packet(packet(60f + index * 20f, 50f + index * 5f, pressure = 0.2f + index * 0.1f, atNanos = nanos))
+            }
+            assertEquals("the moves are held for the frame", 1, draft.size)
+
+            path.flush()
+            assertEquals("one frame publishes every buffered sample", 9, draft.size)
+            assertTrue(
+                "the samples keep the driver's order",
+                draft.zipWithNext().all { (a, b) -> b.x >= a.x && b.y >= a.y },
+            )
+            assertTrue(
+                "and each keeps its own filtered width",
+                draft.zipWithNext().all { (a, b) -> b.factor >= a.factor },
+            )
+            assertEquals("flushing is not a second stroke", before, strokes(tab).size)
+
+            nanos += 2_500_000L
+            path.packet(packet(240f, 100f, pressure = 1f, atNanos = nanos))
+            path.packet(packet(240f, 100f, pressure = 0f, tip = false, atNanos = nanos + 2_500_000L))
+            assertEquals("the lift flushes the tail and commits one stroke", before + 1, strokes(tab).size)
+            assertEquals("with every sample the hand drew", 10, strokes(tab).last().points.size)
+            assertTrue("one stroke is one undo step", tab.canUndo)
+        } finally {
+            tab.document.close()
+        }
+    }
+
     @Test
     fun `a barely-moving light press is ink, and a sustained press reaches the tool's width`() {
         val tab = DesktopTabs().open(DocumentLoader.load(notebook("light.mobix")))

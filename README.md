@@ -127,7 +127,11 @@ desktop's mouse pointer, and the stroke itself begins and ends with that stream 
 a pen: strokes taper with the pressure you actually apply, they start even from the lightest touch and
 survive a pause in the middle of the line, the pen's tilt and the way you hold it travel with the ink, and
 turning the pen round to its eraser end rubs out. The mouse the system emulates alongside the pen never
-draws that line, so one touch is one stroke and never two. Over the page the desktop's arrow is replaced by
+draws that line, so one touch is one stroke and never two. The ink is published once per screen frame rather
+than once per driver packet, so a fast hand costs one redraw a frame instead of hundreds; the line was
+measured against the nib (`--probe-ink`), and on the 60 Hz test laptop a light page paints a sample in a
+median 12.9 ms (17.9 ms p95) while a dense six-page notebook sits at 17.7 ms (29.4 ms p95) — the 144 Hz
+target belongs to the owner's own PC pass. Over the page the desktop's arrow is replaced by
 a ring the size of the line the tool will write, so the point you are about to draw at is never hidden and
 the width is never a guess. The status bar says which stream the window has — `pen: Wintab`,
 `pen: Windows Ink` or `pen: mouse` — and on `pen: mouse` the pen draws at the tool's width, because

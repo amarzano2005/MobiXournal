@@ -46,6 +46,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`search.md`](search.md) | document search, handwriting index, recognition engines | you change search or recognition |
 | [`testing.md`](testing.md) | unit test coverage, architectural guards, mechanical rules | you want to know what protects a change |
 | [`desktop-workstation.md`](desktop-workstation.md) | the `desktop/` preview: module, window shell, page painting, tool strips, settings | you work on the PC window |
+| [`desktop-tablet.md`](desktop-tablet.md) | the desktop pen and dial: Wintab packets, Windows Ink, the ink-latency probe and its measurements | you change how the window reads the tablet |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release
 pipelines, and [`releases/`](releases/) holds the per-version changelogs.
