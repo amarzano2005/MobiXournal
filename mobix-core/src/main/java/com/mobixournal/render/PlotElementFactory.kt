@@ -15,7 +15,7 @@ import com.mobixournal.format.model.PlotCurve as ElementPlotCurve
  * would have put it, or the same dialog answer would land in two different places depending on which
  * one ran.
  */
-internal data class PlotBox(val left: Double, val top: Double, val width: Double, val height: Double) {
+data class PlotBox(val left: Double, val top: Double, val width: Double, val height: Double) {
 
     /** The box's right edge in points. */
     val right: Double get() = left + width
@@ -58,7 +58,7 @@ internal data class PlotBox(val left: Double, val top: Double, val width: Double
  * drawn in the user's pen: passing the same width and colour is what makes the element draw as the
  * insertion used to.
  */
-internal object PlotElementFactory {
+object PlotElementFactory {
 
     /** How much of the page's width a fresh plot takes, before the clamp below. */
     private const val WIDTH_FRACTION = 0.45

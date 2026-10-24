@@ -12,7 +12,7 @@ import kotlin.math.hypot
  * Translates start and end coordinates into a centered [CircuitElement] with
  * canonical pin anchors, rotation in degrees, and minted identity.
  */
-internal object CircuitElementFactory {
+object CircuitElementFactory {
 
     /** Default width of a component inserted via a single tap. */
     const val DEFAULT_LENGTH_PT: Double = 48.0
