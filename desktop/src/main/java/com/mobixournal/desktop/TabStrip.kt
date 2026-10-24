@@ -67,7 +67,11 @@ fun TabStrip(
     var dragFrom by remember { mutableStateOf(-1) }
     var dragX by remember { mutableStateOf(0f) }
 
-    Row(modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
+    // A little air at the strip's own end, so the last tab does not sit flush against the band's edge.
+    Row(
+        modifier.height(36.dp).padding(end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         tabs.all.forEachIndexed { index, tab ->
             val active = index == tabs.activeIndex
             val width = widths[tab.key] ?: TAB_FALLBACK_PX
@@ -138,6 +142,7 @@ fun TabStrip(
         }
 
         AddTabButton(onOpen)
+        Spacer(Modifier.width(4.dp))
     }
 }
 

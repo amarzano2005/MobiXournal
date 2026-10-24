@@ -95,7 +95,11 @@ internal fun Header(
             onOpen = onOpen,
             modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(10.dp))
+        // Air between the last tab and the header's own control: the strip and the placement button were
+        // almost touching, which read as one crowded row rather than two objects on the band. The band is
+        // only 40 dp tall, so the separation has to be sideways — a wider gap here is the whole breathing
+        // room this row can get without growing the header.
+        Spacer(Modifier.width(28.dp))
         PlacementButton(placement = placement, onPlacement = onPlacement)
     }
 }
