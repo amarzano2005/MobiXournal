@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-pen-lag-behind-the-nib"
+title = "Desktop: the pen's ink must not lag behind the nib"
+description = "Measured before changing, and then batched the packet path. `--probe-ink` (`desktop/InkProbe.kt`) paints with the editor's own `PageCanvas`, feeds the real `PenPacketStroke`, and writes `ink-probe.csv` with each sample's packet time against the `nanoTime` of the frame that first drew it; a blank A4 page measured median 12.9 ms / p95 17.9 ms / max 20.2 ms (719 samples) and `udiff.xopp`'s dense page median 17.7 ms / p95 29.4 ms / max 47.6 ms (718 samples). Those are synthetic 400 Hz packets on a host with no tablet and a 60 Hz-class display, so they measure the canvas, not a driver; the 144 Hz/6.9 ms target belongs to the owner's PC pass. `PenPacketStroke` now buffers the moves and `flush()`es them once per frame from `PageCanvas`'s `withFrameNanos` ticker — the tip-down stays immediate so the mouse path stands aside, and a lift or silence flushes the tail before committing — removing 400 snapshot writes/invalidations a second while the line stays sample-for-sample identical; `PenPacketStrokeTest` pins the batch rule (buffered moves, order, widths, one commit). Head-at-raw (step 3) was not taken: the numbers show the frame interval and the full-sheet repaint dominate, and the filter is not the cost — recorded with the reasoning in the new `docs/desktop-tablet.md` spoke (registered in `docs/architecture.md`), with the tablet/dial measurements moved out of `docs/desktop-workstation.md` to keep every spoke under budget; `README.md` now states the measured latency. `:desktop:test` and `DocsGuardTest` green, `:desktop:createDistributable` refreshed. The live Huion pass at 144 Hz is still the owner's to run."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "tablet"]
+
+[[task]]
+id = "step-2-modern-mobile-ui"
+title = "Step 2 - modern mobile interface (design system, living editors, typesetting, PDF, multi-window)"
+description = "Every child of Step 2 is closed in `FINISHED.toml`: the modern chrome and pen-tip radial HUD, table/circuit/parametric-shape math and the living editors, the three engines (on-device typesetting with living math blocks, the magnetic highlighter and native ISO PDF annotations, the shared multi-view workspace with its clipboard, drag and drop), and the PDF/multi-window tasks this pass delivered. The guards (`DocsGuardTest`, `SourceStructureTest`, the chrome geometry family) are green, the spokes assert only behaviour that exists (`docs/mobix-elements.md`, `docs/pdf.md`, `docs/selection.md`, `docs/data-path.md`), and the Pixel_Tablet AVD pass verified formula insert/edit, magnetic highlighting, exported `/Highlight` + `/Ink` annotations, mirrored split-view undo and the four-flavour drag live. The epic's own note said \"and a release\"; no version has been stamped for this set yet, so the release step is the remaining housekeeping, recorded here rather than implied. Known gap carried forward: only the Pixel_Tablet AVD exists, so a narrow phone screen is still unverified."
+status = "finished"
+level = "epic"
+category = "feature"
+created = 2026-10-12
+completed = 2026-10-24
+tags = ["ui", "mobile", "roadmap"]
+
+[[task]]
 id = "external-content-ingestion-drag-and-drop-to-canvas"
 title = "External content ingestion drag-and-drop to canvas"
 description = "Dropping content on a page now lands it as a living element at the drop point, as one undoable edit that is left selected. `render/ExternalIngest.kt` classifies text: a CSV/TSV block becomes a living `TableElement` whose columns divide the requested width (`;`, `,` and tab accepted, quoted cells handled), a short LaTeX/Typst-looking line a `MathBlockElement` preserving the source, and prose a `TextElement` wrapped to the page. A URI drop opens an image as an `ImageElement`, hands a PDF to the editor (which appends its pages through `ImportPdfMode.APPEND`) and reads a text file through the same classifier. `render/SelectionTransfer.kt` installs the view's `OnDragListener`, accepting element, text, image and PDF clips, and the drop position is the element's placement. `ExternalIngestTest` covers the table/math/text classification, delimiter handling and sizes. Documented in `docs/selection.md` and `README.md`. On the Pixel_Tablet AVD the drop receiver was exercised live through the element drag; text/image/PDF ingestion from an external app drag was not exercised on device."
