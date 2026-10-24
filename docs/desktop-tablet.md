@@ -86,6 +86,16 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   stroke never loses its last millimetres to the frame it ended on. `PenPacketStrokeTest` pins the batch
   rule beside the existing stroke tests.
 
+  That buffer is written by the **window procedure's thread** and drained by the **frame ticker**, and
+  `kotlin.collections.ArrayDeque` is not thread-safe: a `removeFirst()` that overlapped the driver's
+  write returned `null` (measured: ~350 000 nulls in half a second of two threads hammering one), the
+  null passed the compiler's cast at the call site, and the window put a dialog on top of the page —
+  "parameter specified as non-null is null: `PageInkGesture.move`, parameter `pointer`". Every entry
+  point the two threads share (`packet`, `flush`, `publishHover`, `finishIfStale`) is now `@Synchronized`
+  on the stroke, so a frame sees a whole packet or none of it. `PenPacketStrokeConcurrencyTest` hammers
+  both sides and also asserts the modifier itself, because a rare race would otherwise be caught only by
+  luck.
+
   The probe paints with the editor's own `PageCanvas` and feeds the real `PenPacketStroke`, recording for
   every sample the packet's time and the `nanoTime` of the frame that first drew it. On a host with no
   tablet the packets are synthetic (400 Hz, the same rate the driver reports), so the numbers below

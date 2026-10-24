@@ -27,6 +27,15 @@ import com.mobixournal.render.PointerKind
  * touch the mouse emulation never reported is still a stroke, and one the emulation reported twice is
  * still one. The Compose pointer keeps a draft of its own (`PageCanvas`), which is what makes that true:
  * a mouse gesture cancelled when the packets take over drops *its* samples, never this stroke's.
+ *
+ * **Two threads, one monitor.** A packet is delivered on the thread that dispatches the window's
+ * messages (the window procedure `TabletWintab` drains its queue from) while [flush] and the rest run on
+ * the frame ticker — and `kotlin.collections.ArrayDeque` is not thread-safe. The window proved it: a
+ * drain that ran while the driver's thread was writing the same slot returned `null`, and the null
+ * reached `PageInkGesture.move(pointer)` as a `NullPointerException` dialog on top of the page (its
+ * checkcast accepts `null`; only the callee's parameter check rejects it). Every entry point is therefore
+ * `@Synchronized` on this instance, so a frame sees either all of a packet or none of it, and the buffer
+ * can never be read half-written.
  */
 internal class PenPacketStroke(
     private val gesture: PageInkGesture,
@@ -46,7 +55,8 @@ internal class PenPacketStroke(
     private val onHover: (Offset?) -> Unit = {},
 ) {
 
-    /** True between the tip's first packet and its lift. */
+    /** True between the tip's first packet and its lift. Volatile: read outside the lock by the canvas. */
+    @Volatile
     var drawing: Boolean = false
         private set
 
@@ -102,6 +112,7 @@ internal class PenPacketStroke(
      * evidence that the lift came, which is why [STALE_MS] is generous and why a silence **finishes** the
      * stroke instead of throwing the hand's ink away.
      */
+    @Synchronized
     fun packet(packet: PenPacket) {
         val raw = Offset(packet.x - origin().x, packet.y - origin().y)
         val local = smoothedAt?.let { previous ->
@@ -150,6 +161,7 @@ internal class PenPacketStroke(
      * stroke never loses its tail to the frame it ended on. A no-op between packets, and cheap enough
      * to call every frame.
      */
+    @Synchronized
     fun flush() {
         while (pending.isNotEmpty()) gesture.move(pending.removeFirst())
     }
@@ -161,6 +173,7 @@ internal class PenPacketStroke(
      * `null` once the readings stop is what hands the pointer back to the mouse when the pen leaves the
      * tablet's proximity, instead of freezing the ring where it was last seen.
      */
+    @Synchronized
     fun publishHover() {
         // No timeout: the driver reports *changes*, so a pen held still above the glass sends nothing and
         // a ring that vanished under a resting hand would be worse than one that outlives it. The driver
@@ -181,6 +194,7 @@ internal class PenPacketStroke(
      * stroke is **committed** where it stopped — a stroke that vanishes under a pause is the loss this path
      * exists to prevent.
      */
+    @Synchronized
     fun finishIfStale(nowNanos: Long) {
         if (!drawing) return
         if (nowNanos - lastPacketNanos < STALE_NANOS) return
