@@ -24,7 +24,7 @@ scope = "Only build features the .mobix or .xopp formats can represent on disk (
 [[task]]
 id = "desktop-every-tool-does-what-it-does-on-the-tablet"
 title = "Desktop: every tool in the strip does what it does on the tablet (scope)"
-description = "Priority 1 of the window, and the map of who owns which remaining slot: every slot the strip offers must do what the same tool does on the tablet, and no tool may be offered without acting. Shipped since this scope was opened: pen and highlighter inking through the shared router and pressure filter, both erasers (standard and whole-stroke), the seven geometry slots (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) and Vertical space - each through mobix-core, each one gesture and one undo step. Still open, and owned by exactly one child so nothing is planned twice: TEXT and TEXIMAGE -> desktop-shape-text-and-math-tools; MARQUEE, LASSO and BG_SELECT -> desktop-eraser-and-selection-on-shared-geometry (the eraser half has shipped); PLOT, AXES, TABLE and CIRCUIT -> desktop-stem-slot-placement; pictures and import -> desktop-images-and-import; the setsquare and compass guides -> desktop-guides-setsquare-compass; the audio tap, the Y key and karaoke replay -> desktop-audio-replay; PDF text selection and the magnetic highlighter -> desktop-pdf-annotation; what exposes a group's members at all (chevrons, glass pickers, grouping) -> desktop-tool-groups-and-pickers; every slot face's glyph -> unify-remaining-stem-tool-glyphs; the barrel-button ring of tools, widths and colours -> desktop-pen-tip-radial-hud. Every tablet tool now has an owner, and a tool whose task has not landed is simply not shown on the strip rather than shown dead. Rules every child follows: the shared router decides what a press means (docs/stylus.md), width and colour come from the strip through the same PressureCurve, a drag previews exactly what the lift commits, one gesture is one edit and one undo step, a packet-driven stroke and a mouse drag never draw the same contact twice (DesktopTool.inksByPackets is the one gate), every UI element answers docs/interface-contract.md, and the owning spoke plus README change in the same commit. Done when every slot either acts or is not shown. This scope is the map, not the work: picking it up means breaking the listed children down, never implementing here."
+description = "Priority 1 of the window, and the map of who owns which remaining slot: every slot the strip offers must do what the same tool does on the tablet, and no tool may be offered without acting. Shipped since this scope was opened: pen and highlighter inking through the shared router and pressure filter, both erasers (standard and whole-stroke), the seven geometry slots (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) and Vertical space - each through mobix-core, each one gesture and one undo step. Still open, and owned by exactly one child so nothing is planned twice: TEXT and TEXIMAGE -> desktop-shape-text-and-math-tools; MARQUEE and LASSO -> desktop-eraser-and-selection-on-shared-geometry (shipped; BG_SELECT is gone from the tablet as well, so the window owes nothing there); PLOT, AXES, TABLE and CIRCUIT -> desktop-stem-slot-placement; pictures and import -> desktop-images-and-import; the setsquare and compass guides -> desktop-guides-setsquare-compass; the audio tap, the Y key and karaoke replay -> desktop-audio-replay; PDF text selection and the magnetic highlighter -> desktop-pdf-annotation; what exposes a group's members at all (chevrons, glass pickers, grouping) -> desktop-tool-groups-and-pickers; every slot face's glyph -> unify-remaining-stem-tool-glyphs; the barrel-button ring of tools, widths and colours -> desktop-pen-tip-radial-hud. Every tablet tool now has an owner, and a tool whose task has not landed is simply not shown on the strip rather than shown dead. Rules every child follows: the shared router decides what a press means (docs/stylus.md), width and colour come from the strip through the same PressureCurve, a drag previews exactly what the lift commits, one gesture is one edit and one undo step, a packet-driven stroke and a mouse drag never draw the same contact twice (DesktopTool.inksByPackets is the one gate), every UI element answers docs/interface-contract.md, and the owning spoke plus README change in the same commit. Done when every slot either acts or is not shown. This scope is the map, not the work: picking it up means breaking the listed children down, never implementing here."
 status = "active"
 level = "scope"
 category = "feature"
@@ -274,34 +274,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-region-copy-flattened"
-title = "Desktop: Select background (flatten), the third select tool"
-description = "The one marquee member the window still lacks (splitting it out of desktop-eraser-and-selection-on-shared-geometry, which shipped marquee, lasso and the selection transform). On the tablet, BG_SELECT is not a selection transform: a drag records a rectangle, clips it to the page, resolves the page background (PDF page cache / image background) and composites background + every visible layer into a capped PNG with PageRegionRenderer; that PNG becomes one ImageElement on a view-held clipboard (docs/selection.md, 'Background-copy (region) select'). What the window needs first is the clipboard it has never had: a tab-level element clipboard (SelectionOps.elementsAt / addToTopLayer already exist in mobix-core) that Cut, Copy and Paste drive from the header and from shortcuts (Ctrl+C / Ctrl+X / Ctrl+V), with the four flavours the tablet offers — the app's own element payload, SVG, PNG and text/plain — written through java.awt.datatransfer plus Skia's PNG encoder, since there is no Android ContentResolver here. Then the tool itself: a DesktopTool.SELECT_BG entry (glyph, label, shortcut), selectionToolOf answering SelectionTool.RECT for it, the flattened capture through a mobix-core region renderer that takes an already-decoded background bitmap, the same marching outline as the marquee, and Cut that deletes what the region wholly contains on the active layer as one undo step. Tests: a core test that the region renderer composites layers in order over the background, a desktop render test that a drag on SELECT_BG paints an outline and that Copy puts an image element payload on the clipboard, and a shell test that Cut is one undo step. Docs: desktop-workstation.md (its 'what the window does not do' bullet and the file table), docs/selection.md and README. Run :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1000
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-shape-recogniser-in-mobix-core"
-title = "Desktop: move the shape recogniser into mobix-core"
-description = "The window's hold-to-perfect (docs/shape-perfection-engine.md) needs the recogniser, and the recogniser is still in the app module even though it is pure. Move these files from app/src/main/java/com/mobixournal/render/ to mobix-core/src/main/java/com/mobixournal/render/ unchanged (same package, so every existing import keeps compiling): ShapeRecognizer.kt, CircleRecognizer.kt, RecoSegment.kt, Inertia.kt, PolygonCorners.kt, ArrowRecognizer.kt and StrokeSmoothing.kt; RecognisedFigure.kt is already in the core. Verify each file against the core's header rule (no android.*, no Compose) before moving it; a file that fails is split along the seam instead of copied. Move the pure tests with them (ShapeRecognizerTest, ShapeRecognizerCornersTest and whatever else of app/src/test/java/com/mobixournal/render/ tests only those files), and leave DrawingSurfaceHoldSnap.kt (and HoldSnapDwellTest's constants check, retargeted at the moved constants) in the app, because the 300 ms timer is Android's postDelayed and the window will drive its own. No behaviour change is the goal: :mobix-core:test and :app:testDebugUnitTest must be green with the same assertions, SourceStructureTest must not need a raised ceiling, and DocsGuardTest stays green. Docs: docs/codebase.md's file tree, docs/shape-perfection-engine.md (the owning spoke gains a line saying where the recogniser lives now), docs/desktop-workstation.md's move table gains the row with its line count and verdict moved."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1010
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-hold-to-perfect-a-stroke"
 title = "Desktop: hold the pen still and the stroke perfects itself"
 description = "The tablet's dwell, in the window: a pen that rests within SHAPE_DWELL_SLOP_PT (3 pt in page space) for SHAPE_DWELL_MS (300 ms) while a stroke is in progress replaces the preview with the recognised geometry, and any move past the slop gives the user's own ink back and re-arms. Both constants already exist (app/render/DrawingSurfaceHoldSnap.kt) and the recogniser moved to mobix-core with desktop-shape-recogniser-in-mobix-core. The window has no postDelayed, so the timer must be driven from the stream the draft is already fed by: PenPacketStroke (the packets) and PageCanvasInput's compose moves each check the last sample's age against a `nanoTime` reading, and the check itself belongs in a pure mobix-core helper (`dwellFigure(samples: List<StrokePoint>, widthPt: Double): RecognisedFigure?` plus the slop/stillness rule) so a JVM test owns it. The preview is the same draft list the sheet already paints, so what is previewed is what the lift commits; a recognised closed polygon commits as a ParametricShapeElement (ParametricShapes, as the tablet does) and a line/arrow/arc as the cleaned stroke. No new gesture and no new slot: the dwell works with the pen and the highlighter, like the tablet. Tests: a core JVM test that a wobbly square, a straight line and a squiggle answer square/line/null, and that a sample 4 pt away re-arms; an ImageComposeScene test that holding still for past the dwell rewrites the preview (the painted ink is the figure, not the wobble) and that the lift writes exactly one element and one undo step. Docs: docs/shape-perfection-engine.md (a desktop row: same trigger, same classes), docs/desktop-workstation.md, README's desktop paragraph. Run :desktop:test :mobix-core:test and regenerate the distributable."
@@ -394,20 +366,6 @@ level = "task"
 category = "feature"
 urgency = "high"
 order = 1080
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-inspector-selection-bridge"
-title = "Desktop: the bridge from a selection to the one living element it names"
-description = "First child of desktop-living-entity-editors, and the only part of the inspector that is pure. The selection now exists (desktop-eraser-and-selection-on-shared-geometry shipped PageSelection in mobix-core), so this task answers, without Compose: which living element a PageSelection names (exactly one ref, and that ref is a living element - TableElement, PlotElement, ParametricShapeElement, CircuitElement or MathBlockElement, per `is LivingEntity` in format/model/Living.kt), its family, and its current values as one immutable snapshot the inspector reads (never the whole document); and the write side: `replace(target, element)` producing the page with that ref's element replaced, through DesktopDocument.editPage so the tab's page window and the dirty set are respected, recorded as one undo step by the caller. Nothing here may re-derive geometry: ElementBounds owns the box and the family's codec (MobixElementCodec) owns what survives a save, so a field the model does not carry is not offered - the rule the tablet's editors follow (docs/mobix-elements.md). Tests: a JVM test that a selection over one plot answers that plot's family and values, that a selection over two elements answers none, that a ref pointing at a stroke answers none, and that replace() writes exactly one element and leaves every other ref where it was. Docs: docs/desktop-workstation.md (a paragraph on what the inspector reads), docs/mobix-elements.md. Run :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1090
 created = 2026-10-24
 tags = ["desktop"]
 rebuild = false

@@ -119,6 +119,10 @@ write an infinite point into the `.xopp`.
 
 ## Status
 
+The recogniser itself lives in **`mobix-core`** (`render/ShapeRecognizer.kt` and its companions), not in the
+app module: it was always pure, and both shells run the same dwell — the slate through
+`DrawingSurfaceHoldSnap`, the desktop window through its own frame-clock check.
+
 - **Live**: dwell (300 ms) and lift-off recognition, all seven classes, the tremor filter, the switch,
   the pen/highlighter filter, the polygon agreement test and the corner fallback, and the step that
   keeps the result: a recognised **triangle or rectangle** drawn with the pen is committed as a

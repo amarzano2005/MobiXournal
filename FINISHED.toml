@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-inspector-selection-bridge"
+title = "Desktop: the bridge from a selection to the one living element it names"
+description = "LivingTarget.kt is the bridge: LivingTargetRef names a document, page and ref; LivingFamily.of maps the five living types; livingTarget() resolves the ref against the page as it is now (so an undo cannot leave an editor showing a value the file no longer holds); replaceLiving() writes one element through DesktopDocument.editPage and records exactly one undo step, and answers false when the element is unchanged, so Set twice is not two undos; withElement() and shiftElement() are the pure page rewrites the lane and a nudge use, with ElementShift doing the geometry. DesktopShellState.runSelection answers SelectionAction.EDIT by opening that target and every other action by going to performSelection, and DesktopSelectionBarTest walks the five families on real pages and asserts the pencil is offered for each and for neither ink nor a two-element selection."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-shape-recogniser-in-mobix-core"
+title = "Desktop: move the shape recogniser into mobix-core"
+description = "ShapeRecognizer, CircleRecognizer, EllipseRecognizer, ArcRecognizer, ArrowRecognizer, PolygonCorners, RecoSegment, Inertia and StrokeSmoothing moved from app/src/main to mobix-core/src/main unchanged (same package, so every app import still compiles), with ShapeRecognizerTest, ShapeRecognizerCornersTest, InertiaTest and StrokeSmoothingTest moved to mobix-core/src/test. DrawingSurfaceHoldSnap and its 300 ms timer stay in the app, because postDelayed is Android's. No behaviour change: :mobix-core:test not needed, the moved suites pass in the core, :app:testDebugUnitTest and :desktop:test stay green and SourceStructureTest needed no ceiling. Docs: codebase.md's app tree no longer claims the recogniser, its history note lists the moved files and why, and shape-perfection-engine.md's Status says the recogniser lives in the core so both shells run one dwell."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-living-entity-editors"
 title = "Desktop: editing a living entity in place and in the inspector (scope)"
 description = "Broken into five atomic tasks in the order the scope asked for, no code written. desktop-inspector-selection-bridge is the pure half: which single living element a PageSelection names, its family and its values, and replace() through DesktopDocument.editPage - the field rule being that a field the model does not carry is never offered. desktop-inspector-lane docks a 300 dp right-hand lane in its own column so no glass lies over the page, opens without moving the sheet, and teaches the key handler that a focused field owns Esc. desktop-inspector-plot-and-shape-fields and desktop-inspector-table-and-circuit-fields are the four family sections, each reusing the appliers the tablet's dialogs already call (PlotElementFactory.applyPlotEdit, TableCellEditorModel.applyEditedTable and applyEditedCells, moved to mobix-core where the desktop can reach them) and each tested against the element the tablet would write. desktop-living-handles-on-the-page is the on-page half: shape vertices with the tablet's direction snapping, table row and column dividers, double-click opening the family's section, each drag one undo step with its preview equal to its commit."

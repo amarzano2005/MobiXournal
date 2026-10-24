@@ -232,7 +232,6 @@ app/
         MarkdownLayout.kt    # composed groups -> pages: block-aware page breaking, no orphaned headings
       GlyphSanitizer.kt      # maps codepoints a font can't encode onto a substitution glyph (pure)
       MotionEventPointer.kt  # the platform half of the input adapter: tool type -> PointerKind, and one pointer sample (history too) -> InkPointer
-      ShapeRecognizer.kt     # desktop Xournal++'s recognizer ported: polygon fit -> triangle/rectangle/line (pure)
       Inertia.kt             # arc-length moments + the straightness/roundness `det` the fits threshold on (pure)
       RecoSegment.kt         # one fitted straight piece: centre, angle, extent, edge intersections (pure)
       CircleRecognizer.kt    # inertia roundness + radial-residual score -> a rebuilt circle (pure)
@@ -350,7 +349,9 @@ the shared ones touched; `NOTICE` carries the full list). The headline changes:
   Rectangle given their own slots, the other figures sharing a Shapes slot, text authoring split
   out of Insert (see `ToolGroups.kt`);
 - the **shape recogniser is now a port of desktop Xournal++'s** (`Inertia.kt`, `RecoSegment.kt`,
-  `CircleRecognizer.kt`, rewritten `ShapeRecognizer.kt`), replacing a hand-rolled classifier;
+  `CircleRecognizer.kt`, rewritten `ShapeRecognizer.kt`), replacing a hand-rolled classifier; the recogniser now lives in `mobix-core/src/main/java/com/mobixournal/render/`
+  (`ShapeRecognizer`, `CircleRecognizer`, `EllipseRecognizer`, `ArcRecognizer`, `ArrowRecognizer`, `PolygonCorners`,
+  `RecoSegment`, `Inertia`, `StrokeSmoothing`), because the desktop window runs the same dwell.
 - **colours were re-derived from upstream**: desktop Xournal++'s palette hexes, an HSV/hex custom
   slot, pinned by `PaletteColorsTest` (NeXopp shipped six hand-picked swatches); the shipping
   default is now the eight swatches black/red/green/blue/orange/yellow/magenta/white, and the palette is
