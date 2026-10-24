@@ -33,6 +33,10 @@ internal object DesktopDiagnostics {
     private var worst = 0L
     private var windowStart = System.nanoTime()
 
+    /** The paint's own cost inside the frame — the number the 6.9 ms budget is about. */
+    private var paintTotalMs = 0.0
+    private var paintWorstMs = 0.0
+
     /** True once, so a run that writes nothing is distinguishable from a run that never started. */
     private var opened = false
 
@@ -56,7 +60,7 @@ internal object DesktopDiagnostics {
      * Called from the canvas's own ticker — the same loop that empties the queue — so the numbers belong
      * to the frame the reader actually sees.
      */
-    fun painted() {
+    fun painted(paintMs: Double) {
         if (!enabled) return
         if (frameThread == null) frameThread = Thread.currentThread().name
         val now = System.nanoTime()
@@ -68,17 +72,23 @@ internal object DesktopDiagnostics {
         }
         lastFrame = now
         frames++
+        paintTotalMs += paintMs
+        if (paintMs > paintWorstMs) paintWorstMs = paintMs
         val span = now - windowStart
         if (span < 1_000_000_000L) return
         val line = buildString {
             append("paints/s=").append(frames * 1_000_000_000L / span)
             append(" worst=").append(worst / 1_000_000L).append("ms")
+            append(" paint=").append(String.format(java.util.Locale.ROOT, "%.1f", paintTotalMs / frames))
+            append("/").append(String.format(java.util.Locale.ROOT, "%.1f", paintWorstMs)).append("ms")
             append(" packet=").append(packetThread ?: "-")
             append(" paint=").append(frameThread ?: "-")
         }
         write(line)
         frames = 0
         worst = 0L
+        paintTotalMs = 0.0
+        paintWorstMs = 0.0
         windowStart = now
     }
 

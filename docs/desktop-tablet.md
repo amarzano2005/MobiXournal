@@ -147,14 +147,29 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   frame. The page is painted straight into the window's canvas again, and the numbers above are the
   first, honest ones: what a dense page costs is a *frame* (tens of milliseconds), not a second.
 
-  If the dense-page cost has to come down further, the shape it has to take is **GPU-side**: a Skia
-  `Picture` or a render-target cached on the window's own context, neither of which re-runs the paint in
-  software, plus dirty-rect pacing for scrolling and zooming (`desktop-144hz-render-pacing`). The
-  task's target — one frame at 144 Hz, 6.9 ms — is set for the owner's 144 Hz PC, so it cannot be met or
-  disproved on this display; painting the stroke's head at the raw packet position while the filtered
-  body trails was not taken either, because it would trade a clean line for less than a millisecond
-  while the frame interval dominates. The owner's live pass on the Huion is what confirms the 144 Hz
-  number.
+  **The page is a Skia `Picture`, recorded once per viewport** (`PagePicture.kt`) and replayed by every
+  frame of a stroke. What this removes is Kotlin's cost, not Skia's: `drawPageContent` recompiles every
+  living entity through `LivingInk`, measures every text box and builds a `Path` — or a whole taper
+  outline — for each of the document's strokes, thousands of allocations a frame for ink that did not
+  change. Recording those calls once runs them once; a frame replays the picture and Skia renders it on
+  the GPU, so it is **not** the CPU rasterisation that froze the window (that one is described above).
+  The frame budget at 144 Hz is 6.9 ms, and the watchdog now times the paint itself, which is the number
+  that budget is about — same page, same probe, same host, only the sheet's painting changed:
+
+  | sheet painting | paint per frame (mean / worst) |
+  |---|---|
+  | direct, every frame | **3,8 ms / 8,8–10,2 ms** |
+  | recorded picture, replayed | **0,1–0,3 ms / 1,0 ms** |
+
+  The recording itself is a one-off cost paid when something changes the page (an edit, a scroll, a zoom,
+  a window resize, a layer switched off) — a frame of drawing never pays it. `PagePictureTest` pins the
+  two properties that matter: the replay is **pixel-identical** to the direct paint (a cache with its own
+  idea of the page would be a silent divergence) and a frame of a live stroke does not record it again.
+  The remaining 144 Hz work is dirty-rect pacing for scrolling and zooming, which re-record per frame,
+  and the same-numbers check on the owner's 144 Hz monitor — the target cannot be met or disproved on
+  this 60 Hz laptop. Painting the stroke's head at the raw packet position while the filtered body trails
+  was not taken: it would trade a clean line for less than a millisecond while the frame interval
+  dominates.
 - **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
   line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a
   drawing tool is active — so every hit test and hover event still works — and `drawToolCursor` paints the

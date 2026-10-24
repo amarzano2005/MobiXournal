@@ -132,6 +132,10 @@ internal fun PageCanvas(
     // whole frame unless it is driven by the newest reading rather than by the emulated mouse's copy.
     val hover = remember { mutableStateOf<Offset?>(null) }
     val penAtNanos = remember { mutableStateOf(0L) }
+    // The page's recorded picture: painted once per viewport, replayed by every frame of a stroke.
+    val sheetPicture = remember(tab, tab.page) { PagePicture() }
+    // It holds native drawing instructions, so it is released with the page it belongs to.
+    DisposableEffect(sheetPicture) { onDispose { sheetPicture.close() } }
 
     BoxWithConstraints(
         modifier
@@ -180,6 +184,7 @@ internal fun PageCanvas(
             penOwns = penOwns,
             hover = hover,
             penAtNanos = penAtNanos,
+            sheetPicture = sheetPicture,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
@@ -249,6 +254,8 @@ private fun SheetCanvas(
     hover: MutableState<Offset?>,
     /** `nanoTime` of the newest driver reading; a mouse move is ignored while this is fresh. */
     penAtNanos: MutableState<Long>,
+    /** The page's recorded picture, so a frame replays the sheet instead of re-painting it. */
+    sheetPicture: PagePicture,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     measurer: TextMeasurer,
     density: Float,
@@ -303,6 +310,7 @@ private fun SheetCanvas(
             },
     ) {
         paintSheet(
+            sheetPicture = sheetPicture,
             page = page,
             viewport = sheet.viewport,
             zoom = sheet.zoom,
@@ -333,6 +341,8 @@ private fun SheetCanvas(
  * about the file.
  */
 private fun DrawScope.paintSheet(
+    /** The recorded page — replayed by every frame, recorded again only when something changed. */
+    sheetPicture: PagePicture,
     page: Page,
     viewport: Viewport,
     zoom: Float,
@@ -355,12 +365,12 @@ private fun DrawScope.paintSheet(
 ) {
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
+    val startedAt = System.nanoTime()
     val pxPerPt = zoom * density
+    // The sheet: recorded once per viewport, replayed per frame (see `PagePicture`). Recording is the
+    // Kotlin cost — `LivingInk`, text measurement, a `Path` per stroke — and a frame must not pay it.
+    sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer)
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
-        // Straight into the window's own canvas: Skia renders the page on the GPU, and a page painted
-        // into a CPU bitmap first cost ~780 ms per rebuild on a dense sheet (see `DesktopDiagnostics`
-        // and `docs/desktop-tablet.md`).
-        drawPageContent(page, pxPerPt, measurer, backdrop, hiddenLayers)
         val inkTool = tool.inkTool()
         if (inkTool == null) return@withTransform
         for (draft in drafts) {
@@ -373,8 +383,8 @@ private fun DrawScope.paintSheet(
     // The probe times the paint itself, after the ink was laid down: that is the frame the eye saw.
     paintProbe?.invoke(drafts, System.nanoTime())
     // The watchdog counts every repaint, whichever path caused it — a window that paints while nothing is
-    // happening is the failure it exists to catch.
-    DesktopDiagnostics.painted()
+    // happening is the failure it exists to catch — and times it, which is what the frame budget is.
+    DesktopDiagnostics.painted((System.nanoTime() - startedAt) / 1_000_000.0)
 }
 
 /**
