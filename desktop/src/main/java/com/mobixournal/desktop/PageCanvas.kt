@@ -32,7 +32,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.Bounds
 import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
@@ -87,40 +89,35 @@ internal fun PageCanvas(
     tool: DesktopTool = DesktopTool.PEN,
     ink: DesktopInk = DesktopInk(),
     circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
+    /**
+     * What a lifted living-slot drag means. The window asks the family's values first ([DesktopShellState]'s
+     * placement card); a canvas on its own commits the family's defaults, which is what a test drives.
+     */
+    onPlaceLiving: ((LivingSlot, Bounds) -> Unit)? = null,
     onEdited: (Int) -> Unit = {},
-    /**
-     * The window's pen stream, when it has one: Wintab's packets or Windows Ink's samples, folded into
-     * the pointer events this canvas already receives, so a stroke is still one stroke.
-     */
+    /** The window's pen stream (Wintab or Windows Ink), folded into the pointer events. */
     pen: PenContactStream? = null,
-    /**
-     * The tablet's own packets, when the host has them: a stroke is drawn from them rather than from the
-     * mouse Windows emulates the same contact as (`PenPacketStroke`).
-     */
+    /** The tablet's packets, when the host has them: a stroke is drawn from them (`PenPacketStroke`). */
     packets: PenPacketSource? = null,
     /**
-     * A diagnostics sink for the ink-latency probe (`InkProbe`): called after each paint with the drafts
-     * drawn and the clock at that paint. Null in the editor.
+     * A diagnostics sink for the ink-latency probe (`InkProbe`): the drafts drawn and the clock at that
+     * paint. Null in the editor.
      */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     /**
-     * True when the wheel notch Compose is delivering right now came from the tablet's **dial** rather
-     * than the mouse. Windows sends both as `WM_MOUSEWHEEL` with the same ±120 delta and no modifier,
-     * so the notch's *device* is what decides (`TabletWheel`): the dial's turns zoom at the cursor, and
-     * the mouse's wheel keeps scrolling. One notch, one action — the raw report is a reading and the
-     * Compose event is still the only thing that moves the page.
+     * True when the notch came from the tablet's **dial** rather than the mouse: Windows sends both as
+     * `WM_MOUSEWHEEL`, so the notch's device is what decides (`TabletWheel`) — the dial zooms.
      */
     dialWheel: () -> Boolean = { false },
-    /**
-     * The drag in flight that `Esc` cancels (a geometry tool's figure), or null once it is over. The shell
-     * holds the other end, so a keyboard can answer a drag that has not finished yet.
-     */
+    /** The drag in flight that `Esc` cancels, or null; the shell holds the other end. */
     onLiveDrag: ((() -> Unit)?) -> Unit = {},
     /** What the selection bar may offer; the default draws none (a canvas on its own has no clipboard). */
     selectionBar: SelectionBarUi = SelectionBarUi(),
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
+    // The one meaning a lifted living-slot drag has, chosen before the gesture runs.
+    val placeLiving = onPlaceLiving ?: defaultPlacer(tab, ink, circuitKind, onEdited)
     // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
     val density = LocalDensity.current.density
     val page = rememberedPage(tab)
@@ -157,6 +154,7 @@ internal fun PageCanvas(
             tool = tool,
             ink = ink,
             circuitKind = circuitKind,
+            onPlaceLiving = placeLiving,
             draft = draft,
             penDraft = penDraft,
             pen = pen,
@@ -226,6 +224,7 @@ private fun PageSheet(
     tool: DesktopTool,
     ink: DesktopInk,
     circuitKind: ShapeKind,
+    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     draft: SnapshotStateList<InkSample>,
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
@@ -276,6 +275,7 @@ private fun PageSheet(
         tool = tool,
         ink = ink,
         circuitKind = circuitKind,
+        onPlaceLiving = onPlaceLiving,
         draft = draft,
         penDraft = penDraft,
         pen = pen,
@@ -360,6 +360,7 @@ private fun SheetCanvas(
     tool: DesktopTool,
     ink: DesktopInk,
     circuitKind: ShapeKind,
+    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     draft: SnapshotStateList<InkSample>,
     /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
     penDraft: SnapshotStateList<InkSample>,
@@ -409,7 +410,7 @@ private fun SheetCanvas(
                     panMode = panMode,
                     tool = tool,
                     ink = ink,
-                    circuitKind = circuitKind,
+                    onPlaceLiving = onPlaceLiving,
                     viewport = sheet.viewport,
                     pageW = sheet.pageW,
                     pageH = sheet.pageH,
@@ -631,6 +632,19 @@ private fun PenPacketStrokes(
             stroke.publishHover()
         }
     }
+}
+
+/**
+ * The canvas's own placement: the family's defaults, committed at once — what a test drives when no shell
+ * is offering the pre-placement questions.
+ */
+private fun defaultPlacer(
+    tab: DesktopTab,
+    ink: DesktopInk,
+    circuitKind: ShapeKind,
+    onEdited: (Int) -> Unit,
+): (LivingSlot, Bounds) -> Unit = { slot, bounds ->
+    livingElementFor(slot, bounds, ink, circuitKind)?.let { placeLivingElement(tab, it, onEdited) }
 }
 
 /**

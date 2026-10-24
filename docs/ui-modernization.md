@@ -308,9 +308,9 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Free Spline | `P` | Spline tool slot |
 | **STEM & Advanced** | Vertical space | `Shift + V` | Reflow tool in the rail's Tool pop-up |
 | | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
-| | Function Plot $f(x)$ | `M` | 1-tap STEM dock button |
-| | Dynamic Table | `T` | 1-tap STEM dock button |
-| | Circuit Components | `K` | 1-tap STEM dock button |
+| | Function Plot $f(x)$ | `M` | 1-tap STEM dock button; asks formula, range and flags first |
+| | Dynamic Table | `T` | 1-tap STEM dock button; asks its grid first |
+| | Circuit parts: passive · active · logic | `K` / `Shift + K` / `Alt + K` | Three STEM dock buttons, each with its palette |
 | | Audio Tap / Replay | `Y` | Audio tool slot |
 | **Styling & Navigation** | Favorite Colors 1 / 2 / 3 | `1`, `2`, `3` | Tap on color swatch / Rail slot |
 | | Tool Group Picker | `Alt + Down` | Chevron, right-click or hold on a grouped slot |

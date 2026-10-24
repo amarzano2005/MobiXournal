@@ -129,9 +129,13 @@ recolour or re-width what is caught, align and distribute a group, delete — an
 `Ctrl+D` do the same from the keyboard; a paste lands beside what it copied and stays selected. The **pencil**
 on that bar opens the selected table, plot, figure, component or formula in a lane beside the page, where its
 own values are editable without a dialog ever covering the sheet. **Place** a graph, a table or a circuit
-component with Plot (`M`), Table (`T`) or Circuit (`K`): drag the box it should fill (or click for the
-default size), and it lands there as one live, selected element — one `Ctrl + Z` puts the page back; Circuit
-first offers the tablet's palette of symbols, and the drawing is the pen's own colour and width. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
+component with Plot (`M`), Table (`T`) or the circuit slots (`K` passive parts, `Shift + K` active parts,
+`Alt + K` logic gates): drag the box it should fill (or click for the default size), and the right-hand lane
+asks what the element should be before it exists — the graph dialog's own questions for a plot (formula,
+domain, critical points, derivative, summary, shaded area) or the table's columns, rows and header — so
+**Place** writes one live, selected element and one `Ctrl + Z` puts the page back, while Cancel leaves the
+page untouched. A circuit slot first opens the tablet's palette of that family's symbols, and the drawing is
+the pen's own colour and width. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.

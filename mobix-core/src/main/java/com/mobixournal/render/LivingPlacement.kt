@@ -4,6 +4,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.TableElement
 import kotlin.math.abs
 import kotlin.math.max
@@ -100,12 +101,22 @@ object LivingPlacement {
         return box.inside(pageW, pageH)
     }
 
-    /** The living plot for a placed [bounds], drawn in [colour] at [strokeWidthPt]. */
+    /**
+     * The living plot for a placed [bounds], drawn in [colour] at [strokeWidthPt] — with the same
+     * questions the tablet's graph dialog asks before an insertion: the formula, the range, and the
+     * display flags (critical points, derivative, summary, shaded integral).
+     */
     fun plot(
         bounds: Bounds,
         colour: Int,
         strokeWidthPt: Double,
         formula: String = DEFAULT_PLOT_FORMULA,
+        xMin: Double = PlotElement.DEFAULT_X_MIN,
+        xMax: Double = PlotElement.DEFAULT_X_MAX,
+        showCriticalPoints: Boolean = false,
+        includeDerivative: Boolean = false,
+        includeSummary: Boolean = false,
+        shadeIntegral: PlotShading? = null,
     ): PlotElement = PlotElementFactory.plotElementIn(
         box = PlotBox(bounds.left, bounds.top, bounds.width, bounds.height),
         curves = listOf(
@@ -116,8 +127,12 @@ object LivingPlacement {
                 kind = PlotKind.CARTESIAN,
             ),
         ),
-        xMin = PlotElement.DEFAULT_X_MIN,
-        xMax = PlotElement.DEFAULT_X_MAX,
+        xMin = xMin,
+        xMax = xMax,
+        showCriticalPoints = showCriticalPoints,
+        includeDerivative = includeDerivative,
+        includeSummary = includeSummary,
+        shadeIntegral = shadeIntegral,
         strokeWidthPt = strokeWidthPt,
     )
 
@@ -131,6 +146,7 @@ object LivingPlacement {
         bounds: Bounds,
         rows: Int = DEFAULT_TABLE_ROWS,
         cols: Int = DEFAULT_TABLE_COLS,
+        hasHeader: Boolean = true,
     ): TableElement = TableElementFactory.tableElementFor(
         startX = bounds.left,
         startY = bounds.top,
@@ -138,7 +154,7 @@ object LivingPlacement {
         endY = bounds.bottom,
         rows = rows,
         cols = cols,
-        hasHeader = true,
+        hasHeader = hasHeader,
         borderColor = TableElement.DEFAULT_BORDER,
         borderWidth = TableElementFactory.DEFAULT_BORDER_WIDTH,
     )

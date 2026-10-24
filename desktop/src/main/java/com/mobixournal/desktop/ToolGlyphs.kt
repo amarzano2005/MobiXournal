@@ -120,5 +120,8 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.PLOT -> ToolGlyph.PLOT
         DesktopTool.AXES -> ToolGlyph.AXES
         DesktopTool.TABLE -> ToolGlyph.TABLE
+        // Each circuit slot wears its family's first part, as the tablet's three buttons do.
         DesktopTool.CIRCUIT -> ToolGlyph.RESISTOR
+        DesktopTool.CIRCUIT_ACTIVE -> ToolGlyph.DIODE
+        DesktopTool.CIRCUIT_LOGIC -> ToolGlyph.AND_GATE
     }

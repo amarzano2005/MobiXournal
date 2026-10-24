@@ -22,6 +22,8 @@ import com.mobixournal.render.InkEvent
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
+import com.mobixournal.render.Bounds
+import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageEraser
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.SelectionRegion
@@ -48,8 +50,8 @@ internal suspend fun PointerInputScope.pageGestures(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
-    /** The circuit family the Circuit slot places — the picker's answer, held by the shell. */
-    circuitKind: ShapeKind,
+    /** What a lifted living-slot drag means: the shell asks the family's values first. */
+    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     viewport: Viewport,
     pageW: Float,
     pageH: Float,
@@ -112,7 +114,7 @@ internal suspend fun PointerInputScope.pageGestures(
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
         // A selection, a living element or a figure takes the drag before the ink sees it.
-        if (preInkPress(down, tool, tab, ink, viewport, pageW, pageH, circuitKind, previewRegion, onLiveDrag, onEdited)) {
+        if (preInkPress(down, tool, tab, viewport, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
@@ -151,11 +153,10 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
-    ink: DesktopInk,
     viewport: Viewport,
     pageW: Float,
     pageH: Float,
-    circuitKind: ShapeKind,
+    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     previewRegion: MutableState<SelectionRegion?>?,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
@@ -163,9 +164,7 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     if (selectionPress(down, tool, tab, viewport, pageW, pageH, density, previewRegion, onLiveDrag, onEdited)) {
         return true
     }
-    return livingPress(
-        down, tool, tab, ink, viewport, pageW, pageH, circuitKind, previewRegion, onLiveDrag, onEdited,
-    )
+    return livingPress(down, tool, viewport, pageW, pageH, previewRegion, onLiveDrag, onPlaceLiving)
 }
 
 /** dp a wheel notch moves the page. */

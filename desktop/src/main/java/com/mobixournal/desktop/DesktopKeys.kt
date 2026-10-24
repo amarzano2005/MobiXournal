@@ -128,14 +128,20 @@ internal val toolKeyLetters = mapOf(
 /**
  * The tool a key press picks, or null when the key is not a tool's accelerator.
  *
- * `Shift+X` is the axes tool while a bare `X` is the text box, which is why the shift is part of the
- * lookup instead of being ignored; `Ctrl` never picks a tool, so the shell's own commands keep their
- * letters (`Ctrl+B` is the sidebar, not a highlighter).
+ * `Shift+X` is the axes tool while a bare `X` is the text box, and `Alt+K` is the logic-gate palette
+ * while `K` is the passive one — which is why both modifiers are part of the lookup instead of being
+ * ignored. `Ctrl` never picks a tool, so the shell's own commands keep their letters (`Ctrl+B` is the
+ * sidebar, not a highlighter).
  */
-internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean): DesktopTool? {
+internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = false): DesktopTool? {
     if (ctrl) return null
     val letter = toolKeyLetters[key] ?: return null
-    return toolForShortcut(if (shift) "Shift+$letter" else letter)
+    val shortcut = when {
+        alt -> "Alt+$letter"
+        shift -> "Shift+$letter"
+        else -> letter
+    }
+    return toolForShortcut(shortcut)
 }
 
 /**

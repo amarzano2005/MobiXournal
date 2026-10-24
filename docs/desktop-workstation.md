@@ -207,8 +207,7 @@ back over them. Saving, discarding or closing the tab deletes the snapshot; noth
 
 ### Figures, whole-stroke erasing and vertical space
 
-Four more gestures beside the ink, all of them built on `mobix-core` so the window has no geometry of
-its own:
+Four more gestures beside the ink, all built on `mobix-core` so the window has no geometry of its own:
 
 - **Seven geometry slots draw figures.** Line, Arrow, Double arrow, Axes (the shared
   `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Spline each turn one drag into an ordinary
@@ -237,10 +236,11 @@ its own:
 
 ### Placing a living element: Plot, Table and Circuit
 
-Plot (`M`), Table (`T`) and Circuit (`K`) place a living element instead of drawing one: a drag is its
-box, a click its family's default size, and the lift commits **one** element as **one undo step**, left
-selected. The geometry (`LivingPlacement`), the builders and the Circuit slot's component palette are
-shared with the tablet through `mobix-core` ([drawing-tools.md](drawing-tools.md) owns the placement).
+Plot (`M`), Table (`T`) and the three circuit palettes place a living element instead of drawing one: a
+drag is its box, a click its family's default size, then the lift **asks first** in this lane — the graph
+dialog's fields, or the table's grid — before committing **one** element as **one undo step**, and a
+cancelled question leaves nothing behind. Geometry, builders and the three family palettes (`CircuitFamily`:
+passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet ([drawing-tools.md](drawing-tools.md)).
 
 ### Selecting, moving, resizing and turning
 

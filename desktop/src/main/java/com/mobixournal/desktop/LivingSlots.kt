@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.render.Bounds
+import com.mobixournal.render.CircuitFamily
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.LivingSize
@@ -27,7 +28,15 @@ import com.mobixournal.render.rectRegion
 internal fun livingSlotOf(tool: DesktopTool): LivingSlot? = when (tool) {
     DesktopTool.PLOT -> LivingSlot.PLOT
     DesktopTool.TABLE -> LivingSlot.TABLE
-    DesktopTool.CIRCUIT -> LivingSlot.CIRCUIT
+    DesktopTool.CIRCUIT, DesktopTool.CIRCUIT_ACTIVE, DesktopTool.CIRCUIT_LOGIC -> LivingSlot.CIRCUIT
+    else -> null
+}
+
+/** The circuit palette [tool] is a slot for, or null for every other slot. */
+internal fun circuitFamilyOf(tool: DesktopTool): CircuitFamily? = when (tool) {
+    DesktopTool.CIRCUIT -> CircuitFamily.PASSIVE
+    DesktopTool.CIRCUIT_ACTIVE -> CircuitFamily.ACTIVE
+    DesktopTool.CIRCUIT_LOGIC -> CircuitFamily.LOGIC
     else -> null
 }
 

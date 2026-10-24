@@ -44,7 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Element
-import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.Bounds
+import com.mobixournal.render.CircuitFamily
+import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ShapeKind
 import java.io.File
 
@@ -190,28 +192,77 @@ class DesktopShellState(
         private set
 
     /**
-     * The component the **Circuit** slot is armed with.
+     * The part each **circuit slot** is armed with, one per family.
      *
-     * The window's half of `desktop-every-tool-does-what-it-does-on-the-tablet`'s Circuit slot: a press on
-     * the page places this symbol. It is view state, not document state — the element the placement writes
-     * carries its own `symbol`, and running out of this value only changes what the *next* placement is.
+     * The window's half of the tablet's three circuit palettes: a press on the page places the armed part
+     * of that slot's family. View state, not document state — the element carries its own `symbol`, so this
+     * only decides what the *next* placement is. Each family starts on its own face ([CircuitFamily.face]).
      */
-    var circuitKind by mutableStateOf(LivingPlacement.DEFAULT_CIRCUIT_KIND)
+    var circuitKinds by mutableStateOf(CircuitFamily.entries.associateWith { it.face })
         private set
 
-    /** True while the Circuit slot's component list is open (`CircuitKindPicker`). */
-    var circuitPickerOpen by mutableStateOf(false)
+    /** The family whose palette is open (`CircuitKindPicker`), or null when none is. */
+    var circuitPickerOpen by mutableStateOf<CircuitFamily?>(null)
         private set
 
-    /** Arm the Circuit slot with [kind]; the palette closes, because the question is answered. */
-    fun pickCircuitKind(kind: ShapeKind) {
-        circuitKind = kind
-        circuitPickerOpen = false
+    /** Arm [family]'s slot with [kind]; the palette closes, because the question is answered. */
+    fun pickCircuitKind(family: CircuitFamily, kind: ShapeKind) {
+        circuitKinds = circuitKinds + (family to kind)
+        circuitPickerOpen = null
     }
 
-    /** Open or close the Circuit slot's component list. */
-    fun showCircuitKinds(open: Boolean) {
-        circuitPickerOpen = open
+    /** Open [family]'s palette, or close the open one with null. */
+    fun showCircuitKinds(family: CircuitFamily?) {
+        circuitPickerOpen = family
+    }
+
+    /** The part the picked slot would place: its family's arm, or the passive palette's face. */
+    val activeCircuitKind: ShapeKind
+        get() = circuitFamilyOf(tools.current)
+            ?.let { family -> circuitKinds[family] ?: family.face }
+            ?: CircuitFamily.PASSIVE.face
+
+    /**
+     * A placement that is **asking its values** before it exists, or null while no question is up.
+     *
+     * The tablet asks first — a graph dialog, a table grid, a component palette — so this lane does too,
+     * and nothing is written until the answer arrives: a cancelled question leaves no element and no undo
+     * step behind. Only the families with values to ask use it; a component's part was the palette's
+     * answer, so a circuit places at once.
+     */
+    var pendingPlacement by mutableStateOf<PendingPlacement?>(null)
+        private set
+
+    /**
+     * What a lifted living-slot drag means: the family's question for a plot or a table, the placement
+     * itself for a component (whose question was the palette).
+     */
+    fun placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Bounds) {
+        if (slot == LivingSlot.CIRCUIT) {
+            val element = livingElementFor(slot, bounds, ink, activeCircuitKind) ?: return
+            placeLivingElement(tab, element) { index -> edited(tab, index) }
+            return
+        }
+        pendingPlacement = PendingPlacement(slot, bounds, tab.key)
+    }
+
+    /** The question's answer: build the element from it and write it as **one** edit and one undo step. */
+    fun confirmPlacement() {
+        val pending = pendingPlacement ?: return
+        val tab = tabs.active ?: return
+        // The question was asked on a page; answering it on another tab would place the box of one
+        // document on the sheet of another.
+        if (tab.key != pending.tabKey) {
+            pendingPlacement = null
+            return
+        }
+        val element = pending.element(ink, activeCircuitKind) ?: return
+        if (placeLivingElement(tab, element) { index -> edited(tab, index) }) pendingPlacement = null
+    }
+
+    /** Drop the question without placing anything — the page is exactly what it was before the drag. */
+    fun cancelPlacement() {
+        pendingPlacement = null
     }
 
     /**
@@ -253,7 +304,7 @@ class DesktopShellState(
             favourites = favourites,
             openGroup = openGroup,
             onOpenGroup = { group -> openGroup = group },
-            circuitKind = circuitKind,
+            circuitKinds = circuitKinds,
             circuitPickerOpen = circuitPickerOpen,
             onCircuitKind = ::pickCircuitKind,
             onCircuitPicker = ::showCircuitKinds,
@@ -435,7 +486,12 @@ class DesktopShellState(
             }
             return true
         }
-        toolForKey(event.key, shift = event.isShiftPressed, ctrl = event.isCtrlPressed)?.let { tool ->
+        toolForKey(
+            event.key,
+            shift = event.isShiftPressed,
+            ctrl = event.isCtrlPressed,
+            alt = event.isAltPressed,
+        )?.let { tool ->
             selectTool(tool)
             return true
         }
@@ -549,8 +605,13 @@ class DesktopShellState(
             cancel()
             return true
         }
-        if (circuitPickerOpen) {
-            circuitPickerOpen = false
+        // The placement question is newer than the palette and older than the failure card.
+        if (pendingPlacement != null) {
+            pendingPlacement = null
+            return true
+        }
+        if (circuitPickerOpen != null) {
+            circuitPickerOpen = null
             return true
         }
         if (failure == null) return false

@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.PenPalette
-import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.CircuitFamily
 import com.mobixournal.render.ShapeKind
 
 /**
@@ -109,14 +109,15 @@ data class ToolStripState(
     val openGroup: Int? = null,
     /** Opening (an index) or closing (null) the picker — the slot's chevron and `Alt+Down` both go here. */
     val onOpenGroup: (Int?) -> Unit = {},
-    /** The circuit component the Circuit slot is armed with — the picker's answer. */
-    val circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
-    /** True while the Circuit slot's component list is open. */
-    val circuitPickerOpen: Boolean = false,
-    /** Arm the Circuit slot with a component (and remember it for the next placement). */
-    val onCircuitKind: (ShapeKind) -> Unit = {},
-    /** Open or close the component list. */
-    val onCircuitPicker: (Boolean) -> Unit = {},
+    /** The part each circuit slot is armed with — the palettes' answers, one per family. */
+    val circuitKinds: Map<CircuitFamily, ShapeKind> =
+        CircuitFamily.entries.associateWith { it.face },
+    /** The family whose palette is open, or null when none is. */
+    val circuitPickerOpen: CircuitFamily? = null,
+    /** Arm a circuit slot with a part of its own family. */
+    val onCircuitKind: (CircuitFamily, ShapeKind) -> Unit = { _, _ -> },
+    /** Open one family's palette, or close the open one with null. */
+    val onCircuitPicker: (CircuitFamily?) -> Unit = {},
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -185,7 +186,7 @@ fun ToolRail(
                         onSelect = onSelect,
                         onOpenPicker = { state.onOpenGroup(index) },
                         onClosePicker = { state.onOpenGroup(null) },
-                        circuitKind = state.circuitKind,
+                        circuitKinds = state.circuitKinds,
                         circuitPickerOpen = state.circuitPickerOpen,
                         onCircuitKind = state.onCircuitKind,
                         onCircuitPicker = state.onCircuitPicker,
@@ -253,7 +254,7 @@ fun ToolRibbon(
                         onSelect = onSelect,
                         onOpenPicker = { state.onOpenGroup(index) },
                         onClosePicker = { state.onOpenGroup(null) },
-                        circuitKind = state.circuitKind,
+                        circuitKinds = state.circuitKinds,
                         circuitPickerOpen = state.circuitPickerOpen,
                         onCircuitKind = state.onCircuitKind,
                         onCircuitPicker = state.onCircuitPicker,
@@ -316,13 +317,14 @@ private fun ToolSlot(
     onSelect: (DesktopTool) -> Unit,
     onOpenPicker: () -> Unit,
     onClosePicker: () -> Unit,
-    circuitKind: ShapeKind,
-    circuitPickerOpen: Boolean,
-    onCircuitKind: (ShapeKind) -> Unit,
-    onCircuitPicker: (Boolean) -> Unit,
+    circuitKinds: Map<CircuitFamily, ShapeKind>,
+    circuitPickerOpen: CircuitFamily?,
+    onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
+    onCircuitPicker: (CircuitFamily?) -> Unit,
     side: StripSide,
 ) {
     val tool = group.faceFor(selection)
+    val family = circuitFamilyOf(tool)
     val active = tool == selection.current
     var hovered by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -340,6 +342,7 @@ private fun ToolSlot(
             onSelect = onSelect,
             onOpenPicker = onOpenPicker,
             onCircuitPicker = onCircuitPicker,
+            family = family,
         )
         if (hovered && !pickerOpen) {
             TooltipPill(
@@ -355,7 +358,7 @@ private fun ToolSlot(
             selection = selection,
             tool = tool,
             pickerOpen = pickerOpen,
-            circuitKind = circuitKind,
+            circuitKinds = circuitKinds,
             circuitPickerOpen = circuitPickerOpen,
             onSelect = onSelect,
             onClosePicker = onClosePicker,
@@ -380,12 +383,12 @@ private fun SlotPickerStack(
     selection: ToolSelection,
     tool: DesktopTool,
     pickerOpen: Boolean,
-    circuitKind: ShapeKind,
-    circuitPickerOpen: Boolean,
+    circuitKinds: Map<CircuitFamily, ShapeKind>,
+    circuitPickerOpen: CircuitFamily?,
     onSelect: (DesktopTool) -> Unit,
     onClosePicker: () -> Unit,
-    onCircuitKind: (ShapeKind) -> Unit,
-    onCircuitPicker: (Boolean) -> Unit,
+    onCircuitKind: (CircuitFamily, ShapeKind) -> Unit,
+    onCircuitPicker: (CircuitFamily?) -> Unit,
     offset: IntOffset,
 ) {
     if (pickerOpen) {
@@ -400,14 +403,16 @@ private fun SlotPickerStack(
             offset = offset,
         )
     }
-    if (tool == DesktopTool.CIRCUIT && circuitPickerOpen) {
+    val family = circuitFamilyOf(tool)
+    if (family != null && circuitPickerOpen == family) {
         CircuitKindPicker(
-            current = circuitKind,
+            family = family,
+            current = circuitKinds[family] ?: family.face,
             onPick = { kind ->
-                onCircuitKind(kind)
-                onCircuitPicker(false)
+                onCircuitKind(family, kind)
+                onCircuitPicker(null)
             },
-            onDismiss = { onCircuitPicker(false) },
+            onDismiss = { onCircuitPicker(null) },
             offset = offset,
         )
     }
@@ -431,7 +436,8 @@ private fun SlotFace(
     onHover: (Boolean) -> Unit,
     onSelect: (DesktopTool) -> Unit,
     onOpenPicker: () -> Unit,
-    onCircuitPicker: (Boolean) -> Unit,
+    onCircuitPicker: (CircuitFamily?) -> Unit,
+    family: CircuitFamily?,
 ) {
     Box(
         Modifier
@@ -454,9 +460,9 @@ private fun SlotFace(
                         when (val click = slotClick(group, selection)) {
                             is SlotClick.Pick -> {
                                 onSelect(click.tool)
-                                // The Circuit slot asks **which component** first: a press on the page must
+                                // A circuit slot asks **which component** first: a press on the page must
                                 // never place a part the user did not choose, so arming it opens its palette.
-                                if (click.tool == DesktopTool.CIRCUIT) onCircuitPicker(true)
+                                family?.let(onCircuitPicker)
                             }
                             SlotClick.OpenPicker -> onOpenPicker()
                         }

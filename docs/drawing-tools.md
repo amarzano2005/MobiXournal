@@ -280,13 +280,26 @@ the box exactly; a component is the armed `ShapeKind` along the box's horizontal
 `CircuitElementFactory`'s canonical pins. Identity is the codec's (`ElementId`), never the placement's.
 
 On the window the press is taken **before** the ink router and `DesktopTool.inksByPackets()` stays
-false for these slots (the pen's packets stand aside, as for a figure), the drag previews the box in the
-selection's own dashed outline, and the lift is one `addToTopLayerOn` append through `editPage` — one
-element, one undo step, left selected so the pencil on the bar acts on it. The Circuit slot opens its
-**component palette** (`CircuitElementFactory.CIRCUIT_KINDS`, each row drawn by `CircuitInk`) before the
-press, because which part to place is a question the drag cannot answer. There is no separate Axes slot
-on the window: the tablet's Axes tool is the coordinate-axis *figure* (`ShapeKind.COORDINATE_AXIS`),
-which the window already ships, and a plot draws its own frame through `PlotInk`.
+false for these slots (the pen's packets stand aside, as for a figure) and the drag previews the box in
+the selection's own dashed outline.
+
+**The window asks before it inserts**, as the tablet does. Lifting the drag does not write anything: the
+right-hand lane becomes the family's question — the graph dialog's own fields for a plot (`f(x)`, the
+domain's two numbers, critical points, derivative, summary and the shaded integral with its bounds), the
+table's grid and header for a table — and **Place** is the edit: one `addToTopLayerOn` append through
+`editPage`, one element, **one undo step**, left selected so the pencil on the bar acts on it. Any other
+answer — Cancel, `Esc`, a domain that does not open to the right — leaves the page exactly as it was,
+because no element ever existed to leave behind. The questions are the model's fields, so what the card
+answers is exactly what the inspector can change afterwards (`docs/mobix-elements.md`).
+
+**The circuit parts are three palettes**, the tablet's own (`CircuitFamily`): passive parts (`K`), active
+parts (`Shift + K`) and logic gates (`Alt + K`), each slot wearing its family's first part and opening
+that family's rows — `CircuitFactory`'s own list and the tablet's picker layout, every cell drawn by
+`CircuitInk`. The part **is** the question, so a component is placed by the press that follows the pick
+(no card), with rotation 0 and the factory's canonical pins; its value, rotation and label side are the
+inspector's. There is no separate Axes slot on the window: the tablet's Axes tool is the coordinate-axis
+*figure* (`ShapeKind.COORDINATE_AXIS`), which the window already ships, and a plot draws its own frame
+through `PlotInk`.
 
 ## Vertical space (`mobix-core`'s `render/VerticalSpaceOps.kt`)
 

@@ -91,7 +91,11 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     // same way the pen and the highlighter are.
     ToolGroup(listOf(DesktopTool.PLOT)),
     ToolGroup(listOf(DesktopTool.TABLE)),
+    // The tablet's three circuit palettes, one slot each (`CircuitFamily`): a merged slot would hide
+    // which family a part belongs to, which is how the tablet's secondary toolbar draws them.
     ToolGroup(listOf(DesktopTool.CIRCUIT)),
+    ToolGroup(listOf(DesktopTool.CIRCUIT_ACTIVE)),
+    ToolGroup(listOf(DesktopTool.CIRCUIT_LOGIC)),
 )
 
 /**
@@ -122,6 +126,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PLOT,
     DesktopTool.TABLE,
     DesktopTool.CIRCUIT,
+    DesktopTool.CIRCUIT_ACTIVE,
+    DesktopTool.CIRCUIT_LOGIC,
 )
 
 /** The slot [tool] lives in, or null when the strip does not show it (yet). */

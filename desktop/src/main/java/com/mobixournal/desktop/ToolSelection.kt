@@ -32,7 +32,12 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     PLOT("Plot", "M"),
     AXES("Axes", "Shift+X"),
     TABLE("Table", "T"),
-    CIRCUIT("Circuit", "K"),
+    // The tablet's **three** circuit palettes (`CircuitFamily`), one slot each: the passive parts, the
+    // active ones and the gates. One merged "Circuit" slot would hide which family a part belongs to,
+    // which is how the tablet's own secondary toolbar draws it.
+    CIRCUIT("Passive circuits", "K"),
+    CIRCUIT_ACTIVE("Active circuits", "Shift+K"),
+    CIRCUIT_LOGIC("Logic gates", "Alt+K"),
 }
 
 /**

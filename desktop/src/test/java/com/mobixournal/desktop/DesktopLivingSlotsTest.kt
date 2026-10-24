@@ -15,12 +15,17 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.render.Bounds
+import com.mobixournal.render.CircuitFamily
 import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ShapeKind
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -144,22 +149,146 @@ class DesktopLivingSlotsTest {
     }
 
     @Test
-    fun `the component palette opens with the Circuit slot and Esc closes it`() {
+    fun `each circuit family opens its own palette and Esc closes it`() {
         val state = DesktopShellState()
-        state.selectTool(DesktopTool.CIRCUIT)
-        state.showCircuitKinds(true)
-        assertTrue("the palette is a surface on screen", state.circuitPickerOpen)
+        state.selectTool(DesktopTool.CIRCUIT_ACTIVE)
+        state.showCircuitKinds(CircuitFamily.ACTIVE)
+        assertEquals("the palette is a surface on screen", CircuitFamily.ACTIVE, state.circuitPickerOpen)
         assertTrue("Esc is what closes it", state.apply(ShellCommand.DISMISS_FAILURE))
-        assertTrue(!state.circuitPickerOpen)
+        assertNull(state.circuitPickerOpen)
 
-        state.pickCircuitKind(ShapeKind.OPAMP)
-        assertEquals("picking arms the slot for the next placement", ShapeKind.OPAMP, state.circuitKind)
-        assertTrue(!state.circuitPickerOpen)
+        state.pickCircuitKind(CircuitFamily.ACTIVE, ShapeKind.OPAMP)
+        assertEquals(
+            "picking arms that family's slot for the next placement",
+            ShapeKind.OPAMP,
+            state.activeCircuitKind,
+        )
+        assertNull(state.circuitPickerOpen)
+
+        // The other families keep their own arms: three palettes, not one shared part.
+        state.selectTool(DesktopTool.CIRCUIT_LOGIC)
+        assertEquals("the logic slot starts on its own face", ShapeKind.AND_GATE, state.activeCircuitKind)
     }
 
     @Test
+    fun `a plot asks its formula before it exists and only then writes`() {
+        val state = DesktopShellState()
+        state.open(notebook())
+        val tab = state.tabs.active!!
+        state.selectTool(DesktopTool.PLOT)
+        val bounds = Bounds(100.0, 120.0, 340.0, 264.0)
+
+        state.placeOrAsk(tab, LivingSlot.PLOT, bounds)
+        val pending = state.pendingPlacement
+        assertNotNull("the drag asks the graph dialog's questions", pending)
+        assertTrue("and nothing is on the page yet", elements(tab).none { it is PlotElement })
+        assertFalse("nor is there an undo step to take back", tab.canUndo)
+
+        pending!!.formula = "cos(x)"
+        pending.xMin = "-3"
+        pending.xMax = "3"
+        pending.showCriticalPoints = true
+        state.confirmPlacement()
+
+        val plot = elements(tab).filterIsInstance<PlotElement>().single()
+        assertEquals("cos(x)", plot.curves.single().source)
+        assertEquals(-3.0, plot.xMin, 1e-9)
+        assertEquals(3.0, plot.xMax, 1e-9)
+        assertTrue(plot.showCriticalPoints)
+        assertEquals(bounds.left, plot.left, 1e-9)
+        assertNull("the question is answered", state.pendingPlacement)
+        assertTrue("and the placement is one undo step", tab.canUndo)
+    }
+
+    @Test
+    fun `the placement card draws in the lane, over no part of the page`() {
+        val state = DesktopShellState()
+        state.open(notebook())
+        val tab = state.tabs.active!!
+        state.selectTool(DesktopTool.PLOT)
+        state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(100.0, 120.0, 340.0, 264.0))
+        val scene = ImageComposeScene(1000, 700, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            assertNotNull("the question is still up after a frame", state.pendingPlacement)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `a cancelled question leaves the page exactly as it was`() {
+        val state = DesktopShellState()
+        state.open(notebook())
+        val tab = state.tabs.active!!
+        state.selectTool(DesktopTool.TABLE)
+        val before = elements(tab)
+
+        state.placeOrAsk(tab, LivingSlot.TABLE, Bounds(60.0, 60.0, 300.0, 220.0))
+        assertNotNull(state.pendingPlacement)
+        assertTrue("Esc drops the question", state.apply(ShellCommand.DISMISS_FAILURE))
+        assertNull(state.pendingPlacement)
+        assertEquals("no table, no edit, no undo step", before, elements(tab))
+        assertFalse(tab.canUndo)
+    }
+
+    @Test
+    fun `the table asks its grid, and the answer is the table that lands`() {
+        val state = DesktopShellState()
+        state.open(notebook())
+        val tab = state.tabs.active!!
+        state.selectTool(DesktopTool.TABLE)
+
+        state.placeOrAsk(tab, LivingSlot.TABLE, Bounds(60.0, 60.0, 300.0, 220.0))
+        val pending = state.pendingPlacement!!
+        pending.columns = 4
+        pending.rows = 2
+        pending.header = false
+        state.confirmPlacement()
+
+        val table = elements(tab).filterIsInstance<TableElement>().single()
+        assertEquals(4, table.colWidths.size)
+        assertEquals(2, table.rowHeights.size)
+        assertFalse("the header was switched off in the question", table.headerRow)
+    }
+
+    @Test
+    fun `the three circuit families are the tablet's own palettes`() {
+        assertEquals(
+            listOf(DesktopTool.CIRCUIT, DesktopTool.CIRCUIT_ACTIVE, DesktopTool.CIRCUIT_LOGIC),
+            CircuitFamily.entries.map { family ->
+                listOf(DesktopTool.CIRCUIT, DesktopTool.CIRCUIT_ACTIVE, DesktopTool.CIRCUIT_LOGIC)
+                    .single { circuitFamilyOf(it) == family }
+            },
+        )
+        for (family in CircuitFamily.entries) {
+            assertNotNull("${family.title} has a slot", groupOf(toolOf(family)))
+            assertTrue("${family.title} acts", toolOf(family) in DESKTOP_TOOLS_THAT_ACT)
+            assertEquals(
+                "${family.title} offers every member exactly once",
+                family.members.toSet(),
+                family.rows.flatten().toSet(),
+            )
+        }
+        assertEquals(ShapeKind.RESISTOR, CircuitFamily.PASSIVE.face)
+        assertEquals(ShapeKind.DIODE, CircuitFamily.ACTIVE.face)
+        assertEquals(ShapeKind.AND_GATE, CircuitFamily.LOGIC.face)
+    }
+
+    private fun toolOf(family: CircuitFamily): DesktopTool =
+        listOf(DesktopTool.CIRCUIT, DesktopTool.CIRCUIT_ACTIVE, DesktopTool.CIRCUIT_LOGIC)
+            .single { circuitFamilyOf(it) == family }
+
+    @Test
     fun `a STEM slot is a slot in the strip and not ink`() {
-        for (tool in listOf(DesktopTool.PLOT, DesktopTool.TABLE, DesktopTool.CIRCUIT)) {
+        for (tool in listOf(
+            DesktopTool.PLOT, DesktopTool.TABLE,
+            DesktopTool.CIRCUIT, DesktopTool.CIRCUIT_ACTIVE, DesktopTool.CIRCUIT_LOGIC,
+        )) {
             assertTrue("$tool acts, so it must be offered", tool in DESKTOP_TOOLS_THAT_ACT)
             assertNotNull("$tool has a slot", groupOf(tool))
             assertTrue("$tool places an element, so the pen's packets must stand aside", !tool.inksByPackets())

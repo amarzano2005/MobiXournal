@@ -61,7 +61,10 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 ink = state.ink,
                 // The component the Circuit slot is armed with: the picker's answer, read by the
                 // placement when the press is lifted.
-                circuitKind = state.circuitKind,
+                circuitKind = state.activeCircuitKind,
+                // A STEM slot asks its values before the element exists (the placement card in the
+                // right-hand lane), so the canvas hands the box over instead of writing it.
+                onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
                 // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
                 // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
                 pen = tablet?.pen,

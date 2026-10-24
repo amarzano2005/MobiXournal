@@ -61,7 +61,9 @@ class ToolStripsTest {
         "Plot" to "M",
         "Axes" to "Shift+X",
         "Table" to "T",
-        "Circuit" to "K",
+        "Passive circuits" to "K",
+        "Active circuits" to "Shift+K",
+        "Logic gates" to "Alt+K",
     )
 
     @Test
@@ -92,13 +94,15 @@ class ToolStripsTest {
     @Test
     fun `the keyboard picks every tool by the shortcut it prints`() {
         for (tool in DesktopTool.entries) {
+            val alt = tool.shortcut.startsWith("Alt+")
             val shift = tool.shortcut.startsWith("Shift+")
-            val letter = tool.shortcut.removePrefix("Shift+")
+            val letter = tool.shortcut.removePrefix("Alt+").removePrefix("Shift+")
             val key = toolKeyLetters.entries.single { it.value == letter }.key
-            assertSame(tool.label, tool, toolForKey(key, shift = shift, ctrl = false))
+            assertSame(tool.label, tool, toolForKey(key, shift = shift, ctrl = false, alt = alt))
         }
         assertEquals("a bare X is the text box", DesktopTool.TEXT, toolForKey(Key.X, shift = false, ctrl = false))
         assertEquals("Shift+X is the axes tool", DesktopTool.AXES, toolForKey(Key.X, shift = true, ctrl = false))
+        assertEquals("Alt+K is the logic-gate palette", DesktopTool.CIRCUIT_LOGIC, toolForKey(Key.K, false, false, alt = true))
         assertNull("Ctrl+B stays the sidebar", toolForKey(Key.B, shift = false, ctrl = true))
         assertNull("a key no tool claims picks nothing", toolForKey(Key.Q, shift = false, ctrl = false))
     }
