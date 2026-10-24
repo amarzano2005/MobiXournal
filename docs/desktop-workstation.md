@@ -115,8 +115,8 @@ What it does today:
   squircle in the steel `#38383E` and a name-and-hotkey pill on hover.
   **A slot is a tool *group*, as on the tablet**: pen, highlighter and vertical space stand alone, the
   **eraser slot** holds its two members (partial, whole-stroke) and the **figure slot** holds the seven
-  geometry tools. A grouped slot wears a chevron, and the chevron (or a right-click, or a hold, or
-  `Alt`+`Down`) opens the group's **glass picker** — the members as rows with their own glyph, name and
+  geometry tools. A grouped slot wears a chevron, and the chevron (or a right-click, or a hold, or a
+  **second click on the slot that is already picked**, or `Alt`+`Down`) opens the group's **glass picker** — the members as rows with their own glyph, name and
   key. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no key ever changes
   meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
   member is the slot's face, which is why the group needs no state of its own. **A tool whose task has

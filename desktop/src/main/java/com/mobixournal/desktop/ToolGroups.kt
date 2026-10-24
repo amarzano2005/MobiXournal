@@ -39,6 +39,28 @@ class ToolGroup(val members: List<DesktopTool>) {
 }
 
 /**
+ * What a click on a slot means — decided here, before any Compose, so the rule is testable.
+ *
+ * A click on a slot that is **not** the picked tool picks it. A click on the slot that already *is* the
+ * picked tool opens its picker, which is how a grouped slot's other members are reached without aiming at
+ * the chevron: the first click arms the tool, the second one asks "which of these?" instead of doing
+ * nothing. A lone tool has no picker, so a second click on the pen stays the harmless no-op it was.
+ */
+sealed interface SlotClick {
+    /** Pick this tool (the slot's face). */
+    data class Pick(val tool: DesktopTool) : SlotClick
+
+    /** Open the group's picker — the slot is already facing the picked tool. */
+    data object OpenPicker : SlotClick
+}
+
+/** The meaning of a click on [group]'s slot under [selection]. */
+fun slotClick(group: ToolGroup, selection: ToolSelection): SlotClick {
+    val tool = group.faceFor(selection)
+    return if (group.hasPicker && tool == selection.current) SlotClick.OpenPicker else SlotClick.Pick(tool)
+}
+
+/**
  * Every slot of both strips, in the order they draw, for the tools the window can act on.
  *
  * Pen and highlighter keep a slot each because nothing shares them; the eraser slot holds its two members

@@ -90,6 +90,31 @@ class ToolGroupsTest {
     }
 
     @Test
+    fun `clicking the picked slot opens its picker instead of doing nothing`() {
+        val figures = groupOf(DesktopTool.LINE)!!
+        assertEquals(
+            "the first click arms the group's face",
+            SlotClick.Pick(DesktopTool.LINE),
+            slotClick(figures, ToolSelection(DesktopTool.PEN)),
+        )
+        assertEquals(
+            "clicking the slot that is already picked asks which member",
+            SlotClick.OpenPicker,
+            slotClick(figures, ToolSelection(DesktopTool.LINE)),
+        )
+        assertEquals(
+            "the rule follows the member, not the face",
+            SlotClick.OpenPicker,
+            slotClick(figures, ToolSelection(DesktopTool.SPLINE)),
+        )
+        assertEquals(
+            "a lone tool has no submenu, so a second click is still a pick",
+            SlotClick.Pick(DesktopTool.PEN),
+            slotClick(groupOf(DesktopTool.PEN)!!, ToolSelection(DesktopTool.PEN)),
+        )
+    }
+
+    @Test
     fun `every member of a group is reachable without the picker`() {
         // The rule the picker must not break: it re-faces a slot, it never changes a key.
         for (group in DESKTOP_TOOL_GROUPS) {

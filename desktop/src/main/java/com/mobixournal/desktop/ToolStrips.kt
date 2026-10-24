@@ -321,9 +321,16 @@ private fun ToolSlot(
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(tool) {
+                .pointerInput(group, selection) {
                     detectTapGestures(
-                        onTap = { onSelect(tool) },
+                        onTap = {
+                            // Clicking the slot that is already picked asks which member — the submenu the
+                            // user reaches for on a tool that is already in hand. See [slotClick].
+                            when (val click = slotClick(group, selection)) {
+                                is SlotClick.Pick -> onSelect(click.tool)
+                                SlotClick.OpenPicker -> onOpenPicker()
+                            }
+                        },
                         onLongPress = { if (group.hasPicker) onOpenPicker() },
                     )
                 },
