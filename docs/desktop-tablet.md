@@ -170,6 +170,27 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   this 60 Hz laptop. Painting the stroke's head at the raw packet position while the filtered body trails
   was not taken: it would trade a clean line for less than a millisecond while the frame interval
   dominates.
+
+  **The ink no longer spends a frame of its own.** The packet ticker used to await a token, then
+  `withFrameNanos { }`, then flush — and a resumed frame awaiter is dispatched back to the window's thread
+  *after* that frame has been drawn, so the samples were painted by the frame that followed: two frames per
+  packet batch. Measured on the owner's PC (3440 × 1440, display at **120 Hz**, `--probe-ink`, synthetic
+  400 Hz stream at the probe's default window) the gap between a packet and the frame that first drew it was
+  **median 12.45 ms / p95 16.82 ms / max 17.62 ms** on a blank A4 page — two 8.33 ms frames. The batch is
+  now applied where the token arrives (the flush itself invalidates the canvas, and Compose paints it at
+  the next frame), which is one frame instead of two:
+
+  | page | packet → painted (median / p95 / max) |
+  |---|---|
+  | blank A4 | **1.48 ms / 5.22 ms / 7.82 ms** |
+  | `udiff.xopp`, dense first page | **1.96 ms / 5.10 ms / 7.48 ms** |
+
+  Both now fit inside one 120 Hz frame and inside the **6.9 ms** a 144 Hz frame allows, which is what
+  "unlocked" means here: what is left is the display's own interval, not a frame this code adds. The
+  panel on this host reports **120 Hz** as its maximum (`Win32_VideoController.MaxRefreshRate`), so 144 Hz
+  is confirmed by the pipeline's numbers and not by a frame rate on this screen — the status bar now names
+  the rate it found, so the difference between a 144 Hz monitor and a 120 Hz one is visible rather than
+  inferred from the watchdog.
 - **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
   line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a
   drawing tool is active — so every hit test and hover event still works — and `drawToolCursor` paints the

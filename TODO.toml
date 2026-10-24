@@ -162,20 +162,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-144hz-render-pacing"
-title = "Desktop: 144 Hz render pacing and ink latency (scope)"
-description = "Make desktop/ render and ink at the monitor's real refresh rate (target 144 Hz, 6.9 ms frame budget) on Windows 11 with Skiko over DirectX 12. Investigate and add tasks for: (0) FIRST, which Skiko backend this machine actually uses (DirectX 12 or OpenGL/software - Compose Desktop does not guarantee DirectX 12; check the SKIKO_RENDER_API setting and log the active API), and whether the page should be painted through a direct Skia canvas layer instead of composables only, which is what the dirty-rect needs; (1) a frame-time measuring harness on udiff.xopp (6 pages, ~4000 strokes) with a pass/fail criterion; (2) vsync aligned frame loop and how Compose Desktop exposes the display refresh rate; (3) dirty-rect invalidation so a live stroke repaints only its bounding box, never the whole page; (4) ink latency - coalescing pointer samples and predicting the stroke head; (5) cached page and thumbnail layers so scroll and zoom do not re-raster. The 144 Hz result can only be verified on the owner's monitor; unit tests cover the dirty-rect and coalescing logic. Document in docs/desktop-workstation.md. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "normal"
-order = 1000
-created = 2026-10-21
-tags = ["desktop", "performance"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-inspector-and-export"
 title = "Desktop property inspector and PDF/SVG export (scope)"
 description = "Scope for non-modal editing and export on desktop. Investigate and break into tasks: (1) the right-hand property inspector (300dp) driven by the current selection — plot formula/interval/style, table rows and columns, circuit values, parametric handles — reusing the codecs in `format/mobix/` and the apply functions the Android inspectors use (`render/ElementEdits.kt`, `applyPlotEdit`); (2) the selection→inspector wiring in the desktop shell (non-modal, never a dialog over the page, committing into the same undo stack); (3) PDF and SVG export from the desktop: `render/PdfVectorPainter.kt`, `render/PageSvgWriter.kt` and `render/XoppSynthesis.kt` are `android.graphics.Canvas`-bound, so decide whether to port them behind a small canvas abstraction in `mobix-render`, and estimate each; (4) a PDF background path for desktop (PDFBox, not pdfbox-android). Verify each child headlessly by comparing the produced PNG/PDF/SVG bytes with the Android exporter’s output for the same document. Produce tasks, no code."
@@ -396,5 +382,33 @@ urgency = "normal"
 order = 1240
 created = 2026-10-24
 tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-dirty-rect-pacing-for-scrolling-and-zooming"
+title = "Desktop: dirty-rect pacing for scrolling and zooming"
+description = "The page is a Skia Picture recorded once per viewport (PagePicture), so a live stroke costs the frame only the drafts plus one replay (measured 0.1-0.3 ms mean, 1.0 ms worst). A scroll or a zoom changes the viewport, which re-records the sheet, so those gestures pay the full Kotlin paint per frame on a dense page. Work: investigate whether Compose Desktop can repaint a sub-rectangle at all (SkiaLayer/SkiaView level) - if it cannot, record the page ONCE at the document scale as an oversized picture and translate it per frame instead of re-recording, which turns a scroll into a replay at a new offset and a zoom into a scaled replay, and measure both with DesktopDiagnostics.painted() on udiff.xopp. Acceptance: scrolling a dense page stays inside the frame budget on the owner's 144 Hz monitor, with the watchdog's paint mean unchanged from the recorded-replay number."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 1250
+created = 2026-10-24
+tags = ["desktop", "perf"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-predict-the-stroke-head-to-hide-the-frame-s-latency"
+title = "Desktop: predict the stroke head to hide the frame's latency"
+description = "On the 60 Hz laptop the probe says a packet becomes ink in a median ~12.5 ms, which is the wait for the next vsync plus the paint; the paint itself is now 0.1-0.3 ms, so what is left is the frame interval. At 144 Hz that halves but does not vanish, and the eye reads it as the line trailing the nib. Work: extend the DRAFT only (never the committed stroke) by one predicted sample along the velocity of the last few packets, capped in distance, cleared on direction change and skipped below a slow speed so a resting pen does not jitter; keep it in PenPacketStroke so the shared router and filter are untouched, and add a test that the committed stroke has exactly the packets' samples while the draft may carry one extra. Measure the perceived lead with --probe-ink on the owner's PC (a number cannot be measured on this 60 Hz laptop)."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "low"
+order = 1270
+created = 2026-10-24
+tags = ["desktop", "perf"]
 rebuild = false
 emulator_debug = false

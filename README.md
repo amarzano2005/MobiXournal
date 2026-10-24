@@ -130,9 +130,10 @@ turning the pen round to its eraser end rubs out. The mouse the system emulates 
 draws that line, so one touch is one stroke and never two. The ink is published once per screen frame rather
 than once per driver packet, so a fast hand costs one redraw a frame instead of hundreds, and the window
 asks for a frame only when the pen has something new to draw — a sheet nobody is writing on is not
-repainted at all. The line was measured against the nib (`--probe-ink`): on the 60 Hz test laptop a
-sample becomes ink in a median 12.9 ms (17.9 ms p95) on a blank page and 17.7 ms (29.4 ms p95) on this
-project's densest six-page document — the 144 Hz target belongs to the owner's own PC pass. Over the page the desktop's
+repainted at all. The line was measured against the nib (`--probe-ink`): a pen reading becomes ink in a
+median 1.5–2.0 ms (5.2 ms p95) on a blank page and on this project's densest six-page document, so the
+line lands on the very next frame your screen shows instead of the one after — at 144 Hz that is 6.9 ms,
+and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. Over the page the desktop's
 arrow is replaced by
 a ring the size of the line the tool will write, so the point you are about to draw at is never hidden and
 the width is never a guess. The ring is driven by the tablet's own readings rather than by the slower mouse

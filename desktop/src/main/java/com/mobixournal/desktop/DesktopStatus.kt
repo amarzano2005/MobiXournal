@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.awt.GraphicsEnvironment
+import java.util.Locale
 
 /**
  * The window's two **read-only** bands: the status bar under the canvas, and the notice that owns the
@@ -37,6 +39,37 @@ import androidx.compose.ui.unit.dp
 internal fun penLabel(source: PenSource, dial: Boolean): String = buildString {
     append("pen: ").append(source.label)
     if (dial) append(" · dial")
+}
+
+/**
+ * The display's own rate, and the budget one frame of it allows: `120 Hz · 8.3 ms frame`.
+ *
+ * The window had no way to answer "is the refresh unlocked": the only number was the watchdog's
+ * `paints/s`, which is written only under `--diagnose`. A refresh rate is the ceiling the loop cannot
+ * beat, so it belongs on screen beside the pen source — a capped loop or a panel left at 60 Hz then
+ * reads as a number instead of as a feeling. The budget is the same figure the ink-latency target is
+ * stated in (`desktop-tablet.md`), so the two can be compared at a glance.
+ *
+ * A host that cannot say (headless, or a display mode that reports no rate) says so in one word rather
+ * than showing a zero.
+ */
+internal fun refreshLabel(hz: Int?): String {
+    if (hz == null || hz <= 0) return "refresh unknown"
+    val budget = String.format(Locale.ROOT, "%.1f", 1_000.0 / hz)
+    return "$hz Hz · $budget ms frame"
+}
+
+/**
+ * The refresh rate of the screen this JVM draws on, or null when the host cannot name one.
+ *
+ * Guarded twice on purpose: a headless run has no device to ask, and a mode can report `0` — neither is
+ * an error, and a status bar that threw over it would take the window with it.
+ */
+internal fun displayRefreshHz(): Int? {
+    if (GraphicsEnvironment.isHeadless()) return null
+    return runCatching {
+        GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.displayMode.refreshRate
+    }.getOrNull()?.takeIf { it > 0 }
 }
 
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
@@ -81,6 +114,11 @@ internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null) {
             color = DesktopTheme.inkMuted,
             style = DesktopTheme.label,
         )
+        Spacer(Modifier.width(14.dp))
+        // What the loop can reach, not what it did: the refresh rate is the display's, read once because
+        // it changes only when the mode does (the readout is not a per-frame probe).
+        val hz = remember { displayRefreshHz() }
+        Text(refreshLabel(hz), color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         Spacer(Modifier.weight(1f))
         Text(
             text = "${tab.document.container.label} · ${tab.file.name}",

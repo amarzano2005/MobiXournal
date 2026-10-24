@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-apply-a-packet-batch-on-the-frame-it-arrives"
+title = "Desktop: apply a packet batch on the frame it arrives"
+description = "PageCanvas's packet ticker no longer waits for a frame between the token and the flush. The wait was the ink's second frame: withFrameNanos' continuation is dispatched back to the window's thread after that frame has been drawn, so the samples written after it were painted by the frame that followed. --probe-ink on the owner's PC (3440x1440, display reported at 120 Hz) measured median 12.45 ms / p95 16.82 / max 17.62 on a blank A4 before - two 8.33 ms frames - and 1.48 / 5.22 / 7.82 after; udiff.xopp's dense first page went 1.96 / 5.10 / 7.48. Both now fit inside one 120 Hz frame and inside the 6.9 ms a 144 Hz frame allows, so what remains is the display's own interval and not a frame this code adds. The queue hand-off, the conflated wake token and the 200 ms silence timer are unchanged: one batch still costs one repaint and an idle window still paints nothing. :desktop:test green, guards green. Recorded in docs/desktop-tablet.md (the two-frame table beside the 6.9 ms budget) and README's measured line."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-10-24
+completed = 2026-10-24
+tags = []
+
+[[task]]
+id = "desktop-report-the-display-s-refresh-rate-and-the-frame-budget"
+title = "Desktop: report the display's refresh rate and the frame budget"
+description = "The status bar now names the display's rate and the budget one frame of it allows (refreshLabel: '120 Hz · 8.3 ms frame'), read once from GraphicsEnvironment's default screen device and guarded for a headless JVM or a mode that reports 0 ('refresh unknown' instead of a division). It sits beside the pen stream, so \"is 144 unlocked\" is a number on screen rather than an inference from the watchdog's paints/s, which exists only under --diagnose. DesktopStatusTest pins the 120/144/60 formatting, the missing-rate fallback and that the host read is either absent or positive. Shared with the same pass's frame-hop removal: on this host the panel reports 120 Hz as its maximum (Win32_VideoController.MaxRefreshRate), so the 144 Hz figure is the pipeline's numbers, and the readout is what shows which panel is in use. :desktop:test green, guards green (the pass also split PageCanvas at 121 lines into rememberedPage/rememberSheetPicture/PageSheet to return under the hundred-line rule)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "perf"]
+
+[[task]]
+id = "desktop-144hz-render-pacing"
+title = "Desktop: 144 Hz render pacing and ink latency (scope)"
+description = "Investigated and broken into tasks, with the first of them implemented in the same pass. Findings: the window's frame clock reaches ~120 paints/s on this host, so pacing is not capped by the toolkit - what kept a stroke off the 144 Hz budget was the paint itself. The watchdog (--diagnose) now times each paint, which turned the question into a number: direct painting of udiff.xopp costs 3.8 ms mean and up to 10.2 ms, over the 6.9 ms budget, and it is Kotlin cost (LivingInk per entity, text measurement, a Path/taper outline per stroke), not Skia's. Recording the page once into a Skia Picture and replaying it costs 0.1-0.3 ms mean / 1.0 ms worst on the same page, so a live stroke now fits the budget (that work is archived as desktop-record-the-page-as-a-skia-picture-so-a-frame-fits-144-hz). A bitmap cache was tried and rejected on evidence: rasterising into an offscreen software surface cost ~780 ms per rebuild with paints/s=1. Children filed: desktop-dirty-rect-pacing-for-scrolling-and-zooming (scroll and zoom still re-record per frame), desktop-report-the-display-s-refresh-rate-and-the-frame-budget (the window should say which refresh it is on), desktop-predict-the-stroke-head-to-hide-the-frame-s-latency (what is left after the paint is the frame interval). The 6.9 ms result on the owner's 144 Hz monitor is still the owner's live check: this host cannot measure it."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-24
+tags = ["desktop", "performance"]
+
+[[task]]
+id = "desktop-record-the-page-as-a-skia-picture-so-a-frame-fits-144-hz"
+title = "Desktop: record the page as a Skia picture so a frame fits 144 Hz"
+description = "Desktop/src/main/java/com/mobixournal/desktop/PagePicture.kt records drawPageContent into a Skia Picture once per viewport (keyed on page, viewport offset, zoom, density, canvas size, backdrop and hidden layers), replays it with nativeCanvas.drawPicture in every frame, and closes it with the page through a DisposableEffect in PageCanvas; paintSheet calls it in place of the direct drawPageContent. Measured with --probe-ink plus the watchdog's new paint timer on udiff.xopp, same host and page: 3.8 ms mean / 8.8-10.2 ms worst for the direct paint versus 0.1-0.3 ms mean / 1.0 ms worst for the replay, i.e. inside the 6.9 ms frame budget of 144 Hz; probe latency median 12.45 ms (from 12.79). PagePictureTest pins pixel identity with the direct paint (text included), one record per still viewport, one more per scroll and one replay per frame. DesktopDiagnostics.painted() now takes the paint's duration and logs paint=mean/worst ms, because that is the number the frame budget is about. Docs: docs/desktop-tablet.md. Deliberately not done: dirty-rect pacing for scrolling and zooming (re-recording per frame stays, filed as desktop-dirty-rect-pacing-for-scrolling-and-zooming) and stroke-head prediction (filed as desktop-predict-the-stroke-head-to-hide-the-frame-s-latency)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "perf"]
+
+[[task]]
 id = "desktop-frames-are-asked-for-by-packets-not-by-a-loop"
 title = "Desktop: frames are asked for by packets, not by a loop"
 description = "The frame ticker in PageCanvas is event-driven: PenPacketStroke.packet() trySend()s on a conflated Channel and a new suspend awaitPacket() suspends the ticker, which then takes one withFrameNanos and flushes, so one batch of packets costs one frame while an idle window paints nothing; the silence check moved to a 200 ms delay coroutine because absence produces no packet to wait for. The bug was measured, not guessed: the new watchdog DesktopDiagnostics (--diagnose, mobix-diagnose.log, one line per second of painting with paints/s, worst interval, raster rebuilds and both thread names, started from main and fed from paintSheet so it counts every repaint) reported ~120 paints a second on an idle sheet and zero after the change, with rebuilds=1 both times - so the freeze was a saturated message thread, not the cache. Also: the cached sheet is drawn as a Skia Image through the native canvas instead of a Compose ImageBitmap (one quad, no per-frame copy: 9.0 ms -> 5.4 ms per blit at 3400x1400 in software, PageRasterTest still asserts pixel identity); initialDocument ignores -- switches so --diagnose is not opened as a document; InkProbe accepts -Dmobix.probe.size=WxH so latency can be measured at the owner's window size; .gitignore covers ink-probe.csv and mobix-diagnose.log. Verified: :desktop:test green, --probe-ink on udiff.xopp median 12.8 ms / p95 17.9 ms, packaged exe regenerated and started with --diagnose leaving only the watchdog header (no paints at all while idle). Docs: docs/desktop-tablet.md (event-driven frames, the watchdog, the blit)."

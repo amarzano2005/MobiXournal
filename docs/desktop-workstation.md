@@ -21,7 +21,8 @@ What it does today:
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
   tab keeps its own page, zoom and fit, so going back to a tab lands where you left it), a collapsible
   240 dp sidebar of page thumbnails and the current page's layers, the page alone on the true-black desk,
-  and a 24 dp status bar with the page counter, the effective zoom, the fit mode and the container. The
+  and a 24 dp status bar with the page counter, the effective zoom, the fit mode, the pen stream, the
+  display's refresh rate with the frame budget it allows (`120 Hz · 8.3 ms frame`) and the container. The
   chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
   header carrying 16 dp tab capsules, 1.5 dp monoline glyphs, Inter with tabular figures, one cast shadow
   under each band, and one under the sheet — `docs/ui-modernization.md` owns the material and

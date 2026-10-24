@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.boundsInWindow
@@ -114,9 +113,7 @@ internal fun PageCanvas(
     val measurer = rememberTextMeasurer()
     // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
     val density = LocalDensity.current.density
-    val page = remember(tab, tab.page, tab.document.edits) {
-        runCatching { tab.document.page(tab.page) }
-    }
+    val page = rememberedPage(tab)
     val loaded = page.getOrNull()
     // The strokes in progress, in page pt — the Compose pointer's and the tablet's, one draft each.
     val draft = remember(tab, tab.page) { mutableStateListOf<InkSample>() }
@@ -126,16 +123,11 @@ internal fun PageCanvas(
     var extent by remember { mutableStateOf(Size.Zero) }
     // True while the tablet's packets own the pen: the mouse path stands aside for that stroke.
     val penOwns = remember(tab, tab.page) { mutableStateOf(false) }
-    // Where the ring sits, and when the **driver** last said where the pen is. Both are lifted here
-    // because two paths write them: the packets (400 readings a second) and, when the window has no
-    // stream, the Compose pointer's moves. The ring is this window's own ink, so it trails the nib by a
-    // whole frame unless it is driven by the newest reading rather than by the emulated mouse's copy.
+    // Where the ring sits, and when the **driver** last said where the pen is. Both are lifted here because
+    // two paths write them: the packets, and the Compose moves of a window with no stream.
     val hover = remember { mutableStateOf<Offset?>(null) }
     val penAtNanos = remember { mutableStateOf(0L) }
-    // The page's recorded picture: painted once per viewport, replayed by every frame of a stroke.
-    val sheetPicture = remember(tab, tab.page) { PagePicture() }
-    // It holds native drawing instructions, so it is released with the page it belongs to.
-    DisposableEffect(sheetPicture) { onDispose { sheetPicture.close() } }
+    val sheetPicture = rememberSheetPicture(tab)
 
     BoxWithConstraints(
         modifier
@@ -153,29 +145,10 @@ internal fun PageCanvas(
             return@BoxWithConstraints
         }
 
-        val sheet = sheetLayout(tab, loaded, viewW, viewH)
-        // The tablet's packets, drawing the stroke themselves (see `PenPacketStrokes`).
-        PenPacketStrokes(
-            tab = tab,
-            tool = tool,
-            ink = ink,
-            density = density,
-            pageW = sheet.pageW,
-            pageH = sheet.pageH,
-            viewport = sheet.viewport,
-            draft = penDraft,
-            onEdited = onEdited,
-            origin = { origin },
-            extent = { extent },
-            owns = penOwns,
-            hover = hover,
-            penAtNanos = penAtNanos,
-            packets = packets,
-        )
-        SheetCanvas(
+        PageSheet(
             tab = tab,
             page = loaded,
-            sheet = sheet,
+            sheet = sheetLayout(tab, loaded, viewW, viewH),
             tool = tool,
             ink = ink,
             draft = draft,
@@ -190,11 +163,104 @@ internal fun PageCanvas(
             density = density,
             panMode = panMode,
             dialWheel = dialWheel,
+            origin = { origin },
+            extent = { extent },
             onViewport = onViewport,
             onFit = onFit,
             onEdited = onEdited,
+            packets = packets,
         )
     }
+}
+
+/** The page the tab is on, re-read when the document is edited; a failure is why it could not be read. */
+@Composable
+private fun rememberedPage(tab: DesktopTab): Result<Page> =
+    remember(tab, tab.page, tab.document.edits) { runCatching { tab.document.page(tab.page) } }
+
+/**
+ * The page's recorded picture, released with the page it belongs to: it holds native drawing
+ * instructions, so a page outliving its picture would leak them.
+ */
+@Composable
+private fun rememberSheetPicture(tab: DesktopTab): PagePicture {
+    val picture = remember(tab, tab.page) { PagePicture() }
+    DisposableEffect(picture) { onDispose { picture.close() } }
+    return picture
+}
+
+/**
+ * The page inside the box the canvas measured: the tablet's packets first (they draw their own stroke),
+ * then the sheet's canvas, which paints the page and takes the Compose pointer.
+ *
+ * Split out of [PageCanvas] rather than inlined: the canvas keeps the state a page needs, this keeps the
+ * two children that spend it, which is the hundred-line rule `SourceStructureTest` enforces.
+ */
+@Composable
+private fun PageSheet(
+    tab: DesktopTab,
+    page: Page,
+    sheet: SheetLayout,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    draft: SnapshotStateList<InkSample>,
+    penDraft: SnapshotStateList<InkSample>,
+    pen: PenContactStream?,
+    penOwns: MutableState<Boolean>,
+    hover: MutableState<Offset?>,
+    penAtNanos: MutableState<Long>,
+    sheetPicture: PagePicture,
+    paintProbe: ((List<List<InkSample>>, Long) -> Unit)?,
+    measurer: TextMeasurer,
+    density: Float,
+    panMode: Boolean,
+    dialWheel: () -> Boolean,
+    origin: () -> Offset,
+    extent: () -> Size,
+    onViewport: (Viewport) -> Unit,
+    onFit: (FitMode) -> Unit,
+    onEdited: (Int) -> Unit,
+    packets: PenPacketSource?,
+) {
+    PenPacketStrokes(
+        tab = tab,
+        tool = tool,
+        ink = ink,
+        density = density,
+        pageW = sheet.pageW,
+        pageH = sheet.pageH,
+        viewport = sheet.viewport,
+        draft = penDraft,
+        onEdited = onEdited,
+        origin = origin,
+        extent = extent,
+        owns = penOwns,
+        hover = hover,
+        penAtNanos = penAtNanos,
+        packets = packets,
+    )
+    SheetCanvas(
+        tab = tab,
+        page = page,
+        sheet = sheet,
+        tool = tool,
+        ink = ink,
+        draft = draft,
+        penDraft = penDraft,
+        pen = pen,
+        penOwns = penOwns,
+        hover = hover,
+        penAtNanos = penAtNanos,
+        sheetPicture = sheetPicture,
+        paintProbe = paintProbe,
+        measurer = measurer,
+        density = density,
+        panMode = panMode,
+        dialWheel = dialWheel,
+        onViewport = onViewport,
+        onFit = onFit,
+        onEdited = onEdited,
+    )
 }
 
 /** A page's size and the viewport in force for it, in the window it is being shown in. */
@@ -472,9 +538,14 @@ private fun PenPacketStrokes(
         // renders the window at the display's full rate for ever — measured at ~120 fps on a window with
         // nothing happening, which on a 21:9 sheet is what starved the message thread and read as the
         // window freezing. One token per batch means the ink still costs at most one frame per screen.
+        //
+        // The batch is applied **here**, not after the next frame (`withFrameNanos { flush() }` used to
+        // sit between the two): a resumed frame awaiter is dispatched back to this thread *after* that
+        // frame has been drawn, so waiting for it spent a frame and the ink landed on the one following.
+        // Measured on a 120 Hz display: 12.45 ms median / 16.82 ms p95, which is two 8.33 ms frames.
+        // Writing the samples now invalidates the canvas, and Compose paints it at the very next frame.
         while (true) {
             stroke.awaitPacket()
-            withFrameNanos { }
             stroke.flush()
             stroke.publishHover()
         }
