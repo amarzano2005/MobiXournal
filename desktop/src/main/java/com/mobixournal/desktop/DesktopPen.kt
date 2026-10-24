@@ -56,6 +56,9 @@ fun DesktopTool.activeTool(): ActiveTool = when (this) {
     DesktopTool.HIGHLIGHTER -> ActiveTool.HIGHLIGHTER
     DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> ActiveTool.ERASER
     DesktopTool.VERTICAL_SPACE -> ActiveTool.VERTICAL_SPACE
+    // The two marquee tools select rather than ink; the shared router's `SELECT` arm therefore never starts a
+    // stroke, and the canvas hands the drag to `SelectionGesture` before it asks the router anything.
+    DesktopTool.MARQUEE, DesktopTool.LASSO -> ActiveTool.SELECT
     else -> ActiveTool.HAND
 }
 

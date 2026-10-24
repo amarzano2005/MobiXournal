@@ -49,6 +49,12 @@ enum class ShellCommand {
     /** Re-apply the step an undo took back (`Ctrl+Shift+Z`); unavailable with nothing to redo. */
     REDO,
 
+    /**
+     * Remove what the marquee caught (`Delete` or `Backspace`). **Unavailable with nothing selected**, so the
+     * key can never delete by accident — the state a header control would grey out.
+     */
+    DELETE_SELECTION,
+
     DISMISS_FAILURE,
 }
 
@@ -145,6 +151,7 @@ internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand
     ctrl && key == Key.One -> ShellCommand.FIT_WIDTH
     !ctrl && (key == Key.PageDown || key == Key.DirectionDown) -> ShellCommand.NEXT_PAGE
     !ctrl && (key == Key.PageUp || key == Key.DirectionUp) -> ShellCommand.PREVIOUS_PAGE
+    key == Key.Delete || key == Key.Backspace -> ShellCommand.DELETE_SELECTION
     key == Key.Spacebar -> ShellCommand.START_PAN
     else -> null
 }
@@ -184,10 +191,16 @@ internal fun zoomBy(tab: DesktopTab, factor: Float) {
     tab.viewport = tab.viewport.copy(zoom = (tab.viewport.zoom * factor).coerceIn(Viewport.MIN_ZOOM, Viewport.MAX_ZOOM))
 }
 
-/** Select a page, keeping the tab's fit mode and re-centring the free viewport on it. */
+/**
+ * Select a page, keeping the tab's fit mode and re-centring the free viewport on it.
+ *
+ * The selection goes with the page: its refs name a layer and an index **of the page it was drawn on**, so
+ * carrying it across a page turn would point at whatever happened to be at those indices there.
+ */
 internal fun selectPage(tab: DesktopTab, index: Int) {
     tab.page = index.coerceIn(0, (tab.pageCount - 1).coerceAtLeast(0))
     tab.viewport = tab.viewport.copy(offsetX = 0f, offsetY = 0f)
+    tab.selection = null
 }
 
 /** The label a document's tab gets before a rename, kept here so the strip and tests agree. */

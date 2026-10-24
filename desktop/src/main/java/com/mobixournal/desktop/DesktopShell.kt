@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -324,6 +322,8 @@ class DesktopShellState(
             cancelClose()
             return true
         }
+        // A selection owns `Esc` while there is one: the outline goes before a message is dismissed.
+        if (event.key == Key.Escape && dismissSelection(tabs.active)) return true
         // A colour panel that is up owns `Esc`: it closes before anything else the key might mean.
         if (event.key == Key.Escape && editing != null) {
             cancelColourEdit()
@@ -451,6 +451,14 @@ class DesktopShellState(
             // while it is empty, which is the state a header control greys the command out on.
             ShellCommand.UNDO -> stepHistory(tab, redo = false)
             ShellCommand.REDO -> stepHistory(tab, redo = true)
+            // `Delete` removes what the marquee caught, as one edit and one undo step; with nothing
+            // selected the key is not handled, so a keyboard shortcut never deletes by accident.
+            ShellCommand.DELETE_SELECTION -> deleteSelection(tab).also { removed ->
+                if (!removed) return@also
+                // The same quiet period an edit starts: the page's picture is stale, and the snapshot waits.
+                thumbnails[tab.key]?.remove(tab.page)
+                noteEdit()
+            }
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.SAVE, ShellCommand.SAVE_AS -> false
@@ -467,36 +475,6 @@ class DesktopShellState(
         thumbnails[tab.key]?.clear()
         noteEdit()
         return true
-    }
-}
-
-/**
- * The colour panel, held for its exit.
- *
- * It is a transient surface: it may lie over the page (a band may not), and it is centred so the strip
- * that opened it stays visible. [GlassPresence] keeps it composed while its spring draws back — the
- * shell clears `editing` the instant Set or Cancel is pressed, and without the hold the panel would
- * vanish between two frames — and the target is remembered for the same reason: the closing surface
- * still has to know which colour it was editing.
- */
-@Composable
-private fun BoxScope.ColourPanelHost(state: DesktopShellState) {
-    var lastEdit by remember { mutableStateOf<ColourEditorTarget?>(null) }
-    val editing = state.editing
-    SideEffect { if (editing != null) lastEdit = editing }
-    GlassPresence(visible = editing != null) {
-        val target = editing ?: lastEdit ?: return@GlassPresence
-        ColourPickerPanel(
-            title = if (target == ColourEditorTarget.CUSTOM) "Custom colour" else "New colour",
-            initial = if (target == ColourEditorTarget.CUSTOM) {
-                state.ink.custom ?: state.ink.colour
-            } else {
-                state.ink.colour
-            },
-            onSet = { colour -> state.commitColour(colour) },
-            onCancel = { state.cancelColourEdit() },
-            modifier = Modifier.align(Alignment.Center),
-        )
     }
 }
 

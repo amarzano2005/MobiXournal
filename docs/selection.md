@@ -26,6 +26,13 @@ its pages. Nothing is imported silently: the drop point is the element's placeme
 
 ## Selecting objects (`render/`)
 
+**Both shells select through the same geometry.** `PageSelection` (the traced region, the `ElementRef`s it
+caught, and `translate`/`scale`/`rotate`, which answer with the region moved the same way) and
+`SelectionEdit` (the page rewrite: move, scale, rotate, delete — one call per committed gesture) live in
+`mobix-core`, beside `SelectionOps` and `ElementShift`. The window's pointer half is its own — which handle
+a press grabbed, and how far it was dragged — and is described in
+[desktop-workstation.md](desktop-workstation.md); the tablet's is `SelectionGestureController`.
+
 **Selecting objects (`render/`).** The **Select** tools (`EditorTool.SELECT`,
 `EditorTool.LASSO_SELECT`, `EditorTool.TEXT_SELECT`, and `EditorTool.BG_SELECT`) share the rail's
 Select group, but their gestures stay separate. Object selection (`selectMode`) mirrors desktop

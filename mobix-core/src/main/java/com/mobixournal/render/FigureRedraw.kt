@@ -35,7 +35,7 @@ import kotlin.math.hypot
  *
  * Pure — no Android types, no view — so the arithmetic is unit-tested on the JVM ([FigureRedrawTest]).
  */
-internal object FigureRedraw {
+object FigureRedraw {
 
     /** Vertices closer than this are the same vertex; `ShapeBuilder` repeats a tip exactly. */
     private const val SAME_POINT_PT = 1e-3

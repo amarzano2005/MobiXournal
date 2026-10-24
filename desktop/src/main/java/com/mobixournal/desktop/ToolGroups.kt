@@ -73,6 +73,8 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.HIGHLIGHTER)),
     ToolGroup(listOf(DesktopTool.ERASER, DesktopTool.ERASER_WHOLE)),
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
+    // The two ways to select a region on the page: a rectangle and a freehand loop.
+    ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
     ToolGroup(
         listOf(
             DesktopTool.LINE,
@@ -101,6 +103,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.ERASER,
     DesktopTool.ERASER_WHOLE,
     DesktopTool.VERTICAL_SPACE,
+    DesktopTool.MARQUEE,
+    DesktopTool.LASSO,
     DesktopTool.LINE,
     DesktopTool.ARROW,
     DesktopTool.DOUBLE_ARROW,

@@ -24,6 +24,7 @@ import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
 import com.mobixournal.render.PageEraser
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.VerticalSpaceOps
 import com.mobixournal.format.model.StrokePoint
@@ -78,6 +79,7 @@ internal suspend fun PointerInputScope.pageGestures(
      * Null everywhere else, including for every other tool.
      */
     grabLine: MutableState<Double?>? = null,
+    previewRegion: MutableState<SelectionRegion?>? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
@@ -109,6 +111,10 @@ internal suspend fun PointerInputScope.pageGestures(
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
         // A geometry slot turns the drag into a figure instead of a stroke: the same press, a different
         // product, and one undo step either way.
+        // The marquee tools take the drag before the ink sees it: they select, and a selection is not ink.
+        if (selectionPress(down, tool, tab, viewport, pageW, pageH, density, previewRegion, onLiveDrag, onEdited)) {
+            return@awaitEachGesture
+        }
         tool.shapeKind()?.let { kind ->
             shapeDrag(down, kind, tab, ink, viewport, pageW, pageH, draft, onLiveDrag, onEdited)
             return@awaitEachGesture

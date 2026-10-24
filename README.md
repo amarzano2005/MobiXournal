@@ -121,7 +121,10 @@ put it again). The eraser has its two members as two slots: `E` cuts the ink it 
 takes whole strokes. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
 one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to cancel — and **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
-crosses. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
+crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): drag a box or loop a freehand line around
+what you want, then drag the outline to move it, pull a corner to resize it or the handle above it to turn
+it (`Shift` snaps the turn), and `Delete` takes it away — each drag one edit, one `Ctrl + Z`. `Esc` lets a
+selection go. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.

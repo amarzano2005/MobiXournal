@@ -238,6 +238,28 @@ its own:
   The arithmetic is shared: `VerticalSpaceOps`, its `Snapping` and the per-element move (`ElementShift`)
   live in `mobix-core`, and the app's `SelectionOps.translate` delegates to the same `ElementShift`.
 
+### Selecting, moving, resizing and turning
+
+The window's selection is the tablet's, cut along the seam the core already had. **Marquee** (`S`) and
+**Lasso** (`V`) share one slot, so the strip still shows one "pick things" tool: a **drag** traces a region
+(the straight box, or the freehand loop) which is painted as it is drawn, and the **lift** selects every
+element wholly inside it; a **press inside the live outline** acts on the selection instead of starting a
+new one — the body moves it, a **corner handle** scales it about the opposite corner, and the **handle above
+it** turns it about its centre (`Shift` snaps the turn to 15°). Both paths recompute from the page **as it
+was at grab time**, so dragging back and forth cannot compound, and one drag is one edit and **one undo
+step**. `Delete` (or `Backspace`) removes what is caught, also as one step; `Esc` drops the outline before it
+means anything else. A selection belongs to the page it was drawn on: turning the page lets it go, because
+its refs name a layer and an index *of that page*.
+
+The arithmetic is core, not window: `PageSelection` (the region, the caught refs, and translate/scale/rotate
+that answer with the region moved the same way), `SelectionEdit` (the page rewrite) and `SelectionOps` live in
+`mobix-core` and are shared with the tablet, alongside `ElementShift` and `VerticalSpaceOps`. What stays here
+is the pointer half — `DesktopSelection.kt` decides *which* handle a press grabbed and *how far* it was
+dragged (`selectionHandleAt`, `scaleFactors`, `rotationBetween`, all pure and JVM-tested), `SelectionGesture.kt`
+walks the drag, and `SelectionOverlay.kt` paints the outline, the five handles and the traced region. A
+selection drag is **not ink**, so `DesktopTool.inksByPackets()` stays false for the slots: the pen's packets
+stand aside and a stylus in proximity still reaches the drag through the Compose pointer.
+
 ### A stroke costs the stroke
 
 The page is a Skia picture (`PagePicture`), and a picture is immutable — so a lift used to re-record the
@@ -269,11 +291,12 @@ numbers beside the 6.9 ms frame budget.
 
 ### What the window does not do
 
-- No **selection** (marquee, lasso), no text, plot or circuit authoring, and no layer editing: the ink,
-  the two erasers, the seven geometry slots and vertical space are the gestures that work, and every
-  other slot only picks a tool (`desktop-eraser-and-selection-on-shared-geometry`). There are no header
-  buttons for undo and redo — the commands exist and know when they are unavailable, so a control only
-  has to read `canUndo`/`canRedo`.
+- No text, plot or circuit authoring, and no layer editing: the ink, the two erasers, the seven geometry
+  slots, vertical space and marquee/lasso selection are the gestures that work, and every other slot only
+  picks a tool. The marquee pair is not complete: the tablet's third select tool, **Select background
+  (flatten)** — a region copied as one flat image of the page and its layers — waits for the window's own
+  clipboard (`desktop-region-copy-flattened`). There are no header buttons for undo and redo — the commands
+  exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
 - No right-side property inspector, no search, and no page reordering or insertion.

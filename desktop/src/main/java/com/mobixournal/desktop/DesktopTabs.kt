@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.render.EditHistory
+import com.mobixournal.render.PageSelection
 import com.mobixournal.render.Uncompilable
 import java.io.File
 
@@ -48,6 +49,15 @@ class DesktopTab(
     var page: Int by mutableStateOf(page)
     var viewport: Viewport by mutableStateOf(viewport)
     var fit: FitMode by mutableStateOf(fit)
+
+    /**
+     * The live selection on **this** tab's page, or null when nothing is selected.
+     *
+     * View state, like the hidden layers: a selection is what the user is pointing at, not an edit, so nothing
+     * about it is written to the file and undoing an edit does not have to restore it. It is per tab because
+     * two tabs show two pages, and per page in practice — a marquee names a region of the page it was drawn on.
+     */
+    var selection: PageSelection? by mutableStateOf(null)
 
     /**
      * Layers hidden **in this window**, by page index. Never written to the document.

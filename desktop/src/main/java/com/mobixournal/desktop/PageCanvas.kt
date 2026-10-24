@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.PageSelection
+import com.mobixournal.render.SelectionRegion
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -154,16 +156,13 @@ internal fun PageCanvas(
             draft = draft,
             penDraft = penDraft,
             pen = pen,
-            penOwns = pointer.owns,
-            hover = pointer.hover,
-            penAtNanos = pointer.atNanos,
+            pointer = pointer,
             sheetPicture = sheetPicture,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
             panMode = panMode,
             dialWheel = dialWheel,
-            grabLine = pointer.grabLine,
             onLiveDrag = onLiveDrag,
             origin = { origin },
             extent = { extent },
@@ -187,6 +186,8 @@ private class PenPointer {
     val hover = mutableStateOf<Offset?>(null)
     val atNanos = mutableStateOf(0L)
     val grabLine = mutableStateOf<Double?>(null)
+    /** The region a selection drag is tracing right now: the sheet paints it, the gesture writes it. */
+    val previewRegion = mutableStateOf<SelectionRegion?>(null)
 }
 
 /** The page the tab is on, re-read when the document is edited; a failure is why it could not be read. */
@@ -222,16 +223,14 @@ private fun PageSheet(
     draft: SnapshotStateList<InkSample>,
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
-    penOwns: MutableState<Boolean>,
-    hover: MutableState<Offset?>,
-    penAtNanos: MutableState<Long>,
+    /** The pen's own readings: who owns the stroke, the ring, the grab line and the traced region. */
+    pointer: PenPointer,
     sheetPicture: PagePicture,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)?,
     measurer: TextMeasurer,
     density: Float,
     panMode: Boolean,
     dialWheel: () -> Boolean,
-    grabLine: MutableState<Double?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     origin: () -> Offset,
     extent: () -> Size,
@@ -257,9 +256,9 @@ private fun PageSheet(
             onEdited = onEdited,
             origin = origin,
             extent = extent,
-            owns = penOwns,
-            hover = hover,
-            penAtNanos = penAtNanos,
+            owns = pointer.owns,
+            hover = pointer.hover,
+            penAtNanos = pointer.atNanos,
             packets = packets,
         )
     }
@@ -272,16 +271,13 @@ private fun PageSheet(
         draft = draft,
         penDraft = penDraft,
         pen = pen,
-        penOwns = penOwns,
-        hover = hover,
-        penAtNanos = penAtNanos,
+        pointer = pointer,
         sheetPicture = sheetPicture,
         paintProbe = paintProbe,
         measurer = measurer,
         density = density,
         panMode = panMode,
         dialWheel = dialWheel,
-        grabLine = grabLine,
         onLiveDrag = onLiveDrag,
         onViewport = onViewport,
         onFit = onFit,
@@ -341,11 +337,8 @@ private fun SheetCanvas(
     /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
-    penOwns: MutableState<Boolean>,
-    /** The ring's position — written by the packets while the pen is in range, by the mouse otherwise. */
-    hover: MutableState<Offset?>,
-    /** `nanoTime` of the newest driver reading; a mouse move is ignored while this is fresh. */
-    penAtNanos: MutableState<Long>,
+    /** The pen's own readings: who owns the stroke, the ring, the grab line and the traced region. */
+    pointer: PenPointer,
     /** The page's recorded picture, so a frame replays the sheet instead of re-painting it. */
     sheetPicture: PagePicture,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
@@ -353,31 +346,29 @@ private fun SheetCanvas(
     density: Float,
     panMode: Boolean,
     dialWheel: () -> Boolean,
-    /** The vertical-space grab line, in page points, while that drag is live. */
-    grabLine: MutableState<Double?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onViewport: (Viewport) -> Unit,
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
-    // Its position is [hover], lifted into `PageCanvas` so the driver's own readings can move it.
+    // Its position is `pointer.hover`, lifted into `PageCanvas` so the driver's own readings can move it.
     val ringPx = toolCursorDiameterPx(tool, ink.width, sheet.zoom, density)
     val penIcon = rememberBlankPointerIcon()
     // A mouse move that is a *copy* of the contact must not drag the ring back to a position the driver
     // has already left behind; the packets win for as long as they are arriving.
-    val followMouse = { System.nanoTime() - penAtNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
+    val followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
 
     Canvas(
         Modifier.fillMaxSize()
             .pointerHoverIcon(if (ringPx != null) penIcon else PointerIcon.Default)
             .onPointerEvent(PointerEventType.Enter) { event ->
-                if (followMouse()) hover.value = event.changes.firstOrNull()?.position
+                if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
             }
             .onPointerEvent(PointerEventType.Move) { event ->
-                if (followMouse()) hover.value = event.changes.firstOrNull()?.position
+                if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
             }
-            .onPointerEvent(PointerEventType.Exit) { if (followMouse()) hover.value = null }
+            .onPointerEvent(PointerEventType.Exit) { if (followMouse()) pointer.hover.value = null }
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 wheelViewport(
                     event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
@@ -398,9 +389,10 @@ private fun SheetCanvas(
                     viewH = sheet.viewH,
                     draft = draft,
                     pen = pen,
-                    penActive = { penOwns.value },
+                    penActive = { pointer.owns.value },
                     onLiveDrag = onLiveDrag,
-                    grabLine = grabLine,
+                    grabLine = pointer.grabLine,
+                    previewRegion = pointer.previewRegion,
                     onViewport = onViewport,
                     onEdited = onEdited,
                 )
@@ -418,12 +410,14 @@ private fun SheetCanvas(
             tool = tool,
             ink = ink,
             drafts = listOf(draft.toList(), penDraft.toList()),
-            grabLineY = grabLine.value,
+            grabLineY = pointer.grabLine.value,
+            selection = tab.selection,
+            previewRegion = pointer.previewRegion.value,
             paintProbe = paintProbe,
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
         val ring = ringPx
-        val at = hover.value
+        val at = pointer.hover.value
         if (ring != null && at != null) drawToolCursor(at, ring)
     }
 }
@@ -460,6 +454,10 @@ private fun DrawScope.paintSheet(
     drafts: List<List<InkSample>>,
     /** The vertical-space tool's grab line, in page points, or null when no such drag is live. */
     grabLineY: Double? = null,
+    /** The live selection of the page being drawn, if any. */
+    selection: PageSelection? = null,
+    /** The region a selection drag is tracing right now, if any. */
+    previewRegion: SelectionRegion? = null,
     /** The ink probe's sink; null in the editor. Called after the ink, at the same clock reading. */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
 ) {
@@ -482,6 +480,9 @@ private fun DrawScope.paintSheet(
                 }
             }
         }
+        // The selection's marching outline and its handles, above the ink: what is caught stays visible.
+        selection?.let { drawSelection(it, pxPerPt) }
+        previewRegion?.let { drawSelectionPreview(it, pxPerPt) }
         // Above the ink, as the tablet draws it: the line the vertical-space drag would move the page at.
         grabLineY?.let { y ->
             drawLine(

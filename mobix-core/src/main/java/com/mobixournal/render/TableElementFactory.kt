@@ -7,7 +7,7 @@ import com.mobixournal.format.model.TableElement
 /**
  * Where a freshly inserted table sits on a page, and how big it is, in points.
  */
-internal data class TableBox(
+data class TableBox(
     val left: Double,
     val top: Double,
     val width: Double,
@@ -23,7 +23,7 @@ internal data class TableBox(
  * Owns the conversion from user drag / viewport centre coordinates into the table's origin,
  * columns, rows and cells, ensuring consistent geometry across insertion paths.
  */
-internal object TableElementFactory {
+object TableElementFactory {
 
     /** Minimum width allocated to an individual column, in points. */
     const val MIN_COL_WIDTH_PT = 20.0

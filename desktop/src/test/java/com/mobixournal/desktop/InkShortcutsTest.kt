@@ -136,7 +136,15 @@ class InkShortcutsTest {
             "the capsule is the picked colour",
             countInk(image, PenPalette.GREEN) > 40,
         )
-        assertTrue("the L dot has more ink than the S dot", inkBelow(image) > inkBelow(ImageIO.read(ByteArrayInputStream(narrow))))
+        // Green, whole image: the swatch contributes the same pixels to both renders, so the only difference
+        // left is the size dot — a wider width is a wider dot. Sampling a band of the rail was fragile here:
+        // the strip's height follows the group list, and a band sized for one layout measured empty capsule.
+        val wideDot = countInk(image, PenPalette.GREEN)
+        val narrowDot = countInk(ImageIO.read(ByteArrayInputStream(narrow)), PenPalette.GREEN)
+        assertTrue(
+            "the L dot has more ink than the S dot (L=$wideDot, S=$narrowDot)",
+            wideDot > narrowDot,
+        )
     }
 
     // --- rendering ------------------------------------------------------------------------------
@@ -168,24 +176,4 @@ class InkShortcutsTest {
         return count
     }
 
-    /**
-     * Green pixels in the rail's tail — the ink slots, which sit under every tool slot.
-     *
-     * The window starts below the last tool slot rather than at a fixed distance from the bottom of the
-     * lane: the tool list is a **group** list now (`DESKTOP_TOOL_GROUPS`), so the ink row moved up when
-     * the strip stopped drawing eighteen slots, and a window pinned to the lane's bottom would measure
-     * empty capsule in both images and pass by accident.
-     */
-    private fun inkBelow(image: java.awt.image.BufferedImage): Int {
-        val stride = (ToolStripMetrics.slotSize + ToolStripMetrics.gap).value.toInt() + ToolStripMetrics.gap.value.toInt()
-        val from = ToolStripMetrics.railSlotTop.value.toInt() +
-            (DESKTOP_TOOL_GROUPS.size + 1) * stride
-        var count = 0
-        for (x in 0 until image.width) {
-            for (y in from until image.height) {
-                if ((image.getRGB(x, y) and 0xFFFFFF) == (PenPalette.GREEN and 0xFFFFFF)) count++
-            }
-        }
-        return count
-    }
 }
