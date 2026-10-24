@@ -124,6 +124,8 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
                              #   begins, how hard it draws, what a stream means (pure)
     render/PageEraser.kt, StrokeEraser.kt, StrokeHitTester.kt # erase: page mode, the split, the hit
     render/CanvasGeometry.kt, BoardSlicer.kt, CanvasAutoSlicer.kt # a board: what it is, its sheets (pure)
+    render/VerticalSpaceOps.kt, Snapping.kt, ElementShift.kt # reflow a page, the ruling as a snap lattice,
+                             #   and moving one element — the maths both shells share (pure)
     io/DocumentEncoder.kt    # THE SAVE without Android: three formats, a SaveTarget, a SaveShape
   src/test/java/com/mobixournal/  # the model/xml/json/xopp suites and the shared geometry ones
 app/
@@ -183,7 +185,6 @@ app/
       ElementEdits.kt        # the document edits behind those placements (pure, tested)
       PageStacker.kt         # lays pages out in rows of N columns, fit to column (pure geometry)
       PageTemplates.kt       # stationery presets: paper style+config per preset, Cornell rules as strokes (pure)
-      Snapping.kt            # the page's ruling as a snap lattice (spacing + phase, or an interleaved node mesh for isometric paper); rotation -> 15-degree steps (pure)
       DrawingGuide.kt        # setsquare/compass/protractor overlay geometry + the ruling and chemistry snaps: project a drawn point onto an edge, a ray, the page's ruling or a 60° lattice node (pure)
       ProtractorRenderer.kt  # renders graduated protractor face, ticks, and angle labels
       BackgroundRenderer.kt  # paints a page background (plain/lined/ruled/graph/dotted/isometric at the page's own spacing, or a PDF page image)
@@ -244,9 +245,7 @@ app/
       SplineBuilder.kt       # spline control points -> cubic-Bezier stroke vertex list (pure)
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
-      SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops
-      VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
-                             #   snapping the gap to the ruling when snapping is on (pure)
+      SelectionOps.kt        # scale / rotate / restyle / align / distribute selected elements (pure; translate delegates to mobix-core's ElementShift); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops
       MultiFingerTapDetector.kt # a still 2/3-finger tap's finger count; FingerTapSettings.kt: the action each tap was given (pure)
       Fling.kt               # decelerating two-axis momentum-scroll kinematics; VelocityEstimator.kt the release velocity (pure)
       PageOps.kt             # insert / copy / move / delete pages in a page list (pure)

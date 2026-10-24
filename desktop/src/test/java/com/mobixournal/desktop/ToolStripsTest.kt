@@ -47,11 +47,14 @@ class ToolStripsTest {
         "Pen" to "B",
         "Highlighter" to "H",
         "Eraser" to "E",
+        "Eraser (whole)" to "Shift+E",
+        "Vertical space" to "Shift+V",
         "Lasso" to "V",
         "Marquee" to "S",
         "Text" to "X",
         "Line" to "L",
         "Arrow" to "A",
+        "Double arrow" to "Shift+A",
         "Rectangle" to "R",
         "Ellipse" to "C",
         "Spline" to "P",
@@ -146,7 +149,7 @@ class ToolStripsTest {
     @Test
     fun `the rail and the ribbon draw every tool`() {
         val railPng = save(
-            ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 700, Density(1f)) {
+            ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 900, Density(1f)) {
                 ToolRail(ToolStripState(), onSelect = {})
             },
             "tools-rail",
@@ -163,7 +166,7 @@ class ToolStripsTest {
         )
 
         val ribbonPng = save(
-            ImageComposeScene(700, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
+            ImageComposeScene(1000, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
                 ToolRibbon(
                     state = ToolStripState(selection = ToolSelection(DesktopTool.CIRCUIT)),
                     onSelect = {},

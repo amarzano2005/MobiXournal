@@ -124,9 +124,9 @@ class InkActions(
 /**
  * Option B: the vertical rail, docked beside the canvas.
  *
- * Fifteen slots are ~660 dp tall, so the lane scrolls rather than dropping its last tools on a window
- * that is shorter than that — a tool that is off screen because the window is short would be a tool the
- * user has to guess at.
+ * The tool slots and the ink slots are ~900 dp tall together, so the lane scrolls rather than dropping
+ * its last tools on a window that is shorter than that — a tool that is off screen because the window is
+ * short would be a tool the user has to guess at.
  */
 @Composable
 fun ToolRail(
@@ -190,7 +190,7 @@ fun ToolRail(
 /**
  * Option A: the horizontal ribbon, a band under the header.
  *
- * It scrolls horizontally for the same reason the rail scrolls vertically: fifteen slots do not fit a
+ * It scrolls horizontally for the same reason the rail scrolls vertically: eighteen slots do not fit a
  * narrow window, and a ribbon that clipped them would silently hide the STEM half of the tool set.
  */
 @Composable

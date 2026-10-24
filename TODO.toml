@@ -36,48 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-geometry-tools-line-arrow-rectangle-ellipse-spline"
-title = "Desktop: the geometry slots draw line, arrow, axes, rectangle, ellipse and spline"
-description = "Five of the window's fifteen slots - LINE, ARROW, RECTANGLE, ELLIPSE, SPLINE - do nothing: DesktopPen.kt's activeTool() answers ActiveTool.HAND for every slot it cannot draw, so a drag with the Line tool pans the page. The geometry is already pure and Android-free in mobix-core: render/ShapeBuilder.kt (enum ShapeKind with LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, SPLINE and the STEM set; build(kind, startX, startY, endX, endY, widthPt) answers the stroke's points), which the tablet's DrawingSurfaceStrokes already calls. Work: (1) a mapping beside inkTool() in DesktopPen.kt - shapeKind(): ShapeKind? for those five slots (and for DOUBLE_ARROW and COORDINATE_AXIS, which get their slots with this task so the geometry members the tablet's strip already has are reachable) - plus a pure drag helper, shapeFromDrag(kind, x0, y0, x1, y1, widthPt, constrained: Boolean), that snaps the end point to 45-degree steps when Shift is held and returns no points for a drag shorter than a few pt; (2) PageCanvasInput.kt: when the picked slot has a shape kind, a primary press records the origin page point (pagePointOf, the same arithmetic the pen uses), each MOVE rebuilds the points and paints them as the live preview in the same draft list paintSheet already draws, Escape cancels, and the lift commits exactly ONE Stroke on the active layer through the same tab.document.editPage/record/onEdited path the pen uses, uniformWidth = true, at ink.colour and ink.width; (3) make the packet path stand aside for a shape slot: a pen contact on the glass with Line picked must not draw ink while a drag becomes a line - the simplest honest rule is that with a shape slot picked the packets do not start a stroke (PenPacketStroke is only composed/subscribed for the pen slots), and that rule is stated in the doc and tested; (4) tests: a JVM test of shapeFromDrag (Shift constraint, degenerate drag, each kind's point count) beside DesktopPenTest, and an ImageComposeScene test beside DesktopPointerSceneTest that a Line drag lands exactly one Stroke with two points and one undo step, a Rectangle drag lands a closed four-point stroke, Escape leaves nothing, and the eraser still erases a committed line; (5) docs: docs/desktop-workstation.md gains a geometry paragraph (the slots, Shift, that the shape is an ordinary stroke and so round-trips through .xopp), docs/drawing-tools.md notes the desktop now draws them, README's desktop paragraph mentions the shapes. Finish with :desktop:createDistributable. No Android change; :desktop:test plus the guards green."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 920
-created = 2026-10-24
-tags = ["desktop", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-eraser-whole-stroke-mode"
-title = "Desktop: the eraser's second member - whole-stroke erase"
-description = "The tablet's eraser is one group with two members - partial erase (the disc cuts the stroke where it crosses) and whole-stroke erase (a touched stroke goes) - and the window only has the first: PageInkGesture.eraseAt in desktop/src/main/java/com/mobixournal/desktop/PageCanvasInput.kt passes EraserMode.STANDARD hard-coded to PageEraser.erase, although mobix-core's PageEraser already answers both modes (enum EraserMode { STANDARD, WHOLE_STROKE }). Work: (1) a second slot: DesktopTool gains ERASER_WHOLE (\"Eraser (whole)\", shortcut Shift+E, its own catalogue glyph - the eraser's own with the struck-through ring, not a Material icon, docs/interface-contract.md section 4); the group's chevron will put the two erasers under one slot when desktop-tool-groups-and-pickers lands, so nothing here may assume the two are neighbours in the strip; (2) DesktopPen.kt: activeTool() answers ERASER for it and a new eraserMode(): EraserMode answers STANDARD for ERASER and WHOLE_STROKE for ERASER_WHOLE, which PageInkGesture passes to PageEraser.erase instead of the constant, so one erased gesture is still ONE undo step (the recorded flag in PageInkGesture is the same one); (3) the cursor ring is the eraser's radius for both (DesktopCursor.toolCursorDiameterPx), so the whole-stroke eraser shows the same tip it cuts with; (4) tests: beside DesktopPenTest, eraserMode() answers the two modes and nothing else; in DesktopEditingTest (which already erases across a bar with the shared PageEraser) a whole-stroke eraser drag removes the WHOLE bar where the standard mode left two halves, and one undo brings it back; a strip render test asserts the new slot draws its glyph and that picking it is what the status bar reports; (5) docs: docs/desktop-workstation.md (the eraser's two modes in the tool-strip paragraph), the eraser section of docs/drawing-tools.md notes the desktop's second mode, README's desktop paragraph mentions it. Finish with :desktop:createDistributable. No Android change; :desktop:test plus the guards green."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 930
-created = 2026-10-24
-tags = ["desktop", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-vertical-space-tool"
-title = "Desktop: the vertical space tool, on the shared page maths"
-description = "The Vertical space tool is a core tool on the tablet and has no slot at all in the window, and the maths it needs is still in the app module: app/src/main/java/com/mobixournal/render/VerticalSpaceOps.kt (shiftBelow(pages, pageIndex, yPt, dy, snapSpacingPt) and dragShift, which snaps through app's Snapping.snap and translates through app's SelectionOps.translate), with VerticalSpaceDrag.kt as the gesture on top. Work: (1) DEPENDS ON desktop-eraser-and-selection-on-shared-geometry for the SelectionOps move to mobix-core; once it lands, move VerticalSpaceOps and Snapping there too (they are Android-free already) and make the app's call sites import them, keeping VerticalSpaceOpsTest green where it is or moving it beside them; (2) a slot: DesktopTool gains VERTICAL_SPACE (\"Vertical space\", shortcut Shift+V, the catalogue's VSPACE glyph, which mobix-core's ToolGlyphs already draws); activeTool() answers ActiveTool.VERTICAL_SPACE, which the shared InputClassifier already classifies as GestureIntent.VERTICAL_SPACE; (3) the gesture, in PageCanvasInput.kt beside the ink gesture: a press lays the grab line at that page Y (drawn as a hairline across the sheet in the window's tokens, above the ink), each MOVE re-applies VerticalSpaceOps.shiftBelow from the ORIGINAL page - decided once at grab time, the tablet's rule - so the block follows the pointer and passing elements does not recruit them, and the lift commits the shifted page as ONE edit and ONE undo step through tab.document.editPage/record (a drag that shifts nothing records nothing); (4) snapping stays OFF in this task (snapSpacingPt = 0.0, a continuous drag): the tablet snaps to the ruling only when its Snap to grid setting is on, and the window has no such setting yet - desktop-settings-and-status-ui owns it, and the doc says so instead of inventing a different rule; (5) tests: an ImageComposeScene test that a vertical-space drag down by 40 pt moves every element whose top is below the line by 40, leaves the one the line passes through where it was, is one undo step, and that a drag over empty space records nothing; VerticalSpaceOps' own tests stay the arithmetic's authority; (6) docs: docs/drawing-tools.md (Vertical space) notes the window now has it, docs/desktop-workstation.md gains the tool-strip paragraph, README's desktop paragraph mentions it. Finish with :desktop:createDistributable. No Android behaviour change; :desktop:test plus the guards green."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 940
-created = 2026-10-24
-tags = ["desktop", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-stem-slot-placement"
 title = "Desktop: the STEM slots place a living element (scope)"
 description = "Four slots - PLOT, AXES, TABLE, CIRCUIT - are on the strip and pan the page, because DesktopPen.activeTool() reduces them to HAND; they are the tools that CREATE a living element, while desktop-living-entity-editors only edits one that exists. The tablet asks first (a formula for a plot, rows/columns for a table, a component for a circuit) and the app's dialogs are Compose-for-Android, so nothing carries over unchanged: mobix-core has the geometry (PlotInk, PlotFrame, FunctionPlot, TableInk, CircuitInk, CircuitShapes, ParametricShapes) and the element types (PlotElement, TableElement, CircuitElement, ParametricShapeElement), but not the question the user answers when the tool is picked. Investigate and then add the atomic tasks: (1) how a press places an element on the desktop - drag a box (the tablet's gesture) or place at the click with a default size - and where the size/position lands in each element's own fields; (2) what the user fills in first, per family, and where that happens without a modal over the page (the window's glass: a header-tethered editor, an inspector row, or the same popup the tablet opens, re-drawn in Compose Desktop), reusing the apply functions the Android editors already call (render/ElementEdits.kt, applyPlotEdit) so both shells write the same element; (3) the order of families - plot first (the formula is one line and the geometry is already shared), then axes, table, circuit - and what each still lacks in mobix-core to be placed without the app module; (4) the tests each child owes (a JVM test of what the placement writes, an ImageComposeScene test that picking the tool and dragging writes exactly one element and one undo step); (5) the doc updates (docs/mobix-elements.md, docs/desktop-workstation.md, README). Produce tasks, not code; it is a child of desktop-every-tool-does-what-it-does-on-the-tablet and depends on desktop-living-entity-editors for the editor surface."
@@ -382,20 +340,6 @@ urgency = "normal"
 order = 1240
 created = 2026-10-24
 tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-dirty-rect-pacing-for-scrolling-and-zooming"
-title = "Desktop: dirty-rect pacing for scrolling and zooming"
-description = "The page is a Skia Picture recorded once per viewport (PagePicture), so a live stroke costs the frame only the drafts plus one replay (measured 0.1-0.3 ms mean, 1.0 ms worst). A scroll or a zoom changes the viewport, which re-records the sheet, so those gestures pay the full Kotlin paint per frame on a dense page. Work: investigate whether Compose Desktop can repaint a sub-rectangle at all (SkiaLayer/SkiaView level) - if it cannot, record the page ONCE at the document scale as an oversized picture and translate it per frame instead of re-recording, which turns a scroll into a replay at a new offset and a zoom into a scaled replay, and measure both with DesktopDiagnostics.painted() on udiff.xopp. Acceptance: scrolling a dense page stays inside the frame budget on the owner's 144 Hz monitor, with the watchdog's paint mean unchanged from the recorded-replay number."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "low"
-order = 1250
-created = 2026-10-24
-tags = ["desktop", "perf"]
 rebuild = false
 emulator_debug = false
 

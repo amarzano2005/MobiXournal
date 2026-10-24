@@ -294,16 +294,19 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | **Core Inking** | Pen / Brush | `B` | Single tap on pen / Primary tool slot |
 | | Highlighter | `H` | Secondary tool slot |
 | | Eraser | `E` | Stylus rear eraser tip or barrel button 1 |
+| | Eraser (whole stroke) | `Shift + E` | The eraser slot's second member |
 | | Lasso Select | `V` | Barrel button hold + drag |
 | | Marquee Rect Select | `S` | Selection mode toggle |
 | | Text Box | `X` | Screen double-tap with finger |
 | | Pan / Hand Tool | `Space` (held) | Two-finger scroll / drag |
 | **Geometry & Figures** | Straight Line / Ruler | `L` | Hold-to-straighten dwell (300 ms) |
 | | Arrow | `A` | Arrow shape toggle |
+| | Double arrow | `Shift + A` | Arrow slot's second member |
 | | Rectangle | `R` | Shape dwell |
 | | Circle / Ellipse | `C` | Shape dwell |
 | | Free Spline | `P` | Spline tool slot |
-| **STEM & Advanced** | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
+| **STEM & Advanced** | Vertical space | `Shift + V` | Reflow tool in the rail's Tool pop-up |
+| | Cartesian Coordinate Axes | `Shift + X` | 1-tap STEM dock button |
 | | Function Plot $f(x)$ | `M` | 1-tap STEM dock button |
 | | Dynamic Table | `T` | 1-tap STEM dock button |
 | | Circuit Components | `K` | 1-tap STEM dock button |

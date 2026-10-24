@@ -34,6 +34,9 @@ internal const val PROBE_TABLET = "--probe-tablet"
 /** The argument that measures ink latency instead of opening the editor (`InkProbe`). */
 internal const val PROBE_INK = "--probe-ink"
 
+/** The argument that measures the paint cost of scrolling and zooming (`ScrollProbe`). */
+internal const val PROBE_SCROLL = "--probe-scroll"
+
 /**
  * The probe window: pointer, wheel, key, pen and dial rows written to `tablet-probe.csv` beside the
  * running directory, with the keys observed at the window because that is where a tablet button arrives.
@@ -104,6 +107,13 @@ fun main(args: Array<String>) {
     val ink = args.indexOf(PROBE_INK)
     if (ink >= 0) {
         runInkProbe(initialDocument(args.drop(ink + 1).toTypedArray()))
+        return
+    }
+    // The scroll probe pans and zooms a document so the watchdog can time both gestures
+    // (`desktop-dirty-rect-pacing-for-scrolling-and-zooming`).
+    val scroll = args.indexOf(PROBE_SCROLL)
+    if (scroll >= 0) {
+        runScrollProbe(initialDocument(args.drop(scroll + 1).toTypedArray()))
         return
     }
     val initial = initialDocument(args)

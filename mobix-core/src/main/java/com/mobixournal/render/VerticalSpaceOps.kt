@@ -80,5 +80,5 @@ object VerticalSpaceOps {
     private fun isBelow(element: Element, yPt: Double): Boolean = ElementBounds.of(element).top >= yPt
 
     private fun shiftIfBelow(element: Element, yPt: Double, dy: Double): Element =
-        if (isBelow(element, yPt)) SelectionOps.translate(element, 0.0, dy) else element
+        if (isBelow(element, yPt)) ElementShift.translate(element, 0.0, dy) else element
 }

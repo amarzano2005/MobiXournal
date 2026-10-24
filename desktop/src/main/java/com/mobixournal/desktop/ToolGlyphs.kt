@@ -93,7 +93,7 @@ internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color) {
 }
 
 /**
- * The glyph each of the window's fifteen tools draws — the tablet's own picture of that tool, by
+ * The glyph each of the window's slots draws — the tablet's own picture of that tool, by
  * identity: the pen is the tablet's pencil, the marquee its dashed frame, `CIRCUIT` its resistor.
  */
 internal val DesktopTool.glyph: ToolGlyph
@@ -101,11 +101,16 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.PEN -> ToolGlyph.PEN
         DesktopTool.HIGHLIGHTER -> ToolGlyph.HIGHLIGHTER
         DesktopTool.ERASER -> ToolGlyph.ERASER
+        // The same eraser with its struck-through ring — the catalogue's own picture of the second
+        // member, not a Material icon (`docs/interface-contract.md` §4).
+        DesktopTool.ERASER_WHOLE -> ToolGlyph.ERASER_WHOLE
+        DesktopTool.VERTICAL_SPACE -> ToolGlyph.VSPACE
         DesktopTool.LASSO -> ToolGlyph.LASSO
         DesktopTool.MARQUEE -> ToolGlyph.MARQUEE
         DesktopTool.TEXT -> ToolGlyph.TEXT
         DesktopTool.LINE -> ToolGlyph.LINE
         DesktopTool.ARROW -> ToolGlyph.ARROW
+        DesktopTool.DOUBLE_ARROW -> ToolGlyph.DOUBLE_ARROW
         DesktopTool.RECTANGLE -> ToolGlyph.RECTANGLE
         DesktopTool.ELLIPSE -> ToolGlyph.ELLIPSE
         DesktopTool.SPLINE -> ToolGlyph.SPLINE

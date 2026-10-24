@@ -108,6 +108,11 @@ internal fun PageCanvas(
      * Compose event is still the only thing that moves the page.
      */
     dialWheel: () -> Boolean = { false },
+    /**
+     * The drag in flight that `Esc` cancels (a geometry tool's figure), or null once it is over. The shell
+     * holds the other end, so a keyboard can answer a drag that has not finished yet.
+     */
+    onLiveDrag: ((() -> Unit)?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -121,12 +126,7 @@ internal fun PageCanvas(
     // Where this canvas sits in the window, so a packet in client pixels becomes a point inside it.
     var origin by remember { mutableStateOf(Offset.Zero) }
     var extent by remember { mutableStateOf(Size.Zero) }
-    // True while the tablet's packets own the pen: the mouse path stands aside for that stroke.
-    val penOwns = remember(tab, tab.page) { mutableStateOf(false) }
-    // Where the ring sits, and when the **driver** last said where the pen is. Both are lifted here because
-    // two paths write them: the packets, and the Compose moves of a window with no stream.
-    val hover = remember { mutableStateOf<Offset?>(null) }
-    val penAtNanos = remember { mutableStateOf(0L) }
+    val pointer = remember(tab, tab.page) { PenPointer() }
     val sheetPicture = rememberSheetPicture(tab)
 
     BoxWithConstraints(
@@ -154,15 +154,17 @@ internal fun PageCanvas(
             draft = draft,
             penDraft = penDraft,
             pen = pen,
-            penOwns = penOwns,
-            hover = hover,
-            penAtNanos = penAtNanos,
+            penOwns = pointer.owns,
+            hover = pointer.hover,
+            penAtNanos = pointer.atNanos,
             sheetPicture = sheetPicture,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
             panMode = panMode,
             dialWheel = dialWheel,
+            grabLine = pointer.grabLine,
+            onLiveDrag = onLiveDrag,
             origin = { origin },
             extent = { extent },
             onViewport = onViewport,
@@ -171,6 +173,20 @@ internal fun PageCanvas(
             packets = packets,
         )
     }
+}
+
+/**
+ * The pen's own state, lifted out of [PageCanvas]: whether the tablet's packets own the stroke in
+ * progress, where the ring is, when the driver last spoke, and the vertical-space grab line.
+ *
+ * Two input paths write these (the packets, and the Compose moves of a window with no stream), which is
+ * why they are remembered by the canvas rather than by the path that happens to run.
+ */
+private class PenPointer {
+    val owns = mutableStateOf(false)
+    val hover = mutableStateOf<Offset?>(null)
+    val atNanos = mutableStateOf(0L)
+    val grabLine = mutableStateOf<Double?>(null)
 }
 
 /** The page the tab is on, re-read when the document is edited; a failure is why it could not be read. */
@@ -215,6 +231,8 @@ private fun PageSheet(
     density: Float,
     panMode: Boolean,
     dialWheel: () -> Boolean,
+    grabLine: MutableState<Double?>,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
     origin: () -> Offset,
     extent: () -> Size,
     onViewport: (Viewport) -> Unit,
@@ -222,23 +240,28 @@ private fun PageSheet(
     onEdited: (Int) -> Unit,
     packets: PenPacketSource?,
 ) {
-    PenPacketStrokes(
-        tab = tab,
-        tool = tool,
-        ink = ink,
-        density = density,
-        pageW = sheet.pageW,
-        pageH = sheet.pageH,
-        viewport = sheet.viewport,
-        draft = penDraft,
-        onEdited = onEdited,
-        origin = origin,
-        extent = extent,
-        owns = penOwns,
-        hover = hover,
-        penAtNanos = penAtNanos,
-        packets = packets,
-    )
+    // A geometry slot draws its figure from the drag, so the pen's packets must not open a stroke under
+    // it: the packets are only composed for the ink and eraser slots, and the rule is stated (and tested)
+    // where a contact on the glass with Line picked lands no ink at all.
+    if (tool.shapeKind() == null) {
+        PenPacketStrokes(
+            tab = tab,
+            tool = tool,
+            ink = ink,
+            density = density,
+            pageW = sheet.pageW,
+            pageH = sheet.pageH,
+            viewport = sheet.viewport,
+            draft = penDraft,
+            onEdited = onEdited,
+            origin = origin,
+            extent = extent,
+            owns = penOwns,
+            hover = hover,
+            penAtNanos = penAtNanos,
+            packets = packets,
+        )
+    }
     SheetCanvas(
         tab = tab,
         page = page,
@@ -257,6 +280,8 @@ private fun PageSheet(
         density = density,
         panMode = panMode,
         dialWheel = dialWheel,
+        grabLine = grabLine,
+        onLiveDrag = onLiveDrag,
         onViewport = onViewport,
         onFit = onFit,
         onEdited = onEdited,
@@ -327,6 +352,9 @@ private fun SheetCanvas(
     density: Float,
     panMode: Boolean,
     dialWheel: () -> Boolean,
+    /** The vertical-space grab line, in page points, while that drag is live. */
+    grabLine: MutableState<Double?>,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
     onViewport: (Viewport) -> Unit,
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
@@ -370,6 +398,8 @@ private fun SheetCanvas(
                     draft = draft,
                     pen = pen,
                     penActive = { penOwns.value },
+                    onLiveDrag = onLiveDrag,
+                    grabLine = grabLine,
                     onViewport = onViewport,
                     onEdited = onEdited,
                 )
@@ -387,6 +417,7 @@ private fun SheetCanvas(
             tool = tool,
             ink = ink,
             drafts = listOf(draft.toList(), penDraft.toList()),
+            grabLineY = grabLine.value,
             paintProbe = paintProbe,
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
@@ -426,6 +457,8 @@ private fun DrawScope.paintSheet(
      * separate previews because they are separate strokes until one of them is committed.
      */
     drafts: List<List<InkSample>>,
+    /** The vertical-space tool's grab line, in page points, or null when no such drag is live. */
+    grabLineY: Double? = null,
     /** The ink probe's sink; null in the editor. Called after the ink, at the same clock reading. */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
 ) {
@@ -437,13 +470,25 @@ private fun DrawScope.paintSheet(
     // Kotlin cost — `LivingInk`, text measurement, a `Path` per stroke — and a frame must not pay it.
     sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer)
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
-        val inkTool = tool.inkTool()
-        if (inkTool == null) return@withTransform
-        for (draft in drafts) {
-            if (draft.isEmpty()) continue
-            strokeOf(inkTool, ink.colour, ink.width, draft)?.let { draftStroke ->
-                drawInkStroke(draftStroke, pxPerPt)
+        // A geometry slot's preview is the figure's own points, drawn with the pen's rule: same width,
+        // same colour, and the same list the lift reads, so what is previewed is what is written.
+        val previewTool = tool.previewTool()
+        if (previewTool != null) {
+            for (draft in drafts) {
+                if (draft.isEmpty()) continue
+                strokeOf(previewTool, ink.colour, ink.width, draft)?.let { draftStroke ->
+                    drawInkStroke(draftStroke, pxPerPt)
+                }
             }
+        }
+        // Above the ink, as the tablet draws it: the line the vertical-space drag would move the page at.
+        grabLineY?.let { y ->
+            drawLine(
+                color = DesktopTheme.accent,
+                start = Offset(0f, (y * pxPerPt).toFloat()),
+                end = Offset((page.width * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
+                strokeWidth = 1f,
+            )
         }
     }
     // The probe times the paint itself, after the ink was laid down: that is the frame the eye saw.

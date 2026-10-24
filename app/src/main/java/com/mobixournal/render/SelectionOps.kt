@@ -40,42 +40,11 @@ object SelectionOps {
      * @param dy Vertical delta in points.
      * @return Translated element, or unchanged if unmodelled (RawElement).
      */
-    fun translate(element: Element, dx: Double, dy: Double): Element = when (element) {
-        is Stroke -> element.copy(points = element.points.map { StrokePoint(it.x + dx, it.y + dy, it.width) })
-        is TextElement -> element.copy(x = element.x + dx, y = element.y + dy)
-        is ImageElement -> element.copy(
-            left = element.left + dx, top = element.top + dy,
-            right = element.right + dx, bottom = element.bottom + dy,
-        )
-        is TexImageElement -> element.copy(
-            left = element.left + dx, top = element.top + dy,
-            right = element.right + dx, bottom = element.bottom + dy,
-        )
-        is MathBlockElement -> element.copy(
-            left = element.left + dx, top = element.top + dy,
-            right = element.right + dx, bottom = element.bottom + dy,
-        )
-        // Elements we don't model carry geometry we can't interpret, so every op leaves them be.
-        is RawElement -> element
-        // PlotElement translates its page-local frame while preserving mathematical data ranges (xMin..xMax).
-        is PlotElement -> element.copy(
-            left = element.left + dx, top = element.top + dy,
-            right = element.right + dx, bottom = element.bottom + dy,
-        )
-        // TableElement translates its origin while colWidths/rowHeights stay put.
-        is TableElement -> element.copy(
-            left = element.left + dx, top = element.top + dy,
-        )
-        // CircuitElement translates its position anchor while pins move with it.
-        is CircuitElement -> element.copy(
-            positionX = element.positionX + dx, positionY = element.positionY + dy,
-        )
-        // ParametricShapeElement translates its vertices: they are the shape's geometry, so the
-        // figure moves as a whole and its editable corners travel with it.
-        is ParametricShapeElement -> element.copy(
-            vertices = element.vertices.map { it.copy(x = it.x + dx, y = it.y + dy) },
-        )
-    }
+    fun translate(element: Element, dx: Double, dy: Double): Element =
+        // One statement of what moving each element kind means, shared with the vertical-space tool and
+        // with the desktop window (`ElementShift`, `mobix-core`): a second copy here would be a second
+        // opinion about, say, whether a table's column widths travel with it.
+        ElementShift.translate(element, dx, dy)
 
     /**
      * Return [pages] with the elements at [refs] on page [pageIndex] shifted by (dx, dy) pt.

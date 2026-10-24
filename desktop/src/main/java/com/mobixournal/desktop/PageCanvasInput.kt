@@ -13,15 +13,20 @@ import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.positionChange
-import com.mobixournal.render.EraserMode
+import androidx.compose.runtime.MutableState
+import com.mobixournal.render.ActiveTool
 import com.mobixournal.render.InkEvent
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
 import com.mobixournal.render.PageEraser
 import com.mobixournal.render.PointerKind
+import com.mobixournal.render.ShapeKind
+import com.mobixournal.render.VerticalSpaceOps
+import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.render.eraserRadiusPt
 import kotlin.math.exp
 
@@ -58,6 +63,17 @@ internal suspend fun PointerInputScope.pageGestures(
      * that is already running drops its draft and leaves.
      */
     penActive: () -> Boolean = { false },
+    /**
+     * The drag in flight that `Esc` would cancel, or null once it is over. The shell holds the other end
+     * (`DesktopShellState.liveDrag`): a shape is drawn from a drag, and a drag with no way back is a
+     * gesture a keyboard cannot answer.
+     */
+    onLiveDrag: ((() -> Unit)?) -> Unit = {},
+    /**
+     * The vertical-space tool's grab line, in page points — painted across the sheet while it is live.
+     * Null everywhere else, including for every other tool.
+     */
+    grabLine: MutableState<Double?>? = null,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
@@ -84,6 +100,17 @@ internal suspend fun PointerInputScope.pageGestures(
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
+        // A geometry slot turns the drag into a figure instead of a stroke: the same press, a different
+        // product, and one undo step either way.
+        tool.shapeKind()?.let { kind ->
+            shapeDrag(down, kind, tab, ink, viewport, pageW, pageH, draft, onLiveDrag, onEdited)
+            return@awaitEachGesture
+        }
+        // The vertical-space tool reflows the page under a grab line instead of drawing on it.
+        if (tool.activeTool() == ActiveTool.VERTICAL_SPACE && grabLine != null) {
+            verticalSpaceDrag(down, tab, viewport, pageH, grabLine, onEdited)
+            return@awaitEachGesture
+        }
         gesture.down(down, buttonsOf(currentEvent))
         while (true) {
             if (penActive()) {
@@ -141,6 +168,124 @@ internal fun wheelViewport(
         fitted.pannedBy(-delta.x * WHEEL_STEP_DP, -delta.y * WHEEL_STEP_DP, pageW, pageH, viewW, viewH)
     }
 }
+
+/**
+ * A geometry drag: press, drag, lift — one figure, one undo step.
+ *
+ * The preview is the **same draft list** the sheet already paints, rebuilt from the drag on every move
+ * (`shapeFromDrag`), so what is previewed and what the lift writes are the same points from the same
+ * function. A press off the sheet starts nothing (the desk is not paper), a drag shorter than
+ * [MIN_SHAPE_DRAG_PT] draws nothing, and `Esc` cancels through the shell — which is why the gesture
+ * hands its cancel to [onLiveDrag] while it runs.
+ */
+private suspend fun AwaitPointerEventScope.shapeDrag(
+    start: PointerInputChange,
+    kind: ShapeKind,
+    tab: DesktopTab,
+    ink: DesktopInk,
+    viewport: Viewport,
+    pageW: Float,
+    pageH: Float,
+    draft: SnapshotStateList<InkSample>,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+    onEdited: (Int) -> Unit,
+) {
+    val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, viewport)
+    if (x0 !in 0.0..pageW.toDouble() || y0 !in 0.0..pageH.toDouble()) return
+    var cancelled = false
+    val cancel = {
+        cancelled = true
+        draft.clear()
+    }
+    onLiveDrag(cancel)
+    try {
+        while (!cancelled) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            val (x1, y1) = pagePointOf(change.position.x, change.position.y, density, viewport)
+            val constrained = currentEvent.keyboardModifiers.isShiftPressed
+            val points = shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained)
+            // Preview: the figure as it stands, in the same draft the sheet paints every frame.
+            draft.clear()
+            draft.addAll(points.map { point -> InkSample(point.x, point.y, 1f, samplePointer(change)) })
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) {
+                draft.clear()
+                if (!cancelled) commitShape(points, tab, ink, onEdited)
+                break
+            }
+            change.consume()
+        }
+    } finally {
+        onLiveDrag(null)
+    }
+}
+
+/** One shape's commit: an ordinary stroke on the page's top layer, and one undo step. */
+private fun commitShape(
+    points: List<StrokePoint>,
+    tab: DesktopTab,
+    ink: DesktopInk,
+    onEdited: (Int) -> Unit,
+) {
+    val stroke = shapeStroke(points, ink.colour, ink.width) ?: return
+    val index = tab.page
+    val before = tab.document.snapshot()
+    tab.document.editPage(index) { page -> page.withElement(stroke) }
+    tab.record(before)
+    onEdited(index)
+}
+
+/** The vertical-space tool's drag: a grab line, and everything below it following the pointer. */
+private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
+    start: PointerInputChange,
+    tab: DesktopTab,
+    viewport: Viewport,
+    pageH: Float,
+    grabLine: MutableState<Double?>,
+    onEdited: (Int) -> Unit,
+) {
+    val (_, y0) = pagePointOf(start.position.x, start.position.y, density, viewport)
+    if (y0 !in 0.0..pageH.toDouble()) return
+    val index = tab.page
+    val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
+    // The state before the gesture, taken once: a drag that shifts nothing never records it, so a pass
+    // over empty space leaves no undo step behind.
+    val before = tab.document.snapshot()
+    var recorded = false
+    grabLine.value = y0
+    try {
+        while (true) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            val (_, y1) = pagePointOf(change.position.x, change.position.y, density, viewport)
+            // Always re-applied from the page as it was **at grab time**: the block is what lay below the
+            // line then, so passing an element on the way down never recruits it (the tablet's rule).
+            val shifted = VerticalSpaceOps.shiftBelow(listOf(original), 0, y0, y1 - y0)[0]
+            if (shifted != original) {
+                if (!recorded) {
+                    tab.record(before)
+                    recorded = true
+                }
+                tab.document.editPage(index) { shifted }
+                onEdited(index)
+            }
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            change.consume()
+        }
+    } finally {
+        grabLine.value = null
+    }
+}
+
+/** The pointer a preview sample carries — a shape has no pressure of its own, so it reads as a pen. */
+private fun samplePointer(change: PointerInputChange): InkPointer = InkPointer(
+    id = change.id.value.toInt(),
+    x = change.position.x,
+    y = change.position.y,
+    pressure = 1f,
+    timeMs = change.uptimeMillis,
+    tool = change.pointerKind(),
+    phase = InkPointerPhase.MOVE,
+    buttons = InkPointer.PRIMARY,
+)
 
 /** Drag the page by the pointer's movement until it lifts — the pan half of the canvas input. */
 private suspend fun AwaitPointerEventScope.panByDrag(
@@ -351,7 +496,7 @@ internal class PageInkGesture(
                 px = x,
                 py = y,
                 radius = radius,
-                mode = EraserMode.STANDARD,
+                mode = tool.eraserMode(),
                 hiddenLayers = tab.hiddenOn(index),
             ) ?: page
         }

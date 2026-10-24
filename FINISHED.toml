@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-vertical-space-tool"
+title = "Desktop: the vertical space tool, on the shared page maths"
+description = "The window has Vertical space (Shift+V, the catalogue's VSPACE glyph, ActiveTool.VERTICAL_SPACE from the shared classifier). A press on the sheet drops a grab line - painted as the window's accent hairline across the page in paintSheet, above the ink - and each move re-applies VerticalSpaceOps.shiftBelow to the page AS IT WAS AT GRAB TIME, so the block follows the pointer without recruiting elements it passes; the live drag edits the page window and the whole gesture records ONE undo step, and a drag that shifts nothing records nothing (the assertion is that the page is untouched and canUndo stays false). Snapping stays off (snapSpacingPt = 0.0) because the window has no Snap-to-grid setting yet; the doc says so rather than inventing a different rule. The maths is now shared: VerticalSpaceOps and Snapping moved to mobix-core (same package, no call-site changes) and the per-element move was cut out of app's SelectionOps into mobix-core's ElementShift, which SelectionOps.translate now delegates to - so nothing has two opinions about whether a table's column widths travel with it. SelectionOps itself stays in app (it needs ElementRef, FigureRedraw and TableElementFactory) and desktop-eraser-and-selection-on-shared-geometry still owes the window's selection tool. DesktopVerticalSpaceTest drives a real ImageComposeScene: a 40 pt drag moves everything below the line by 40, leaves the element the line crosses, is one undo step, and a drag below every element records nothing. :desktop:test, :mobix-core:test, :app:testDebugUnitTest (1558) and the guards green; packaged app regenerated. Docs: docs/desktop-workstation.md, docs/drawing-tools.md, docs/selection.md, docs/codebase.md, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "ui"]
+
+[[task]]
+id = "desktop-eraser-whole-stroke-mode"
+title = "Desktop: the eraser's second member - whole-stroke erase"
+description = "DesktopTool.ERASER_WHOLE ('Eraser (whole)', Shift+E) is the eraser's second member as its own slot, with the catalogue's ERASER_WHOLE glyph and the same cursor ring as the partial eraser (toolCursorDiameterPx answers eraserRadiusPt for both). DesktopTool.eraserMode() answers EraserMode.STANDARD for the partial slot and WHOLE_STROKE for this one, and PageInkGesture.eraseAt passes it to the shared PageEraser instead of the hard-coded constant - so one erased gesture is still one undo step, and the window and the tablet rub out through one mode table. The slot's order is the enum's, so nothing assumes the two erasers are neighbours in the strip. DesktopGeometryTest asserts the mode mapping and drives both erasers over the same bar: STANDARD leaves the bar in two halves beside the fixture's stroke, WHOLE_STROKE removes it, and one undo brings it back. Tool-strip and cursor suites updated for the extra slot. Docs: docs/desktop-workstation.md, docs/drawing-tools.md's eraser paragraph, docs/ui-modernization.md's table, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "ui"]
+
+[[task]]
+id = "desktop-geometry-tools-line-arrow-rectangle-ellipse-spline"
+title = "Desktop: the geometry slots draw line, arrow, axes, rectangle, ellipse and spline"
+description = "Seven slots draw figures from one drag: LINE, ARROW, DOUBLE_ARROW (new slot, Shift+A), AXES (the shared COORDINATE_AXIS), RECTANGLE, ELLIPSE and SPLINE. DesktopPen.shapeKind() maps the slot, shapeFromDrag() is the pure drag helper (Shift snaps the DIRECTION to 45 degrees and keeps the length; a drag under 4 pt returns nothing; the figure itself is ShapeBuilder's own answer, the same builder the tablet calls), and shapeStroke() commits one constant-width stroke on the top layer through the same editPage/record/onEdited path the pen uses, so one figure is one undo step and round-trips through .xopp as ink. The preview is the canvas's existing draft list (tool.previewTool() draws it with the pen's rule), Escape cancels through DesktopShellState.liveDrag (the drag hands its cancel to the shell while it runs, and apply(DISMISS_FAILURE) invokes it), and with a geometry slot picked PenPacketStrokes is not composed at all, so a pen contact cannot ink under a figure. DesktopGeometryTest covers the mapping, the drag maths, a Line and a Rectangle through a real ImageComposeScene, the Escape cancel (scene and shell) and that undo is one step. Tool strips grow to 18 slots (rail and ribbon still scroll); ToolStripsTest, InkShortcutsTest and DesktopCursorTest updated and green. Docs: docs/desktop-workstation.md (the gesture paragraph), docs/drawing-tools.md, docs/ui-modernization.md's tool table, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "ui"]
+
+[[task]]
+id = "desktop-dirty-rect-pacing-for-scrolling-and-zooming"
+title = "Desktop: dirty-rect pacing for scrolling and zooming"
+description = "PagePicture no longer keys its recording on the viewport: the page is recorded once at DOCUMENT SCALE and every frame replays it under the canvas's own matrix - translate(viewport offset x density) then scale(zoom) - so a scroll is a translate and a zoom is a scale, both replays. Scaling a picture is not resampling (the commands are vectors, Skia rasterises them at the device scale), and PagePictureTest now measures the replay against the direct paint at 1.6x and 0.75x with a scroll applied (worst channel difference within its tolerance) and pins that a scroll and a zoom each leave records at one. A new --probe-scroll mode pans udiff.xopp at 200% and then pinches it while --diagnose times every paint: 3.6-4.3 ms mean / 6.8-22.2 ms worst before, 0.0-0.2 ms mean / 0.2 ms worst after, same host and window. Both runs show one ~390 ms gap at the scroll-to-zoom transition, recorded in docs/desktop-tablet.md as not caused by this change. :desktop:test, :mobix-core:test, :app:testDebugUnitTest (1558) and the guards green; packaged desktop app regenerated and smoke-launched on udiff.xopp with no exception."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "perf"]
+
+[[task]]
 id = "desktop-apply-a-packet-batch-on-the-frame-it-arrives"
 title = "Desktop: apply a packet batch on the frame it arrives"
 description = "PageCanvas's packet ticker no longer waits for a frame between the token and the flush. The wait was the ink's second frame: withFrameNanos' continuation is dispatched back to the window's thread after that frame has been drawn, so the samples written after it were painted by the frame that followed. --probe-ink on the owner's PC (3440x1440, display reported at 120 Hz) measured median 12.45 ms / p95 16.82 / max 17.62 on a blank A4 before - two 8.33 ms frames - and 1.48 / 5.22 / 7.82 after; udiff.xopp's dense first page went 1.96 / 5.10 / 7.48. Both now fit inside one 120 Hz frame and inside the 6.9 ms a 144 Hz frame allows, so what remains is the display's own interval and not a frame this code adds. The queue hand-off, the conflated wake token and the 200 ms silence timer are unchanged: one batch still costs one repaint and an idle window still paints nothing. :desktop:test green, guards green. Recorded in docs/desktop-tablet.md (the two-frame table beside the 6.9 ms budget) and README's measured line."

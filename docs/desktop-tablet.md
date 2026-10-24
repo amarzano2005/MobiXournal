@@ -186,7 +186,24 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   | `udiff.xopp`, dense first page | **1.96 ms / 5.10 ms / 7.48 ms** |
 
   Both now fit inside one 120 Hz frame and inside the **6.9 ms** a 144 Hz frame allows, which is what
-  "unlocked" means here: what is left is the display's own interval, not a frame this code adds. The
+  "unlocked" means here: what is left is the display's own interval, not a frame this code adds.
+
+  **Scrolling and zooming stopped recording the page.** `PagePicture` keyed its recording on the viewport,
+  so every frame of a wheel or a pinch re-ran the full Kotlin paint. It now records at **document scale**
+  and applies the viewport as the canvas's own matrix (translate for a scroll, scale for a zoom), which is
+  a replay: the commands are vectors, so Skia rasterises them at the device scale. `--probe-scroll` paints
+  `udiff.xopp` with the editor's canvas, pans it and then pinches it while `--diagnose` times each frame —
+  same host, same window, same document, only the recording's key changed:
+
+  | scrolling / zooming `udiff.xopp` | paint per frame (mean / worst) |
+  |---|---|
+  | recorded per viewport | **3.6–4.3 ms / 6.8–22.2 ms** |
+  | recorded once, replayed | **0.0–0.2 ms / 0.2 ms** |
+
+  `PagePictureTest` pins the property behind it — a scroll and a zoom each leave `records` at one — and
+  measures the replay against the direct paint at two viewports, because a cache that draws its own idea
+  of the page would be a silent divergence. (Both runs also show one ~390 ms gap at the scroll→zoom
+  transition, in the old code and the new one alike; it is not this change and is left recorded here.) The
   panel on this host reports **120 Hz** as its maximum (`Win32_VideoController.MaxRefreshRate`), so 144 Hz
   is confirmed by the pipeline's numbers and not by a frame rate on this screen — the status bar now names
   the rate it found, so the difference between a 144 Hz monitor and a 120 Hz one is visible rather than

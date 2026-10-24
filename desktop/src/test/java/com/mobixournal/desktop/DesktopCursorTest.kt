@@ -50,7 +50,12 @@ class DesktopCursorTest {
 
     @Test
     fun `a tool that draws nothing keeps the desktop's arrow`() {
-        for (tool in DesktopTool.entries - setOf(DesktopTool.PEN, DesktopTool.HIGHLIGHTER, DesktopTool.ERASER)) {
+        for (tool in DesktopTool.entries - setOf(
+            DesktopTool.PEN,
+            DesktopTool.HIGHLIGHTER,
+            DesktopTool.ERASER,
+            DesktopTool.ERASER_WHOLE,
+        )) {
             assertNull("$tool has no ring", toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f))
         }
     }

@@ -143,7 +143,10 @@ same functions, so what the sheet shows is what the `.xopp` export writes.
 ## Shapes, styles, partial eraser, layers
 
 **Shapes, styles, partial eraser, layers.** The **line and shape tools** (Line/Arrow/Double arrow/Rectangle/Ellipse/Coordinate axis/Spline/Table) turn a
-one-finger drag into an ordinary constant-width pen stroke: `ShapeBuilder` (pure, tested) converts the
+one-finger drag into an ordinary constant-width pen stroke — and the `desktop/` window draws the same
+seven of them (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) from one drag, calling the
+same `ShapeBuilder` and holding `Shift` to snap the drag's direction to 45°, so a figure made on the PC
+is the same stroke a tablet makes (`docs/desktop-workstation.md` owns the window's slots): `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
 round-trip like any stroke. The **triangle tool** supports four geometric variants (`TriangleKind`):
 equilateral (factory default, preserved 60° angles), right-angled, isosceles (centered apex), and scalene
@@ -235,7 +238,10 @@ just like densely-sampled freehand ink. `PageEraser` (pure, tested) is the page-
 walks the page's layers, **skips hidden ones** (you only rub out ink you can see) and returns `null`
 when nothing was touched, so the surface skips the document rebuild and the undo snapshot. The mode is
 a view flag on the surface (`eraserMode`), set by which member of the rail's eraser slot is picked —
-`EditorTool.ERASER` vs `ERASER_WHOLE`, so the choice is a tool, not a separate menu. The tip size has
+`EditorTool.ERASER` vs `ERASER_WHOLE`, so the choice is a tool, not a separate menu. The `desktop/`
+window has the same two members as two slots (`Eraser` and `Eraser (whole)`, `Shift+E`) and passes
+`DesktopTool.eraserMode()` to the same `PageEraser`, so the two shells rub out through one mode, not two
+implementations. The tip size has
 no scheme of its own: `DrawingSurfaceView.eraserRadiusPt` derives it from the pen's `baseWidthPt` via
 `eraserRadiusPt()` (`ERASER_RADIUS_FACTOR`, floored at `ERASER_RADIUS_MIN_PT`), in **document pt** so
 it is zoom-invariant, matching the desktop. **Layer management** (`LayerOps`, pure, tested) adds/
@@ -261,11 +267,13 @@ layer. Tapping an existing text box reopens it for editing (clearing the content
 matched by element identity. The view keeps the loaded document intact and only appends/edits, so
 every page, layer, and element round-trips through save.
 
-## Vertical space (`render/VerticalSpaceOps.kt`)
+## Vertical space (`mobix-core`'s `render/VerticalSpaceOps.kt`)
 
-**Vertical space (`render/VerticalSpaceOps.kt`).** The **Vertical space** tool
+**Vertical space (`render/VerticalSpaceOps.kt`, `mobix-core`).** The **Vertical space** tool
 (`EditorTool.VERTICAL_SPACE` → the surface's `verticalSpaceMode`, classified as
-`GestureIntent.VERTICAL_SPACE`) reflows a page: pointer-down latches the grabbed page and the
+`GestureIntent.VERTICAL_SPACE`) reflows a page — and the `desktop/` window has it too
+(`DesktopTool.VERTICAL_SPACE`, `Shift+V`), on this same arithmetic, with snapping off because the window
+has no Snap-to-grid setting yet (`docs/desktop-workstation.md`): pointer-down latches the grabbed page and the
 page-local Y of the grab line, and each move frame re-applies `VerticalSpaceOps.shiftBelow` to the
 **gesture-start snapshot** (the same recompute-from-the-start discipline as a selection move, so a
 live drag never drifts or compounds). An element moves when its `ElementBounds.of(...).top` is at or

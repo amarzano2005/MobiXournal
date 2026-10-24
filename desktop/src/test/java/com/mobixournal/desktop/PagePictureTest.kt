@@ -146,7 +146,7 @@ class PagePictureTest {
     }
 
     @Test
-    fun `a frame of a live stroke replays the page and a scroll records it once more`() {
+    fun `a frame of a live stroke replays the page, and scrolling or zooming records nothing`() {
         val sheet = Sheet(page(), width, height)
         try {
             sheet.recorded = true
@@ -157,15 +157,86 @@ class PagePictureTest {
             assertEquals("the page was recorded once", 1, sheet.picture.records)
             assertEquals("and replayed by every frame", 4, sheet.picture.replays)
 
+            // The point of recording at document scale: a scroll is a translate of the same picture and a
+            // zoom is a scale of it, so a wheel or a pinch costs a replay and never the Kotlin paint.
             sheet.viewport = Viewport(zoom = 1f, offsetY = -12f)
             sheet.live = 60f
             sheet.frame()
-            assertEquals("a scroll records the sheet again", 2, sheet.picture.records)
+            assertEquals("a scroll does not record the sheet again", 1, sheet.picture.records)
+            sheet.viewport = Viewport(zoom = 1.6f, offsetX = -40f, offsetY = -90f)
             sheet.live = 68f
             sheet.frame()
-            assertEquals("later frames replay it again", 6, sheet.picture.replays)
+            assertEquals("and neither does a zoom", 1, sheet.picture.records)
+            assertEquals("every frame was served by a replay", 6, sheet.picture.replays)
         } finally {
             sheet.close()
+        }
+    }
+
+    /**
+     * The scaled replay is still *the page*: the same content at the same viewport must look the same
+     * whether it was recorded at the reader's zoom or placed by the canvas matrix. Skia replays vector
+     * commands under the total matrix, so this is a difference of rounding at most — measured, not assumed.
+     */
+    @Test
+    fun `the replayed sheet is the painted one at a zoom and a scroll`() {
+        for (viewport in listOf(
+            Viewport(zoom = 1.6f, offsetX = -40f, offsetY = -90f),
+            Viewport(zoom = 0.75f, offsetY = 30f),
+        )) {
+            val page = page(strokes = 40)
+            val direct = directFrame(page, viewport)
+            val replayed = replayedFrame(page, viewport)
+            var worst = 0
+            var differing = 0
+            for (index in direct.indices) {
+                var diff = 0
+                for (shift in intArrayOf(16, 8, 0)) {
+                    val a = (direct[index] shr shift) and 0xFF
+                    val b = (replayed[index] shr shift) and 0xFF
+                    diff = maxOf(diff, abs(a - b))
+                }
+                if (diff > 0) differing++
+                worst = maxOf(worst, diff)
+            }
+            assertTrue(
+                "at ${viewport.zoom}× the replay is the painted page (worst channel difference $worst, " +
+                    "$differing of ${direct.size} pixels)",
+                worst <= 8 && differing < direct.size / 20,
+            )
+        }
+    }
+
+    /** The page drawn straight at [viewport] — the reference the replay is compared with. */
+    private fun directFrame(page: Page, viewport: Viewport): IntArray = headless(width, height) {
+        val measurer = rememberTextMeasurer()
+        Canvas(Modifier.fillMaxSize()) {
+            withTransform({ translate(viewport.offsetX, viewport.offsetY) }) {
+                drawPageContent(page, viewport.zoom, measurer)
+            }
+        }
+    }
+
+    /** The same page and viewport, served by the recorded picture. */
+    private fun replayedFrame(page: Page, viewport: Viewport): IntArray = headless(width, height) {
+        val measurer = rememberTextMeasurer()
+        val picture = PagePicture()
+        Canvas(Modifier.fillMaxSize()) {
+            picture.draw(this, page, viewport, viewport.zoom, 1f, null, emptySet(), measurer)
+        }
+    }
+
+    /** One frame of a scene, as ARGB pixels. */
+    private fun headless(width: Int, height: Int, content: @androidx.compose.runtime.Composable () -> Unit): IntArray {
+        val scene = ImageComposeScene(width, height, Density(1f)) { content() }
+        try {
+            val png = scene.render().encodeToData()?.bytes ?: error("Skia produced no image")
+            val image = ImageIO.read(ByteArrayInputStream(png))
+            return IntArray(image.width * image.height).also {
+                image.getRGB(0, 0, image.width, image.height, it, 0, image.width)
+            }
+        } finally {
+            scene.close()
         }
     }
 }

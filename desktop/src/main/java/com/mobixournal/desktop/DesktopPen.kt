@@ -7,7 +7,14 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.ActiveTool
+import com.mobixournal.render.EraserMode
 import com.mobixournal.render.InkPointer
+import com.mobixournal.render.ShapeBuilder
+import com.mobixournal.render.ShapeKind
+import kotlin.math.PI
+import kotlin.math.atan2
+import kotlin.math.hypot
+import kotlin.math.round
 
 /**
  * The window's pen, as **values**: what a pointer stream becomes before it is a page edit.
@@ -47,8 +54,99 @@ fun DesktopTool.inkTool(): Tool? = when (this) {
 fun DesktopTool.activeTool(): ActiveTool = when (this) {
     DesktopTool.PEN -> ActiveTool.PEN
     DesktopTool.HIGHLIGHTER -> ActiveTool.HIGHLIGHTER
-    DesktopTool.ERASER -> ActiveTool.ERASER
+    DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> ActiveTool.ERASER
+    DesktopTool.VERTICAL_SPACE -> ActiveTool.VERTICAL_SPACE
     else -> ActiveTool.HAND
+}
+
+/**
+ * Which of the eraser's two members this slot is.
+ *
+ * The shared [EraserMode] decides what a bite means: [EraserMode.STANDARD] cuts the disc's path out of
+ * the stroke it crosses, [EraserMode.WHOLE_STROKE] removes every stroke the disc touches. Every other
+ * slot answers the standard mode, so the eraser's two members differ by **their mode**, not by a second
+ * eraser implementation — the window and the tablet rub out through one `PageEraser`.
+ */
+fun DesktopTool.eraserMode(): EraserMode =
+    if (this == DesktopTool.ERASER_WHOLE) EraserMode.WHOLE_STROKE else EraserMode.STANDARD
+
+/**
+ * The tool a **live preview** is drawn with: the slot's ink tool, or the pen for a geometry slot.
+ *
+ * A shape is previewed with the pen's rule (one width, the palette's colour) because that is exactly
+ * what its lift writes; a slot that previews nothing — the eraser, the tools that move the page — answers
+ * null, and the canvas draws no draft for it.
+ */
+fun DesktopTool.previewTool(): Tool? = inkTool() ?: if (shapeKind() != null) Tool.PEN else null
+
+/**
+ * The shape a slot draws, or null for a slot that inks instead.
+ *
+ * The geometry itself is the tablet's (`mobix-core`'s [ShapeBuilder]): a shape is an ordinary stroke, so
+ * it round-trips through `.xopp` with no new element and no new attribute. `AXES` is the shared
+ * [ShapeKind.COORDINATE_AXIS] — desktop Xournal++ calls that figure an axes pair — and `SPLINE`'s
+ * two-point drag is the straight case of a spline.
+ */
+fun DesktopTool.shapeKind(): ShapeKind? = when (this) {
+    DesktopTool.LINE -> ShapeKind.LINE
+    DesktopTool.ARROW -> ShapeKind.ARROW
+    DesktopTool.DOUBLE_ARROW -> ShapeKind.DOUBLE_ARROW
+    DesktopTool.AXES -> ShapeKind.COORDINATE_AXIS
+    DesktopTool.RECTANGLE -> ShapeKind.RECTANGLE
+    DesktopTool.ELLIPSE -> ShapeKind.ELLIPSE
+    DesktopTool.SPLINE -> ShapeKind.SPLINE
+    else -> null
+}
+
+/** A click with a shape tool is not a figure: a drag shorter than this draws nothing. */
+const val MIN_SHAPE_DRAG_PT = 4.0
+
+/**
+ * The vertices of the shape a drag describes, in page points — the one decision a shape tool makes.
+ *
+ * [constrained] is `Shift`: it snaps the drag's **direction** to 45° steps and keeps its length, which
+ * is how a line, an arrow or a spline is drawn straight, at 45° or at a right angle without a guide. The
+ * snapping is on the direction and not on the end point, so a long drag and a short one both land on the
+ * same ray. The figure's size is then [ShapeBuilder]'s own answer for that drag (a rectangle is its
+ * bounding box, an ellipse is inscribed in it, and so on), so the window has no second idea of what a
+ * rectangle is.
+ */
+fun shapeFromDrag(
+    kind: ShapeKind,
+    x0: Double,
+    y0: Double,
+    x1: Double,
+    y1: Double,
+    widthPt: Float,
+    constrained: Boolean,
+): List<StrokePoint> {
+    val dx = x1 - x0
+    val dy = y1 - y0
+    val length = hypot(dx, dy)
+    if (length < MIN_SHAPE_DRAG_PT) return emptyList()
+    val (ex, ey) = if (constrained) {
+        val step = PI / 4.0
+        val angle = round(atan2(dy, dx) / step) * step
+        x0 + kotlin.math.cos(angle) * length to y0 + kotlin.math.sin(angle) * length
+    } else {
+        x1 to y1
+    }
+    return ShapeBuilder.build(kind, x0, y0, ex, ey, widthPt.toDouble())
+}
+
+/**
+ * A shape as the stroke the page stores: one constant width, because a geometric figure is drawn with a
+ * pen of one size — the drag says where it goes, the palette says how thick it is.
+ */
+fun shapeStroke(points: List<StrokePoint>, colour: Int, widthPt: Float): Stroke? {
+    if (points.size < 2) return null
+    return Stroke(
+        tool = Tool.PEN,
+        color = colour,
+        capStyle = "round",
+        points = points.map { it.copy(width = widthPt.toDouble()) },
+        uniformWidth = true,
+    )
 }
 
 /**

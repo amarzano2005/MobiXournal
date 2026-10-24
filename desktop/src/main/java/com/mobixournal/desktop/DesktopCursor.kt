@@ -46,7 +46,9 @@ internal fun cursorDiameterPx(radiusPt: Float, zoom: Float, density: Float): Flo
 internal fun toolCursorDiameterPx(tool: DesktopTool, widthPt: Float, zoom: Float, density: Float): Float? =
     when (tool) {
         DesktopTool.PEN, DesktopTool.HIGHLIGHTER -> cursorDiameterPx(widthPt / 2f, zoom, density)
-        DesktopTool.ERASER -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)
+        // Both erasers show the tip they cut with: the whole-stroke eraser is a disc like the partial one,
+        // it simply takes everything the disc touches.
+        DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)
         else -> null
     }
 

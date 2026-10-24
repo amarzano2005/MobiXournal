@@ -141,10 +141,10 @@ class InkShortcutsTest {
 
     // --- rendering ------------------------------------------------------------------------------
 
-    /** The whole rail, tall enough to hold the fifteen tools and the two ink slots. */
+    /** The whole rail, tall enough to hold every tool and the two ink slots under them. */
     @OptIn(ExperimentalComposeUiApi::class)
     private fun railPng(ink: DesktopInk, name: String): ByteArray {
-        val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 780, Density(1f)) {
+        val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 900, Density(1f)) {
             ToolRail(state = ToolStripState(ink = ink), onSelect = {})
         }
         val png = try {
@@ -169,10 +169,16 @@ class InkShortcutsTest {
     }
 
     /** Pixels of the rail's ink colour in the size slot, the strip's last rows. */
+    /**
+     * Green pixels in the rail's tail — the ink slots, which sit under every tool slot. The window is
+     * generous rather than tight because it must follow the tool list: eighteen slots push the ink row
+     * down, and a window sized to the old fifteen would measure empty capsule in both images and pass
+     * by accident.
+     */
     private fun inkBelow(image: java.awt.image.BufferedImage): Int {
         var count = 0
         for (x in 0 until image.width) {
-            for (y in (image.height - 80) until image.height) {
+            for (y in (image.height - 200) until image.height) {
                 if ((image.getRGB(x, y) and 0xFFFFFF) == (PenPalette.GREEN and 0xFFFFFF)) count++
             }
         }

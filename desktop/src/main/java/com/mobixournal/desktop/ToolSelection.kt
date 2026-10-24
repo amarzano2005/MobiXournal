@@ -16,11 +16,16 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     PEN("Pen", "B"),
     HIGHLIGHTER("Highlighter", "H"),
     ERASER("Eraser", "E"),
+    // The eraser's second member (`docs/drawing-tools.md`): a touched stroke goes whole, where the
+    // partial eraser cuts the disc's path out of it.
+    ERASER_WHOLE("Eraser (whole)", "Shift+E"),
+    VERTICAL_SPACE("Vertical space", "Shift+V"),
     LASSO("Lasso", "V"),
     MARQUEE("Marquee", "S"),
     TEXT("Text", "X"),
     LINE("Line", "L"),
     ARROW("Arrow", "A"),
+    DOUBLE_ARROW("Double arrow", "Shift+A"),
     RECTANGLE("Rectangle", "R"),
     ELLIPSE("Ellipse", "C"),
     SPLINE("Spline", "P"),

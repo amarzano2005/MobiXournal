@@ -52,7 +52,10 @@ are recomputed on every read so a picked figure is always where its corners are 
 its own handles on top (dividers, sliders, vertex dots): see [mobix-elements.md](mobix-elements.md). `SelectionTester` does
 rect-containment / topmost
 tap / union-bounds, and `SelectionOps` translates or deletes the addressed elements on a page list
-(returning a new list; immutable pages/layers share structure so a snapshot stays cheap). Dragging inside
+(returning a new list; immutable pages/layers share structure so a snapshot stays cheap). What moving a
+single element *means* per kind — a stroke's vertices, a table's origin without its column widths, a
+shape's corners, a raw element left alone — is `ElementShift` in `mobix-core`, which `SelectionOps.translate`
+calls and the vertical-space tool (in both shells) uses too, so a reflow cannot disagree with a drag. Dragging inside
 the selection outline translates the elements live (recomputing from the gesture-start document each
 frame so there's no drift) and commits as **one undoable edit**. Dragging into the top or bottom
 edge band starts a **drag auto-scroll** (`updateDragAutoScroll` + the `autoScrollCallback` frame

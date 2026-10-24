@@ -66,6 +66,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 // Which wheel turned: the dial's notches arrive from the tablet's own HID device, so
                 // they zoom at the cursor while the mouse's wheel keeps scrolling.
                 dialWheel = { tablet?.dialWheelRecently() == true },
+                // A figure being dragged can be cancelled with `Esc`; the shell keeps the end of that,
+                // because the key reaches the window and not the canvas.
+                onLiveDrag = { cancel -> state.liveDrag = cancel },
                 onViewport = { tab.viewport = it },
                 onFit = { tab.fit = it },
                 // An edit changes the page's picture, so the thumbnail cached for it is stale; the other

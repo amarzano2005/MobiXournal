@@ -104,6 +104,13 @@ class DesktopShellState(
     /** The last failed open, or null — cleared on the next successful one or by [dismissFailure]. */
     var failure by mutableStateOf<OpenFailure?>(null)
 
+    /**
+     * The drag in flight that `Esc` would cancel — a geometry tool's figure, while its pointer is still
+     * down. The canvas sets it when the drag starts and clears it when the gesture ends; deliberately not
+     * snapshot state, because nothing on screen reads it.
+     */
+    var liveDrag: (() -> Unit)? = null
+
     /** Whether the page sidebar is showing (`Ctrl+B`). */
     var sidebarVisible by mutableStateOf(true)
 
@@ -319,6 +326,14 @@ class DesktopShellState(
     ): Boolean {
         when (command) {
             ShellCommand.DISMISS_FAILURE -> {
+                // A drag that has not finished is the first thing `Esc` answers: cancelling the figure
+                // being drawn is the only way back from a geometry gesture the pointer has not released.
+                val cancel = liveDrag
+                if (cancel != null) {
+                    liveDrag = null
+                    cancel()
+                    return true
+                }
                 if (failure == null) return false
                 failure = null
                 return true

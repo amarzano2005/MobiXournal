@@ -101,15 +101,16 @@ What it does today:
   the window's settings file, so the choice survives a restart. The lane is **air, not a second sheet of
   glass**: painting it too made 0.85 over 0.85, and the rail read #161618. The strip is a **capsule** with
   its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
-  header control is the same object at 36 dp. Both placements draw the same fifteen tools, in the order,
+  header control is the same object at 36 dp. Both placements draw the same eighteen slots, in the order,
   glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
-  squircle in the steel `#38383E` and a name-and-hotkey pill on hover. The pen, highlighter and eraser
-  slots draw; every other slot still only sets the selection.
+  squircle in the steel `#38383E` and a name-and-hotkey pill on hover. Pen, highlighter and both erasers
+  ink, the seven geometry slots draw figures, vertical space reflows the page; the selections (lasso,
+  marquee, text, plot, table, circuit) still only set the selection.
 - **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
   band lift instead of a bare fill, every surface that floats takes the drawn rim, and
   both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
   same charcoal read a shade lighter on the PC. Glyphs are drawn in the chrome's ink (white, the tablet's
-  `#FFFFFF`), with the picked slot in the steel and its glyph in the accent. The fifteen tool glyphs are
+  `#FFFFFF`), with the picked slot in the steel and its glyph in the accent. The tool glyphs are
   no longer the window's own art: they come from `ToolGlyphCatalogue` in `mobix-core` — plain geometry on
   the 24-unit grid — which the tablet turns into an `ImageVector` and this shell draws into a
   `DrawScope`, so the PC's pen and the tablet's pen are the same strokes. `ChromeMaterialRenderTest`
@@ -185,20 +186,61 @@ for the original path: `loadRecovered` keeps the **origin** as the save target a
 repack source, so a save rebuilds the pages from the recovered copy instead of copying the file's older ones
 back over them. Saving, discarding or closing the tab deletes the snapshot; nothing in `recovery/` is a save.
 
+### Figures, whole-stroke erasing and vertical space
+
+Four more gestures beside the ink, all of them built on `mobix-core` so the window has no geometry of
+its own:
+
+- **Seven geometry slots draw figures.** Line, Arrow, Double arrow, Axes (the shared
+  `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Spline each turn one drag into an ordinary
+  constant-width stroke through `ShapeBuilder` — the same builder the tablet's shape tools call — so a
+  figure made here round-trips through `.xopp` as ink, with no new element and no new attribute. The
+  preview is the **same draft list** the sheet already paints (`shapeFromDrag` rebuilds it on every
+  move, the lift commits those very points), `Shift` snaps the drag's direction to 45° and keeps its
+  length, a press off the sheet or a drag shorter than 4 pt draws nothing, and `Esc` cancels: the drag
+  hands its cancel to `DesktopShellState.liveDrag` while it runs, so a keyboard can answer a gesture the
+  pointer has not released. With a geometry slot picked the tablet's **packets stand aside** — they are
+  not composed at all — because a pen contact must not ink under a figure being dragged.
+- **The eraser's two members are two slots.** `Eraser` (`E`) cuts the disc's path out of the stroke it
+  crosses; `Eraser (whole)` (`Shift+E`) removes every stroke the disc touches. They differ by
+  `DesktopTool.eraserMode()` (`EraserMode.STANDARD` / `WHOLE_STROKE`), which `PageInkGesture` passes to
+  the same shared `PageEraser`, and one erased gesture is still one undo step either way.
+- **Vertical space reflows the page.** `Vertical space` (`Shift+V`) drops a grab line where the press
+  landed, painted as a hairline across the sheet above the ink; each move re-applies
+  `VerticalSpaceOps.shiftBelow` to the page **as it was at grab time**, so the block follows the pointer
+  without recruiting the elements it passes, and the whole drag is one undo step. A drag that shifts
+  nothing records nothing. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
+  snaps to the ruling only when its Snap-to-grid setting is on, and the window has no such setting yet.
+  The arithmetic is shared: `VerticalSpaceOps`, its `Snapping` and the per-element move (`ElementShift`)
+  live in `mobix-core`, and the app's `SelectionOps.translate` delegates to the same `ElementShift`.
+
+### Scrolling and zooming a dense page
+
+The page is recorded **once** per document state, not per viewport: `PagePicture` records `udiff.xopp` at
+**document scale** and every frame replays it under the canvas's own matrix, so a scroll is a translate
+and a zoom is a scale — both replays. Scaling a *picture* is not resampling (the commands are vectors, so
+Skia rasterises them at the device scale the window has) and `PagePictureTest` measures the difference
+against the direct paint at two viewports rather than assuming it. Measured with `--probe-scroll` (the
+probe pans and then pinches `udiff.xopp` while `--diagnose` times every paint): **3.6–4.3 ms mean, 6.8–22.2
+ms worst per frame before**, and **0.0–0.2 ms mean, 0.2 ms worst after**; the record count stays at one
+across the whole gesture, which is what the test pins. [desktop-tablet.md](desktop-tablet.md) owns the
+numbers beside the 6.9 ms frame budget.
+
 ### What the window does not do
 
-- No **selection** (marquee, lasso), no text, shape, plot or circuit authoring, and no layer editing:
-  pen, highlighter and eraser are the tools that work, and every other slot only picks a tool
-  (`desktop-eraser-and-selection-on-shared-geometry`). There are no header buttons for undo and redo —
-  the commands exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
+- No **selection** (marquee, lasso), no text, plot or circuit authoring, and no layer editing: the ink,
+  the two erasers, the seven geometry slots and vertical space are the gestures that work, and every
+  other slot only picks a tool (`desktop-eraser-and-selection-on-shared-geometry`). There are no header
+  buttons for undo and redo — the commands exist and know when they are unavailable, so a control only
+  has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.
 - No right-side property inspector, no search, and no page reordering or insertion.
 - No **absolute pen mapping**: the pen's readings are folded into the Compose pointer, so its position is
   the window's, which Windows has already transformed from the tablet's area — the driver's own active-area
-  and aspect settings are respected and this window adds no second mapping. No dirty-rect GPU pacing and no
-  installer: `run` is the only entry point; `nativeDistributions` is configured but not wired into a release
-  job.
+  and aspect settings are respected and this window adds no second mapping. No installer: `run` and the
+  packaged `createDistributable` app are the entry points; `nativeDistributions` is configured but not wired
+  into a release job.
 
 ### The graphics tablet
 

@@ -117,7 +117,11 @@ written to the bottom of the sheet comes out of the tablet — opens fitted to i
 shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. You can **write on the
 page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
 draw and lands in the document when you lift, and `Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to
-put it again) — and `Ctrl + S` writes it back to the file you opened
+put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
+takes whole strokes. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
+one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to cancel — and **shift a page down**
+with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
+crosses. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.
@@ -130,7 +134,9 @@ turning the pen round to its eraser end rubs out. The mouse the system emulates 
 draws that line, so one touch is one stroke and never two. The ink is published once per screen frame rather
 than once per driver packet, so a fast hand costs one redraw a frame instead of hundreds, and the window
 asks for a frame only when the pen has something new to draw — a sheet nobody is writing on is not
-repainted at all. The line was measured against the nib (`--probe-ink`): a pen reading becomes ink in a
+repainted at all. Scrolling and zooming are just as cheap on a dense page: the sheet is recorded once at
+document scale and moved by the canvas, so a wheel notch or a pinch costs a replay instead of a
+re-render (0.2 ms a frame on this project's densest document, where it used to cost 3.6–4.3 ms). The line was measured against the nib (`--probe-ink`): a pen reading becomes ink in a
 median 1.5–2.0 ms (5.2 ms p95) on a blank page and on this project's densest six-page document, so the
 line lands on the very next frame your screen shows instead of the one after — at 144 Hz that is 6.9 ms,
 and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. Over the page the desktop's
