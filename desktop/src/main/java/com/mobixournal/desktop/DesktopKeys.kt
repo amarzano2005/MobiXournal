@@ -55,6 +55,14 @@ enum class ShellCommand {
      */
     DELETE_SELECTION,
 
+    /** The selection's clipboard: `Ctrl+X`, `Ctrl+C` and `Ctrl+V`, as the tablet's bar offers them. */
+    CUT_SELECTION,
+    COPY_SELECTION,
+    PASTE_CLIPBOARD,
+
+    /** `Ctrl+D`: a copy of the selection lands beside it, and the copy is left selected. */
+    DUPLICATE_SELECTION,
+
     DISMISS_FAILURE,
 }
 
@@ -149,6 +157,10 @@ internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand
     ctrl && isZoomOut(key) -> ShellCommand.ZOOM_OUT
     ctrl && key == Key.Zero -> ShellCommand.FIT_PAGE
     ctrl && key == Key.One -> ShellCommand.FIT_WIDTH
+    ctrl && key == Key.X -> ShellCommand.CUT_SELECTION
+    ctrl && key == Key.C -> ShellCommand.COPY_SELECTION
+    ctrl && key == Key.V -> ShellCommand.PASTE_CLIPBOARD
+    ctrl && key == Key.D -> ShellCommand.DUPLICATE_SELECTION
     !ctrl && (key == Key.PageDown || key == Key.DirectionDown) -> ShellCommand.NEXT_PAGE
     !ctrl && (key == Key.PageUp || key == Key.DirectionUp) -> ShellCommand.PREVIOUS_PAGE
     key == Key.Delete || key == Key.Backspace -> ShellCommand.DELETE_SELECTION

@@ -260,6 +260,11 @@ walks the drag, and `SelectionOverlay.kt` paints the outline, the five handles a
 selection drag is **not ink**, so `DesktopTool.inksByPackets()` stays false for the slots: the pen's packets
 stand aside and a stylus in proximity still reaches the drag through the Compose pointer.
 
+### The bar under the outline
+
+A selection carries the tablet's **action bar** under its outline, and the **pencil** on it opens the selected
+living element in the inspector lane beside the page — both owned by [selection.md](selection.md).
+
 ### A stroke costs the stroke
 
 The page is a Skia picture (`PagePicture`), and a picture is immutable — so a lift used to re-record the
@@ -291,11 +296,9 @@ numbers beside the 6.9 ms frame budget.
 
 ### What the window does not do
 
-- No text, plot or circuit authoring, and no layer editing: the ink, the two erasers, the seven geometry
-  slots, vertical space and marquee/lasso selection are the gestures that work, and every other slot only
-  picks a tool. The marquee pair is not complete: the tablet's third select tool, **Select background
-  (flatten)** — a region copied as one flat image of the page and its layers — waits for the window's own
-  clipboard (`desktop-region-copy-flattened`). There are no header buttons for undo and redo — the commands
+- No text authoring and no layer editing, and the STEM slots do not place yet: the ink, the two erasers,
+  the seven geometry slots, vertical space, marquee/lasso selection and the selection bar are what work,
+  and a STEM slot still only picks a tool. There are no header buttons for undo and redo — the commands
   exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
   living entity — the ink is drawn, not made editable.

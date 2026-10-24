@@ -177,3 +177,29 @@ the rectangle marquee selects by, so a cut never takes ink the user can't curren
 background is a page attribute rather than part of the region, so it is copied but never erased. The
 region is view state only — never recorded in history — and clears on a new marquee drag, on a tool
 change (the `backgroundSelectMode` setter), on Back, and on `load`.
+
+## The window's bar and its inspector lane
+
+A selection is not only something to drag: the window draws the tablet's **action bar** under its outline —
+Cut, Copy, Paste, Duplicate, Recolour, Line width, Align & distribute, Edit, Delete — and each is the shared
+command, not a second implementation. The clipboard holds model elements, so a copied plot pastes as a live
+plot, a paste lands **beside** what it copied and stays selected, `Cut` is the copy and the deletion in one
+step, and `Ctrl+D` duplicates. Recolour and width take the value the **strip's own ink** would write, because
+that is where those two are chosen. The bar rides below the outline (above it when the page ends below),
+clamped inside the canvas, and stands at the page's bottom centre carrying **Paste** when nothing is
+selected. A control the selection cannot support is dimmed and does nothing (`docs/interface-contract.md`
+§5); the rules live in `SelectionBarUi`, so a JVM test reads them rather than a screen.
+
+The **pencil** on that bar opens the selected living element's editor, and is offered only for exactly one
+living element. `DesktopSelectionBarTest` walks the five families — plot, table, figure, component, formula
+— and fails if one does not answer `EDIT`, so a family added later cannot ship uneditable.
+
+That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
+rectangle that is left and nothing lies over the sheet. Its sections offer only what `format/model/Living.kt`
+carries — a plot's formula, domain, resolution and stroke; a table's grid, header row and rules (a column
+added divides the width rather than growing the table); a figure's side lengths and interior angles as
+read-outs beside its outline; a component's label, value and stroke; a formula's source and language. A
+field commits on `Enter` or when the caret leaves, as **one** undo step, and an unchanged value writes
+nothing; `Esc` puts a field back, `Esc` again closes the lane. `LivingTarget.kt` resolves the ref against the
+document as it is *now*, so an undo cannot leave a panel showing a value the file no longer holds.
+

@@ -71,6 +71,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 // A figure being dragged can be cancelled with `Esc`; the shell keeps the end of that,
                 // because the key reaches the window and not the canvas.
                 onLiveDrag = { cancel -> state.liveDrag = cancel },
+                // The bar under the outline: what the selection can be, and the one command it runs. The
+                // rules (what is available, and when) are the shell's, so the canvas only draws them.
+                selectionBar = selectionBarUi(tab, state.clipboard) { action -> state.runSelection(action) },
                 onViewport = { tab.viewport = it },
                 onFit = { tab.fit = it },
                 // An edit changes the page's picture, so the thumbnail cached for it is stale; the other
@@ -84,6 +87,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 },
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+            // The inspector, in a lane of its own on the right: it takes width from the row, so the page
+            // keeps the rectangle that is left and no glass is ever drawn over the sheet.
+            InspectorLane(state = state, tab = tab)
         }
     }
 }

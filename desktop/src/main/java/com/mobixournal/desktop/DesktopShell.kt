@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.PenPalette
+import com.mobixournal.format.model.Element
 import java.io.File
 
 /**
@@ -118,6 +119,20 @@ class DesktopShellState(
     val thumbnails = mutableMapOf<String, MutableMap<Int, ImageBitmap>>()
 
     /**
+     * The window's clipboard — the tablet's Copy, fulfilled in memory rather than through the system's
+     * (which would hand another application a document the user did not export).
+     */
+    val clipboard = DesktopClipboard()
+
+    /**
+     * The living element whose editor is open, or null — the pencil on the selection bar and a
+     * double-click on the element both set it. The panel reads the element itself through the tab, so
+     * this is a handle to **what** is being edited, not a copy of it.
+     */
+    var editingLiving by mutableStateOf<LivingTargetRef?>(null)
+        private set
+
+    /**
      * Let the sidebar paint the pages it shows again — the debounced half of [thumbnailRevision].
      *
      * Called from [ThumbnailRefresh] and by undo/redo: a stale cached bitmap is dropped where the edit
@@ -130,6 +145,37 @@ class DesktopShellState(
     /** The picked tool: what a primary drag on the page does (pen and highlighter ink, eraser rubs out). */
     var tools by mutableStateOf(ToolSelection())
         private set
+
+    /**
+     * Do what one bar button says on the active tab. `EDIT` is the shell's own (it opens a panel), so it
+     * is answered here and never reaches [performSelection].
+     */
+    fun runSelection(action: SelectionAction) {
+        val tab = tabs.active ?: return
+        if (action == SelectionAction.EDIT) {
+            editingLiving = livingTargetOf(tab)?.let { LivingTargetRef(tab.key, tab.page, it) }
+            return
+        }
+        performSelection(tab, action, ink, clipboard) { index -> edited(tab, index) }
+    }
+
+    /** Close the living element's editor. */
+    fun closeLivingEditor() {
+        editingLiving = null
+    }
+
+    /** Write a field's answer into the element the lane is editing — one edit, one undo step. */
+    fun commitLiving(element: Element) {
+        val target = editingLiving ?: return
+        val tab = tabs.active ?: return
+        replaceLiving(tab, target, element) { index -> edited(tab, index) }
+    }
+
+    /** The same quiet period every edit starts: the page's picture is stale and the snapshot waits. */
+    private fun edited(tab: DesktopTab, index: Int) {
+        thumbnails[tab.key]?.remove(index)
+        noteEdit()
+    }
 
     /**
      * Which tool group's picker is up, as an index into [DESKTOP_TOOL_GROUPS]; null when none is.
@@ -322,6 +368,11 @@ class DesktopShellState(
             cancelClose()
             return true
         }
+        // A living element's editor owns `Esc` first: the lane closes before a selection or a message.
+        if (event.key == Key.Escape && editingLiving != null) {
+            closeLivingEditor()
+            return true
+        }
         // A selection owns `Esc` while there is one: the outline goes before a message is dismissed.
         if (event.key == Key.Escape && dismissSelection(tabs.active)) return true
         // A colour panel that is up owns `Esc`: it closes before anything else the key might mean.
@@ -453,12 +504,13 @@ class DesktopShellState(
             ShellCommand.REDO -> stepHistory(tab, redo = true)
             // `Delete` removes what the marquee caught, as one edit and one undo step; with nothing
             // selected the key is not handled, so a keyboard shortcut never deletes by accident.
-            ShellCommand.DELETE_SELECTION -> deleteSelection(tab).also { removed ->
-                if (!removed) return@also
-                // The same quiet period an edit starts: the page's picture is stale, and the snapshot waits.
-                thumbnails[tab.key]?.remove(tab.page)
-                noteEdit()
-            }
+            ShellCommand.DELETE_SELECTION -> deleteSelection(tab) { index -> edited(tab, index) }
+            // The clipboard commands are the bar's own, reached from the keyboard. A copy of nothing is
+            // not handled at all — the state the bar draws its button greyed out on.
+            ShellCommand.CUT_SELECTION -> cutSelection(tab, clipboard) { index -> edited(tab, index) }
+            ShellCommand.COPY_SELECTION -> copySelection(tab, clipboard)
+            ShellCommand.PASTE_CLIPBOARD -> pasteClipboard(tab, clipboard) { index -> edited(tab, index) }
+            ShellCommand.DUPLICATE_SELECTION -> duplicateSelection(tab) { index -> edited(tab, index) }
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.SAVE, ShellCommand.SAVE_AS -> false
@@ -538,140 +590,3 @@ internal fun DesktopShell(
         StatusBar(state.active, tablet)
     }
 }
-
-@Composable
-private fun Header(
-    tabs: DesktopTabs,
-    sidebarVisible: Boolean,
-    placement: ToolPlacement,
-    onActivate: (Int) -> Unit,
-    onClose: (Int) -> Unit,
-    onMove: (Int, Int) -> Unit,
-    onOpen: () -> Unit,
-    onToggleSidebar: () -> Unit,
-    onPlacement: (ToolPlacement) -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(DesktopTheme.headerHeight)
-            .bandSurface()
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        HeaderGlyph(
-            active = sidebarVisible,
-            onClick = onToggleSidebar,
-            draw = { color, stroke ->
-                drawLine(color, androidx.compose.ui.geometry.Offset(0f, 2f), androidx.compose.ui.geometry.Offset(size.width, 2f), stroke)
-                drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
-                drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height - 2f), androidx.compose.ui.geometry.Offset(size.width, size.height - 2f), stroke)
-            },
-        )
-        Spacer(Modifier.width(10.dp))
-        TabStrip(
-            tabs = tabs,
-            onActivate = onActivate,
-            onClose = onClose,
-            onMove = onMove,
-            onOpen = onOpen,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(10.dp))
-        PlacementButton(placement = placement, onPlacement = onPlacement)
-    }
-}
-
-/**
- * The placement chooser: which of the two tool strips the window shows (Rail, Ribbon, Both).
- *
- * It is the one control of the Interface section the future settings window will own
- * (`desktop-settings-and-status-ui`), so until that window exists it stands in the header — and it
- * writes the same [DesktopSettings] entry the window will edit, so there is one setting with two doors
- * rather than two settings that can disagree.
- */
-@Composable
-private fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlacement) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
-    Box {
-        HeaderGlyph(active = open, onClick = { open = !open }) { color, stroke ->
-            // Three rows of different lengths: a rail, a ribbon, and both at once.
-            drawLine(color, Offset(0f, 3f), Offset(size.width, 3f), stroke)
-            drawLine(color, Offset(size.width * 0.45f, size.height / 2f), Offset(size.width, size.height / 2f), stroke)
-            drawLine(color, Offset(0f, size.height - 3f), Offset(size.width, size.height - 3f), stroke)
-        }
-        if (open) {
-            Popup(
-                offset = with(density) { IntOffset(0, (DesktopTheme.headerHeight + 6.dp).roundToPx()) },
-                onDismissRequest = { open = false },
-            ) {
-                Column(
-                    Modifier
-                        .glassSurface()
-                        .padding(8.dp),
-                ) {
-                    Text("Tool placement", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-                    Spacer(Modifier.height(6.dp))
-                    for (option in ToolPlacement.entries) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    if (option == placement) DesktopTheme.activeSlot else Color.Transparent,
-                                    DesktopTheme.capsuleShape,
-                                )
-                                .hoverFill(DesktopTheme.capsuleShape, active = option == placement)
-                                .pointerInput(option) {
-                                    detectTapGestures { onPlacement(option); open = false }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                        ) {
-                            Text(option.label, color = DesktopTheme.ink, style = DesktopTheme.body)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * A header control: two or three monoline strokes on a **capsule of the header's own glass** — the
- * tablet's icon buttons beside the dock, at the smaller desktop size.
- *
- * It used to be a bare 26 dp box that only appeared when active: a glyph floating on the band with
- * nothing around it. The capsule is the family's smallest surface — the same fill as the band, the
- * family's rim and a 4 dp lift — so a control reads as an object lying on the header instead of as a
- * symbol printed on it (`docs/ui-modernization.md`).
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun HeaderGlyph(
-    active: Boolean,
-    onClick: () -> Unit,
-    draw: DrawScope.(Color, Float) -> Unit,
-) {
-    var hovered by remember { mutableStateOf(false) }
-    val lit = active || hovered
-    Box(
-        Modifier
-            .size(DesktopTheme.headerControlSize)
-            .glassCapsule(
-                cornerRadius = DesktopTheme.headerControlSize / 2,
-                fill = if (lit) DesktopTheme.activeSlot else DesktopTheme.glass,
-                shadow = DesktopTheme.bandShadow,
-            )
-            .onPointerEvent(PointerEventType.Enter) { hovered = true }
-            .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            .pointerInput(active) { detectTapGestures { onClick() } },
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.width(14.dp).height(14.dp)) {
-            // The chrome ink, lit or not: on the tablet a header glyph is white and only its capsule
-            // changes tone when it is active.
-            draw(DesktopTheme.chromeInk, DesktopTheme.glyphStroke.toPx())
-        }
-    }
-}
-

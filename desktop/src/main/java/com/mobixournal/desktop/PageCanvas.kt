@@ -115,6 +115,8 @@ internal fun PageCanvas(
      * holds the other end, so a keyboard can answer a drag that has not finished yet.
      */
     onLiveDrag: ((() -> Unit)?) -> Unit = {},
+    /** What the selection bar may offer; the default draws none (a canvas on its own has no clipboard). */
+    selectionBar: SelectionBarUi = SelectionBarUi(),
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -164,6 +166,7 @@ internal fun PageCanvas(
             panMode = panMode,
             dialWheel = dialWheel,
             onLiveDrag = onLiveDrag,
+            selectionBar = selectionBar,
             origin = { origin },
             extent = { extent },
             onViewport = onViewport,
@@ -232,6 +235,7 @@ private fun PageSheet(
     panMode: Boolean,
     dialWheel: () -> Boolean,
     onLiveDrag: ((() -> Unit)?) -> Unit,
+    selectionBar: SelectionBarUi,
     origin: () -> Offset,
     extent: () -> Size,
     onViewport: (Viewport) -> Unit,
@@ -283,6 +287,24 @@ private fun PageSheet(
         onFit = onFit,
         onEdited = onEdited,
     )
+    // The selection bar, under the outline or at the page's own bottom edge (`SelectionBarHost`).
+    val live = tab.selection
+    val canvasPx = extent()
+    if (live != null || selectionBar.hasClipboard) {
+        SelectionBarHost(
+            bar = selectionBar,
+            selectionBounds = live?.bounds,
+            zoom = sheet.zoom,
+            density = density,
+            offsetX = sheet.viewport.offsetX,
+            offsetY = sheet.viewport.offsetY,
+            canvas = if (canvasPx == Size.Zero) {
+                Size(sheet.viewW * density, sheet.viewH * density)
+            } else {
+                canvasPx
+            },
+        )
+    }
 }
 
 /** A page's size and the viewport in force for it, in the window it is being shown in. */
