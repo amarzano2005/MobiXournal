@@ -109,13 +109,13 @@ class ColourPickerTest {
     fun `Set on the custom slot defines it, picks it and keeps it`() {
         val file = File(temp.root, "custom.properties")
         val state = DesktopShellState(DesktopSettings(file))
-        assertNull(state.ink.custom)
+        assertNull(state.paletteCustom)
 
         state.editColour(ColourEditorTarget.CUSTOM)
         state.commitColour(0xFF9C27B0.toInt())
 
         assertNull("the panel closed itself", state.editing)
-        assertEquals(0xFF9C27B0.toInt(), state.ink.custom)
+        assertEquals(0xFF9C27B0.toInt(), state.paletteCustom)
         assertEquals("the colour just defined is the ink", 0xFF9C27B0.toInt(), state.ink.colour)
         val reloaded = DesktopSettings(file)
         assertEquals(0xFF9C27B0.toInt(), reloaded.paletteCustom)

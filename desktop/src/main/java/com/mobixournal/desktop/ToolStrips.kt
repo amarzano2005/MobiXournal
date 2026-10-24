@@ -104,6 +104,8 @@ data class ToolStripState(
     val selection: ToolSelection = ToolSelection(),
     val ink: DesktopInk = DesktopInk(),
     val palette: List<Int> = PenPalette.COLORS,
+    /** The palette's editable custom slot, which both tools share; null while it is empty. */
+    val custom: Int? = null,
     val favourites: List<Int> = PenPalette.COLORS.take(PaletteCodec.FAVOURITES),
     /** Which group's picker is open, as an index into [DESKTOP_TOOL_GROUPS]; null when none is. */
     val openGroup: Int? = null,
@@ -197,6 +199,7 @@ fun ToolRail(
                 ColourSlot(
                     ink = state.ink,
                     palette = state.palette,
+                    custom = state.custom,
                     favourites = state.favourites,
                     onPick = ink.onColour,
                     onEditCustom = ink.onEditCustom,
@@ -265,6 +268,7 @@ fun ToolRibbon(
                 ColourSlot(
                     ink = state.ink,
                     palette = state.palette,
+                    custom = state.custom,
                     favourites = state.favourites,
                     onPick = ink.onColour,
                     onEditCustom = ink.onEditCustom,
@@ -326,6 +330,12 @@ private fun ToolSlot(
     val tool = group.faceFor(selection)
     val family = circuitFamilyOf(tool)
     val active = tool == selection.current
+    // What the slot's chevron (and a second click on a picked slot) opens: for a circuit slot the
+    // family's **palette of parts**, for every other grouped slot the list of its members. A circuit
+    // group has one member, so its own list would be empty — the palette is its submenu.
+    val openSurface: () -> Unit = {
+        if (family != null) onCircuitPicker(family) else onOpenPicker()
+    }
     var hovered by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
@@ -340,11 +350,12 @@ private fun ToolSlot(
             hovered = hovered,
             onHover = { hovered = it },
             onSelect = onSelect,
-            onOpenPicker = onOpenPicker,
-            onCircuitPicker = onCircuitPicker,
-            family = family,
+            onOpenPicker = openSurface,
+            opensSurface = group.hasPicker || family != null,
         )
-        if (hovered && !pickerOpen) {
+        // The pill stands aside while the slot's own surface is up — either of them, so a circuit slot's
+        // palette is not covered by its tooltip.
+        if (hovered && !pickerOpen && !(family != null && circuitPickerOpen == family)) {
             TooltipPill(
                 tool = tool,
                 offset = when (side) {
@@ -436,8 +447,8 @@ private fun SlotFace(
     onHover: (Boolean) -> Unit,
     onSelect: (DesktopTool) -> Unit,
     onOpenPicker: () -> Unit,
-    onCircuitPicker: (CircuitFamily?) -> Unit,
-    family: CircuitFamily?,
+    /** Whether this slot has a submenu at all — a lone tool has nothing to open. */
+    opensSurface: Boolean,
 ) {
     Box(
         Modifier
@@ -455,19 +466,14 @@ private fun SlotFace(
             .pointerInput(group, selection) {
                 detectTapGestures(
                     onTap = {
-                        // Clicking the slot that is already picked asks which member — the submenu the user
-                        // reaches for on a tool that is already in hand. See [slotClick].
+                        // One click **arms** the slot; the submenu is the second click, on the slot that is
+                        // already picked. A circuit family is no exception — its palette is a surface and
+                        // must not open from the single click that arms it (the chevron opens it at once).
                         when (val click = slotClick(group, selection)) {
-                            is SlotClick.Pick -> {
-                                onSelect(click.tool)
-                                // A circuit slot asks **which component** first: a press on the page must
-                                // never place a part the user did not choose, so arming it opens its palette.
-                                family?.let(onCircuitPicker)
-                            }
+                            is SlotClick.Pick -> onSelect(click.tool)
                             SlotClick.OpenPicker -> onOpenPicker()
                         }
                     },
-                    onLongPress = { if (group.hasPicker) onOpenPicker() },
                 )
             },
         contentAlignment = Alignment.Center,
@@ -480,7 +486,7 @@ private fun SlotFace(
                 color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
             )
         }
-        if (group.hasPicker) {
+        if (opensSurface) {
             // The marker, at the end the strip's own side leaves free, with its own tap target so a
             // chevron click never doubles as a pick of the face.
             Box(

@@ -195,11 +195,32 @@ living element. `DesktopSelectionBarTest` walks the five families — plot, tabl
 — and fails if one does not answer `EDIT`, so a family added later cannot ship uneditable.
 
 That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
-rectangle that is left and nothing lies over the sheet. Its sections offer only what `format/model/Living.kt`
-carries — a plot's formula, domain, resolution and stroke; a table's grid, header row and rules (a column
-added divides the width rather than growing the table); a figure's side lengths and interior angles as
-read-outs beside its outline; a component's label, value and stroke; a formula's source and language. A
-field commits on `Enter` or when the caret leaves, as **one** undo step, and an unchanged value writes
-nothing; `Esc` puts a field back, `Esc` again closes the lane. `LivingTarget.kt` resolves the ref against the
-document as it is *now*, so an undo cannot leave a panel showing a value the file no longer holds.
+rectangle that is left and nothing lies over the sheet. It is drawn in **three parts, always** — a header, a
+body of cards and a footer — and it is there whether anything is selected or not; a lane that appeared only
+with an editor grew the column and shrank it again, so the page jumped sideways under the pointer every time
+an element was picked or dropped (`DesktopInspectorLaneTest` renders the same pixel with nothing selected,
+with a selection and after it leaves).
+
+The **header** is the lane's identity, not just its title: the family's own catalogue glyph, the family's
+name, and one line of the element's content (`sin(x) · −6…6`, `4 × 6 · header`, `BJT NPN · 10 kΩ`) from
+`livingSummary`, because three plots on a page are all `Plot` and the fields below write into exactly one of
+them. The **body** groups the fields into cards — Function, Display, Look; Grid, Rules, Cells; Component,
+Placement, Stroke — so a plot's switches no longer read as one wall of 11 sp labels. The **footer** is one
+row of actions shared with the placement question (Place/Cancel while it asks, Done once the element exists,
+Edit element when one is merely selected), and it keeps its height with nothing to do, so opening and closing
+the lane never moves the fields above it. With nothing selected the body says what the lane is for; with
+several elements selected it counts them and points at the bar.
+
+The sections offer only what `format/model/Living.kt` carries — a plot's formula, domain, resolution, the
+display flags and its curve's colour; a table's grid, header row, rules and **cells** (a column added divides
+the width rather than growing the table); a figure's side lengths and interior angles as read-outs beside its
+outline; a component's part, value, placement and stroke; a formula's source and language. A field commits on
+`Enter` or when the caret leaves, as **one** undo step, and an unchanged value writes nothing; `Esc` puts a
+field back, `Esc` again closes the lane, and a focused field wears the accent's ring so the keyboard user can
+see where they are typing. `LivingTarget.kt` resolves the ref against the document as it is *now*, so an undo
+cannot leave a panel showing a value the file no longer holds.
+
+A placement never leaves the tool armed: once the element exists it is what stays selected, and the window
+picks the **marquee** (`S`) the way the tablet does, so the next drag moves the element just placed instead of
+placing a second one.
 

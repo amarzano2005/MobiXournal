@@ -87,6 +87,8 @@ internal fun colourKeyLabel(favourites: List<Int>, colour: Int): String {
 internal fun ColourSlot(
     ink: DesktopInk,
     palette: List<Int>,
+    /** The palette's editable custom slot — shared by both tools, hence not part of [ink]. */
+    custom: Int? = null,
     favourites: List<Int> = emptyList(),
     onPick: (Int) -> Unit,
     onEditCustom: () -> Unit = {},
@@ -126,7 +128,7 @@ internal fun ColourSlot(
                 PaletteFlyout(
                     palette = palette,
                     current = ink.colour,
-                    custom = ink.custom,
+                    custom = custom,
                     onPick = { colour ->
                         onPick(colour)
                         open = false

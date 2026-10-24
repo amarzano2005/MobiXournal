@@ -236,14 +236,24 @@ class DesktopShellState(
     /**
      * What a lifted living-slot drag means: the family's question for a plot or a table, the placement
      * itself for a component (whose question was the palette).
+     *
+     * A placement that lands hands the window **to the selection**, exactly as the tablet does: the new
+     * element is already what stays selected, so a tool still armed to place a second one would make the
+     * very next drag place another plot instead of moving the one just made. The marquee is therefore
+     * picked, and the next press drags, resizes or opens the pencil on what was placed.
      */
     fun placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Bounds) {
         if (slot == LivingSlot.CIRCUIT) {
             val element = livingElementFor(slot, bounds, ink, activeCircuitKind) ?: return
-            placeLivingElement(tab, element) { index -> edited(tab, index) }
+            if (placeLivingElement(tab, element) { index -> edited(tab, index) }) handToSelection()
             return
         }
         pendingPlacement = PendingPlacement(slot, bounds, tab.key)
+    }
+
+    /** Pick the selection tool, so the element just placed can be moved with the next press. */
+    private fun handToSelection() {
+        selectTool(DesktopTool.MARQUEE)
     }
 
     /** The question's answer: build the element from it and write it as **one** edit and one undo step. */
@@ -257,7 +267,12 @@ class DesktopShellState(
             return
         }
         val element = pending.element(ink, activeCircuitKind) ?: return
-        if (placeLivingElement(tab, element) { index -> edited(tab, index) }) pendingPlacement = null
+        if (placeLivingElement(tab, element) { index -> edited(tab, index) }) {
+            pendingPlacement = null
+            // The same hand-over the circuit slot makes: the placed element is what stays selected, so
+            // the next drag moves it rather than placing a second one.
+            handToSelection()
+        }
     }
 
     /** Drop the question without placing anything — the page is exactly what it was before the drag. */
@@ -273,14 +288,28 @@ class DesktopShellState(
     var toolPlacement by mutableStateOf(settings.toolPlacement)
         private set
 
-    /** The colour, width and custom slot the strips show, restored from the settings file. */
-    var ink by mutableStateOf(
-        DesktopInk(
-            colour = settings.inkColour,
-            width = settings.inkWidth,
-            custom = settings.paletteCustom,
+    /**
+     * The two inks the window holds — the pen's and the highlighter's — restored from the settings file.
+     *
+     * Held as a pair and read through [ink], which answers for the **picked tool**: the strips, the canvas
+     * and the selection's recolour must all show the ink that would be written with, and a second copy of
+     * "the current ink" could only be a copy that disagrees with the tool.
+     */
+    private var inks by mutableStateOf(
+        DesktopInks(
+            pen = DesktopInk(colour = settings.inkColour, width = settings.inkWidth),
+            highlighter = DesktopInk(colour = settings.highlighterColour, width = settings.highlighterWidth),
         ),
     )
+
+    /** The ink of the picked tool — the pen's, or the highlighter's own colour and width. */
+    val ink: DesktopInk get() = inks.forTool(tools.current)
+
+    /**
+     * The palette's editable custom slot, shared by both tools like the palette itself (a palette is what
+     * the user has, not what a tool is). Null while it is empty.
+     */
+    var paletteCustom by mutableStateOf(settings.paletteCustom)
         private set
 
     /** What the colour panel is editing, or null while it is closed. */
@@ -291,9 +320,13 @@ class DesktopShellState(
     var palette by mutableStateOf(settings.paletteColours)
         private set
 
-    /** The three colours keys `1`–`3` pick, and `Alt`+digit redefines. */
-    var favourites by mutableStateOf(settings.colourFavourites)
-        private set
+    /** The three favourites of each tool, restored from the settings file. */
+    private var favs by mutableStateOf(
+        DesktopFavourites(pen = settings.colourFavourites, highlighter = settings.highlighterFavourites),
+    )
+
+    /** The terna the picked tool picks from — keys `1`–`3` and `Alt`+digit read this one. */
+    val favourites: List<Int> get() = favs.forTool(tools.current)
 
     /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
     val stripState: ToolStripState
@@ -301,6 +334,7 @@ class DesktopShellState(
             selection = tools,
             ink = ink,
             palette = palette,
+            custom = paletteCustom,
             favourites = favourites,
             openGroup = openGroup,
             onOpenGroup = { group -> openGroup = group },
@@ -325,16 +359,33 @@ class DesktopShellState(
         openGroup = toggledPicker(openGroup, tools)
     }
 
-    /** Pick the ink colour, and remember it: the same swatch is there after a restart. */
+    /**
+     * Pick the ink colour **of the picked tool**, and remember it: the pen and the highlighter keep their
+     * own, so switching to the highlighter never repaints the pencil.
+     */
     fun pickColour(colour: Int) {
-        ink = ink.withColour(colour)
-        settings.inkColour = ink.colour
+        val tool = tools.current
+        inks = inks.withInk(tool, inks.forTool(tool).withColour(colour))
+        persistInk(tool)
     }
 
-    /** Pick a stroke width, and remember it. */
+    /** Pick the picked tool's stroke width, and remember it. */
     fun pickWidth(width: Float) {
-        ink = ink.withWidth(width)
-        settings.inkWidth = ink.width
+        val tool = tools.current
+        inks = inks.withInk(tool, inks.forTool(tool).withWidth(width))
+        persistInk(tool)
+    }
+
+    /** Write [tool]'s ink to the settings file — the other tool's entry is not touched. */
+    private fun persistInk(tool: DesktopTool) {
+        val value = inks.forTool(tool)
+        if (tool == DesktopTool.HIGHLIGHTER) {
+            settings.highlighterColour = value.colour
+            settings.highlighterWidth = value.width
+        } else {
+            settings.inkColour = value.colour
+            settings.inkWidth = value.width
+        }
     }
 
     /** Pick favourite [index] — what keys `1`–`3` do. */
@@ -342,11 +393,14 @@ class DesktopShellState(
         favourites.getOrNull(index)?.let(::pickColour)
     }
 
-    /** Make the colour in use favourite [index] — what `Alt`+digit does. */
+    /** Make the colour in use favourite [index] **of the picked tool** — what `Alt`+digit does. */
     fun setFavourite(index: Int) {
-        if (index !in favourites.indices) return
-        favourites = favourites.toMutableList().also { it[index] = ink.colour }
-        settings.colourFavourites = favourites
+        val tool = tools.current
+        val current = favs.forTool(tool)
+        if (index !in current.indices) return
+        favs = favs.withFavourites(tool, current.toMutableList().also { it[index] = ink.colour })
+        if (tool == DesktopTool.HIGHLIGHTER) settings.highlighterFavourites = favs.highlighter
+        else settings.colourFavourites = favs.pen
     }
 
     /**
@@ -378,8 +432,8 @@ class DesktopShellState(
     fun commitColour(colour: Int) {
         when (editing) {
             ColourEditorTarget.CUSTOM -> {
-                ink = ink.withCustom(colour)
-                settings.paletteCustom = ink.custom
+                paletteCustom = colour
+                settings.paletteCustom = colour
                 pickColour(colour)
             }
             ColourEditorTarget.NEW -> {
@@ -629,66 +683,5 @@ class DesktopShellState(
         thumbnails[tab.key]?.clear()
         noteEdit()
         return true
-    }
-}
-
-/**
- * The shell as the drawing in `docs/ui-modernization.md` lays it out: a header carrying the tab strip,
- * a sidebar in a lane of its own beside the canvas, the page on the desk, and the status bar under it.
- *
- * The bands are **glass, and the page is not underneath them**: the header and the status bar take their
- * own rows and the canvas takes the rectangle that is left, so no band ever lies on the sheet
- * (`docs/chrome.md`). Everything that floats — the failed-open card — may sit over the page, because it
- * comes and goes with a gesture. The two jobs that wait for the edits to go quiet are [DesktopQuiet.kt]'s.
- */
-@Composable
-internal fun DesktopShell(
-    state: DesktopShellState,
-    onOpenPicker: () -> Unit,
-    modifier: Modifier = Modifier,
-    /** The window's devices, or null in a test that has none — the canvas then keeps the mouse path. */
-    tablet: DesktopTablet? = null,
-) {
-    ThumbnailRefresh(state)
-    RecoverySnapshots(state)
-    Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
-        Header(
-            tabs = state.tabs,
-            sidebarVisible = state.sidebarVisible,
-            placement = state.toolPlacement,
-            onActivate = { index -> state.tabs.activate(index) },
-            onClose = { index -> state.requestCloseTab(index) },
-            onMove = { from, to -> state.tabs.move(from, to) },
-            onOpen = onOpenPicker,
-            onToggleSidebar = { state.toggleSidebar() },
-            onPlacement = state::chooseToolPlacement,
-        )
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            val tab = state.active
-            when {
-                // With nothing open the notice owns the window; with a document open the card floats
-                // over it instead, so an unopenable file cannot hide the one you were reading.
-                tab == null && state.failure != null -> Notice(state.failure!!.title, state.failure!!.detail)
-                tab == null -> Notice(
-                    "Open a .xopp or .mobix file to start",
-                    "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
-                        "image backgrounds, read-only.",
-                )
-                // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
-                else -> PageWorkspace(state, tab, tablet)
-            }
-            if (tab != null) {
-                state.failure?.let { reported ->
-                    OpenFailureCard(
-                        failure = reported,
-                        onDismiss = { state.dismissFailure() },
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
-                    )
-                }
-            }
-            ColourPanelHost(state)
-            CloseDialogHost(state)
-        }
-        StatusBar(state.active, tablet)
     }
 }

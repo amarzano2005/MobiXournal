@@ -116,3 +116,35 @@ fun shiftElement(page: Page, ref: ElementRef, dx: Double, dy: Double): Page {
 
 /** The family's name for a tooltip or a panel header, or null when the element is ink. */
 fun livingFamilyOf(element: Element): LivingFamily? = LivingFamily.of(element)
+
+/**
+ * The one line that says **which** element a panel is editing.
+ *
+ * A family name is not enough: three plots on a page are all `Plot`, and a panel that says only that leaves
+ * the user guessing which of them its fields will write into. The summary carries the element's own content
+ * — the formula and its range, a table's grid, a figure's side count, a component's part and value — so the
+ * header answers the question before the first field does.
+ */
+fun livingSummary(target: LivingTarget): String = when (val element = target.element) {
+    is PlotElement -> element.curves.firstOrNull()?.source?.takeIf { it.isNotBlank() }?.let { source ->
+        "$source · ${number(element.xMin)}…${number(element.xMax)}"
+    } ?: "No formula"
+    is TableElement ->
+        "${element.colWidths.size} × ${element.rowHeights.size}" + if (element.headerRow) " · header" else ""
+    is ParametricShapeElement ->
+        "${element.vertices.size} sides · ${number(element.strokeWidth)} pt"
+    is CircuitElement -> {
+        val part = element.symbol.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+        element.value?.takeIf { it.isNotBlank() }?.let { "$part · $it" } ?: part
+    }
+    is MathBlockElement -> {
+        val language = element.flavor.name.lowercase().replaceFirstChar { it.uppercase() }
+        val source = element.source.lineSequence().firstOrNull()?.trim().orEmpty()
+        if (source.isEmpty()) language else "$language · $source"
+    }
+    else -> target.family.title
+}
+
+/** A number as a summary prints it: an integer without a pointless `.0`, one decimal otherwise. */
+private fun number(value: Double): String =
+    if (value == value.toLong().toDouble()) value.toLong().toString() else "%.1f".format(value)

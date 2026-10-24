@@ -1,10 +1,6 @@
 package com.mobixournal.desktop
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,10 +8,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,52 +17,43 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitLabelSide
-import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.MathFlavor
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
+import com.mobixournal.render.SelectionOps
 import com.mobixournal.render.TableElementFactory
 
 /**
- * The **inspector lane**: the right-hand column that edits the living element a selection names.
+ * The **inspector lane**: the right-hand column that edits the living element a selection names, asks a
+ * placement's questions, and says what is selected when nothing is being edited.
  *
  * It is a lane, not a dialog (`docs/interface-contract.md`): 300 dp of its own column beside the page, so
  * nothing is ever laid over the sheet and the page keeps the rectangle that is left. [DesktopWorkspace]
  * puts it in the row, which is what makes that true mechanically — the lane takes width, the canvas takes
  * the remainder, and no glass floats on the ink.
  *
- * The sections are per family and only offer **fields the model carries**: a plot's formula, domain and
- * resolution; a table's grid, header and rules; a figure's read-only lengths and angles plus its outline
- * style; a component's label, value and stroke; a formula's source and language. A field that is not in the
- * element is not in the panel, because a value the model would drop is a lie about the file
- * (`docs/mobix-elements.md`). Every commit is one [replaceLiving] — one edit, one `Ctrl+Z` — and an
- * unchanged value writes nothing at all.
+ * The lane is **always there** while a document is open, and that is not decoration: it used to return
+ * early with nothing selected, so opening the pencil grew the column and closing it shrank it, and the page
+ * jumped under the pointer every time. A stable frame is read in three parts — the header that says which
+ * element this is, the cards that hold its fields, and the footer that holds the one action — and every
+ * state fills the same three parts: the placement question, the editor, one element selected, several
+ * selected, and nothing selected.
  *
- * `Esc` while a field has the caret cancels that field and puts it back; a second `Esc` closes the lane.
+ * The sections only offer **fields the model carries**: a value the file would drop is a lie about the
+ * document (`docs/mobix-elements.md`). Every commit is one [DesktopShellState.commitLiving] — one edit, one
+ * `Ctrl+Z` — and an unchanged value writes nothing at all.
  */
 @Composable
 internal fun InspectorLane(
@@ -76,196 +61,285 @@ internal fun InspectorLane(
     tab: DesktopTab,
     modifier: Modifier = Modifier,
 ) {
-    // A placement asking its values comes before any editor: the element does not exist yet.
-    state.pendingPlacement?.let { pending ->
-        PlacementCard(state, pending)
-        return
-    }
-    val target = state.editingLiving ?: return
-    val live = livingTarget(tab, target) ?: return
+    val pending = state.pendingPlacement
+    val live = state.editingLiving?.let { livingTarget(tab, it) }
+    // One living element selected but not opened: the lane still has something to say about it.
+    val picked = if (live == null) pickedLiving(tab) else null
+    val selection = tab.selection
+
     Column(
         modifier
             .width(INSPECTOR_WIDTH)
             .fillMaxHeight()
-            .bandSurface()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .bandSurface(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(live.family.title, color = DesktopTheme.ink, style = DesktopTheme.title)
-            Spacer(Modifier.weight(1f))
-            LaneClose { state.closeLivingEditor() }
+        LaneHeader(
+            tool = pending?.slot?.tool() ?: live?.family?.tool() ?: picked?.family?.tool(),
+            title = when {
+                pending != null -> "New ${pending.slot.label().lowercase()}"
+                live != null -> live.family.title
+                picked != null -> picked.family.title
+                else -> "Inspector"
+            },
+            summary = when {
+                pending != null -> pending.summary()
+                live != null -> livingSummary(live)
+                picked != null -> livingSummary(picked)
+                selection != null -> selectionSummary(selection.refs.size)
+                else -> null
+            },
+            onClose = when {
+                pending != null -> state::cancelPlacement
+                live != null -> state::closeLivingEditor
+                else -> null
+            },
+        )
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp),
+        ) {
+            when {
+                pending != null -> PlacementBody(pending)
+                live != null -> EditorBody(live) { element -> state.commitLiving(element) }
+                picked != null -> PickedBody(picked)
+                selection != null -> ManyBody(selection.refs.size)
+                else -> EmptyBody()
+            }
         }
-        Spacer(Modifier.height(8.dp))
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            when (live.family) {
-                LivingFamily.PLOT -> PlotSection(live.element as PlotElement) { state.commitLiving(it) }
-                LivingFamily.TABLE -> TableSection(live.element as TableElement) { state.commitLiving(it) }
-                LivingFamily.SHAPE -> ShapeSection(live.element as ParametricShapeElement) { state.commitLiving(it) }
-                LivingFamily.CIRCUIT -> CircuitSection(live.element as CircuitElement) { state.commitLiving(it) }
-                LivingFamily.MATH -> MathSection(live.element as MathBlockElement) { state.commitLiving(it) }
+        LaneFooter {
+            when {
+                pending != null -> {
+                    PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
+                    PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
+                }
+                live != null -> PanelButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
+                picked != null -> PanelButton("Edit element", primary = true, enabled = true, onClick = {
+                    state.runSelection(SelectionAction.EDIT)
+                })
+                else -> Unit
             }
         }
     }
 }
 
-/** The lane's width: `docs/interface-contract.md`'s inspector column. */
-internal val INSPECTOR_WIDTH = 300.dp
+// --- what the lane is showing ------------------------------------------------------------------
+
+/** The one living element the selection names, if it names exactly one — the lane's quiet state. */
+private fun pickedLiving(tab: DesktopTab): LivingTarget? {
+    val ref = livingTargetOf(tab) ?: return null
+    return livingTarget(tab, LivingTargetRef(tab.key, tab.page, ref))
+}
+
+/** The line under a header when several things are caught. */
+private fun selectionSummary(count: Int): String =
+    if (count == 1) "1 element selected" else "$count elements selected"
+
+/** The state with nothing selected: what the lane is for, in one calm card. */
+@Composable
+private fun EmptyBody() {
+    SectionCard("Nothing selected") {
+        Text(
+            "Click an element on the page to edit it, or drag the Plot, Table or a circuit slot to place " +
+                "one. A selection can be moved, resized and turned with the handles.",
+            color = DesktopTheme.inkSecondary,
+            style = DesktopTheme.body,
+        )
+    }
+}
+
+/** One element caught but not opened: its identity, and a word about the pencil in the footer. */
+@Composable
+private fun PickedBody(target: LivingTarget) {
+    SectionCard("Selected") {
+        Readout("kind", target.family.title)
+        Readout("summary", livingSummary(target))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Edit element opens the fields; the bar under the outline has copy, align, recolour and delete.",
+            color = DesktopTheme.inkSecondary,
+            style = DesktopTheme.label,
+        )
+    }
+}
+
+/** Several elements caught: the lane counts them and points at the bar, which is where they are edited. */
+@Composable
+private fun ManyBody(count: Int) {
+    SectionCard("Selection") {
+        Readout("elements", count.toString())
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Drag to move the group, or use the handles to resize and turn it. The bar under the outline " +
+                "copies, duplicates, aligns, recolours and deletes; a living element is opened with its pencil.",
+            color = DesktopTheme.inkSecondary,
+            style = DesktopTheme.label,
+        )
+    }
+}
 
 // --- the placement question --------------------------------------------------------------------
 
-/**
- * The lane's **placement card**: the question a living slot asks *before* its element exists.
- *
- * The tablet asks the same way (the graph dialog, the table grid, the component palette) and this is the
- * window's own form of it — in the lane, so the sheet is never covered by the question, and with the
- * family's own fields so the answer is exactly what the inspector would let you change afterwards. Nothing
- * is on the page until **Place** is pressed, so **Cancel** (or `Esc`) leaves no element and no undo step.
- */
+/** The question a living slot asks before its element exists, in the lane's own cards. */
 @Composable
-private fun PlacementCard(state: DesktopShellState, pending: PendingPlacement) {
-    Column(
-        Modifier
-            .width(INSPECTOR_WIDTH)
-            .fillMaxHeight()
-            .bandSurface()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("New ${pending.slot.label().lowercase()}", color = DesktopTheme.ink, style = DesktopTheme.title)
-            Spacer(Modifier.weight(1f))
-            LaneClose { state.cancelPlacement() }
-        }
-        Spacer(Modifier.height(8.dp))
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            when (pending.slot) {
-                LivingSlot.PLOT -> PlotQuestion(pending)
-                LivingSlot.TABLE -> TableQuestion(pending)
-                // A component's part was the palette's question, so a circuit never reaches this card.
-                LivingSlot.CIRCUIT -> SectionLabel("Component")
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
-            PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
-        }
+private fun PlacementBody(pending: PendingPlacement) {
+    when (pending.slot) {
+        LivingSlot.PLOT -> PlotQuestion(pending)
+        LivingSlot.TABLE -> TableQuestion(pending)
+        // A component's part was the palette's question, so a circuit never reaches this card.
+        LivingSlot.CIRCUIT -> SectionCard("Component") { Readout("part", pending.slot.label()) }
     }
 }
 
-/** The graph dialog's questions, in the lane: `f(x)`, the domain and the display flags. */
+/** The graph dialog's questions: `f(x)`, the domain and the display flags. */
 @Composable
 private fun PlotQuestion(pending: PendingPlacement) {
-    SectionLabel("Formula")
-    Field("f(x)") {
-        ValueField(pending.formula, onCommit = { pending.formula = it })
-    }
-    SectionLabel("Domain")
-    NumberRow(
-        left = { Field("x from") { ValueField(pending.xMin, numeric = true, onCommit = { pending.xMin = it }) } },
-        right = { Field("x to") { ValueField(pending.xMax, numeric = true, onCommit = { pending.xMax = it }) } },
-    )
-    if (pending.domain == null) {
-        Text("x to must be greater than x from", color = DesktopTheme.danger, style = DesktopTheme.label)
-    }
-    SectionLabel("Display")
-    SwitchRow("Critical points", pending.showCriticalPoints) { pending.showCriticalPoints = it }
-    SwitchRow("Derivative", pending.includeDerivative) { pending.includeDerivative = it }
-    SwitchRow("Summary", pending.includeSummary) { pending.includeSummary = it }
-    SwitchRow("Shade integral", pending.shade) { pending.shade = it }
-    if (pending.shade) {
+    SectionCard("Function") {
+        Field("f(x)") { ValueField(pending.formula, onCommit = { pending.formula = it }) }
         NumberRow(
-            left = { Field("shade from") { ValueField(pending.shadeFrom, numeric = true, onCommit = { pending.shadeFrom = it }) } },
-            right = { Field("shade to") { ValueField(pending.shadeTo, numeric = true, onCommit = { pending.shadeTo = it }) } },
+            left = { Field("x from") { ValueField(pending.xMin, numeric = true, onCommit = { pending.xMin = it }) } },
+            right = { Field("x to") { ValueField(pending.xMax, numeric = true, onCommit = { pending.xMax = it }) } },
         )
+        if (pending.domain == null) {
+            Text("x to must be greater than x from", color = DesktopTheme.danger, style = DesktopTheme.label)
+        }
+    }
+    SectionCard("Display") {
+        SwitchRow("Critical points", pending.showCriticalPoints) { pending.showCriticalPoints = it }
+        SwitchRow("Derivative", pending.includeDerivative) { pending.includeDerivative = it }
+        SwitchRow("Summary", pending.includeSummary) { pending.includeSummary = it }
+        SwitchRow("Shade integral", pending.shade) { pending.shade = it }
+        if (pending.shade) {
+            NumberRow(
+                left = { Field("shade from") { ValueField(pending.shadeFrom, numeric = true, onCommit = { pending.shadeFrom = it }) } },
+                right = { Field("shade to") { ValueField(pending.shadeTo, numeric = true, onCommit = { pending.shadeTo = it }) } },
+            )
+        }
     }
 }
 
 /** The table's questions: how many columns and rows, and whether the first row is a header. */
 @Composable
 private fun TableQuestion(pending: PendingPlacement) {
-    SectionLabel("Grid")
-    NumberRow(
-        left = {
-            NumberField("columns", pending.columns.toDouble()) { value ->
-                pending.columns = value.toInt().coerceIn(1, 30)
-            }
-        },
-        right = {
-            NumberField("rows", pending.rows.toDouble()) { value ->
-                pending.rows = value.toInt().coerceIn(1, 200)
-            }
-        },
-    )
-    SwitchRow("Header row", pending.header) { pending.header = it }
-}
-
-// --- the five sections -------------------------------------------------------------------------
-
-@Composable
-private fun PlotSection(plot: PlotElement, commit: (Element) -> Unit) {
-    val curve = plot.curves.firstOrNull()
-    SectionLabel("Formula")
-    var formula by remember(plot) { mutableStateOf(curve?.source.orEmpty()) }
-    ValueField(formula, onCommit = { entered ->
-        formula = entered
-        if (curve != null && entered.isNotBlank() && entered != curve.source) {
-            commit(
-                plot.copy(
-                    curves = listOf(curve.copy(source = entered)) + plot.curves.drop(1),
-                    summaryText = null,
-                ),
-            )
-        }
-    })
-    SectionLabel("Domain")
-    NumberRow(
-        left = {
-            NumberField("x min", plot.xMin) { value ->
-                if (value < plot.xMax) commit(plot.copy(xMin = value))
-            }
-        },
-        right = {
-            NumberField("x max", plot.xMax) { value ->
-                if (value > plot.xMin) commit(plot.copy(xMax = value))
-            }
-        },
-    )
-    SectionLabel("Resolution")
-    NumberField("samples", plot.samples.toDouble()) { value ->
-        val rounded = value.toInt()
-        if (rounded in 8..4000 && rounded != plot.samples) commit(plot.copy(samples = rounded))
-    }
-    // The graph dialog's own switches, so the window's plot offers what the tablet's does. The summary
-    // is a cache of the engine's analysis, so it is recomputed through PlotElementFactory (the same
-    // path the tablet's edit takes) rather than left stale or dropped.
-    SectionLabel("Display")
-    SwitchRow("Critical points", plot.showCriticalPoints) { on -> commit(withFlags(plot, critical = on)) }
-    SwitchRow("Derivative", plot.includeDerivative) { on -> commit(withFlags(plot, derivative = on)) }
-    SwitchRow("Summary", plot.summaryText != null) { on -> commit(withFlags(plot, summary = on)) }
-    SwitchRow("Shade integral", plot.shadeIntegral != null) { on ->
-        commit(withFlags(plot, shade = if (on) PlotShading(plot.xMin, plot.xMax) else null))
-    }
-    plot.shadeIntegral?.let { shade ->
+    SectionCard("Grid") {
         NumberRow(
             left = {
-                NumberField("shade from", shade.from) { value ->
-                    if (value < shade.to) commit(withFlags(plot, shade = shade.copy(from = value)))
+                NumberField("columns", pending.columns.toDouble()) { value ->
+                    pending.columns = value.toInt().coerceIn(1, 30)
                 }
             },
             right = {
-                NumberField("shade to", shade.to) { value ->
-                    if (value > shade.from) commit(withFlags(plot, shade = shade.copy(to = value)))
+                NumberField("rows", pending.rows.toDouble()) { value ->
+                    pending.rows = value.toInt().coerceIn(1, 200)
                 }
             },
         )
+        SwitchRow("Header row", pending.header) { pending.header = it }
     }
-    SectionLabel("Stroke")
-    NumberField("width pt", plot.curves.firstOrNull()?.strokeWidth ?: 1.0) { value ->
-        if (curve != null && value > 0 && value != curve.strokeWidth) {
-            commit(plot.copy(curves = listOf(curve.copy(strokeWidth = value)) + plot.curves.drop(1)))
+}
+
+/** The line a pending question shows under the lane's title — the answer so far. */
+private fun PendingPlacement.summary(): String = when (slot) {
+    LivingSlot.PLOT -> {
+        val formula = formula.trim().ifBlank { "no formula" }
+        val range = domain?.let { "${formatNumber(it.first)}…${formatNumber(it.second)}" } ?: "range not open"
+        "$formula · $range"
+    }
+    LivingSlot.TABLE -> "$columns × $rows" + if (header) " · header" else ""
+    LivingSlot.CIRCUIT -> slot.label()
+}
+
+// --- the five editors --------------------------------------------------------------------------
+
+/** The editor of one element, dispatched by family — the lane's body once the element exists. */
+@Composable
+private fun EditorBody(live: LivingTarget, commit: (Element) -> Unit) {
+    when (live.family) {
+        LivingFamily.PLOT -> PlotBody(live.element as PlotElement, commit)
+        LivingFamily.TABLE -> TableBody(live.element as TableElement, commit)
+        LivingFamily.SHAPE -> ShapeBody(live.element as ParametricShapeElement, commit)
+        LivingFamily.CIRCUIT -> CircuitBody(live.element as CircuitElement, commit)
+        LivingFamily.MATH -> MathBody(live.element as MathBlockElement, commit)
+    }
+}
+
+@Composable
+private fun PlotBody(plot: PlotElement, commit: (Element) -> Unit) {
+    val curve = plot.curves.firstOrNull()
+    SectionCard("Function") {
+        var formula by remember(plot) { mutableStateOf(curve?.source.orEmpty()) }
+        Field("f(x)") {
+            ValueField(formula, onCommit = { entered ->
+                formula = entered
+                if (curve != null && entered.isNotBlank() && entered != curve.source) {
+                    commit(
+                        plot.copy(
+                            curves = listOf(curve.copy(source = entered)) + plot.curves.drop(1),
+                            summaryText = null,
+                        ),
+                    )
+                }
+            })
+        }
+        NumberRow(
+            left = {
+                NumberField("x from", plot.xMin) { value ->
+                    if (value < plot.xMax) commit(plot.copy(xMin = value))
+                }
+            },
+            right = {
+                NumberField("x to", plot.xMax) { value ->
+                    if (value > plot.xMin) commit(plot.copy(xMax = value))
+                }
+            },
+        )
+        NumberField("samples", plot.samples.toDouble()) { value ->
+            val rounded = value.toInt()
+            if (rounded in 8..4000 && rounded != plot.samples) commit(plot.copy(samples = rounded))
         }
     }
-    ColourRow { colour -> commit(plot.copy(axisColor = colour)) }
+    // The graph dialog's own switches, so the window's plot offers what the tablet's does. The summary is
+    // a cache of the engine's analysis, so it is recomputed through PlotElementFactory (the same path the
+    // tablet's edit takes) rather than left stale or dropped.
+    SectionCard("Display") {
+        SwitchRow("Critical points", plot.showCriticalPoints) { on -> commit(withFlags(plot, critical = on)) }
+        SwitchRow("Derivative", plot.includeDerivative) { on -> commit(withFlags(plot, derivative = on)) }
+        SwitchRow("Summary", plot.summaryText != null) { on -> commit(withFlags(plot, summary = on)) }
+        SwitchRow("Shade integral", plot.shadeIntegral != null) { on ->
+            commit(withFlags(plot, shade = if (on) PlotShading(plot.xMin, plot.xMax) else null))
+        }
+        plot.shadeIntegral?.let { shade ->
+            NumberRow(
+                left = {
+                    NumberField("shade from", shade.from) { value ->
+                        if (value < shade.to) commit(withFlags(plot, shade = shade.copy(from = value)))
+                    }
+                },
+                right = {
+                    NumberField("shade to", shade.to) { value ->
+                        if (value > shade.from) commit(withFlags(plot, shade = shade.copy(to = value)))
+                    }
+                },
+            )
+        }
+    }
+    SectionCard("Look") {
+        NumberField("width pt", curve?.strokeWidth ?: 1.0) { value ->
+            if (curve != null && value > 0 && value != curve.strokeWidth) {
+                commit(plot.copy(curves = listOf(curve.copy(strokeWidth = value)) + plot.curves.drop(1)))
+            }
+        }
+        // The curve's own ink, not the axis': a colour row under "Look" is what the line will be drawn in.
+        ColourRow(current = curve?.color) { colour ->
+            if (curve != null) {
+                commit(plot.copy(curves = listOf(curve.copy(color = colour)) + plot.curves.drop(1)))
+            } else {
+                commit(plot.copy(axisColor = colour))
+            }
+        }
+    }
 }
 
 /**
@@ -298,91 +372,102 @@ private fun withFlags(
 )
 
 @Composable
-private fun TableSection(table: TableElement, commit: (Element) -> Unit) {
-    SectionLabel("Grid")
-    NumberRow(
-        left = {
-            NumberField("columns", table.colWidths.size.toDouble()) { value ->
-                val columns = value.toInt().coerceIn(1, 30)
-                if (columns != table.colWidths.size) commit(table.resized(columns, table.rowHeights.size))
-            }
-        },
-        right = {
-            NumberField("rows", table.rowHeights.size.toDouble()) { value ->
-                val rows = value.toInt().coerceIn(1, 200)
-                if (rows != table.rowHeights.size) commit(table.resized(table.colWidths.size, rows))
-            }
-        },
-    )
-    SectionLabel("Rules")
-    SwitchRow("Header row", table.headerRow) { on -> commit(table.copy(headerRow = on)) }
-    NumberField("border pt", table.borderWidth) { value ->
-        if (value > 0 && value != table.borderWidth) commit(table.copy(borderWidth = value))
+private fun TableBody(table: TableElement, commit: (Element) -> Unit) {
+    SectionCard("Grid") {
+        NumberRow(
+            left = {
+                NumberField("columns", table.colWidths.size.toDouble()) { value ->
+                    val columns = value.toInt().coerceIn(1, 30)
+                    if (columns != table.colWidths.size) commit(table.resized(columns, table.rowHeights.size))
+                }
+            },
+            right = {
+                NumberField("rows", table.rowHeights.size.toDouble()) { value ->
+                    val rows = value.toInt().coerceIn(1, 200)
+                    if (rows != table.rowHeights.size) commit(table.resized(table.colWidths.size, rows))
+                }
+            },
+        )
+        SwitchRow("Header row", table.headerRow) { on -> commit(table.copy(headerRow = on)) }
     }
-    ColourRow { colour -> commit(table.copy(borderColor = colour)) }
+    SectionCard("Rules") {
+        NumberField("border pt", table.borderWidth) { value ->
+            if (value > 0 && value != table.borderWidth) commit(table.copy(borderWidth = value))
+        }
+        ColourRow(current = table.borderColor) { colour -> commit(table.copy(borderColor = colour)) }
+    }
     // The tablet writes a cell's content by tapping it; the lane writes it by naming it, with the same
     // cell in the same grid, so the two shells keep one table and one meaning per cell.
-    SectionLabel("Cells")
-    for (row in table.rowHeights.indices) {
-        for (column in table.colWidths.indices) {
-            val cell = table.cell(row, column)
-            Field("${row + 1},${column + 1}") {
-                ValueField(cell.text, onCommit = { entered ->
-                    if (entered != cell.text) {
-                        commit(TableElementFactory.updateCell(table, row, column, cell.copy(text = entered)))
-                    }
-                })
+    SectionCard("Cells") {
+        for (row in table.rowHeights.indices) {
+            for (column in table.colWidths.indices) {
+                val cell = table.cell(row, column)
+                Field("${row + 1},${column + 1}") {
+                    ValueField(cell.text, onCommit = { entered ->
+                        if (entered != cell.text) {
+                            commit(TableElementFactory.updateCell(table, row, column, cell.copy(text = entered)))
+                        }
+                    })
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ShapeSection(shape: ParametricShapeElement, commit: (Element) -> Unit) {
-    SectionLabel("Geometry")
-    for (index in shape.vertices.indices) {
-        val side = ParametricShapes.sideLengthPt(shape, index)
-        val angle = ParametricShapes.interiorAngleDeg(shape, index)
-        Readout("side ${index + 1}", "${side.roundToTenth()} pt · ${angle.roundToTenth()}°")
+private fun ShapeBody(shape: ParametricShapeElement, commit: (Element) -> Unit) {
+    SectionCard("Geometry") {
+        for (index in shape.vertices.indices) {
+            val side = ParametricShapes.sideLengthPt(shape, index)
+            val angle = ParametricShapes.interiorAngleDeg(shape, index)
+            Readout("side ${index + 1}", "${side.roundToTenth()} pt · ${angle.roundToTenth()}°")
+        }
     }
-    SectionLabel("Outline")
-    NumberField("width pt", shape.strokeWidth) { value ->
-        if (value > 0 && value != shape.strokeWidth) commit(shape.copy(strokeWidth = value))
+    SectionCard("Outline") {
+        NumberField("width pt", shape.strokeWidth) { value ->
+            if (value > 0 && value != shape.strokeWidth) commit(shape.copy(strokeWidth = value))
+        }
+        ColourRow(current = shape.strokeColor) { colour -> commit(shape.copy(strokeColor = colour)) }
     }
-    ColourRow { colour -> commit(shape.copy(strokeColor = colour)) }
 }
 
 @Composable
-private fun CircuitSection(circuit: CircuitElement, commit: (Element) -> Unit) {
-    SectionLabel("Component")
-    Readout("symbol", circuit.symbol)
-    var value by remember(circuit) { mutableStateOf(circuit.value.orEmpty()) }
-    ValueField(value, onCommit = { entered ->
-        value = entered
-        commit(circuit.copy(value = entered.ifBlank { null }))
-    })
-    // The tablet's own two placement controls, as words: a quarter turn and a straighten, then the
-    // side its label is written on (a four-way cycle, exactly the enum's four sides).
-    SectionLabel("Placement")
-    Readout("rotation", "${formatNumber(circuit.rotation)}°")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PanelButton("Rotate 90°", primary = false, enabled = true, onClick = {
-            commit(circuit.copy(rotation = (circuit.rotation + 90.0) % 360.0))
-        })
-        PanelButton("Straighten", primary = false, enabled = true, onClick = {
-            val straight = (kotlin.math.round(circuit.rotation / 90.0) * 90.0) % 360.0
-            commit(circuit.copy(rotation = if (straight < 0.0) straight + 360.0 else straight))
+private fun CircuitBody(circuit: CircuitElement, commit: (Element) -> Unit) {
+    SectionCard("Component") {
+        Readout("symbol", circuit.symbol.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() })
+        var value by remember(circuit) { mutableStateOf(circuit.value.orEmpty()) }
+        Field("value") {
+            ValueField(value, onCommit = { entered ->
+                value = entered
+                commit(circuit.copy(value = entered.ifBlank { null }))
+            })
+        }
+        ColourRow(current = circuit.strokeColor) { colour -> commit(circuit.copy(strokeColor = colour)) }
+    }
+    // The tablet's own two placement controls, as words: a quarter turn and a straighten, then the side
+    // its label is written on (a four-way cycle, exactly the enum's four sides).
+    SectionCard("Placement") {
+        Readout("rotation", "${formatNumber(circuit.rotation)}°")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            PanelButton("Rotate 90°", primary = false, enabled = true, onClick = {
+                commit(circuit.copy(rotation = (circuit.rotation + 90.0) % 360.0))
+            })
+            PanelButton("Straighten", primary = false, enabled = true, onClick = {
+                val straight = (kotlin.math.round(circuit.rotation / 90.0) * 90.0) % 360.0
+                commit(circuit.copy(rotation = if (straight < 0.0) straight + 360.0 else straight))
+            })
+        }
+        Spacer(Modifier.height(6.dp))
+        PanelButton("Label: ${labelSideName(circuit.labelSide)}", primary = false, enabled = true, onClick = {
+            val sides = CircuitLabelSide.entries
+            commit(circuit.copy(labelSide = sides[(circuit.labelSide.ordinal + 1) % sides.size]))
         })
     }
-    PanelButton("Label: ${labelSideName(circuit.labelSide)}", primary = false, enabled = true, onClick = {
-        val sides = CircuitLabelSide.entries
-        commit(circuit.copy(labelSide = sides[(circuit.labelSide.ordinal + 1) % sides.size]))
-    })
-    SectionLabel("Stroke")
-    NumberField("width pt", circuit.strokeWidth) { width ->
-        if (width > 0 && width != circuit.strokeWidth) commit(circuit.copy(strokeWidth = width))
+    SectionCard("Stroke") {
+        NumberField("width pt", circuit.strokeWidth) { width ->
+            if (width > 0 && width != circuit.strokeWidth) commit(circuit.copy(strokeWidth = width))
+        }
     }
-    ColourRow { colour -> commit(circuit.copy(strokeColor = colour)) }
 }
 
 /** A label side as the lane prints it: `ABOVE` reads as `Above`. */
@@ -390,199 +475,39 @@ private fun labelSideName(side: CircuitLabelSide): String =
     side.name.lowercase().replaceFirstChar { it.uppercase() }
 
 @Composable
-private fun MathSection(block: MathBlockElement, commit: (Element) -> Unit) {
-    SectionLabel("Source")
-    var source by remember(block) { mutableStateOf(block.source) }
-    ValueField(source, onCommit = { entered ->
-        source = entered
-        if (entered.isNotBlank() && entered != block.source) commit(block.copy(source = entered))
-    }, multiline = true)
-    SectionLabel("Language")
-    SwitchRow("Typst", block.flavor == MathFlavor.TYPST) { typst ->
-        commit(block.copy(flavor = if (typst) MathFlavor.TYPST else MathFlavor.LATEX))
-    }
-    ColourRow { colour -> commit(block.copy(color = colour)) }
-}
-
-// --- the controls ------------------------------------------------------------------------------
-
-/** A section's heading: the one step of hierarchy the lane has. */
-@Composable
-private fun SectionLabel(text: String) {
-    Spacer(Modifier.height(10.dp))
-    Text(text, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-    Spacer(Modifier.height(2.dp))
-}
-
-/** A value the panel only reports (a side's length, a component's symbol). */
-@Composable
-private fun Readout(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(label, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-        Spacer(Modifier.weight(1f))
-        Text(value, color = DesktopTheme.ink, style = DesktopTheme.numeric)
-    }
-}
-
-@Composable
-private fun NumberRow(left: @Composable () -> Unit, right: @Composable () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Box(Modifier.weight(1f)) { left() }
-        Box(Modifier.weight(1f)) { right() }
-    }
-}
-
-/**
- * A number that commits on `Enter` or when the caret leaves — never per keystroke, because every commit is
- * an undo step and a half-typed `1` is not a value the user asked for.
- */
-@Composable
-private fun NumberField(label: String, value: Double, onCommit: (Double) -> Unit) {
-    var text by remember(value) { mutableStateOf(formatNumber(value)) }
-    Field(label = label) {
-        ValueField(
-            initial = text,
-            numeric = true,
-            onCommit = { entered ->
-                entered.toDoubleOrNull()?.let { parsed ->
-                    text = formatNumber(parsed)
-                    onCommit(parsed)
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun Field(label: String, field: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(label, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-        Spacer(Modifier.height(2.dp))
-        field()
-    }
-}
-
-/**
- * The one text control of the lane: a field that looks like the card a living element's value sits on,
- * commits on `Enter` or focus loss, and puts itself back on `Esc`.
- */
-@Composable
-private fun ValueField(
-    initial: String,
-    numeric: Boolean = false,
-    multiline: Boolean = false,
-    onCommit: (String) -> Unit,
-) {
-    var text by remember(initial) { mutableStateOf(initial) }
-    var focused by remember { mutableStateOf(false) }
-    BasicTextField(
-        value = text,
-        onValueChange = { entered ->
-            if (!numeric || entered.isEmpty() || entered.toDoubleOrNull() != null || entered == "-" || entered == ".") {
-                text = entered
-            }
-        },
-        singleLine = !multiline,
-        textStyle = DesktopTheme.numeric.copy(color = DesktopTheme.ink),
-        cursorBrush = SolidColor(DesktopTheme.accent),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DesktopTheme.activeSlot.copy(alpha = 0.45f), DesktopTheme.railSlotShape)
-            .padding(horizontal = 6.dp, vertical = 5.dp)
-            .onFocusChanged { focus ->
-                if (focused && !focus.isFocused) onCommit(text)
-                focused = focus.isFocused
-            }
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                when (event.key) {
-                    Key.Enter, Key.NumPadEnter -> {
-                        onCommit(text)
-                        true
-                    }
-                    Key.Escape -> {
-                        text = initial
-                        true
-                    }
-                    else -> false
-                }
-            },
-    )
-}
-
-/** A labelled switch, drawn as two words: the contract's control for a boolean field. */
-@Composable
-private fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(on) { detectTapGestures { onToggle(!on) } }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-        Spacer(Modifier.weight(1f))
-        Box(
-            Modifier
-                .size(width = 26.dp, height = 14.dp)
-                .background(if (on) DesktopTheme.accent else DesktopTheme.hairline, DesktopTheme.capsuleShape),
-            contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart,
-        ) {
-            Box(Modifier.padding(horizontal = 2.dp).size(10.dp).background(Color.White, DesktopTheme.capsuleShape))
+private fun MathBody(block: MathBlockElement, commit: (Element) -> Unit) {
+    SectionCard("Source") {
+        var source by remember(block) { mutableStateOf(block.source) }
+        ValueField(source, onCommit = { entered ->
+            source = entered
+            if (entered.isNotBlank() && entered != block.source) commit(block.copy(source = entered))
+        }, multiline = true)
+        SwitchRow("Typst", block.flavor == MathFlavor.TYPST) { typst ->
+            commit(block.copy(flavor = if (typst) MathFlavor.TYPST else MathFlavor.LATEX))
         }
     }
-}
-
-/** The palette, as a row of swatches: a colour field is a colour, not a hex box. */
-@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
-@Composable
-private fun ColourRow(onPick: (Int) -> Unit) {
-    Spacer(Modifier.height(4.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-        for (colour in PenPalette.COLORS.take(8)) {
-            var hovered by remember(colour) { mutableStateOf(false) }
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(16.dp)
-                    .background(Color(colour), DesktopTheme.railSlotShape)
-                    .onPointerEvent(PointerEventType.Enter) { hovered = true }
-                    .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                    .pointerInput(colour) { detectTapGestures { onPick(colour) } },
-                contentAlignment = Alignment.Center,
-            ) {
-                if (hovered) {
-                    Canvas(Modifier.size(6.dp)) {
-                        drawCircle(Color.White, radius = size.minDimension / 2f)
-                    }
-                }
-            }
-        }
+    SectionCard("Look") {
+        ColourRow(current = block.color) { colour -> commit(block.copy(color = colour)) }
     }
 }
 
-@Composable
-private fun LaneClose(onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(22.dp)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(Unit) { detectTapGestures { onClick() } },
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.size(10.dp)) {
-            drawLine(DesktopTheme.chromeInk, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), 1.4f)
-            drawLine(DesktopTheme.chromeInk, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height), 1.4f)
-        }
-    }
+// --- the bridge to the header ------------------------------------------------------------------
+
+/** The strip slot whose glyph stands for [this] family in the lane's header. */
+private fun LivingFamily.tool(): DesktopTool = when (this) {
+    LivingFamily.PLOT -> DesktopTool.PLOT
+    LivingFamily.TABLE -> DesktopTool.TABLE
+    LivingFamily.SHAPE -> DesktopTool.RECTANGLE
+    LivingFamily.CIRCUIT -> DesktopTool.CIRCUIT
+    LivingFamily.MATH -> DesktopTool.TEXT
 }
 
-/** A number as the lane prints it: an integer without a pointless `.0`, one decimal otherwise. */
-private fun formatNumber(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else "%.1f".format(value)
-
-private fun Double.roundToTenth(): String = "%.1f".format(this)
+/** The slot whose glyph stands for a pending placement's family. */
+private fun LivingSlot.tool(): DesktopTool = when (this) {
+    LivingSlot.PLOT -> DesktopTool.PLOT
+    LivingSlot.TABLE -> DesktopTool.TABLE
+    LivingSlot.CIRCUIT -> DesktopTool.CIRCUIT
+}
 
 /**
  * [table] with a new grid: the columns and rows that survive keep their widths, heights and cells, and the
