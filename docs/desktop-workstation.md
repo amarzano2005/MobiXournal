@@ -14,10 +14,9 @@ written against: the document model and the codecs are platform-free, so a PC wi
 page the Android editor shows. Windows 11 is the only platform it is built and run on.
 
 What it does today:
-- Opens **every container the app writes** — gzip `.xopp`, self-contained ZIP `.xopp` and native
-  `.mobix` — from the toolbar or a path argument, lists its pages, and zooms 25–200 %. The container is
-  chosen by the file's **bytes** (`FileKind` plus a ZIP's `mimetype` entry), never by the extension, so a
-  renamed notebook still opens as a notebook.
+- Opens **every container the app writes** — gzip `.xopp`, self-contained ZIP `.xopp` and native `.mobix` —
+  from the toolbar or a path argument, lists its pages, and zooms 25 %–3 200 %. The file is identified by
+  its **bytes** (`FileKind` plus a ZIP's `mimetype`), never its extension, so a rename still opens.
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
   tab keeps its own page, zoom and fit, so going back to a tab lands where you left it), a collapsible
   240 dp sidebar of page thumbnails and the current page's layers, the page alone on the true-black desk,
@@ -29,14 +28,15 @@ What it does today:
   its caption/border/text colours through DWM, best effort), 1.5 dp monoline glyphs, Inter with tabular
   figures, one cast shadow under each band, and one under the sheet — `docs/ui-modernization.md` owns the
   material and `DesktopThemeTest` pins it.
-  Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and every one
-  of those actions also has a key (`docs/ui-modernization.md` owns the table). A tab opens in **`AUTO`
+  Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
+  key too (`docs/ui-modernization.md` owns the table). A selection or element drag at the canvas's border
+  **scrolls the view** while it runs, so a marquee catches more than one screenful (`EdgePan.kt`,
+  `DesktopEdgePanTest`). A tab opens in **`AUTO`
   fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and a page saved as a
   long strip — the tablet writes one 850 × 2976 pt page for a lecture that fills the sheet — is fitted to
-  its **width**, because showing that whole page lands at 27 %, where a 12 pt hand is three pixels tall and
-  two thirds of the window is black desk. The status bar names the fit actually in use; `Ctrl + 0` still
-  means the whole sheet, however small that makes it, and scrolling never abandons the fit (a width-fitted
-  page must stay fitted while you read down it). Thumbnails come from the
+  its **width**, because the whole page lands at 27 %, where a 12 pt hand is three pixels tall. The status
+  bar names the fit in use; `Ctrl + 0` still means the whole sheet, and scrolling never abandons the fit (a
+  width-fitted page stays fitted while you read down it). Thumbnails come from the
   same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
   once per page per tab. The sidebar's layer list carries an **eye per layer** (`LayerEye`, monoline like
   the rest of the chrome): switching one off skips that layer in the page painter *and* in the thumbnail,

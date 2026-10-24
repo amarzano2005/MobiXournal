@@ -109,7 +109,7 @@ class DesktopShellTest {
         assertEquals(ZOOM_STEP, tab.viewport.zoom, 1e-4f)
 
         repeat(20) { zoomBy(tab, ZOOM_STEP) }
-        assertEquals("never past 400%", Viewport.MAX_ZOOM, tab.viewport.zoom, 1e-4f)
+        assertEquals("never past the deepest zoom", Viewport.MAX_ZOOM, tab.viewport.zoom, 1e-4f)
 
         repeat(40) { zoomBy(tab, 1f / ZOOM_STEP) }
         assertEquals("never under 25%", Viewport.MIN_ZOOM, tab.viewport.zoom, 1e-4f)

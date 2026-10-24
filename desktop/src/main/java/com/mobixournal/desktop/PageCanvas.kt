@@ -311,6 +311,20 @@ private fun PageSheet(
     }
 }
 
+/**
+ * The ring follows the mouse — but only while the driver's packets are quiet, so a contact the driver has
+ * already moved on from does not drag the ring back to where the emulated mouse still thinks it is.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.hoverTracking(pointer: PenPointer, followMouse: () -> Boolean): Modifier =
+    onPointerEvent(PointerEventType.Enter) { event ->
+        if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
+    }
+        .onPointerEvent(PointerEventType.Move) { event ->
+            if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
+        }
+        .onPointerEvent(PointerEventType.Exit) { if (followMouse()) pointer.hover.value = null }
+
 /** A page's size and the viewport in force for it, in the window it is being shown in. */
 private data class SheetLayout(
     val pageW: Float,
@@ -390,13 +404,7 @@ private fun SheetCanvas(
     Canvas(
         Modifier.fillMaxSize()
             .pointerHoverIcon(if (ringPx != null) penIcon else PointerIcon.Default)
-            .onPointerEvent(PointerEventType.Enter) { event ->
-                if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
-            }
-            .onPointerEvent(PointerEventType.Move) { event ->
-                if (followMouse()) pointer.hover.value = event.changes.firstOrNull()?.position
-            }
-            .onPointerEvent(PointerEventType.Exit) { if (followMouse()) pointer.hover.value = null }
+            .hoverTracking(pointer, followMouse)
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 wheelViewport(
                     event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
@@ -404,14 +412,20 @@ private fun SheetCanvas(
                     forceZoom = dialWheel(),
                 )?.let(onViewport)
             }
-            .pointerInput(tab, panMode, tool, ink, pen, sheet) {
+            // The key is the page and the zoom, **never the offsets**: a selection drag scrolls the sheet
+            // at the canvas's edge, and a key that changed with the viewport would cancel the very gesture
+            // that moved it. The view is therefore read through a lambda, which sees the scroll at once.
+            .pointerInput(tab, panMode, tool, ink, pen, sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH) {
                 pageGestures(
                     tab = tab,
                     panMode = panMode,
                     tool = tool,
                     ink = ink,
                     onPlaceLiving = onPlaceLiving,
-                    viewport = sheet.viewport,
+                    view = {
+                        tab.viewport.copy(zoom = sheet.zoom)
+                            .clamped(sheet.pageW, sheet.pageH, sheet.viewW, sheet.viewH)
+                    },
                     pageW = sheet.pageW,
                     pageH = sheet.pageH,
                     viewW = sheet.viewW,

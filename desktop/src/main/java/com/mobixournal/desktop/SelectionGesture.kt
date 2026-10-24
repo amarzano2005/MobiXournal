@@ -5,6 +5,7 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isShiftPressed
+import kotlinx.coroutines.withTimeoutOrNull
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.SelectionEdit
@@ -28,6 +29,10 @@ import com.mobixournal.render.Vec2
  *
  * A selection drag is not ink: it never asks the pen's packets to take it (`DesktopTool.inksByPackets`), so a
  * stylus in proximity still reaches it through the Compose pointer.
+ *
+ * A drag that reaches the canvas's edge **scrolls the view** while it keeps running ([SelectionView]): the
+ * pointer can rest against the border and the sheet keeps travelling under it, so a marquee can catch more
+ * than what happened to be on screen and an element can be carried past the edge.
  */
 /**
  * The marquee or lasso taking this press, when the slot is one of them; false means the press is ink's.
@@ -40,9 +45,7 @@ internal suspend fun AwaitPointerEventScope.selectionPress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
-    viewport: Viewport,
-    pageW: Float,
-    pageH: Float,
+    view: SelectionView,
     density: Float,
     region: MutableState<SelectionRegion?>?,
     onLiveDrag: ((() -> Unit)?) -> Unit,
@@ -53,9 +56,7 @@ internal suspend fun AwaitPointerEventScope.selectionPress(
         start = down,
         tool = selection,
         tab = tab,
-        viewport = viewport,
-        pageW = pageW,
-        pageH = pageH,
+        view = view,
         density = density,
         region = region ?: return false,
         onLiveDrag = onLiveDrag,
@@ -68,16 +69,15 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     start: PointerInputChange,
     tool: SelectionTool,
     tab: DesktopTab,
-    viewport: Viewport,
-    pageW: Float,
-    pageH: Float,
+    view: SelectionView,
     density: Float,
     region: MutableState<SelectionRegion?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
+    val viewport = view.current()
     val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, viewport)
-    if (x0 !in 0.0..pageW.toDouble() || y0 !in 0.0..pageH.toDouble()) return
+    if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return
     // The grab radius is ten screen pixels whatever the zoom, so a handle stays as easy to hit at 30 % as at
     // 300 %.
     val pxPerPt = viewport.zoom * density
@@ -90,11 +90,21 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap)
     }
     if (handle.startsRegion()) {
-        traceRegion(tool, x0, y0, tab, viewport, density, region, onLiveDrag)
+        traceRegion(tool, x0, y0, tab, view, density, region, onLiveDrag)
         return
     }
-    transformSelection(live!!, handle, x0, y0, tab, viewport, density, onLiveDrag, onEdited)
+    transformSelection(live!!, handle, x0, y0, tab, view, density, onLiveDrag, onEdited)
 }
+
+/**
+ * The next pointer change, or **null** when a tick went by with the pointer still.
+ *
+ * That null is the edge scroll's cue: a drag resting against the border must keep working without a single
+ * new event, which means the loop cannot wait for one forever. The wait is a timeout around the very same
+ * suspension, so a real event still wakes it immediately.
+ */
+private suspend fun AwaitPointerEventScope.awaitPointerOrTick(): PointerInputChange? =
+    withTimeoutOrNull(EDGE_PAN_TICK_MS) { awaitPointerEvent().changes.firstOrNull() }
 
 /** The trace half: collect the drag into a rectangle or a loop, and hand it to the page on lift. */
 private suspend fun AwaitPointerEventScope.traceRegion(
@@ -102,12 +112,17 @@ private suspend fun AwaitPointerEventScope.traceRegion(
     x0: Double,
     y0: Double,
     tab: DesktopTab,
-    viewport: Viewport,
+    view: SelectionView,
     density: Float,
     region: MutableState<SelectionRegion?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
 ) {
     val points = mutableListOf(Vec2(x0, y0))
+    // Where the pointer is on screen, kept across ticks: the edge scroll needs a position to read even
+    // when no event has moved it.
+    val press = view.current().toScreen(x0.toFloat(), y0.toFloat())
+    var lastX = press.first
+    var lastY = press.second
     var cancelled = false
     val cancel = {
         cancelled = true
@@ -116,13 +131,18 @@ private suspend fun AwaitPointerEventScope.traceRegion(
     onLiveDrag(cancel)
     try {
         while (!cancelled) {
-            val change = awaitPointerEvent().changes.firstOrNull() ?: break
-            val (x1, y1) = pagePointOf(change.position.x, change.position.y, density, viewport)
+            val change = awaitPointerOrTick()
+            // A tick scrolls the sheet under the still pointer; the region is re-read from where that
+            // pointer now lands, so a marquee keeps growing while the page travels.
+            if (change == null) view.panAtEdge(lastX, lastY, density)
+            if (change != null) lastX = change.position.x
+            if (change != null) lastY = change.position.y
+            val (x1, y1) = pagePointOf(lastX, lastY, density, view.current())
             region.value = when (tool) {
                 SelectionTool.MARQUEE -> rectRegion(x0, y0, x1, y1)
                 SelectionTool.LASSO -> SelectionRegion.Polygon(points + Vec2(x1, y1))
             }
-            val up = change.changedToUpIgnoreConsumed() || !change.pressed
+            val up = change != null && (change.changedToUpIgnoreConsumed() || !change.pressed)
             if (up) {
                 val traced = region.value
                 region.value = null
@@ -132,8 +152,8 @@ private suspend fun AwaitPointerEventScope.traceRegion(
                 break
             }
             // The loop is what the lasso commits; a rectangle reads its corners off the pointer.
-            if (tool == SelectionTool.LASSO) points += Vec2(x1, y1)
-            change.consume()
+            if (change != null && tool == SelectionTool.LASSO) points += Vec2(x1, y1)
+            change?.consume()
         }
     } finally {
         region.value = null
@@ -148,7 +168,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     x0: Double,
     y0: Double,
     tab: DesktopTab,
-    viewport: Viewport,
+    view: SelectionView,
     density: Float,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
@@ -167,10 +187,18 @@ private suspend fun AwaitPointerEventScope.transformSelection(
         onEdited(index)
     }
     onLiveDrag(cancel)
+    val press = view.current().toScreen(x0.toFloat(), y0.toFloat())
+    var lastX = press.first
+    var lastY = press.second
     try {
         while (!cancelled) {
-            val change = awaitPointerEvent().changes.firstOrNull() ?: break
-            val (x1, y1) = pagePointOf(change.position.x, change.position.y, density, viewport)
+            val change = awaitPointerOrTick()
+            // A tick at the border scrolls the sheet; the move below is then re-read from where the
+            // pointer now lands, so the element keeps following it past the window's edge.
+            if (change == null) view.panAtEdge(lastX, lastY, density)
+            if (change != null) lastX = change.position.x
+            if (change != null) lastY = change.position.y
+            val (x1, y1) = pagePointOf(lastX, lastY, density, view.current())
             val (edited, next) = when (handle) {
                 SelectionHandle.BODY -> SelectionEdit.move(original, selection, x1 - x0, y1 - y0)
                 SelectionHandle.ROTATE -> SelectionEdit.rotate(
@@ -196,8 +224,8 @@ private suspend fun AwaitPointerEventScope.transformSelection(
                 tab.selection = next
                 onEdited(index)
             }
-            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
-            change.consume()
+            if (change != null && (change.changedToUpIgnoreConsumed() || !change.pressed)) break
+            change?.consume()
         }
     } finally {
         onLiveDrag(null)

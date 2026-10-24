@@ -64,7 +64,15 @@ class ViewportTest {
         assertEquals("never smaller than 25%", Viewport.MIN_ZOOM, tiny.zoom, 1e-4f)
 
         val huge = start.zoomBy(100f, viewW / 2f, viewH / 2f, pageW, pageH, viewW, viewH)
-        assertEquals("never larger than 400%", Viewport.MAX_ZOOM, huge.zoom, 1e-4f)
+        assertEquals("never larger than 3 200%", Viewport.MAX_ZOOM, huge.zoom, 1e-4f)
+    }
+
+    @Test
+    fun `the window zooms far past 400 percent`() {
+        // A stroke retouched by hand, a glyph, a symbol: 400 % was the ceiling and it was the wrong one.
+        assertTrue("the deepest zoom is well past 400 %", Viewport.MAX_ZOOM >= 16f)
+        val deep = Viewport.centred(1f, pageW, pageH, viewW, viewH).zoomTo(24f, pageW, pageH, viewW, viewH)
+        assertTrue("a quarter of the page still lands", deep.zoom > 4f)
     }
 
     @Test

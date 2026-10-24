@@ -114,8 +114,9 @@ the tablet's too: the same raised glass capsules floating in their own lanes, an
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
 page's layers, each with an eye that hides it from the page and from the thumbnail without touching the file),
-and the page can be fitted to the window, fitted to its width, or zoomed freely — the
-point under the cursor stays where it is while you zoom. A page saved as one long strip — how a lecture
+and the page can be fitted to the window, fitted to its width, or zoomed freely, up to **3 200 %** — a
+single glyph fills the window when you need to look that closely — and the point under the cursor stays
+where it is while you zoom. A page saved as one long strip — how a lecture
 written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
 shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. You can **write on the
 page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
@@ -149,7 +150,10 @@ page untouched. A circuit slot opens the tablet's palette of that family's symbo
 the first only arms the slot, and the little chevron on the slot opens the palette straight away — and the
 drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
 picks the tool, a second click asks which of them. Once an element is placed the window switches to the
-selection tool, as the tablet does, so the next drag moves what you just made instead of placing another. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
+selection tool, as the tablet does, so the next drag moves what you just made instead of placing another.
+Dragging a selection, or an element already on the page, against the **edge of the canvas scrolls the
+view** while the drag keeps going: a marquee keeps catching ink past the border, and a figure can be
+carried to a part of the sheet that is off screen without lifting the pen. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.

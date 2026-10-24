@@ -62,7 +62,18 @@ data class Viewport(
     companion object {
 
         const val MIN_ZOOM = 0.25f
-        const val MAX_ZOOM = 4f
+
+        /**
+         * The deepest zoom the window offers: **3 200 %**, a page point drawn as 32 screen pixels.
+         *
+         * 400 % was the room a retouched stroke or a single glyph needed, and nothing more: the sheet is a
+         * recorded **vector** picture replayed under the canvas's own matrix (`PagePicture`), so a deeper
+         * zoom costs no memory (the surface is the window, not the page) and no accuracy that matters —
+         * Skia transforms the paths themselves. What does start to matter is float arithmetic on page
+         * points far from the origin, which stays exact well past this point, and the tick labels, which
+         * are drawn in page units and remain crisp for the same reason.
+         */
+        const val MAX_ZOOM = 32f
 
         /** The zoom at which `pageW × pageH` fits `viewW × viewH` with [margin] dp to spare. */
         fun fitZoom(pageW: Float, pageH: Float, viewW: Float, viewH: Float, margin: Float = PAGE_MARGIN_DP): Float {

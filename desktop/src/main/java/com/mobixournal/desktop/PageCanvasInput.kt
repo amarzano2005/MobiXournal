@@ -52,7 +52,12 @@ internal suspend fun PointerInputScope.pageGestures(
     ink: DesktopInk,
     /** What a lifted living-slot drag means: the shell asks the family's values first. */
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
-    viewport: Viewport,
+    /**
+     * The viewport **as it is now**, not the one the composable was built with: a selection drag scrolls
+     * the sheet at the canvas's edge (`SelectionView`), so every mapping during a gesture has to read the
+     * view the reader is actually looking at.
+     */
+    view: () -> Viewport,
     pageW: Float,
     pageH: Float,
     viewW: Float,
@@ -87,11 +92,13 @@ internal suspend fun PointerInputScope.pageGestures(
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
+    // The selection drag's view: its own mapping and the edge scroll it may ask for.
+    val selectionView = SelectionView(view, pageW, pageH, viewW, viewH, onViewport)
     val gesture = PageInkGesture(
         tab = tab,
         tool = tool,
         ink = ink,
-        view = { viewport },
+        view = view,
         pageW = pageW,
         pageH = pageH,
         density = density,
@@ -108,13 +115,14 @@ internal suspend fun PointerInputScope.pageGestures(
         val buttons = currentEvent.buttons
         // Middle-drag always pans; a primary drag pans only while Space is held, so the pen gets the
         // primary button.
+        val viewport = view()
         if (buttons.isTertiaryPressed || (panMode && buttons.isPrimaryPressed)) {
             panByDrag(viewport, pageW, pageH, viewW, viewH, onViewport)
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
         // A selection, a living element or a figure takes the drag before the ink sees it.
-        if (preInkPress(down, tool, tab, viewport, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
+        if (preInkPress(down, tool, tab, selectionView, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
@@ -126,22 +134,37 @@ internal suspend fun PointerInputScope.pageGestures(
             verticalSpaceDrag(down, tab, viewport, pageH, grabLine, onEdited)
             return@awaitEachGesture
         }
-        gesture.down(down, buttonsOf(currentEvent))
-        while (true) {
-            if (packetsOwn()) {
-                gesture.cancel()
-                return@awaitEachGesture
-            }
-            val change = awaitPointerEvent().changes.firstOrNull() ?: break
-            if (change.changedToUpIgnoreConsumed()) {
-                gesture.up(change, buttonsOf(currentEvent))
-                break
-            }
-            if (change.pressed) gesture.move(change, buttonsOf(currentEvent))
-            if (gesture.drawing) change.consume()
-        }
-        gesture.cancel()
+        if (inkDrag(down, gesture, packetsOwn)) return@awaitEachGesture
     }
+}
+
+/**
+ * The ink half of a press: the drag goes to the shared router until it lifts.
+ *
+ * True when the pen's packets took the stroke over mid-gesture — the caller must then leave the gesture
+ * without committing, because that stroke is the packets' to finish.
+ */
+private suspend fun AwaitPointerEventScope.inkDrag(
+    down: PointerInputChange,
+    gesture: PageInkGesture,
+    packetsOwn: () -> Boolean,
+): Boolean {
+    gesture.down(down, buttonsOf(currentEvent))
+    while (true) {
+        if (packetsOwn()) {
+            gesture.cancel()
+            return true
+        }
+        val change = awaitPointerEvent().changes.firstOrNull() ?: break
+        if (change.changedToUpIgnoreConsumed()) {
+            gesture.up(change, buttonsOf(currentEvent))
+            break
+        }
+        if (change.pressed) gesture.move(change, buttonsOf(currentEvent))
+        if (gesture.drawing) change.consume()
+    }
+    gesture.cancel()
+    return false
 }
 
 /**
@@ -153,7 +176,7 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
-    viewport: Viewport,
+    view: SelectionView,
     pageW: Float,
     pageH: Float,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
@@ -161,10 +184,10 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
 ): Boolean {
-    if (selectionPress(down, tool, tab, viewport, pageW, pageH, density, previewRegion, onLiveDrag, onEdited)) {
+    if (selectionPress(down, tool, tab, view, density, previewRegion, onLiveDrag, onEdited)) {
         return true
     }
-    return livingPress(down, tool, viewport, pageW, pageH, previewRegion, onLiveDrag, onPlaceLiving)
+    return livingPress(down, tool, view.current(), pageW, pageH, previewRegion, onLiveDrag, onPlaceLiving)
 }
 
 /** dp a wheel notch moves the page. */
