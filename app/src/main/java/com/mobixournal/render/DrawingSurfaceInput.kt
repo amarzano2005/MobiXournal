@@ -38,15 +38,16 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 event.eventTime, event.x, event.y, event.getPointerId(0),
                 maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
             )
-            beginPointer(event, 0); beginHandTap(event); armPageDrag(event)
+            beginPointer(event, 0); beginHandTap(event); armPageDrag(event); armSelectionDrag(event)
         }
         MotionEvent.ACTION_POINTER_DOWN -> {
-            handTapCandidate = false; cancelPageDrag(); onPointerDown(event)
+            handTapCandidate = false; cancelPageDrag(); cancelSelectionDrag(); onPointerDown(event)
         }
         MotionEvent.ACTION_MOVE -> {
             if (handTapCandidate) trackHandTapMove(event)
             multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
             trackPageDragArm(event)
+            trackSelectionDragArm(event)
             // A lifted page owns the gesture outright — no panning, drawing or erasing underneath it.
             if (overview.dragging) { pageDragMove(event); return true }
             // The guide is dragged by its own finger and runs *alongside* the other gestures —
@@ -92,7 +93,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             splineDragging -> splineUp(event)
             backgroundSelecting -> { cancelPageDrag(); commitBackgroundSelect() }
             else -> {
-                cancelPageDrag()
+                cancelPageDrag(); cancelSelectionDrag()
                 if (scrolling && finishMultiFingerTap(event)) { cancelGesture(); render(); return true }
                 captureReleaseVelocity(event); handleHandTapUp(event)
                 // The router hears the lift too, so its contact map is empty for the next gesture.
@@ -101,7 +102,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
             }
         }
         MotionEvent.ACTION_CANCEL -> {
-            handTapCandidate = false; cancelPageDrag(); cancelGesture()
+            handTapCandidate = false; cancelPageDrag(); cancelSelectionDrag(); cancelGesture()
         }
         else -> return null
     }

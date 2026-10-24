@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
@@ -68,7 +69,12 @@ internal class TextEditController(
     }
 
     /**
-     * Place a LaTeX image at the placement, sized to a default box (resizable later).
+     * Place a living **math block** at the placement, sized to a default box (resizable later).
+     *
+     * The block keeps its source (not a rendered bitmap), so it can be re-edited by double-tapping it
+     * and compiles to a standard `<teximage>` only when the document is exported to `.xopp`
+     * ([com.mobixournal.render.MathBlockInk]).
+     *
      * @param p Placement info (page, position).
      * @param latex LaTeX source string.
      * @param colorArgb ARGB color.
@@ -77,7 +83,7 @@ internal class TextEditController(
         if (latex.isBlank()) return
         add(
             p.pageIndex,
-            TexImageElement(
+            MathBlockElement(
                 p.xPt, p.yPt,
                 p.xPt + ElementEdits.TEX_W_PT, p.yPt + ElementEdits.TEX_H_PT,
                 latex, colorArgb,

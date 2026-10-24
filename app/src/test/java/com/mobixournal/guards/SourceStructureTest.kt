@@ -34,7 +34,9 @@ class SourceStructureTest {
     private val fileCeilings = mapOf(
         // 1780 -> 1778 deliberate: the living figure's panel moved beside its own dialog
         // (`ShapeEditorHost`), so the canvas file pays one line for it, not twenty.
-        "ui/EditorRegions.kt" to 1778,
+        // +14 deliberate: the split workspace's own window plumbing — the pane session bridge and the
+        // shared document an editing pane hands its mirror, both passed straight through to the canvas.
+        "ui/EditorRegions.kt" to 1792,
         // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
@@ -53,7 +55,11 @@ class SourceStructureTest {
         // and the mirrored pane being handed the board's grid along with the document.
         // -6: the shape-endpoint snap takes an explicit connector switch rather than carrying the
         // stale duplicate doc block it had.
-        "render/DrawingSurfaceView.kt" to 1823,
+        // +15 deliberate: the two panes of one document — the docKey it was opened as (so a mirror can
+        // look its session up) and the shared-session handle it reports an edit through. The sharing
+        // itself lives in `panes/DocumentSessions.kt`.
+        // +3: the armed selection lift, one field, beside the clipboard it ends up on.
+        "render/DrawingSurfaceView.kt" to 1841,
         "render/CircuitShapes.kt" to 1180,
         // +5 deliberate: transcriptionLanguage setting for speech recognition language choice.
         "ui/AppSettings.kt" to 997,

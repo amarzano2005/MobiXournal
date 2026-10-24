@@ -35,7 +35,17 @@ package com.mobixournal.format.model
  * (rendering, hit tests) are answering the same question in the negative.
  */
 val Element.isLivingEntity: Boolean
-    get() = this is TableElement || this is PlotElement || this is ParametricShapeElement || this is CircuitElement
+    get() = this is TableElement || this is PlotElement || this is ParametricShapeElement ||
+        this is CircuitElement || this is MathBlockElement
+
+/** Which scientific source language a [MathBlockElement] is written in. */
+enum class MathFlavor {
+    /** LaTeX math source, the language desktop Xournal++'s `<teximage>` carries. */
+    LATEX,
+
+    /** Typst markup — kept as its own source rather than translated, so nothing is lost on a re-edit. */
+    TYPST,
+}
 
 /** A cell's horizontal alignment inside its column — the desktop's three values. */
 enum class TableAlign { LEFT, CENTER, RIGHT }
@@ -326,5 +336,49 @@ data class CircuitElement(
     companion object {
         /** The ink a component is drawn in when nothing chose one: opaque black, like every other pen. */
         const val DEFAULT_INK: Int = 0xFF000000.toInt()
+    }
+}
+
+/**
+ * A **living math block**: a formula whose source stays editable and whose box stays a box.
+ *
+ * It is the math sibling of a circuit or a table — `.xopp` can only hold a formula as a rendered
+ * `<teximage>` (its source in an attribute, its pixels in the body), so the native `.mobix` format
+ * keeps the block as this recipe instead: [source] in [flavor], a box the selection tool can move and
+ * resize, and nothing rendered stored in the document. The canvas typesets it from [source] with the
+ * shared LaTeX renderer; the export compiles it to a `<teximage>` ([MathBlockInk]) so a desktop
+ * Xournal++ opens a real formula, and the PDF plan draws its glyphs as vector text.
+ *
+ * [source] is the single authority: an edit rewrites it, and the drawing follows. Nothing caches a
+ * rendered bitmap inside the element, which is why a `.mobix` holding a formula stays small and why
+ * the same block looks crisp at any zoom.
+ *
+ * @param left The block's left edge in page points.
+ * @param top The block's top edge in page points.
+ * @param right The block's right edge in page points.
+ * @param bottom The block's bottom edge in page points.
+ * @param source The formula source (LaTeX or Typst, per [flavor]).
+ * @param color The ink colour as an ARGB int.
+ * @param flavor Which language [source] is written in.
+ * @param extraAttrs Attributes a later schema added, preserved for round-trip.
+ * @param id The element's stable identity; see [ElementId].
+ */
+data class MathBlockElement(
+    val left: Double,
+    val top: Double,
+    val right: Double,
+    val bottom: Double,
+    val source: String,
+    val color: Int = 0xFF000000.toInt(),
+    val flavor: MathFlavor = MathFlavor.LATEX,
+    val extraAttrs: Map<String, String> = emptyMap(),
+    val id: String? = null,
+) : Element {
+    companion object {
+        /** The box a fresh block is placed in, in points — wide enough for a short formula. */
+        const val DEFAULT_WIDTH_PT: Double = 120.0
+
+        /** The box a fresh block is placed in, in points. */
+        const val DEFAULT_HEIGHT_PT: Double = 32.0
     }
 }

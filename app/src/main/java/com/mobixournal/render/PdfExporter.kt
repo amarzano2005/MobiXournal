@@ -28,6 +28,12 @@ internal class PdfExporter(
     private val pdfSource: PdfPageCache?,
     private val imageSource: ImageBackgroundCache? = null,
     /**
+     * The imported PDFs' positioned text layer, when the editor holds one. It is what turns a
+     * highlighter over text into a `/Highlight` annotation instead of a generic ink mark; without it
+     * the export is unchanged apart from the `/Ink` and `/Text` dictionaries.
+     */
+    private val textIndex: PdfTextIndex? = null,
+    /**
      * The board geometry [doc] is laid out in, when it is a board: a PDF reader can only open pages, so
      * a chunked document is sliced into the sheets its tiles add up to before a page is written
      * ([sheetDocument], `docs/infinite-canvas.md` → *Auto-pagination and export slicing*). Null for a
@@ -73,6 +79,9 @@ internal class PdfExporter(
             cs.transform(Matrix(m.a, m.b, m.c, m.d, m.e, m.f))
             painter.paint(outDoc, cs, page, transform)
         }
+        // Real annotation dictionaries over the flattened paint, in the same space the overlay draws
+        // in; both are added, so no viewer is required to see the marks.
+        PdfAnnotations.add(pdPage, page, pageNo, textIndex, transform, m)
     }
 
     /** No source PDF page: a fresh sheet with a vector background plus the annotation overlay. */
@@ -85,6 +94,7 @@ internal class PdfExporter(
             pixmapBackground(outDoc, cs, page, transform)
             painter.paint(outDoc, cs, page, transform)
         }
+        PdfAnnotations.add(pdPage, page, null, null, transform, null)
     }
 
     /**

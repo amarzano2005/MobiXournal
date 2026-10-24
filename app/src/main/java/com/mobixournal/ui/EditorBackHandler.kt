@@ -43,6 +43,7 @@ fun EditorBackHandler(
             ui.editingTableCell != null -> ui.editingTableCell = null
             ui.editingCircuit != null -> ui.editingCircuit = null
             ui.editingShape != null -> ui.editingShape = null
+            ui.editingMathBlock != null -> ui.editingMathBlock = null
 
             // A multi-tap spline gesture in progress: back throws the open curve away, as Escape does.
             surface != null && surface.splineInProgress() -> surface.cancelSpline()

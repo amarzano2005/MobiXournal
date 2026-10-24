@@ -148,8 +148,8 @@ channel exists to prevent.
 ## Living entities
 
 The constructs `.xopp` can only bake into dead ink. Each family has its own codec — `MobixTableCodec`,
-`MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec` — reached from `MobixElementCodec` by its
-`type`, and all four obey one rule that is stricter than rule 1:
+`MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec`, `MobixMathCodec` — reached from
+`MobixElementCodec` by its `type`, and all five obey one rule that is stricter than rule 1:
 
 **A codec models an element or preserves it whole, and never half-reads one.** An unknown *element
 type* survives as raw JSON (rule 1); so does a **known family this build cannot read** — a cell whose
@@ -391,10 +391,10 @@ resistor black. `symbol` names a key in that library (and, like a shape's `shape
 a build that does not know a symbol cannot draw it, and says so rather than inventing ink for it
 (`docs/mobix-format.md`, the lossy-field rule).
 
-### LaTeX today
+### Math block (`mathBlock`)
 
-`.xopp`'s `teximage` is the only math element the model carries: `TexImageElement` keeps the LaTeX source,
-its colour and the rendered PNG bytes (either may be absent) and round-trips unchanged. The app draws that
-source itself (`render/LatexParser.kt` → `render/LatexRenderer.kt`); `ui/LatexPalette.kt` inserts the STEM
-symbols the keyboard cannot. There is no living `mathBlock` element: one from a newer build is preserved
-verbatim as a `RawElement` (rule 1) rather than drawn.
+`MathBlockElement` is the living formula: its `source` in `flavor` (`LATEX`/`TYPST`), colour and box, and
+**no rendered bytes** — the drawing is a function of the source. `MobixMathCodec` spells it; the canvas
+typesets it with `LatexRenderer`, the `.xopp` bridge compiles it to a standard `<teximage>` (`MathBlockInk`)
+and the PDF plan lays it out glyph by glyph (`LatexLayout`). A build that does not know the type preserves
+it verbatim (rule 1). `TexImageElement` remains the `.xopp`-carried formula and round-trips unchanged.

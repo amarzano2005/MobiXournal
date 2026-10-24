@@ -168,6 +168,8 @@ fun LatexPalette(
 @Composable
 fun LatexDialog(
     initial: String = "",
+    title: String = "LaTeX Formula",
+    confirmLabel: String = "Place",
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -178,7 +180,7 @@ fun LatexDialog(
 
     FloatingDialog(
         onDismissRequest = onDismiss,
-        title = { Text("LaTeX Formula") },
+        title = { Text(title) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 LatexPalette(
@@ -201,7 +203,7 @@ fun LatexDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(textFieldValue.text) }) {
-                Text("Place")
+                Text(confirmLabel)
             }
         },
         dismissButton = {

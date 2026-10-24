@@ -4,6 +4,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
@@ -47,6 +48,10 @@ object SelectionOps {
             right = element.right + dx, bottom = element.bottom + dy,
         )
         is TexImageElement -> element.copy(
+            left = element.left + dx, top = element.top + dy,
+            right = element.right + dx, bottom = element.bottom + dy,
+        )
+        is MathBlockElement -> element.copy(
             left = element.left + dx, top = element.top + dy,
             right = element.right + dx, bottom = element.bottom + dy,
         )
@@ -163,6 +168,10 @@ object SelectionOps {
                 right = element.right * sx + dx, bottom = element.bottom * sy + dy,
             )
             is TexImageElement -> element.copy(
+                left = element.left * sx + dx, top = element.top * sy + dy,
+                right = element.right * sx + dx, bottom = element.bottom * sy + dy,
+            )
+            is MathBlockElement -> element.copy(
                 left = element.left * sx + dx, top = element.top * sy + dy,
                 right = element.right * sx + dx, bottom = element.bottom * sy + dy,
             )
@@ -331,6 +340,7 @@ object SelectionOps {
         }
         is TextElement -> if (color != null) element.copy(color = color) else element
         is TexImageElement -> if (color != null) element.copy(color = color) else element
+        is MathBlockElement -> if (color != null) element.copy(color = color) else element
         is ImageElement -> element
         is CircuitElement -> {
             var e = if (color != null) element.copy(strokeColor = color) else element

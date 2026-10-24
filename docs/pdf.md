@@ -160,6 +160,28 @@ to word indices (`PdfTextIndex.anchorWord`), the range is highlighted (`drawText
 selection is a **view-only** overlay derived from the PDF — it isn't part of the `.xopp` document, so
 it doesn't affect round-trip (matching how desktop selects a PDF background's text).
 
+## The magnetic highlighter
+
+A highlighter drag over a born-digital page is tested against the same `PdfWord` boxes text selection
+uses (`PdfTextIndex`, page-local pt) by `render/MagneticHighlighter.kt` — pure geometry, JVM-tested. Only
+a drag that is clearly horizontal qualifies: less than 8 pt, steeper than `0.6 ×` its own width, or over
+no text stays exactly as drawn. When it does qualify, the words the pen line crosses are clustered into
+lines and each line becomes one constant-width band as tall as its glyph boxes plus 1.5 pt of air. The
+canvas previews those bands during the drag (`DrawingSurfacePaint.drawCurrent`) and commits them at
+lift-off as ordinary highlighter strokes, so one gesture is still one undo step and the band round-trips
+through `.mobix` and `.xopp` as ink. Snapping is a convenience, never a correction the user did not ask
+for: a margin mark is not silently turned into a sentence.
+
+## Annotation dictionaries
+
+The export adds **real PDF annotations** beside the flattened paint (`render/PdfAnnotations.kt`): a
+highlighter over text becomes `/Highlight` with `/QuadPoints`, a pen stroke `/Ink` with its points, and a
+text box `/Text` with its content. They are mapped through the same `PdfPageTransform` and
+`PdfOverlayMatrix` the overlay uses, so a `/Rotate` page lands correctly. The flattened drawing stays,
+because a viewer that does not render annotations must still see the marks; the dictionaries are what put
+them in Acrobat's or Okular's own annotation list. A highlighter over a picture or a margin — no text
+under it — is `/Ink`, not a false highlight.
+
 ## PDF Contents (the outline)
 
 **PDF Contents (the outline).** The same worker that extracts the text layer also reads the PDF's

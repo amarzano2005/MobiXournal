@@ -92,6 +92,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
      * the corner handles the selection draws.
      */
     var editingShape by mutableStateOf<com.mobixournal.format.model.ParametricShapeElement?>(null)
+    /** The existing [MathBlockElement] whose formula dialog is open, or null when none is. */
+    var editingMathBlock by mutableStateOf<com.mobixournal.format.model.MathBlockElement?>(null)
     /**
      * The page whose **bookmark editor** is open (0-based), or null when none is. Opening it for a
      * page that has no bookmark adds one; opening it for a bookmarked page edits or deletes that one.

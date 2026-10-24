@@ -5,6 +5,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotCurve
@@ -62,6 +63,15 @@ class LivingEditCoverageTest {
         id = "ckt_edit",
     )
 
+    private fun math() = MathBlockElement(
+        left = 200.0,
+        top = 400.0,
+        right = 320.0,
+        bottom = 432.0,
+        source = "x^2 + y^2",
+        id = "math_edit",
+    )
+
     private fun shape() = ParametricShapeElement(
         shape = "TRIANGLE",
         vertices = listOf(ShapeVertex(400.0, 380.0), ShapeVertex(480.0, 380.0), ShapeVertex(440.0, 440.0)),
@@ -77,6 +87,7 @@ class LivingEditCoverageTest {
         LivingEditFamily.PLOT to plot(),
         LivingEditFamily.CIRCUIT to circuit(),
         LivingEditFamily.SHAPE to shape(),
+        LivingEditFamily.MATH to math(),
     )
 
     private fun page(vararg elements: Element) = Page(
@@ -102,7 +113,7 @@ class LivingEditCoverageTest {
         }
         assertEquals(
             "one family per living type",
-            4,
+            5,
             LivingEditFamily.entries.size,
         )
     }
@@ -158,6 +169,7 @@ class LivingEditCoverageTest {
                 LivingEditFamily.PLOT -> ui.editingPlot != null
                 LivingEditFamily.CIRCUIT -> ui.editingCircuit != null
                 LivingEditFamily.SHAPE -> ui.editingShape != null
+                LivingEditFamily.MATH -> ui.editingMathBlock != null
             }
             assertTrue("$family has no editor to open", opened)
         }

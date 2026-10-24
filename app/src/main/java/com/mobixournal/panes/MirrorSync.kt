@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.mobixournal.format.model.Document
 import com.mobixournal.render.CanvasGeometry
+import com.mobixournal.render.EditHistory
 import com.mobixournal.tabs.OpenTab
 
 /**
@@ -26,6 +27,8 @@ import com.mobixournal.tabs.OpenTab
  */
 class MirrorSync(
     private val panes: List<EditorPane>,
+    /** The one undo history per document, shared by every view (and window) of it. */
+    private val sessions: DocumentSessions = DocumentSessions.shared,
     /** How a coalesced flush is scheduled; injectable so tests can run it inline. */
     private val post: (Runnable) -> Unit = { Handler(Looper.getMainLooper()).post(it) },
 ) {
@@ -69,6 +72,9 @@ class MirrorSync(
         pendingGeometry = null
         if (source == null || doc == null) return
         val key = source.tabs.active?.docKey ?: return
+        // The source's stack becomes the document's stack: every view of this key now records and
+        // undoes against the same snapshots, so an undo in one view takes the stroke off them all.
+        val history = sessions.history(key) { source.surface?.history ?: EditHistory() }
         for (p in panes) {
             // The record now holds the real document, so it counts as hydrated even if it was still a
             // placeholder from the session index — the edit must not be lost to a later snapshot read.
@@ -76,7 +82,7 @@ class MirrorSync(
             // rather than copying it per tab.
             p.tabs.updateMatching({ it.docKey == key }) { it.copy(document = doc, hydrated = true) }
             if (p === source) continue
-            if (p.tabs.active?.docKey == key) p.surface?.applyMirroredDocument(doc, geometry)
+            if (p.tabs.active?.docKey == key) p.surface?.applyMirroredDocument(doc, geometry, history)
         }
     }
 }

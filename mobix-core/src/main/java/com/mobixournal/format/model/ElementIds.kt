@@ -49,6 +49,9 @@ object ElementId {
     /** A circuit component's id prefix. */
     const val CIRCUIT = "ckt"
 
+    /** A living math block's id prefix. */
+    const val MATH = "mth"
+
     /** A spatial chunk's id prefix. */
     const val CHUNK = "chk"
 
@@ -87,6 +90,7 @@ object ElementId {
         is PlotElement -> element.id?.let { element } ?: element.copy(id = mint(PLOT))
         is ParametricShapeElement -> element.id?.let { element } ?: element.copy(id = mint(SHAPE))
         is CircuitElement -> element.id?.let { element } ?: element.copy(id = mint(CIRCUIT))
+        is MathBlockElement -> element.id?.let { element } ?: element.copy(id = mint(MATH))
         is RawElement -> element
     }
 
@@ -104,6 +108,7 @@ object ElementId {
         is PlotElement -> element.id
         is ParametricShapeElement -> element.id
         is CircuitElement -> element.id
+        is MathBlockElement -> element.id
         is RawElement -> null
     }
 

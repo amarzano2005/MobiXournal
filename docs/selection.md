@@ -4,6 +4,26 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
+## Copying and dropping a selection
+
+A copy leaves the canvas in **four flavours at once** (`render/ElementTransfer.kt` and
+`render/SelectionTransfer.kt`): `application/vnd.mobixournal.element` carries the elements themselves
+(geometry, living recipe and formula source) so another view or window can paste them; `image/svg+xml`
+is a vector page of the selection (`PageSvgWriter`); `image/png` is rendered into `cache/clipboard/` and
+handed out through the app's `FileProvider`; `text/plain` is a readable summary — a text box's content, a
+formula's source, the element kinds. A paste prefers the element flavour, so a duplicated plot arrives
+a live plot, not a picture of one.
+
+A **long-press on the selection** lifts it as a system drag carrying that same clip (`render/SelectionDragOut.kt`);
+a touch that moves before the timeout stays the ordinary move/resize gesture, and only a finger can lift
+one — a stylus is drawing.
+
+**Dropping** accepts the same flavours (plus an image, a PDF or a text file): elements land at the drop
+point as one undoable edit and are selected; text is classified by `render/ExternalIngest.kt` — a
+CSV/TSV grid becomes a living table whose columns divide the requested width, a short LaTeX line a math
+block, prose a text box; an image becomes an `ImageElement`; a PDF is handed to the editor, which appends
+its pages. Nothing is imported silently: the drop point is the element's placement.
+
 ## Selecting objects (`render/`)
 
 **Selecting objects (`render/`).** The **Select** tools (`EditorTool.SELECT`,
@@ -25,8 +45,8 @@ Select tool is active** opens the editor of the living element under the point �
 a component, a figure — through one dispatch (`render/LivingEditTargets.kt`) and one UI seam
 (`ui/LivingEditors.kt`), the same target the action bar's **Edit** button opens; ink is not a living
 entity, so a double-tap over a plain page stays the marquee (see [mobix-elements.md](mobix-elements.md)
-and `LivingEditCoverageTest`). The four **living
-entities** (`.mobix`'s table, plot, shape and circuit) answer through the same seam with a box of
+and `LivingEditCoverageTest`). The five **living
+entities** (`.mobix`'s table, plot, shape, circuit and math block) answer through the same seam with a box of
 their own — a table's grid, a plot's frame, a circuit's compiled ink and a shape's **vertices**, which
 are recomputed on every read so a picked figure is always where its corners are — and each carries
 its own handles on top (dividers, sliders, vertex dots): see [mobix-elements.md](mobix-elements.md). `SelectionTester` does

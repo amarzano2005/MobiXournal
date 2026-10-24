@@ -2,6 +2,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TableElement
@@ -59,6 +60,9 @@ object LivingInk {
             ?.let { Ink(it, emptyList()) }
             ?: Ink(emptyList(), listOf(Uncompilable("circuit", "\"${element.symbol}\" is not a symbol this build has a drawing for")))
         is TableElement -> Ink(TableInk.ink(element), emptyList())
+        // A formula has no hand-drawn ink: its `.xopp` shape is a `<teximage>` carrying the source,
+        // which is what both the synthesis bridge and the direct writer emit ([MathBlockInk]).
+        is MathBlockElement -> Ink(listOf(MathBlockInk.texImage(element)), emptyList())
         // Not a living entity (or one this build does not model): its own drawing, nothing to report.
         else -> Ink(listOf(element), emptyList())
     }

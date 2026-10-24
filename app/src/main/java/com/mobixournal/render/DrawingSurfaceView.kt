@@ -351,7 +351,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private var lastSelectionRect: android.graphics.RectF? = null
 
     /** Undo/redo snapshots of the whole [Document] (cheap: immutable pages/layers share structure). */
-    internal val history = EditHistory<Document>()
+    internal var history = EditHistory<Document>()
     /** The document as it was when the current gesture began, so one gesture is one undo step. */
     internal var gestureStartDoc: Document? = null
 
@@ -425,6 +425,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * same document (the split's other pane) can be handed it — see [applyMirroredDocument].
      */
     var onDocumentEdited: ((Document) -> Unit)? = null
+    /**
+     * A PDF dropped on the page, handed to the host: only the editor knows whether the import
+     * replaces the document or appends after the pages already open (`ImportPdfMode`).
+     */
+    var onExternalPdf: ((android.net.Uri) -> Unit)? = null
     /** Notified with the current zoom factor whenever it changes, so the chrome can show the level. */
     var onZoomChanged: ((Float) -> Unit)? = null
     /** Notified with the page-overview column count whenever it changes. */
@@ -658,6 +663,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Copied/cut elements, ready to paste onto the visible page. */
     internal var clipboard: List<Element> = emptyList()
 
+    /** The pending long-press that lifts the selection as a drag (`SelectionDragOut.kt`). */
+    internal val selectionDragOut = SelectionDragOut()
+
     // Live background-copy marquee (view px). Unlike Select, this is rectangle-only and never
     // selects elements; release copies a flattened bitmap region into [clipboard].
     internal var backgroundSelecting = false
@@ -773,6 +781,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         holder.addCallback(this)
         isFocusable = true
         isFocusableInTouchMode = true
+        installDropTarget()
         MlKitInkEngine.addOnModelReadyListener {
             mainHandler.post {
                 handwritingIndex = null
@@ -834,7 +843,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * document would keep the grid it was opened with and draw — and save — a cell this session created
      * at the wrong place. Null for a page list, and for a mirror that has no board to hand over.
      */
-    internal fun applyMirroredDocument(incoming: Document, geometry: CanvasGeometry? = null) {
+    internal fun applyMirroredDocument(
+        incoming: Document,
+        geometry: CanvasGeometry? = null,
+        sharedHistory: EditHistory<Document>? = null,
+    ) {
         if (incoming === docValue) return
         cancelIndexing()
         docValue = if (incoming.pages.isEmpty()) incoming.copy(pages = listOf(blankPage())) else incoming
@@ -843,7 +856,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
         gestureStartDoc = null
         selection = null
         onSelectionChanged?.invoke(false)
-        history.clear()
+        // One history per document: when the mirror hands over the document's stack, the two views
+        // undo and redo through the very same snapshots. Without one (a mirror before any edit has
+        // registered a session) the local stack is dropped, as before, rather than undoing into a
+        // document this view no longer has.
+        if (sharedHistory != null) history = sharedHistory else history.clear()
         notifyHistory()
         resetPageWindow()
         onPageCountChanged?.invoke(pageSource.pageCount)
@@ -1159,7 +1176,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     fun pdfSourcePageCount(): Int = pdfSource?.pageCount ?: 0
 
     /** Flatten the current document (backgrounds, PDF pages, and all annotations) to a PDF. */
-    fun exportPdf(out: java.io.OutputStream) = PdfExporter(pdfSource, imageSource, canvasGeometry()).export(doc, out)
+    fun exportPdf(out: java.io.OutputStream) =
+        PdfExporter(pdfSource, imageSource, pdfTextIndex, canvasGeometry()).export(doc, out)
 
     /** Flatten one page (sheet, ruling, PDF/image background and every annotation) to a PNG. */
     fun exportPagePng(pageIndex: Int, out: java.io.OutputStream): Boolean = writePagePng(pageIndex, out)

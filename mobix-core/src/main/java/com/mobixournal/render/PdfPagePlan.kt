@@ -4,6 +4,7 @@ import com.mobixournal.format.FontDescription
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
@@ -157,6 +158,9 @@ object PdfPagePlan {
             is TextElement -> ops += text(element, t)
             is ImageElement -> ops += image(element, t)
             is TexImageElement -> tex(element, t)?.let { ops += it }
+            // A living formula is typeset glyph by glyph from its source, inside the box the user
+            // drew: the `.xopp` export writes the same source as a `<teximage>` ([MathBlockInk]).
+            is MathBlockElement -> mathBlock(element, t, ops)
             is RawElement -> Unit
             is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
                 LivingInk.of(element).elements.forEach { plan(it, t, ops) }
@@ -212,6 +216,45 @@ object PdfPagePlan {
         width = (img.right - img.left).toFloat(),
         height = (img.bottom - img.top).toFloat(),
     )
+
+    /**
+     * A living math block, laid out by the shared pure engine ([LatexLayout]) into one text op per
+     * glyph and one path per rule. A source this build cannot read lays out as its own text, which is
+     * the parser's documented degradation — never an empty page where a formula was.
+     */
+    private fun mathBlock(block: MathBlockElement, t: PdfPageTransform, ops: MutableList<PdfOp>) {
+        if (block.source.isBlank()) return
+        val layout = LatexLayout.layout(
+            LatexParser.parse(block.source),
+            boxHeightPt = block.bottom - block.top,
+            maxWidthPt = block.right - block.left,
+        )
+        val face = PdfFontFace(PdfFamily.SERIF, bold = false, italic = false)
+        for (glyph in layout.glyphs) {
+            if (glyph.text.isBlank()) continue
+            ops += PdfText(
+                lines = listOf(winAnsi(glyph.text)),
+                face = face,
+                size = glyph.size,
+                colour = block.color,
+                x = t.x(block.left + glyph.x),
+                y = t.y(block.top + glyph.y),
+                lineHeight = glyph.size * LINE_HEIGHT_RATIO,
+            )
+        }
+        for (rule in layout.rules) {
+            ops += PdfPath(
+                points = listOf(
+                    PdfPoint(t.x(block.left + rule.x1), t.y(block.top + rule.y1)),
+                    PdfPoint(t.x(block.left + rule.x2), t.y(block.top + rule.y2)),
+                ),
+                colour = block.color,
+                alpha = 1f,
+                multiply = false,
+                width = rule.widthPt,
+            )
+        }
+    }
 
     /** A `<teximage>` with no source has nothing to say; the exporter used to skip it silently. */
     private fun tex(tex: TexImageElement, t: PdfPageTransform): PdfText? {

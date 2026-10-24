@@ -14,6 +14,7 @@ import android.view.MotionEvent
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
@@ -97,6 +98,9 @@ fun DrawingSurfaceView.copySelection() {
     val page = pageAt(sel.pageIndex) ?: return
     clipboard = SelectionOps.elementsAt(page, sel.refs)
     onClipboardChanged?.invoke(clipboard.isNotEmpty())
+    // The selection leaves in all four flavours, so pasting into another view — or another app —
+    // carries the geometry and the formula source rather than a picture of them.
+    publishSelectionToSystemClipboard(clipboard)
 }
 
 /** Copy then delete the selection (one undoable edit via [deleteSelection]). */
@@ -116,6 +120,18 @@ fun DrawingSurfaceView.hasClipboard(): Boolean = clipboard.isNotEmpty()
  * out (or the clipboard has no measurable geometry).
  */
 fun DrawingSurfaceView.pasteClipboard() {
+    // A copy made in another view (or window) arrives through the system clipboard; the in-app
+    // element clipboard is used when it is the source, so the ordinary paste path is unchanged.
+    val external = if (clipboard.isEmpty()) systemClipboardElements(context) else emptyList()
+    if (external.isNotEmpty()) {
+        val target = visiblePageIndex()
+        val box = layout.boxes.getOrNull(target)
+        val x = if (box != null && width > 0) box.toPtX(width / 2f, scrollX) else 72.0
+        val y = if (box != null && height > 0) box.toPtY(height / 2f, scrollY) else 72.0
+        val bounds = SelectionOps.boundsOf(external) ?: return
+        pasteOnto(target, external.map { SelectionOps.translate(it, x - bounds.left, y - bounds.top) })
+        return
+    }
     if (clipboard.isEmpty()) return
     val target = visiblePageIndex()
     val bounds = SelectionOps.boundsOf(clipboard)
@@ -288,6 +304,21 @@ fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
  * keeps the same layer, z-order, and id, and repaints.
  */
 fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
+    val before = doc
+    val index = pageIndexHolding(old) ?: return
+    windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
+    history.record(before)
+    notifyHistory()
+    relayout()
+    render()
+}
+
+/**
+ * Replace [old] math block with [new] in place: records one undo step, keeps the same layer,
+ * z-order and id, and repaints. The formula dialog edits the block's own source, so the drawing
+ * follows from the new element without a stale cache.
+ */
+fun DrawingSurfaceView.replaceMathBlock(old: MathBlockElement, new: MathBlockElement) {
     val before = doc
     val index = pageIndexHolding(old) ?: return
     windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return

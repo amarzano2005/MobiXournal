@@ -8,6 +8,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
@@ -141,6 +142,8 @@ object XoppSynthesis {
      */
     private fun inkOf(element: Element, gaps: MutableList<Uncompilable>): List<Element> = when (element) {
         is Stroke, is TextElement, is ImageElement, is TexImageElement -> listOf(element)
+        // A living formula compiles to the one math element a `.xopp` has ([MathBlockInk]).
+        is MathBlockElement -> listOf(MathBlockInk.texImage(element))
         is PlotElement, is TableElement, is ParametricShapeElement, is CircuitElement -> {
             val ink = LivingInk.of(element)
             gaps += ink.uncompiled
@@ -174,6 +177,7 @@ object XoppSynthesis {
         is TableElement -> "table"
         is ParametricShapeElement -> "parametricShape"
         is CircuitElement -> "circuit"
+        is MathBlockElement -> "mathBlock"
         else -> "element"
     }
 }

@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
@@ -83,6 +84,7 @@ object ElementBounds {
         // has the vertex handles its editor drags, which is why its box must be the real one.
         is PlotElement, is TableElement, is CircuitElement -> true
         is ParametricShapeElement -> element.vertices.size >= 2
+        is MathBlockElement -> element.source.isNotBlank()
         is Stroke -> element.points.isNotEmpty()
         else -> true
     }
@@ -96,6 +98,7 @@ object ElementBounds {
         is TextElement -> textBounds(element)
         is ImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TexImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
+        is MathBlockElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is PlotElement -> plotBounds(element)
         is TableElement -> tableBounds(element)
         is CircuitElement -> circuitBounds(element)

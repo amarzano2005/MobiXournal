@@ -12,6 +12,7 @@ import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.xml.XmlWriter
@@ -90,7 +91,8 @@ class XoppWriter(out: Appendable) {
             // compiled into real strokes and text by the synthesis export (`docs/mobix-format.md`).
             // Until that exists it is skipped rather than written as a tag that means nothing here —
             // losing it from the export is visible, silently exporting nonsense is not.
-            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement -> Unit
+            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement,
+            is MathBlockElement -> Unit
         }
         w.end() // layer
         w.newline()

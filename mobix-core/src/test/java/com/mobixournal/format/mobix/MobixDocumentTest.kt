@@ -7,6 +7,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
@@ -91,6 +92,7 @@ class MobixDocumentTest {
         is PlotElement -> copy(id = null)
         is ParametricShapeElement -> copy(id = null)
         is CircuitElement -> copy(id = null)
+        is MathBlockElement -> copy(id = null)
         is RawElement -> this
     }
 

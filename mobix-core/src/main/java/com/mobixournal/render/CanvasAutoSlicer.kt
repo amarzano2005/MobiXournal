@@ -12,6 +12,7 @@ import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import kotlin.math.abs
@@ -43,6 +44,7 @@ object CanvasAutoSlicer {
         is TextElement -> textBounds(element)
         is ImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TexImageElement -> Bounds(element.left, element.top, element.right, element.bottom)
+        is MathBlockElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is PlotElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TableElement -> Bounds(element.left, element.top, element.left + element.width, element.top + element.height)
         is ParametricShapeElement -> shapeBounds(element)
@@ -93,6 +95,10 @@ object CanvasAutoSlicer {
             right = element.right + dx, bottom = element.bottom + dy,
         )
         is TexImageElement -> element.copy(
+            left = element.left + dx, top = element.top + dy,
+            right = element.right + dx, bottom = element.bottom + dy,
+        )
+        is MathBlockElement -> element.copy(
             left = element.left + dx, top = element.top + dy,
             right = element.right + dx, bottom = element.bottom + dy,
         )

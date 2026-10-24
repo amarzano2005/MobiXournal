@@ -103,6 +103,7 @@ import com.mobixournal.render.TriangleKind
 import com.mobixournal.render.boardFixedExtentPt
 import com.mobixournal.render.applyChromeColors
 import com.mobixournal.render.clearPenDebug
+import com.mobixournal.render.replaceMathBlock
 import com.mobixournal.render.replaceShapeElement
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.setBoardFixedExtent
@@ -1748,6 +1749,21 @@ fun EditorPaneView(
             }
             DialogPresence(ui.editingTableCell != null) {
                 TableCellEditorDialog(ui = ui, pane = state)
+            }
+            DialogPresence(ui.editingMathBlock != null) {
+                val block = rememberClosingArgument(ui.editingMathBlock) ?: return@DialogPresence
+                LatexDialog(
+                    initial = block.source,
+                    title = "Edit formula",
+                    confirmLabel = "Save",
+                    onConfirm = { source ->
+                        ui.editingMathBlock = null
+                        if (source.isNotBlank()) {
+                            state.surface?.replaceMathBlock(block, block.copy(source = source))
+                        }
+                    },
+                    onDismiss = { ui.editingMathBlock = null },
+                )
             }
             ShapeEditorHost(ui, state.surface)
             if (ui.editingCircuit != null) {

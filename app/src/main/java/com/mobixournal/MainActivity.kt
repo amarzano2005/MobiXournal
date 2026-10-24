@@ -444,7 +444,11 @@ class MainActivity : ComponentActivity() {
         // Whatever the last session could not finish (a standalone export, a transcription the user
         // closed the app on) is picked up here — closing after a lecture must never mean losing it.
         resumePendingAudioWork()
+        showEditor(initialSettings, store)
+    }
 
+    /** The one window: the editor over the settings store, wired to every launcher this activity owns. */
+    private fun showEditor(initialSettings: AppSettings, store: SettingsStore) {
         setContent {
             var settings by remember {
                 mutableStateOf(initialSettings.also(::applySettingsToLayers))
@@ -497,6 +501,9 @@ class MainActivity : ComponentActivity() {
                         // not derivable from its pages, so a mirrored pane of an infinite canvas has to
                         // be handed the grid the editing pane holds (`DrawingSurfaceView.canvasGeometry`).
                         view.onDocumentEdited = { doc -> mirrors.propagate(p, doc, view.canvasGeometry()) }
+                        // A PDF dropped on the page joins the open document (the drop's own gesture is
+                        // "put this here", not "replace everything I have").
+                        view.onExternalPdf = { uri -> importPdf(uri, ImportPdfMode.APPEND) }
                         attachAudio(view)
                         // Restore is asynchronous now, so a file handed to us by another app is opened
                         // once the session is back — otherwise it would be shoved aside by the restore.

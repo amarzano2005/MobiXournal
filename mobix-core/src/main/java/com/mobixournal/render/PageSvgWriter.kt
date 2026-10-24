@@ -9,6 +9,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
@@ -149,8 +150,8 @@ object PageSvgWriter {
             // A living entity is a recipe: it is drawn as its compiled ink (LivingInk), the same ink the
             // canvas paints and the .xopp and PDF exports write, so an SVG of a page with a table in it
             // has the table in it.
-            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
-                LivingInk.of(element).elements.forEach { emit(sb, it) }
+            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement,
+            is MathBlockElement -> LivingInk.of(element).elements.forEach { emit(sb, it) }
             else -> Unit
         }
     }

@@ -340,8 +340,8 @@ The design decisions worth keeping:
   current — all of them take the *same* immutable instance, so this shares one graph rather than
   copying it per tab) and calls `applyMirroredDocument` on any pane showing one. That entry point deliberately
   touches *nothing* but the document — scroll, zoom and columns are left alone, which is what makes
-  the two views independent — and clears the receiving surface's undo history, since its snapshots
-  predate the other view's edit and undoing to one would discard it. `load`/`applyMirroredDocument`
+  the two views independent — and hands both views the document's one undo stack
+  (`panes/DocumentSessions.kt`), so an undo in either pane is an undo of the same document. `load`/`applyMirroredDocument`
   write the backing field directly rather than the property, which is what stops an echo loop.
 - **The mirror push is coalesced.** Adopting a document costs the receiving pane a full relayout and
   render over every page, and edits arrive as fast as the pen moves, so `MirrorSync.propagate` only

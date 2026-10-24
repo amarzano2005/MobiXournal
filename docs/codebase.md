@@ -87,7 +87,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
         MobixAssets.kt       # public: MobixAssetSource (resolve an `assets/` payload) and MobixAssetSink (name = hash)
         MobixPageCodec.kt    # public: a page <-> JSON, registering the payloads it bundles
         MobixElementCodec.kt # public: one element <-> JSON, dispatching to the per-family codecs
-        MobixTableCodec.kt, MobixPlotCodec.kt, MobixShapeCodec.kt, MobixCircuitCodec.kt # internal: the living
+        MobixTableCodec.kt, MobixPlotCodec.kt, MobixShapeCodec.kt, MobixCircuitCodec.kt, MobixMathCodec.kt # internal: the living
                              #   families; MobixJson.kt is the JSON builder they share
         MobixDocument.kt     # the whole-archive read/write (`.xopp` ingest, encode, refusals); chunk half in
                              #   MobixChunkWriting.kt (internal: tile coords, the lazy tile list, encode/read)
@@ -102,7 +102,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/InkGeometry.kt    # what a stroke IS: alpha/multiply, band, dashes, mode, pressure outline
     render/InkTokens.kt, MeasurementText.kt # the drawing tokens the compilers need (label size, wash) and mm<->pt (pure)
     render/ElementBounds.kt  # pt bounding box of any element + a Bounds value type (pure)
-    render/LivingInk.kt      # HOW a living entity is drawn: the one dispatch over the four families' ink
+    render/LivingInk.kt      # HOW a living entity is drawn: the one dispatch over the five families' ink
                              #   compilers; Uncompilable.kt is the loss they report instead of dropping
     render/TableInk.kt, PlotInk.kt, ShapeInk.kt, CircuitInk.kt # a family -> its ink: grid rules/cells,
                              #   axes/ticks/curves/summary, outline/fill/labels, symbol placed by its pins; InkPrimitives.kt
@@ -118,7 +118,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
     render/XoppSynthesis.kt  # THE EXPORT: flatten living entities into ink and write the bridge block (.mobix -> .xopp)
     render/PageSvgWriter.kt  # one page -> a standalone SVG document (vector strokes, shapes, text, ruling)
     render/PdfBackgroundDomain.kt, PixmapBackgroundDomain.kt # `attach` domain + bundled pixmap entries (pure)
-    render/PdfPagePlan.kt    # a page -> PDF ops an emitter replays; PdfPageTransform.kt flips into user space
+    render/PdfPagePlan.kt    # a page -> PDF ops an emitter replays; PdfPageTransform.kt flips into user space; LatexParser.kt + LatexLayout.kt typeset a math block glyph by glyph
     render/EditHistory.kt    # generic undo/redo over document snapshots (pure); one per editor, per tab
     render/InputClassifier.kt, PressureCurve.kt, InkPointer.kt, InkPointerRouter.kt # what a contact
                              #   begins, how hard it draws, what a stream means (pure)
@@ -149,7 +149,7 @@ app/
                              #   fed by saveShapeOf and aimed at UriSaveTarget
     panes/                   # split view: one or two editing panes, each with its own tabs
       EditorPane.kt          # one pane: canvas + tab session + save format + its own TabStore
-      MirrorSync.kt          # keeps the several views of one document in step (mirrored tabs share the document)
+      MirrorSync.kt          # keeps the several views of one document in step; DocumentSessions.kt is their one undo history per document
     tabs/                    # several documents open at once, cached across app restarts
       OpenTab.kt             # one open document: id, title, source URI, save format, PDF, page
       TabManager.kt          # the tab list + selection rules (pure; no Android, no canvas)
@@ -191,8 +191,7 @@ app/
       StrokePainter.kt       # paints a stroke's pressure polyline (shared by screen + PDF export)
       PageRenderer.kt        # draws a page's layers/elements at a scale/offset (shared)
       ElementRenderer.kt     # draws text boxes, images, and LaTeX images (real math)
-      LatexParser.kt         # LaTeX source -> node tree (pure, no Android deps)
-      LatexRenderer.kt       # draws a parsed LaTeX tree to a Canvas (fractions, scripts, roots)
+      LatexRenderer.kt       # draws a parsed LaTeX tree to a Canvas (fractions, scripts, roots); parser + vector layout live in mobix-core
        PdfTileGeometry.kt     # tile grid math for high-zoom PDF rasterisation (pure geometry)
        PdfRasterSource.kt     # the PdfRenderer lifecycle: open/close/reopen on file change (serialised)
        PdfPageCache.kt        # rasterises an imported PDF's pages to bitmaps; orchestrates geometry + source
@@ -207,14 +206,12 @@ app/
       PdfTextExtractor.kt    # pulls a PDF's positioned text layer via PDFBox PDFTextStripper
       PdfTextIndexCache.kt   # one extracted text layer per PDF file, shared across mirrored views
       PdfOutline.kt          # the Contents model: one row per bookmark + the tree flattening (pure)
-      PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox
-      PdfOutlineCache.kt     # one extracted outline per PDF file, shared across mirrored views
+      PdfOutlineExtractor.kt # reads a PDF's /Outlines bookmark tree via PDFBox; PdfOutlineCache.kt mirrors the text cache
       PdfExporter.kt         # flattens a Document to a PDF (PDFBox; preserves source vector pages)
       PdfVectorPainter.kt    # the Android emitter: replays the core's PdfPagePlan onto a PDFBox stream, one arm per op
       PdfBackgroundPainter.kt # draws a fresh (non-PDF) page's background ruling as PDFBox vectors
-      PdfOverlayMatrix.kt    # overlay cm-matrix that aligns annotations on /Rotate 90/180/270 pages (pure)
-      TextPaginator.kt       # text-import word-wrap + A4 pagination, injected measurement (pure)
-      TextWrapping.kt        # tab expansion + mid-word hard break shared by both wrappers (pure)
+      PdfOverlayMatrix.kt    # overlay cm-matrix that aligns annotations on /Rotate 90/180/270 pages (pure); PdfAnnotations.kt writes the /Highlight, /Ink and /Text dictionaries
+      TextPaginator.kt       # text-import word-wrap + A4 pagination, injected measurement; TextWrapping.kt is the shared tab-expansion/hard-break (pure)
       PdfFonts.kt            # embeds the bundled Unicode fonts (DejaVu) into a PDDocument, cached per doc
       TextPdfGenerator.kt    # authors the text-import PDF: selectable embedded text, injected font loader
       TextFlavor.kt          # plain vs markdown typesetting flavour + its PdfStore cache prefix
@@ -247,14 +244,14 @@ app/
       SplineBuilder.kt       # spline control points -> cubic-Bezier stroke vertex list (pure)
       LayerOps.kt            # add/delete/rename/reorder/merge-down/move-selection layer edits (pure)
       Selection.kt           # ElementRef + SelectionTester: rect/tap picking, selection bounds (pure)
-      SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure)
+      SelectionOps.kt        # translate / scale / rotate / restyle / align / distribute selected elements (pure); ElementTransfer.kt and SelectionTransfer.kt carry a selection out in four flavours and accept drops
       VerticalSpaceOps.kt    # insert / remove vertical space on a page, shifting what's below, and
                              #   snapping the gap to the ruling when snapping is on (pure)
       MultiFingerTapDetector.kt # a still 2/3-finger tap's finger count; FingerTapSettings.kt: the action each tap was given (pure)
-      Fling.kt               # decelerating two-axis momentum-scroll kinematics (pure)
-      VelocityEstimator.kt   # pan release-velocity from a trailing sample window (pure)
+      Fling.kt               # decelerating two-axis momentum-scroll kinematics; VelocityEstimator.kt the release velocity (pure)
       PageOps.kt             # insert / copy / move / delete pages in a page list (pure)
       PageThumbnail.kt       # rasterises one page into a small preview bitmap for the tab overview
+      MagneticHighlighter.kt # snap a highlighter drag to the PDF text lines it crosses (pure); ExternalIngest.kt turns dropped text into a table/math/text element (pure)
     audio/                   # audio-annotated strokes: record, replay, sidecar transfer
       AudioAnnotation.kt     # AudioRef <-> a stroke's fn/ts attrs; document sidecar set; recording names (pure)
       WavWriter.kt           # streaming 16-bit PCM RIFF/WAVE writer, header patched on close (pure)

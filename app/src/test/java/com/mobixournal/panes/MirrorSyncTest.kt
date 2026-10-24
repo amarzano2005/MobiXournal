@@ -67,6 +67,18 @@ class MirrorSyncTest {
     }
 
     @Test
+    fun `a mirrored edit registers one shared history for the document`() {
+        val (left, right, posted) = mirroredPanes()
+        val sessions = DocumentSessions()
+        val sync = MirrorSync(listOf(left, right), sessions) { posted += it }
+
+        sync.propagate(left, doc(7.0))
+        posted.single().run()
+
+        assertEquals("one stack for the key both views share", setOf("doc-1"), sessions.keys())
+    }
+
+    @Test
     fun `flush applies a pending edit immediately`() {
         val (left, right, posted) = mirroredPanes()
         val sync = MirrorSync(listOf(left, right)) { posted += it }

@@ -436,27 +436,7 @@ internal fun DrawingSurfaceView.point(
 }
 
 internal fun DrawingSurfaceView.commitCurrent() {
-    // The table tool authors a living TableElement (on tap or drag) rather than baked strokes.
-    if (shaping && shapeKind == ShapeKind.TABLE) {
-        val raw = current
-        current = null
-        currentStrokes = null
-        shaping = false
-        cancelHoldSnap()
-        holdSnapped = false
-        commitTableInsertion(raw ?: emptyList())
-        return
-    }
-    if (shaping && shapeKind?.let { CircuitElementFactory.isCircuitKind(it) } == true) {
-        val kind = shapeKind!!
-        current = null
-        currentStrokes = null
-        shaping = false
-        cancelHoldSnap()
-        holdSnapped = false
-        commitCircuitInsertion(kind)
-        return
-    }
+    if (commitInsertionShapes()) return
 
     val multi = currentStrokes
     if (multi != null) {
@@ -514,6 +494,21 @@ internal fun DrawingSurfaceView.commitCurrent() {
         return
     }
     val finalPts = magnetised(pts, wasShaping)
+    // A highlighter over an imported PDF's text layer becomes flat bands on the lines it crossed; a
+    // drag that is not a horizontal highlight over text gets an empty list and stays freehand.
+    if (!wasShaping && tool == Tool.HIGHLIGHTER) {
+        val bands = MagneticHighlighter.strokes(
+            finalPts,
+            pdfTextIndex?.words(currentPage).orEmpty(),
+            strokeColor(),
+        )
+        if (bands.isNotEmpty()) {
+            // Same gesture, same `gestureStartDoc`: many strokes, ONE undo step.
+            bands.forEach { appendStroke(currentPage, it) }
+            render()
+            return
+        }
+    }
     if (finalPts.size >= 2) {
         // Highlighter and geometric shapes are constant-width → store a single width; the freehand
         // pen keeps its per-vertex pressure. The live line-style is baked in so it round-trips.
@@ -527,6 +522,33 @@ internal fun DrawingSurfaceView.commitCurrent() {
         if (wasShaping && shapeKind == ShapeKind.DIMENSION) appendDimensionLabel(raw, strokeColor())
     }
     render()
+}
+
+/**
+ * The table and circuit tools author living elements on tap or drag rather than baking strokes:
+ * returns true when this gesture was one of them and has been committed.
+ */
+private fun DrawingSurfaceView.commitInsertionShapes(): Boolean {
+    if (shaping && shapeKind == ShapeKind.TABLE) {
+        current = null
+        currentStrokes = null
+        shaping = false
+        cancelHoldSnap()
+        holdSnapped = false
+        commitTableInsertion()
+        return true
+    }
+    if (shaping && shapeKind?.let { CircuitElementFactory.isCircuitKind(it) } == true) {
+        val kind = shapeKind!!
+        current = null
+        currentStrokes = null
+        shaping = false
+        cancelHoldSnap()
+        holdSnapped = false
+        commitCircuitInsertion(kind)
+        return true
+    }
+    return false
 }
 
 /**
@@ -545,42 +567,6 @@ private fun DrawingSurfaceView.magnetised(pts: List<StrokePoint>, shaping: Boole
         pts, CircuitSnapping.collectAllTargets(page),
         thresholdPt = CircuitSnapping.thresholdFor(scale),
     )
-}
-
-private fun DrawingSurfaceView.commitTableInsertion(raw: List<StrokePoint>) {
-    val ex = shapeEndX
-    val ey = shapeEndY
-    val isTap = hypot(ex - shapeStartX, ey - shapeStartY) < 6.0
-    val table = if (isTap) {
-        val halfW = 100.0
-        val halfH = 60.0
-        TableElementFactory.tableElementFor(
-            startX = shapeStartX - halfW,
-            startY = shapeStartY - halfH,
-            endX = shapeStartX + halfW,
-            endY = shapeStartY + halfH,
-            rows = tableRows,
-            cols = tableCols,
-            hasHeader = tableHeader,
-            borderColor = strokeColor(),
-            borderWidth = shapeWidthPt,
-        )
-    } else {
-        TableElementFactory.tableElementFor(
-            startX = shapeStartX,
-            startY = shapeStartY,
-            endX = ex,
-            endY = ey,
-            rows = tableRows,
-            cols = tableCols,
-            hasHeader = tableHeader,
-            borderColor = strokeColor(),
-            borderWidth = shapeWidthPt,
-        )
-    }
-    ElementEdits.addElement(doc, currentPage, table) { resolvedActiveLayer(it) }
-        ?.let { commitElementEdit(it) }
-    render()
 }
 
 /** Highlighter is stored semi-transparent so it round-trips (and renders) translucent. */

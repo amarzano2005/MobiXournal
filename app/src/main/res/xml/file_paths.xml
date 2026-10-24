@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The cache the selection's PNG clipboard flavour is rendered into. Only that one folder is
+     exposed, and only through the app's own FileProvider, so a copy cannot hand out anything else
+     the app has cached. -->
+<paths>
+    <cache-path name="clipboard" path="clipboard/" />
+</paths>

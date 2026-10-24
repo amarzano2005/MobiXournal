@@ -10,6 +10,7 @@ import android.util.Log
 import com.mobixournal.format.FontDescription
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import java.util.IdentityHashMap
@@ -41,7 +42,7 @@ class ElementRenderer(
     /** Access order, so the iterator hands [trim] the least recently drawn image first. */
     private val bitmapCache = LinkedHashMap<IdentityKey, Bitmap?>(16, 0.75f, true)
     private val latexRenderer = LatexRenderer()
-    private val texCache = IdentityHashMap<TexImageElement, LatexNode?>()
+    private val texCache = IdentityHashMap<Any, LatexNode?>()
 
     init {
         budget.register(this)
@@ -91,6 +92,7 @@ class ElementRenderer(
             is TextElement -> drawText(canvas, element, scale, offsetX, offsetY)
             is ImageElement -> drawImage(canvas, element, scale, offsetX, offsetY)
             is TexImageElement -> drawTex(canvas, element, scale, offsetX, offsetY)
+            is MathBlockElement -> drawMath(canvas, element, scale, offsetX, offsetY)
             else -> Unit // strokes are drawn by DrawingSurfaceView
         }
     }
@@ -152,36 +154,52 @@ class ElementRenderer(
 
     private fun drawTex(canvas: Canvas, tex: TexImageElement, scale: Float, offsetX: Float, offsetY: Float) {
         if (tex.latex.isBlank()) return
-        val dst = rect(tex.left, tex.top, tex.right, tex.bottom, scale, offsetX, offsetY)
-        // Parse the LaTeX source once and cache the tree by element identity (like the bitmap cache).
+        drawFormula(canvas, tex.latex, tex.color, rect(tex.left, tex.top, tex.right, tex.bottom, scale, offsetX, offsetY), tex, scale)
+    }
+
+    /** A living math block is drawn exactly as its `<teximage>` sibling: same parser, same fit. */
+    private fun drawMath(canvas: Canvas, block: MathBlockElement, scale: Float, offsetX: Float, offsetY: Float) {
+        if (block.source.isBlank()) return
+        drawFormula(
+            canvas, block.source, block.color,
+            rect(block.left, block.top, block.right, block.bottom, scale, offsetX, offsetY), block, scale,
+        )
+    }
+
+    /**
+     * Typeset [source] into [dst] at [color]. [cacheKey] is the element's identity, so a parsed tree is
+     * kept for as long as the immutable element it belongs to — a text image and a math block each
+     * cache their own parse without one evicting the other.
+     */
+    private fun drawFormula(canvas: Canvas, source: String, color: Int, dst: RectF, cacheKey: Any, scale: Float) {
         val node = try {
-            texCache.getOrPut(tex) { LatexParser.parse(tex.latex) }
+            texCache.getOrPut(cacheKey) { LatexParser.parse(source) }
         } catch (e: Throwable) {
-            Log.w(TAG, "cannot parse LaTeX \"${tex.latex}\" — falling back to raw source", e)
+            Log.w(TAG, "cannot parse formula \"$source\" — falling back to raw source", e)
             null
         }
         if (node != null) {
             try {
                 // Cap the font so a single glyph never balloons past the box; fit does the rest.
-                latexRenderer.draw(canvas, node, dst, tex.color, dst.height())
+                latexRenderer.draw(canvas, node, dst, color, dst.height())
                 return
             } catch (e: Throwable) {
-                Log.w(TAG, "cannot draw LaTeX \"${tex.latex}\" — falling back to raw source", e)
+                Log.w(TAG, "cannot draw formula \"$source\" — falling back to raw source", e)
                 // fall through to the raw-source fallback below
             }
         }
-        drawTexFallback(canvas, tex, dst, scale)
+        drawFormulaFallback(canvas, source, color, dst, scale)
     }
 
-    /** Last-resort rendering: draw the raw LaTeX source as monospace text, clipped to the box. */
-    private fun drawTexFallback(canvas: Canvas, tex: TexImageElement, dst: RectF, scale: Float) {
-        textPaint.color = tex.color
+    /** Last-resort rendering: draw the raw source as monospace text, clipped to the box. */
+    private fun drawFormulaFallback(canvas: Canvas, source: String, color: Int, dst: RectF, scale: Float) {
+        textPaint.color = color
         textPaint.typeface = Typeface.MONOSPACE
         textPaint.textSize = (dst.height() * 0.5f).coerceIn(8f, 14f * scale)
         val fm = textPaint.fontMetrics
         canvas.save()
         canvas.clipRect(dst)
-        canvas.drawText(tex.latex, dst.left + 2f, dst.top - fm.ascent + 2f, textPaint)
+        canvas.drawText(source, dst.left + 2f, dst.top - fm.ascent + 2f, textPaint)
         canvas.restore()
     }
 

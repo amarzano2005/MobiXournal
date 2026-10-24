@@ -15,6 +15,7 @@ import android.view.Choreographer
 import android.view.SurfaceHolder
 import com.mobixournal.render.CanvasChrome.Companion.HANDLE_DRAW_PX
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.model.Tool
 import kotlin.math.max
 import kotlin.math.min
 
@@ -363,6 +364,24 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
     // untouched underneath (`holdFigure` in `DrawingSurfaceView.kt`).
     val preview = holdFigure?.takeIf { holdSamples == current?.size }
     val pts = preview?.points ?: current ?: return
+    // The magnetic highlighter previews what the lift will commit: while the drag is over text, the
+    // flat bands stand in for the freehand path, so the snap is never a surprise at touch-up.
+    if (tool == Tool.HIGHLIGHTER && preview == null) {
+        val bands = MagneticHighlighter.strokes(
+            pts,
+            pdfTextIndex?.words(currentPage).orEmpty(),
+            strokeColor(),
+        )
+        if (bands.isNotEmpty()) {
+            for (band in bands) {
+                strokePainter.draw(
+                    canvas, band.points, Tool.HIGHLIGHTER, band.color, box.scale,
+                    box.leftPx - scrollX, box.topPx - scrollY, currentLineStyle,
+                )
+            }
+            return
+        }
+    }
     strokePainter.draw(
         canvas, pts, tool, strokeColor(), box.scale, box.leftPx - scrollX, box.topPx - scrollY,
         currentLineStyle,

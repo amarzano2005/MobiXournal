@@ -17,6 +17,7 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
@@ -62,6 +63,12 @@ sealed interface LivingEditTarget {
         override val element: Element get() = shape
         override val family: LivingEditFamily get() = LivingEditFamily.SHAPE
     }
+
+    /** A living formula's source, reopened in the formula dialog. */
+    data class MathBlock(val block: MathBlockElement) : LivingEditTarget {
+        override val element: Element get() = block
+        override val family: LivingEditFamily get() = LivingEditFamily.MATH
+    }
 }
 
 /**
@@ -71,7 +78,7 @@ sealed interface LivingEditTarget {
  * subclass, so a family added to the model without an entry here fails the build rather than
  * silently being the one element a double-tap cannot open.
  */
-enum class LivingEditFamily { TABLE, PLOT, CIRCUIT, SHAPE }
+enum class LivingEditFamily { TABLE, PLOT, CIRCUIT, SHAPE, MATH }
 
 /** A double-tap's answer: the element's reference on its page, and the editor to open. */
 data class LivingEditHit(val ref: ElementRef, val target: LivingEditTarget)
@@ -112,6 +119,8 @@ fun livingEditTarget(element: Element, xPt: Double, yPt: Double): LivingEditTarg
             LivingEditTarget.Circuit(element).takeIf { ElementBounds.of(element).contains(xPt, yPt) }
         is ParametricShapeElement ->
             LivingEditTarget.Shape(element).takeIf { ElementBounds.of(element).contains(xPt, yPt) }
+        is MathBlockElement ->
+            LivingEditTarget.MathBlock(element).takeIf { ElementBounds.of(element).contains(xPt, yPt) }
         else -> null
     }
 }

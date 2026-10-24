@@ -9,6 +9,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
@@ -98,6 +99,7 @@ object MobixElementCodec {
         is PlotElement -> MobixPlotCodec.encode(element)
         is ParametricShapeElement -> MobixShapeCodec.encode(element)
         is CircuitElement -> MobixCircuitCodec.encode(element)
+        is MathBlockElement -> MobixMathCodec.encode(element)
         is RawElement -> encodeRaw(element)
     }
 
@@ -238,6 +240,7 @@ object MobixElementCodec {
             MobixPlotCodec.TYPE -> MobixPlotCodec.decode(node, mint) ?: preserve(type, node)
             MobixShapeCodec.TYPE -> MobixShapeCodec.decode(node, mint) ?: preserve(type, node)
             MobixCircuitCodec.TYPE -> MobixCircuitCodec.decode(node, mint) ?: preserve(type, node)
+            MobixMathCodec.TYPE -> MobixMathCodec.decode(node, mint) ?: preserve(type, node)
             else -> preserve(type, node)
         }
     }
