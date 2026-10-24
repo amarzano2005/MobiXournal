@@ -32,6 +32,9 @@ import com.mobixournal.render.VerticalSpaceOps
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.render.eraserRadiusPt
 import kotlin.math.exp
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * The page's **pointer path**, kept out of the composable: what a drag on the sheet means.
@@ -53,11 +56,11 @@ internal suspend fun PointerInputScope.pageGestures(
     /** What a lifted living-slot drag means: the shell asks the family's values first. */
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /**
-     * The viewport **as it is now**, not the one the composable was built with: a selection drag scrolls
-     * the sheet at the canvas's edge (`SelectionView`), so every mapping during a gesture has to read the
-     * view the reader is actually looking at.
+     * The viewport **as it is now**, not the one the composable was built with: a drag that reaches the
+     * canvas's edge scrolls the sheet (`DragView`), so every mapping during a gesture has to read the view
+     * the reader is actually looking at.
      */
-    view: () -> Viewport,
+    viewport: () -> Viewport,
     pageW: Float,
     pageH: Float,
     viewW: Float,
@@ -92,13 +95,13 @@ internal suspend fun PointerInputScope.pageGestures(
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
-    // The selection drag's view: its own mapping and the edge scroll it may ask for.
-    val selectionView = SelectionView(view, pageW, pageH, viewW, viewH, onViewport)
+    // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
+    val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
     val gesture = PageInkGesture(
         tab = tab,
         tool = tool,
         ink = ink,
-        view = view,
+        view = viewport,
         pageW = pageW,
         pageH = pageH,
         density = density,
@@ -106,6 +109,49 @@ internal suspend fun PointerInputScope.pageGestures(
         onEdited = onEdited,
         pen = pen,
     )
+    // The edge scroll's clock, running for as long as this canvas has a pointer handler: a drag registers
+    // itself with [DragView.beginDrag] and is called back while the sheet travels. It has to live out here
+    // because a drag itself runs inside Compose's restricted pointer scope, where no timer can be launched.
+    coroutineScope {
+        launch {
+            while (true) {
+                delay(EDGE_PAN_TICK_MS)
+                dragView.tick()
+            }
+        }
+        pageGestureLoop(
+            tab = tab, panMode = panMode, tool = tool, ink = ink,
+            onPlaceLiving = onPlaceLiving, dragView = dragView, gesture = gesture,
+            draft = draft, grabLine = grabLine, previewRegion = previewRegion,
+            onLiveDrag = onLiveDrag, onEdited = onEdited,
+            penActive = penActive, pageW = pageW, pageH = pageH,
+            viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
+        )
+    }
+}
+
+/** The gesture loop itself: one press at a time, in the order the canvas offers them. */
+private suspend fun PointerInputScope.pageGestureLoop(
+    tab: DesktopTab,
+    panMode: Boolean,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    dragView: DragView,
+    gesture: PageInkGesture,
+    draft: SnapshotStateList<InkSample>,
+    grabLine: MutableState<Double?>?,
+    previewRegion: MutableState<SelectionRegion?>?,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+    onEdited: (Int) -> Unit,
+    penActive: () -> Boolean,
+    pageW: Float,
+    pageH: Float,
+    viewW: Float,
+    viewH: Float,
+    onViewport: (Viewport) -> Unit,
+    viewport: () -> Viewport,
+) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
         // The packets own the pen only for the slots they draw (`inksByPackets`): standing aside for
@@ -115,23 +161,23 @@ internal suspend fun PointerInputScope.pageGestures(
         val buttons = currentEvent.buttons
         // Middle-drag always pans; a primary drag pans only while Space is held, so the pen gets the
         // primary button.
-        val viewport = view()
+        val vp = viewport()
         if (buttons.isTertiaryPressed || (panMode && buttons.isPrimaryPressed)) {
-            panByDrag(viewport, pageW, pageH, viewW, viewH, onViewport)
+            panByDrag(vp, pageW, pageH, viewW, viewH, onViewport)
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
         // A selection, a living element or a figure takes the drag before the ink sees it.
-        if (preInkPress(down, tool, tab, selectionView, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
+        if (preInkPress(down, tool, tab, dragView, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
-            shapeDrag(down, kind, tab, ink, viewport, pageW, pageH, draft, onLiveDrag, onEdited)
+            shapeDrag(down, kind, tab, ink, dragView, draft, onLiveDrag, onEdited)
             return@awaitEachGesture
         }
         // The vertical-space tool reflows the page under a grab line instead of drawing on it.
         if (tool.activeTool() == ActiveTool.VERTICAL_SPACE && grabLine != null) {
-            verticalSpaceDrag(down, tab, viewport, pageH, grabLine, onEdited)
+            verticalSpaceDrag(down, tab, dragView, grabLine, onEdited)
             return@awaitEachGesture
         }
         if (inkDrag(down, gesture, packetsOwn)) return@awaitEachGesture
@@ -176,7 +222,7 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
-    view: SelectionView,
+    view: DragView,
     pageW: Float,
     pageH: Float,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
@@ -238,36 +284,55 @@ internal fun wheelViewport(
  * function. A press off the sheet starts nothing (the desk is not paper), a drag shorter than
  * [MIN_SHAPE_DRAG_PT] draws nothing, and `Esc` cancels through the shell — which is why the gesture
  * hands its cancel to [onLiveDrag] while it runs.
+ *
+ * A figure that reaches the canvas's border **scrolls the view** and keeps opening toward the pointer
+ * ([DragView]): a box or an arrow can be drawn larger than one screenful without lifting the pen. The
+ * preview is rebuilt on every tick, not only on every pointer event, so the figure follows the sheet
+ * while the pointer rests against the edge.
  */
 private suspend fun AwaitPointerEventScope.shapeDrag(
     start: PointerInputChange,
     kind: ShapeKind,
     tab: DesktopTab,
     ink: DesktopInk,
-    viewport: Viewport,
-    pageW: Float,
-    pageH: Float,
+    view: DragView,
     draft: SnapshotStateList<InkSample>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
 ) {
-    val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, viewport)
-    if (x0 !in 0.0..pageW.toDouble() || y0 !in 0.0..pageH.toDouble()) return
+    val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, view.current())
+    if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return
+    var lastX = start.position.x
+    var lastY = start.position.y
+    var lastChange = start
     var cancelled = false
     val cancel = {
         cancelled = true
         draft.clear()
     }
     onLiveDrag(cancel)
+
+    /** The figure from ([x0], [y0]) to the pointer at ([px], [py]), previewed in the sheet's own draft. */
+    fun preview(px: Float, py: Float): List<StrokePoint> {
+        val (x1, y1) = pagePointOf(px, py, density, view.current())
+        val constrained = currentEvent.keyboardModifiers.isShiftPressed
+        val points = shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained)
+        draft.clear()
+        draft.addAll(points.map { point -> InkSample(point.x, point.y, 1f, samplePointer(lastChange)) })
+        return points
+    }
+
+    // At the border the figure keeps opening while the sheet slides under the still pointer: the canvas's
+    // ticker rebuilds the very same draft, so what is previewed stays true.
+    view.beginDrag(lastX, lastY) { px, py -> preview(px, py) }
     try {
         while (!cancelled) {
             val change = awaitPointerEvent().changes.firstOrNull() ?: break
-            val (x1, y1) = pagePointOf(change.position.x, change.position.y, density, viewport)
-            val constrained = currentEvent.keyboardModifiers.isShiftPressed
-            val points = shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained)
-            // Preview: the figure as it stands, in the same draft the sheet paints every frame.
-            draft.clear()
-            draft.addAll(points.map { point -> InkSample(point.x, point.y, 1f, samplePointer(change)) })
+            lastX = change.position.x
+            lastY = change.position.y
+            lastChange = change
+            view.moved(lastX, lastY)
+            val points = preview(lastX, lastY)
             if (change.changedToUpIgnoreConsumed() || !change.pressed) {
                 draft.clear()
                 if (!cancelled) commitShape(points, tab, ink, onEdited)
@@ -276,6 +341,7 @@ private suspend fun AwaitPointerEventScope.shapeDrag(
             change.consume()
         }
     } finally {
+        view.endDrag()
         onLiveDrag(null)
     }
 }
@@ -295,43 +361,60 @@ private fun commitShape(
     onEdited(index)
 }
 
-/** The vertical-space tool's drag: a grab line, and everything below it following the pointer. */
+/**
+ * The vertical-space tool's drag: a grab line, and everything below it following the pointer.
+ *
+ * Like the figure's drag, it scrolls the view at the canvas's border and re-applies itself on every tick,
+ * so space can be opened at the far end of a page-long block without lifting the pen (`DragView`).
+ */
 private suspend fun AwaitPointerEventScope.verticalSpaceDrag(
     start: PointerInputChange,
     tab: DesktopTab,
-    viewport: Viewport,
-    pageH: Float,
+    view: DragView,
     grabLine: MutableState<Double?>,
     onEdited: (Int) -> Unit,
 ) {
-    val (_, y0) = pagePointOf(start.position.x, start.position.y, density, viewport)
-    if (y0 !in 0.0..pageH.toDouble()) return
+    val (_, y0) = pagePointOf(start.position.x, start.position.y, density, view.current())
+    if (y0 !in 0.0..view.pageH.toDouble()) return
+    var lastY = start.position.y
     val index = tab.page
     val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
     // The state before the gesture, taken once: a drag that shifts nothing never records it, so a pass
     // over empty space leaves no undo step behind.
     val before = tab.document.snapshot()
     var recorded = false
+    var cancelled = false
     grabLine.value = y0
+
+    /** Reflow the page so everything below the grab line answers the pointer at [py]. */
+    fun reflow(py: Float) {
+        val (_, y1) = pagePointOf(start.position.x, py, density, view.current())
+        // Always re-applied from the page as it was **at grab time**: the block is what lay below the line
+        // then, so passing an element on the way down never recruits it (the tablet's rule).
+        val shifted = VerticalSpaceOps.shiftBelow(listOf(original), 0, y0, y1 - y0)[0]
+        if (shifted == original) return
+        if (!recorded) {
+            tab.record(before)
+            recorded = true
+        }
+        tab.document.editPage(index) { shifted }
+        onEdited(index)
+    }
+
+    // At the border the sheet travels and the block keeps following on the canvas's ticker, so a
+    // paragraph longer than the window can be opened in one drag.
+    view.beginDrag(start.position.x, lastY) { _, py -> reflow(py) }
     try {
-        while (true) {
+        while (!cancelled) {
             val change = awaitPointerEvent().changes.firstOrNull() ?: break
-            val (_, y1) = pagePointOf(change.position.x, change.position.y, density, viewport)
-            // Always re-applied from the page as it was **at grab time**: the block is what lay below the
-            // line then, so passing an element on the way down never recruits it (the tablet's rule).
-            val shifted = VerticalSpaceOps.shiftBelow(listOf(original), 0, y0, y1 - y0)[0]
-            if (shifted != original) {
-                if (!recorded) {
-                    tab.record(before)
-                    recorded = true
-                }
-                tab.document.editPage(index) { shifted }
-                onEdited(index)
-            }
+            lastY = change.position.y
+            view.moved(start.position.x, lastY)
+            reflow(lastY)
             if (change.changedToUpIgnoreConsumed() || !change.pressed) break
             change.consume()
         }
     } finally {
+        view.endDrag()
         grabLine.value = null
     }
 }

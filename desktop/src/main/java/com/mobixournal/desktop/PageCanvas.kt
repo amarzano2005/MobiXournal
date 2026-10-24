@@ -412,9 +412,9 @@ private fun SheetCanvas(
                     forceZoom = dialWheel(),
                 )?.let(onViewport)
             }
-            // The key is the page and the zoom, **never the offsets**: a selection drag scrolls the sheet
-            // at the canvas's edge, and a key that changed with the viewport would cancel the very gesture
-            // that moved it. The view is therefore read through a lambda, which sees the scroll at once.
+            // The key is the page and the zoom, **never the offsets**: a drag scrolls the sheet at the
+            // canvas's edge, and a key that changed with the viewport would cancel the very gesture that
+            // moved it. The view is therefore read through a lambda, which sees the scroll at once.
             .pointerInput(tab, panMode, tool, ink, pen, sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH) {
                 pageGestures(
                     tab = tab,
@@ -422,7 +422,7 @@ private fun SheetCanvas(
                     tool = tool,
                     ink = ink,
                     onPlaceLiving = onPlaceLiving,
-                    view = {
+                    viewport = {
                         tab.viewport.copy(zoom = sheet.zoom)
                             .clamped(sheet.pageW, sheet.pageH, sheet.viewW, sheet.viewH)
                     },

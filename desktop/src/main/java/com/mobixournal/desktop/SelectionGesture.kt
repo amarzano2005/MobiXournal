@@ -5,7 +5,6 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isShiftPressed
-import kotlinx.coroutines.withTimeoutOrNull
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.SelectionEdit
@@ -30,7 +29,7 @@ import com.mobixournal.render.Vec2
  * A selection drag is not ink: it never asks the pen's packets to take it (`DesktopTool.inksByPackets`), so a
  * stylus in proximity still reaches it through the Compose pointer.
  *
- * A drag that reaches the canvas's edge **scrolls the view** while it keeps running ([SelectionView]): the
+ * A drag that reaches the canvas's edge **scrolls the view** while it keeps running ([DragView]): the
  * pointer can rest against the border and the sheet keeps travelling under it, so a marquee can catch more
  * than what happened to be on screen and an element can be carried past the edge.
  */
@@ -45,7 +44,7 @@ internal suspend fun AwaitPointerEventScope.selectionPress(
     down: PointerInputChange,
     tool: DesktopTool,
     tab: DesktopTab,
-    view: SelectionView,
+    view: DragView,
     density: Float,
     region: MutableState<SelectionRegion?>?,
     onLiveDrag: ((() -> Unit)?) -> Unit,
@@ -69,7 +68,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     start: PointerInputChange,
     tool: SelectionTool,
     tab: DesktopTab,
-    view: SelectionView,
+    view: DragView,
     density: Float,
     region: MutableState<SelectionRegion?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
@@ -96,23 +95,13 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     transformSelection(live!!, handle, x0, y0, tab, view, density, onLiveDrag, onEdited)
 }
 
-/**
- * The next pointer change, or **null** when a tick went by with the pointer still.
- *
- * That null is the edge scroll's cue: a drag resting against the border must keep working without a single
- * new event, which means the loop cannot wait for one forever. The wait is a timeout around the very same
- * suspension, so a real event still wakes it immediately.
- */
-private suspend fun AwaitPointerEventScope.awaitPointerOrTick(): PointerInputChange? =
-    withTimeoutOrNull(EDGE_PAN_TICK_MS) { awaitPointerEvent().changes.firstOrNull() }
-
 /** The trace half: collect the drag into a rectangle or a loop, and hand it to the page on lift. */
 private suspend fun AwaitPointerEventScope.traceRegion(
     tool: SelectionTool,
     x0: Double,
     y0: Double,
     tab: DesktopTab,
-    view: SelectionView,
+    view: DragView,
     density: Float,
     region: MutableState<SelectionRegion?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
@@ -129,21 +118,27 @@ private suspend fun AwaitPointerEventScope.traceRegion(
         region.value = null
     }
     onLiveDrag(cancel)
+
+    /** The region the pointer at ([px], [py]) traces, against the sheet as it stands now. */
+    fun trace(px: Float, py: Float) {
+        val (x1, y1) = pagePointOf(px, py, density, view.current())
+        region.value = when (tool) {
+            SelectionTool.MARQUEE -> rectRegion(x0, y0, x1, y1)
+            SelectionTool.LASSO -> SelectionRegion.Polygon(points + Vec2(x1, y1))
+        }
+    }
+
+    // The canvas's ticker calls [trace] back while the pointer rests at the border, so a marquee keeps
+    // growing without a single new event.
+    view.beginDrag(lastX, lastY) { px, py -> trace(px, py) }
     try {
         while (!cancelled) {
-            val change = awaitPointerOrTick()
-            // A tick scrolls the sheet under the still pointer; the region is re-read from where that
-            // pointer now lands, so a marquee keeps growing while the page travels.
-            if (change == null) view.panAtEdge(lastX, lastY, density)
-            if (change != null) lastX = change.position.x
-            if (change != null) lastY = change.position.y
-            val (x1, y1) = pagePointOf(lastX, lastY, density, view.current())
-            region.value = when (tool) {
-                SelectionTool.MARQUEE -> rectRegion(x0, y0, x1, y1)
-                SelectionTool.LASSO -> SelectionRegion.Polygon(points + Vec2(x1, y1))
-            }
-            val up = change != null && (change.changedToUpIgnoreConsumed() || !change.pressed)
-            if (up) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            lastX = change.position.x
+            lastY = change.position.y
+            view.moved(lastX, lastY)
+            trace(lastX, lastY)
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) {
                 val traced = region.value
                 region.value = null
                 if (!cancelled && traced != null) {
@@ -152,10 +147,14 @@ private suspend fun AwaitPointerEventScope.traceRegion(
                 break
             }
             // The loop is what the lasso commits; a rectangle reads its corners off the pointer.
-            if (change != null && tool == SelectionTool.LASSO) points += Vec2(x1, y1)
-            change?.consume()
+            if (tool == SelectionTool.LASSO) {
+                val (x1, y1) = pagePointOf(lastX, lastY, density, view.current())
+                points += Vec2(x1, y1)
+            }
+            change.consume()
         }
     } finally {
+        view.endDrag()
         region.value = null
         onLiveDrag(null)
     }
@@ -168,7 +167,7 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     x0: Double,
     y0: Double,
     tab: DesktopTab,
-    view: SelectionView,
+    view: DragView,
     density: Float,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
@@ -190,44 +189,52 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     val press = view.current().toScreen(x0.toFloat(), y0.toFloat())
     var lastX = press.first
     var lastY = press.second
+
+    /** Move, scale or turn the selection so it answers the pointer at ([px], [py]). */
+    fun apply(px: Float, py: Float) {
+        val (x1, y1) = pagePointOf(px, py, density, view.current())
+        val (edited, next) = when (handle) {
+            SelectionHandle.BODY -> SelectionEdit.move(original, selection, x1 - x0, y1 - y0)
+            SelectionHandle.ROTATE -> SelectionEdit.rotate(
+                original,
+                selection,
+                rotationBetween(
+                    selection, x0, y0, x1, y1,
+                    snap = currentEvent.keyboardModifiers.isShiftPressed,
+                ),
+            )
+            else -> {
+                val (sx, sy) = scaleFactors(selection.bounds, handle, x1, y1)
+                val (anchorX, anchorY) = anchorOf(selection.bounds, handle)
+                SelectionEdit.scale(original, selection, sx, sy, anchorX, anchorY)
+            }
+        }
+        if (edited !== original) {
+            if (!recorded) {
+                tab.record(before)
+                recorded = true
+            }
+            tab.document.editPage(index) { edited }
+            tab.selection = next
+            onEdited(index)
+        }
+    }
+
+    // The canvas's ticker re-applies the transform while the sheet scrolls at the border, so the element
+    // keeps following the pointer past the window's edge without the pointer moving at all.
+    view.beginDrag(lastX, lastY) { px, py -> apply(px, py) }
     try {
         while (!cancelled) {
-            val change = awaitPointerOrTick()
-            // A tick at the border scrolls the sheet; the move below is then re-read from where the
-            // pointer now lands, so the element keeps following it past the window's edge.
-            if (change == null) view.panAtEdge(lastX, lastY, density)
-            if (change != null) lastX = change.position.x
-            if (change != null) lastY = change.position.y
-            val (x1, y1) = pagePointOf(lastX, lastY, density, view.current())
-            val (edited, next) = when (handle) {
-                SelectionHandle.BODY -> SelectionEdit.move(original, selection, x1 - x0, y1 - y0)
-                SelectionHandle.ROTATE -> SelectionEdit.rotate(
-                    original,
-                    selection,
-                    rotationBetween(
-                        selection, x0, y0, x1, y1,
-                        snap = currentEvent.keyboardModifiers.isShiftPressed,
-                    ),
-                )
-                else -> {
-                    val (sx, sy) = scaleFactors(selection.bounds, handle, x1, y1)
-                    val (anchorX, anchorY) = anchorOf(selection.bounds, handle)
-                    SelectionEdit.scale(original, selection, sx, sy, anchorX, anchorY)
-                }
-            }
-            if (edited !== original) {
-                if (!recorded) {
-                    tab.record(before)
-                    recorded = true
-                }
-                tab.document.editPage(index) { edited }
-                tab.selection = next
-                onEdited(index)
-            }
-            if (change != null && (change.changedToUpIgnoreConsumed() || !change.pressed)) break
-            change?.consume()
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            lastX = change.position.x
+            lastY = change.position.y
+            view.moved(lastX, lastY)
+            apply(lastX, lastY)
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            change.consume()
         }
     } finally {
+        view.endDrag()
         onLiveDrag(null)
     }
 }

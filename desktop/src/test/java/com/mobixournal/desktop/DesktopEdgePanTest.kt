@@ -132,6 +132,74 @@ class DesktopEdgePanTest {
     }
 
     @Test
+    fun `a figure drawn against the edge keeps opening while the page scrolls`() {
+        val state = state()
+        state.selectTool(DesktopTool.RECTANGLE)
+        val tab = state.tabs.active!!
+        val startX = tab.viewport.offsetX
+        val strokesBefore = tab.document.page(tab.page).layers.sumOf { it.elements.size }
+
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            // A figure is not a selection: this is the drag that used to stop at the border.
+            event(scene, PointerEventType.Press, viewW - 10f, 300f, pressed = true, at = 1_000L)
+            repeat(20) {
+                Thread.sleep(8)
+                Snapshot.sendApplyNotifications()
+                scene.render()
+            }
+            assertTrue(
+                "the sheet scrolled under the still pointer ($startX → ${tab.viewport.offsetX})",
+                tab.viewport.offsetX < startX - 0.5f,
+            )
+
+            event(scene, PointerEventType.Release, viewW - 10f, 300f, pressed = false, at = 2_000L)
+            assertTrue(
+                "and the figure it was opening is on the page",
+                tab.document.page(tab.page).layers.sumOf { it.elements.size } > strokesBefore,
+            )
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `a vertical-space drag at the edge scrolls the block it is opening`() {
+        val state = state()
+        state.selectTool(DesktopTool.VERTICAL_SPACE)
+        val tab = state.tabs.active!!
+        val startX = tab.viewport.offsetX
+        val startY = tab.viewport.offsetY
+
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            // Against the canvas's bottom-right corner — the status bar owns the last 24 dp of the window,
+            // so the corner is a little above it. The reflow walks down the page, so the page has to come
+            // with it for a block longer than the window to be openable at all.
+            event(scene, PointerEventType.Press, viewW - 10f, viewH - 50f, pressed = true, at = 1_000L)
+            repeat(20) {
+                Thread.sleep(8)
+                Snapshot.sendApplyNotifications()
+                scene.render()
+            }
+            val offsetX = tab.viewport.offsetX
+            val offsetY = tab.viewport.offsetY
+            event(scene, PointerEventType.Release, viewW - 10f, viewH - 50f, pressed = false, at = 2_000L)
+
+            assertTrue("the sheet scrolled right ($startX → $offsetX)", offsetX < startX - 0.5f)
+            assertTrue("and down ($startY → $offsetY)", offsetY < startY - 0.5f)
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
     fun `a marquee away from the edge leaves the page where it is`() {
         val state = state()
         val tab = state.tabs.active!!

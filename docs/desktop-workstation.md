@@ -29,9 +29,9 @@ What it does today:
   figures, one cast shadow under each band, and one under the sheet — `docs/ui-modernization.md` owns the
   material and `DesktopThemeTest` pins it.
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
-  key too (`docs/ui-modernization.md` owns the table). A selection or element drag at the canvas's border
-  **scrolls the view** while it runs, so a marquee catches more than one screenful (`EdgePan.kt`,
-  `DesktopEdgePanTest`). A tab opens in **`AUTO`
+  key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view** —
+  a marquee catches more than one screenful, a figure keeps opening, a reflow keeps growing — eased in and
+  out rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`). A tab opens in **`AUTO`
   fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and a page saved as a
   long strip — the tablet writes one 850 × 2976 pt page for a lecture that fills the sheet — is fitted to
   its **width**, because the whole page lands at 27 %, where a 12 pt hand is three pixels tall. The status
