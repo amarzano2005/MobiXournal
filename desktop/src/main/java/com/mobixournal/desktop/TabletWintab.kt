@@ -69,6 +69,9 @@ internal interface WintabApi : Library {
         /** Packet status bits used here. */
         const val TPS_INVERT = 0x0010
 
+        /** `TPS_PROXIMITY`: the pen is inside the tablet's sensing range — hovering or drawing. */
+        const val TPS_PROXIMITY = 0x0002
+
         /** The button number a pen's tip reports in `pkButtons`. */
         const val BTN_TIP = 1
 
@@ -227,6 +230,15 @@ internal class TabletWintab private constructor(
     /** Whether the previous packet had the tip down, so a stroke's first packet can be logged. */
     private var wasTip = false
 
+    /**
+     * Whether this driver reports `TPS_PROXIMITY` at all.
+     *
+     * Only then can a packet mean "the pen has left". A driver that leaves the status at zero would
+     * otherwise have every lift read as the pen leaving the tablet, which would hide the ring between
+     * two hovering moves.
+     */
+    private var sawProximity = false
+
     /** Packets decoded this session, for the probe's counter. */
     @Volatile
     var samples: Int = 0
@@ -261,12 +273,17 @@ internal class TabletWintab private constructor(
     private fun consume(packet: WintabPacket) {
         val tip = packet.buttons and 0xFFFF
         val onGlass = tip and WintabApi.BTN_TIP != 0 || packet.pressure > 0
+        val inProximity = packet.status and WintabApi.TPS_PROXIMITY != 0
+        if (inProximity) sawProximity = true
+        // "Near" is the driver's own answer when it has one; a driver that never sets the bit keeps the
+        // pen permanently near, which is the reading that cannot hide a ring that should be showing.
+        val near = !sawProximity || inProximity
         val sample = PenContact.of(packet, pressureMax, System.nanoTime())
         if (!onGlass) {
             latest = null
             // The lift is a packet too, and it is what ends a stroke: a canvas that drew from these
             // never waits for the mouse message Windows may or may not send for the same contact.
-            emit(packet, sample, tip = false)
+            emit(packet, sample, tip = false, near = near)
             return
         }
         latest = sample
@@ -274,7 +291,7 @@ internal class TabletWintab private constructor(
         if (samples % 200 == 1) {
             onEvent?.invoke("wintab sample ${sample.describe()} buttons=$tip")
         }
-        emit(packet, sample, tip = true)
+        emit(packet, sample, tip = true, near = near)
         onSample?.invoke(sample)
     }
 
@@ -293,7 +310,7 @@ internal class TabletWintab private constructor(
     }
 
     /** One packet to every listening canvas, in the window's client pixels. */
-    private fun emit(packet: WintabPacket, sample: PenContact, tip: Boolean) {
+    private fun emit(packet: WintabPacket, sample: PenContact, tip: Boolean, near: Boolean) {
         // The context is the system one, so x/y are screen pixels; the canvas needs client pixels, and
         // the y axis's direction is settled by which reading lands inside the window.
         val point = clientPoint(packet.x, packet.y) ?: return
@@ -314,6 +331,7 @@ internal class TabletWintab private constructor(
             azimuthRad = sample.azimuthRad,
             rotationRad = sample.rotationRad,
             tip = tip,
+            near = near,
             eraser = sample.eraser,
             atNanos = sample.atNanos,
         )

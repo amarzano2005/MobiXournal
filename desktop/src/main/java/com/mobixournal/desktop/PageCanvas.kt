@@ -124,6 +124,12 @@ internal fun PageCanvas(
     var extent by remember { mutableStateOf(Size.Zero) }
     // True while the tablet's packets own the pen: the mouse path stands aside for that stroke.
     val penOwns = remember(tab, tab.page) { mutableStateOf(false) }
+    // Where the ring sits, and when the **driver** last said where the pen is. Both are lifted here
+    // because two paths write them: the packets (400 readings a second) and, when the window has no
+    // stream, the Compose pointer's moves. The ring is this window's own ink, so it trails the nib by a
+    // whole frame unless it is driven by the newest reading rather than by the emulated mouse's copy.
+    val hover = remember { mutableStateOf<Offset?>(null) }
+    val penAtNanos = remember { mutableStateOf(0L) }
 
     BoxWithConstraints(
         modifier
@@ -156,6 +162,8 @@ internal fun PageCanvas(
             origin = { origin },
             extent = { extent },
             owns = penOwns,
+            hover = hover,
+            penAtNanos = penAtNanos,
             packets = packets,
         )
         SheetCanvas(
@@ -168,6 +176,8 @@ internal fun PageCanvas(
             penDraft = penDraft,
             pen = pen,
             penOwns = penOwns,
+            hover = hover,
+            penAtNanos = penAtNanos,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
@@ -233,6 +243,10 @@ private fun SheetCanvas(
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
     penOwns: MutableState<Boolean>,
+    /** The ring's position — written by the packets while the pen is in range, by the mouse otherwise. */
+    hover: MutableState<Offset?>,
+    /** `nanoTime` of the newest driver reading; a mouse move is ignored while this is fresh. */
+    penAtNanos: MutableState<Long>,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     measurer: TextMeasurer,
     density: Float,
@@ -243,20 +257,26 @@ private fun SheetCanvas(
     onEdited: (Int) -> Unit,
 ) {
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
-    var hover by remember { mutableStateOf<Offset?>(null) }
+    // Its position is [hover], lifted into `PageCanvas` so the driver's own readings can move it.
     val ringPx = toolCursorDiameterPx(tool, ink.width, sheet.zoom, density)
     val penIcon = rememberBlankPointerIcon()
+    // The page is rasterised once per viewport and blitted while a stroke is drawn (`PageRaster`): the
+    // frame a packet is painted on then costs the same on a blank sheet and on a four-thousand-stroke one.
+    val raster = remember(tab, tab.page) { PageRaster() }
+    // A mouse move that is a *copy* of the contact must not drag the ring back to a position the driver
+    // has already left behind; the packets win for as long as they are arriving.
+    val followMouse = { System.nanoTime() - penAtNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
 
     Canvas(
         Modifier.fillMaxSize()
             .pointerHoverIcon(if (ringPx != null) penIcon else PointerIcon.Default)
             .onPointerEvent(PointerEventType.Enter) { event ->
-                hover = event.changes.firstOrNull()?.position
+                if (followMouse()) hover.value = event.changes.firstOrNull()?.position
             }
             .onPointerEvent(PointerEventType.Move) { event ->
-                hover = event.changes.firstOrNull()?.position
+                if (followMouse()) hover.value = event.changes.firstOrNull()?.position
             }
-            .onPointerEvent(PointerEventType.Exit) { hover = null }
+            .onPointerEvent(PointerEventType.Exit) { if (followMouse()) hover.value = null }
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 wheelViewport(
                     event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
@@ -284,6 +304,7 @@ private fun SheetCanvas(
             },
     ) {
         paintSheet(
+            raster = raster,
             page = page,
             viewport = sheet.viewport,
             zoom = sheet.zoom,
@@ -298,7 +319,7 @@ private fun SheetCanvas(
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
         val ring = ringPx
-        val at = hover
+        val at = hover.value
         if (ring != null && at != null) drawToolCursor(at, ring)
     }
 }
@@ -314,6 +335,8 @@ private fun SheetCanvas(
  * about the file.
  */
 private fun DrawScope.paintSheet(
+    /** The cached page — blitted instead of re-painted, so a live stroke costs one image per frame. */
+    raster: PageRaster,
     page: Page,
     viewport: Viewport,
     zoom: Float,
@@ -337,8 +360,8 @@ private fun DrawScope.paintSheet(
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
     val pxPerPt = zoom * density
+    raster.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer)
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
-        drawPageContent(page, pxPerPt, measurer, backdrop, hiddenLayers)
         val inkTool = tool.inkTool()
         if (inkTool == null) return@withTransform
         for (draft in drafts) {
@@ -378,6 +401,10 @@ private fun PenPacketStrokes(
     origin: () -> Offset,
     extent: () -> Size,
     owns: MutableState<Boolean>,
+    /** Where the driver last put the pen, in this canvas's pixels — the ring follows it. */
+    hover: MutableState<Offset?>,
+    /** When that reading arrived, so a mouse move can tell whether the driver is still talking. */
+    penAtNanos: MutableState<Long>,
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.
@@ -398,12 +425,19 @@ private fun PenPacketStrokes(
             startOnDown = true,
         )
     }
+    // One ring update per frame, not one per packet: the driver sends 400 readings a second and each
+    // write to [hover] repaints the canvas.
+    val showAt: (Offset?) -> Unit = { at ->
+        if (hover.value != at) hover.value = at
+        penAtNanos.value = System.nanoTime()
+    }
     val stroke = remember(gesture) {
         PenPacketStroke(
             gesture = gesture,
             origin = origin,
             size = extent,
             onOwnership = { owns.value = it },
+            onHover = showAt,
         )
     }
     DisposableEffect(packets, stroke) {
@@ -417,6 +451,7 @@ private fun PenPacketStrokes(
         while (true) {
             withFrameNanos { }
             stroke.flush()
+            stroke.publishHover()
             stroke.finishIfStale(System.nanoTime())
         }
     }

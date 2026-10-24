@@ -53,6 +53,8 @@ class PenPacketStrokeTest {
         origin: Offset = Offset.Zero,
         size: Size = Size(pageW, pageH),
         owned: MutableList<Boolean> = mutableListOf(),
+        /** The ring positions the canvas would paint — `onHover`, per published frame. */
+        hovered: MutableList<Offset?> = mutableListOf(),
         tool: DesktopTool = DesktopTool.PEN,
         ink: DesktopInk = DesktopInk(width = 4f),
     ): PenPacketStroke {
@@ -74,6 +76,7 @@ class PenPacketStrokeTest {
             origin = { origin },
             size = { size },
             onOwnership = { owned.add(it) },
+            onHover = { hovered.add(it) },
         )
     }
 
@@ -224,6 +227,48 @@ class PenPacketStrokeTest {
                 full.points.last().width,
                 1e-2,
             )
+        } finally {
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The **ring** is the window's own ink, so it has to be moved by the driver's readings.
+     *
+     * The complaint this answers is a pointer that trails the nib: the ring used to follow the mouse
+     * Windows emulates the pen as, whose moves are coalesced copies of the contact, while the driver's
+     * own stream has the pen 400 times a second. A hovering pen is exactly the case — no stroke, no
+     * mouse press, just a position that must be where the nib is.
+     */
+    @Test
+    fun `a hovering pen moves the ring without starting a stroke`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook("hover.mobix")))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        try {
+            val before = strokes(tab).size
+            val hovered = mutableListOf<Offset?>()
+            val path = path(tab, hovered = hovered)
+            path.packet(packet(40f, 50f, pressure = null, tip = false, atNanos = 1_000_000_000L))
+            path.packet(packet(44f, 56f, pressure = null, tip = false, atNanos = 1_002_000_000L))
+            // One publish per frame: two readings, one ring update, at the newest position.
+            path.publishHover()
+            assertEquals("one ring update for the frame", listOf(Offset(44f, 56f)), hovered)
+            assertFalse("a hovering pen draws nothing", path.drawing)
+            assertEquals("and commits nothing", before, strokes(tab).size)
+
+            // A still pen publishes nothing: an unchanged ring must not repaint the window, and it must
+            // not vanish either — the driver reports changes, so a resting hand sends no packets at all.
+            path.publishHover()
+            assertEquals("a rested pen keeps its ring", 1, hovered.size)
+
+            // The packet that ends the hover is the driver's own proximity-out: then the ring goes, and
+            // the window hands the pointer back to the mouse.
+            val gone = packet(44f, 56f, pressure = null, tip = false, atNanos = 1_020_000_000L)
+            path.packet(gone.copy(near = false))
+            path.publishHover()
+            assertEquals("the ring is handed back", null, hovered.last())
+            assertEquals("exactly once", 2, hovered.size)
         } finally {
             tab.document.close()
         }

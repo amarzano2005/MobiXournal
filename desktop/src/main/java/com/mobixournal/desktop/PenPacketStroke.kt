@@ -36,6 +36,14 @@ internal class PenPacketStroke(
     private val size: () -> Size,
     /** Called when this path takes the pen and when it lets it go, so the mouse path stands aside. */
     private val onOwnership: (Boolean) -> Unit = {},
+    /**
+     * Where the pen is, in this canvas's pixels, for the ring the window paints — once per frame, with
+     * the newest reading, or null once the driver has been quiet long enough to hand the pointer back.
+     *
+     * A ring is ink like any other: painted by this window, it trails the nib by a frame unless it is
+     * moved from the driver's 400 readings instead of from the mouse's copy of them.
+     */
+    private val onHover: (Offset?) -> Unit = {},
 ) {
 
     /** True between the tip's first packet and its lift. */
@@ -43,6 +51,11 @@ internal class PenPacketStroke(
         private set
 
     private var lastPacketNanos = 0L
+
+    /** The newest reading's position, tip or hover, and when it arrived — the ring's source. */
+    private var newestAt: Offset? = null
+    private var newestAtNanos = 0L
+    private var publishedAt: Offset? = null
 
     /**
      * The samples that have arrived since the last frame, in the driver's own order.
@@ -98,6 +111,11 @@ internal class PenPacketStroke(
             )
         } ?: raw
         val inside = local.x >= 0f && local.y >= 0f && local.x <= size().width && local.y <= size().height
+        // Every reading moves the ring, tip or not: a hovering pen is exactly what a ring is for. The raw
+        // position is used — a ring is tens of pixels wide, so the whole-pixel staircase is not visible
+        // on it, and the stroke's own smoothing must not be disturbed by a pass of hovering.
+        newestAtNanos = packet.atNanos
+        newestAt = if (inside && packet.near) raw else null
         if (!packet.tip) {
             if (drawing) {
                 // The lift ends the stroke, so the samples still waiting for a frame are part of it.
@@ -134,6 +152,24 @@ internal class PenPacketStroke(
      */
     fun flush() {
         while (pending.isNotEmpty()) gesture.move(pending.removeFirst())
+    }
+
+    /**
+     * Move the ring to the newest reading — one call per frame, from the canvas's ticker.
+     *
+     * Publishing only when the position changed keeps an idle pen from repainting the window; publishing
+     * `null` once the readings stop is what hands the pointer back to the mouse when the pen leaves the
+     * tablet's proximity, instead of freezing the ring where it was last seen.
+     */
+    fun publishHover() {
+        // No timeout: the driver reports *changes*, so a pen held still above the glass sends nothing and
+        // a ring that vanished under a resting hand would be worse than one that outlives it. The driver
+        // says when the pen has left the tablet's proximity ([PenPacket.near]); until then the reading
+        // stands. Handing the pointer to the mouse is a **separate** deadline, kept by the canvas from
+        // [newestAtNanos] — the ring staying put must not disable the mouse.
+        if (newestAt == publishedAt) return
+        publishedAt = newestAt
+        onHover(newestAt)
     }
 
     /**
@@ -218,5 +254,14 @@ internal class PenPacketStroke(
 
         /** One-pole coefficient for the position: enough to erase the whole-pixel staircase. */
         const val POSITION_SMOOTHING = 0.6f
+
+        /**
+         * How long the driver's reading outranks the mouse after the last packet.
+         *
+         * A pen out of the tablet's proximity may send nothing at all, so the window has to fall back to
+         * the mouse on silence; short enough that the hand-over is immediate, long enough that a gap
+         * between two packets (a heavy frame) does not make the ring jump to the emulated position.
+         */
+        const val HOVER_STALE_NANOS = 150_000_000L
     }
 }

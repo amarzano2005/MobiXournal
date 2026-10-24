@@ -90,16 +90,27 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   every sample the packet's time and the `nanoTime` of the frame that first drew it. On a host with no
   tablet the packets are synthetic (400 Hz, the same rate the driver reports), so the numbers below
   measure the canvas, not a driver; on the owner's PC the same window takes the Huion's own stream.
-  On the Windows 11 laptop (`i7-12650H`, display refresh the bound this host can measure) the blank A4 page measured a
-  **median 12.9 ms / p95 17.9 ms / max 20.2 ms** over 719 samples, and `udiff.xopp`'s dense first page
-  **median 17.7 ms / p95 29.4 ms / max 47.6 ms** over 718 samples. The task's target — one frame at
-  144 Hz, 6.9 ms — is set for the owner's 144 Hz PC, so it cannot be met or disproved on this display;
-  what the numbers do say is that the position filter is not the cost (the light page is inside a 60 Hz
-  frame) and that the remaining heavy-page cost is the full-sheet repaint, which is
-  `desktop-144hz-render-pacing`'s dirty-rect work, not this path's. Step (3) of that work — painting the
-  stroke's head at the raw packet position while the filtered body trails — was therefore not taken:
-  it would trade a clean line for less than a millisecond while the frame interval dominates. The
-  owner's live pass on the Huion is what confirms the 144 Hz number.
+  The first run on the Windows 11 laptop (`i7-12650H`, display refresh the bound this host can measure)
+  measured the blank A4 page at **median 12.9 ms / p95 17.9 ms**, but `udiff.xopp`'s dense first page at
+  **median 17.7 ms / p95 29.4 ms / max 47.6 ms** — and that gap *was* the felt lag: every frame re-painted
+  the whole sheet (paper, picture, every living entity compiled through `LivingInk`, every text box
+  measured, all four thousand strokes), which on the owner's PC is a stall the hand reads as the line
+  falling behind the nib.
+
+  **The page is now rasterised once** (`PageRaster.kt`) for the viewport in force and **blitted** while a
+  stroke is drawn, so a frame costs one image plus the stroke in progress however much ink the document
+  holds. The cache is not a second renderer: it runs the same `drawPageContent`, and `PageRasterTest`
+  compares cached and direct frames pixel by pixel (and pins the reuse: one rasterisation per still
+  viewport, one more per scroll). Measured again on the same host, same synthetic 400 Hz stream: blank A4
+  **median 13.5 ms / p95 18.3 ms / max 29.4 ms**, `udiff.xopp` **median 13.6 ms / p95 19.8 ms / max
+  29.0 ms** — the dense page now costs the same as the blank one, because what remains is the frame
+  interval itself (a 60 Hz display quantises a packet to its next vsync before any paint happens).
+  The task's target — one frame at 144 Hz, 6.9 ms — is set for the owner's 144 Hz PC, so it cannot be met
+  or disproved on this display; painting the stroke's head at the raw packet position while the filtered
+  body trails was not taken, because it would trade a clean line for less than a millisecond while the
+  frame interval dominates. Dirty-rect pacing for scrolling and zooming stays
+  `desktop-144hz-render-pacing`'s, and the owner's live pass on the Huion is what confirms the 144 Hz
+  number.
 - **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
   line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a
   drawing tool is active — so every hit test and hover event still works — and `drawToolCursor` paints the
@@ -108,6 +119,14 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   width × zoom × density with a 7 px floor, and the **eraser's** ring is its radius doubled
   (`eraserRadiusPt`), not its width — a ring that said 4 pt over a 12 pt stroke would be worse than the
   arrow. A tool that draws nothing keeps the arrow.
+
+  The ring is **this window's own ink**, so it also had to stop being driven by the mouse: Windows'
+  emulation is a coalesced *copy* of the contact, which put the ring a frame or two behind the nib. It is
+  now placed from the driver's readings (`PenPacketStroke.publishHover`, one update per frame with the
+  newest one), for a hovering pen as well as a drawing one. Silence is not absence — a driver reports
+  changes, so a pen held still above the glass sends nothing and the ring stays put; the packet that
+  says the pen has left the tablet's proximity clears it, and a mouse move takes the ring over once the
+  readings stop (`HOVER_STALE_NANOS`).
 - **The dial is a wheel, not a pointer.** Turning it sends `WM_MOUSEWHEEL` with `delta=+120` — the mouse
   wheel's own message, its own unit, no modifier, and `GetMessageExtraInfo` empty (`extra=-`), so the
   extra-info signature does not name the device either. The WinRT `RadialController` route therefore has

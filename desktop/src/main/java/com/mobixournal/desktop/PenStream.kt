@@ -37,6 +37,15 @@ internal data class PenPacket(
     val rotationRad: Float?,
     /** True while the pen's tip is on the glass. */
     val tip: Boolean,
+    /**
+     * False once the driver says the pen has left the tablet's **proximity** — the packet that ends a
+     * hover rather than a stroke.
+     *
+     * The driver reports changes, so a pen held still above the glass sends nothing: silence cannot be
+     * read as "gone", or the ring would vanish under a hand that is merely waiting. Defaults to true, so
+     * a source that does not report proximity (the synthesiser, a test) never declares the pen gone.
+     */
+    val near: Boolean = true,
     /** True when the eraser end is the end on the glass. */
     val eraser: Boolean,
     val atNanos: Long,
