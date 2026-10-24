@@ -212,14 +212,11 @@ its own:
 
 - **Seven geometry slots draw figures.** Line, Arrow, Double arrow, Axes (the shared
   `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Spline each turn one drag into an ordinary
-  constant-width stroke through `ShapeBuilder` — the same builder the tablet's shape tools call — so a
-  figure made here round-trips through `.xopp` as ink, with no new element and no new attribute. The
-  preview is the **same draft list** the sheet already paints (`shapeFromDrag` rebuilds it on every
-  move, the lift commits those very points), `Shift` snaps the drag's direction to 45° and keeps its
-  length, a press off the sheet or a drag shorter than 4 pt draws nothing, and `Esc` cancels: the drag
-  hands its cancel to `DesktopShellState.liveDrag` while it runs, so a keyboard can answer a gesture the
-  pointer has not released. With a geometry slot picked the tablet's **packets stand aside** — they are
-  not composed at all — because a pen contact must not ink under a figure being dragged.
+  constant-width stroke through `ShapeBuilder` — the tablet's own builder — so a figure made here
+  round-trips through `.xopp` as ink. The preview is the **same draft list** the sheet already paints,
+  `Shift` snaps the drag's direction to 45°, a drag shorter than 4 pt draws nothing, and `Esc` cancels
+  through `DesktopShellState.liveDrag`. With a geometry slot picked the tablet's **packets stand
+  aside**: a pen contact must not ink under a figure being dragged.
 - **The eraser's two members are two slots.** `Eraser` (`E`) cuts the disc's path out of the stroke it
   crosses; `Eraser (whole)` (`Shift+E`) removes every stroke the disc touches. They differ by
   `DesktopTool.eraserMode()` (`EraserMode.STANDARD` / `WHOLE_STROKE`), which `PageInkGesture` passes to
@@ -237,6 +234,13 @@ its own:
   drags the grab line with a live packet stream and checks the block follows it.
   The arithmetic is shared: `VerticalSpaceOps`, its `Snapping` and the per-element move (`ElementShift`)
   live in `mobix-core`, and the app's `SelectionOps.translate` delegates to the same `ElementShift`.
+
+### Placing a living element: Plot, Table and Circuit
+
+Plot (`M`), Table (`T`) and Circuit (`K`) place a living element instead of drawing one: a drag is its
+box, a click its family's default size, and the lift commits **one** element as **one undo step**, left
+selected. The geometry (`LivingPlacement`), the builders and the Circuit slot's component palette are
+shared with the tablet through `mobix-core` ([drawing-tools.md](drawing-tools.md) owns the placement).
 
 ### Selecting, moving, resizing and turning
 
@@ -296,13 +300,10 @@ numbers beside the 6.9 ms frame budget.
 
 ### What the window does not do
 
-- No text authoring and no layer editing, and the STEM slots do not place yet: the ink, the two erasers,
-  the seven geometry slots, vertical space, marquee/lasso selection and the selection bar are what work,
-  and a STEM slot still only picks a tool. There are no header buttons for undo and redo — the commands
+- No text authoring and no layer editing. There are no header buttons for undo and redo — the commands
   exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
-- No sketch/PDF/text import, no **images as elements** (only as page backgrounds), no editing of a
-  living entity — the ink is drawn, not made editable.
-- No right-side property inspector, no search, and no page reordering or insertion.
+- No sketch/PDF/text import and no **images as elements** (only as page backgrounds).
+- No search, and no page reordering or insertion.
 - No **absolute pen mapping**: the pen's readings are folded into the Compose pointer, so its position is
   the window's, which Windows has already transformed from the tablet's area — the driver's own active-area
   and aspect settings are respected and this window adds no second mapping. No installer: `run` and the

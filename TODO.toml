@@ -24,7 +24,7 @@ scope = "Only build features the .mobix or .xopp formats can represent on disk (
 [[task]]
 id = "desktop-every-tool-does-what-it-does-on-the-tablet"
 title = "Desktop: every tool in the strip does what it does on the tablet (scope)"
-description = "Priority 1 of the window, and the map of who owns which remaining slot: every slot the strip offers must do what the same tool does on the tablet, and no tool may be offered without acting. Shipped since this scope was opened: pen and highlighter inking through the shared router and pressure filter, both erasers (standard and whole-stroke), the seven geometry slots (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) and Vertical space - each through mobix-core, each one gesture and one undo step. Still open, and owned by exactly one child so nothing is planned twice: TEXT and TEXIMAGE -> desktop-shape-text-and-math-tools; MARQUEE and LASSO -> desktop-eraser-and-selection-on-shared-geometry (shipped; BG_SELECT is gone from the tablet as well, so the window owes nothing there); PLOT, AXES, TABLE and CIRCUIT -> desktop-stem-slot-placement; pictures and import -> desktop-images-and-import; the setsquare and compass guides -> desktop-guides-setsquare-compass; the audio tap, the Y key and karaoke replay -> desktop-audio-replay; PDF text selection and the magnetic highlighter -> desktop-pdf-annotation; what exposes a group's members at all (chevrons, glass pickers, grouping) -> desktop-tool-groups-and-pickers; every slot face's glyph -> unify-remaining-stem-tool-glyphs; the barrel-button ring of tools, widths and colours -> desktop-pen-tip-radial-hud. Every tablet tool now has an owner, and a tool whose task has not landed is simply not shown on the strip rather than shown dead. Rules every child follows: the shared router decides what a press means (docs/stylus.md), width and colour come from the strip through the same PressureCurve, a drag previews exactly what the lift commits, one gesture is one edit and one undo step, a packet-driven stroke and a mouse drag never draw the same contact twice (DesktopTool.inksByPackets is the one gate), every UI element answers docs/interface-contract.md, and the owning spoke plus README change in the same commit. Done when every slot either acts or is not shown. This scope is the map, not the work: picking it up means breaking the listed children down, never implementing here."
+description = "Priority 1 of the window, and the map of who owns which remaining slot: every slot the strip offers must do what the same tool does on the tablet, and no tool may be offered without acting. Shipped since this scope was opened: pen and highlighter inking through the shared router and pressure filter, both erasers (standard and whole-stroke), the seven geometry slots (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline), Vertical space, marquee/lasso selection with their bar and inspector, and the three STEM slots - Plot, Table and Circuit each place a living element through mobix-core's LivingPlacement as one element, one undo step and a selected result, with Circuit's component palette in the strip. Still open, and owned by exactly one child so nothing is planned twice: TEXT and TEXIMAGE -> desktop-shape-text-and-math-tools; pictures and import -> desktop-images-and-import; the setsquare and compass guides -> desktop-guides-setsquare-compass; the audio tap, the Y key and karaoke replay -> desktop-audio-replay; PDF text selection and the magnetic highlighter -> desktop-pdf-annotation; every slot face's glyph -> unify-remaining-stem-tool-glyphs; the barrel-button ring of tools, widths and colours -> desktop-pen-tip-radial-hud. Nothing is left without an owner, and a tool whose task has not landed is simply not shown on the strip rather than shown dead. Rules every child follows: the shared router decides what a press means (docs/stylus.md), width and colour come from the strip through the same PressureCurve, a drag previews exactly what the lift commits, one gesture is one edit and one undo step, a packet-driven stroke and a mouse drag never draw the same contact twice (DesktopTool.inksByPackets is the one gate), every UI element answers docs/interface-contract.md, and the owning spoke plus README change in the same commit. Done when every slot either acts or is not shown. This scope is the map, not the work: picking it up means breaking the listed children down, never implementing here."
 status = "active"
 level = "scope"
 category = "feature"
@@ -310,62 +310,6 @@ level = "task"
 category = "feature"
 urgency = "high"
 order = 1040
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-living-slot-dispatch-and-placement"
-title = "Desktop: a STEM slot places, it does not pan (the shared plumbing)"
-description = "The first child of desktop-stem-slot-placement, and the one the other three stand on: today DesktopTool.activeTool() reduces PLOT, TABLE and CIRCUIT to ActiveTool.HAND, so picking one only pans the page. This task builds the seam, not a family: (1) a pure mobix-core `livingPlacement(dragStart, dragEnd, page, defaultSize)` that answers the Bounds a press-drag means (the tablet's gesture) and the box a bare click means (the default size, clamped inside the page), so both the caller and a JVM test agree; (2) the dispatch in the window: a slot whose product is a living element is not ink, so DesktopTool.inksByPackets() stays false for it, the packets stand aside as they do for a geometry slot (DesktopVerticalSpaceTest is the pattern), and the press is taken before the ink router with a `livingSlotOf(tool)` beside `selectionToolOf`; (3) one commit path, `DesktopDocument.editPage` with the new element appended to the top layer, one undo step per placement, and the new element left selected (a PageSelection of one ref) so a second gesture acts on what was just placed; (4) the AXES decision recorded: the tablet's Axes tool is the coordinate-axis FIGURE, which the window already ships as a geometry slot, and a PlotElement draws its own frame through PlotInk, so no new axes slot is created - write that in docs/mobix-elements.md so it is not re-opened. Tests: the placement JVM test (click box, drag box, both clamped to the page, a zero-area drag falling back to the default); an ImageComposeScene test with a stub family that picking such a slot and dragging writes exactly one element and one undo step and that the drag is not taken by the packets. Docs: docs/desktop-workstation.md, docs/mobix-elements.md. Run :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1050
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-place-a-plot"
-title = "Desktop: the Plot slot places a live plot"
-description = "Depends on desktop-living-slot-dispatch-and-placement. Add a DesktopTool.PLOT slot that places a PlotElement: drag a box (or click for the default size) and the element is written at those bounds with the tablet's own defaults - read them from app/render/PlotElementFactory.kt, which is also the file whose `applyPlotEdit` must come to mobix-core for the desktop to ask the question: move `PlotElementFactory` (and the pure part of `applyPlotEdit`) into mobix-core with its test PlotElementFactoryTest, since it holds the element's non-dialog fields and the rule that an unedited field is preserved rather than dropped; the app's callers keep importing it unchanged. The first question is the formula (one line, exactly the tablet's), asked in the window's glass beside the placed element - a small panel with the formula field, the interval and a Set button, no modal over the page - and the answer rewrites the element through applyPlotEdit as part of the same undo step; Esc leaves the default plot in place or removes it (decide once: an unanswered placement is removed, so a stray click leaves no empty frame). The drawing is already shared (PlotInk through LivingInk, which the window paints), so nothing new renders. Tests: a JVM test that the placement writes the bounds and the defaults, and that applyPlotEdit keeps an unedited field; an ImageComposeScene test that a drag on the Plot slot writes one PlotElement, the panel commits the formula, and one undo takes the whole placement back. Docs: docs/mobix-elements.md (the plot's placement and the window's question), docs/desktop-workstation.md, README. Run :desktop:test :mobix-core:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1060
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-place-a-table"
-title = "Desktop: the Table slot places a live table"
-description = "Depends on desktop-living-slot-dispatch-and-placement. Add a DesktopTool.TABLE slot: a drag (or a click for the default size) places a TableElement at those bounds, sized by the grid the user asks for first - rows and columns, asked in the window's glass next to the placed element (steppers plus Set, the tablet's question re-drawn, no dialog over the page) - and writes it with headers on and the page's ruling-agnostic defaults. The factories are already shared: TableElementFactory is in mobix-core (moved with the selection work), TableInk draws it through LivingInk, and ElementShift/SelectionOps already translate and scale it; what must be checked is that the element's colWidths/rowHeights divide the placed box, so the table is exactly as wide as the drag. The grid answer is one edit: the placed element is not committed twice (place with the answered grid, or place empty and rewrite it inside the same undo step - pick one and say so in the code's own comment). Esc on an unanswered placement leaves no table. Tests: a JVM test that a 3x4 answer divides the drag's box exactly and that the bounds are the drag's; an ImageComposeScene test that a drag on the Table slot plus the answer writes exactly one TableElement and one undo step. Docs: docs/mobix-elements.md (the table's placement), docs/desktop-workstation.md, README. Run :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1070
-created = 2026-10-24
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-place-a-circuit"
-title = "Desktop: the Circuit slot places a component"
-description = "Depends on desktop-living-slot-dispatch-and-placement. Add a DesktopTool.CIRCUIT slot: picking it opens the component picker (the tablet's own catalogue - read app/ui/CircuitGlyphs.kt and the CircuitElement model in mobix-core's format/model/Living.kt for the kinds and their default values), and a press places the picked component at a default size with its pins where CircuitInk draws them; a drag may set the size if it is cheap, but placement-at-a-click with rotation 0 is enough for this task. The commit is one element on the top layer and one undo step, left selected like the other STEM placements. The picker is the strip's pattern, not a new surface: a glass panel beside the slot (the ToolGroupPicker's material, docs/interface-contract.md) listing each kind with its glyph and label, closing on pick and on Esc. Component values (resistance etc.) are NOT edited here - that is desktop-inspector-circuit-fields - so the placement writes the model's defaults and says so. Tests: a JVM test that the placement writes the picked kind with its default values at the asked bounds; an ImageComposeScene test that picking a resistor in the picker and clicking the page writes exactly one CircuitElement and one undo step, and that the picker closes on Esc. Docs: docs/mobix-elements.md (the circuit's placement), docs/desktop-workstation.md, README. Run :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 1080
 created = 2026-10-24
 tags = ["desktop"]
 rebuild = false

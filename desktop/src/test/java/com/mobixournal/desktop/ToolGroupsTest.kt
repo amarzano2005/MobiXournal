@@ -70,8 +70,7 @@ class ToolGroupsTest {
 
     @Test
     fun `a tool the strips do not show has no group`() {
-        assertNull(groupOf(DesktopTool.TEXT))
-        assertNull(groupOf(DesktopTool.CIRCUIT))
+        assertNull("text waits for its own task", groupOf(DesktopTool.TEXT))
     }
 
     @Test

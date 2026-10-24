@@ -267,6 +267,27 @@ layer. Tapping an existing text box reopens it for editing (clearing the content
 matched by element identity. The view keeps the loaded document intact and only appends/edits, so
 every page, layer, and element round-trips through save.
 
+## Placing a living element (both shells)
+
+**A slot that places, not draws.** Plot, Table and Circuit are *placement* tools in both shells: the
+press does not ink, it reserves a box and writes a living element there. The box is
+`mobix-core`'s `LivingPlacement`: a drag's two corners are the element's bounds, a click (or a drag
+shorter than `LIVING_PLACEMENT_SLOP_PT` on either axis — 4 pt) is the family's `defaultSize`, and
+either answer is pushed back inside the sheet, so an element placed while zoomed out is never half off
+the page. The defaults are the tablet's own: a plot takes 45 % of the page's width (240–320 pt) and
+starts at `sin(x)` over −10…10; a table is a 3 × 3 grid with a header whose columns and rows divide
+the box exactly; a component is the armed `ShapeKind` along the box's horizontal axis with
+`CircuitElementFactory`'s canonical pins. Identity is the codec's (`ElementId`), never the placement's.
+
+On the window the press is taken **before** the ink router and `DesktopTool.inksByPackets()` stays
+false for these slots (the pen's packets stand aside, as for a figure), the drag previews the box in the
+selection's own dashed outline, and the lift is one `addToTopLayerOn` append through `editPage` — one
+element, one undo step, left selected so the pencil on the bar acts on it. The Circuit slot opens its
+**component palette** (`CircuitElementFactory.CIRCUIT_KINDS`, each row drawn by `CircuitInk`) before the
+press, because which part to place is a question the drag cannot answer. There is no separate Axes slot
+on the window: the tablet's Axes tool is the coordinate-axis *figure* (`ShapeKind.COORDINATE_AXIS`),
+which the window already ships, and a plot draws its own frame through `PlotInk`.
+
 ## Vertical space (`mobix-core`'s `render/VerticalSpaceOps.kt`)
 
 **Vertical space (`render/VerticalSpaceOps.kt`, `mobix-core`).** The **Vertical space** tool

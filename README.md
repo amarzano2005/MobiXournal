@@ -128,7 +128,10 @@ selection go. A bar appears under the outline with the tablet's own actions — 
 recolour or re-width what is caught, align and distribute a group, delete — and `Ctrl+C`/`Ctrl+X`/`Ctrl+V`/
 `Ctrl+D` do the same from the keyboard; a paste lands beside what it copied and stays selected. The **pencil**
 on that bar opens the selected table, plot, figure, component or formula in a lane beside the page, where its
-own values are editable without a dialog ever covering the sheet. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
+own values are editable without a dialog ever covering the sheet. **Place** a graph, a table or a circuit
+component with Plot (`M`), Table (`T`) or Circuit (`K`): drag the box it should fill (or click for the
+default size), and it lands there as one live, selected element — one `Ctrl + Z` puts the page back; Circuit
+first offers the tablet's palette of symbols, and the drawing is the pen's own colour and width. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.

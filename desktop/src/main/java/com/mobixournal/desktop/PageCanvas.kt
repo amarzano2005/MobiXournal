@@ -32,8 +32,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
+import com.mobixournal.render.ShapeKind
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -84,11 +86,11 @@ internal fun PageCanvas(
     onFit: (FitMode) -> Unit,
     tool: DesktopTool = DesktopTool.PEN,
     ink: DesktopInk = DesktopInk(),
+    circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
     onEdited: (Int) -> Unit = {},
     /**
-     * The window's pen stream, when it has one — Wintab's packets or Windows Ink's samples: the pen's
-     * pressure, tilt and eraser end are folded into the pointer events this canvas already receives, so
-     * a stroke is still one stroke.
+     * The window's pen stream, when it has one: Wintab's packets or Windows Ink's samples, folded into
+     * the pointer events this canvas already receives, so a stroke is still one stroke.
      */
     pen: PenContactStream? = null,
     /**
@@ -97,9 +99,8 @@ internal fun PageCanvas(
      */
     packets: PenPacketSource? = null,
     /**
-     * A diagnostics sink for the ink-latency probe (`InkProbe`): called after each paint with the
-     * drafts that were drawn and the clock at that paint. Null in the editor, where this is one branch
-     * per frame and no state.
+     * A diagnostics sink for the ink-latency probe (`InkProbe`): called after each paint with the drafts
+     * drawn and the clock at that paint. Null in the editor.
      */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     /**
@@ -155,6 +156,7 @@ internal fun PageCanvas(
             sheet = sheetLayout(tab, loaded, viewW, viewH),
             tool = tool,
             ink = ink,
+            circuitKind = circuitKind,
             draft = draft,
             penDraft = penDraft,
             pen = pen,
@@ -223,6 +225,7 @@ private fun PageSheet(
     sheet: SheetLayout,
     tool: DesktopTool,
     ink: DesktopInk,
+    circuitKind: ShapeKind,
     draft: SnapshotStateList<InkSample>,
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
@@ -272,6 +275,7 @@ private fun PageSheet(
         sheet = sheet,
         tool = tool,
         ink = ink,
+        circuitKind = circuitKind,
         draft = draft,
         penDraft = penDraft,
         pen = pen,
@@ -355,6 +359,7 @@ private fun SheetCanvas(
     sheet: SheetLayout,
     tool: DesktopTool,
     ink: DesktopInk,
+    circuitKind: ShapeKind,
     draft: SnapshotStateList<InkSample>,
     /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
     penDraft: SnapshotStateList<InkSample>,
@@ -404,6 +409,7 @@ private fun SheetCanvas(
                     panMode = panMode,
                     tool = tool,
                     ink = ink,
+                    circuitKind = circuitKind,
                     viewport = sheet.viewport,
                     pageW = sheet.pageW,
                     pageH = sheet.pageH,

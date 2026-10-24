@@ -291,12 +291,12 @@ commit inside the dialog at all.
   variable as the expression parser's own `x` (the graph dialog's parametric tab enters `cos(x)`,
   `sin(x)`), and a file that writes the parameter as `theta` or `t` instead is understood by renaming
   that variable before the formula is evaluated — the notation in the sentence above is the file's,
-  and losing a curve over the spelling of its variable would be the reader's fault.
-- `parameters` holds the named constants an expression may reference; moving a slider re-evaluates the
-  plot instead of editing the formula ([math-engine.md](math-engine.md)).
-- `summaryText` is a **cache of what was computed**, written so a reader that will not run the math
-  still shows the analysis. It is never the source of truth and is recomputed on any change to a curve,
-  a range or a parameter.
+  and losing a curve over the spelling of its variable would be the reader's fault. A plot draws its own
+  frame (`PlotInk`), so there is no `axes` element: the tablet's Axes tool is the coordinate-axis
+  **stroke figure** (`ShapeKind.COORDINATE_AXIS`), which both shells already have, and no third one is added.
+- `parameters` holds the named constants an expression may reference; a slider re-evaluates the plot
+  rather than editing the formula ([math-engine.md](math-engine.md)).
+- `summaryText` is a **cache of what was computed**, never the source of truth, and recomputed on any change.
 
 ### Parametric shape (`parametricShape`)
 

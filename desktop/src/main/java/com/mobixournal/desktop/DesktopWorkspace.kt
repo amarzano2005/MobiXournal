@@ -59,6 +59,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 panMode = state.panMode,
                 tool = state.tools.current,
                 ink = state.ink,
+                // The component the Circuit slot is armed with: the picker's answer, read by the
+                // placement when the press is lifted.
+                circuitKind = state.circuitKind,
                 // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
                 // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
                 pen = tablet?.pen,

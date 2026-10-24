@@ -48,8 +48,9 @@ fun DesktopTool.inkTool(): Tool? = when (this) {
 
 /**
  * The picked slot in the vocabulary the shared classifier reads, so the router — not this shell —
- * decides what a press means. A slot the window cannot draw yet reduces to `HAND`: its drag pans, and
- * nothing is committed, which is the honest behaviour for a tool with nothing behind it.
+ * decides what a press means. The STEM slots reduce to `HAND` here because their press is answered
+ * before the router (`livingPress`): a slot whose product is a living element is not ink, and nothing
+ * reaches this table for it.
  */
 fun DesktopTool.activeTool(): ActiveTool = when (this) {
     DesktopTool.PEN -> ActiveTool.PEN

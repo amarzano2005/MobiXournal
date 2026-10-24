@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Element
+import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.ShapeKind
 import java.io.File
 
 /**
@@ -188,6 +190,31 @@ class DesktopShellState(
         private set
 
     /**
+     * The component the **Circuit** slot is armed with.
+     *
+     * The window's half of `desktop-every-tool-does-what-it-does-on-the-tablet`'s Circuit slot: a press on
+     * the page places this symbol. It is view state, not document state — the element the placement writes
+     * carries its own `symbol`, and running out of this value only changes what the *next* placement is.
+     */
+    var circuitKind by mutableStateOf(LivingPlacement.DEFAULT_CIRCUIT_KIND)
+        private set
+
+    /** True while the Circuit slot's component list is open (`CircuitKindPicker`). */
+    var circuitPickerOpen by mutableStateOf(false)
+        private set
+
+    /** Arm the Circuit slot with [kind]; the palette closes, because the question is answered. */
+    fun pickCircuitKind(kind: ShapeKind) {
+        circuitKind = kind
+        circuitPickerOpen = false
+    }
+
+    /** Open or close the Circuit slot's component list. */
+    fun showCircuitKinds(open: Boolean) {
+        circuitPickerOpen = open
+    }
+
+    /**
      * Which tool strips the window shows, mirrored from the settings file into snapshot state: the file
      * is where the choice *lives*, this is what the chrome reads, and [chooseToolPlacement] writes both —
      * so the chrome never has to poll a file and a restart still finds the placement it had.
@@ -226,6 +253,10 @@ class DesktopShellState(
             favourites = favourites,
             openGroup = openGroup,
             onOpenGroup = { group -> openGroup = group },
+            circuitKind = circuitKind,
+            circuitPickerOpen = circuitPickerOpen,
+            onCircuitKind = ::pickCircuitKind,
+            onCircuitPicker = ::showCircuitKinds,
         )
 
     /**
@@ -424,19 +455,7 @@ class DesktopShellState(
         onSavePicker: () -> Unit = {},
     ): Boolean {
         when (command) {
-            ShellCommand.DISMISS_FAILURE -> {
-                // A drag that has not finished is the first thing `Esc` answers: cancelling the figure
-                // being drawn is the only way back from a geometry gesture the pointer has not released.
-                val cancel = liveDrag
-                if (cancel != null) {
-                    liveDrag = null
-                    cancel()
-                    return true
-                }
-                if (failure == null) return false
-                failure = null
-                return true
-            }
+            ShellCommand.DISMISS_FAILURE -> return dismissSurface()
             ShellCommand.OPEN -> {
                 onOpenPicker()
                 return true
@@ -515,6 +534,28 @@ class DesktopShellState(
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.SAVE, ShellCommand.SAVE_AS -> false
         }
+    }
+
+    /**
+     * `Esc`, in the order the window's surfaces stack: the drag in flight, the component palette, the
+     * failure card. A surface that is not up answers false, so the key is not swallowed by nothing.
+     */
+    private fun dismissSurface(): Boolean {
+        // A drag that has not finished is the first thing `Esc` answers: cancelling the figure being
+        // drawn is the only way back from a geometry gesture the pointer has not released.
+        val cancel = liveDrag
+        if (cancel != null) {
+            liveDrag = null
+            cancel()
+            return true
+        }
+        if (circuitPickerOpen) {
+            circuitPickerOpen = false
+            return true
+        }
+        if (failure == null) return false
+        failure = null
+        return true
     }
 
     /**

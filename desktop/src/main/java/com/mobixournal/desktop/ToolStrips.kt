@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.PenPalette
+import com.mobixournal.render.LivingPlacement
+import com.mobixournal.render.ShapeKind
 
 /**
  * The two tool placements of `docs/ui-modernization.md` §2, and the metrics that keep them honest.
@@ -107,6 +109,14 @@ data class ToolStripState(
     val openGroup: Int? = null,
     /** Opening (an index) or closing (null) the picker — the slot's chevron and `Alt+Down` both go here. */
     val onOpenGroup: (Int?) -> Unit = {},
+    /** The circuit component the Circuit slot is armed with — the picker's answer. */
+    val circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
+    /** True while the Circuit slot's component list is open. */
+    val circuitPickerOpen: Boolean = false,
+    /** Arm the Circuit slot with a component (and remember it for the next placement). */
+    val onCircuitKind: (ShapeKind) -> Unit = {},
+    /** Open or close the component list. */
+    val onCircuitPicker: (Boolean) -> Unit = {},
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -175,6 +185,10 @@ fun ToolRail(
                         onSelect = onSelect,
                         onOpenPicker = { state.onOpenGroup(index) },
                         onClosePicker = { state.onOpenGroup(null) },
+                        circuitKind = state.circuitKind,
+                        circuitPickerOpen = state.circuitPickerOpen,
+                        onCircuitKind = state.onCircuitKind,
+                        onCircuitPicker = state.onCircuitPicker,
                         side = StripSide.RIGHT,
                     )
                 }
@@ -239,6 +253,10 @@ fun ToolRibbon(
                         onSelect = onSelect,
                         onOpenPicker = { state.onOpenGroup(index) },
                         onClosePicker = { state.onOpenGroup(null) },
+                        circuitKind = state.circuitKind,
+                        circuitPickerOpen = state.circuitPickerOpen,
+                        onCircuitKind = state.onCircuitKind,
+                        onCircuitPicker = state.onCircuitPicker,
                         side = StripSide.BELOW,
                     )
                 }
@@ -298,6 +316,10 @@ private fun ToolSlot(
     onSelect: (DesktopTool) -> Unit,
     onOpenPicker: () -> Unit,
     onClosePicker: () -> Unit,
+    circuitKind: ShapeKind,
+    circuitPickerOpen: Boolean,
+    onCircuitKind: (ShapeKind) -> Unit,
+    onCircuitPicker: (Boolean) -> Unit,
     side: StripSide,
 ) {
     val tool = group.faceFor(selection)
@@ -308,60 +330,17 @@ private fun ToolSlot(
     val gapPx = with(density) { ToolStripMetrics.tooltipGap.roundToPx() }
 
     Box {
-        Box(
-            Modifier
-                .size(ToolStripMetrics.slotSize)
-                .background(
-                    when {
-                        active -> DesktopTheme.activeSlot
-                        hovered -> DesktopTheme.hoverSlot
-                        else -> Color.Transparent
-                    },
-                    DesktopTheme.railSlotShape,
-                )
-                .onPointerEvent(PointerEventType.Enter) { hovered = true }
-                .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(group, selection) {
-                    detectTapGestures(
-                        onTap = {
-                            // Clicking the slot that is already picked asks which member — the submenu the
-                            // user reaches for on a tool that is already in hand. See [slotClick].
-                            when (val click = slotClick(group, selection)) {
-                                is SlotClick.Pick -> onSelect(click.tool)
-                                SlotClick.OpenPicker -> onOpenPicker()
-                            }
-                        },
-                        onLongPress = { if (group.hasPicker) onOpenPicker() },
-                    )
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
-                // The tablet's rule: a glyph on the glass is the chrome ink, and the picked one is the
-                // accent. A grey glyph beside a white one reads as disabled, not as a different tool.
-                drawToolGlyph(
-                    tool,
-                    color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
-                )
-            }
-            if (group.hasPicker) {
-                // The marker, at the end the strip's own side leaves free, with its own tap target so a
-                // chevron click never doubles as a pick of the face.
-                Box(
-                    Modifier
-                        .align(
-                            when (side) {
-                                StripSide.RIGHT -> Alignment.BottomEnd
-                                StripSide.BELOW -> Alignment.BottomEnd
-                            },
-                        )
-                        .padding(3.dp)
-                        .pointerInput(group) { detectTapGestures { onOpenPicker() } },
-                ) {
-                    SlotChevron(active = active)
-                }
-            }
-        }
+        SlotFace(
+            tool = tool,
+            group = group,
+            selection = selection,
+            active = active,
+            hovered = hovered,
+            onHover = { hovered = it },
+            onSelect = onSelect,
+            onOpenPicker = onOpenPicker,
+            onCircuitPicker = onCircuitPicker,
+        )
         if (hovered && !pickerOpen) {
             TooltipPill(
                 tool = tool,
@@ -371,20 +350,141 @@ private fun ToolSlot(
                 },
             )
         }
-        if (pickerOpen) {
-            ToolGroupPicker(
-                group = group,
-                selection = selection,
-                onPick = { member ->
-                    onSelect(member)
-                    onClosePicker()
+        SlotPickerStack(
+            group = group,
+            selection = selection,
+            tool = tool,
+            pickerOpen = pickerOpen,
+            circuitKind = circuitKind,
+            circuitPickerOpen = circuitPickerOpen,
+            onSelect = onSelect,
+            onClosePicker = onClosePicker,
+            onCircuitKind = onCircuitKind,
+            onCircuitPicker = onCircuitPicker,
+            offset = when (side) {
+                StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
+                StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
+            },
+        )
+    }
+}
+
+/**
+ * The lists a slot can open, in one place: the group's members and — for the Circuit slot — the
+ * component palette. Which of the two belongs to which slot is the window's rule, so it lives beside the
+ * slot rather than in each strip.
+ */
+@Composable
+private fun SlotPickerStack(
+    group: ToolGroup,
+    selection: ToolSelection,
+    tool: DesktopTool,
+    pickerOpen: Boolean,
+    circuitKind: ShapeKind,
+    circuitPickerOpen: Boolean,
+    onSelect: (DesktopTool) -> Unit,
+    onClosePicker: () -> Unit,
+    onCircuitKind: (ShapeKind) -> Unit,
+    onCircuitPicker: (Boolean) -> Unit,
+    offset: IntOffset,
+) {
+    if (pickerOpen) {
+        ToolGroupPicker(
+            group = group,
+            selection = selection,
+            onPick = { member ->
+                onSelect(member)
+                onClosePicker()
+            },
+            onDismiss = onClosePicker,
+            offset = offset,
+        )
+    }
+    if (tool == DesktopTool.CIRCUIT && circuitPickerOpen) {
+        CircuitKindPicker(
+            current = circuitKind,
+            onPick = { kind ->
+                onCircuitKind(kind)
+                onCircuitPicker(false)
+            },
+            onDismiss = { onCircuitPicker(false) },
+            offset = offset,
+        )
+    }
+}
+
+/**
+ * The slot's face: its glyph, its background and the two gestures it answers — a click that picks (or
+ * asks which member) and, for a grouped tool, a chevron with a tap target of its own.
+ *
+ * Split from [ToolSlot] so the slot itself is placement and the surfaces it opens, and the 40 dp frame
+ * with its five states is one component both strips share.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun SlotFace(
+    tool: DesktopTool,
+    group: ToolGroup,
+    selection: ToolSelection,
+    active: Boolean,
+    hovered: Boolean,
+    onHover: (Boolean) -> Unit,
+    onSelect: (DesktopTool) -> Unit,
+    onOpenPicker: () -> Unit,
+    onCircuitPicker: (Boolean) -> Unit,
+) {
+    Box(
+        Modifier
+            .size(ToolStripMetrics.slotSize)
+            .background(
+                when {
+                    active -> DesktopTheme.activeSlot
+                    hovered -> DesktopTheme.hoverSlot
+                    else -> Color.Transparent
                 },
-                onDismiss = onClosePicker,
-                offset = when (side) {
-                    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
-                    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
-                },
+                DesktopTheme.railSlotShape,
             )
+            .onPointerEvent(PointerEventType.Enter) { onHover(true) }
+            .onPointerEvent(PointerEventType.Exit) { onHover(false) }
+            .pointerInput(group, selection) {
+                detectTapGestures(
+                    onTap = {
+                        // Clicking the slot that is already picked asks which member — the submenu the user
+                        // reaches for on a tool that is already in hand. See [slotClick].
+                        when (val click = slotClick(group, selection)) {
+                            is SlotClick.Pick -> {
+                                onSelect(click.tool)
+                                // The Circuit slot asks **which component** first: a press on the page must
+                                // never place a part the user did not choose, so arming it opens its palette.
+                                if (click.tool == DesktopTool.CIRCUIT) onCircuitPicker(true)
+                            }
+                            SlotClick.OpenPicker -> onOpenPicker()
+                        }
+                    },
+                    onLongPress = { if (group.hasPicker) onOpenPicker() },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
+            // The tablet's rule: a glyph on the glass is the chrome ink, and the picked one is the
+            // accent. A grey glyph beside a white one reads as disabled, not as a different tool.
+            drawToolGlyph(
+                tool,
+                color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
+            )
+        }
+        if (group.hasPicker) {
+            // The marker, at the end the strip's own side leaves free, with its own tap target so a
+            // chevron click never doubles as a pick of the face.
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(3.dp)
+                    .pointerInput(group) { detectTapGestures { onOpenPicker() } },
+            ) {
+                SlotChevron(active = active)
+            }
         }
     }
 }

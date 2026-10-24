@@ -86,6 +86,12 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
             DesktopTool.AXES,
         ),
     ),
+    // The STEM slots: each places a **living element** (a re-editable recipe), not ink, so each keeps a
+    // slot of its own rather than sharing a picker — a plot, a table and a component are three tools, the
+    // same way the pen and the highlighter are.
+    ToolGroup(listOf(DesktopTool.PLOT)),
+    ToolGroup(listOf(DesktopTool.TABLE)),
+    ToolGroup(listOf(DesktopTool.CIRCUIT)),
 )
 
 /**
@@ -93,9 +99,9 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
  * `desktop-every-tool-does-what-it-does-on-the-tablet`, in code.
  *
  * A tool leaves this set the moment its behaviour lands, which is also the moment it may join a group:
- * [DesktopTool.TEXT] arrives with `desktop-shape-text-and-math-tools`, the selection pair with
- * `desktop-eraser-and-selection-on-shared-geometry`, the living entities with
- * `desktop-stem-slot-placement`, and the audio tap with `desktop-audio-replay`.
+ * the selection pair arrived with `desktop-eraser-and-selection-on-shared-geometry`, the living entities
+ * (Plot, Table, Circuit) with `desktop-stem-slot-placement`, and [DesktopTool.TEXT] still waits for
+ * `desktop-shape-text-and-math-tools`, as the audio tap does for `desktop-audio-replay`.
  */
 val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PEN,
@@ -112,6 +118,10 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.ELLIPSE,
     DesktopTool.SPLINE,
     DesktopTool.AXES,
+    // The STEM slots place a living element through `LivingPlacement` — one element, one undo step.
+    DesktopTool.PLOT,
+    DesktopTool.TABLE,
+    DesktopTool.CIRCUIT,
 )
 
 /** The slot [tool] lives in, or null when the strip does not show it (yet). */

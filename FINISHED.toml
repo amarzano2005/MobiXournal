@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-place-a-circuit"
+title = "Desktop: the Circuit slot places a component"
+description = "The Circuit slot (K) opens a component palette built from CircuitElementFactory.CIRCUIT_KINDS (the tablet's own symbol list), each row drawn by the real CircuitInk compile of that kind, and arms the slot; a click or drag on the page then places the armed ShapeKind (resistor until another is picked) along the box's horizontal axis with rotation 0 and the factory's canonical pins, one element and one undo step, left selected. CircuitElementFactory moved from app into mobix-core as a public object (same package, so app call sites are untouched). The palette is the strip's glass popup, closes on pick and on Esc (DesktopShellState.dismissSurface), and its answer lives in shell state (circuitKind) so the canvas reads it at the press; values and labels stay the inspector's, not the placement's. Tests: DesktopLivingSlotsTest (the armed capacitor is what lands, the palette opens with the slot, Esc closes it, picking arms it) plus LivingPlacementTest's canonical-pin and drawability checks. Docs: docs/drawing-tools.md, docs/desktop-workstation.md, README. Distributable regenerated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-place-a-table"
+title = "Desktop: the Table slot places a live table"
+description = "The Table slot (T) places a live TableElement with a header and a 3x3 grid, its colWidths and rowHeights dividing the placed box exactly (TableElementFactory.tableElementFor), at the drag's bounds or the factory's 240x160 default on a click. Placement goes through the shared LivingPlacement + placeLivingElement seam, so it is one element, one edit and one undo step, left selected; the grid is rewritten by the inspector lane's table fields rather than by a second dialog. Tests: LivingPlacementTest asserts the 3x4 answer divides a drag exactly and the bounds are the drag's; DesktopLivingSlotsTest asserts a click writes one TableElement at the default size with its header, and the placement is one undo step. Docs: docs/drawing-tools.md, docs/desktop-workstation.md, README. Distributable regenerated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-place-a-plot"
+title = "Desktop: the Plot slot places a live plot"
+description = "The Plot slot (M) places a live PlotElement: a drag is its box, a click the tablet's default size (45 % of the page's width clamped to 240-320 pt, 0.6 of it tall), and it starts from sin(x) over -10..10 in the pen's colour and width with PlotElementFactory's axis and sample defaults. PlotElementFactory (and PlotBox) moved from app into mobix-core as a public object with its test, so the desktop asks the same factory the tablet's insertion does and an unedited field is preserved by applyPlotEdit rather than dropped; app call sites keep importing com.mobixournal.render unchanged. The dashed box previewed by the drag is LivingPlacement's own bounds, so preview and commit cannot differ. Verified by LivingPlacementTest (box, formula, defaults, identity left to the codec) and DesktopLivingSlotsTest (one PlotElement at the drag's bounds, one undo step, selected, Ctrl+Z takes it back). Docs: docs/drawing-tools.md, docs/desktop-workstation.md, README. Distributable regenerated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-living-slot-dispatch-and-placement"
+title = "Desktop: a STEM slot places, it does not pan (the shared plumbing)"
+description = "The shared seam every STEM slot stands on, in mobix-core: LivingPlacement.bounds answers a drag's box or a click's default size (LivingPlacement.defaultSize), both kept inside the page, with LIVING_PLACEMENT_SLOP_PT (4 pt) deciding click from drag. On the window livingSlotOf maps PLOT/TABLE/CIRCUIT to a LivingSlot, preInkPress (PageCanvasInput) asks the selection and the living slot before the ink router, inksByPackets stays false so the tablet's packets stand aside, and placeLivingElement appends through SelectionOps.addToTopLayerOn + editPage as one edit, one undo step, leaving the element selected with its PageSelection. livingPress previews the box as the selection's own dashed Rect and Esc cancels through liveDrag. AXES decision recorded: no new axes slot - the tablet's Axes tool is the coordinate-axis figure the window already ships and a plot draws its own frame (docs/mobix-elements.md, docs/drawing-tools.md). Tests: mobix-core LivingPlacementTest (click, drag, one-axis drag, page clamp, small page) and desktop DesktopLivingSlotsTest (drag writes one element and one undo step, the element stays selected with the pencil available, a STEM slot is in the strip and is not ink). Docs: docs/drawing-tools.md owns the placement, docs/desktop-workstation.md links to it, README's desktop section tells the reader how to place. :mobix-core:test, :desktop:test, :app:testDebugUnitTest and the guards green; distributable regenerated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-inspector-selection-bridge"
 title = "Desktop: the bridge from a selection to the one living element it names"
 description = "LivingTarget.kt is the bridge: LivingTargetRef names a document, page and ref; LivingFamily.of maps the five living types; livingTarget() resolves the ref against the page as it is now (so an undo cannot leave an editor showing a value the file no longer holds); replaceLiving() writes one element through DesktopDocument.editPage and records exactly one undo step, and answers false when the element is unchanged, so Set twice is not two undos; withElement() and shiftElement() are the pure page rewrites the lane and a nudge use, with ElementShift doing the geometry. DesktopShellState.runSelection answers SelectionAction.EDIT by opening that target and every other action by going to performSelection, and DesktopSelectionBarTest walks the five families on real pages and asserts the pencil is offered for each and for neither ink nor a two-element selection."

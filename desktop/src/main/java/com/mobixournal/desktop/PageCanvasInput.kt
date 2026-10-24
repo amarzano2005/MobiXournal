@@ -48,6 +48,8 @@ internal suspend fun PointerInputScope.pageGestures(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
+    /** The circuit family the Circuit slot places — the picker's answer, held by the shell. */
+    circuitKind: ShapeKind,
     viewport: Viewport,
     pageW: Float,
     pageH: Float,
@@ -109,10 +111,8 @@ internal suspend fun PointerInputScope.pageGestures(
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
-        // A geometry slot turns the drag into a figure instead of a stroke: the same press, a different
-        // product, and one undo step either way.
-        // The marquee tools take the drag before the ink sees it: they select, and a selection is not ink.
-        if (selectionPress(down, tool, tab, viewport, pageW, pageH, density, previewRegion, onLiveDrag, onEdited)) {
+        // A selection, a living element or a figure takes the drag before the ink sees it.
+        if (preInkPress(down, tool, tab, ink, viewport, pageW, pageH, circuitKind, previewRegion, onLiveDrag, onEdited)) {
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
@@ -140,6 +140,32 @@ internal suspend fun PointerInputScope.pageGestures(
         }
         gesture.cancel()
     }
+}
+
+/**
+ * The presses that are **not ink**, in the order the canvas offers them: the marquee and lasso select a
+ * region, a STEM slot places a living element, and each is one edit and one undo step of its own. A
+ * geometry slot is asked after this ([AwaitPointerEventScope.shapeDrag]), because a figure *is* ink.
+ */
+private suspend fun AwaitPointerEventScope.preInkPress(
+    down: PointerInputChange,
+    tool: DesktopTool,
+    tab: DesktopTab,
+    ink: DesktopInk,
+    viewport: Viewport,
+    pageW: Float,
+    pageH: Float,
+    circuitKind: ShapeKind,
+    previewRegion: MutableState<SelectionRegion?>?,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+    onEdited: (Int) -> Unit,
+): Boolean {
+    if (selectionPress(down, tool, tab, viewport, pageW, pageH, density, previewRegion, onLiveDrag, onEdited)) {
+        return true
+    }
+    return livingPress(
+        down, tool, tab, ink, viewport, pageW, pageH, circuitKind, previewRegion, onLiveDrag, onEdited,
+    )
 }
 
 /** dp a wheel notch moves the page. */

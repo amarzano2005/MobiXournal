@@ -240,12 +240,14 @@ class ToolStripsTest {
         )
         assertEverySlotInked(ribbonPng, vertical = false)
         val ribbon = ImageIO.read(ByteArrayInputStream(ribbonPng))
-        val lastSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() +
-            (DESKTOP_TOOL_GROUPS.lastIndex * slotStride) + 2
+        // The slot that faces Spline is the figures group's — not the last slot, which is the Circuit
+        // slot since the STEM slots joined the strip.
+        val figures = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.SPLINE in it.members }
+        val pickedSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() + (figures * slotStride) + 2
         assertEquals(
             "the ribbon marks the picked tool with the active slot",
             activeSlotArgb,
-            ribbon.getRGB(lastSlotX, ribbon.height / 2) and 0xFFFFFF,
+            ribbon.getRGB(pickedSlotX, ribbon.height / 2) and 0xFFFFFF,
         )
     }
 
