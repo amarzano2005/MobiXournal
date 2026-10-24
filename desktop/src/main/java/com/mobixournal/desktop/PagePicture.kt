@@ -48,8 +48,10 @@ import org.jetbrains.skia.Rect
  * A re-record on every edit is the wrong price for writing: the pen lifts once per letter, and each lift
  * used to throw the sheet away and build it again (3–7 ms on a dense page — a dropped frame every
  * stroke, `desktop-stroke-latency`). So the page is kept as a **base** picture plus a **tail**: the base
- * holds everything as of the last full record, and the tail holds the strokes that were *appended on top
- * of the page's top layer* since then. An append records only the new ink — a stroke or two, a fraction
+ * holds everything as of the last full record, and the tail holds **every** stroke *appended on the top of
+ * the page's top layer* since then — the whole run, always measured from the base, never just the newest
+ * one (a tail holding only the latest stroke would drop the ones before it off the sheet until something
+ * forced a full record). An append records only that run — a few strokes, a fraction
  * of a millisecond — and leaves the base alone; anything else (an erase, an undo, a reflow, a move)
  * changes ink the base already contains, which a picture cannot take back, so that case re-records the
  * sheet in full and starts a new base.
@@ -59,8 +61,8 @@ import org.jetbrains.skia.Rect
  * The two pictures are replayed under one transform into one canvas, so they composite exactly as the
  * single record did (`PagePictureTest` compares both against the direct paint).
  *
- * A tail that grows past [MAX_TAIL_ELEMENTS] folds back into a base, so a long writing run re-records
- * once every few dozen strokes instead of growing an ever longer tail.
+ * A run that grows past [MAX_TAIL_ELEMENTS] folds back into a base, so a long writing run re-records once
+ * every few dozen strokes instead of recording an ever longer tail on every lift.
  *
  * A stroke being drawn does **not** invalidate either picture: that stroke is painted over them
  * (`PageCanvas`'s drafts).
@@ -73,8 +75,11 @@ internal class PagePicture {
     /** The strokes appended on top since [base] was recorded, or null when the page is all in [base]. */
     private var tail: Picture? = null
 
-    /** The page [base] is the full record of, and the one the tail's elements were appended to. */
-    private var recorded: Page? = null
+    /** The page [base] is the **full** record of — the line the tail's elements are measured from. */
+    private var basePage: Page? = null
+
+    /** The page [base] plus [tail] reflect: the newest page this picture has drawn. */
+    private var shown: Page? = null
 
     /** What [base] depends on besides the page's elements: changing any of it is a full record. */
     private var key: Key? = null
@@ -133,10 +138,10 @@ internal class PagePicture {
             height = page.height,
             background = page.background,
         )
-        val recordedPage = recorded
-        if (wanted != key || recordedPage == null) {
+        val current = shown
+        if (wanted != key || current == null || base == null) {
             recordAll(wanted, page, measurer)
-        } else if (page !== recordedPage) {
+        } else if (page !== current) {
             adopt(page, wanted, measurer)
         }
         val sheet = base ?: return
@@ -158,7 +163,8 @@ internal class PagePicture {
         tail?.close()
         base = null
         tail = null
-        recorded = null
+        basePage = null
+        shown = null
         key = null
     }
 
@@ -166,26 +172,30 @@ internal class PagePicture {
      * A new page arrived: record only what was appended on top of it, when that is all that changed.
      *
      * The test is on **identity**, not equality: the elements a page edit did not touch are the very
-     * objects the recorded page holds, so "same prefix, longer top layer" is a couple of reference
-     * comparisons per element and an edit is never mistaken for an append.
+     * objects the base page holds, so "same prefix, longer top layer" is a couple of reference comparisons
+     * per element and an edit is never mistaken for an append.
+     *
+     * The diff is taken against the **base**, not against the previous frame's page: the tail has to hold
+     * every element appended since the base was recorded, or each new stroke would replace the tail and the
+     * ones before it would vanish from the sheet until something forced a full record. So the tail is
+     * recorded again from the whole run each time — a run bounded by [MAX_TAIL_ELEMENTS], so it stays a
+     * fraction of a millisecond. The base is the expensive half (paper, ruling, every old stroke, every
+     * measured text box) and it is never touched by an append.
      */
     private fun adopt(page: Page, wanted: Key, measurer: TextMeasurer) {
-        val previous = recorded ?: return recordAll(wanted, page, measurer)
-        val added = appendedElements(previous, page)
-        if (added == null || (tailElements + added.size) > MAX_TAIL_ELEMENTS) {
+        val base = basePage ?: return recordAll(wanted, page, measurer)
+        val added = appendedElements(base, page)
+        if (added == null || added.size > MAX_TAIL_ELEMENTS) {
             recordAll(wanted, page, measurer)
             return
         }
-        // An append to a hidden top layer changes no pixel: the base stays as it is.
-        if (added.isEmpty() || page.layers.lastIndex in wanted.hiddenLayers) {
-            recorded = page
-            return
-        }
         tail?.close()
-        tail = record(wanted, page, measurer) { drawElements(added, wanted.density, measurer) }
-        tailElements += added.size
-        tailRecords++
-        recorded = page
+        // An append to a hidden top layer changes no pixel, and a page back at the base's content (an undo
+        // that landed on it) has nothing left over it: in both cases the base alone is the page.
+        val paints = added.isNotEmpty() && page.layers.lastIndex !in wanted.hiddenLayers
+        tail = if (paints) record(wanted, page, measurer) { drawElements(added, wanted.density, measurer) } else null
+        if (paints) tailRecords++
+        shown = page
     }
 
     /** The one place the whole page becomes drawing instructions — a full record, and a new base. */
@@ -193,7 +203,6 @@ internal class PagePicture {
         base?.close()
         tail?.close()
         tail = null
-        tailElements = 0
         base = record(wanted, page, measurer) {
             drawPageContent(
                 page = page,
@@ -203,13 +212,11 @@ internal class PagePicture {
                 hiddenLayers = wanted.hiddenLayers,
             )
         }
-        recorded = page
+        basePage = page
+        shown = page
         key = wanted
         records++
     }
-
-    /** How many appended elements the current tail holds — the fold trigger. */
-    private var tailElements: Int = 0
 
     /**
      * The page's commands, recorded at **document scale** (one point is `density` pixels) and anchored at

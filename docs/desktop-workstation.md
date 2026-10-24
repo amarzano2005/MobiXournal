@@ -233,12 +233,16 @@ its own:
 The page is a Skia picture (`PagePicture`), and a picture is immutable — so a lift used to re-record the
 **whole sheet**, 2–4 ms on `udiff.xopp` and more on a page written for a term. The pen lifts once per
 letter, so that was a dropped frame per letter, and the eraser paid it again on every bite. The picture is
-now a **base** plus a **tail**: the base is the last full record, the tail is the elements that were
-*appended on top of the page's last layer* since then, and an append records only the new ink — a stroke or
-two. Anything else (an erase, an undo, a reflow, a stroke moved) changes ink the base already holds, which a
-picture cannot take back, so it re-records the sheet and starts a new base. The tail folds back into a base
-every 48 appended elements, so a page of handwriting re-records once per paragraph instead of once per
-stroke. `PagePictureTest` pins the rule — three strokes in a row leave `records` at one — proves the base
+now a **base** plus a **tail**: the base is the last full record, the tail is **every** element *appended on
+top of the page's last layer* since the base — the whole run, always measured from the base — and that run
+is what an append records: a few strokes, not the sheet. The run being the whole thing is the part that is
+easy to get wrong: a tail re-recorded from the *previous frame* holds only the newest stroke, so the first
+one silently drops off the sheet while the pen is still in hand, until something forces a full record.
+`PagePictureTest` therefore paints a four-stroke run frame by frame and compares each one with the direct
+paint. Anything else (an erase of ink the base holds, an undo, a reflow, a stroke moved) changes ink the base
+already contains, which a picture cannot take back, so it re-records the sheet and starts a new base; taking
+back a stroke *of the run* is still the cheap case, because the base never held it. The run folds back into
+a base every 48 elements, so a page of handwriting re-records once per paragraph instead of once per stroke. `PagePictureTest` pins the rule — three strokes in a row leave `records` at one — proves the base
 plus the tail is the direct paint, and states which edits count as appends (`appendedElements`, pure).
 
 ### Scrolling and zooming a dense page

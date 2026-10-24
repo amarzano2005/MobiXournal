@@ -239,10 +239,16 @@ class PagePictureTest {
             assertEquals("three strokes do not re-record the sheet", 1, picture.records)
             assertEquals("every lift recorded just the new ink", 3, picture.tailRecords)
 
-            // An erase takes ink away: the base cannot un-draw it, so the sheet is recorded again.
+            // Taking back a stroke of the run is still a shorter append: the base never held it.
             shot.value = withoutLastStroke(shot.value)
             frame(scene)
-            assertEquals("a removal re-records the sheet", 2, picture.records)
+            assertEquals("the run shrinks without the sheet being recorded", 1, picture.records)
+
+            // Erasing ink the **base** holds is the other case: a picture cannot un-draw it, so the sheet
+            // is recorded again.
+            shot.value = withoutFirstElement(shot.value)
+            frame(scene)
+            assertEquals("a removal from the base re-records the sheet", 2, picture.records)
         } finally {
             scene.close()
         }
@@ -269,25 +275,68 @@ class PagePictureTest {
             assertEquals("one base, and the strokes added since", 1, picture.records)
             assertEquals(1, picture.tailRecords)
 
-            val direct = directFrame(grown, Viewport(zoom = 1f))
-            var worst = 0
-            var differing = 0
-            for (index in direct.indices) {
-                var diff = 0
-                for (shift in intArrayOf(16, 8, 0)) {
-                    diff = maxOf(diff, abs(((direct[index] shr shift) and 0xFF) - ((replayed[index] shr shift) and 0xFF)))
-                }
-                if (diff > 0) differing++
-                worst = maxOf(worst, diff)
-            }
-            assertTrue(
-                "the tail composes into the painted page (worst channel difference $worst, " +
-                    "$differing of ${direct.size} pixels)",
-                worst <= 2 && differing < direct.size / 100,
+            assertSamePixels(
+                directFrame(grown, Viewport(zoom = 1f)),
+                replayed,
+                "the tail composes into the painted page",
             )
         } finally {
             scene.close()
         }
+    }
+
+    /**
+     * A run of strokes stays on the sheet. The tail holds **every** element appended since the base — not
+     * only the newest one — so the second lift must not take the first stroke away with it, which is
+     * exactly what a tail re-recorded from the previous frame did (the ink vanished while the pen was in
+     * hand and came back when something forced a full record).
+     */
+    @Test
+    fun `a run of strokes keeps every one of them on the sheet`() {
+        var page = page(strokes = 30)
+        val shot = mutableStateOf(page)
+        val picture = PagePicture()
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            val measurer = rememberTextMeasurer()
+            Canvas(Modifier.fillMaxSize()) {
+                picture.draw(this, shot.value, Viewport(zoom = 1f), 1f, 1f, null, emptySet(), measurer)
+            }
+        }
+        try {
+            frame(scene)
+            for (index in 0 until 4) {
+                page = withStroke(page, thinStroke(140.0 + index * 18))
+                shot.value = page
+                assertSamePixels(
+                    directFrame(page, Viewport(zoom = 1f)),
+                    frame(scene),
+                    "after ${index + 1} strokes the sheet is the painted page",
+                )
+            }
+            assertEquals("the sheet itself was recorded once", 1, picture.records)
+            assertEquals("and every lift recorded the run", 4, picture.tailRecords)
+        } finally {
+            scene.close()
+        }
+    }
+
+    /** [replayed] against [direct], with the tolerance the other replay comparisons use. */
+    private fun assertSamePixels(direct: IntArray, replayed: IntArray, message: String) {
+        assertEquals("same frame size", direct.size, replayed.size)
+        var worst = 0
+        var differing = 0
+        for (index in direct.indices) {
+            var diff = 0
+            for (shift in intArrayOf(16, 8, 0)) {
+                diff = maxOf(diff, abs(((direct[index] shr shift) and 0xFF) - ((replayed[index] shr shift) and 0xFF)))
+            }
+            if (diff > 0) differing++
+            worst = maxOf(worst, diff)
+        }
+        assertTrue(
+            "$message (worst channel difference $worst, $differing of ${direct.size} pixels)",
+            worst <= 2 && differing < direct.size / 100,
+        )
     }
 
     /**
@@ -356,6 +405,13 @@ class PagePictureTest {
     private fun withStroke(page: Page, stroke: Stroke): Page = page.copy(
         layers = page.layers.mapIndexed { index, layer ->
             if (index == page.layers.lastIndex) Layer(layer.elements + stroke, layer.name) else layer
+        },
+    )
+
+    /** [page] without the first element of its top layer — ink the base picture holds. */
+    private fun withoutFirstElement(page: Page): Page = page.copy(
+        layers = page.layers.mapIndexed { index, layer ->
+            if (index == page.layers.lastIndex) Layer(layer.elements.drop(1), layer.name) else layer
         },
     )
 
