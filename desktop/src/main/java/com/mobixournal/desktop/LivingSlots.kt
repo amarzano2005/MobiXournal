@@ -60,6 +60,19 @@ internal fun livingElementFor(
 }
 
 /**
+ * The canvas's own placement: the family's defaults, committed at once — what a test drives when no shell
+ * is offering the pre-placement questions.
+ */
+internal fun defaultPlacer(
+    tab: DesktopTab,
+    ink: DesktopInk,
+    circuitKind: ShapeKind,
+    onEdited: (Int) -> Unit,
+): (LivingSlot, Bounds) -> Unit = { slot, bounds ->
+    livingElementFor(slot, bounds, ink, circuitKind)?.let { placeLivingElement(tab, it, onEdited) }
+}
+
+/**
  * Append [element] to the active page's top layer, select it, and record **one** undo step.
  *
  * Appending (rather than editing in place) is what a fresh placement is; [SelectionOps.addToTopLayerOn]

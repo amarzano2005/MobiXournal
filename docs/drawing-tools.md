@@ -267,6 +267,16 @@ layer. Tapping an existing text box reopens it for editing (clearing the content
 matched by element identity. The view keeps the loaded document intact and only appends/edits, so
 every page, layer, and element round-trips through save.
 
+**On the window** the Text slot (`X`) is the same tool, typed in place rather than in a dialog: a press
+opens a field **over the sheet** (`TextBoxHost`), positioned by the same page-points-to-pixels mapping the
+ink is drawn with, in the ink's colour and at a size the pen's width sets (8–48 pt, `TextAuthoring`).
+Nothing is written while typing — the shell holds a `TextBoxDraft` (`DesktopTextBox`), so the page and its
+history are untouched — and the commit (`Esc`, a click elsewhere, or leaving the tool) appends **one**
+`TextElement` to the page's top layer as one undo step, left selected. A blank box writes nothing: a press
+you change your mind about leaves no element and no step to undo. While the field is up it owns the
+keyboard — only `Esc` is the shell's — so `Space`, `B`, `H`, `V` and `Delete` are characters, not commands
+(`DesktopTextAuthoringTest`, `DesktopTextSceneTest`).
+
 ## Placing a living element (both shells)
 
 **A slot that places, not draws.** Plot, Table and Circuit are *placement* tools in both shells: the

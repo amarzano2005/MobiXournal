@@ -87,6 +87,8 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // The two ways to select a region on the page: a rectangle and a freehand loop.
     ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
+    // Typing on the page: a slot of its own, because a text box is neither ink nor a figure.
+    ToolGroup(listOf(DesktopTool.TEXT)),
     ToolGroup(
         listOf(
             DesktopTool.LINE,
@@ -116,8 +118,10 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
  *
  * A tool leaves this set the moment its behaviour lands, which is also the moment it may join a group:
  * the selection pair arrived with `desktop-eraser-and-selection-on-shared-geometry`, the living entities
- * (Plot, Table, Circuit) with `desktop-stem-slot-placement`, and [DesktopTool.TEXT] still waits for
- * `desktop-shape-text-and-math-tools`, as the audio tap does for `desktop-audio-replay`.
+ * (Plot, Table, Circuit) with `desktop-stem-slot-placement`, and [DesktopTool.TEXT] with
+ * `desktop-text-slot-and-in-place-field` — the last slot of the strip that did nothing, which is what
+ * closes `desktop-every-tool-does-what-it-does-on-the-tablet`. The audio tap still waits for
+ * `desktop-audio-replay`.
  */
 val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PEN,
@@ -127,6 +131,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.VERTICAL_SPACE,
     DesktopTool.MARQUEE,
     DesktopTool.LASSO,
+    // The Text slot types in place: a press opens a box, and the commit writes one element.
+    DesktopTool.TEXT,
     DesktopTool.LINE,
     DesktopTool.ARROW,
     DesktopTool.DOUBLE_ARROW,

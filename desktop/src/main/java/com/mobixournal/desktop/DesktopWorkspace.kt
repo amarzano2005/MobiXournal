@@ -65,6 +65,18 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 // A STEM slot asks its values before the element exists (the placement card in the
                 // right-hand lane), so the canvas hands the box over instead of writing it.
                 onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
+                // The Text slot types in place: the canvas opens the box, the field hands the typing
+                // back, and nothing reaches the page until the box is committed (`DesktopTextBox`).
+                text = TextBoxUi(
+                    box = state.textBox.box,
+                    onPress = { x, y, pageW, pageH ->
+                        state.textBox.begin(tab, x, y, pageW, pageH, state.ink) { doc, index ->
+                            state.thumbnails[doc.key]?.remove(index)
+                            state.noteEdit()
+                        }
+                    },
+                    onChange = { text -> state.textBox.change(text) },
+                ),
                 // The pen's own stream, whichever one this host has (`TabletWintab.kt` first, then
                 // `TabletInk.kt`); null leaves the canvas on the Compose pointer it always had.
                 pen = tablet?.pen,

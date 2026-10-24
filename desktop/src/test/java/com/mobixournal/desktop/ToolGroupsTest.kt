@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -68,9 +69,17 @@ class ToolGroupsTest {
         assertTrue("the figures share one slot", groupOf(DesktopTool.SPLINE)!!.hasPicker)
     }
 
+    /**
+     * The scope's own done condition: **no slot is dead**. Every tool the enum names now acts and is
+     * offered — Text was the last one waiting (`desktop-text-slot-and-in-place-field`) — so a new tool
+     * added without its behaviour fails here rather than being drawn as a button that does nothing.
+     */
     @Test
-    fun `a tool the strips do not show has no group`() {
-        assertNull("text waits for its own task", groupOf(DesktopTool.TEXT))
+    fun `every tool in the strip acts, so no slot is dead`() {
+        val offered = DESKTOP_TOOL_GROUPS.flatMap { it.members }.toSet()
+        assertEquals("every tool is offered", DesktopTool.entries.toSet(), offered)
+        assertEquals("and every one acts", DesktopTool.entries.toSet(), DESKTOP_TOOLS_THAT_ACT)
+        assertNotNull("Text included", groupOf(DesktopTool.TEXT))
     }
 
     @Test

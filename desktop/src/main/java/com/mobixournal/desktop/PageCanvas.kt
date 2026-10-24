@@ -94,6 +94,8 @@ internal fun PageCanvas(
      * placement card); a canvas on its own commits the family's defaults, which is what a test drives.
      */
     onPlaceLiving: ((LivingSlot, Bounds) -> Unit)? = null,
+    /** The Text slot's box and callbacks; nothing is on the page until the shell commits it. */
+    text: TextBoxUi = TextBoxUi(),
     onEdited: (Int) -> Unit = {},
     /** The window's pen stream (Wintab or Windows Ink), folded into the pointer events. */
     pen: PenContactStream? = null,
@@ -123,12 +125,10 @@ internal fun PageCanvas(
     val page = rememberedPage(tab)
     val loaded = page.getOrNull()
     // The strokes in progress, in page pt — the Compose pointer's and the tablet's, one draft each.
-    val draft = remember(tab, tab.page) { mutableStateListOf<InkSample>() }
-    val penDraft = remember(tab, tab.page) { mutableStateListOf<InkSample>() }
+    val memory = remember(tab, tab.page) { CanvasMemory() }
     // Where this canvas sits in the window, so a packet in client pixels becomes a point inside it.
     var origin by remember { mutableStateOf(Offset.Zero) }
     var extent by remember { mutableStateOf(Size.Zero) }
-    val pointer = remember(tab, tab.page) { PenPointer() }
     val sheetPicture = rememberSheetPicture(tab)
 
     BoxWithConstraints(
@@ -155,10 +155,11 @@ internal fun PageCanvas(
             ink = ink,
             circuitKind = circuitKind,
             onPlaceLiving = placeLiving,
-            draft = draft,
-            penDraft = penDraft,
+            text = text,
+            draft = memory.draft,
+            penDraft = memory.penDraft,
             pen = pen,
-            pointer = pointer,
+            pointer = memory.pointer,
             sheetPicture = sheetPicture,
             paintProbe = paintProbe,
             measurer = measurer,
@@ -193,6 +194,23 @@ private class PenPointer {
     val previewRegion = mutableStateOf<SelectionRegion?>(null)
 }
 
+/**
+ * The page state a canvas keeps across recompositions: the two strokes in progress and the pen's own
+ * readings.
+ *
+ * Remembered **per tab and page**, so a page change starts clean, and lifted out of the composable because
+ * the canvas is already the page's layout and wiring (`SourceStructureTest` counts both).
+ */
+private class CanvasMemory {
+    /** The Compose pointer's stroke, in page pt. */
+    val draft: SnapshotStateList<InkSample> = mutableStateListOf()
+
+    /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
+    val penDraft: SnapshotStateList<InkSample> = mutableStateListOf()
+
+    val pointer = PenPointer()
+}
+
 /** The page the tab is on, re-read when the document is edited; a failure is why it could not be read. */
 @Composable
 private fun rememberedPage(tab: DesktopTab): Result<Page> =
@@ -225,6 +243,7 @@ private fun PageSheet(
     ink: DesktopInk,
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    text: TextBoxUi,
     draft: SnapshotStateList<InkSample>,
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
@@ -276,6 +295,7 @@ private fun PageSheet(
         ink = ink,
         circuitKind = circuitKind,
         onPlaceLiving = onPlaceLiving,
+        onTextPress = text.onPress,
         draft = draft,
         penDraft = penDraft,
         pen = pen,
@@ -291,24 +311,19 @@ private fun PageSheet(
         onFit = onFit,
         onEdited = onEdited,
     )
-    // The selection bar, under the outline or at the page's own bottom edge (`SelectionBarHost`).
-    val live = tab.selection
-    val canvasPx = extent()
-    if (live != null || selectionBar.hasClipboard) {
-        SelectionBarHost(
-            bar = selectionBar,
-            selectionBounds = live?.bounds,
-            zoom = sheet.zoom,
-            density = density,
-            offsetX = sheet.viewport.offsetX,
-            offsetY = sheet.viewport.offsetY,
-            canvas = if (canvasPx == Size.Zero) {
-                Size(sheet.viewW * density, sheet.viewH * density)
-            } else {
-                canvasPx
-            },
-        )
-    }
+    // What floats over the sheet — the Text field and the selection's bar — in the page's own mapping.
+    SheetOverlays(
+        text = text,
+        zoom = sheet.zoom,
+        density = density,
+        offsetX = sheet.viewport.offsetX,
+        offsetY = sheet.viewport.offsetY,
+        selectionBounds = tab.selection?.bounds,
+        selectionBar = selectionBar,
+        canvas = extent(),
+        viewW = sheet.viewW,
+        viewH = sheet.viewH,
+    )
 }
 
 /**
@@ -375,6 +390,7 @@ private fun SheetCanvas(
     ink: DesktopInk,
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
     draft: SnapshotStateList<InkSample>,
     /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
     penDraft: SnapshotStateList<InkSample>,
@@ -422,6 +438,7 @@ private fun SheetCanvas(
                     tool = tool,
                     ink = ink,
                     onPlaceLiving = onPlaceLiving,
+                    onTextPress = onTextPress,
                     viewport = {
                         tab.viewport.copy(zoom = sheet.zoom)
                             .clamped(sheet.pageW, sheet.pageH, sheet.viewW, sheet.viewH)
@@ -646,33 +663,6 @@ private fun PenPacketStrokes(
             stroke.publishHover()
         }
     }
-}
-
-/**
- * The canvas's own placement: the family's defaults, committed at once — what a test drives when no shell
- * is offering the pre-placement questions.
- */
-private fun defaultPlacer(
-    tab: DesktopTab,
-    ink: DesktopInk,
-    circuitKind: ShapeKind,
-    onEdited: (Int) -> Unit,
-): (LivingSlot, Bounds) -> Unit = { slot, bounds ->
-    livingElementFor(slot, bounds, ink, circuitKind)?.let { placeLivingElement(tab, it, onEdited) }
-}
-
-/**
- * What a page that cannot be read says — the same sentence in the same place, so a broken page is one
- * line about the page and not a stack of chrome around it.
- */
-@Composable
-private fun BoxScope.PageReadFailure(reason: String?) {
-    Text(
-        text = "Could not read this page: ${reason ?: "no reason given"}",
-        color = DesktopTheme.danger,
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.align(Alignment.Center),
-    )
 }
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */

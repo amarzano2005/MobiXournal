@@ -206,9 +206,8 @@ private fun DrawScope.drawTextBox(box: TextElement, scale: Float, textMeasurer: 
     drawText(layout, topLeft = Offset((box.x * scale).toFloat(), (box.y * scale).toFloat()))
 }
 
-/** Xournal++'s font families are CSS-ish names; map the ones we can name to a platform family. */
-private fun TextElement.family(): FontFamily = when {
-    font.contains("mono", ignoreCase = true) -> FontFamily.Monospace
-    font.contains("serif", ignoreCase = true) && !font.contains("sans", ignoreCase = true) -> FontFamily.Serif
-    else -> FontFamily.SansSerif
-}
+/**
+ * The text box's face: `TextAuthoring`'s mapper, which the in-place Text field reads too — so the line
+ * being typed breaks where the written one will.
+ */
+private fun TextElement.family(): FontFamily = textFontFamily(font)

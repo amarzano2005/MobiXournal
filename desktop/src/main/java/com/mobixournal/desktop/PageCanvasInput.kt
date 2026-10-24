@@ -56,6 +56,11 @@ internal suspend fun PointerInputScope.pageGestures(
     /** What a lifted living-slot drag means: the shell asks the family's values first. */
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     /**
+     * What a press with the **Text slot** means: open a box at a page point, on a sheet this wide and
+     * this tall. Null when the canvas has no shell behind it (a test that only inks).
+     */
+    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)? = null,
+    /**
      * The viewport **as it is now**, not the one the composable was built with: a drag that reaches the
      * canvas's edge scrolls the sheet (`DragView`), so every mapping during a gesture has to read the view
      * the reader is actually looking at.
@@ -121,7 +126,8 @@ internal suspend fun PointerInputScope.pageGestures(
         }
         pageGestureLoop(
             tab = tab, panMode = panMode, tool = tool, ink = ink,
-            onPlaceLiving = onPlaceLiving, dragView = dragView, gesture = gesture,
+            onPlaceLiving = onPlaceLiving, onTextPress = onTextPress,
+            dragView = dragView, gesture = gesture,
             draft = draft, grabLine = grabLine, previewRegion = previewRegion,
             onLiveDrag = onLiveDrag, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
@@ -137,6 +143,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     tool: DesktopTool,
     ink: DesktopInk,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
     dragView: DragView,
     gesture: PageInkGesture,
     draft: SnapshotStateList<InkSample>,
@@ -167,6 +174,16 @@ private suspend fun PointerInputScope.pageGestureLoop(
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
+        // The Text slot **types** instead of drawing: a press opens a box at that point and hands the
+        // keyboard to the field it opens. The click is the whole gesture, and nothing is written until
+        // the box is committed, so an abandoned one leaves no element and no undo step.
+        if (tool == DesktopTool.TEXT) {
+            val (tx, ty) = pagePointOf(down.position.x, down.position.y, density, vp)
+            if (tx in 0.0..pageW.toDouble() && ty in 0.0..pageH.toDouble()) {
+                onTextPress?.invoke(tx, ty, pageW.toDouble(), pageH.toDouble())
+            }
+            return@awaitEachGesture
+        }
         // A selection, a living element or a figure takes the drag before the ink sees it.
         if (preInkPress(down, tool, tab, dragView, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
             return@awaitEachGesture

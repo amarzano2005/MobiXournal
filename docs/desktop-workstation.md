@@ -29,14 +29,13 @@ What it does today:
   figures, one cast shadow under each band, and one under the sheet — `docs/ui-modernization.md` owns the
   material and `DesktopThemeTest` pins it.
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
-  key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view** —
-  a marquee catches more than one screenful, a figure keeps opening, a reflow keeps growing — eased in and
-  out rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`). A tab opens in **`AUTO`
+  key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
+  eased rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`), so a marquee, a figure or a reflow can
+  reach past one screenful. A tab opens in **`AUTO`
   fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and a page saved as a
   long strip — the tablet writes one 850 × 2976 pt page for a lecture that fills the sheet — is fitted to
-  its **width**, because the whole page lands at 27 %, where a 12 pt hand is three pixels tall. The status
-  bar names the fit in use; `Ctrl + 0` still means the whole sheet, and scrolling never abandons the fit (a
-  width-fitted page stays fitted while you read down it). Thumbnails come from the
+  its **width**, because the whole page lands at 27 %,  where a 12 pt hand is three pixels tall. The status bar names the fit in use, `Ctrl + 0` still means the
+  whole sheet, and a width-fitted page stays fitted while you read down it. Thumbnails come from the
   same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
   once per page per tab. The sidebar's layer list carries an **eye per layer** (`LayerEye`, monoline like
   the rest of the chrome): switching one off skips that layer in the page painter *and* in the thumbnail,
@@ -129,10 +128,11 @@ What it does today:
   palette over the page. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no
   key ever changes meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
   member is the slot's face, which is why the group needs no state of its own. **A tool whose behaviour has
-  not landed gets no slot** — Text still waits, and the strip draws no placeholder for it — while the map of
-  `desktop-every-tool-does-what-it-does-on-the-tablet` in `TODO.toml` names what each one brings.
-  `ToolGroupsTest` fails if an acting tool has no slot or a slot lists one that cannot
-  act.
+  not landed gets no slot**, and a tool that lands takes one: Text was the last slot that did nothing, so
+  every slot both strips draw now acts — the condition
+  `desktop-every-tool-does-what-it-does-on-the-tablet` waited on — Text types in place on the sheet
+  ([drawing-tools.md](drawing-tools.md) owns its box and keys). `ToolGroupsTest` fails if an acting tool has
+  no slot, or a slot lists one that cannot act.
 - **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
   band lift instead of a bare fill, every surface that floats takes the drawn rim, and
   both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
@@ -309,8 +309,8 @@ with the record count staying at one. [desktop-tablet.md](desktop-tablet.md) own
 
 ### What the window does not do
 
-- No text authoring and no layer editing. There are no header buttons for undo and redo — the commands
-  exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
+- No layer editing (hiding one is view state, above). There are no header buttons for undo and redo — the
+  commands exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import and no **images as elements** (only as page backgrounds).
 - No search, and no page reordering or insertion.
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by

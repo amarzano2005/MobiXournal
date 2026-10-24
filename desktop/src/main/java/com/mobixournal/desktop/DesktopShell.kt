@@ -136,6 +136,9 @@ class DesktopShellState(
     var editingLiving by mutableStateOf<LivingTargetRef?>(null)
         private set
 
+    /** The Text tool's box: the draft in `DesktopTextBox.kt`, drawn in place by the canvas. */
+    val textBox = DesktopTextBox()
+
     /**
      * Let the sidebar paint the pages it shows again — the debounced half of [thumbnailRevision].
      *
@@ -350,6 +353,8 @@ class DesktopShellState(
      * Picking also closes the group picker: its job was to choose, and it has.
      */
     fun selectTool(tool: DesktopTool) {
+        // A text box is finished by leaving its tool: the typing is committed, never silently dropped.
+        if (tool != DesktopTool.TEXT) textBox.commit(tabs.active, ::edited)
         tools = tools.select(tool)
         openGroup = null
     }
@@ -499,6 +504,13 @@ class DesktopShellState(
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
+        // A text box owns the keyboard: `Esc` commits it, and every other key is a character it types
+        // (no `Space` to pan, no `B` for the pen, no `Delete` that deletes something other than a letter).
+        textBox.command(event.key)?.let {
+            textBox.commit(tabs.active, ::edited)
+            return true
+        }
+        if (textBox.box != null) return false
         // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.
         if (event.key == Key.Escape && closeRequest != null) {
             cancelClose()

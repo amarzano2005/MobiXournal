@@ -151,6 +151,10 @@ the first only arms the slot, and the little chevron on the slot opens the palet
 drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
 picks the tool, a second click asks which of them. Once an element is placed the window switches to the
 selection tool, as the tablet does, so the next drag moves what you just made instead of placing another.
+**Type on the page** with Text (`X`): click where the line should start and a field opens there, in your ink's
+colour and size, with the page still untouched — `Enter` starts a new line, and `Esc` (or a click somewhere
+else) writes the box as one undoable edit. Type nothing and nothing is written, so a click you change your
+mind about leaves no empty box and nothing to undo.
 Dragging a selection, an element already on the page, a figure being drawn or a vertical-space line against
 the **edge of the canvas scrolls the view** while the drag keeps going, and the scroll eases in and settles
 rather than jumping: a marquee keeps catching ink past the border, a box or an arrow keeps opening, and an
