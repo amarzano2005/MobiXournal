@@ -61,6 +61,10 @@ internal suspend fun PointerInputScope.pageGestures(
      * as — and a stroke drawn from both would land twice. The packets are authoritative
      * (`PenPacketStroke`), so a Compose gesture that begins while they own the pen does nothing, and one
      * that is already running drops its draft and leaves.
+     *
+     * Only while the packets could be drawing this slot's product ([DesktopTool.inksByPackets]): a slot
+     * that builds its figure or reflows the page from the drag keeps the Compose pointer even with the
+     * pen in proximity, which is what makes the vertical-space grab line answer a stylus at all.
      */
     penActive: () -> Boolean = { false },
     /**
@@ -91,7 +95,10 @@ internal suspend fun PointerInputScope.pageGestures(
     )
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
-        if (penActive()) return@awaitEachGesture
+        // The packets own the pen only for the slots they draw (`inksByPackets`): standing aside for
+        // every slot would leave a vertical-space drag or a figure unanswered by the stylus.
+        val packetsOwn = { penActive() && tool.inksByPackets() }
+        if (packetsOwn()) return@awaitEachGesture
         val buttons = currentEvent.buttons
         // Middle-drag always pans; a primary drag pans only while Space is held, so the pen gets the
         // primary button.
@@ -113,7 +120,7 @@ internal suspend fun PointerInputScope.pageGestures(
         }
         gesture.down(down, buttonsOf(currentEvent))
         while (true) {
-            if (penActive()) {
+            if (packetsOwn()) {
                 gesture.cancel()
                 return@awaitEachGesture
             }

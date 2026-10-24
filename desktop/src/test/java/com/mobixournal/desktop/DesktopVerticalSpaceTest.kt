@@ -47,6 +47,62 @@ class DesktopVerticalSpaceTest {
         SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
     }
 
+    /**
+     * The window as the tablet presents itself: a page, the vertical-space slot, and the driver's packet
+     * stream — the pen the owner actually drags with.
+     *
+     * The regression this covers: a slot whose product is not ink must not let the packets take the pen.
+     * A tip-down packet reports ownership (that is what makes a stroke come from the driver), and while the
+     * packets owned it the Compose gesture stood aside and the grab line never moved — the tool simply did
+     * nothing with a stylus, which is the state it was reported in.
+     */
+    @Test
+    fun `a stylus drag reflows the page even while the tablet reports the pen`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        tab.document.editPage(0) { page -> page.withElements(listOf(bar(500.0, 20.0), bar(500.0, 100.0))) }
+        val packets = FakePackets()
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            PageCanvas(
+                tab = tab,
+                panMode = false,
+                tool = DesktopTool.VERTICAL_SPACE,
+                ink = DesktopInk(width = 4f),
+                onViewport = {},
+                onFit = {},
+                packets = packets,
+            )
+        }
+        try {
+            scene.render()
+            Snapshot.sendApplyNotifications()
+            val before = elements(tab.document.page(0)).map { ElementBounds.of(it).top }
+            // The pen touches the glass: the driver's own packet, the one a stroke is owned from.
+            packets.send(100f, 50f, pressure = 0.6f)
+            scene.render()
+            Snapshot.sendApplyNotifications()
+
+            drag(scene, fromY = 50f, toY = 90f)
+
+            val after = elements(tab.document.page(0)).map { ElementBounds.of(it).top }
+            assertEquals("the drag neither adds nor removes an element", before.size, after.size)
+            for (index in before.indices) {
+                val expected = if (before[index] >= 50.0) before[index] + 40.0 else before[index]
+                assertEquals(
+                    "element $index at ${before[index]} pt followed the grab line",
+                    expected,
+                    after[index],
+                    1e-6,
+                )
+            }
+            assertTrue("the block really moved", after.max() > before.max())
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
     /** A page with a stroke whose top edge is [top] — the thing the grab line is judged against. */
     private fun desktop(): Pair<DesktopTab, ImageComposeScene> {
         val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
@@ -165,6 +221,33 @@ class DesktopVerticalSpaceTest {
             scene.close()
             tab.document.close()
         }
+    }
+}
+
+/** The driver's packet stream, with a canvas subscribed to it the way `TabletWintab` serves one. */
+private class FakePackets : PenPacketSource {
+
+    private val listeners = mutableListOf<(PenPacket) -> Unit>()
+
+    override fun listen(listener: (PenPacket) -> Unit): () -> Unit {
+        listeners.add(listener)
+        return { listeners.remove(listener) }
+    }
+
+    /** One packet, stamped with the clock now — a hand-made past timestamp would read as a silence. */
+    fun send(x: Float, y: Float, pressure: Float?, tip: Boolean = true) {
+        val packet = PenPacket(
+            x = x,
+            y = y,
+            pressure = pressure,
+            tiltRad = 0.2f,
+            azimuthRad = 1.1f,
+            rotationRad = 0f,
+            tip = tip,
+            eraser = false,
+            atNanos = System.nanoTime(),
+        )
+        for (listener in listeners.toList()) listener(packet)
     }
 }
 

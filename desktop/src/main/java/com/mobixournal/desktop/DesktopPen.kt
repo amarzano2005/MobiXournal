@@ -60,6 +60,18 @@ fun DesktopTool.activeTool(): ActiveTool = when (this) {
 }
 
 /**
+ * True when the pen's own packets lay down or rub out this slot's product.
+ *
+ * Only the inking and erasing slots are fed from the driver. Every other slot's drag comes from the
+ * Compose pointer, and a packet contact would take the pen away from it: the window stands the Compose
+ * gesture aside while the packets own the pen (`PageCanvas`'s `penActive`), which is right for a stroke
+ * and wrong for a drag that is not ink. A geometry slot already refused the packets for this reason; the
+ * vertical-space drag needs the same answer, or a pen in proximity reports ownership on its tip-down and
+ * the grab line never moves.
+ */
+fun DesktopTool.inksByPackets(): Boolean = inkTool() != null || activeTool() == ActiveTool.ERASER
+
+/**
  * Which of the eraser's two members this slot is.
  *
  * The shared [EraserMode] decides what a bite means: [EraserMode.STANDARD] cuts the disc's path out of

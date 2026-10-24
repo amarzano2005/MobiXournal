@@ -240,10 +240,11 @@ private fun PageSheet(
     onEdited: (Int) -> Unit,
     packets: PenPacketSource?,
 ) {
-    // A geometry slot draws its figure from the drag, so the pen's packets must not open a stroke under
-    // it: the packets are only composed for the ink and eraser slots, and the rule is stated (and tested)
-    // where a contact on the glass with Line picked lands no ink at all.
-    if (tool.shapeKind() == null) {
+    // A slot whose product is not ink draws it from the Compose drag, so the pen's packets must not take
+    // the pen under it: the packets are only composed for the slots that lay ink down or rub it out, and
+    // the rule is stated (and tested) where a contact on the glass with Line or Vertical space picked
+    // draws no ink and still runs its drag.
+    if (tool.inksByPackets()) {
         PenPacketStrokes(
             tab = tab,
             tool = tool,
@@ -565,7 +566,13 @@ private fun PenPacketStrokes(
     }
     DisposableEffect(packets, stroke) {
         val stop = packets?.listen(stroke::packet)
-        onDispose { stop?.invoke() }
+        // Leaving the packet path mid-stroke (a slot switch, a page change) must hand the pen back: the
+        // ownership flag is what stands the Compose gesture aside, and a flag stuck on `true` would leave
+        // the next slot's drag — a figure, a grab line — unable to start at all.
+        onDispose {
+            stop?.invoke()
+            owns.value = false
+        }
     }
     // One publish per frame: the packets buffered since the last repaint are handed to the gesture
     // here, so 400 packets a second cost one invalidation per frame instead of 400 — and the same
