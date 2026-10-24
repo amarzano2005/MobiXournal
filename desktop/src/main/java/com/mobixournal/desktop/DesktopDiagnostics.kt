@@ -14,12 +14,15 @@ import java.io.File
  *  - **paints/s and the worst interval** — a paint that got slow shows up as a long interval, and a
  *    window that repaints when *nothing is happening* shows up as a line with no input at all (which is
  *    how the perpetual `withFrameNanos` loop was found: ~120 paints a second on an idle sheet);
- *  - **sheet rebuilds** — a cached page that is being re-rasterised every frame is the one mistake this
- *    cache can make, and it would be invisible without counting it.
+ *  - **the worst interval** is only a *paint* gap: a window that was idle for a minute and then painted
+ *    must not report that minute as a stall, so gaps longer than [IDLE_GAP_NANOS] are not counted.
  *
  * Off by default: a file per second is not something an editor should leave behind.
  */
 internal object DesktopDiagnostics {
+
+    /** Longer than any frame, short enough that a real stall is still reported. */
+    private const val IDLE_GAP_NANOS = 2_000_000_000L
 
     /** Whether the window was asked to keep the record. */
     val enabled: Boolean = System.getProperty("mobix.diagnose") == "true"
@@ -53,13 +56,15 @@ internal object DesktopDiagnostics {
      * Called from the canvas's own ticker — the same loop that empties the queue — so the numbers belong
      * to the frame the reader actually sees.
      */
-    fun painted(rebuilds: Int) {
+    fun painted() {
         if (!enabled) return
         if (frameThread == null) frameThread = Thread.currentThread().name
         val now = System.nanoTime()
         if (lastFrame != 0L) {
             val interval = now - lastFrame
-            if (interval > worst) worst = interval
+            // An idle window is not a stall: the pen resting, or the reader looking away, leaves gaps that
+            // say nothing about how fast a frame is. Only gaps a *running* loop could have produced count.
+            if (interval in 1..IDLE_GAP_NANOS && interval > worst) worst = interval
         }
         lastFrame = now
         frames++
@@ -68,7 +73,6 @@ internal object DesktopDiagnostics {
         val line = buildString {
             append("paints/s=").append(frames * 1_000_000_000L / span)
             append(" worst=").append(worst / 1_000_000L).append("ms")
-            append(" rebuilds=").append(rebuilds)
             append(" packet=").append(packetThread ?: "-")
             append(" paint=").append(frameThread ?: "-")
         }

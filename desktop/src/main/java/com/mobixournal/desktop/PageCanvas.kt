@@ -132,8 +132,6 @@ internal fun PageCanvas(
     // whole frame unless it is driven by the newest reading rather than by the emulated mouse's copy.
     val hover = remember { mutableStateOf<Offset?>(null) }
     val penAtNanos = remember { mutableStateOf(0L) }
-    // The page's rasterised sheet, owned here so the frame ticker can report its rebuild count.
-    val raster = remember(tab, tab.page) { PageRaster() }
 
     BoxWithConstraints(
         modifier
@@ -168,7 +166,6 @@ internal fun PageCanvas(
             owns = penOwns,
             hover = hover,
             penAtNanos = penAtNanos,
-            raster = raster,
             packets = packets,
         )
         SheetCanvas(
@@ -183,7 +180,6 @@ internal fun PageCanvas(
             penOwns = penOwns,
             hover = hover,
             penAtNanos = penAtNanos,
-            raster = raster,
             paintProbe = paintProbe,
             measurer = measurer,
             density = density,
@@ -253,8 +249,6 @@ private fun SheetCanvas(
     hover: MutableState<Offset?>,
     /** `nanoTime` of the newest driver reading; a mouse move is ignored while this is fresh. */
     penAtNanos: MutableState<Long>,
-    /** The page's cached sheet — the ticker reports its rebuilds to the watchdog. */
-    raster: PageRaster,
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
     measurer: TextMeasurer,
     density: Float,
@@ -309,7 +303,6 @@ private fun SheetCanvas(
             },
     ) {
         paintSheet(
-            raster = raster,
             page = page,
             viewport = sheet.viewport,
             zoom = sheet.zoom,
@@ -340,8 +333,6 @@ private fun SheetCanvas(
  * about the file.
  */
 private fun DrawScope.paintSheet(
-    /** The cached page — blitted instead of re-painted, so a live stroke costs one image per frame. */
-    raster: PageRaster,
     page: Page,
     viewport: Viewport,
     zoom: Float,
@@ -365,8 +356,11 @@ private fun DrawScope.paintSheet(
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
     val pxPerPt = zoom * density
-    raster.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer)
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
+        // Straight into the window's own canvas: Skia renders the page on the GPU, and a page painted
+        // into a CPU bitmap first cost ~780 ms per rebuild on a dense sheet (see `DesktopDiagnostics`
+        // and `docs/desktop-tablet.md`).
+        drawPageContent(page, pxPerPt, measurer, backdrop, hiddenLayers)
         val inkTool = tool.inkTool()
         if (inkTool == null) return@withTransform
         for (draft in drafts) {
@@ -380,7 +374,7 @@ private fun DrawScope.paintSheet(
     paintProbe?.invoke(drafts, System.nanoTime())
     // The watchdog counts every repaint, whichever path caused it — a window that paints while nothing is
     // happening is the failure it exists to catch.
-    DesktopDiagnostics.painted(raster.builds)
+    DesktopDiagnostics.painted()
 }
 
 /**
@@ -413,8 +407,6 @@ private fun PenPacketStrokes(
     hover: MutableState<Offset?>,
     /** When that reading arrived, so a mouse move can tell whether the driver is still talking. */
     penAtNanos: MutableState<Long>,
-    /** The cached sheet, only so the watchdog can report how often it was rebuilt. */
-    raster: PageRaster,
     packets: PenPacketSource?,
 ) {
     // Read live: a packet can arrive after a zoom, and it must map to the page the reader is looking at.

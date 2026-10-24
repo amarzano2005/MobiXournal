@@ -91,8 +91,8 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   that is a saturated message thread: input queues behind the repaints, which reads as the window
   freezing the moment a stroke begins. The ticker now `await`s a conflated channel that `packet()`
   signals, so one batch of packets costs one frame and an idle window paints nothing at all (measured:
-  zero paints per second, one rasterisation). The silence that ends a stroke is *absence*, which no
-  packet announces, so it is checked by a 200 ms `delay` — a timer asks for no repaint.
+  zero paints per second). The silence that ends a stroke is *absence*, which no packet announces, so it
+  is checked by a 200 ms `delay` — a timer asks for no repaint.
 
   That hand-off crosses two threads — packets are delivered on the **window procedure's thread**, the
   gesture is drawn by the **frame ticker** — and the first two shapes of it both failed on the running
@@ -136,19 +136,24 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   measured, all four thousand strokes), which on the owner's PC is a stall the hand reads as the line
   falling behind the nib.
 
-  **The page is now rasterised once** (`PageRaster.kt`) for the viewport in force and **blitted** while a
-  stroke is drawn, so a frame costs one image plus the stroke in progress however much ink the document
-  holds. The cache is not a second renderer: it runs the same `drawPageContent`, and `PageRasterTest`
-  compares cached and direct frames pixel by pixel (and pins the reuse: one rasterisation per still
-  viewport, one more per scroll). Measured again on the same host, same synthetic 400 Hz stream: blank A4
-  **median 13.5 ms / p95 18.3 ms / max 29.4 ms**, `udiff.xopp` **median 13.6 ms / p95 19.8 ms / max
-  29.0 ms** — the dense page now costs the same as the blank one, because what remains is the frame
-  interval itself (a 60 Hz display quantises a packet to its next vsync before any paint happens).
-  The task's target — one frame at 144 Hz, 6.9 ms — is set for the owner's 144 Hz PC, so it cannot be met
-  or disproved on this display; painting the stroke's head at the raw packet position while the filtered
-  body trails was not taken, because it would trade a clean line for less than a millisecond while the
-  frame interval dominates. Dirty-rect pacing for scrolling and zooming stays
-  `desktop-144hz-render-pacing`'s, and the owner's live pass on the Huion is what confirms the 144 Hz
+  **A page cache was tried and reverted, and the watchdog is what caught it.** The dense-page cost was
+  first attacked by rasterising the sheet once per viewport into a bitmap and blitting it, with a
+  pixel-identity test so the cache could not become a second renderer. The probe liked it — `udiff.xopp`
+  fell from 17.7 ms to 13.6 ms median — but the running window did not: the watchdog recorded
+  `rebuilds` growing twice a second with `paints/s=1` and a **worst interval of ~780 ms** while the pen
+  drew. The reason is the surface, not the cache: rasterising into an offscreen **CPU** bitmap renders
+  every path in software, where the window's own canvas renders them on the **GPU** — so each committed
+  stroke (which invalidates the page) paid hundreds of milliseconds for a picture the GPU draws in a
+  frame. The page is painted straight into the window's canvas again, and the numbers above are the
+  first, honest ones: what a dense page costs is a *frame* (tens of milliseconds), not a second.
+
+  If the dense-page cost has to come down further, the shape it has to take is **GPU-side**: a Skia
+  `Picture` or a render-target cached on the window's own context, neither of which re-runs the paint in
+  software, plus dirty-rect pacing for scrolling and zooming (`desktop-144hz-render-pacing`). The
+  task's target — one frame at 144 Hz, 6.9 ms — is set for the owner's 144 Hz PC, so it cannot be met or
+  disproved on this display; painting the stroke's head at the raw packet position while the filtered
+  body trails was not taken either, because it would trade a clean line for less than a millisecond
+  while the frame interval dominates. The owner's live pass on the Huion is what confirms the 144 Hz
   number.
 - **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
   line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a

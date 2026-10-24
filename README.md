@@ -128,11 +128,11 @@ a pen: strokes taper with the pressure you actually apply, they start even from 
 survive a pause in the middle of the line, the pen's tilt and the way you hold it travel with the ink, and
 turning the pen round to its eraser end rubs out. The mouse the system emulates alongside the pen never
 draws that line, so one touch is one stroke and never two. The ink is published once per screen frame rather
-than once per driver packet, so a fast hand costs one redraw a frame instead of hundreds, and the page
-underneath is cached, so the line costs the same whether the sheet is empty or holds a whole notebook's
-ink. The line was measured against the nib (`--probe-ink`): on the 60 Hz test laptop a sample becomes ink
-in a median 13.5 ms (18.3 ms p95) on a blank page and 13.6 ms (19.8 ms p95) on this project's densest
-six-page document — the 144 Hz target belongs to the owner's own PC pass. Over the page the desktop's
+than once per driver packet, so a fast hand costs one redraw a frame instead of hundreds, and the window
+asks for a frame only when the pen has something new to draw — a sheet nobody is writing on is not
+repainted at all. The line was measured against the nib (`--probe-ink`): on the 60 Hz test laptop a
+sample becomes ink in a median 12.9 ms (17.9 ms p95) on a blank page and 17.7 ms (29.4 ms p95) on this
+project's densest six-page document — the 144 Hz target belongs to the owner's own PC pass. Over the page the desktop's
 arrow is replaced by
 a ring the size of the line the tool will write, so the point you are about to draw at is never hidden and
 the width is never a guess. The ring is driven by the tablet's own readings rather than by the slower mouse
