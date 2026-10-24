@@ -351,7 +351,7 @@ private fun ToolSlot(
             onHover = { hovered = it },
             onSelect = onSelect,
             onOpenPicker = openSurface,
-            opensSurface = group.hasPicker || family != null,
+            opensSurface = group.opensSubmenu(),
         )
         // The pill stands aside while the slot's own surface is up — either of them, so a circuit slot's
         // palette is not covered by its tooltip.

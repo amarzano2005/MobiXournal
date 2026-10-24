@@ -1,34 +1,59 @@
 package com.mobixournal.desktop
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.LivingSlot
+import com.mobixournal.render.PlotBox
+import com.mobixournal.render.PlotCurve
+import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.ShapeKind
 
 /**
  * A placement that has its **box** but is waiting for its values — the question a living slot asks
  * *before* the element exists.
  *
- * The tablet does the same thing in the other shell: the graph dialog takes the formula and the range and
- * then inserts, the table takes its rows and columns, and the circuit palette is asked for the part. The
- * window places nothing while this object is live, so a cancelled question leaves no empty frame and no
- * undo step behind — the page is exactly what it was before the drag.
+ * The tablet does the same thing in the other shell: the graph dialog takes the equations, the range and
+ * the display flags and then inserts, the table takes its rows and columns, and the circuit palette is
+ * asked for the part. The window places nothing while this object is live, so a cancelled question leaves
+ * no empty frame and no undo step behind — the page is exactly what it was before the drag.
  *
- * The answers are the model's own fields (`PlotElement.curves`/`xMin`/`xMax`/the display flags/
- * `shadeIntegral`, `TableElement`'s grid and header), so [element] builds the very recipe the inspector
- * would edit afterwards. Nothing here invents an option the file cannot keep.
+ * A plot keeps a **list** of equations, as the tablet's graph dialog does: one graph may carry several
+ * curves, and a card that could only ever edit the first one was the reason a second equation could not be
+ * inserted at all. [plotIn] builds the element from that list, so the lane's preview and the placement draw
+ * the very same graph — a preview compiled by another path is a preview that can lie.
  */
 class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: String) {
 
     // --- plot: the tablet's graph dialog -----------------------------------------------------------
 
-    /** The formula, in the same expression language the whole app plots with. */
-    var formula by mutableStateOf(LivingPlacement.DEFAULT_PLOT_FORMULA)
+    /**
+     * The equations the graph will carry, in the order they are drawn. It is **snapshot state** and it is
+     * written on every keystroke: nothing of this is on the page yet, so the preview can follow the typing
+     * the way the tablet's dialog preview does.
+     */
+    val formulas = mutableStateListOf(LivingPlacement.DEFAULT_PLOT_FORMULA)
+
+    /** The formulas as the graph reads them: trimmed, blanks dropped, order kept. */
+    val sources: List<String> get() = formulas.map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** Add an empty equation row — the card's **Add equation**, capped so the list stays readable. */
+    fun addFormula() {
+        if (formulas.size < MAX_FORMULAS) formulas += ""
+    }
+
+    /** Drop equation [index]; the last one stays, because a graph with no equation is not a graph. */
+    fun removeFormula(index: Int) {
+        if (formulas.size > 1 && index in formulas.indices) formulas.removeAt(index)
+    }
 
     /** The domain, as the dialog's two numbers (`x from`, `x to`). */
     var xMin by mutableStateOf("-10")
@@ -71,41 +96,80 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
     /** Whether the answers are complete enough to build the element. */
     val ready: Boolean
         get() = when (slot) {
-            LivingSlot.PLOT -> formula.isNotBlank() && domain != null && (!shade || shading != null)
+            LivingSlot.PLOT -> sources.isNotEmpty() && domain != null && (!shade || shading != null)
             LivingSlot.TABLE -> columns in 1..30 && rows in 1..200
             // A component's part was already the palette's question; nothing is asked twice.
             LivingSlot.CIRCUIT -> true
         }
 
     /**
-     * The element these answers describe, in [ink] — or null for a question that is not answered yet
-     * (a formula that is blank, a domain that does not open to the right, a table with no cells).
+     * The graph these answers describe, drawn in [box] with [colour] at [strokeWidthPt] — or null while
+     * there is no formula or no open domain.
+     *
+     * It is one function for two callers: [element] composes it into the page's box, and the lane's preview
+     * composes it into a preview box, so what is promised before Place is what lands after it.
      */
-    fun element(ink: DesktopInk, circuitKind: ShapeKind): Element? {
-        val (from, to) = domain ?: if (slot == LivingSlot.PLOT) return null else 0.0 to 0.0
-        return when (slot) {
-            LivingSlot.PLOT -> {
-                if (formula.isBlank()) return null
-                LivingPlacement.plot(
-                bounds = bounds,
-                colour = ink.colour,
-                strokeWidthPt = ink.width.toDouble(),
-                    formula = formula.trim(),
-                    xMin = from,
-                    xMax = to,
-                    showCriticalPoints = showCriticalPoints,
-                    includeDerivative = includeDerivative,
-                    includeSummary = includeSummary,
-                    shadeIntegral = shading,
+    fun plotIn(box: PlotBox, colour: Int, strokeWidthPt: Double): PlotElement? {
+        val sources = sources
+        if (sources.isEmpty()) return null
+        val (from, to) = domain ?: return null
+        return PlotElementFactory.plotElementIn(
+            box = box,
+            curves = sources.map { source ->
+                PlotCurve(
+                    source = source,
+                    color = colour,
+                    lineStyle = LineStyle.PLAIN,
+                    kind = PlotKind.CARTESIAN,
                 )
+            },
+            xMin = from,
+            xMax = to,
+            showCriticalPoints = showCriticalPoints,
+            includeDerivative = includeDerivative,
+            strokeWidthPt = strokeWidthPt,
+            includeSummary = includeSummary,
+            shadeIntegral = shading,
+        )
+    }
+
+    /**
+     * The element these answers describe, in [ink] — or null for a question that is not answered yet
+     * (no formula, a domain that does not open to the right, a table with no cells).
+     */
+    fun element(ink: DesktopInk, circuitKind: ShapeKind): Element? = when (slot) {
+        LivingSlot.PLOT -> plotIn(
+            box = PlotBox(bounds.left, bounds.top, bounds.width, bounds.height),
+            colour = ink.colour,
+            strokeWidthPt = ink.width.toDouble(),
+        )
+        LivingSlot.TABLE -> LivingPlacement.table(
+            bounds = bounds,
+            rows = rows,
+            cols = columns,
+            hasHeader = header,
+        )
+        LivingSlot.CIRCUIT -> livingElementFor(slot, bounds, ink, circuitKind)
+    }
+
+    /** The line the lane's header prints under its title — the answers so far. */
+    fun summary(): String = when (slot) {
+        LivingSlot.PLOT -> {
+            val equations = sources
+            val graph = when (equations.size) {
+                0 -> "no equation"
+                1 -> equations.first()
+                else -> "${equations.size} equations"
             }
-            LivingSlot.TABLE -> LivingPlacement.table(
-                bounds = bounds,
-                rows = rows,
-                cols = columns,
-                hasHeader = header,
-            )
-            LivingSlot.CIRCUIT -> livingElementFor(slot, bounds, ink, circuitKind)
+            val range = domain?.let { "${formatNumber(it.first)}…${formatNumber(it.second)}" } ?: "range not open"
+            "$graph · $range"
         }
+        LivingSlot.TABLE -> "$columns × $rows" + if (header) " · header" else ""
+        LivingSlot.CIRCUIT -> slot.label()
+    }
+
+    /** How many equations one graph may carry: enough for a comparison, few enough to read in the lane. */
+    private companion object {
+        const val MAX_FORMULAS = 6
     }
 }

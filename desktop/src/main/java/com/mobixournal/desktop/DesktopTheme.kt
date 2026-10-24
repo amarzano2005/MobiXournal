@@ -217,6 +217,15 @@ object DesktopTheme {
     const val CARD_ALPHA: Float = 0.22f
 
     /**
+     * The paper a **preview of a page** is drawn on: the app's white sheet.
+     *
+     * A graph's ink is black on paper; the same ink on the lane's dark glass is invisible, so a preview that
+     * shows what will land on the sheet has to show the sheet. It is the one surface in the window that is
+     * deliberately light, and it exists only inside a card, never as chrome.
+     */
+    val previewPaper: Color = tokenColour(0xFFFFFF)
+
+    /**
      * A value inside a field: Inter at 12 sp with tabular figures — a size up from [numeric], because a
      * field the user types into is read at a glance, not scanned like a status figure.
      */

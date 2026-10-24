@@ -114,6 +114,25 @@ class ToolGroupsTest {
     }
 
     @Test
+    fun `a circuit slot's palette is its submenu, and it takes two clicks too`() {
+        // The family slot holds one member — the family itself — so `hasPicker` is false and the palette of
+        // parts is the slot's real submenu. Without this, a double click on a circuit slot did nothing.
+        val circuits = groupOf(DesktopTool.CIRCUIT)!!
+        assertTrue("the passive palette is a submenu", circuits.opensSubmenu())
+        assertEquals(
+            "the first click only arms the slot",
+            SlotClick.Pick(DesktopTool.CIRCUIT),
+            slotClick(circuits, ToolSelection(DesktopTool.PEN)),
+        )
+        assertEquals(
+            "the second click opens the palette of parts",
+            SlotClick.OpenPicker,
+            slotClick(circuits, ToolSelection(DesktopTool.CIRCUIT)),
+        )
+        assertFalse("a lone inking tool has no submenu", groupOf(DesktopTool.PEN)!!.opensSubmenu())
+    }
+
+    @Test
     fun `every member of a group is reachable without the picker`() {
         // The rule the picker must not break: it re-faces a slot, it never changes a key.
         for (group in DESKTOP_TOOL_GROUPS) {

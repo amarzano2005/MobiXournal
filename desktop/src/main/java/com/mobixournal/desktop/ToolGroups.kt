@@ -42,22 +42,34 @@ class ToolGroup(val members: List<DesktopTool>) {
  * What a click on a slot means — decided here, before any Compose, so the rule is testable.
  *
  * A click on a slot that is **not** the picked tool picks it. A click on the slot that already *is* the
- * picked tool opens its picker, which is how a grouped slot's other members are reached without aiming at
- * the chevron: the first click arms the tool, the second one asks "which of these?" instead of doing
- * nothing. A lone tool has no picker, so a second click on the pen stays the harmless no-op it was.
+ * picked tool opens its submenu, which is how a slot's other tools are reached without aiming at the
+ * chevron: the first click arms the tool, the second one asks "which of these?" instead of doing nothing —
+ * two clicks, never one. A lone tool with no submenu (the pen) answers [Pick] again, a harmless no-op.
+ *
+ * A **circuit slot** is the case this rule used to miss: its group holds one member (the family is chosen
+ * by the slot, not by the picker), so `hasPicker` was false and its palette of parts could never open from
+ * the slot at all. [opensSubmenu] is therefore about the slot, not about the member count.
  */
 sealed interface SlotClick {
     /** Pick this tool (the slot's face). */
     data class Pick(val tool: DesktopTool) : SlotClick
 
-    /** Open the group's picker — the slot is already facing the picked tool. */
+    /** Open the slot's submenu — the slot is already facing the picked tool. */
     data object OpenPicker : SlotClick
 }
+
+/**
+ * Whether [this] slot has a submenu: a group with several members, **or** a circuit family's palette.
+ *
+ * One answer for the three things that need it — the click rule, the chevron, and `Esc`'s closing order —
+ * so a slot cannot offer a chevron that opens nothing, or hide the palette of parts it places.
+ */
+fun ToolGroup.opensSubmenu(): Boolean = hasPicker || members.any { circuitFamilyOf(it) != null }
 
 /** The meaning of a click on [group]'s slot under [selection]. */
 fun slotClick(group: ToolGroup, selection: ToolSelection): SlotClick {
     val tool = group.faceFor(selection)
-    return if (group.hasPicker && tool == selection.current) SlotClick.OpenPicker else SlotClick.Pick(tool)
+    return if (group.opensSubmenu() && tool == selection.current) SlotClick.OpenPicker else SlotClick.Pick(tool)
 }
 
 /**

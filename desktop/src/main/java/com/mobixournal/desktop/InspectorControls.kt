@@ -235,6 +235,12 @@ internal fun ValueField(
     initial: String,
     numeric: Boolean = false,
     multiline: Boolean = false,
+    /**
+     * What the field says **while it is being typed**, for a caller that is not writing a document: the
+     * placement card keeps its answers live so the graph preview can follow the keystrokes. A committed
+     * edit still goes through [onCommit] only, so nothing of a document is written per letter.
+     */
+    onDraft: (String) -> Unit = {},
     onCommit: (String) -> Unit,
 ) {
     var text by remember(initial) { mutableStateOf(initial) }
@@ -244,6 +250,7 @@ internal fun ValueField(
         onValueChange = { entered ->
             if (!numeric || entered.isEmpty() || entered.toDoubleOrNull() != null || entered == "-" || entered == ".") {
                 text = entered
+                onDraft(entered)
             }
         },
         singleLine = !multiline,
@@ -271,6 +278,7 @@ internal fun ValueField(
                     }
                     Key.Escape -> {
                         text = initial
+                        onDraft(initial)
                         true
                     }
                     else -> false
@@ -354,7 +362,20 @@ private const val COLOUR_SWATCHES = 8
 
 /** The lane's close glyph: two monoline strokes, the same one the placement card used. */
 @Composable
-internal fun LaneClose(onClick: () -> Unit) {
+internal fun LaneClose(onClick: () -> Unit) = CrossGlyph(ink = DesktopTheme.chromeInk, onClick = onClick)
+
+/**
+ * A row's **remove** control — the equation row's ×.
+ *
+ * The same two strokes as the close glyph, drawn in the secondary ink: a removed equation is an ordinary
+ * edit of the question, not a dismissal of the lane, and the two must not read as the same act.
+ */
+@Composable
+internal fun RemoveGlyph(onClick: () -> Unit) = CrossGlyph(ink = DesktopTheme.inkSecondary, onClick = onClick)
+
+/** The one × of the lane, at its one size and with its one hover state. */
+@Composable
+private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
     Box(
         Modifier
             .size(24.dp)
@@ -364,8 +385,8 @@ internal fun LaneClose(onClick: () -> Unit) {
     ) {
         Canvas(Modifier.size(10.dp)) {
             val stroke = DesktopTheme.glyphStroke.toPx()
-            drawLine(DesktopTheme.chromeInk, Offset(0f, 0f), Offset(size.width, size.height), stroke)
-            drawLine(DesktopTheme.chromeInk, Offset(size.width, 0f), Offset(0f, size.height), stroke)
+            drawLine(ink, Offset(0f, 0f), Offset(size.width, size.height), stroke)
+            drawLine(ink, Offset(size.width, 0f), Offset(0f, size.height), stroke)
         }
     }
 }

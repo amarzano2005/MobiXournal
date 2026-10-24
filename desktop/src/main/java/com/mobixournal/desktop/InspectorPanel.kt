@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,12 +14,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.format.model.Element
@@ -44,12 +48,11 @@ import com.mobixournal.render.TableElementFactory
  * puts it in the row, which is what makes that true mechanically — the lane takes width, the canvas takes
  * the remainder, and no glass floats on the ink.
  *
- * The lane is **always there** while a document is open, and that is not decoration: it used to return
- * early with nothing selected, so opening the pencil grew the column and closing it shrank it, and the page
- * jumped under the pointer every time. A stable frame is read in three parts — the header that says which
- * element this is, the cards that hold its fields, and the footer that holds the one action — and every
- * state fills the same three parts: the placement question, the editor, one element selected, several
- * selected, and nothing selected.
+ * It appears **only while there is something to edit** — a placement asking its values, or an element opened
+ * with the pencil — and never for a selection alone: the page is what a selection is about, and a 300 dp
+ * column of labels about it is width the sheet could have had. One frame serves both moments, in three
+ * parts — the header that says which element this is, the cards that hold its fields, and the footer that
+ * holds the action (Place/Cancel, or Done).
  *
  * The sections only offer **fields the model carries**: a value the file would drop is a lie about the
  * document (`docs/mobix-elements.md`). Every commit is one [DesktopShellState.commitLiving] — one edit, one
@@ -62,10 +65,17 @@ internal fun InspectorLane(
     modifier: Modifier = Modifier,
 ) {
     val pending = state.pendingPlacement
-    val live = state.editingLiving?.let { livingTarget(tab, it) }
-    // One living element selected but not opened: the lane still has something to say about it.
-    val picked = if (live == null) pickedLiving(tab) else null
-    val selection = tab.selection
+    // An editor belongs to **the element it was opened on**: the moment the selection names something else
+    // (or nothing at all) there is no element being edited, so the lane goes. Without this rule the column
+    // stayed up after the user had moved on to another element or to empty paper, reading as a permanent
+    // panel rather than as the open editor it is.
+    val editing = attachedLivingEditor(tab, state.editingLiving)
+    val live = editing?.let { livingTarget(tab, it) }
+    LaunchedEffect(editing, tab.key, tab.page) {
+        if (state.editingLiving != null && editing == null) state.closeLivingEditor()
+    }
+    // Nothing to edit, nothing to draw: a selection alone is the bar's business, not this column's.
+    if (pending == null && live == null) return
 
     Column(
         modifier
@@ -74,25 +84,10 @@ internal fun InspectorLane(
             .bandSurface(),
     ) {
         LaneHeader(
-            tool = pending?.slot?.tool() ?: live?.family?.tool() ?: picked?.family?.tool(),
-            title = when {
-                pending != null -> "New ${pending.slot.label().lowercase()}"
-                live != null -> live.family.title
-                picked != null -> picked.family.title
-                else -> "Inspector"
-            },
-            summary = when {
-                pending != null -> pending.summary()
-                live != null -> livingSummary(live)
-                picked != null -> livingSummary(picked)
-                selection != null -> selectionSummary(selection.refs.size)
-                else -> null
-            },
-            onClose = when {
-                pending != null -> state::cancelPlacement
-                live != null -> state::closeLivingEditor
-                else -> null
-            },
+            tool = pending?.slot?.tool() ?: live?.family?.tool(),
+            title = pending?.let { "New ${it.slot.label().lowercase()}" } ?: live?.family?.title.orEmpty(),
+            summary = pending?.summary() ?: live?.let { livingSummary(it) },
+            onClose = pending?.let { { state.cancelPlacement() } } ?: { state.closeLivingEditor() },
         )
         Column(
             Modifier
@@ -104,79 +99,17 @@ internal fun InspectorLane(
             when {
                 pending != null -> PlacementBody(pending)
                 live != null -> EditorBody(live) { element -> state.commitLiving(element) }
-                picked != null -> PickedBody(picked)
-                selection != null -> ManyBody(selection.refs.size)
-                else -> EmptyBody()
-            }
-        }
-        LaneFooter {
-            when {
-                pending != null -> {
-                    PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
-                    PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
-                }
-                live != null -> PanelButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
-                picked != null -> PanelButton("Edit element", primary = true, enabled = true, onClick = {
-                    state.runSelection(SelectionAction.EDIT)
-                })
                 else -> Unit
             }
         }
-    }
-}
-
-// --- what the lane is showing ------------------------------------------------------------------
-
-/** The one living element the selection names, if it names exactly one — the lane's quiet state. */
-private fun pickedLiving(tab: DesktopTab): LivingTarget? {
-    val ref = livingTargetOf(tab) ?: return null
-    return livingTarget(tab, LivingTargetRef(tab.key, tab.page, ref))
-}
-
-/** The line under a header when several things are caught. */
-private fun selectionSummary(count: Int): String =
-    if (count == 1) "1 element selected" else "$count elements selected"
-
-/** The state with nothing selected: what the lane is for, in one calm card. */
-@Composable
-private fun EmptyBody() {
-    SectionCard("Nothing selected") {
-        Text(
-            "Click an element on the page to edit it, or drag the Plot, Table or a circuit slot to place " +
-                "one. A selection can be moved, resized and turned with the handles.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.body,
-        )
-    }
-}
-
-/** One element caught but not opened: its identity, and a word about the pencil in the footer. */
-@Composable
-private fun PickedBody(target: LivingTarget) {
-    SectionCard("Selected") {
-        Readout("kind", target.family.title)
-        Readout("summary", livingSummary(target))
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Edit element opens the fields; the bar under the outline has copy, align, recolour and delete.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-        )
-    }
-}
-
-/** Several elements caught: the lane counts them and points at the bar, which is where they are edited. */
-@Composable
-private fun ManyBody(count: Int) {
-    SectionCard("Selection") {
-        Readout("elements", count.toString())
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Drag to move the group, or use the handles to resize and turn it. The bar under the outline " +
-                "copies, duplicates, aligns, recolours and deletes; a living element is opened with its pencil.",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-        )
+        LaneFooter {
+            if (pending != null) {
+                PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
+                PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
+            } else {
+                PanelButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
+            }
+        }
     }
 }
 
@@ -193,14 +126,57 @@ private fun PlacementBody(pending: PendingPlacement) {
     }
 }
 
-/** The graph dialog's questions: `f(x)`, the domain and the display flags. */
+/**
+ * The graph dialog's questions: one row per equation, the domain, the flags — and the graph itself, drawn
+ * while the answers are typed.
+ *
+ * The equations are a **list**, as on the tablet: a graph may carry several curves, and a card with a single
+ * `f(x)` was why a second equation could not be inserted at all. Every field writes as it is typed (nothing
+ * of a pending question is on the page yet), which is what lets the preview follow the keystrokes.
+ */
 @Composable
 private fun PlotQuestion(pending: PendingPlacement) {
-    SectionCard("Function") {
-        Field("f(x)") { ValueField(pending.formula, onCommit = { pending.formula = it }) }
+    SectionCard("Graph") {
+        PlotQuestionPreview(pending)
+    }
+    SectionCard("Equations") {
+        for (index in pending.formulas.indices) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) {
+                    Field(if (index == 0) "f(x)" else "f${index + 1}(x)") {
+                        ValueField(
+                            initial = pending.formulas[index],
+                            onDraft = { text -> pending.formulas[index] = text },
+                            onCommit = {},
+                        )
+                    }
+                }
+                if (pending.formulas.size > 1) {
+                    Spacer(Modifier.width(6.dp))
+                    RemoveGlyph { pending.removeFormula(index) }
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        PanelButton(
+            label = "Add equation",
+            primary = false,
+            enabled = pending.formulas.size < MAX_EQUATIONS,
+            onClick = { pending.addFormula() },
+        )
+    }
+    SectionCard("Domain") {
         NumberRow(
-            left = { Field("x from") { ValueField(pending.xMin, numeric = true, onCommit = { pending.xMin = it }) } },
-            right = { Field("x to") { ValueField(pending.xMax, numeric = true, onCommit = { pending.xMax = it }) } },
+            left = {
+                Field("x from") {
+                    ValueField(pending.xMin, numeric = true, onDraft = { pending.xMin = it }, onCommit = {})
+                }
+            },
+            right = {
+                Field("x to") {
+                    ValueField(pending.xMax, numeric = true, onDraft = { pending.xMax = it }, onCommit = {})
+                }
+            },
         )
         if (pending.domain == null) {
             Text("x to must be greater than x from", color = DesktopTheme.danger, style = DesktopTheme.label)
@@ -213,12 +189,23 @@ private fun PlotQuestion(pending: PendingPlacement) {
         SwitchRow("Shade integral", pending.shade) { pending.shade = it }
         if (pending.shade) {
             NumberRow(
-                left = { Field("shade from") { ValueField(pending.shadeFrom, numeric = true, onCommit = { pending.shadeFrom = it }) } },
-                right = { Field("shade to") { ValueField(pending.shadeTo, numeric = true, onCommit = { pending.shadeTo = it }) } },
+                left = {
+                    Field("shade from") {
+                        ValueField(pending.shadeFrom, numeric = true, onDraft = { pending.shadeFrom = it }, onCommit = {})
+                    }
+                },
+                right = {
+                    Field("shade to") {
+                        ValueField(pending.shadeTo, numeric = true, onDraft = { pending.shadeTo = it }, onCommit = {})
+                    }
+                },
             )
         }
     }
 }
+
+/** How many equations the card offers before its Add button greys out — `PendingPlacement`'s own cap. */
+private const val MAX_EQUATIONS = 6
 
 /** The table's questions: how many columns and rows, and whether the first row is a header. */
 @Composable
@@ -240,17 +227,6 @@ private fun TableQuestion(pending: PendingPlacement) {
     }
 }
 
-/** The line a pending question shows under the lane's title — the answer so far. */
-private fun PendingPlacement.summary(): String = when (slot) {
-    LivingSlot.PLOT -> {
-        val formula = formula.trim().ifBlank { "no formula" }
-        val range = domain?.let { "${formatNumber(it.first)}…${formatNumber(it.second)}" } ?: "range not open"
-        "$formula · $range"
-    }
-    LivingSlot.TABLE -> "$columns × $rows" + if (header) " · header" else ""
-    LivingSlot.CIRCUIT -> slot.label()
-}
-
 // --- the five editors --------------------------------------------------------------------------
 
 /** The editor of one element, dispatched by family — the lane's body once the element exists. */
@@ -268,21 +244,14 @@ private fun EditorBody(live: LivingTarget, commit: (Element) -> Unit) {
 @Composable
 private fun PlotBody(plot: PlotElement, commit: (Element) -> Unit) {
     val curve = plot.curves.firstOrNull()
+    // The graph the equations draw, in the lane, while they are edited: the placement card's own preview,
+    // for the element that already exists. Without it an equation was committed blind and the only way to
+    // see what it drew was to close the lane and look at the sheet.
+    SectionCard("Graph") {
+        PlotInkPreview(plot, "Type an equation to draw it here")
+    }
     SectionCard("Function") {
-        var formula by remember(plot) { mutableStateOf(curve?.source.orEmpty()) }
-        Field("f(x)") {
-            ValueField(formula, onCommit = { entered ->
-                formula = entered
-                if (curve != null && entered.isNotBlank() && entered != curve.source) {
-                    commit(
-                        plot.copy(
-                            curves = listOf(curve.copy(source = entered)) + plot.curves.drop(1),
-                            summaryText = null,
-                        ),
-                    )
-                }
-            })
-        }
+        PlotEquations(plot, commit)
         NumberRow(
             left = {
                 NumberField("x from", plot.xMin) { value ->
@@ -340,6 +309,52 @@ private fun PlotBody(plot: PlotElement, commit: (Element) -> Unit) {
             }
         }
     }
+}
+
+/**
+ * The graph's **equations**, one field per curve plus the row that adds another.
+ *
+ * A graph may carry several curves, and the lane that could only edit the first one was where a second
+ * equation went to die; the row set is the placement card's own, so the two moments offer one editor.
+ */
+@Composable
+private fun PlotEquations(plot: PlotElement, commit: (Element) -> Unit) {
+    for (index in plot.curves.indices) {
+        val edited = plot.curves[index]
+        var formula by remember(plot, index) { mutableStateOf(edited.source) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) {
+                Field(if (index == 0) "f(x)" else "f${index + 1}(x)") {
+                    ValueField(formula, onCommit = { entered ->
+                        formula = entered
+                        if (entered.isNotBlank() && entered != edited.source) {
+                            commit(
+                                plot.copy(
+                                    curves = plot.curves.toMutableList().also {
+                                        it[index] = edited.copy(source = entered)
+                                    },
+                                    summaryText = null,
+                                ),
+                            )
+                        }
+                    })
+                }
+            }
+            if (plot.curves.size > 1) {
+                Spacer(Modifier.width(6.dp))
+                RemoveGlyph { commit(plotWithoutEquation(plot, index)) }
+            }
+        }
+    }
+    Spacer(Modifier.height(4.dp))
+    PanelButton(
+        label = "Add equation",
+        primary = false,
+        enabled = plot.curves.size < MAX_EQUATIONS,
+        onClick = {
+            commit(plotWithEquation(plot, PenPalette.COLORS[plot.curves.size % PenPalette.COLORS.size]))
+        },
+    )
 }
 
 /**

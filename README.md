@@ -133,10 +133,13 @@ selection go. A bar appears under the outline with the tablet's own actions — 
 recolour or re-width what is caught, align and distribute a group, delete — and `Ctrl+C`/`Ctrl+X`/`Ctrl+V`/
 `Ctrl+D` do the same from the keyboard; a paste lands beside what it copied and stays selected. The **pencil**
 on that bar opens the selected table, plot, figure, component or formula in a lane beside the page, where its
-own values are editable without a dialog ever covering the sheet. The lane is always there and always the
-same width — a header naming the element (its symbol and its formula, grid or value), grouped cards of
-fields, and one action at the bottom — so the page never shifts sideways when you pick something up or let
-it go. **Place** a graph, a table or a circuit
+own values are editable without a dialog ever covering the sheet. The lane opens **while you are editing**
+and closes when you are done — `Esc`, the close glyph or `Done` — or as soon as you select something else, so
+it never sits there as a panel you did not ask for. It is the same width every time, with a header naming the
+element (its symbol and its formula, grid or value), grouped cards of fields, and one action at the bottom. A
+graph's card leads with the **graph itself**, redrawn as you edit it, carries every equation it has with
+**Add equation** and a remove glyph beside each row, and its display switches work right there — the same
+preview the placement asked its questions with. **Place** a graph, a table or a circuit
 component with Plot (`M`), Table (`T`) or the circuit slots (`K` passive parts, `Shift + K` active parts,
 `Alt + K` logic gates): drag the box it should fill (or click for the default size), and the right-hand lane
 asks what the element should be before it exists — the graph dialog's own questions for a plot (formula,

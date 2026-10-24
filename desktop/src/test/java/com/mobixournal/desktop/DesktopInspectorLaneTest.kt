@@ -18,19 +18,20 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * The inspector lane as a **stable frame**: it is there with nothing selected, the same width in every
- * state, and its header says *which* element is being edited rather than only which family.
+ * The inspector lane: **open only while there is something to edit** (a placement asking its values, or an
+ * element opened with the pencil), never for a selection alone — the page keeps that width — and with a
+ * header that says *which* element is being edited rather than only which family.
  *
- * The regression this file exists for is a layout one: the lane used to return early when no editor was
- * open, so picking an element grew the right-hand column and closing it shrank the column back — the page
- * jumped sideways under the pointer. A width that depends on the selection is therefore a failing test, and
- * so is a header that cannot tell two plots apart.
+ * The regression this file exists for is one of presence: a lane that stood open on an empty selection was
+ * 300 dp of labels about nothing, and one that appeared for a selection was width the sheet lost on every
+ * pick. Both are a pixel here, and so is a header that cannot tell two plots apart.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class DesktopInspectorLaneTest {
@@ -44,38 +45,45 @@ class DesktopInspectorLaneTest {
 
     private fun shell(): DesktopShellState = DesktopShellState().also { it.open(notebook()) }
 
-    /** The lane's own column, well clear of its 12 dp padding: a pixel of band glass, not of the desk. */
-    private val lanePixelX = 960
+    /**
+     * The lane's own column, just inside its right edge: past the cards' 12 dp padding, so the pixel is the
+     * band's glass and not a card's tone — and it is the page's own pixel when no lane is drawn.
+     */
+    private val lanePixelX = 992
     private val lanePixelY = 320
 
     @Test
-    fun `the lane is drawn with nothing selected`() {
+    fun `the lane is closed until there is something to edit`() {
         val state = shell()
         try {
-            val pixel = render(state).getRGB(lanePixelX, lanePixelY) and 0xFFFFFF
-            assertNearBand("the lane's column is band glass, not the desk", pixel)
+            assertNotBand("nothing selected: the page keeps the width", render(state))
+
+            // A selection alone is the bar's business, not the lane's.
+            val tab = state.tabs.active!!
+            tab.selection = PageSelection(rectRegion(80.0, 90.0, 260.0, 240.0), emptySet())
+            assertNotBand("a selection does not open a column of labels", render(state))
         } finally {
             state.tabs.closeAll()
         }
     }
 
     @Test
-    fun `the lane keeps its width when a selection arrives and when it leaves`() {
+    fun `the lane opens while an element is edited, and closes with it`() {
         val state = shell()
         try {
-            val empty = render(state).getRGB(lanePixelX, lanePixelY) and 0xFFFFFF
-
             val tab = state.tabs.active!!
-            tab.selection = PageSelection(rectRegion(80.0, 90.0, 260.0, 240.0), emptySet())
-            val selected = render(state).getRGB(lanePixelX, lanePixelY) and 0xFFFFFF
+            state.selectTool(DesktopTool.PLOT)
+            state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(100.0, 120.0, 340.0, 264.0))
+            assertNearBand("the question owns the lane", render(state))
 
-            tab.selection = null
-            val again = render(state).getRGB(lanePixelX, lanePixelY) and 0xFFFFFF
+            state.confirmPlacement()
+            assertNotBand("the question answered, the lane goes", render(state))
 
-            assertNearBand("nothing selected", empty)
-            assertNearBand("something selected", selected)
-            assertEquals("the column never moves", empty, selected)
-            assertEquals("and coming back is the same frame", empty, again)
+            state.runSelection(SelectionAction.EDIT)
+            assertNearBand("the pencil opens it again", render(state))
+
+            state.closeLivingEditor()
+            assertNotBand("and Done closes it", render(state))
         } finally {
             state.tabs.closeAll()
         }
@@ -105,6 +113,66 @@ class DesktopInspectorLaneTest {
     }
 
     @Test
+    fun `the graph preview draws the equation before it is placed`() {
+        val state = shell()
+        try {
+            val tab = state.tabs.active!!
+            state.selectTool(DesktopTool.PLOT)
+            state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(60.0, 60.0, 360.0, 240.0))
+            state.pendingPlacement!!.formulas[0] = "sin(x)"
+
+            val image = render(state)
+            var paper = 0
+            var curve = 0
+            for (x in 712 until 988) {
+                for (y in 60 until 260) {
+                    val rgb = image.getRGB(x, y) and 0xFFFFFF
+                    if (rgb == 0xFFFFFF) paper++
+                    if (rgb <= 0x333333) curve++
+                }
+            }
+            assertTrue("the preview is a sheet of paper in the lane ($paper px)", paper > 500)
+            assertTrue("with the curve drawn on it ($curve px)", curve > 20)
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `a plot carries every equation the card was given`() {
+        val state = shell()
+        try {
+            val tab = state.tabs.active!!
+            state.selectTool(DesktopTool.PLOT)
+            state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(60.0, 60.0, 360.0, 240.0))
+            val pending = state.pendingPlacement!!
+            assertEquals("a fresh graph starts on the tablet's own formula", 1, pending.formulas.size)
+
+            pending.formulas[0] = "x^2"
+            pending.addFormula()
+            pending.formulas[1] = "2*x"
+            pending.addFormula()
+            pending.formulas[2] = "   "
+            assertTrue("an unanswered row does not stop the graph", pending.ready)
+            assertTrue("and the preview has something to draw", pending.plotIn(
+                com.mobixournal.render.PlotBox(0.0, 0.0, 320.0, 140.0),
+                PenPalette.BLACK,
+                1.0,
+            ) != null)
+
+            state.confirmPlacement()
+            val plot = elements(tab).filterIsInstance<PlotElement>().single()
+            assertEquals(
+                "both equations are in the placed graph, the blank one dropped",
+                listOf("x^2", "2*x"),
+                plot.curves.map { it.source },
+            )
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
     fun `a placement hands the window to the selection tool`() {
         val state = shell()
         try {
@@ -118,6 +186,84 @@ class DesktopInspectorLaneTest {
                 DesktopTool.MARQUEE,
                 state.tools.current,
             )
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `the lane closes when the selection leaves the element being edited`() {
+        val state = shell()
+        try {
+            val tab = state.tabs.active!!
+            state.selectTool(DesktopTool.PLOT)
+            state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(60.0, 60.0, 360.0, 240.0))
+            state.confirmPlacement()
+            state.runSelection(SelectionAction.EDIT)
+            assertTrue(
+                "the pencil opens an editor on the element it names",
+                attachedLivingEditor(tab, state.editingLiving) != null,
+            )
+
+            tab.selection = null
+            assertNull(
+                "a selection that no longer names it cannot keep an editor open",
+                attachedLivingEditor(tab, state.editingLiving),
+            )
+            assertNotBand("so the column goes with it", render(state))
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    @Test
+    fun `the editor adds and removes equations`() {
+        val plot: PlotElement = LivingPlacement.plot(
+            bounds = Bounds(0.0, 0.0, 240.0, 160.0),
+            colour = PenPalette.BLUE,
+            strokeWidthPt = 1.5,
+            formula = "sin(x)",
+        )
+        val two = plotWithEquation(plot, PenPalette.BLUE)
+        assertEquals(
+            "Add equation appends the tablet's default row",
+            listOf("sin(x)", LivingPlacement.DEFAULT_PLOT_FORMULA),
+            two.curves.map { it.source },
+        )
+        assertEquals("in the colour the card gave it", PenPalette.BLUE, two.curves[1].color)
+        assertEquals("at the plot's own width", 1.5, two.curves[1].strokeWidth, 1e-9)
+        assertNull("and the one-curve analysis is dropped", two.summaryText)
+
+        assertEquals(
+            "a removal drops only its own row",
+            listOf(LivingPlacement.DEFAULT_PLOT_FORMULA),
+            plotWithoutEquation(two, 0).curves.map { it.source },
+        )
+        assertEquals("the last equation stays", 1, plotWithoutEquation(plot, 0).curves.size)
+    }
+
+    @Test
+    fun `the editor previews the graph it is editing`() {
+        val state = shell()
+        try {
+            val tab = state.tabs.active!!
+            state.selectTool(DesktopTool.PLOT)
+            state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(60.0, 60.0, 360.0, 240.0))
+            state.confirmPlacement()
+            state.runSelection(SelectionAction.EDIT)
+
+            val image = render(state)
+            var paper = 0
+            var curve = 0
+            for (x in 712 until 988) {
+                for (y in 60 until 260) {
+                    val rgb = image.getRGB(x, y) and 0xFFFFFF
+                    if (rgb == 0xFFFFFF) paper++
+                    if (rgb <= 0x333333) curve++
+                }
+            }
+            assertTrue("the editor's graph card is paper ($paper px)", paper > 500)
+            assertTrue("with the element's curve on it ($curve px)", curve > 20)
         } finally {
             state.tabs.closeAll()
         }
@@ -139,12 +285,22 @@ class DesktopInspectorLaneTest {
     }
 
     /** A pixel of the band: the glass at its token alpha over the desk, within a rounding step. */
-    private fun assertNearBand(message: String, actual: Int) {
+    private fun assertNearBand(message: String, image: BufferedImage) =
+        assertTrue(message, nearBand(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
+
+    /** No lane: the column the lane would take is page or desk, not the band's glass. */
+    private fun assertNotBand(message: String, image: BufferedImage) =
+        assertTrue(message, !nearBand(image.getRGB(lanePixelX, lanePixelY) and 0xFFFFFF))
+
+    private fun nearBand(actual: Int): Boolean {
         val expected = DesktopTheme.bandRgb
-        for (shift in listOf(16, 8, 0)) {
+        return listOf(16, 8, 0).all { shift ->
             val want = (expected shr shift) and 0xFF
             val got = (actual shr shift) and 0xFF
-            assertTrue("$message: expected ~$want at >>$shift, got $got", kotlin.math.abs(want - got) <= 3)
+            kotlin.math.abs(want - got) <= 3
         }
     }
+
+    private fun elements(tab: DesktopTab): List<com.mobixournal.format.model.Element> =
+        tab.document.page(tab.page).layers.flatMap { it.elements }
 }

@@ -184,7 +184,7 @@ class DesktopLivingSlotsTest {
         assertTrue("and nothing is on the page yet", elements(tab).none { it is PlotElement })
         assertFalse("nor is there an undo step to take back", tab.canUndo)
 
-        pending!!.formula = "cos(x)"
+        pending!!.formulas[0] = "cos(x)"
         pending.xMin = "-3"
         pending.xMax = "3"
         pending.showCriticalPoints = true

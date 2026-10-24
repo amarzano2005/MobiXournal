@@ -128,11 +128,10 @@ What it does today:
   circuit slot obeys the same rule — its family palette is its submenu, so arming a slot cannot drop a
   palette over the page. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no
   key ever changes meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
-  member is the slot's face, which is why the group needs no state of its own. **A tool whose task has
-  not landed gets no slot**: the strip offers what the canvas acts on — pen, highlighter, both erasers,
-  vertical space and the seven figures — instead of a Text or a Circuit that does nothing. The map and the
-  task that brings each remaining tool are `desktop-every-tool-does-what-it-does-on-the-tablet` in
-  `TODO.toml`, and `ToolGroupsTest` fails if an acting tool has no slot or a slot lists one that cannot
+  member is the slot's face, which is why the group needs no state of its own. **A tool whose behaviour has
+  not landed gets no slot** — Text still waits, and the strip draws no placeholder for it — while the map of
+  `desktop-every-tool-does-what-it-does-on-the-tablet` in `TODO.toml` names what each one brings.
+  `ToolGroupsTest` fails if an acting tool has no slot or a slot lists one that cannot
   act.
 - **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
   band lift instead of a bare fill, every surface that floats takes the drawn rim, and
@@ -247,11 +246,13 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
 
 Plot (`M`), Table (`T`) and the three circuit palettes place a living element instead of drawing one: a
 drag is its box, a click its family's default size, then the lift **asks first** in this lane — the graph
-dialog's fields, or the table's grid — before committing **one** element as **one undo step**, and a
-cancelled question leaves nothing behind. A placement that lands hands the window to the **marquee** (`S`),
-the way the tablet does: the element just placed is what stays selected, so the next drag moves it instead of
-placing a second one (`DesktopInspectorLaneTest`). Geometry, builders and the three family palettes (`CircuitFamily`:
-passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet ([drawing-tools.md](drawing-tools.md)).
+dialog's fields, or the table's grid — before committing **one** element as **one undo step**; a cancelled
+question leaves nothing behind, and the lane closes once the answer lands, being an editor and not a panel
+beside the page. The placement hands the window to the **marquee** (`S`), as the tablet does, so the
+next drag moves what was just made; the **pencil** reopens the same lane on it ([selection.md](selection.md))
+and it goes with the selection that named it. Geometry, builders and the family palettes
+(`CircuitFamily`: passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet, and a slot's
+submenu stays its **second** click, a circuit palette included (`ToolSlotClickTest` drives the scene).
 
 ### Selecting, moving, resizing and turning
 
@@ -313,15 +314,14 @@ with the record count staying at one. [desktop-tablet.md](desktop-tablet.md) own
 - No sketch/PDF/text import and no **images as elements** (only as page backgrounds).
 - No search, and no page reordering or insertion.
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
-  the driver's own active area, and this window adds no second mapping; and no installer, `run` and the
-  packaged `createDistributable` being the entry points.
+  the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
 
 ### The graphics tablet
 
 The pen's two Windows streams, the packet path that draws a stroke and the dial's COM handler are their
-own spoke: [desktop-tablet.md](desktop-tablet.md) owns the measurements (`tablet-probe.csv`,
-`ink-probe.csv`), the batch rule and the latency numbers. The window's side is one rule: the driver's
-packet stream draws the stroke, the mouse Windows emulates never does, and one contact is one stroke.
+own spoke: [desktop-tablet.md](desktop-tablet.md) owns the measurements (`tablet-probe.csv`, `ink-probe.csv`),
+the batch rule and the latency numbers. The window's side is one rule: the driver's packet stream draws the
+stroke, the mouse Windows emulates never does, and one contact is one stroke.
 
 ### Verification, runnable on any JVM host (no emulator)
 

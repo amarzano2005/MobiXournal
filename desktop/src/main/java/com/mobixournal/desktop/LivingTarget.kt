@@ -2,13 +2,17 @@ package com.mobixournal.desktop
 
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.ElementShift
+import com.mobixournal.render.LivingPlacement
 
 /**
  * The window's **living-element bridge**: which element an editor is open on, what family it is, and the one
@@ -143,6 +147,48 @@ fun livingSummary(target: LivingTarget): String = when (val element = target.ele
         if (source.isEmpty()) language else "$language · $source"
     }
     else -> target.family.title
+}
+
+/**
+ * The editor [editing] still names on [tab], or null once it does not.
+ *
+ * An inspector lane belongs to **the element it was opened on**: the lane is what editing that element
+ * looks like, and it must not outlive the selection that named it. Every reason the handle can go stale is
+ * covered by one of the two: the selection moved (it no longer names this one element) or the document
+ * moved (the page turned, the element was undone away, the tab closed) — [livingTarget] answers the second.
+ */
+fun attachedLivingEditor(tab: DesktopTab, editing: LivingTargetRef?): LivingTargetRef? {
+    if (editing == null) return null
+    if (livingTargetOf(tab) != editing.ref) return null
+    return editing.takeIf { livingTarget(tab, it) != null }
+}
+
+/**
+ * [plot] with one more equation — the editor's **Add equation**, the row the tablet's graph dialog offers.
+ *
+ * A graph may carry several curves, and a lane that could only edit the ones a placement happened to
+ * create was a lane where a second equation could not be written at all. The new curve starts on the
+ * shared default formula in [colour], at the width the plot already draws with, and the analysis cache is
+ * dropped: a summary computed from one curve is a lie beside two.
+ */
+fun plotWithEquation(plot: PlotElement, colour: Int): PlotElement = plot.copy(
+    curves = plot.curves + PlotCurve(
+        source = LivingPlacement.DEFAULT_PLOT_FORMULA,
+        color = colour,
+        lineStyle = LineStyle.PLAIN,
+        kind = PlotKind.CARTESIAN,
+        strokeWidth = plot.curves.firstOrNull()?.strokeWidth ?: 1.0,
+    ),
+    summaryText = null,
+)
+
+/** [plot] without equation [index]; the last one stays, because a graph with no equation is not a graph. */
+fun plotWithoutEquation(plot: PlotElement, index: Int): PlotElement {
+    if (plot.curves.size <= 1 || index !in plot.curves.indices) return plot
+    return plot.copy(
+        curves = plot.curves.toMutableList().also { it.removeAt(index) },
+        summaryText = null,
+    )
 }
 
 /** A number as a summary prints it: an integer without a pointless `.0`, one decimal otherwise. */
