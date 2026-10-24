@@ -134,6 +134,16 @@ class DesktopShellState(
         private set
 
     /**
+     * Which tool group's picker is up, as an index into [DESKTOP_TOOL_GROUPS]; null when none is.
+     *
+     * View state, like the sidebar's visibility: nothing about the document changes when a picker opens,
+     * and the *selection* it acts on is [tools]. It lives here rather than inside a strip so the keyboard
+     * and the chevron open the same one and `Esc` can close it.
+     */
+    var openGroup by mutableStateOf<Int?>(null)
+        private set
+
+    /**
      * Which tool strips the window shows, mirrored from the settings file into snapshot state: the file
      * is where the choice *lives*, this is what the chrome reads, and [chooseToolPlacement] writes both —
      * so the chrome never has to poll a file and a restart still finds the placement it had.
@@ -165,11 +175,28 @@ class DesktopShellState(
 
     /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
     val stripState: ToolStripState
-        get() = ToolStripState(selection = tools, ink = ink, palette = palette, favourites = favourites)
+        get() = ToolStripState(
+            selection = tools,
+            ink = ink,
+            palette = palette,
+            favourites = favourites,
+            openGroup = openGroup,
+            onOpenGroup = { group -> openGroup = group },
+        )
 
-    /** Pick a tool (a slot, or its accelerator); the canvas reads it on the next press. */
+    /**
+     * Pick a tool (a slot, a picker row or its accelerator); the canvas reads it on the next press.
+     *
+     * Picking also closes the group picker: its job was to choose, and it has.
+     */
     fun selectTool(tool: DesktopTool) {
         tools = tools.select(tool)
+        openGroup = null
+    }
+
+    /** `Alt + Down`: open the picked tool's group picker, or close the one that is up. */
+    fun toggleToolPicker() {
+        openGroup = toggledPicker(openGroup, tools)
     }
 
     /** Pick the ink colour, and remember it: the same swatch is there after a restart. */
@@ -300,6 +327,18 @@ class DesktopShellState(
         // A colour panel that is up owns `Esc`: it closes before anything else the key might mean.
         if (event.key == Key.Escape && editing != null) {
             cancelColourEdit()
+            return true
+        }
+        // So does a tool group's picker: a chevron that opened a list is closed by the key that closes
+        // every other surface, not left hanging over the page.
+        if (event.key == Key.Escape && openGroup != null) {
+            openGroup = null
+            return true
+        }
+        // `Alt + Down` is the picker's own key: it opens the picked tool's group and closes it again.
+        // Checked before the shortcut table, where a bare `Down` means "next page".
+        if (toolPickerKey(event.key, alt = event.isAltPressed)) {
+            toggleToolPicker()
             return true
         }
         // The order is the table's: a `Ctrl` command first (`Ctrl+1` stays fit width), then the ink keys

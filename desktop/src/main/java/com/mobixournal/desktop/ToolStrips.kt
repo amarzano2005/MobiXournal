@@ -103,6 +103,10 @@ data class ToolStripState(
     val ink: DesktopInk = DesktopInk(),
     val palette: List<Int> = PenPalette.COLORS,
     val favourites: List<Int> = PenPalette.COLORS.take(PaletteCodec.FAVOURITES),
+    /** Which group's picker is open, as an index into [DESKTOP_TOOL_GROUPS]; null when none is. */
+    val openGroup: Int? = null,
+    /** Opening (an index) or closing (null) the picker — the slot's chevron and `Alt+Down` both go here. */
+    val onOpenGroup: (Int?) -> Unit = {},
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -163,11 +167,14 @@ fun ToolRail(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for (tool in DesktopTool.entries) {
+                for ((index, group) in DESKTOP_TOOL_GROUPS.withIndex()) {
                     ToolSlot(
-                        tool,
-                        active = tool == state.selection.current,
+                        group = group,
+                        selection = state.selection,
+                        pickerOpen = state.openGroup == index,
                         onSelect = onSelect,
+                        onOpenPicker = { state.onOpenGroup(index) },
+                        onClosePicker = { state.onOpenGroup(null) },
                         side = StripSide.RIGHT,
                     )
                 }
@@ -224,11 +231,14 @@ fun ToolRibbon(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for (tool in DesktopTool.entries) {
+                for ((index, group) in DESKTOP_TOOL_GROUPS.withIndex()) {
                     ToolSlot(
-                        tool,
-                        active = tool == state.selection.current,
+                        group = group,
+                        selection = state.selection,
+                        pickerOpen = state.openGroup == index,
                         onSelect = onSelect,
+                        onOpenPicker = { state.onOpenGroup(index) },
+                        onClosePicker = { state.onOpenGroup(null) },
                         side = StripSide.BELOW,
                     )
                 }
@@ -267,9 +277,14 @@ private fun StripDivider(vertical: Boolean) {
 
 
 /**
- * One tool: its glyph in a 40 dp slot, the active one wearing the steel [`DesktopTheme.activeSlot`]
- * rather than the accent — the app's rule for a *picked* slot, and the tablet's own `primaryContainer`
- * (the steel `#38383E`) with the glyph in the accent (`docs/ui-modernization.md`).
+ * One **slot** of a strip: the glyph of the tool it currently faces, in a 40 dp frame, the picked one
+ * wearing the steel [`DesktopTheme.activeSlot`] rather than the accent — the app's rule for a *picked*
+ * slot, and the tablet's own `primaryContainer` (the steel `#38383E`) with the glyph in the accent
+ * (`docs/ui-modernization.md`).
+ *
+ * A slot that [ToolGroup.hasPicker] carries the chevron and opens the group's picker — by clicking the
+ * chevron, by right-clicking anywhere on the slot, or by holding it; a click on the glyph picks the tool
+ * the slot faces, exactly as pressing that tool's key does. The picker only re-faces the slot.
  *
  * Hovering shows the name-and-hotkey pill the doc asks for. It is a [Popup] rather than a box inside
  * the strip because the strip is a narrow band: a pill laid out inside it would be clipped by it.
@@ -277,11 +292,16 @@ private fun StripDivider(vertical: Boolean) {
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ToolSlot(
-    tool: DesktopTool,
-    active: Boolean,
+    group: ToolGroup,
+    selection: ToolSelection,
+    pickerOpen: Boolean,
     onSelect: (DesktopTool) -> Unit,
+    onOpenPicker: () -> Unit,
+    onClosePicker: () -> Unit,
     side: StripSide,
 ) {
+    val tool = group.faceFor(selection)
+    val active = tool == selection.current
     var hovered by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
@@ -301,7 +321,12 @@ private fun ToolSlot(
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(tool) { detectTapGestures { onSelect(tool) } },
+                .pointerInput(tool) {
+                    detectTapGestures(
+                        onTap = { onSelect(tool) },
+                        onLongPress = { if (group.hasPicker) onOpenPicker() },
+                    )
+                },
             contentAlignment = Alignment.Center,
         ) {
             Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
@@ -312,10 +337,42 @@ private fun ToolSlot(
                     color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
                 )
             }
+            if (group.hasPicker) {
+                // The marker, at the end the strip's own side leaves free, with its own tap target so a
+                // chevron click never doubles as a pick of the face.
+                Box(
+                    Modifier
+                        .align(
+                            when (side) {
+                                StripSide.RIGHT -> Alignment.BottomEnd
+                                StripSide.BELOW -> Alignment.BottomEnd
+                            },
+                        )
+                        .padding(3.dp)
+                        .pointerInput(group) { detectTapGestures { onOpenPicker() } },
+                ) {
+                    SlotChevron(active = active)
+                }
+            }
         }
-        if (hovered) {
+        if (hovered && !pickerOpen) {
             TooltipPill(
                 tool = tool,
+                offset = when (side) {
+                    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
+                    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
+                },
+            )
+        }
+        if (pickerOpen) {
+            ToolGroupPicker(
+                group = group,
+                selection = selection,
+                onPick = { member ->
+                    onSelect(member)
+                    onClosePicker()
+                },
+                onDismiss = onClosePicker,
                 offset = when (side) {
                     StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
                     StripSide.BELOW -> IntOffset(0, slotPx + gapPx)

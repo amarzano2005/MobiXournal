@@ -168,17 +168,21 @@ class InkShortcutsTest {
         return count
     }
 
-    /** Pixels of the rail's ink colour in the size slot, the strip's last rows. */
     /**
-     * Green pixels in the rail's tail — the ink slots, which sit under every tool slot. The window is
-     * generous rather than tight because it must follow the tool list: eighteen slots push the ink row
-     * down, and a window sized to the old fifteen would measure empty capsule in both images and pass
-     * by accident.
+     * Green pixels in the rail's tail — the ink slots, which sit under every tool slot.
+     *
+     * The window starts below the last tool slot rather than at a fixed distance from the bottom of the
+     * lane: the tool list is a **group** list now (`DESKTOP_TOOL_GROUPS`), so the ink row moved up when
+     * the strip stopped drawing eighteen slots, and a window pinned to the lane's bottom would measure
+     * empty capsule in both images and pass by accident.
      */
     private fun inkBelow(image: java.awt.image.BufferedImage): Int {
+        val stride = (ToolStripMetrics.slotSize + ToolStripMetrics.gap).value.toInt() + ToolStripMetrics.gap.value.toInt()
+        val from = ToolStripMetrics.railSlotTop.value.toInt() +
+            (DESKTOP_TOOL_GROUPS.size + 1) * stride
         var count = 0
         for (x in 0 until image.width) {
-            for (y in (image.height - 200) until image.height) {
+            for (y in from until image.height) {
                 if ((image.getRGB(x, y) and 0xFFFFFF) == (PenPalette.GREEN and 0xFFFFFF)) count++
             }
         }

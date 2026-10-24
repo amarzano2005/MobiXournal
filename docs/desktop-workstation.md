@@ -110,11 +110,21 @@ What it does today:
   the window's settings file, so the choice survives a restart. The lane is **air, not a second sheet of
   glass**: painting it too made 0.85 over 0.85, and the rail read #161618. The strip is a **capsule** with
   its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
-  header control is the same object at 36 dp. Both placements draw the same eighteen slots, in the order,
-  glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
-  squircle in the steel `#38383E` and a name-and-hotkey pill on hover. Pen, highlighter and both erasers
-  ink, the seven geometry slots draw figures, vertical space reflows the page; the selections (lasso,
-  marquee, text, plot, table, circuit) still only set the selection.
+  header control is the same object at 36 dp. Both placements draw the same slots, in the order, glyphs
+  and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
+  squircle in the steel `#38383E` and a name-and-hotkey pill on hover.
+  **A slot is a tool *group*, as on the tablet**: pen, highlighter and vertical space stand alone, the
+  **eraser slot** holds its two members (partial, whole-stroke) and the **figure slot** holds the seven
+  geometry tools. A grouped slot wears a chevron, and the chevron (or a right-click, or a hold, or
+  `Alt`+`Down`) opens the group's **glass picker** — the members as rows with their own glyph, name and
+  key. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no key ever changes
+  meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
+  member is the slot's face, which is why the group needs no state of its own. **A tool whose task has
+  not landed gets no slot**: the strip offers what the canvas acts on — pen, highlighter, both erasers,
+  vertical space and the seven figures — instead of a Text or a Circuit that does nothing. The map and the
+  task that brings each remaining tool are `desktop-every-tool-does-what-it-does-on-the-tablet` in
+  `TODO.toml`, and `ToolGroupsTest` fails if an acting tool has no slot or a slot lists one that cannot
+  act.
 - **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
   band lift instead of a bare fill, every surface that floats takes the drawn rim, and
   both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
@@ -290,7 +300,8 @@ table, a parametric shape, a bundled pixmap and a PDF background — asserting t
 the call returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and
 after** a document is opened and asserts the frames differ (the regression that caught a strip which
 never redrew), renders the sidebar, and checks the keyboard's fit and zoom arithmetic. `ToolStripsTest`
-renders the rail and the ribbon on their own (every slot must have drawn its glyph, and the picked one
+renders the rail and the ribbon on their own (every slot must have drawn its glyph — and the eraser slot
+must draw the *member that is picked*, not always its first — and the picked one
 must wear the active slot), then renders the whole window in Rail, Ribbon and Both and reads the paper
 out of the pixels: the page starts after the rail's lane and below the ribbon's band, in every
 placement — the mechanical form of "a band never lies on the page". `OpenFailureTest`

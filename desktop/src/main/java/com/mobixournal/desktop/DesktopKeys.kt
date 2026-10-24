@@ -166,6 +166,15 @@ internal fun isZoomIn(key: Key, shift: Boolean): Boolean =
         key == Key.NumPadAdd ||
         (shift && key == Key.Zero)
 
+/**
+ * `Alt + Down`, the key that opens the picked tool's **group picker** and closes it again.
+ *
+ * It is not in [shellCommand] because that table has no `Alt` column and a bare `Down` already means
+ * "next page": the picker's key is only a picker's key while `Alt` is held, which this test says
+ * once instead of the window's key handler saying it twice.
+ */
+internal fun toolPickerKey(key: Key, alt: Boolean): Boolean = alt && key == Key.DirectionDown
+
 /** The mirror of [isZoomIn]: `Ctrl + -` and the keypad's `-`. */
 internal fun isZoomOut(key: Key): Boolean = key == Key.Minus || key == Key.NumPadSubtract
 

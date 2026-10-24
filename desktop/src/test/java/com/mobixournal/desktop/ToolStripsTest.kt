@@ -114,6 +114,70 @@ class ToolStripsTest {
         assertEquals("the old selection is untouched", DesktopTool.PEN, start.current)
     }
 
+    /**
+     * The picker belongs to the shell, so the chevron and `Alt + Down` open the *same* one: this walks
+     * the state those two paths share — open, pick a row, close — without a window in the way.
+     */
+    @Test
+    fun `the group picker opens, re-faces the slot and closes`() {
+        val state = DesktopShellState(DesktopSettings(File(temp.root, "groups.properties")))
+        val erasers = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.ERASER in it.members }
+        assertNull("nothing is open at rest", state.openGroup)
+
+        state.selectTool(DesktopTool.ERASER)
+        state.toggleToolPicker()
+        assertEquals("Alt+Down opens the picked tool's group", erasers, state.openGroup)
+
+        // A row of the picker is a pick: the slot re-faces and the picker has done its job.
+        state.selectTool(DesktopTool.ERASER_WHOLE)
+        assertNull("picking a member closes the picker", state.openGroup)
+        assertEquals(
+            "the slot now draws the member that was picked",
+            DesktopTool.ERASER_WHOLE,
+            DESKTOP_TOOL_GROUPS[erasers].faceFor(state.tools),
+        )
+
+        state.selectTool(DesktopTool.PEN)
+        state.toggleToolPicker()
+        assertNull("the pen has nothing to pick from", state.openGroup)
+    }
+
+    /**
+     * The slot's picture *is* the picked member's: both faces are catalogue glyphs, and the strip has to
+     * take the group's answer rather than always drawing the first member.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun `the eraser slot draws whichever member is picked`() {
+        fun slotPixels(selection: DesktopTool): java.awt.image.BufferedImage {
+            val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 700, Density(1f)) {
+                ToolRail(ToolStripState(selection = ToolSelection(selection)), onSelect = {})
+            }
+            return try {
+                Snapshot.sendApplyNotifications()
+                ImageIO.read(ByteArrayInputStream(scene.render().encodeToData()!!.bytes))
+            } finally {
+                scene.close()
+            }
+        }
+
+        val group = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.ERASER in it.members }
+        val x0 = ToolStripMetrics.railSlotLeft.value.toInt()
+        val y0 = ToolStripMetrics.railSlotTop.value.toInt() + group * slotStride
+        val slot = ToolStripMetrics.slotSize.value.toInt()
+        val partial = slotPixels(DesktopTool.ERASER)
+        val whole = slotPixels(DesktopTool.ERASER_WHOLE)
+        var different = 0
+        for (x in x0 until x0 + slot) {
+            for (y in y0 until y0 + slot) {
+                if (difference(partial.getRGB(x, y) and 0xFFFFFF, whole.getRGB(x, y) and 0xFFFFFF) > 24) {
+                    different++
+                }
+            }
+        }
+        assertTrue("the slot drew the same glyph for both erasers", different > 20)
+    }
+
     @Test
     fun `the placement defaults to the rail and survives a restart`() {
         val file = File(temp.root, "desktop.properties")
@@ -144,10 +208,10 @@ class ToolStripsTest {
         assertEquals(ToolPlacement.BOTH, DesktopSettings(garbage).toolPlacement)
     }
 
-    /** Both placements draw all fifteen glyphs, and both mark the picked slot with the steel. */
+    /** Both placements draw every slot's glyph, and both mark the picked slot with the steel. */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun `the rail and the ribbon draw every tool`() {
+    fun `the rail and the ribbon draw every slot`() {
         val railPng = save(
             ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 900, Density(1f)) {
                 ToolRail(ToolStripState(), onSelect = {})
@@ -168,7 +232,7 @@ class ToolStripsTest {
         val ribbonPng = save(
             ImageComposeScene(1000, ToolStripMetrics.ribbonHeight.value.toInt(), Density(1f)) {
                 ToolRibbon(
-                    state = ToolStripState(selection = ToolSelection(DesktopTool.CIRCUIT)),
+                    state = ToolStripState(selection = ToolSelection(DesktopTool.SPLINE)),
                     onSelect = {},
                 )
             },
@@ -177,7 +241,7 @@ class ToolStripsTest {
         assertEverySlotInked(ribbonPng, vertical = false)
         val ribbon = ImageIO.read(ByteArrayInputStream(ribbonPng))
         val lastSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() +
-            (DesktopTool.entries.lastIndex * slotStride) + 2
+            (DESKTOP_TOOL_GROUPS.lastIndex * slotStride) + 2
         assertEquals(
             "the ribbon marks the picked tool with the active slot",
             activeSlotArgb,
@@ -345,7 +409,7 @@ class ToolStripsTest {
         val image = ImageIO.read(ByteArrayInputStream(png))
         val slot = ToolStripMetrics.slotSize.value.toInt()
         val centre = (if (vertical) ToolStripMetrics.railWidth.value.toInt() else image.height) / 2
-        for (index in DesktopTool.entries.indices) {
+        for (index in DESKTOP_TOOL_GROUPS.indices) {
             val x0 = if (vertical) {
                 ToolStripMetrics.railSlotLeft.value.toInt()
             } else {
@@ -364,7 +428,8 @@ class ToolStripsTest {
                 }
             }
             assertTrue(
-                "${DesktopTool.entries[index].label} drew nothing in the ${if (vertical) "rail" else "ribbon"}" +
+                "${DESKTOP_TOOL_GROUPS[index].face.label} drew nothing in the " +
+                    "${if (vertical) "rail" else "ribbon"}" +
                     " (slot ${if (vertical) "at y = $y0, lane centre x = $centre" else "at x = $x0"})",
                 ink > 20,
             )

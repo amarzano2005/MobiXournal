@@ -169,7 +169,10 @@ it rather than a strip glued to the window's edge. The header's **Tool placement
 between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard.
-The pen, highlighter and eraser are live; the other slots pick a tool the window cannot draw with yet.
+A slot can hold a **family**: the eraser slot holds both erasers and the figure slot holds the seven
+figures, with a small chevron that opens the family's list — click it, right-click the slot, hold it, or
+press `Alt`+`Down`, and picking a row re-faces the slot. Nothing on the strip is a button that does
+nothing: a tool the window cannot draw with yet is simply not shown.
 The colour slot also carries the palette: pick a swatch, define your own colour in the window's HSV/hex panel, or add a new
 one, and the palette, the favourites and the width are remembered between runs.
 
