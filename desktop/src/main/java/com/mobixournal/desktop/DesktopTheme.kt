@@ -175,6 +175,60 @@ object DesktopTheme {
     /** The empty state's explanation, and a tab label. */
     val body = TextStyle(fontFamily = inter, fontSize = 13.sp)
 
+    /**
+     * The band's **effective** colour: the glass composited over the desk.
+     *
+     * The bands are translucent, so their fill is not a colour until something is behind it — and behind
+     * them is always the desk. This is that one number, used where a *single* opaque colour has to stand
+     * for the band: the Windows title bar, which the system paints and cannot be given a fill with an
+     * alpha.
+     */
+    val bandRgb: Int = blendRgb(DesignTokens.GLASS_DARK_RGB, DesignTokens.GLASS_DARK_ALPHA, DesignTokens.DESK_RGB)
+
+    /** [bandRgb] in Win32's `COLORREF` order (`0x00BBGGRR`), which is what DWM attributes take. */
+    val bandColourRef: Int = colourRef(bandRgb)
+
+    /** The desk in `COLORREF` — the title bar's border, so the window has no light outline round it. */
+    val deskColourRef: Int = colourRef(DesignTokens.DESK_RGB)
+
+    /** The chrome ink in `COLORREF`: the title text and its glyphs are the band's own ink. */
+    val inkColourRef: Int = colourRef(DesignTokens.INK_DARK_RGB)
+
+    /** [rgb] (`0xRRGGBB`) painted at [alpha] over [over] (`0xRRGGBB`), as one opaque RGB. */
+    fun blendRgb(rgb: Int, alpha: Float, over: Int): Int {
+        fun channel(shift: Int): Int {
+            val src = (rgb shr shift) and 0xFF
+            val dst = (over shr shift) and 0xFF
+            return (src * alpha + dst * (1f - alpha)).toInt().coerceIn(0, 255) shl shift
+        }
+        return channel(16) or channel(8) or channel(0)
+    }
+
+    /**
+     * A **card inside a lane**: the steel at [CARD_ALPHA] over the band, so a group of fields reads as one
+     * object on the lane instead of as another run of labels.
+     *
+     * The lane is a band, and a band takes no rim (`docs/chrome.md`) — so this is a *tone*, the way the
+     * hover step is, not a second surface with an edge of its own.
+     */
+    val card: Color = activeSlot.copy(alpha = CARD_ALPHA)
+
+    /** How much of the picked slot's steel a card wears: enough to separate, never a second grey block. */
+    const val CARD_ALPHA: Float = 0.22f
+
+    /**
+     * A value inside a field: Inter at 12 sp with tabular figures — a size up from [numeric], because a
+     * field the user types into is read at a glance, not scanned like a status figure.
+     */
+    val field = TextStyle(fontFamily = inter, fontSize = 12.sp, fontFeatureSettings = "tnum")
+
+    /** A card's heading, and a section's: the lane's one step of hierarchy. */
+    val eyebrow = TextStyle(fontFamily = inter, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+
+    /** An `0xRRGGBB` colour in Win32's `COLORREF` order (`0x00BBGGRR`). */
+    fun colourRef(rgb: Int): Int =
+        ((rgb and 0xFF) shl 16) or (rgb and 0xFF00) or ((rgb shr 16) and 0xFF)
+
     /** The one Material scheme the window uses: the same black desk and charcoal ramp as the tablet. */
     val chromeScheme = darkColorScheme(
         primary = accent,

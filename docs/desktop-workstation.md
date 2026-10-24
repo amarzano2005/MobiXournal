@@ -24,9 +24,11 @@ What it does today:
   and a 24 dp status bar with the page counter, the effective zoom, the fit mode, the pen stream, the
   display's refresh rate with the frame budget it allows (`120 Hz · 8.3 ms frame`) and the container. The
   chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
-  header carrying 16 dp tab capsules, 1.5 dp monoline glyphs, Inter with tabular figures, one cast shadow
-  under each band, and one under the sheet — `docs/ui-modernization.md` owns the material and
-  `DesktopThemeTest` pins it.
+  header carrying 30 dp tab capsules (the active one rimmed like the object it is) under a **native caption
+  painted in the band's own composite colour** (`DesktopTitleBar.kt` sets Windows' immersive dark mode and
+  its caption/border/text colours through DWM, best effort), 1.5 dp monoline glyphs, Inter with tabular
+  figures, one cast shadow under each band, and one under the sheet — `docs/ui-modernization.md` owns the
+  material and `DesktopThemeTest` pins it.
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and every one
   of those actions also has a key (`docs/ui-modernization.md` owns the table). A tab opens in **`AUTO`
   fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and a page saved as a
@@ -46,10 +48,9 @@ What it does today:
   sidebar re-renders it on the shell's deferred `thumbnailRevision` — bumped 600 ms after the last edit —
   instead of on the document's edit count. The reason is a measurement, not a taste: rendering one builds a
   second `ImageComposeScene` and paints the whole page through the **software** rasteriser, **29–39 ms** on
-  `udiff.xopp`, so re-rendering it per edit (inside composition!) dropped frames on every finished letter
-  and on every bite of the eraser. Until the quiet moment the preview shows the page as it was when the
-  burst began. `DesktopShellTest` pins it: an edit writes nothing into the thumbnail cache, and one edit's
-  quiet moment paints **one** page again, not the visible list.
+  `udiff.xopp`, so re-rendering it per edit dropped frames on every finished letter. Until the quiet moment
+  the preview shows the page as it was when the burst began. `DesktopShellTest` pins it: an edit writes
+  nothing into the thumbnail cache, and one edit's quiet moment paints **one** page, not the visible list.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
   those documents — the header says nothing about a count instead of showing a wrong one.
@@ -96,6 +97,11 @@ What it does today:
   with the document so the page that comes back is the page that was there, and both commands are
   **unavailable** — not merely no-ops — while the stack is empty, which is the state a header control
   would grey out. A save starts a fresh history: it closed the archive whose pages the old steps named.
+- **Keeps one ink per tool, as the tablet does** — the pen and the highlighter each own their colour, their
+  width and their three favourites (`DesktopInks`, `DesktopFavourites`), so a yellow highlighter leaves the
+  pencil black, `1`–`3` take the terna of the tool in hand, and both inks are remembered in the settings
+  file. The palette itself is shared, because a palette is what the user has, not what a tool is; the
+  editable custom slot is its property too, not the ink's. `DesktopInkSplitTest` pins the pair.
 - **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
   running the same compiler the Android canvas and every export use (`LivingInk`, now platform-free in
   `mobix-core`), then drawing the ink it produces. A table on the PC is the table on the tablet, not a
@@ -106,8 +112,9 @@ What it does today:
   what keeps a shared notebook looking right after the picture's file has moved away.
 - **Shows both tool placements**: a **52 dp rail capsule in a 64 dp lane** beside the page (the
   default, the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the
-  header, switched from the header's **Tool placement** control (Rail / Ribbon / Both) and remembered in
-  the window's settings file, so the choice survives a restart. The lane is **air, not a second sheet of
+  header, switched from the header's **Tool placement** control (Rail / Ribbon / Both) — a 200 dp popup
+  beside the control, never a panel across the window — and remembered in the window's settings file, so
+  the choice survives a restart. The lane is **air, not a second sheet of
   glass**: painting it too made 0.85 over 0.85, and the rail read #161618. The strip is a **capsule** with
   its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
   header control is the same object at 36 dp. Both placements draw the same slots, in the order, glyphs
@@ -117,8 +124,10 @@ What it does today:
   **eraser slot** holds its two members (partial, whole-stroke) and the **figure slot** holds the seven
   geometry tools. A grouped slot wears a chevron, and the chevron (or a right-click, or a hold, or a
   **second click on the slot that is already picked**, or `Alt`+`Down`) opens the group's **glass picker** — the members as rows with their own glyph, name and
-  key. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no key ever changes
-  meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
+  key. **One click never opens a submenu**: the first click arms the slot and the second one asks, and a
+  circuit slot obeys the same rule — its family palette is its submenu, so arming a slot cannot drop a
+  palette over the page. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no
+  key ever changes meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
   member is the slot's face, which is why the group needs no state of its own. **A tool whose task has
   not landed gets no slot**: the strip offers what the canvas acts on — pen, highlighter, both erasers,
   vertical space and the seven figures — instead of a Text or a Circuit that does nothing. The map and the
@@ -239,7 +248,9 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
 Plot (`M`), Table (`T`) and the three circuit palettes place a living element instead of drawing one: a
 drag is its box, a click its family's default size, then the lift **asks first** in this lane — the graph
 dialog's fields, or the table's grid — before committing **one** element as **one undo step**, and a
-cancelled question leaves nothing behind. Geometry, builders and the three family palettes (`CircuitFamily`:
+cancelled question leaves nothing behind. A placement that lands hands the window to the **marquee** (`S`),
+the way the tablet does: the element just placed is what stays selected, so the next drag moves it instead of
+placing a second one (`DesktopInspectorLaneTest`). Geometry, builders and the three family palettes (`CircuitFamily`:
 passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet ([drawing-tools.md](drawing-tools.md)).
 
 ### Selecting, moving, resizing and turning
@@ -289,14 +300,11 @@ plus the tail is the direct paint, and states which edits count as appends (`app
 ### Scrolling and zooming a dense page
 
 The page is recorded **once** per document state, not per viewport: `PagePicture` records `udiff.xopp` at
-**document scale** and every frame replays it under the canvas's own matrix, so a scroll is a translate
-and a zoom is a scale — both replays. Scaling a *picture* is not resampling (the commands are vectors, so
-Skia rasterises them at the device scale the window has) and `PagePictureTest` measures the difference
-against the direct paint at two viewports rather than assuming it. Measured with `--probe-scroll` (the
-probe pans and then pinches `udiff.xopp` while `--diagnose` times every paint): **3.6–4.3 ms mean, 6.8–22.2
-ms worst per frame before**, and **0.0–0.2 ms mean, 0.2 ms worst after**; the record count stays at one
-across the whole gesture, which is what the test pins. [desktop-tablet.md](desktop-tablet.md) owns the
-numbers beside the 6.9 ms frame budget.
+**document scale** and every frame replays it under the canvas's own matrix, so a scroll is a translate and
+a zoom is a scale. Scaling a *picture* is not resampling (the commands are vectors, so Skia rasterises them
+at the device scale) and `PagePictureTest` measures the difference against the direct paint rather than
+assuming it; `--probe-scroll` with `--diagnose` measured **3.6–4.3 ms mean before** and **0.0–0.2 ms after**,
+with the record count staying at one. [desktop-tablet.md](desktop-tablet.md) owns the numbers.
 
 ### What the window does not do
 
@@ -304,11 +312,9 @@ numbers beside the 6.9 ms frame budget.
   exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
 - No sketch/PDF/text import and no **images as elements** (only as page backgrounds).
 - No search, and no page reordering or insertion.
-- No **absolute pen mapping**: the pen's readings are folded into the Compose pointer, so its position is
-  the window's, which Windows has already transformed from the tablet's area — the driver's own active-area
-  and aspect settings are respected and this window adds no second mapping. No installer: `run` and the
-  packaged `createDistributable` app are the entry points; `nativeDistributions` is configured but not wired
-  into a release job.
+- No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
+  the driver's own active area, and this window adds no second mapping; and no installer, `run` and the
+  packaged `createDistributable` being the entry points.
 
 ### The graphics tablet
 
@@ -339,19 +345,14 @@ asserted, a Save As that turns a `.mobix` into a `.xopp` and re-homes the tab, a
 with its file byte-identical, and the version the window stamps into a `.mobix` checked against
 `app/build.gradle.kts`'s `versionName`. `DesktopEditingTest` is the editing path headless: a 40-page
 `.mobix` opens through a `CountingEntrySource` with **zero** page entries read, an edit on page 3 opens
-that page and no other, the page's rendered ink grows, the model the save writes carries it and a
-40-page repack round-trips it while the untouched pages keep their own ink; the eraser splits a bar
-where it crosses it and the gap reads as paper again; a pressure sample becomes its filtered width, a
-highlighter stays one width, and the page-point mapping undoes the display density and the zoom. Its
-undo half drives the **shell's own commands**: a stroke, `Ctrl+Z` (the model's stroke count and the
-page's painted ink both return to what they were), a second undo that reports nothing left, a redo
-that repaints the stroke, an eraser drag that is a single step however many times its tip bites, and a
-save that starts a new history because the archive the old steps named is closed. `DesktopLifecycleTest`
-is the lifecycle headless: an edit makes a tab dirty, a save and an undo back to the save point make it
-clean again, closing a dirty tab reports the question instead of closing it, the window asks about each
-dirty tab before it exits, a snapshot written by one shell is adopted by the next and deleted once it is
-saved, the strip's dot is drawn in the token's accent only while there are unsaved edits, and the question
-itself is rendered over the page. Every render is
+that page and no other, the model the save writes carries it and a 40-page repack round-trips it while the
+untouched pages keep their own ink; the eraser splits a bar where it crosses it; a pressure sample becomes
+its filtered width, a highlighter stays one width, and the page-point mapping undoes density and zoom. Its
+undo half drives the **shell's own commands**: a stroke, `Ctrl+Z` (model and painted ink both return), a
+second undo that reports nothing left, a redo that repaints it, and a save that starts a new history.
+`DesktopLifecycleTest` is the lifecycle headless: an edit makes a tab dirty, a save and an undo back to the
+save point make it clean, closing a dirty tab asks first, a snapshot written by one shell is adopted by the
+next and deleted once saved, and the strip's dot is drawn only while there are unsaved edits. Every render is
 written under `desktop/build/desktop-render/` so it can be looked at — including
 `glass-parity.png`, the same panel in the tablet's material and in this window's, written by
 `GlassParityRenderTest`, and `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which
@@ -359,11 +360,10 @@ written under `desktop/build/desktop-render/` so it can be looked at — includi
 the family's edge, and a band of ink under the panel must still read through it, or the fill is a slab.
 `GlassMotionTest` drives the arrival through a scene's frame clock (`render(nanoTime)`) and reads the
 pixels at successive instants: at t=0 nothing is painted, 40 ms later the panel is faint and still inside
-its 82 % box, by 700 ms it is the glass at full size — and gating it with `GlassPresence` keeps it
-composed through the 230 ms exit hold before releasing it. `PageLayersAndPaperTest` reads pixels too:
-`isometric-paper.png` is an isometric sheet, whose line midpoints must fall on the segments
-`BackgroundGrid.isometric` returns, and `hidden-layer.png` is a two-layer page with one layer switched
-off — the band that is gone is the check.
+its 82 % box, by 700 ms it is the glass at full size — and `GlassPresence` keeps it composed through the
+230 ms exit hold. `PageLayersAndPaperTest` reads pixels too: `isometric-paper.png` is an isometric sheet
+whose line midpoints must fall on `BackgroundGrid.isometric`'s segments, and `hidden-layer.png` is a
+two-layer page with one layer off — the band that is gone is the check.
 
 ## Why the core is shared
 

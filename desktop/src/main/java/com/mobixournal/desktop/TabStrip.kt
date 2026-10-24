@@ -67,7 +67,7 @@ fun TabStrip(
     var dragFrom by remember { mutableStateOf(-1) }
     var dragX by remember { mutableStateOf(0f) }
 
-    Row(modifier.height(34.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
         tabs.all.forEachIndexed { index, tab ->
             val active = index == tabs.activeIndex
             val width = widths[tab.key] ?: TAB_FALLBACK_PX
@@ -75,12 +75,14 @@ fun TabStrip(
             Row(
                 Modifier
                     .onGloballyPositioned { widths[tab.key] = it.size.width.toFloat() }
-                    .padding(end = 4.dp)
-                    .height(26.dp)
-                    .widthIn(min = 96.dp, max = 220.dp)
+                    .padding(end = 6.dp)
+                    .height(30.dp)
+                    .widthIn(min = 120.dp, max = 240.dp)
                     .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.capsuleShape)
                     .hoverFill(DesktopTheme.capsuleShape, active = active)
-                    .border(1.dp, if (active) DesktopTheme.hairline else Color.Transparent, DesktopTheme.capsuleShape)
+                    // A tab is an object lying in the band's space, so the active one wears the family's
+                    // rim (a band takes none): that is what turns the flat steel strip into a capsule.
+                    .then(if (active) Modifier.glassRim(DesktopTheme.capsuleRadius) else Modifier)
                     .pointerInput(tab.key) {
                         detectTapGestures(
                             onTap = { onActivate(index) },
@@ -105,7 +107,7 @@ fun TabStrip(
                     },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(12.dp))
                 if (renamingKey == tab.key) {
                     RenamingField(tab, onDone = { renamingKey = null })
                 } else {
@@ -115,6 +117,7 @@ fun TabStrip(
                         fontFamily = DesktopTheme.inter,
                         fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                         fontSize = 12.sp,
+                        letterSpacing = if (active) 0.2.sp else 0.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 160.dp),
@@ -130,7 +133,7 @@ fun TabStrip(
                 }
                 Spacer(Modifier.weight(1f))
                 CloseGlyph(onClose = { onClose(index) })
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
             }
         }
 
@@ -180,8 +183,8 @@ private fun RenamingField(tab: DesktopTab, onDone: () -> Unit) {
 private fun CloseGlyph(onClose: () -> Unit) {
     Box(
         Modifier
-            .width(18.dp)
-            .height(18.dp)
+            .width(22.dp)
+            .height(22.dp)
             .hoverFill(DesktopTheme.capsuleShape)
             .pointerInput(Unit) { detectTapGestures { onClose() } },
         contentAlignment = Alignment.Center,
@@ -199,8 +202,8 @@ private fun CloseGlyph(onClose: () -> Unit) {
 private fun AddTabButton(onOpen: () -> Unit) {
     Box(
         Modifier
-            .width(26.dp)
-            .height(26.dp)
+            .width(28.dp)
+            .height(28.dp)
             .background(Color.Transparent, DesktopTheme.capsuleShape)
             .hoverFill(DesktopTheme.capsuleShape)
             .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)

@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -125,25 +127,36 @@ internal fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlaceme
                 Column(
                     Modifier
                         .glassSurface()
+                        .width(PLACEMENT_POPUP_WIDTH)
                         .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text("Tool placement", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(4.dp))
                     for (option in ToolPlacement.entries) {
+                        // Rows wrap the popup, never the window: `fillMaxWidth` inside a Popup is measured
+                        // against the window, which is what made this menu a full-width sheet.
+                        val picked = option == placement
                         Row(
                             Modifier
-                                .fillMaxWidth()
+                                .width(PLACEMENT_POPUP_WIDTH - 16.dp)
+                                .heightIn(min = 32.dp)
                                 .background(
-                                    if (option == placement) DesktopTheme.activeSlot else Color.Transparent,
+                                    if (picked) DesktopTheme.activeSlot else Color.Transparent,
                                     DesktopTheme.capsuleShape,
                                 )
-                                .hoverFill(DesktopTheme.capsuleShape, active = option == placement)
+                                .hoverFill(DesktopTheme.capsuleShape, active = picked)
                                 .pointerInput(option) {
                                     detectTapGestures { onPlacement(option); open = false }
                                 }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(option.label, color = DesktopTheme.ink, style = DesktopTheme.body)
+                            Text(
+                                option.label,
+                                color = if (picked) DesktopTheme.ink else DesktopTheme.inkSecondary,
+                                style = DesktopTheme.body,
+                            )
                         }
                     }
                 }
@@ -190,3 +203,6 @@ internal fun HeaderGlyph(
         }
     }
 }
+
+/** The placement menu's own width: a small menu beside its button, not a sheet across the window. */
+private val PLACEMENT_POPUP_WIDTH = 200.dp

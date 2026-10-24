@@ -106,9 +106,12 @@ name. A long `.mobix` notebook opens instantly and reads pages as you scroll, in
 page up front.
 
 The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface as
-the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. The
-toolbars are the tablet's too: the same raised glass capsules floating in their own lanes, and the same
-monoline tool icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
+the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. Its
+Windows title bar is painted in the same band colour as the header, so the window reads as one surface
+from the caption down instead of a light system bar sitting on a dark app, and the document tabs are the
+same glass capsules as the rest of the chrome, the active one wearing the family's edge. The toolbars are
+the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
+icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
 page's layers, each with an eye that hides it from the page and from the thumbnail without touching the file),
 and the page can be fitted to the window, fitted to its width, or zoomed freely — the
@@ -118,7 +121,9 @@ shrunk to a sliver, so the handwriting stays readable and the wheel reads down i
 page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
 draw and lands in the document when you lift, and `Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to
 put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
-takes whole strokes. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
+takes whole strokes. The pen and the highlighter keep **separate colours, widths and favourite colours**,
+as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
+switching back brings that ink back with it. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
 one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to cancel — and **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
 crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): drag a box or loop a freehand line around
@@ -128,14 +133,20 @@ selection go. A bar appears under the outline with the tablet's own actions — 
 recolour or re-width what is caught, align and distribute a group, delete — and `Ctrl+C`/`Ctrl+X`/`Ctrl+V`/
 `Ctrl+D` do the same from the keyboard; a paste lands beside what it copied and stays selected. The **pencil**
 on that bar opens the selected table, plot, figure, component or formula in a lane beside the page, where its
-own values are editable without a dialog ever covering the sheet. **Place** a graph, a table or a circuit
+own values are editable without a dialog ever covering the sheet. The lane is always there and always the
+same width — a header naming the element (its symbol and its formula, grid or value), grouped cards of
+fields, and one action at the bottom — so the page never shifts sideways when you pick something up or let
+it go. **Place** a graph, a table or a circuit
 component with Plot (`M`), Table (`T`) or the circuit slots (`K` passive parts, `Shift + K` active parts,
 `Alt + K` logic gates): drag the box it should fill (or click for the default size), and the right-hand lane
 asks what the element should be before it exists — the graph dialog's own questions for a plot (formula,
 domain, critical points, derivative, summary, shaded area) or the table's columns, rows and header — so
 **Place** writes one live, selected element and one `Ctrl + Z` puts the page back, while Cancel leaves the
-page untouched. A circuit slot first opens the tablet's palette of that family's symbols, and the drawing is
-the pen's own colour and width. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
+page untouched. A circuit slot opens the tablet's palette of that family's symbols on a **second** click —
+the first only arms the slot, and the little chevron on the slot opens the palette straight away — and the
+drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
+picks the tool, a second click asks which of them. Once an element is placed the window switches to the
+selection tool, as the tablet does, so the next drag moves what you just made instead of placing another. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
 the format its name asks for. The window speaks English, like the tablet app, and it is a separate
 module, so it never affects the Android build.

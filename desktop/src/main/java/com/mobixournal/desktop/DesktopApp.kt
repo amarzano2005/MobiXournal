@@ -72,6 +72,9 @@ fun FrameWindowScope.DesktopApp(
         initial?.let(state::open)
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
+    // The system's title bar cannot be translucent, so it is painted the band's composited colour:
+    // one surface from the top of the window down (`DesktopTitleBar`).
+    LaunchedEffect(Unit) { applyDarkTitleBar(window) }
     // The window's X asked the shell first (`Main`), and the shell says when every answer is in.
     LaunchedEffect(state.exitAllowed) { if (state.exitAllowed) onExit() }
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.
