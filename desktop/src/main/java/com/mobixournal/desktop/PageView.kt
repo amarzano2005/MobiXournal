@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke as InkStroke
+import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import com.mobixournal.format.model.isLivingEntity
@@ -138,6 +139,9 @@ private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: 
     when (element) {
         is InkStroke -> drawInkStroke(element, scale)
         is TextElement -> drawTextBox(element, scale, textMeasurer)
+        // A formula: a `<teximage>` read from a `.xopp`, and the one a living math block compiles to
+        // (`LivingInk`). Typeset from its source through the shared layout, never left blank.
+        is TexImageElement -> drawTexImage(element, scale, textMeasurer)
         // A living entity is a *recipe*, and `LivingInk` is the one place that compiles it into ink —
         // the same dispatch the Android canvas, `XoppSynthesis`, PDF and SVG export use. Drawing its
         // result here is what keeps a table or a graph identical on both shells without a second

@@ -395,6 +395,6 @@ a build that does not know a symbol cannot draw it, and says so rather than inve
 
 `MathBlockElement` is the living formula: its `source` in `flavor` (`LATEX`/`TYPST`), colour and box, and
 **no rendered bytes** — the drawing is a function of the source. `MobixMathCodec` spells it; the canvas
-typesets it with `LatexRenderer`, the `.xopp` bridge compiles it to a standard `<teximage>` (`MathBlockInk`)
-and the PDF plan lays it out glyph by glyph (`LatexLayout`). A build that does not know the type preserves
-it verbatim (rule 1). `TexImageElement` remains the `.xopp`-carried formula and round-trips unchanged.
+typesets it with `LatexRenderer`, the window and the PDF plan through `LatexLayout` (`TexPainter`), and the
+`.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`) — the ink `LivingInk` produces, so the window
+paints both through one painter. Unknown types are kept verbatim (rule 1).

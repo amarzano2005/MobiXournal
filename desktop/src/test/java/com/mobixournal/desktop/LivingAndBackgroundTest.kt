@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.Density
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.ShapeVertex
@@ -13,6 +14,7 @@ import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.LivingInk
 import com.mobixournal.render.Uncompilable
@@ -89,6 +91,36 @@ class LivingAndBackgroundTest {
 
         val picture = render(page(solid(), listOf(table)), name = "living-table")
         assertTrue("the table's grid was painted", darkPixels(picture) > 0)
+    }
+
+    /**
+     * A formula is **typeset**, not skipped.
+     *
+     * `LivingInk` compiles a living math block to its `<teximage>` sibling, and the window had no arm for
+     * that element at all — a formula was in the file, selectable, and blank on the sheet. It is laid out
+     * through `LatexLayout` (the PDF export's own arithmetic) and painted, and a block with no source
+     * paints nothing rather than a stray mark.
+     */
+    @Test
+    fun aMathBlockIsPaintedAsTypesetMath() {
+        val block = MathBlockElement(
+            left = 20.0,
+            top = 20.0,
+            right = 240.0,
+            bottom = 80.0,
+            source = "\\frac{a}{b} + x^2",
+            color = 0xFF000000.toInt(),
+        )
+        assertTrue(
+            "the compiler turns a block into its teximage sibling",
+            LivingInk.of(block).elements.any { it is TexImageElement },
+        )
+
+        val typeset = render(page(solid(), listOf(block)), name = "living-math")
+        assertTrue("the formula was typeset onto the sheet", darkPixels(typeset) > 0)
+
+        val empty = render(page(solid(), listOf(block.copy(source = ""))), name = "living-math-blank")
+        assertEquals("a block with no source paints nothing", 0, darkPixels(empty))
     }
 
     @Test
