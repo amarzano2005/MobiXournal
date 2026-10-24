@@ -46,6 +46,11 @@ compose.desktop {
             packageName = "MobiXournal"
             packageVersion = "1.4.0"
             description = "MobiXournal desktop preview"
+            // The same art as the tablet's launcher: without it the packaged .exe is stamped with the
+            // JVM's own icon, so an app that draws a notebook wore a coffee cup in Explorer.
+            windows {
+                iconFile.set(project.file("icon/mobixournal.ico"))
+            }
         }
     }
 }

@@ -22,8 +22,6 @@ import com.mobixournal.render.InkEvent
 import com.mobixournal.render.InkPointer
 import com.mobixournal.render.InkPointerPhase
 import com.mobixournal.render.InkPointerRouter
-import com.mobixournal.render.Bounds
-import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageEraser
 import com.mobixournal.render.PointerKind
 import com.mobixournal.render.SelectionRegion
@@ -53,18 +51,8 @@ internal suspend fun PointerInputScope.pageGestures(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
-    /** What a lifted living-slot drag means: the shell asks the family's values first. */
-    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
-    /**
-     * What a press with the **Text slot** means: open a box at a page point, on a sheet this wide and
-     * this tall. Null when the canvas has no shell behind it (a test that only inks).
-     */
-    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)? = null,
-    /**
-     * What a **double-click on the selected living element** means: open its editor, as the tablet's
-     * double-tap does. Null when the canvas has no shell behind it.
-     */
-    onEditLiving: (() -> Unit)? = null,
+    /** The shell's answers for a press that is not ink (`PagePressTargets`). */
+    targets: PagePressTargets = PagePressTargets(),
     /**
      * The viewport **as it is now**, not the one the composable was built with: a drag that reaches the
      * canvas's edge scrolls the sheet (`DragView`), so every mapping during a gesture has to read the view
@@ -90,12 +78,6 @@ internal suspend fun PointerInputScope.pageGestures(
      * pen in proximity, which is what makes the vertical-space grab line answer a stylus at all.
      */
     penActive: () -> Boolean = { false },
-    /**
-     * The drag in flight that `Esc` would cancel, or null once it is over. The shell holds the other end
-     * (`DesktopShellState.liveDrag`): a shape is drawn from a drag, and a drag with no way back is a
-     * gesture a keyboard cannot answer.
-     */
-    onLiveDrag: ((() -> Unit)?) -> Unit = {},
     /**
      * The vertical-space tool's grab line, in page points — painted across the sheet while it is live.
      * Null everywhere else, including for every other tool.
@@ -132,11 +114,10 @@ internal suspend fun PointerInputScope.pageGestures(
             }
         }
         pageGestureLoop(
-            tab = tab, panMode = panMode, tool = tool, ink = ink,
-            onPlaceLiving = onPlaceLiving, onTextPress = onTextPress, onEditLiving = onEditLiving,
+            tab = tab, panMode = panMode, tool = tool, ink = ink, targets = targets,
             taps = taps, dragView = dragView, gesture = gesture,
             draft = draft, grabLine = grabLine, previewRegion = previewRegion,
-            onLiveDrag = onLiveDrag, onEdited = onEdited,
+            onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
             viewW = viewW, viewH = viewH, onViewport = onViewport, viewport = viewport,
         )
@@ -149,16 +130,13 @@ private suspend fun PointerInputScope.pageGestureLoop(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
-    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
-    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
-    onEditLiving: (() -> Unit)?,
+    targets: PagePressTargets,
     taps: TapTracker,
     dragView: DragView,
     gesture: PageInkGesture,
     draft: SnapshotStateList<InkSample>,
     grabLine: MutableState<Double?>?,
     previewRegion: MutableState<SelectionRegion?>?,
-    onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
     penActive: () -> Boolean,
     pageW: Float,
@@ -189,21 +167,18 @@ private suspend fun PointerInputScope.pageGestureLoop(
         if (tool == DesktopTool.TEXT) {
             val (tx, ty) = pagePointOf(down.position.x, down.position.y, density, vp)
             if (tx in 0.0..pageW.toDouble() && ty in 0.0..pageH.toDouble()) {
-                onTextPress?.invoke(tx, ty, pageW.toDouble(), pageH.toDouble())
+                targets.onTextPress?.invoke(tx, ty, pageW.toDouble(), pageH.toDouble())
             }
             return@awaitEachGesture
         }
         // A selection, a living element or a figure takes the drag before the ink sees it.
         if (
-            preInkPress(
-                down, tool, tab, dragView, pageW, pageH,
-                onPlaceLiving, previewRegion, onLiveDrag, onEdited, onEditLiving, taps,
-            )
+            preInkPress(down, tool, tab, dragView, pageW, pageH, previewRegion, onEdited, taps, targets)
         ) {
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
-            shapeDrag(down, kind, tab, ink, dragView, draft, onLiveDrag, onEdited)
+            shapeDrag(down, kind, tab, ink, dragView, draft, targets.onLiveDrag, onEdited)
             return@awaitEachGesture
         }
         // The vertical-space tool reflows the page under a grab line instead of drawing on it.
@@ -256,17 +231,21 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     view: DragView,
     pageW: Float,
     pageH: Float,
-    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     previewRegion: MutableState<SelectionRegion?>?,
-    onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
-    onEditLiving: (() -> Unit)? = null,
     taps: TapTracker = TapTracker(),
+    targets: PagePressTargets = PagePressTargets(),
 ): Boolean {
-    if (selectionPress(down, tool, tab, view, density, previewRegion, onLiveDrag, onEdited, onEditLiving, taps)) {
+    if (selectionPress(
+            down, tool, tab, view, density, previewRegion, targets.onLiveDrag, onEdited, targets.onEditLiving, taps,
+        )
+    ) {
         return true
     }
-    return livingPress(down, tool, view.current(), pageW, pageH, previewRegion, onLiveDrag, onPlaceLiving)
+    return livingPress(
+        down, tool, view.current(), pageW, pageH, previewRegion,
+        targets.livingPreview, targets.buildLivingPreview, targets.onLiveDrag, targets.onPlaceLiving,
+    )
 }
 
 /** dp a wheel notch moves the page. */

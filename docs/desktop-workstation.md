@@ -25,9 +25,10 @@ What it does today:
   chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
   header carrying 30 dp tab capsules (the active one rimmed like the object it is) under a **native caption
   painted in the band's own composite colour** (`DesktopTitleBar.kt` sets Windows' immersive dark mode and
-  its caption/border/text colours through DWM, best effort), 1.5 dp monoline glyphs, Inter with tabular
-  figures, one cast shadow under each band, and one under the sheet — `docs/ui-modernization.md` owns the
-  material and `DesktopThemeTest` pins it.
+  its caption/border/text colours through DWM, best effort) and **the app's own icon** in the caption and
+  taskbar (`DesktopIcon.kt`, the tablet's launcher art, where the JVM's coffee cup used to be), 1.5 dp
+  monoline glyphs, Inter with tabular figures, one cast shadow under each band and one under the sheet —
+  `docs/ui-modernization.md` owns the material and `DesktopThemeTest` pins it.
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
   key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
   eased rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`), so a marquee, a figure or a reflow can
@@ -101,10 +102,9 @@ What it does today:
   pencil black, `1`–`3` take the terna of the tool in hand, and both inks are remembered in the settings
   file. The palette itself is shared, because a palette is what the user has, not what a tool is; the
   editable custom slot is its property too, not the ink's. `DesktopInkSplitTest` pins the pair.
-- **Paints living entities** — tables, function plots, parametric shapes and circuit components — by
-  running the same compiler the Android canvas and every export use (`LivingInk`, now platform-free in
-  `mobix-core`), then drawing the ink it produces. A table on the PC is the table on the tablet, not a
-  second renderer's opinion of it; an entity this build has no drawing for is reported, not drawn blank.
+- **Paints living entities** — tables, plots, parametric shapes, circuit components and formulas — by running
+  the same compiler the Android canvas and every export use (`LivingInk`, platform-free in `mobix-core`). A
+  table on the PC is the table on the tablet; an entity this build cannot draw is reported, not drawn blank.
 - **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF
   page** rasterised with PDFBox (about 144 dpi) and placed under the ink, so a highlighter still
   multiplies into it. A `.mobix`'s bundled bytes are preferred over the original reference, which is
@@ -243,14 +243,13 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
 
 ### Placing a living element: Plot, Table and Circuit
 
-Plot (`M`), Table (`T`) and the three circuit palettes place a living element instead of drawing one: a
-drag is its box, a click its family's default size, then the lift **asks first** in this lane — the graph
-dialog's fields, or the table's grid — before committing **one** element as **one undo step**; a cancelled
-question leaves nothing behind, and the lane closes once the answer lands, being an editor and not a panel
-beside the page. The placement hands the window to the **marquee** (`S`), as the tablet does, so the
-next drag moves what was just made; the **pencil**, or a **double-click** on the element, reopens the same lane
-on it ([selection.md](selection.md) owns the grips too: a figure's corners and a table's dividers are rings that
-bend the element as one undo step, beside the box's own five handles). Geometry, builders and the family palettes
+Plot (`M`) and Table (`T`) place a living element instead of drawing it: a drag is its box, a click its
+family's default size, then the lift **asks first** in this lane — the graph dialog's fields, or the table's
+grid — before committing **one** element as **one undo step**; a cancelled question leaves nothing behind. A
+**circuit component** is asked nothing: the drag is the part, drawn **live** along the pen where it will land
+(`DesktopCircuitPreviewTest`). The placement hands the window to the **marquee** (`S`), as the tablet does, so
+the next drag moves what was just made; the **pencil**, or a **double-click** on the element, reopens the same
+lane on it ([selection.md](selection.md) owns the grips). Geometry, builders and the family palettes
 (`CircuitFamily`: passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet, and a slot's
 submenu stays its **second** click, a circuit palette included (`ToolSlotClickTest` drives the scene).
 

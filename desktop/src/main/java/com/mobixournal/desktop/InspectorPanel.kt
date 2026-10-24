@@ -165,21 +165,15 @@ private fun PlotQuestion(pending: PendingPlacement) {
     }
     SectionCard("Equations") {
         for (index in pending.formulas.indices) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) {
-                    Field(if (index == 0) "f(x)" else "f${index + 1}(x)") {
-                        ValueField(
-                            initial = pending.formulas[index],
-                            onDraft = { text -> pending.formulas[index] = text },
-                            onCommit = {},
-                        )
-                    }
-                }
-                if (pending.formulas.size > 1) {
-                    Spacer(Modifier.width(6.dp))
-                    RemoveGlyph { pending.removeFormula(index) }
-                }
-            }
+            EquationRow(
+                label = if (index == 0) "f(x)" else "f${index + 1}(x)",
+                source = pending.formulas[index],
+                colour = pending.formulaColours.getOrNull(index) ?: 0,
+                removable = pending.formulas.size > 1,
+                onDraft = { text -> pending.formulas[index] = text },
+                onColour = { picked -> pending.setFormulaColour(index, picked) },
+                onRemove = { pending.removeFormula(index) },
+            )
         }
         Spacer(Modifier.height(4.dp))
         PanelButton(
@@ -346,29 +340,32 @@ private fun PlotEquations(plot: PlotElement, commit: (Element) -> Unit) {
     for (index in plot.curves.indices) {
         val edited = plot.curves[index]
         var formula by remember(plot, index) { mutableStateOf(edited.source) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) {
-                Field(if (index == 0) "f(x)" else "f${index + 1}(x)") {
-                    ValueField(formula, onCommit = { entered ->
-                        formula = entered
-                        if (entered.isNotBlank() && entered != edited.source) {
-                            commit(
-                                plot.copy(
-                                    curves = plot.curves.toMutableList().also {
-                                        it[index] = edited.copy(source = entered)
-                                    },
-                                    summaryText = null,
-                                ),
-                            )
-                        }
-                    })
+        EquationRow(
+            label = if (index == 0) "f(x)" else "f${index + 1}(x)",
+            source = formula,
+            colour = edited.color,
+            removable = plot.curves.size > 1,
+            onDraft = { text -> formula = text },
+            onCommit = { entered ->
+                formula = entered
+                if (entered.isNotBlank() && entered != edited.source) {
+                    commit(
+                        plot.copy(
+                            curves = plot.curves.toMutableList().also { it[index] = edited.copy(source = entered) },
+                            summaryText = null,
+                        ),
+                    )
                 }
-            }
-            if (plot.curves.size > 1) {
-                Spacer(Modifier.width(6.dp))
-                RemoveGlyph { commit(plotWithoutEquation(plot, index)) }
-            }
-        }
+            },
+            onColour = { picked ->
+                commit(
+                    plot.copy(
+                        curves = plot.curves.toMutableList().also { it[index] = edited.copy(color = picked) },
+                    ),
+                )
+            },
+            onRemove = { commit(plotWithoutEquation(plot, index)) },
+        )
     }
     Spacer(Modifier.height(4.dp))
     PanelButton(

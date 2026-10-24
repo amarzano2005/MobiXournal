@@ -154,11 +154,10 @@ class DesktopInspectorLaneTest {
             pending.addFormula()
             pending.formulas[2] = "   "
             assertTrue("an unanswered row does not stop the graph", pending.ready)
-            assertTrue("and the preview has something to draw", pending.plotIn(
-                com.mobixournal.render.PlotBox(0.0, 0.0, 320.0, 140.0),
-                PenPalette.BLACK,
-                1.0,
-            ) != null)
+            assertTrue(
+                "and the preview has something to draw",
+                pending.plotIn(com.mobixournal.render.PlotBox(0.0, 0.0, 320.0, 140.0), 1.0) != null,
+            )
 
             state.confirmPlacement()
             val plot = elements(tab).filterIsInstance<PlotElement>().single()

@@ -52,6 +52,7 @@ private fun runTabletProbe() {
             onCloseRequest = ::exitApplication,
             state = rememberWindowState(width = 900.dp, height = 640.dp),
             title = "MobiXournal tablet probe",
+            icon = appIcon(),
             onPreviewKeyEvent = { event -> probe.key(event); false },
         ) {
             // The streams this window's own event layer cannot see: Windows Ink's pen, and the dial as
@@ -126,6 +127,7 @@ fun main(args: Array<String>) {
             onCloseRequest = { if (state.requestExit()) exitApplication() },
             state = rememberWindowState(width = 1100.dp, height = 1000.dp),
             title = "MobiXournal Desktop",
+            icon = appIcon(),
         ) {
             DesktopApp(initial = initial, state = state, onExit = ::exitApplication)
         }

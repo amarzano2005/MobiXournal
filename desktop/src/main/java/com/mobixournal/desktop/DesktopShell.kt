@@ -251,7 +251,8 @@ class DesktopShellState(
             if (placeLivingElement(tab, element) { index -> edited(tab, index) }) handToSelection()
             return
         }
-        pendingPlacement = PendingPlacement(slot, bounds, tab.key)
+        // A graph's first equation starts in the slot's ink until a curve is given its own colour.
+        pendingPlacement = PendingPlacement(slot, bounds, tab.key, ink.colour)
     }
 
     /** Pick the selection tool, so the element just placed can be moved with the next press. */

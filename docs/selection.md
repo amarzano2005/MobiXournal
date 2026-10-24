@@ -200,9 +200,11 @@ zoomed out as in. A plot's interval and a component's outline are **not** grips:
 lane. `LivingGripsTest` pins the arithmetic, `DesktopLivingGripsSceneTest` the gesture (one undo step per
 drag, a miss moving the element instead of dividing it).
 
-The **pencil** on that bar opens the selected living element's editor, and is offered only for exactly one
-living element; a **double-click on the selected element** is the same command (`DoubleTap`/`TapTracker`,
-400 ms and 8 px), so the tablet's double-tap has a twin on the page rather than only in the bar. `DesktopSelectionBarTest` walks the five families — plot, table, figure, component, formula
+A **click on an element picks it** — `SelectionTester.pickTopmost`, the topmost element under the pointer — and
+the drag that follows carries the new selection, so picking one thing up no longer means boxing it; a click on
+empty paper lets it go. The **pencil** on that bar opens the selected living element's editor, and is offered
+only for exactly one living element; a **double-click on any living element**, selected or not, is the same
+command (`TapTracker`: 400 ms, 8 px), so the tablet's double-tap has a twin on the page. `DesktopSelectionBarTest` walks the five families — plot, table, figure, component, formula
 — and fails if one does not answer `EDIT`, so a family added later cannot ship uneditable.
 
 That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
@@ -221,13 +223,14 @@ them. The **body** groups the fields into cards — Graph, Function, Display, Lo
 Placement, Stroke — so a plot's switches no longer read as one wall of 11 sp labels, and a plot's card leads
 with the **graph itself**, compiled by `LivingInk` from the element as it stands, so an equation is no longer
 committed blind: the same picture the placement promised follows every edit. A graph carries several
-curves, so the editor offers **Add equation** and a remove glyph per row (`plotWithEquation`,
-`plotWithoutEquation`) exactly as the placement card does. The **footer** is one row of actions shared with
+curves, so the editor offers **Add equation**, a remove glyph and a **colour swatch per row**
+(`plotWithEquation`, `plotWithoutEquation`) exactly as the placement card does: a new curve arrives in the
+next palette ink rather than in the same black as the one above it, and the drawn line is its row's colour. The **footer** is one row of actions shared with
 the placement question — Place/Cancel while it asks, Done once the element exists — and it keeps its height,
 so the fields above it do not move when a card grows.
 
 The sections offer only what `format/model/Living.kt` carries — a plot's formula, domain, resolution, the
-display flags and its curve's colour; a table's grid, header row, rules and **cells** (a column added divides
+display flags and **one colour per curve**; a table's grid, header row, rules and **cells** (a column added divides
 the width rather than growing the table); a figure's side lengths and interior angles as read-outs beside its
 outline; a component's part, value, placement and stroke; a formula's source and language. A field commits on
 `Enter` or when the caret leaves, as **one** undo step, and an unchanged value writes nothing; `Esc` puts a

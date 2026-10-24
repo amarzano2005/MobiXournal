@@ -17,6 +17,8 @@ import com.mobixournal.render.LivingPlacement
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -100,6 +102,51 @@ class DesktopLivingGripsSceneTest {
             val after = elements(tab).filterIsInstance<TableElement>().single()
             assertEquals("the columns are untouched", table.colWidths, after.colWidths)
             assertEquals("and the table moved", table.left + 20.0, after.left, 1.5)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `a click on an element selects it, without a marquee around it`() {
+        val (tab, table, scene) = tableScene()
+        try {
+            tab.selection = null
+            scene.render()
+
+            tap(scene, x = (table.left + table.width / 2).toFloat(), y = (table.top + 10).toFloat(), time = 1_000L)
+            val picked = tab.selection
+            assertNotNull("a click on the element picks it", picked)
+            assertEquals(1, picked!!.refs.size)
+            assertEquals(
+                "and the outline is the element's own box",
+                table.left, picked.bounds.left, 1.5,
+            )
+
+            // A click on empty paper lets it go again.
+            tap(scene, x = 40f, y = 40f, time = 3_000L)
+            assertNull("empty paper clears the selection", tab.selection)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    @Test
+    fun `a double-click on any living element opens its editor, selected or not`() {
+        var edits = 0
+        val (tab, table, scene) = tableScene(onEdit = { edits++ })
+        try {
+            tab.selection = null
+            scene.render()
+            val x = (table.left + table.width / 2).toFloat()
+            val y = (table.top + table.height / 2).toFloat()
+            tap(scene, x = x, y = y, time = 1_000L)
+            assertNotNull("the first click selects the element", tab.selection)
+            assertEquals("and opens nothing", 0, edits)
+            tap(scene, x = x, y = y, time = 1_100L)
+            assertEquals("the second click opens the lane", 1, edits)
         } finally {
             scene.close()
             tab.document.close()

@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
+import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.LivingPlacement
@@ -195,6 +196,11 @@ internal class PenPointer {
     val grabLine = mutableStateOf<Double?>(null)
     /** The region a selection drag is tracing right now: the sheet paints it, the gesture writes it. */
     val previewRegion = mutableStateOf<SelectionRegion?>(null)
+    /**
+     * The living element a placement drag is drawing right now — a component being pulled out along the
+     * pen, shown exactly as it will land. Nothing of it is on the page until the lift.
+     */
+    val previewLiving = mutableStateOf<Element?>(null)
 }
 
 /**
@@ -438,7 +444,21 @@ private fun SheetCanvas(
             }
             .sheetGestures(
                 tab, panMode, tool, ink, pen, sheet, pointer, draft,
-                onPlaceLiving, onTextPress, onEditLiving, onLiveDrag, onViewport, onEdited,
+                PagePressTargets(
+                    onPlaceLiving = onPlaceLiving,
+                    onTextPress = onTextPress,
+                    onEditLiving = onEditLiving,
+                    livingPreview = pointer.previewLiving,
+                    // Only a family whose element needs no question is drawn live: a plot or a table is
+                    // still waiting for its values, and previewing a default would promise the wrong graph.
+                    buildLivingPreview = if (circuitFamilyOf(tool) != null) {
+                        { bounds -> livingElementFor(LivingSlot.CIRCUIT, bounds, ink, circuitKind) }
+                    } else {
+                        null
+                    },
+                    onLiveDrag = onLiveDrag,
+                ),
+                onViewport, onEdited,
             ),
     ) {
         paintSheet(
@@ -456,6 +476,7 @@ private fun SheetCanvas(
             grabLineY = pointer.grabLine.value,
             selection = tab.selection,
             previewRegion = pointer.previewRegion.value,
+            previewLiving = pointer.previewLiving.value,
             paintProbe = paintProbe,
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
@@ -501,6 +522,8 @@ private fun DrawScope.paintSheet(
     selection: PageSelection? = null,
     /** The region a selection drag is tracing right now, if any. */
     previewRegion: SelectionRegion? = null,
+    /** The living element a placement drag is drawing right now, if any — a component being pulled out. */
+    previewLiving: Element? = null,
     /** The ink probe's sink; null in the editor. Called after the ink, at the same clock reading. */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
 ) {
@@ -523,6 +546,9 @@ private fun DrawScope.paintSheet(
                 }
             }
         }
+        // The element a placement drag has drawn so far, in the same painter the page uses: a component is
+        // pulled out of the sheet along the pen, so the drag promises exactly what the lift writes.
+        previewLiving?.let { preview -> drawElements(listOf(preview), pxPerPt, measurer) }
         // The selection's marching outline and its handles, above the ink: what is caught stays visible.
         // A single living element also wears its own grips (a figure's corners, a table's dividers).
         val livingElement = selection?.takeIf { it.refs.size == 1 }?.let { picked ->

@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.MathFlavor
@@ -32,7 +33,16 @@ import com.mobixournal.render.ShapeKind
  * inserted at all. [plotIn] builds the element from that list, so the lane's preview and the placement draw
  * the very same graph — a preview compiled by another path is a preview that can lie.
  */
-class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: String) {
+class PendingPlacement(
+    val slot: LivingSlot,
+    val bounds: Bounds,
+    val tabKey: String,
+    /**
+     * The ink the slot was pressed with — the first equation's colour and the circuit's stroke. Passed in
+     * rather than read from the shell so the card is a plain object a JVM test can build.
+     */
+    private val defaultColour: Int = 0xFF000000.toInt(),
+) {
 
     // --- plot: the tablet's graph dialog -----------------------------------------------------------
 
@@ -43,17 +53,41 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
      */
     val formulas = mutableStateListOf(LivingPlacement.DEFAULT_PLOT_FORMULA)
 
-    /** The formulas as the graph reads them: trimmed, blanks dropped, order kept. */
-    val sources: List<String> get() = formulas.map { it.trim() }.filter { it.isNotEmpty() }
+    /**
+     * Each equation's **own colour**, in the same order as [formulas] — a graph of two curves is read by
+     * colour, so one ink for the whole graph would make the second equation the first one's twin.
+     *
+     * A new row takes the next colour of the pen's palette (the inspector's own rule), and the row that
+     * started the card takes the tool's ink, so nothing changes colour unless the user asks.
+     */
+    val formulaColours = mutableStateListOf(defaultColour)
+
+    /** The equations as the graph reads them: trimmed, blanks dropped, order kept — with their colours. */
+    val curves: List<Pair<String, Int>>
+        get() = formulas.indices
+            .map { index -> formulas[index].trim() to (formulaColours.getOrNull(index) ?: defaultColour) }
+            .filter { (source, _) -> source.isNotEmpty() }
+
+    /** The formulas alone, for the lane's summary and its readiness rule. */
+    val sources: List<String> get() = curves.map { it.first }
 
     /** Add an empty equation row — the card's **Add equation**, capped so the list stays readable. */
     fun addFormula() {
-        if (formulas.size < MAX_FORMULAS) formulas += ""
+        if (formulas.size >= MAX_FORMULAS) return
+        formulaColours += PenPalette.COLORS[formulas.size % PenPalette.COLORS.size]
+        formulas += ""
     }
 
     /** Drop equation [index]; the last one stays, because a graph with no equation is not a graph. */
     fun removeFormula(index: Int) {
-        if (formulas.size > 1 && index in formulas.indices) formulas.removeAt(index)
+        if (formulas.size <= 1 || index !in formulas.indices) return
+        formulas.removeAt(index)
+        if (index in formulaColours.indices) formulaColours.removeAt(index)
+    }
+
+    /** Give equation [index] the colour [colour]. */
+    fun setFormulaColour(index: Int, colour: Int) {
+        if (index in formulaColours.indices) formulaColours[index] = colour
     }
 
     /** The domain, as the dialog's two numbers (`x from`, `x to`). */
@@ -127,16 +161,16 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
      * It is one function for two callers: [element] composes it into the page's box, and the lane's preview
      * composes it into a preview box, so what is promised before Place is what lands after it.
      */
-    fun plotIn(box: PlotBox, colour: Int, strokeWidthPt: Double): PlotElement? {
-        val sources = sources
-        if (sources.isEmpty()) return null
+    fun plotIn(box: PlotBox, strokeWidthPt: Double): PlotElement? {
         val (from, to) = domain ?: return null
+        val drawn = curves
+        if (drawn.isEmpty()) return null
         return PlotElementFactory.plotElementIn(
             box = box,
-            curves = sources.map { source ->
+            curves = drawn.map { (source, ink) ->
                 PlotCurve(
                     source = source,
-                    color = colour,
+                    color = ink,
                     lineStyle = LineStyle.PLAIN,
                     kind = PlotKind.CARTESIAN,
                 )
@@ -158,7 +192,6 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
     fun element(ink: DesktopInk, circuitKind: ShapeKind): Element? = when (slot) {
         LivingSlot.PLOT -> plotIn(
             box = PlotBox(bounds.left, bounds.top, bounds.width, bounds.height),
-            colour = ink.colour,
             strokeWidthPt = ink.width.toDouble(),
         )
         LivingSlot.TABLE -> LivingPlacement.table(

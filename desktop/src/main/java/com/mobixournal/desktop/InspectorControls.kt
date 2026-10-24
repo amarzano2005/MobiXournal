@@ -397,3 +397,70 @@ internal fun formatNumber(value: Double): String =
 
 /** [value] at one decimal, for a readout. */
 internal fun Double.roundToTenth(): String = "%.1f".format(this)
+
+/**
+ * One **equation row** of a graph: the colour its curve is drawn in, the source field, its remove glyph —
+ * and, under the row and only while its dot is open, the palette.
+ *
+ * A graph of two curves is read by colour, so an equation without its own ink is a second curve the eye
+ * cannot tell from the first. The dot is the whole colour control until it is opened, which keeps six
+ * equations readable in a 300 dp lane; the palette is the same [ColourRow] every other colour field uses,
+ * so there is one set of swatches and one accent ring.
+ */
+@Composable
+internal fun EquationRow(
+    label: String,
+    source: String,
+    colour: Int,
+    removable: Boolean,
+    onDraft: (String) -> Unit,
+    /** What `Enter` (or leaving the field) writes. Empty for a placement card, whose answers are not yet a document. */
+    onCommit: (String) -> Unit = {},
+    onColour: (Int) -> Unit,
+    onRemove: () -> Unit,
+) {
+    var paletteOpen by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ColourDot(colour = colour, open = paletteOpen) { paletteOpen = !paletteOpen }
+        Spacer(Modifier.width(6.dp))
+        Box(Modifier.weight(1f)) {
+            Field(label) {
+                ValueField(initial = source, onDraft = onDraft, onCommit = onCommit)
+            }
+        }
+        if (removable) {
+            Spacer(Modifier.width(6.dp))
+            RemoveGlyph(onRemove)
+        }
+    }
+    if (paletteOpen) {
+        ColourRow(current = colour) { picked ->
+            onColour(picked)
+            paletteOpen = false
+        }
+    }
+}
+
+/** The dot an [EquationRow] wears: the curve's own ink, ringed in the accent while its palette is open. */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+internal fun ColourDot(colour: Int, open: Boolean, onClick: () -> Unit) {
+    var hovered by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .size(16.dp)
+            .background(Color(colour), DesktopTheme.capsuleShape)
+            .border(
+                width = if (open) 2.dp else 1.dp,
+                color = when {
+                    open -> DesktopTheme.accent
+                    hovered -> DesktopTheme.inkMuted
+                    else -> DesktopTheme.hairline
+                },
+                shape = DesktopTheme.capsuleShape,
+            )
+            .onPointerEvent(PointerEventType.Enter) { hovered = true }
+            .onPointerEvent(PointerEventType.Exit) { hovered = false }
+            .pointerInput(colour, open) { detectTapGestures { onClick() } },
+    )
+}

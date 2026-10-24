@@ -49,7 +49,7 @@ internal fun PlotQuestionPreview(pending: PendingPlacement) {
         pending.shadeFrom,
         pending.shadeTo,
     ) {
-        pending.plotIn(PREVIEW_BOX, PREVIEW_INK, PREVIEW_STROKE_PT)
+        pending.plotIn(PREVIEW_BOX, PREVIEW_STROKE_PT)
     }
     PlotInkPreview(source, "No graph yet — an equation and an open range draw it here")
 }
@@ -139,9 +139,6 @@ private val PREVIEW_BOX = PlotBox(left = 0.0, top = 0.0, width = 320.0, height =
 
 /** The preview's height in dp: a graph, not a thumbnail. */
 private val PREVIEW_HEIGHT = 128.dp
-
-/** The graph's ink in the preview: near-black on the paper, as the tablet's dialog draws it. */
-private val PREVIEW_INK = 0xFF2A2A2A.toInt()
 
 /** One point, so the preview reads a thin curve without turning it into a blob. */
 private const val PREVIEW_STROKE_PT = 1.0

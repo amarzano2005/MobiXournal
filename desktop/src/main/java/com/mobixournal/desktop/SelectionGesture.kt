@@ -6,7 +6,10 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.ElementBounds
+import com.mobixournal.render.SelectionTester
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.rectRegion
@@ -131,7 +134,26 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     } else {
         selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap)
     }
+    val page = runCatching { tab.document.page(tab.page) }.getOrNull()
+    val picked = page?.let { SelectionTester.pickTopmost(it, x0, y0) }
+    // A **double-click** anywhere on an element: pick it, and if it is a living recipe open its editor —
+    // the tablet's double-tap. Recorded for every press, so two clicks in one place are always a pair.
+    if (taps.isSecond(System.currentTimeMillis(), (x0 * pxPerPt), (y0 * pxPerPt)) && page != null && picked != null) {
+        tab.selection = selectionOf(page, picked)
+        val element = elementAt(page, picked)
+        if (element != null && element.isLivingEntity) onEditLiving?.invoke()
+        return
+    }
     if (handle.startsRegion()) {
+        // A **click on an element** selects it, and the drag that follows carries it: the marquee used to
+        // trace a zero-size region and drop the selection, so picking one thing up meant boxing it.
+        if (page != null && picked != null) {
+            tab.selection = selectionOf(page, picked)
+            transformSelection(
+                tab.selection ?: return, SelectionHandle.BODY, x0, y0, tab, view, density, onLiveDrag, onEdited,
+            )
+            return
+        }
         traceRegion(tool, x0, y0, tab, view, density, region, onLiveDrag)
         return
     }
@@ -142,17 +164,6 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val grip = living?.let { gripAt(it, x0, y0, tol) }
     if (living != null && grip != null) {
         dragLivingGrip(living, grip, x0, y0, tab, view, density, onLiveDrag, onEdited)
-        return
-    }
-    // The tablet's double-tap: a second click on the selected element opens its editor instead of
-    // starting a move that goes nowhere.
-    if (handle == SelectionHandle.BODY && onEditLiving != null && taps.isSecond(
-            nowMs = System.currentTimeMillis(),
-            px = x0 * pxPerPt,
-            py = y0 * pxPerPt,
-        )
-    ) {
-        onEditLiving.invoke()
         return
     }
     transformSelection(selection, handle, x0, y0, tab, view, density, onLiveDrag, onEdited)
@@ -391,3 +402,13 @@ private fun selectionOf(element: Element, ref: ElementRef): PageSelection {
     val bounds = ElementBounds.of(element)
     return PageSelection(rectRegion(bounds.left, bounds.top, bounds.right, bounds.bottom), setOf(ref))
 }
+
+/** The selection of one element on [page] — what a click on it means. Null if the ref has gone stale. */
+private fun selectionOf(page: Page, ref: ElementRef): PageSelection? {
+    val element = elementAt(page, ref) ?: return null
+    return selectionOf(element, ref)
+}
+
+/** The element [ref] names on [page], or null when the page has moved on. */
+private fun elementAt(page: Page, ref: ElementRef): Element? =
+    page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)

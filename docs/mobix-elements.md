@@ -144,8 +144,8 @@ channel exists to prevent.
 ## Living entities
 
 The constructs `.xopp` can only bake into dead ink. Each family has its own codec — `MobixTableCodec`,
-`MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec`, `MobixMathCodec` — reached from
-`MobixElementCodec` by its `type`, and all five obey one rule that is stricter than rule 1:
+`MobixPlotCodec`, `MobixShapeCodec`, `MobixCircuitCodec`, `MobixMathCodec` — reached by `type`, and all five
+obey one rule stricter than rule 1:
 
 **A codec models an element or preserves it whole, and never half-reads one.** An unknown *element
 type* survives as raw JSON (rule 1); so does a **known family this build cannot read** — a cell whose
@@ -290,6 +290,8 @@ commit inside the dialog at all.
   and losing a curve over the spelling of its variable would be the reader's fault. A plot draws its own
   frame (`PlotInk`), so there is no `axes` element: the tablet's Axes tool is the coordinate-axis
   **stroke figure** (`ShapeKind.COORDINATE_AXIS`), which both shells already have, and no third one is added.
+- Every curve carries **its own `color`**, edited per equation through the row's colour dot in both shells:
+  a new equation takes the next palette colour, the first keeps the tool's ink (`PendingPlacement.formulaColours`).
 - `parameters` holds the named constants an expression may reference; a slider re-evaluates the plot
   rather than editing the formula ([math-engine.md](math-engine.md)).
 - `summaryText` is a **cache of what was computed**, never the source of truth, and recomputed on any change.
@@ -389,11 +391,10 @@ a build that does not know a symbol cannot draw it, and says so rather than inve
 `MathBlockElement` is the living formula: its `source` in `flavor` (`LATEX`/`TYPST`), colour and box, and
 **no rendered bytes** — the drawing is a function of the source. `MobixMathCodec` spells it; the canvas
 typesets it with `LatexRenderer`, the window and the PDF plan through `LatexLayout` (`TexPainter`), and the
-`.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`), the ink `LivingInk` produces. **The window
-authors one too**: the Formula member of the Text slot (`Shift+T`) asks for the source with a live preview and
-writes it on **Place** (`PendingPlacement.mathSource`, `MathPreview`). Unknown types are kept verbatim (rule 1).
+`.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`), the ink `LivingInk` produces. **The window writes
+one too**: the Text slot's Formula member (`Shift+T`) asks for the source, previews it and writes it on **Place**
+(`PendingPlacement.mathSource`, `MathPreview`), and an unknown type stays verbatim (rule 1).
 
-**A family is edited where it is drawn.** The window's selection carries the element's own grips
-(`LivingGrips.kt`): a figure's corners move through `ParametricShapes.snappedVertex`, a table's interior
-dividers rewrite `colWidths`/`rowHeights` without touching `cells`, `left` or `top` — one undo step per drag.
-A plot's interval and a component's outline have no grips: those values belong to the lane.
+**A family is edited where it is drawn**: the window's selection carries the element's own grips
+(`LivingGrips.kt`) — a figure's corners through `ParametricShapes.snappedVertex`, a table's dividers rewriting
+`colWidths`/`rowHeights` without touching `cells`; a plot's interval and a component's outline have none.

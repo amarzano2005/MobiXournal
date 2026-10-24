@@ -1,12 +1,9 @@
 package com.mobixournal.desktop
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import com.mobixournal.render.Bounds
-import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.SelectionRegion
 
 /**
@@ -28,10 +25,7 @@ internal fun Modifier.sheetGestures(
     sheet: SheetLayout,
     pointer: PenPointer,
     draft: SnapshotStateList<InkSample>,
-    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
-    onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
-    onEditLiving: (() -> Unit)?,
-    onLiveDrag: ((() -> Unit)?) -> Unit,
+    targets: PagePressTargets,
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ): Modifier = pointerInput(
@@ -43,9 +37,7 @@ internal fun Modifier.sheetGestures(
         panMode = panMode,
         tool = tool,
         ink = ink,
-        onPlaceLiving = onPlaceLiving,
-        onTextPress = onTextPress,
-        onEditLiving = onEditLiving,
+        targets = targets,
         viewport = {
             tab.viewport.copy(zoom = sheet.zoom)
                 .clamped(sheet.pageW, sheet.pageH, sheet.viewW, sheet.viewH)
@@ -57,7 +49,6 @@ internal fun Modifier.sheetGestures(
         draft = draft,
         pen = pen,
         penActive = { pointer.owns.value },
-        onLiveDrag = onLiveDrag,
         grabLine = pointer.grabLine,
         previewRegion = pointer.previewRegion,
         onViewport = onViewport,

@@ -109,7 +109,9 @@ The window wears the app's own frosted-glass chrome over a black desk, with the 
 the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. Its
 Windows title bar is painted in the same band colour as the header, so the window reads as one surface
 from the caption down instead of a light system bar sitting on a dark app, and the document tabs are the
-same glass capsules as the rest of the chrome, the active one wearing the family's edge. The toolbars are
+same glass capsules as the rest of the chrome, the active one wearing the family's edge. The window wears the
+app's own icon too — the tablet's launcher art, in the caption and the taskbar, where the JVM's coffee cup
+used to be. The toolbars are
 the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
@@ -128,8 +130,9 @@ as on the tablet: dragging a yellow highlighter over a page leaves the pencil th
 switching back brings that ink back with it. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
 one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to cancel — and **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
-crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): drag a box or loop a freehand line around
-what you want, then drag the outline to move it, pull a corner to resize it or the handle above it to turn
+crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): a click on any element catches it where it
+lies (one click on empty paper lets the selection go, and a double-click opens a living element's editor),
+then drag the outline to move it, pull a corner to resize it or the handle above it to turn
 it (`Shift` snaps the turn), and `Delete` takes it away — each drag one edit, one `Ctrl + Z`. `Esc` lets a
 selection go. A bar appears under the outline with the tablet's own actions — cut, copy, paste, duplicate,
 recolour or re-width what is caught, align and distribute a group, delete — and `Ctrl+C`/`Ctrl+X`/`Ctrl+V`/
@@ -141,15 +144,19 @@ it never sits there as a panel you did not ask for. It is the same width every t
 element (its symbol and its formula, grid or value), grouped cards of fields, and one action at the bottom. A
 graph's card leads with the **graph itself**, redrawn as you edit it, carries every equation it has with
 **Add equation** and a remove glyph beside each row, and its display switches work right there — the same
-preview the placement asked its questions with. **Place** a graph, a table or a circuit
-component with Plot (`M`), Table (`T`) or the circuit slots (`K` passive parts, `Shift + K` active parts,
-`Alt + K` logic gates): drag the box it should fill (or click for the default size), and the right-hand lane
-asks what the element should be before it exists — the graph dialog's own questions for a plot (formula,
-domain, critical points, derivative, summary, shaded area) or the table's columns, rows and header — so
-**Place** writes one live, selected element and one `Ctrl + Z` puts the page back, while Cancel leaves the
-page untouched. A circuit slot opens the tablet's palette of that family's symbols on a **second** click —
-the first only arms the slot, and the little chevron on the slot opens the palette straight away — and the
-drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
+preview the placement asked its questions with. **Every equation has its own colour**: a swatch sits beside
+each formula, a new row arrives in the next palette ink instead of the same black as the one above it, and
+the curve is drawn in the colour of its row — in the card before it is placed and in the lane afterwards,
+because both write through the same builder. **Place** a graph or a table with Plot (`M`) or Table (`T`):
+drag the box it should fill (or click for the default size), and the right-hand lane asks what the element
+should be before it exists — the graph dialog's own questions for a plot (formula, domain, critical points,
+derivative, summary, shaded area) or the table's columns, rows and header — so **Place** writes one live,
+selected element and one `Ctrl + Z` puts the page back, while Cancel leaves the page untouched. A **circuit
+component** (`K` passive parts, `Shift + K` active parts, `Alt + K` logic gates) is drawn instead of asked
+about: the drag is the part, its pins and body appearing on the sheet as the pen moves and landing on the
+lift as one live, selected element, exactly as a figure behaves. A circuit slot opens the tablet's palette
+of that family's symbols on a **second** click — the first only arms the slot, and the little chevron on
+the slot opens the palette straight away — and the drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
 picks the tool, a second click asks which of them. Once an element is placed the window switches to the
 selection tool, as the tablet does, so the next drag moves what you just made instead of placing another.
 **Type on the page** with Text (`X`): click where the line should start and a field opens there, in your ink's
