@@ -154,6 +154,34 @@ class DesktopEdgePanTest {
         }
     }
 
+    @Test
+    fun `the deepest zoom still paints the page`() {
+        // The ceiling is a promise about the renderer as much as about the arithmetic: at 3 200 % a page
+        // point is 32 screen pixels, and a matrix that broke there would show as an empty canvas.
+        val state = state()
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = Viewport.MAX_ZOOM, offsetX = 0f, offsetY = 0f)
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            val png = requireNotNull(scene.render().encodeToData()).bytes
+            val image = javax.imageio.ImageIO.read(java.io.ByteArrayInputStream(png))
+            var paper = 0
+            for (x in 400 until 700) {
+                for (y in 100 until 500) {
+                    if ((image.getRGB(x, y) and 0xFFFFFF) > 0xF0F0F0) paper++
+                }
+            }
+            assertTrue("the sheet is still drawn at ${Viewport.MAX_ZOOM}x ($paper px)", paper > 1_000)
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
     private fun plots(tab: DesktopTab): List<PlotElement> =
         tab.document.page(tab.page).layers.flatMap { it.elements }.filterIsInstance<PlotElement>()
 
