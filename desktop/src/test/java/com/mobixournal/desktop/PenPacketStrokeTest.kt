@@ -99,6 +99,59 @@ class PenPacketStrokeTest {
         atNanos = atNanos,
     )
 
+    /**
+     * One packet **and the frame that consumes it**.
+     *
+     * `packet()` only enqueues — that is the whole point of the hand-off (`PenPacketStroke`): the driver's
+     * thread must never touch the gesture or Compose's snapshot state, or a frame can block on it. So a
+     * headless test has to do what the canvas's ticker does, in the same order, after every packet.
+     */
+    private fun PenPacketStroke.send(packet: PenPacket) {
+        packet(packet)
+        flush()
+    }
+
+    /**
+     * The driver's thread is **not** allowed to draw: a packet without the frame that consumes it changes
+     * nothing.
+     *
+     * This is the invariant that keeps the window responsive. Doing the gesture's work on the message
+     * thread while the frame thread held a lock on the same object froze the window the moment a stroke
+     * began; a queue makes the driver's thread wait for nobody, and the stroke is drawn one frame later
+     * on the thread that owns the snapshot state.
+     */
+    @Test
+    fun `a packet alone draws nothing until the frame consumes it`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook("enqueue.mobix")))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        try {
+            val before = strokes(tab).size
+            val draft = mutableStateListOf<InkSample>()
+            val hovered = mutableListOf<Offset?>()
+            val path = path(tab, draft = draft, hovered = hovered)
+
+            path.packet(packet(60f, 60f, pressure = 0.5f, atNanos = 1_000_000_000L))
+            path.packet(packet(90f, 90f, pressure = 0.7f, atNanos = 1_002_000_000L))
+            assertEquals("nothing is drawn off the frame thread", 0, draft.size)
+            assertFalse("the stroke has not begun", path.drawing)
+            assertEquals("nothing to commit yet", before, strokes(tab).size)
+
+            path.flush()
+            assertEquals("one frame consumes both packets", 2, draft.size)
+            assertTrue("and the stroke is open", path.drawing)
+
+            path.packet(packet(120f, 120f, pressure = 0f, tip = false, atNanos = 1_004_000_000L))
+            path.flush()
+            assertEquals("the lift commits one stroke", before + 1, strokes(tab).size)
+            // The tip-down opens it and the move extends it; the lift ends it without adding a sample,
+            // exactly as the stroke drawn on the tablet is made.
+            assertEquals("with the two samples", 2, strokes(tab).last().points.size)
+        } finally {
+            tab.document.close()
+        }
+    }
+
     @Test
     fun `a stroke is drawn from the packets alone and tapers with their pressure`() {
         val tab = DesktopTabs().open(DocumentLoader.load(notebook("packets.mobix")))
@@ -110,17 +163,17 @@ class PenPacketStrokeTest {
             val before = strokes(tab).size
 
             // A light touch, ramping: no pointer press exists in this test at all.
-            path.packet(packet(20f, 20f, pressure = 0.02f, atNanos = 1_000_000_000L))
-            path.packet(packet(80f, 60f, pressure = 0.2f, atNanos = 1_008_000_000L))
-            path.packet(packet(160f, 120f, pressure = 0.6f, atNanos = 1_016_000_000L))
+            path.send(packet(20f, 20f, pressure = 0.02f, atNanos = 1_000_000_000L))
+            path.send(packet(80f, 60f, pressure = 0.2f, atNanos = 1_008_000_000L))
+            path.send(packet(160f, 120f, pressure = 0.6f, atNanos = 1_016_000_000L))
             // The pen resting at the end of the stroke: a real one sends a few hundred of these, and the
             // position filter is what the last few millimetres look like.
             repeat(8) { index ->
-                path.packet(packet(260f, 200f, pressure = 1f, atNanos = 1_024_000_000L + index * 2_000_000L))
+                path.send(packet(260f, 200f, pressure = 1f, atNanos = 1_024_000_000L + index * 2_000_000L))
             }
             assertTrue("the pen owns the stroke while packets arrive", owned.contains(true))
 
-            path.packet(packet(260f, 200f, pressure = 0f, tip = false, atNanos = 1_040_000_000L))
+            path.send(packet(260f, 200f, pressure = 0f, tip = false, atNanos = 1_040_000_000L))
 
             val drawn = strokes(tab).takeIf { it.size == before + 1 }?.last()
             assertTrue("the lift committed exactly one stroke", drawn != null)
@@ -164,9 +217,11 @@ class PenPacketStrokeTest {
             val before = strokes(tab).size
             var nanos = 1_000_000_000L
 
-            // The tip-down is the stroke's start, so it is drawn immediately (the mouse path stands
-            // aside from it) — only the moves wait for the frame.
+            // The packets are queued by the driver's thread and drawn by the frame that consumes them:
+            // the press opens the stroke there, and the eight moves ride along with it.
             path.packet(packet(40f, 40f, pressure = 0.1f, atNanos = nanos))
+            assertEquals("no sample off the frame thread", 0, draft.size)
+            path.flush()
             assertEquals("the press is the first sample", 1, draft.size)
             repeat(8) { index ->
                 nanos += 2_500_000L
@@ -187,8 +242,9 @@ class PenPacketStrokeTest {
             assertEquals("flushing is not a second stroke", before, strokes(tab).size)
 
             nanos += 2_500_000L
-            path.packet(packet(240f, 100f, pressure = 1f, atNanos = nanos))
-            path.packet(packet(240f, 100f, pressure = 0f, tip = false, atNanos = nanos + 2_500_000L))
+            path.send(packet(240f, 100f, pressure = 1f, atNanos = nanos))
+            path.send(packet(240f, 100f, pressure = 0f, tip = false, atNanos = nanos + 2_500_000L))
+            // `send` is a packet plus the frame that consumes it, which is what the canvas's ticker does.
             assertEquals("the lift flushes the tail and commits one stroke", before + 1, strokes(tab).size)
             assertEquals("with every sample the hand drew", 10, strokes(tab).last().points.size)
             assertTrue("one stroke is one undo step", tab.canUndo)
@@ -207,19 +263,19 @@ class PenPacketStrokeTest {
             val path = path(tab)
             // A light press that travels one pixel and lifts: under the mouse's tap slop, so the mouse
             // path would have called it a click and drawn nothing. A pen on paper is ink from the press.
-            path.packet(packet(80f, 80f, pressure = 0.05f, atNanos = 1_000_000_000L))
-            path.packet(packet(81f, 81f, pressure = 0.06f, atNanos = 1_008_000_000L))
-            path.packet(packet(81f, 81f, pressure = 0f, tip = false, atNanos = 1_016_000_000L))
+            path.send(packet(80f, 80f, pressure = 0.05f, atNanos = 1_000_000_000L))
+            path.send(packet(81f, 81f, pressure = 0.06f, atNanos = 1_008_000_000L))
+            path.send(packet(81f, 81f, pressure = 0f, tip = false, atNanos = 1_016_000_000L))
             assertEquals("a barely-moving light press leaves a stroke", before + 1, strokes(tab).size)
             assertEquals("with its two samples", 2, strokes(tab).last().points.size)
 
             val held = path(tab, ink = DesktopInk(width = 4f))
             var nanos = 2_000_000_000L
             repeat(60) {
-                held.packet(packet(120f, 120f + it, pressure = 1f, atNanos = nanos))
+                held.send(packet(120f, 120f + it, pressure = 1f, atNanos = nanos))
                 nanos += 2_500_000L
             }
-            held.packet(packet(140f, 180f, pressure = 0f, tip = false, atNanos = nanos))
+            held.send(packet(140f, 180f, pressure = 0f, tip = false, atNanos = nanos))
             val full = strokes(tab).last()
             assertEquals(
                 "a press held long enough draws at the tool's width",
@@ -249,8 +305,8 @@ class PenPacketStrokeTest {
             val before = strokes(tab).size
             val hovered = mutableListOf<Offset?>()
             val path = path(tab, hovered = hovered)
-            path.packet(packet(40f, 50f, pressure = null, tip = false, atNanos = 1_000_000_000L))
-            path.packet(packet(44f, 56f, pressure = null, tip = false, atNanos = 1_002_000_000L))
+            path.send(packet(40f, 50f, pressure = null, tip = false, atNanos = 1_000_000_000L))
+            path.send(packet(44f, 56f, pressure = null, tip = false, atNanos = 1_002_000_000L))
             // One publish per frame: two readings, one ring update, at the newest position.
             path.publishHover()
             assertEquals("one ring update for the frame", listOf(Offset(44f, 56f)), hovered)
@@ -265,7 +321,7 @@ class PenPacketStrokeTest {
             // The packet that ends the hover is the driver's own proximity-out: then the ring goes, and
             // the window hands the pointer back to the mouse.
             val gone = packet(44f, 56f, pressure = null, tip = false, atNanos = 1_020_000_000L)
-            path.packet(gone.copy(near = false))
+            path.send(gone.copy(near = false))
             path.publishHover()
             assertEquals("the ring is handed back", null, hovered.last())
             assertEquals("exactly once", 2, hovered.size)
@@ -282,16 +338,16 @@ class PenPacketStrokeTest {
         try {
             val before = strokes(tab).size
             val path = path(tab, size = Size(100f, 100f))
-            path.packet(packet(400f, 400f, pressure = 0.5f))
-            path.packet(packet(420f, 420f, pressure = 0.6f))
+            path.send(packet(400f, 400f, pressure = 0.5f))
+            path.send(packet(420f, 420f, pressure = 0.6f))
             assertEquals("a packet on the desk is not a stroke", before, strokes(tab).size)
             assertFalse(path.drawing)
 
             // A real stroke, then the packets stop: the silence ends it, and the ink the hand drew is
             // kept — a stroke that vanished under a pause is the loss this path exists to prevent.
             val second = path(tab, size = Size(600f, 900f))
-            second.packet(packet(50f, 50f, pressure = 0.5f, atNanos = 2_000_000_000L))
-            second.packet(packet(90f, 90f, pressure = 0.6f, atNanos = 2_010_000_000L))
+            second.send(packet(50f, 50f, pressure = 0.5f, atNanos = 2_000_000_000L))
+            second.send(packet(90f, 90f, pressure = 0.6f, atNanos = 2_010_000_000L))
             assertTrue("the stroke is in progress", second.drawing)
             second.finishIfStale(2_010_000_000L + PenPacketStroke.STALE_NANOS)
             assertEquals("the silence committed it where it stopped", before + 1, strokes(tab).size)
@@ -315,8 +371,8 @@ class PenPacketStrokeTest {
         try {
             val before = strokes(tab).size
             val path = path(tab, size = Size(600f, 900f))
-            path.packet(packet(60f, 60f, pressure = 0.3f, atNanos = 1_000_000_000L))
-            path.packet(packet(120f, 90f, pressure = 0.5f, atNanos = 1_010_000_000L))
+            path.send(packet(60f, 60f, pressure = 0.3f, atNanos = 1_000_000_000L))
+            path.send(packet(120f, 90f, pressure = 0.5f, atNanos = 1_010_000_000L))
 
             // Half a second of stillness: the ticker sees no packets, and the stroke is still being drawn.
             path.finishIfStale(1_010_000_000L + 500_000_000L)
@@ -325,13 +381,13 @@ class PenPacketStrokeTest {
 
             // A tip-down more than a window later is a new stroke, and the first one is finished as it was.
             val later = 1_010_000_000L + PenPacketStroke.STALE_NANOS
-            path.packet(packet(200f, 160f, pressure = 0.4f, atNanos = later))
+            path.send(packet(200f, 160f, pressure = 0.4f, atNanos = later))
             assertEquals("the paused stroke was kept", before + 1, strokes(tab).size)
             assertEquals("with the two samples it had", 2, strokes(tab).last().points.size)
             assertTrue("and the new tip-down is a stroke of its own", path.drawing)
 
-            path.packet(packet(260f, 200f, pressure = 0.8f, atNanos = later + 10_000_000L))
-            path.packet(packet(260f, 200f, pressure = 0f, tip = false, atNanos = later + 20_000_000L))
+            path.send(packet(260f, 200f, pressure = 0.8f, atNanos = later + 10_000_000L))
+            path.send(packet(260f, 200f, pressure = 0f, tip = false, atNanos = later + 20_000_000L))
             assertEquals("which the lift commits separately", before + 2, strokes(tab).size)
             assertEquals(2, strokes(tab).last().points.size)
         } finally {

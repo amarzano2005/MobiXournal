@@ -28,14 +28,24 @@ import com.mobixournal.render.PointerKind
  * still one. The Compose pointer keeps a draft of its own (`PageCanvas`), which is what makes that true:
  * a mouse gesture cancelled when the packets take over drops *its* samples, never this stroke's.
  *
- * **Two threads, one monitor.** A packet is delivered on the thread that dispatches the window's
- * messages (the window procedure `TabletWintab` drains its queue from) while [flush] and the rest run on
- * the frame ticker — and `kotlin.collections.ArrayDeque` is not thread-safe. The window proved it: a
- * drain that ran while the driver's thread was writing the same slot returned `null`, and the null
- * reached `PageInkGesture.move(pointer)` as a `NullPointerException` dialog on top of the page (its
- * checkcast accepts `null`; only the callee's parameter check rejects it). Every entry point is therefore
- * `@Synchronized` on this instance, so a frame sees either all of a packet or none of it, and the buffer
- * can never be read half-written.
+ * **Two threads, and only one of them touches the gesture.** A packet is delivered on the thread that
+ * dispatches the window's messages (the window procedure `TabletWintab` drains its queue from); [flush]
+ * runs on the frame ticker. [packet] therefore does **one thing**: it appends to a
+ * `ConcurrentLinkedQueue`, which needs no monitor of its own. Everything else — the smoothing, the
+ * router, the draft, the commit — happens inside [flush], on the frame thread, where Compose's snapshot
+ * state belongs.
+ *
+ * Both alternatives were tried on the running window and both were wrong. Handing every packet straight
+ * to the gesture from the driver's thread is what produced the `null` samples (a `kotlin.collections.ArrayDeque`
+ * drained on another thread returns `null`, and the null reached `PageInkGesture.move(pointer)` as an
+ * error dialog). Wrapping the entry points in a monitor was worse: the driver's thread took the lock and
+ * then wrote snapshot state, while the frame thread waited for the lock *inside* a frame that already held
+ * the snapshot's — a lock inversion that froze the window the moment a stroke began. A queue has neither
+ * problem: the driver's thread never waits, and the gesture still sees a whole packet or none of it.
+ *
+ * The cost is at most one frame of latency for the tip-down, which is the same frame on which the samples
+ * after it are painted, so nothing is visible: a queued tip-down opens the stroke and its queued
+ * followers extend it in the same pass.
  */
 internal class PenPacketStroke(
     private val gesture: PageInkGesture,
@@ -55,8 +65,7 @@ internal class PenPacketStroke(
     private val onHover: (Offset?) -> Unit = {},
 ) {
 
-    /** True between the tip's first packet and its lift. Volatile: read outside the lock by the canvas. */
-    @Volatile
+    /** True between the tip's first packet and its lift. Written only by [flush]'s thread. */
     var drawing: Boolean = false
         private set
 
@@ -68,14 +77,24 @@ internal class PenPacketStroke(
     private var publishedAt: Offset? = null
 
     /**
-     * The samples that have arrived since the last frame, in the driver's own order.
+     * The packets that have arrived since the last frame, in the driver's own order.
      *
-     * The driver sends 400 packets a second, while the window repaints at the screen's rate; feeding
-     * every packet straight to the gesture made 400 snapshot writes and 400 invalidations for one
-     * frame's worth of ink. They are buffered here and handed over once per frame by [flush] — every
-     * filtered sample in order, with its own width — so the drawn line is identical while the canvas
-     * repaints once. The tip-down itself is not delayed: it is the sample that starts the stroke and
-     * tells the mouse path to stand aside.
+     * Written only by [packet] (the driver's thread) and drained only by [flush] (the frame thread), so
+     * it must be a queue that tolerates exactly that: `ConcurrentLinkedQueue` is lock-free for the
+     * producer, which is what keeps the driver's thread from ever waiting on the window.
+     *
+     * The driver sends 400 packets a second while the window repaints at the screen's rate; feeding every
+     * packet straight to the gesture made 400 snapshot writes and 400 invalidations for one frame's worth
+     * of ink. They are handed over once per frame — every filtered sample in order, with its own width —
+     * so the drawn line is identical while the canvas repaints once.
+     */
+    private val inbox = java.util.concurrent.ConcurrentLinkedQueue<PenPacket>()
+
+    /**
+     * The samples of the stroke in progress that the gesture has not been told about yet.
+     *
+     * Frame-thread only, like everything else the gesture touches: it is the hand-off between [flush]'s
+     * filtering of one frame's packets and the single `move` per sample the gesture expects.
      */
     private val pending = ArrayDeque<InkPointer>()
 
@@ -112,8 +131,19 @@ internal class PenPacketStroke(
      * evidence that the lift came, which is why [STALE_MS] is generous and why a silence **finishes** the
      * stroke instead of throwing the hand's ink away.
      */
-    @Synchronized
     fun packet(packet: PenPacket) {
+        // The driver's thread does nothing but this: no state, no lock, no gesture. Anything more here
+        // runs on the message thread while a frame is being painted.
+        inbox.add(packet)
+    }
+
+    /**
+     * One packet, applied on the frame thread — the state machine that was [packet]'s body.
+     *
+     * Everything below is single-threaded by construction: [flush] is its only caller, and [flush] is
+     * called by the canvas's ticker.
+     */
+    private fun ingest(packet: PenPacket) {
         val raw = Offset(packet.x - origin().x, packet.y - origin().y)
         val local = smoothedAt?.let { previous ->
             Offset(
@@ -130,14 +160,14 @@ internal class PenPacketStroke(
         if (!packet.tip) {
             if (drawing) {
                 // The lift ends the stroke, so the samples still waiting for a frame are part of it.
-                flush()
+                drainPending()
                 gesture.up(pointer(packet, local))
                 release()
             }
             return
         }
         if (drawing && packet.atNanos - lastPacketNanos >= STALE_NANOS) {
-            flush()
+            drainPending()
             finishStroke()
         }
         if (!drawing) {
@@ -161,8 +191,17 @@ internal class PenPacketStroke(
      * stroke never loses its tail to the frame it ended on. A no-op between packets, and cheap enough
      * to call every frame.
      */
-    @Synchronized
     fun flush() {
+        // The only cross-thread read: whatever the driver appended since the last frame, in order.
+        while (true) {
+            val next = inbox.poll() ?: break
+            ingest(next)
+        }
+        drainPending()
+    }
+
+    /** The stroke's samples buffered for this frame, in arrival order — one `move` each. */
+    private fun drainPending() {
         while (pending.isNotEmpty()) gesture.move(pending.removeFirst())
     }
 
@@ -173,7 +212,6 @@ internal class PenPacketStroke(
      * `null` once the readings stop is what hands the pointer back to the mouse when the pen leaves the
      * tablet's proximity, instead of freezing the ring where it was last seen.
      */
-    @Synchronized
     fun publishHover() {
         // No timeout: the driver reports *changes*, so a pen held still above the glass sends nothing and
         // a ring that vanished under a resting hand would be worse than one that outlives it. The driver
@@ -194,11 +232,10 @@ internal class PenPacketStroke(
      * stroke is **committed** where it stopped — a stroke that vanishes under a pause is the loss this path
      * exists to prevent.
      */
-    @Synchronized
     fun finishIfStale(nowNanos: Long) {
         if (!drawing) return
         if (nowNanos - lastPacketNanos < STALE_NANOS) return
-        flush()
+        drainPending()
         finishStroke()
     }
 

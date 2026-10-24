@@ -86,15 +86,30 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   stroke never loses its last millimetres to the frame it ended on. `PenPacketStrokeTest` pins the batch
   rule beside the existing stroke tests.
 
-  That buffer is written by the **window procedure's thread** and drained by the **frame ticker**, and
-  `kotlin.collections.ArrayDeque` is not thread-safe: a `removeFirst()` that overlapped the driver's
-  write returned `null` (measured: ~350 000 nulls in half a second of two threads hammering one), the
-  null passed the compiler's cast at the call site, and the window put a dialog on top of the page —
-  "parameter specified as non-null is null: `PageInkGesture.move`, parameter `pointer`". Every entry
-  point the two threads share (`packet`, `flush`, `publishHover`, `finishIfStale`) is now `@Synchronized`
-  on the stroke, so a frame sees a whole packet or none of it. `PenPacketStrokeConcurrencyTest` hammers
-  both sides and also asserts the modifier itself, because a rare race would otherwise be caught only by
-  luck.
+  That hand-off crosses two threads — packets are delivered on the **window procedure's thread**, the
+  gesture is drawn by the **frame ticker** — and the first two shapes of it both failed on the running
+  window, which is why the third is the one in the code:
+
+  1. **Straight to the gesture from the driver's thread** put Compose's snapshot writes on a thread that
+     does not paint, and lost samples: a `kotlin.collections.ArrayDeque` drained while another thread
+     wrote it hands back `null` (measured: ~350 000 nulls in half a second of two threads hammering one),
+     the null passed the compiler's cast at the call site, and the window put a dialog over the page —
+     "parameter specified as non-null is null: `PageInkGesture.move`, parameter `pointer`".
+  2. **A monitor around the entry points** stopped the nulls and froze the window instead: the driver's
+     thread took the lock and then wrote snapshot state, while the frame thread waited for the lock
+     *inside* a frame that already held the snapshot's — a lock inversion that stalled on the first stroke.
+  3. **The queue** is what ships: `packet()` appends to a `ConcurrentLinkedQueue` and does nothing else —
+     no state, no lock, no gesture — while `flush()` on the frame thread drains it and runs the whole
+     state machine (smoothing, the router, the draft, the commit). The driver's thread can never wait on
+     a frame, and the gesture is touched by exactly one thread. A tip-down is therefore drawn by the
+     frame that follows it, together with the samples queued behind it, which is the same frame that
+     would have painted them anyway.
+
+  `PenPacketStrokeConcurrencyTest` hammers both threads at once (no `null`, strokes still committed) and
+  asserts the shape of the hand-off — `packet` not `synchronized`, the inbox a
+  `ConcurrentLinkedQueue` — because a rare race would otherwise be caught only by luck.
+  `PenPacketStrokeTest` asserts the same rule from the other side: a packet with no frame behind it draws
+  nothing at all.
 
   The probe paints with the editor's own `PageCanvas` and feeds the real `PenPacketStroke`, recording for
   every sample the packet's time and the `nanoTime` of the frame that first drew it. On a host with no

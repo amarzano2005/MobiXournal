@@ -6,6 +6,8 @@ import com.mobixournal.format.mobix.SyntheticNotebook
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -107,28 +109,26 @@ class PenPacketStrokeConcurrencyTest {
     }
 
     /**
-     * The hammer above can miss a narrow window, so the **rule** is asserted too: every entry point a
-     * second thread can reach is `@Synchronized`. Removing the lock is the regression, and this fails on
-     * the modifiers rather than on a lucky timing.
+     * The hammer above can miss a narrow window, so the **shape** of the hand-off is asserted too.
+     *
+     * The driver's entry point must stay a lock-free enqueue: a monitor there is what froze the window,
+     * because the message thread took it and then wrote snapshot state while the frame thread waited for
+     * it inside a frame. `packet` is therefore not `synchronized`, and everything else runs from
+     * [PenPacketStroke.flush] on the frame thread — which the test above proves by using both threads at
+     * once and seeing no `null` and no lost stroke.
      */
     @Test
-    fun `every entry point the packet and frame threads share is synchronized`() {
-        val entryPoints = mapOf(
-            "packet" to PenPacket::class.java,
-            "flush" to null,
-            "publishHover" to null,
-            "finishIfStale" to Long::class.javaPrimitiveType!!,
+    fun `the driver's entry point is a lock-free enqueue`() {
+        val packet = PenPacketStroke::class.java.getDeclaredMethod("packet", PenPacket::class.java)
+        assertFalse(
+            "packet() must not take a monitor: the driver's thread may never wait on a frame",
+            java.lang.reflect.Modifier.isSynchronized(packet.modifiers),
         )
-        for ((name, argument) in entryPoints) {
-            val method = if (argument == null) {
-                PenPacketStroke::class.java.getDeclaredMethod(name)
-            } else {
-                PenPacketStroke::class.java.getDeclaredMethod(name, argument)
-            }
-            assertTrue(
-                "$name must be synchronized: the driver's thread and the frame thread both call it",
-                java.lang.reflect.Modifier.isSynchronized(method.modifiers),
-            )
-        }
+        val inbox = PenPacketStroke::class.java.getDeclaredField("inbox").type
+        assertEquals(
+            "the hand-off is a queue two threads may share without a lock",
+            java.util.concurrent.ConcurrentLinkedQueue::class.java,
+            inbox,
+        )
     }
 }
