@@ -19,6 +19,7 @@ import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Tool
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
@@ -46,7 +47,10 @@ class PageRasterTest {
     private val width = 360
     private val height = 460
 
-    /** A sheet with enough ink that the direct path is the cost being removed. */
+    /**
+     * A sheet with enough ink that the direct path is the cost being removed, plus a text box — the other
+     * thing a cached sheet must keep, and the one drawn through the shared [TextMeasurer].
+     */
     private fun page(strokes: Int = 120): Page = Page(
         width = width.toDouble(),
         height = height.toDouble(),
@@ -65,7 +69,14 @@ class PageRasterTest {
                         capStyle = "round",
                         uniformWidth = true,
                     )
-                },
+                } + TextElement(
+                    font = "sans",
+                    size = 14.0,
+                    x = 30.0,
+                    y = 420.0,
+                    color = 0xFF000000.toInt(),
+                    content = "Cached text is measured once too",
+                ),
             ),
         ),
     )
