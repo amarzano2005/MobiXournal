@@ -110,6 +110,40 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /**
+     * The highlighter's own colour — the tablet keeps the two tools apart the same way, so switching to
+     * the highlighter does not repaint the pen.
+     */
+    var highlighterColour: Int
+        get() = PaletteCodec.parseHex(properties.getProperty(KEY_HIGHLIGHTER_COLOUR))
+            ?.let(PenPalette::opaque)
+            ?: DesktopInks().highlighter.colour
+        set(value) {
+            properties.setProperty(KEY_HIGHLIGHTER_COLOUR, PaletteCodec.hex(value))
+            save()
+        }
+
+    /** The highlighter's stroke width, in points, clamped to [PenPalette]'s range. */
+    var highlighterWidth: Float
+        get() = properties.getProperty(KEY_HIGHLIGHTER_WIDTH)?.toFloatOrNull()
+            ?.let(PenPalette::clampWidth)
+            ?: DesktopInks().highlighter.width
+        set(value) {
+            properties.setProperty(KEY_HIGHLIGHTER_WIDTH, PenPalette.clampWidth(value).toString())
+            save()
+        }
+
+    /** The highlighter's three favourites: its own, exactly as the tablet keeps a terna per tool. */
+    var highlighterFavourites: List<Int>
+        get() = PaletteCodec.decodeFavourites(properties.getProperty(KEY_HIGHLIGHTER_FAVOURITES))
+        set(value) {
+            properties.setProperty(
+                KEY_HIGHLIGHTER_FAVOURITES,
+                PaletteCodec.encode(value.map(PenPalette::opaque).take(PaletteCodec.FAVOURITES)),
+            )
+            save()
+        }
+
     /** The stroke width the strips show, in points, clamped to [PenPalette]'s range. */
     var inkWidth: Float
         get() = properties.getProperty(KEY_INK_WIDTH)?.toFloatOrNull()
@@ -143,6 +177,15 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The palette's editable custom slot; absent while the slot is empty. */
         const val KEY_PALETTE_CUSTOM = "palette.custom"
+
+        /** The highlighter's colour, as [PaletteCodec] hex. */
+        const val KEY_HIGHLIGHTER_COLOUR = "ink.highlighterColour"
+
+        /** The highlighter's stroke width, in points. */
+        const val KEY_HIGHLIGHTER_WIDTH = "ink.highlighterWidth"
+
+        /** The highlighter's three favourite colours, as [PaletteCodec]'s hex list. */
+        const val KEY_HIGHLIGHTER_FAVOURITES = "interface.highlighterFavourites"
 
         /** The stroke width the strips show, in points. */
         const val KEY_INK_WIDTH = "ink.width"

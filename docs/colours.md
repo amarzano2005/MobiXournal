@@ -17,9 +17,19 @@ read it instead of spelling their own copies, because the desktop window needs t
 the same three widths — what a palette *is* cannot be decided twice. What stays in `ui/` is the UI: the
 swatch rows, the custom-slot affordances and the HSV/hex dialog.
 
+**One ink per drawing tool, on both shells.** A palette is what the user has; the colour and width a tool
+writes with belong to **that tool**. The tablet keeps `EditorUiState.color` / `highlighterColor`
+(`penWidth` / `highlighterWidth`) and a terna of favourites each (`AppSettings.penFavorites` /
+`highlighterFavorites`), so a yellow highlighter never repaints the pencil and `1`–`3` take the terna of the
+tool in hand; the window mirrors it with `DesktopInks` and `DesktopFavourites`, keyed by the picked slot.
+The custom slot stays a property of the palette (`AppSettings.customColor`, `palette.custom`), because
+redefining it redefines it for both tools. `DesktopInkSplitTest` pins the pair.
+
 **On the desktop** the palette is the same data, kept in the window's own settings file
 (`%APPDATA%\MobiXournal\desktop.properties`): `palette.colours` as a comma-separated list of eight-digit
-ARGB hex, plus `ink.colour` and `ink.width` for what the strips show. The strip tails carry a colour slot
+ARGB hex, `ink.colour` / `ink.width` and `ink.highlighterColour` / `ink.highlighterWidth` for what the
+strips show per tool, and `interface.colourFavourites` / `interface.highlighterFavourites` for the two
+ternas. The strip tails carry a colour slot
 and a size slot, opening the palette row and the `S`/`M`/`L` widths as floating glass flyouts. Reading
 the file runs the list through `PenPalette.sanitised`, so an edited file cannot put a transparent colour,
 a duplicate or an empty palette in front of the picker. The row ends in the editable custom slot and the

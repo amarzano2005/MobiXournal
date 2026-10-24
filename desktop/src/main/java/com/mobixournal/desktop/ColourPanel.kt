@@ -32,7 +32,7 @@ internal fun BoxScope.ColourPanelHost(state: DesktopShellState) {
         ColourPickerPanel(
             title = if (target == ColourEditorTarget.CUSTOM) "Custom colour" else "New colour",
             initial = if (target == ColourEditorTarget.CUSTOM) {
-                state.ink.custom ?: state.ink.colour
+                state.paletteCustom ?: state.ink.colour
             } else {
                 state.ink.colour
             },
