@@ -25,6 +25,28 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-tool-groups-and-pickers"
+title = "Give the desktop tool strips the tablet's tool groups"
+description = "A strip slot is a ToolGroup now, as on the tablet. ToolGroups.kt holds the model (members, face, hasPicker, faceFor(selection), toggledPicker) and the strips iterate groups instead of DesktopTool.entries: the two erasers share a slot, the seven figures share another, and pen/highlighter/vertical space stand alone. ToolGroupPicker.kt adds the glass picker (a row per member: its glyph, its name, its key) and the chevron a grouped slot wears; the chevron, a long press or Alt+Down opens it, Esc or a pick closes it, and picking only re-faces the slot - every member is still reachable by the key it prints, so no shortcut changed. The strips also stopped offering tools the canvas cannot act on: DESKTOP_TOOLS_THAT_ACT is the map in code, and text, plot, table, circuit, lasso and marquee get their slot back when their task lands. ToolGroupsTest (9 tests) pins the invariants, ToolStripsTest gained the shell-level open/pick/close walk and a render test that the eraser slot draws the picked member; the rail/ribbon render tests moved to the group list, and the ink-slot probe now measures from below the last slot. Docs: desktop-workstation's tool-placement entry, ui-modernization's shortcut table (Alt+Down) and its icon-set bullet, README's tool-strip paragraph. Distributable regenerated with the group code inside."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "unify-remaining-stem-tool-glyphs"
+title = "Complete the icon-to-glyph adaptation: every slot face comes from the catalogue"
+description = "Closed the iconography seam for good. The catalogue now owns every tool face: 21 circuit and logic-gate members, the three chemistry bonds (ToolGlyphsCircuit.kt / ToolGlyphsChemistry.kt) and the seven triangle/trapezoid variant faces were transcribed onto the 24-unit grid, and the tablet's own vectors (CircuitGlyphs.kt, ChemGlyphs.kt, the shape outlines in ui/ToolGlyphs.kt) were deleted - that file is now just the kinds' catalogue adapter, and the chem guides draw BENZENE. EditorTool.ToolInfo requires a glyph, so a tool without art no longer compiles; ToolGlyphCoverageTest's tolerated set is empty and it also fails on two tools sharing a face; ToolGlyphsTest pins the variant mapping; a new desktop ToolGlyphRenderTest paints every entry through the slot adapter and writes build/tool-glyphs.png as a contact sheet. Docs updated (interface-contract section 4, ui-modernization 'One icon set', codebase). Suites green: mobix-core, app and desktop tests, desktop distributable regenerated."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-10-22
+completed = 2026-10-24
+tags = ["desktop", "mobile"]
+
+[[task]]
 id = "desktop-dial-wheel-zoom"
 title = "Desktop: the dial's notch zooms, told apart from the mouse wheel"
 description = "Shipped as described. The dial's notch arrives as WM_MOUSEWHEEL with no modifier and no extra-info, so it was given a device instead of a heuristic: desktop/TabletWheel.kt registers for the mouse's raw reports (WM_INPUT, RIDEV_INPUTSINK), turns RAWINPUTHEADER.hDevice into the device's interface path with GetRawInputDeviceInfoW, and calls a notch the dial's when the path is the tablet's (tablethid/huion/vmidi/vid_256c). It stays observational — the same notch is the Compose scroll event the canvas already receives, and PageCanvas asks DesktopTablet.dialWheelRecently() which wheel turned, so one notch is one action whichever message lands first. The dial's notch takes wheelViewport's zoom path at the cursor with no Ctrl held and leaves the fit, while the mouse's wheel keeps scrolling and keeps the zoom. DialWheelSceneTest drives both devices through Compose's real dispatch and asserts exactly those two outcomes; docs/desktop-workstation.md (the measured dial and raw-input rows) and README's desktop paragraph document it. Deliberately not done here: the dial's second control (stroke width and its diameter ring), which is desktop-dial-width-and-ring."

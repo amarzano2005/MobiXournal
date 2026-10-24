@@ -36,34 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "unify-remaining-stem-tool-glyphs"
-title = "Complete the icon-to-glyph adaptation: every slot face comes from the catalogue"
-description = "Priority 1 work, and the closing half of the iconography seam: ToolGlyphCatalogue (mobix-core) holds the thirty glyphs either shell can put on a toolbar slot face - the rail's tools, the STEM dock's default faces, every shape and arrow variant, and the window's. What is left is the rest of the catalogue and the sweep that makes it the only glyph source in both shells. (1) Add a GlyphPart entry for each tablet picker member that still draws its original ImageVector: capacitor, inductor, ground, the switch pair, junction, LED, zener, op-amp, both BJTs, the two sources, transformer, OR/NOT/NAND/NOR/XOR/XNOR/buffer gates, the three chem bonds, TEXIMAGE, TEXT_SELECT, BG_SELECT and PLAY_OBJECT (they are already monoline paths on the 24-unit grid in app/src/main/java/com/mobixournal/ui/CircuitGlyphs.kt and ChemGlyphs.kt, so this is transcription, not new art) and map each in EditorTool.ToolInfo. (2) Sweep the tool surfaces of BOTH shells - the tablet's rail, its STEM dock and every picker row, and the window's rail and ribbon - for a slot that still draws a Material icon or a hand-drawn vector instead of a catalogue glyph, and replace it; the header's own chrome glyphs (sidebar, placement, undo/redo) are not tool faces and stay where docs/interface-contract.md section 4 puts them. (3) Tighten ToolGlyphCoverageTest's waiting bound to zero, so a new EditorTool with no catalogue glyph fails the build instead of being tolerated. (4) Keep the glyphs identical in both shells: one grid, one stroke weight, one set of joints (docs/ui-modernization.md section 4), with a render test per shell that a slot's face is the catalogue's glyph and not a fallback. Done when no EditorTool and no desktop DesktopTool lacks a catalogue glyph, the app and desktop suites pass, and docs/ui-modernization.md's iconography bullet no longer names a seam. Desktop rebuild not needed for the app-only halves; run :desktop:test and regenerate the distributable at the end because the window's faces change."
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 20
-created = 2026-10-22
-tags = ["desktop", "mobile"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-tool-groups-and-pickers"
-title = "Give the desktop tool strips the tablet's tool groups"
-description = "Priority 1 work on the strips themselves, because a group is how the window exposes a tool the tablet already offers: the tablet's rail shows one slot per tool group (pen, highlighter, eraser partial/whole, pan, select rectangle/lasso, insert, text, vertical space) with a chevron that opens the group's picker, and its STEM dock does the same for the shapes, arrows, passive and active circuits, logic gates and chemistry families. The desktop's rail and ribbon still draw the window's slots flat, with no grouping and no picker, so the two toolbars share their material and their glyphs but not their structure. Port ToolGroup/pickerRows semantics to a desktop model beside ToolSelection.kt (a group holds its members and remembers which one faces the slot), add the chevron affordance to the slot and a glass picker popup anchored to it (docs/interface-contract.md: one material class, the five states, English copy), and keep the shortcuts of docs/ui-modernization.md section 3 meaning the same tools - the picker only re-faces a slot, it never changes a key. Members that act are the ones desktop-every-tool-does-what-it-does-on-the-tablet lists; a member whose tool does not act yet is not shown, so this lands behind that map rather than ahead of it. Verify headlessly: a render test asserting each group's slot shows its selected member's glyph and that a pick re-faces the slot, plus the picker opened and closed by keyboard and by pointer, and a keyboard test that every member of a group is reachable without the picker. Docs: the tool-placement section of docs/desktop-workstation.md and the iconography bullet of docs/ui-modernization.md. Regenerate the distributable at the end."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 30
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-eraser-and-selection-on-shared-geometry"
 title = "Desktop: marquee and lasso selection on the shared geometry"
 description = "What is left of the selection half; the eraser half shipped with editable-page-window-for-a-paged-desktop (2026-10-22) and is closed here: the window's eraser erases through the shared PageEraser in STANDARD and WHOLE_STROKE modes with eraserRadiusPt sizing the tip, committed through the tab's page window (DesktopEditingTest renders a bar, erases across it and asserts the gap is paper again with both halves still inked). Still owed: (1) the three marquee tools - MARQUEE drags a rectangle, LASSO a freehand loop and BG_SELECT the same region flattened onto the background - each painting the window's own marching outline over the page (not a material of their own, docs/interface-contract.md) and each committing through the page window as one undo step; (2) what a selection then does - move by dragging, scale from the corner handles, rotate once a handle is turned (desktop-living-entity-editors owns editing a living entity's own handles, this owns the selection transform), with the transform maths taken from the app's SelectionOps, which still lives in the app module because it uses ElementRef, FigureRedraw and TableElementFactory; the per-element move is already cut out into mobix-core's ElementShift (the seam VerticalSpaceOps and SelectionOps both walk), so continue along that seam and move the rest, or split it the same way, rather than starting a second geometry; (3) core tests for whatever maths moves plus a desktop render test that a marquee drag paints an outline and a lift moves exactly what it caught; (4) the packets gate: a selection drag is not ink, so DesktopTool.inksByPackets must stay false for it and the pen's packets must not take the drag (DesktopVerticalSpaceTest is the pattern). Docs: docs/selection.md (the shared maths) and docs/desktop-workstation.md. No emulator; run :desktop:test and regenerate the distributable."
