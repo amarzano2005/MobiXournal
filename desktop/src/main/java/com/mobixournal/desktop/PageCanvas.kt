@@ -96,6 +96,8 @@ internal fun PageCanvas(
     onPlaceLiving: ((LivingSlot, Bounds) -> Unit)? = null,
     /** The Text slot's box and callbacks; nothing is on the page until the shell commits it. */
     text: TextBoxUi = TextBoxUi(),
+    /** What a double-click on the selected living element means: open its editor (the shell's pencil). */
+    onEditLiving: (() -> Unit)? = null,
     onEdited: (Int) -> Unit = {},
     /** The window's pen stream (Wintab or Windows Ink), folded into the pointer events. */
     pen: PenContactStream? = null,
@@ -156,6 +158,7 @@ internal fun PageCanvas(
             circuitKind = circuitKind,
             onPlaceLiving = placeLiving,
             text = text,
+            onEditLiving = onEditLiving,
             draft = memory.draft,
             penDraft = memory.penDraft,
             pen = pen,
@@ -185,7 +188,7 @@ internal fun PageCanvas(
  * Two input paths write these (the packets, and the Compose moves of a window with no stream), which is
  * why they are remembered by the canvas rather than by the path that happens to run.
  */
-private class PenPointer {
+internal class PenPointer {
     val owns = mutableStateOf(false)
     val hover = mutableStateOf<Offset?>(null)
     val atNanos = mutableStateOf(0L)
@@ -244,6 +247,8 @@ private fun PageSheet(
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     text: TextBoxUi,
+    /** What a double-click on the selected living element means: open its editor. */
+    onEditLiving: (() -> Unit)?,
     draft: SnapshotStateList<InkSample>,
     penDraft: SnapshotStateList<InkSample>,
     pen: PenContactStream?,
@@ -296,6 +301,7 @@ private fun PageSheet(
         circuitKind = circuitKind,
         onPlaceLiving = onPlaceLiving,
         onTextPress = text.onPress,
+        onEditLiving = onEditLiving,
         draft = draft,
         penDraft = penDraft,
         pen = pen,
@@ -341,7 +347,7 @@ private fun Modifier.hoverTracking(pointer: PenPointer, followMouse: () -> Boole
         .onPointerEvent(PointerEventType.Exit) { if (followMouse()) pointer.hover.value = null }
 
 /** A page's size and the viewport in force for it, in the window it is being shown in. */
-private data class SheetLayout(
+internal data class SheetLayout(
     val pageW: Float,
     val pageH: Float,
     val zoom: Float,
@@ -391,6 +397,8 @@ private fun SheetCanvas(
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
+    /** What a double-click on the selected living element means — the shell's pencil, from the canvas. */
+    onEditLiving: (() -> Unit)?,
     draft: SnapshotStateList<InkSample>,
     /** The tablet's stroke, drawn from its packets — a draft of its own, painted beside [draft]. */
     penDraft: SnapshotStateList<InkSample>,
@@ -428,35 +436,10 @@ private fun SheetCanvas(
                     forceZoom = dialWheel(),
                 )?.let(onViewport)
             }
-            // The key is the page and the zoom, **never the offsets**: a drag scrolls the sheet at the
-            // canvas's edge, and a key that changed with the viewport would cancel the very gesture that
-            // moved it. The view is therefore read through a lambda, which sees the scroll at once.
-            .pointerInput(tab, panMode, tool, ink, pen, sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH) {
-                pageGestures(
-                    tab = tab,
-                    panMode = panMode,
-                    tool = tool,
-                    ink = ink,
-                    onPlaceLiving = onPlaceLiving,
-                    onTextPress = onTextPress,
-                    viewport = {
-                        tab.viewport.copy(zoom = sheet.zoom)
-                            .clamped(sheet.pageW, sheet.pageH, sheet.viewW, sheet.viewH)
-                    },
-                    pageW = sheet.pageW,
-                    pageH = sheet.pageH,
-                    viewW = sheet.viewW,
-                    viewH = sheet.viewH,
-                    draft = draft,
-                    pen = pen,
-                    penActive = { pointer.owns.value },
-                    onLiveDrag = onLiveDrag,
-                    grabLine = pointer.grabLine,
-                    previewRegion = pointer.previewRegion,
-                    onViewport = onViewport,
-                    onEdited = onEdited,
-                )
-            },
+            .sheetGestures(
+                tab, panMode, tool, ink, pen, sheet, pointer, draft,
+                onPlaceLiving, onTextPress, onEditLiving, onLiveDrag, onViewport, onEdited,
+            ),
     ) {
         paintSheet(
             sheetPicture = sheetPicture,
@@ -541,7 +524,12 @@ private fun DrawScope.paintSheet(
             }
         }
         // The selection's marching outline and its handles, above the ink: what is caught stays visible.
-        selection?.let { drawSelection(it, pxPerPt) }
+        // A single living element also wears its own grips (a figure's corners, a table's dividers).
+        val livingElement = selection?.takeIf { it.refs.size == 1 }?.let { picked ->
+            val ref = picked.refs.first()
+            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+        }
+        selection?.let { drawSelection(it, pxPerPt, living = livingElement) }
         previewRegion?.let { drawSelectionPreview(it, pxPerPt) }
         // Above the ink, as the tablet draws it: the line the vertical-space drag would move the page at.
         grabLineY?.let { y ->

@@ -2,6 +2,8 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.MathBlockElement
+import com.mobixournal.format.model.MathFlavor
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
@@ -22,6 +24,9 @@ enum class LivingSlot {
     PLOT,
     TABLE,
     CIRCUIT,
+
+    /** A living formula: its `source` in a flavour, typeset from the source rather than stored as ink. */
+    MATH,
 }
 
 /** A fresh element's size on a page, in points. */
@@ -60,6 +65,12 @@ object LivingPlacement {
     val DEFAULT_CIRCUIT_KIND: ShapeKind = ShapeKind.RESISTOR
 
     /**
+     * The source a formula starts from when nothing has been typed: short enough to typeset in a default box,
+     * so a placed block is never an invisible empty frame.
+     */
+    const val DEFAULT_MATH_SOURCE: String = "x^2"
+
+    /**
      * The size a **click** places for [slot] on a page [pageW] wide.
      *
      * A plot follows the tablet's own rule (`PlotElementFactory.boxFor`): 45 % of the page's width, kept
@@ -76,6 +87,10 @@ object LivingPlacement {
             TableElementFactory.DEFAULT_HEIGHT_PT,
         )
         LivingSlot.CIRCUIT -> LivingSize(CircuitInk.DEFAULT_LENGTH_PT, CircuitInk.DEFAULT_LENGTH_PT / 2.0)
+        LivingSlot.MATH -> LivingSize(
+            MathBlockElement.DEFAULT_WIDTH_PT,
+            MathBlockElement.DEFAULT_HEIGHT_PT,
+        )
     }
 
     /**
@@ -178,6 +193,28 @@ object LivingPlacement {
         endY = (bounds.top + bounds.bottom) / 2.0,
         strokeColor = colour,
         strokeWidth = strokeWidthPt,
+    )
+
+    /**
+     * The living formula for a placed [bounds], written in [source] (LaTeX or Typst, per [flavour]) and
+     * [colour].
+     *
+     * The block carries **no rendered bytes**: the drawing is a function of the source, the same way the
+     * tablet's math block works, so the window authors the recipe and not a picture of it.
+     */
+    fun math(
+        bounds: Bounds,
+        source: String = DEFAULT_MATH_SOURCE,
+        flavour: MathFlavor = MathFlavor.LATEX,
+        colour: Int = 0xFF000000.toInt(),
+    ): MathBlockElement = MathBlockElement(
+        left = bounds.left,
+        top = bounds.top,
+        right = bounds.right,
+        bottom = bounds.bottom,
+        source = source,
+        color = colour,
+        flavor = flavour,
     )
 
     /** [default] centred on ([x], [y]) in page points. */

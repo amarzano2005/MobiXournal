@@ -123,6 +123,30 @@ private fun PlacementBody(pending: PendingPlacement) {
         LivingSlot.TABLE -> TableQuestion(pending)
         // A component's part was the palette's question, so a circuit never reaches this card.
         LivingSlot.CIRCUIT -> SectionCard("Component") { Readout("part", pending.slot.label()) }
+        LivingSlot.MATH -> MathQuestion(pending)
+    }
+}
+
+/**
+ * A formula's question: its source, its flavour, and the formula itself, typeset while it is typed.
+ *
+ * The source field writes on every keystroke (nothing of a pending question is on the page yet), which is
+ * what lets the preview follow the typing; **Place** is the only edit. Typst is a switch rather than a
+ * second field, because the block carries one source and one flavour — the same model the tablet writes.
+ */
+@Composable
+private fun MathQuestion(pending: PendingPlacement) {
+    SectionCard("Preview") {
+        MathQuestionPreview(pending)
+    }
+    SectionCard("Formula") {
+        ValueField(
+            initial = pending.mathSource,
+            multiline = true,
+            onDraft = { text -> pending.mathSource = text },
+            onCommit = { text -> pending.mathSource = text },
+        )
+        SwitchRow("Typst", pending.typst) { typst -> pending.typst = typst }
     }
 }
 
@@ -514,7 +538,7 @@ private fun LivingFamily.tool(): DesktopTool = when (this) {
     LivingFamily.TABLE -> DesktopTool.TABLE
     LivingFamily.SHAPE -> DesktopTool.RECTANGLE
     LivingFamily.CIRCUIT -> DesktopTool.CIRCUIT
-    LivingFamily.MATH -> DesktopTool.TEXT
+    LivingFamily.MATH -> DesktopTool.MATH
 }
 
 /** The slot whose glyph stands for a pending placement's family. */
@@ -522,6 +546,7 @@ private fun LivingSlot.tool(): DesktopTool = when (this) {
     LivingSlot.PLOT -> DesktopTool.PLOT
     LivingSlot.TABLE -> DesktopTool.TABLE
     LivingSlot.CIRCUIT -> DesktopTool.CIRCUIT
+    LivingSlot.MATH -> DesktopTool.MATH
 }
 
 /**

@@ -87,8 +87,9 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // The two ways to select a region on the page: a rectangle and a freehand loop.
     ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
-    // Typing on the page: a slot of its own, because a text box is neither ink nor a figure.
-    ToolGroup(listOf(DesktopTool.TEXT)),
+    // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
+    // tablet's two members — prose and a formula — with Text as its face.
+    ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
     ToolGroup(
         listOf(
             DesktopTool.LINE,
@@ -133,6 +134,8 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.LASSO,
     // The Text slot types in place: a press opens a box, and the commit writes one element.
     DesktopTool.TEXT,
+    // Its second member asks for a formula's source and writes one math block.
+    DesktopTool.MATH,
     DesktopTool.LINE,
     DesktopTool.ARROW,
     DesktopTool.DOUBLE_ARROW,

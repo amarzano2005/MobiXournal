@@ -65,6 +65,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 // A STEM slot asks its values before the element exists (the placement card in the
                 // right-hand lane), so the canvas hands the box over instead of writing it.
                 onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
+                // A double-click on the selected living element opens the same lane its pencil does —
+                // the tablet's double-tap, and one command rather than a second way to edit.
+                onEditLiving = { state.runSelection(SelectionAction.EDIT) },
                 // The Text slot types in place: the canvas opens the box, the field hands the typing
                 // back, and nothing reaches the page until the box is committed (`DesktopTextBox`).
                 text = TextBoxUi(

@@ -13,17 +13,13 @@ they share in `MobixJson.kt`.
 
 ## The four rules every element obeys
 
-1. **A `type` discriminator decides everything.** A reader that knows the type models the element; a
-   reader that does not **preserves it verbatim** as a `RawElement` in JSON syntax. That is the rule
-   the whole format is built on: a `.mobix` written by a newer app — carrying a table, a plot, a
-   `3dPlotElement` nobody has written yet — survives an open-and-save here byte-for-byte in value, so
-   an older build can never quietly strip a newer document.
+1. **A `type` discriminator decides everything.** A reader that knows the type models the element; one
+   that does not **preserves it verbatim** as a `RawElement`, so a `.mobix` written by a newer app — a
+   `3dPlotElement` nobody has written yet — survives an open-and-save byte-for-byte in value.
 2. **An `id`, minted once and never re-minted.** Identity is what the merge keys on
-   ([mobix-format.md](mobix-format.md) → *Merging two copies is library code*) and what lets an edit change an element without the
-   element becoming a different one. A copy's *duplicate* is a new id; a move is the same id. A reader
-   that finds an element without one mints it (`ElementId.mint`, `format/model/ElementIds.kt`), which
-   is how a `.xopp` import — a format with no ids at all — gets its elements identified exactly once.
-   The spelling is `<kind>_<12 hex>`: `stk_3f9c1a7b2e40`.
+   ([mobix-format.md](mobix-format.md) → *Merging two copies is library code*): an edit keeps it, a copy's
+   duplicate gets a new one. A reader that finds none mints it (`ElementId.mint`), which is how a `.xopp`
+   import — a format with no ids — gets its elements identified once. The spelling is `stk_3f9c1a7b2e40`.
 3. **`bounds` is a cache, written but never trusted.** A writer includes it when the element's own
    geometry determines it (a stroke's extents, an image's box); a reader **re-derives** rather than
    believing it, so a stale value in a file cannot become the document's truth. It exists so a reader
@@ -363,12 +359,9 @@ fills in), so the target can be seen before the wire is drawn; the magnet's reac
 in page points with a floor of `SNAP_REACH_PX` screen pixels, so a zoomed-out page can still be wired.
 
 A **component being placed** aims at one more thing: the ends of the **wires already on the page**
-(`collectPlacementTargets`), because a pin meeting a wire's end is the joint the magnet exists to make —
-the same joint as a wire drawn onto a pin, seen from the other side. Without it the connection closed only
-when the component happened to be placed *first*: a wire drawn before the part it feeds never met it.
-Only a wire's ends are offered, and only to a component, so a symbol is never pulled onto ink lying beside
-it. The line tool still aims at pins alone, and a pen stroke is never a target for anyone, however
-straight: drawing next to a line can never create a connection the user did not ask for.
+(`collectPlacementTargets`) — a pin meeting a wire's end, seen from the other side, so a wire drawn before
+the part it feeds still meets it. Only a wire's ends are offered, and only to a component; the line tool aims
+at pins alone and a pen stroke is never a target, so drawing beside a line never wires anything.
 
 Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
 stylus: `previewTargets` runs the factory's placement rule on the live drag, so the rings the user lines
@@ -396,5 +389,11 @@ a build that does not know a symbol cannot draw it, and says so rather than inve
 `MathBlockElement` is the living formula: its `source` in `flavor` (`LATEX`/`TYPST`), colour and box, and
 **no rendered bytes** — the drawing is a function of the source. `MobixMathCodec` spells it; the canvas
 typesets it with `LatexRenderer`, the window and the PDF plan through `LatexLayout` (`TexPainter`), and the
-`.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`) — the ink `LivingInk` produces, so the window
-paints both through one painter. Unknown types are kept verbatim (rule 1).
+`.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`), the ink `LivingInk` produces. **The window
+authors one too**: the Formula member of the Text slot (`Shift+T`) asks for the source with a live preview and
+writes it on **Place** (`PendingPlacement.mathSource`, `MathPreview`). Unknown types are kept verbatim (rule 1).
+
+**A family is edited where it is drawn.** The window's selection carries the element's own grips
+(`LivingGrips.kt`): a figure's corners move through `ParametricShapes.snappedVertex`, a table's interior
+dividers rewrite `colWidths`/`rowHeights` without touching `cells`, `left` or `top` — one undo step per drag.
+A plot's interval and a component's outline have no grips: those values belong to the lane.

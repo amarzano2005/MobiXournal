@@ -61,6 +61,11 @@ internal suspend fun PointerInputScope.pageGestures(
      */
     onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)? = null,
     /**
+     * What a **double-click on the selected living element** means: open its editor, as the tablet's
+     * double-tap does. Null when the canvas has no shell behind it.
+     */
+    onEditLiving: (() -> Unit)? = null,
+    /**
      * The viewport **as it is now**, not the one the composable was built with: a drag that reaches the
      * canvas's edge scrolls the sheet (`DragView`), so every mapping during a gesture has to read the view
      * the reader is actually looking at.
@@ -102,6 +107,8 @@ internal suspend fun PointerInputScope.pageGestures(
 ) {
     // The drags' shared view: the live mapping, and the eased edge scroll each of them may ask for.
     val dragView = DragView(viewport, pageW, pageH, viewW, viewH, density, onViewport)
+    // One tracker per canvas, so two clicks on the same element are a double-click even across gestures.
+    val taps = TapTracker()
     val gesture = PageInkGesture(
         tab = tab,
         tool = tool,
@@ -126,8 +133,8 @@ internal suspend fun PointerInputScope.pageGestures(
         }
         pageGestureLoop(
             tab = tab, panMode = panMode, tool = tool, ink = ink,
-            onPlaceLiving = onPlaceLiving, onTextPress = onTextPress,
-            dragView = dragView, gesture = gesture,
+            onPlaceLiving = onPlaceLiving, onTextPress = onTextPress, onEditLiving = onEditLiving,
+            taps = taps, dragView = dragView, gesture = gesture,
             draft = draft, grabLine = grabLine, previewRegion = previewRegion,
             onLiveDrag = onLiveDrag, onEdited = onEdited,
             penActive = penActive, pageW = pageW, pageH = pageH,
@@ -144,6 +151,8 @@ private suspend fun PointerInputScope.pageGestureLoop(
     ink: DesktopInk,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
+    onEditLiving: (() -> Unit)?,
+    taps: TapTracker,
     dragView: DragView,
     gesture: PageInkGesture,
     draft: SnapshotStateList<InkSample>,
@@ -185,7 +194,12 @@ private suspend fun PointerInputScope.pageGestureLoop(
             return@awaitEachGesture
         }
         // A selection, a living element or a figure takes the drag before the ink sees it.
-        if (preInkPress(down, tool, tab, dragView, pageW, pageH, onPlaceLiving, previewRegion, onLiveDrag, onEdited)) {
+        if (
+            preInkPress(
+                down, tool, tab, dragView, pageW, pageH,
+                onPlaceLiving, previewRegion, onLiveDrag, onEdited, onEditLiving, taps,
+            )
+        ) {
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
@@ -246,8 +260,10 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     previewRegion: MutableState<SelectionRegion?>?,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
+    onEditLiving: (() -> Unit)? = null,
+    taps: TapTracker = TapTracker(),
 ): Boolean {
-    if (selectionPress(down, tool, tab, view, density, previewRegion, onLiveDrag, onEdited)) {
+    if (selectionPress(down, tool, tab, view, density, previewRegion, onLiveDrag, onEdited, onEditLiving, taps)) {
         return true
     }
     return livingPress(down, tool, view.current(), pageW, pageH, previewRegion, onLiveDrag, onPlaceLiving)

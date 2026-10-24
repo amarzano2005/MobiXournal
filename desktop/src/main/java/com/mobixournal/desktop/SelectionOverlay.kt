@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.mobixournal.format.model.Element
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 
@@ -23,9 +24,21 @@ import com.mobixournal.render.SelectionRegion
  * [pxPerPt] is the sheet's own scale (`zoom × density`), so the outline follows a zoom while its stroke and
  * its handles stay the same size on screen — a handle that grew with the page would be a slab at 400 %.
  */
-internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float) {
+internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
     drawRegion(selection.region, pxPerPt, dashed = true)
     drawHandles(selection, pxPerPt)
+    // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
+    // where the box's handles are square, so the two never read as the same thing.
+    if (living != null) drawGrips(living, pxPerPt)
+}
+
+/** A living element's grips — a hollow ring per grip, the same size at every zoom. */
+private fun DrawScope.drawGrips(element: Element, pxPerPt: Float) {
+    for (point in livingGripsOf(element)) {
+        val centre = Offset((point.x * pxPerPt).toFloat(), (point.y * pxPerPt).toFloat())
+        drawCircle(color = Color.Black.copy(alpha = 0.45f), radius = GRIP_SIZE / 2f + 1f, center = centre)
+        drawCircle(color = DesktopTheme.accent, radius = GRIP_SIZE / 2f, center = centre)
+    }
 }
 
 /** The region being traced right now — one outline, no handles until it is committed. */
@@ -94,6 +107,9 @@ private fun DrawScope.drawHandles(selection: PageSelection, pxPerPt: Float) {
 
 /** One handle's side, in **screen** pixels — the same at every zoom. */
 internal const val HANDLE_SIZE = 7f
+
+/** A grip's diameter, in screen pixels — a ring the size of the box's squares. */
+internal const val GRIP_SIZE = 7f
 
 /** How far above the outline the turn handle floats, in screen pixels. */
 internal const val ROTATE_GAP_PX = 22f

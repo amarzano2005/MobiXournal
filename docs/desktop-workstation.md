@@ -128,11 +128,10 @@ What it does today:
   palette over the page. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no
   key ever changes meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
   member is the slot's face, which is why the group needs no state of its own. **A tool whose behaviour has
-  not landed gets no slot**, and a tool that lands takes one: Text was the last slot that did nothing, so
-  every slot both strips draw now acts — the condition
-  `desktop-every-tool-does-what-it-does-on-the-tablet` waited on — Text types in place on the sheet
-  ([drawing-tools.md](drawing-tools.md) owns its box and keys). `ToolGroupsTest` fails if an acting tool has
-  no slot, or a slot lists one that cannot act.
+  not landed gets no slot**: Text was the last one that did nothing, so every slot both strips draw now acts —
+  it types in place, and its group's second member (`Shift+T`) authors a living **formula** by asking for its
+  source ([drawing-tools.md](drawing-tools.md) owns both). `ToolGroupsTest` fails if an acting tool has no
+  slot, or a slot lists one that cannot act.
 - **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
   band lift instead of a bare fill, every surface that floats takes the drawn rim, and
   both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
@@ -249,8 +248,9 @@ drag is its box, a click its family's default size, then the lift **asks first**
 dialog's fields, or the table's grid — before committing **one** element as **one undo step**; a cancelled
 question leaves nothing behind, and the lane closes once the answer lands, being an editor and not a panel
 beside the page. The placement hands the window to the **marquee** (`S`), as the tablet does, so the
-next drag moves what was just made; the **pencil** reopens the same lane on it ([selection.md](selection.md))
-and it goes with the selection that named it. Geometry, builders and the family palettes
+next drag moves what was just made; the **pencil**, or a **double-click** on the element, reopens the same lane
+on it ([selection.md](selection.md) owns the grips too: a figure's corners and a table's dividers are rings that
+bend the element as one undo step, beside the box's own five handles). Geometry, builders and the family palettes
 (`CircuitFamily`: passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet, and a slot's
 submenu stays its **second** click, a circuit palette included (`ToolSlotClickTest` drives the scene).
 

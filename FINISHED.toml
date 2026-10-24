@@ -25,6 +25,83 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-living-handles-on-the-page"
+title = "Desktop: handles on the living element itself (vertices, dividers, sliders)"
+description = "A living element is edited where it is drawn. LivingGrips.kt holds the pure arithmetic: a parametric figure wears a ring on every corner and a table a ring on each INTERIOR divider (the outer edges stay the selection's own corner squares, so a corner is never ambiguous), gripAt picks the nearest ring inside the handles' own screen-pixel radius divided by zoom and density, and dragGrip writes the gesture's whole offset from the element as it was at grab time. A corner moves through ParametricShapes.snappedVertex/moveVertex - the 0/30/45/90 directions within the tablet's 7 degrees, Shift frees it - and a divider rewrites colWidths/rowHeights, stopping at GRIP_MIN_CELL_PT rather than swallowing its neighbour and never touching cells, left or top. The grip is caught in SelectionGesture before the five box handles, one drag is one edit per frame recomputed from the grab-time element and ONE undo step on lift, Esc restores the page exactly, a drag that changes nothing records nothing, and the outline travels with the ink. SelectionOverlay draws the grips as rings (round where the box's handles are square) and a double-click on the selected element opens the same lane the pencil does (TapTracker: 400 ms, 8 px), threaded from the canvas to the shell's own EDIT command. A plot's interval and a component's outline deliberately have no grips - those values live in the lane. Tests: LivingGripsTest (10 - grips per family, nearest-wins hit test, a family with none, the corner drag, snap on and off, a divider keeping the box and the cells, the minimum-width stop, out-of-range grips writing nothing, the double-click window) and DesktopLivingGripsSceneTest (3 - a divider drag in a real ImageComposeScene is one undo step, a miss moves the element instead of dividing it, and two clicks open the editor). Docs: docs/selection.md, docs/mobix-elements.md, docs/desktop-workstation.md, README. Desktop tests, the app suite (1505, guards included) and the regenerated distributable all green. PageCanvas.kt was split (SheetGestures.kt, SheetLayout made internal) to stay inside the 700-line ratchet, and the desktop-workstation/mobix-elements/ui-modernization docs were trimmed back under 400 lines."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-math-block-authoring"
+title = "Desktop: author a living math block"
+description = "The window authors a formula. DesktopTool.MATH ('Formula', Shift+T) is the Text slot's second member - the tablet's Text group carries TEXT and TEXIMAGE, so the window has the same two members and the same second-click submenu - with the catalogue's TEXIMAGE glyph. Its press reserves the box like every other living slot (LivingSlot.MATH in mobix-core, LivingPlacement.math building the block, MathBlockElement's own default size) and writes nothing: the lane asks for the source instead (PendingPlacement.mathSource/mathFlavor, LaTeX or Typst by switch) with a LIVE preview that typesets through MathBlockInk.texImage - the ink the page, the .xopp export and the PDF run - so the card cannot promise a formula the sheet will not draw. Place appends exactly one MathBlockElement as one edit and one undo step, left selected and handed to the selection tool like the other slots; a blank source disables Place instead of writing an invisible block, and Cancel leaves the page byte-identical. Existing blocks open in the same lane section, and the selection bar's pencil now names the formula's own slot. Tests: DesktopLivingSlotsTest gained the group membership, the ask-then-place walk (source, flavour and box written; one undo takes the block back) and the blank-source refusal; ToolStripsTest's documented shortcut list carries Shift+T. Docs: docs/mobix-elements.md (the math block's desktop authoring), docs/drawing-tools.md, docs/desktop-workstation.md, docs/ui-modernization.md's shortcut tables, README. :desktop:test and :mobix-core:test green."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-every-tool-does-what-it-does-on-the-tablet"
+title = "Desktop: every tool in the strip does what it does on the tablet (scope)"
+description = "Closed on its own condition: every slot the strips draw acts, and no acting tool is without a slot. The last dead slot was Text, which now types in place on the sheet (desktop-text-slot-and-in-place-field), so DESKTOP_TOOL_GROUPS and DESKTOP_TOOLS_THAT_ACT cover the same 22 tools and ToolGroupsTest fails the build if either drifts from the canvas. Landed under this map: pen and highlighter through the shared stroke router and pressure filter, both erasers, the seven geometry slots, Vertical space, marquee/lasso with their bar and the inspector lane, the three STEM slots (plot, table and the three circuit palettes) asking before they insert, and the inspector's five family sections. Every capability the map once listed now has exactly one owner, and each is a scope of its own rather than a hole in this one: PDF text selection and the magnetic highlighter -> desktop-pdf-annotation, pictures and import -> desktop-images-and-import, the setsquare and compass -> desktop-guides-setsquare-compass, the audio tap, Y and karaoke replay -> desktop-audio-replay, the barrel-button ring -> desktop-pen-tip-radial-hud; the slot faces all come from ToolGlyphCatalogue already (unify-remaining-stem-tool-glyphs shipped), and the family's last two atomic tasks landed in the same session, archived separately: desktop-math-block-authoring (a Formula slot that asks for its source, previews it and places one math block) and desktop-living-handles-on-the-page (a figure's corners and a table's dividers dragged on the page, plus the double-click that opens the lane). The rule this scope set stays in force for every later tool: a slot that does nothing is worse than an absent one."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop", "ui"]
+
+[[task]]
+id = "desktop-inspector-table-and-circuit-fields"
+title = "Desktop: the inspector's table and circuit sections"
+description = "The other two families, same rules. Table: columns and rows rewritten through TableElement.resized, which keeps the box the table has (surviving widths, heights and cell texts stay; a new column divides the width instead of growing the table), the header row on or off, the border width and colour, and every cell's text through TableElementFactory.updateCell - the same cell the tablet taps, named by its row and column. Circuit: the component's own fields as the model carries them - the part's label and value text, the four-way label side, a 90 degrees rotation / straighten action, and the stroke colour and width - each committed through the shared replace() path as ONE undo step per field, so a second Set of the same value records nothing. A field the model does not carry is not shown and an untouched field is preserved rather than reset from a default. Docs: docs/mobix-elements.md (table, circuit), docs/desktop-workstation.md, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-inspector-plot-and-shape-fields"
+title = "Desktop: the inspector's plot and shape sections"
+description = "Two lane sections, in the tablet's own vocabulary. Plot: an in-lane GRAPH preview of the equation being typed (PlotInkPreview, the placement card's own preview for an element that already exists), every equation of the curve list with add/remove (PlotEquations), the x interval as two fields that refuse a range that does not open (a from that is not below to), the sample count bounded to 8..4000, and the display switches the graph dialog carries - critical points, derivative, summary, shaded integral with its two bounds - each recomputed through PlotElementFactory.applyPlotEdit so the analysis cache is never stale. Shape: the figure's side lengths and interior angles as READ-ONLY readouts (ParametricShapes.sideLengthPt / interiorAngleDeg, the numbers the page's ink is drawn from) plus an editable outline width and colour. Every field commits on Enter or focus loss as ONE undo step of its own, a field the model does not carry is not shown, and an untouched value is preserved rather than rewritten from a default. Docs: docs/mobix-elements.md, docs/desktop-workstation.md, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-inspector-lane"
+title = "Desktop: the inspector as a right-hand lane, not a dialog"
+description = "The inspector is a right-hand lane, not a dialog: a 300 dp column reserved beside the canvas (InspectorPanel.kt, controls in InspectorControls.kt) so no band or glass ever lies over the sheet. It shows ONLY while an element is being edited - the pencil on the selection bar, a double-click, or a placement's answer - and closes with its selection, with Esc, its close glyph or Done, so it never sits there as a panel nobody asked for. A header names the element (its family glyph and livingSummary: the formula and range, the grid, the sides, the part and value, the flavour and source) rather than only its family, the cards are grouped by concern, and one footer carries the actions; a focused field's Esc cancels the field rather than the whole element. Tests: DesktopInspectorLaneTest (the lane is closed until there is something to edit, opens while an element is edited and closes with it, the header names the element, the graph preview draws the equation before it is placed, a plot carries every equation the card was given, a placement hands the window to the selection tool, the lane closes when the selection leaves the element, the editor adds and removes equations, the editor previews the graph it is editing). Docs: docs/desktop-workstation.md, docs/selection.md, README."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-text-slot-and-in-place-field"
+title = "Desktop: the Text slot places a box and edits it in place"
+description = "The Text slot (X) types on the sheet instead of drawing: a press places a TextElement through a pure placement rule (one line high at the ink's size, a third of the page wide, the ink's colour, left aligned) and opens an in-place field over the box, drawn in the window's own glass with the caret where the press landed. Enter breaks the line, Esc or a click elsewhere commits the box as ONE undo step, and an empty box removes the element and records nothing; nothing is written while typing, so the page and its undo history stay as they were until the commit. The field owns the keyboard while it is up - the shell's key handler no longer steals Space (pan), B/H/V (tools) or Delete - and the box is the same TextElement the tablet writes, carried by the shared painter rather than a second text renderer. Tests: DesktopTextAuthoringTest pins the placement arithmetic, DesktopTextSceneTest drives a real scene (press, type, Enter commits one edit and one undo, Esc leaves the box, an empty box leaves no element) and a shell test proves the shortcuts stand aside. Docs: docs/drawing-tools.md owns the box and keys, docs/desktop-workstation.md no longer lists text as something the window does not do, README's desktop paragraph says you can type on the page. :desktop:test and the guard suites green."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
 id = "make-the-desktop-window-s-chrome-and-inspector-harmonious-and-give-each-tool-its-own-ink"
 title = "Make the desktop window's chrome and inspector harmonious, and give each tool its own ink"
 description = "DesktopInks/DesktopFavourites give the pen and the highlighter separate colour, width and three favourites (persisted, custom slot moved to the palette; DesktopInkSplitTest). The inspector is a stable 300 dp frame — header with the family glyph and livingSummary, cards, a shared footer, and states for the question, the editor, one element, several and none — with the controls extracted to InspectorControls.kt, a visible focus ring and contract-sized switches and swatches (DesktopInspectorLaneTest). A placement hands the window to the marquee. No submenu opens on a single click: a circuit slot only arms, its palette opens on the second click or the chevron, and long-press is gone. DesktopTitleBar.kt paints the native caption in the band's composite colour through DWM. The tab strip is 30 dp rimmed capsules, the placement chooser is a 200 dp popup, and DesktopShell.kt was split into DesktopShellView.kt to stay inside the source budget. docs/selection.md, docs/desktop-workstation.md, docs/colours.md and README.md updated; desktop unit tests, the app guard suite and the distributable all green."

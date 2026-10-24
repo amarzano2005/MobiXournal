@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.MathBlockElement
+import com.mobixournal.format.model.MathFlavor
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.Bounds
@@ -198,6 +200,56 @@ class DesktopLivingSlotsTest {
         assertEquals(bounds.left, plot.left, 1e-9)
         assertNull("the question is answered", state.pendingPlacement)
         assertTrue("and the placement is one undo step", tab.canUndo)
+    }
+
+    @Test
+    fun `the Formula slot shares Text's slot and asks for its source`() {
+        assertEquals(
+            "the tablet's Text group carries prose and a formula, in that order",
+            listOf(DesktopTool.TEXT, DesktopTool.MATH),
+            groupOf(DesktopTool.MATH)?.members,
+        )
+        val state = DesktopShellState()
+        state.open(notebook())
+        val tab = state.tabs.active!!
+        state.selectTool(DesktopTool.MATH)
+        val bounds = Bounds(80.0, 100.0, 300.0, 160.0)
+
+        state.placeOrAsk(tab, LivingSlot.MATH, bounds)
+        val pending = state.pendingPlacement
+        assertNotNull("the press asks for the source before the block exists", pending)
+        assertTrue("and nothing is on the page yet", elements(tab).none { it is MathBlockElement })
+        assertFalse("nor is there an undo step to take back", tab.canUndo)
+
+        pending!!.mathSource = "\\frac{a}{b}"
+        pending.typst = true
+        state.confirmPlacement()
+
+        val block = elements(tab).filterIsInstance<MathBlockElement>().single()
+        assertEquals("the source the question was given", "\\frac{a}{b}", block.source)
+        assertEquals("and its flavour", MathFlavor.TYPST, block.flavor)
+        assertEquals("in the box the press reserved", bounds.left, block.left, 1e-9)
+        assertNull("the question is answered", state.pendingPlacement)
+        assertTrue("the placement is one undo step", tab.canUndo)
+        assertTrue(tab.undo())
+        assertTrue("and takes the block back", elements(tab).none { it is MathBlockElement })
+    }
+
+    @Test
+    fun `a formula with no source cannot be placed`() {
+        val state = DesktopShellState()
+        state.open(notebook())
+        val tab = state.tabs.active!!
+        state.selectTool(DesktopTool.MATH)
+
+        state.placeOrAsk(tab, LivingSlot.MATH, Bounds(60.0, 60.0, 240.0, 120.0))
+        val pending = state.pendingPlacement!!
+        assertTrue("the starter source is placeable", pending.ready)
+        pending.mathSource = "   "
+        assertFalse("a blank formula draws nothing", pending.ready)
+        state.confirmPlacement()
+        assertTrue("so the page keeps no block", elements(tab).none { it is MathBlockElement })
+        assertFalse(tab.canUndo)
     }
 
     @Test

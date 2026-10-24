@@ -5,11 +5,15 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isShiftPressed
+import com.mobixournal.format.model.Element
+import com.mobixournal.render.ElementBounds
+import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.rectRegion
 import com.mobixournal.render.SelectionEdit
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.Vec2
+import kotlin.math.hypot
 
 /**
  * The selection tools' drag: trace a region, or act on the one that is already there.
@@ -49,6 +53,10 @@ internal suspend fun AwaitPointerEventScope.selectionPress(
     region: MutableState<SelectionRegion?>?,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
+    /** What a double-click on the selected element means: open its editor (the tablet's double-tap). */
+    onEditLiving: (() -> Unit)? = null,
+    /** The presses so far, so the second one can be told apart from two separate clicks. */
+    taps: TapTracker = TapTracker(),
 ): Boolean {
     val selection = selectionToolOf(tool) ?: return false
     selectionDrag(
@@ -60,8 +68,41 @@ internal suspend fun AwaitPointerEventScope.selectionPress(
         region = region ?: return false,
         onLiveDrag = onLiveDrag,
         onEdited = onEdited,
+        onEditLiving = onEditLiving,
+        taps = taps,
     )
     return true
+}
+
+/**
+ * Two presses in nearly the same place within [DOUBLE_TAP_MS] are one **double-click** — the window's form
+ * of the tablet's double-tap, which opens a living element's editor.
+ *
+ * Plain Kotlin with an injected clock, because a rule about time is exactly the kind of thing a UI test
+ * should not have to race: [isSecond] is a JVM test with made-up timestamps.
+ */
+internal class TapTracker(
+    private val windowMs: Long = DOUBLE_TAP_MS,
+    private val slopPx: Double = DOUBLE_TAP_SLOP_PX,
+) {
+    private var lastMs = 0L
+    private var lastX = 0.0
+    private var lastY = 0.0
+
+    /** Whether this press, at ([px], [py]) screen pixels at [nowMs], is the second of a double-click. */
+    fun isSecond(nowMs: Long, px: Double, py: Double): Boolean {
+        val second = lastMs != 0L &&
+            nowMs - lastMs in 0..windowMs &&
+            hypot(px - lastX, py - lastY) <= slopPx
+        if (second) {
+            lastMs = 0L
+        } else {
+            lastMs = nowMs
+            lastX = px
+            lastY = py
+        }
+        return second
+    }
 }
 
 internal suspend fun AwaitPointerEventScope.selectionDrag(
@@ -73,6 +114,8 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     region: MutableState<SelectionRegion?>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
+    onEditLiving: (() -> Unit)? = null,
+    taps: TapTracker = TapTracker(),
 ) {
     val viewport = view.current()
     val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, viewport)
@@ -92,7 +135,27 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         traceRegion(tool, x0, y0, tab, view, density, region, onLiveDrag)
         return
     }
-    transformSelection(live!!, handle, x0, y0, tab, view, density, onLiveDrag, onEdited)
+    // A grip on the element itself — a figure's corner, a table's divider — is caught before the
+    // selection's own five handles, because it edits the recipe rather than the box.
+    val selection = requireNotNull(live) { "a traced region was handled above" }
+    val living = if (selection.refs.size == 1) selectedLivingElement(tab) else null
+    val grip = living?.let { gripAt(it, x0, y0, tol) }
+    if (living != null && grip != null) {
+        dragLivingGrip(living, grip, x0, y0, tab, view, density, onLiveDrag, onEdited)
+        return
+    }
+    // The tablet's double-tap: a second click on the selected element opens its editor instead of
+    // starting a move that goes nowhere.
+    if (handle == SelectionHandle.BODY && onEditLiving != null && taps.isSecond(
+            nowMs = System.currentTimeMillis(),
+            px = x0 * pxPerPt,
+            py = y0 * pxPerPt,
+        )
+    ) {
+        onEditLiving.invoke()
+        return
+    }
+    transformSelection(selection, handle, x0, y0, tab, view, density, onLiveDrag, onEdited)
 }
 
 /** The trace half: collect the drag into a rectangle or a loop, and hand it to the page on lift. */
@@ -241,3 +304,90 @@ private suspend fun AwaitPointerEventScope.transformSelection(
 
 /** The grab radius of a handle, in screen pixels. */
 internal const val HANDLE_PX = 9f
+
+/** How long a first click stays a candidate for a double-click, in milliseconds. */
+internal const val DOUBLE_TAP_MS = 400L
+
+/** How far the second click may land from the first, in screen pixels. */
+internal const val DOUBLE_TAP_SLOP_PX = 8.0
+
+/**
+ * The grip half: drag a figure's corner or a table's divider, live, from the element as it was at grab
+ * time — one edit per frame and **one** undo step for the whole gesture, the same shape as a transform.
+ *
+ * `Esc` (through [onLiveDrag]'s cancel) puts the element back exactly, and a drag that changes nothing
+ * records nothing, so a click that brushed a grip leaves the page and its history alone.
+ */
+private suspend fun AwaitPointerEventScope.dragLivingGrip(
+    element: Element,
+    grip: LivingGrip,
+    x0: Double,
+    y0: Double,
+    tab: DesktopTab,
+    view: DragView,
+    density: Float,
+    onLiveDrag: ((() -> Unit)?) -> Unit,
+    onEdited: (Int) -> Unit,
+) {
+    val index = tab.page
+    val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
+    val ref = livingTargetOf(tab) ?: return
+    val before = tab.document.snapshot()
+    var recorded = false
+    var cancelled = false
+    val cancel = {
+        cancelled = true
+        tab.document.restore(before)
+        tab.selection = selectionOf(element, ref)
+        onEdited(index)
+    }
+    onLiveDrag(cancel)
+    val press = view.current().toScreen(x0.toFloat(), y0.toFloat())
+    var lastX = press.first
+    var lastY = press.second
+
+    /** Bend the element so [grip] answers the pointer at ([px], [py]). */
+    fun apply(px: Float, py: Float) {
+        val (x1, y1) = pagePointOf(px, py, density, view.current())
+        val edited = dragGrip(
+            element = element,
+            grip = grip,
+            dx = x1 - x0,
+            dy = y1 - y0,
+            snap = !currentEvent.keyboardModifiers.isShiftPressed,
+        )
+        if (edited === element) return
+        if (!recorded) {
+            tab.record(before)
+            recorded = true
+        }
+        val page = withElement(original, ref, edited) ?: return
+        tab.document.editPage(index) { page }
+        tab.selection = selectionOf(edited, ref)
+        onEdited(index)
+    }
+
+    // The edge scroll's ticker re-applies the drag while the sheet travels, so a corner keeps following
+    // the pointer past the window's edge.
+    view.beginDrag(lastX, lastY) { px, py -> apply(px, py) }
+    try {
+        while (!cancelled) {
+            val change = awaitPointerEvent().changes.firstOrNull() ?: break
+            lastX = change.position.x
+            lastY = change.position.y
+            view.moved(lastX, lastY)
+            apply(lastX, lastY)
+            if (change.changedToUpIgnoreConsumed() || !change.pressed) break
+            change.consume()
+        }
+    } finally {
+        view.endDrag()
+        onLiveDrag(null)
+    }
+}
+
+/** The selection that follows [element] after a grip moved it — the outline travels with the ink. */
+private fun selectionOf(element: Element, ref: ElementRef): PageSelection {
+    val bounds = ElementBounds.of(element)
+    return PageSelection(rectRegion(bounds.left, bounds.top, bounds.right, bounds.bottom), setOf(ref))
+}

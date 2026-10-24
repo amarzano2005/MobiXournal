@@ -68,4 +68,5 @@ internal fun LivingSlot.label(): String = when (this) {
     LivingSlot.PLOT -> "Plot"
     LivingSlot.TABLE -> "Table"
     LivingSlot.CIRCUIT -> "Circuit"
+    LivingSlot.MATH -> "Formula"
 }

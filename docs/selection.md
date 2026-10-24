@@ -190,8 +190,19 @@ clamped inside the canvas, and stands at the page's bottom centre carrying **Pas
 selected. A control the selection cannot support is dimmed and does nothing (`docs/interface-contract.md`
 §5); the rules live in `SelectionBarUi`, so a JVM test reads them rather than a screen.
 
+**A living element's own grips** are the on-page half of its editor (`LivingGrips.kt`): a parametric figure
+wears a ring on each corner, and dragging one bends the figure — the side leading into the corner snaps onto
+the 0/30/45/90 directions within the tablet's 7° tolerance, `Shift` frees it — while a table wears a ring on
+each **interior** divider, and dragging one widens the column beside it without moving the box or a single
+cell's text. Outer edges are not grips (the box's own corner squares scale those), a grip is caught before
+those five handles, and the radius is the handles' own screen-pixel rule, so a divider is as easy to catch
+zoomed out as in. A plot's interval and a component's outline are **not** grips: those numbers live in the
+lane. `LivingGripsTest` pins the arithmetic, `DesktopLivingGripsSceneTest` the gesture (one undo step per
+drag, a miss moving the element instead of dividing it).
+
 The **pencil** on that bar opens the selected living element's editor, and is offered only for exactly one
-living element. `DesktopSelectionBarTest` walks the five families — plot, table, figure, component, formula
+living element; a **double-click on the selected element** is the same command (`DoubleTap`/`TapTracker`,
+400 ms and 8 px), so the tablet's double-tap has a twin on the page rather than only in the bar. `DesktopSelectionBarTest` walks the five families — plot, table, figure, component, formula
 — and fails if one does not answer `EDIT`, so a family added later cannot ship uneditable.
 
 That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the

@@ -100,7 +100,7 @@ For emulator installation, deployment, and testing harnesses, refer to [`docs/to
 The desktop app is in the tree: a native window that opens your
 documents and shows every page as it was written — paper ruling, pen strokes with their pressure taper,
 highlighters, dashed lines, text boxes, and the living parts of a page too: tables, graphs, parametric
-shapes and circuit components, plus photo and annotated-PDF page backgrounds — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
+shapes, circuit components and our formulas, plus photo and annotated-PDF page backgrounds — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
 `.mobix` all open, and the window works out which one it has from the file's content rather than its
 name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
 page up front.
@@ -122,7 +122,8 @@ shrunk to a sliver, so the handwriting stays readable and the wheel reads down i
 page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
 draw and lands in the document when you lift, and `Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to
 put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
-takes whole strokes. The pen and the highlighter keep **separate colours, widths and favourite colours**,
+takes whole strokes. **Type on it** with Text (`X`): a press opens a box where you pressed, `Enter` starts
+a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way. The pen and the highlighter keep **separate colours, widths and favourite colours**,
 as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
 switching back brings that ink back with it. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
 one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to cancel — and **shift a page down**
@@ -154,7 +155,12 @@ selection tool, as the tablet does, so the next drag moves what you just made in
 **Type on the page** with Text (`X`): click where the line should start and a field opens there, in your ink's
 colour and size, with the page still untouched — `Enter` starts a new line, and `Esc` (or a click somewhere
 else) writes the box as one undoable edit. Type nothing and nothing is written, so a click you change your
-mind about leaves no empty box and nothing to undo.
+mind about leaves no empty box and nothing to undo. The Text slot's second member, **Formula** (`Shift + T`),
+notes a formula instead: it asks for the LaTeX (or Typst) source, shows it typeset as you type, and **Place**
+writes it as one live math block — the same element the tablet edits and the `.xopp` export understands.
+A live element can also be shaped **where it sits**: a figure wears a ring on each corner and a table a ring
+on each divider, so dragging one bends the figure or rewidens that column without touching a cell's text, and
+a double-click on the element opens the card that edits it.
 Dragging a selection, an element already on the page, a figure being drawn or a vertical-space line against
 the **edge of the canvas scrolls the view** while the drag keeps going, and the scroll eases in and settles
 rather than jumping: a marquee keeps catching ink past the border, a box or an arrow keeps opening, and an
@@ -226,6 +232,7 @@ one, and the palette, the favourites and the width are remembered between runs.
 | `Page Up` / `Page Down` | previous / next page |
 | `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool (pen, highlighter, eraser, lasso, marquee, text, line, arrow, rectangle, ellipse, spline, plot, table, circuit) |
 | `Shift + X` | the axes tool (`X` alone is the text box) |
+| `Shift + T` | the formula tool (`T` alone is the table) |
 | `1` `2` `3` | pick favourite colour 1 / 2 / 3 (the favourites are remembered between runs) |
 | `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
 | `]` / `[` | wider / thinner one step (S, M, L) |
@@ -314,7 +321,7 @@ MobiXournal includes a dedicated technical toolset engineered for science, engin
 - **LaTeX Math Formulae**:
   - On-device formula editor with live preview.
   - Curated STEM symbol palette for fast symbol insertion: Calculus integrals/differentials, Greek letters, algebraic operators, and physics shortcuts.
-  - The formula is a **living math block**: in a `.mobix` the file keeps its source (LaTeX or Typst), not a picture, so **double-tapping it in the Select tool reopens the editor** and a save or an undo treats it like any other element. Exporting to `.xopp` compiles it to a standard `<teximage>` desktop Xournal++ opens, and PDF export typesets its glyphs as vector text.
+  - The formula is a **living math block**: in a `.mobix` the file keeps its source (LaTeX or Typst), not a picture, so **double-tapping it in the Select tool reopens the editor** and a save or an undo treats it like any other element. Exporting to `.xopp` compiles it to a standard `<teximage>` desktop Xournal++ opens, and PDF export typesets its glyphs as vector text. The PC window writes one too — the Formula tool asks for the source, typesets it as you type, and places it on the page as one edit.
 - **2D Function Plotter**:
   - **Insert graph** — the chart button in the Secondary Toolbar (second from the end): type `f(x)` (sin, cos, tan, inverse and hyperbolic trig, sqrt, abs, ln, log, exp, floor/ceil/round, `pi`/`e`, `+ - * / ^`, parentheses) with the x range to plot it over, and the plot is laid on the page **where you are looking** — centred on the middle of the viewport, then pulled back inside the sheet so the frame is never left half off the page.
   - Two tabs: **Cartesian**, for one or more `y = f(x)` curves, and **Parametric**, for a single `{x(t), y(t)}` pair (`cos(x)` and `sin(x)` make a circle) swept over the same range — a parametric pair is drawn and saved as the one curve it is, not as two separate waves. Both previews are not pictures *of* the plot: they **are** the plot, compiled by the same code the page uses, so what the preview shows is what Insert places.

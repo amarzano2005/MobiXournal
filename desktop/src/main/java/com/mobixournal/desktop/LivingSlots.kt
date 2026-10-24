@@ -29,6 +29,8 @@ internal fun livingSlotOf(tool: DesktopTool): LivingSlot? = when (tool) {
     DesktopTool.PLOT -> LivingSlot.PLOT
     DesktopTool.TABLE -> LivingSlot.TABLE
     DesktopTool.CIRCUIT, DesktopTool.CIRCUIT_ACTIVE, DesktopTool.CIRCUIT_LOGIC -> LivingSlot.CIRCUIT
+    // A formula is a living recipe too: the press reserves its box, the lane asks for its source.
+    DesktopTool.MATH -> LivingSlot.MATH
     else -> null
 }
 
@@ -57,6 +59,9 @@ internal fun livingElementFor(
     LivingSlot.PLOT -> LivingPlacement.plot(bounds, ink.colour, ink.width.toDouble())
     LivingSlot.TABLE -> LivingPlacement.table(bounds)
     LivingSlot.CIRCUIT -> LivingPlacement.circuit(circuitKind, bounds, ink.colour, ink.width.toDouble())
+    // The starter source, so the default path places a block that typesets; the lane's question replaces it
+    // with what was typed.
+    LivingSlot.MATH -> LivingPlacement.math(bounds, colour = ink.colour)
 }
 
 /**

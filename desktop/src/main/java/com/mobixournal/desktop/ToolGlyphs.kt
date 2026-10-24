@@ -111,6 +111,8 @@ internal val DesktopTool.glyph: ToolGlyph
         DesktopTool.LASSO -> ToolGlyph.LASSO
         DesktopTool.MARQUEE -> ToolGlyph.MARQUEE
         DesktopTool.TEXT -> ToolGlyph.TEXT
+        // The tablet's own picture of the formula tool.
+        DesktopTool.MATH -> ToolGlyph.TEXIMAGE
         DesktopTool.LINE -> ToolGlyph.LINE
         DesktopTool.ARROW -> ToolGlyph.ARROW
         DesktopTool.DOUBLE_ARROW -> ToolGlyph.DOUBLE_ARROW

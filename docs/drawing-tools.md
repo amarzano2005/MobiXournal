@@ -275,7 +275,11 @@ history are untouched — and the commit (`Esc`, a click elsewhere, or leaving t
 `TextElement` to the page's top layer as one undo step, left selected. A blank box writes nothing: a press
 you change your mind about leaves no element and no step to undo. While the field is up it owns the
 keyboard — only `Esc` is the shell's — so `Space`, `B`, `H`, `V` and `Delete` are characters, not commands
-(`DesktopTextAuthoringTest`, `DesktopTextSceneTest`).
+(`DesktopTextAuthoringTest`, `DesktopTextSceneTest`). Its group's second member is the tablet's **LaTeX**
+tool, and it asks before it writes, as Plot and Table do: a press with Formula (`Shift+T`) reserves the box
+and the lane asks for the source (LaTeX, or Typst with the switch) with a live typeset preview, and **Place**
+appends one `MathBlockElement` as one undo step, left selected — a blank source disables Place rather than
+drawing nothing (`DesktopLivingSlotsTest`).
 
 ## Placing a living element (both shells)
 

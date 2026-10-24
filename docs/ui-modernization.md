@@ -33,14 +33,12 @@ the tablet and the `desktop/` window; the layout it produces is owned by [chrome
 ```
 
 ### 1. Content-first minimalism ("The canvas is the hero")
-- **Visual Weight**: Chrome elements use thin hairline borders ($1\text{ px}$ with subtle $10\text{--}15\%$ alpha)
-  instead of chunky drop shadows or filled cards.
+- **Visual Weight**: thin hairline borders ($1\text{ px}$, $10\text{--}15\%$ alpha), never chunky shadows or filled cards.
 - **Glass in bands, never over the page**: the toolbars are translucent frosted capsules (backdrop blur at
   $85\text{--}90\%$ opacity, $1\text{ px}$ hairline at $12\%$ alpha) that live in **bands of their own** —
-  the header across the top and the rail's lane down one edge — so
-  what the glass reveals is the **desk** the page lies on, not the page. A translucent bar *on* the sheet
-  hides the ink under it and swallows the stylus there, and the strip it covers is the top of the sheet,
-  where a hand reaches first (the layout is [chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
+  the header across the top and the rail's lane down one edge — so the glass reveals the **desk** the page
+  lies on. A bar *on* the sheet hides the ink under it, swallows the stylus there, and covers the top of the
+  sheet, where a hand reaches first ([chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
   **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: an anchored
   popover, a dialog or a selection bar comes and goes with the gesture, so it may sit over the ink, and
   none of them is ever a permanent band.
@@ -245,6 +243,7 @@ Everything the chrome does can also be done from the keyboard:
 | `Space` (held) | pan with the primary button; the middle button always pans |
 | `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool — §3's shortcut table is the list |
 | `Shift + X` | the axes tool; a bare `X` is the text box |
+| `Shift + T` | the formula tool; a bare `T` is the table |
 | `1` `2` `3` | pick favourite colour 1 / 2 / 3 |
 | `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
 | `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
@@ -299,6 +298,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Lasso Select | `V` | Barrel button hold + drag |
 | | Marquee Rect Select | `S` | Selection mode toggle |
 | | Text Box | `X` | Screen double-tap with finger |
+| | Formula (LaTeX / Typst) | `Shift + T` | The Text slot's second member (the tablet's LaTeX tool); asks its source first |
 | | Pan / Hand Tool | `Space` (held) | Two-finger scroll / drag |
 | **Geometry & Figures** | Straight Line / Ruler | `L` | Hold-to-straighten dwell (300 ms) |
 | | Arrow | `A` | Arrow shape toggle |

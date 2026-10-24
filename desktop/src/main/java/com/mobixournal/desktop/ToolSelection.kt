@@ -23,6 +23,9 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     LASSO("Lasso", "V"),
     MARQUEE("Marquee", "S"),
     TEXT("Text", "X"),
+    // The tablet's Text group carries both halves of typing on the page: prose and a formula. Here they
+    // share the slot too, so the window has the tablet's two members rather than a second strip entry.
+    MATH("Formula", "Shift+T"),
     LINE("Line", "L"),
     ARROW("Arrow", "A"),
     DOUBLE_ARROW("Double arrow", "Shift+A"),

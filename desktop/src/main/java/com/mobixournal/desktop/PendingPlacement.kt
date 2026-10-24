@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.MathFlavor
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
@@ -69,6 +70,21 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
     var shadeFrom by mutableStateOf("")
     var shadeTo by mutableStateOf("")
 
+    // --- formula: its source and its flavour -------------------------------------------------------
+
+    /**
+     * The formula's source, written on every keystroke so the lane's preview follows the typing. It starts
+     * from the shared starter ([LivingPlacement.DEFAULT_MATH_SOURCE]) rather than an empty box, because a
+     * blank preview would leave the user typing into nothing.
+     */
+    var mathSource by mutableStateOf(LivingPlacement.DEFAULT_MATH_SOURCE)
+
+    /** Whether the source is Typst rather than LaTeX — the two flavours a math block carries. */
+    var typst by mutableStateOf(false)
+
+    /** The flavour the block will be written in. */
+    val mathFlavor: MathFlavor get() = if (typst) MathFlavor.TYPST else MathFlavor.LATEX
+
     // --- table: its grid and its header ------------------------------------------------------------
 
     var columns by mutableStateOf(LivingPlacement.DEFAULT_TABLE_COLS)
@@ -100,6 +116,8 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
             LivingSlot.TABLE -> columns in 1..30 && rows in 1..200
             // A component's part was already the palette's question; nothing is asked twice.
             LivingSlot.CIRCUIT -> true
+            // A formula with no source draws nothing, so there is nothing to place.
+            LivingSlot.MATH -> mathSource.isNotBlank()
         }
 
     /**
@@ -150,6 +168,9 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
             hasHeader = header,
         )
         LivingSlot.CIRCUIT -> livingElementFor(slot, bounds, ink, circuitKind)
+        LivingSlot.MATH -> mathSource.trim()
+            .takeIf { it.isNotEmpty() }
+            ?.let { source -> LivingPlacement.math(bounds, source, mathFlavor, ink.colour) }
     }
 
     /** The line the lane's header prints under its title — the answers so far. */
@@ -166,6 +187,10 @@ class PendingPlacement(val slot: LivingSlot, val bounds: Bounds, val tabKey: Str
         }
         LivingSlot.TABLE -> "$columns × $rows" + if (header) " · header" else ""
         LivingSlot.CIRCUIT -> slot.label()
+        LivingSlot.MATH -> {
+            val language = mathFlavor.name.lowercase().replaceFirstChar { it.uppercase() }
+            mathSource.trim().takeIf { it.isNotEmpty() }?.let { "$language · $it" } ?: "$language · no source"
+        }
     }
 
     /** How many equations one graph may carry: enough for a comparison, few enough to read in the lane. */
