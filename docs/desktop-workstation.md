@@ -42,6 +42,14 @@ What it does today:
   per page (`DesktopTab.hiddenOn` / `toggleLayer`): nothing is written to the document, and a second press
   brings the layer back. A hidden layer's thumbnail is painted fresh instead of taking the page cache, so a
   preview can never show a layer the sheet beside it is missing.
+  A thumbnail is only painted **once the hand stops**: an edit drops that page's cached bitmap, and the
+  sidebar re-renders it on the shell's deferred `thumbnailRevision` — bumped 600 ms after the last edit —
+  instead of on the document's edit count. The reason is a measurement, not a taste: rendering one builds a
+  second `ImageComposeScene` and paints the whole page through the **software** rasteriser, **29–39 ms** on
+  `udiff.xopp`, so re-rendering it per edit (inside composition!) dropped frames on every finished letter
+  and on every bite of the eraser. Until the quiet moment the preview shows the page as it was when the
+  burst began. `DesktopShellTest` pins it: an edit writes nothing into the thumbnail cache, and one edit's
+  quiet moment paints **one** page again, not the visible list.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
   those documents — the header says nothing about a count instead of showing a wrong one.
@@ -68,9 +76,10 @@ What it does today:
   previewed while it is drawn and committed on lift as **one edit** through the tab's page window
   (`PageWindow`, moved into `mobix-core` and shared with the tablet's canvas): the edited page is
   materialised on its own, kept in an overlay eviction never touches, and adopted into the document the
-  save writes. So a `.mobix` edit inflates exactly the page it touched, the stroke lands in the file, and
-  the page's thumbnail follows. A press that lands on the desk starts nothing, because the desk is not
-  paper. The eraser is the shared `PageEraser` in standard mode — it rubs out the part of a stroke it
+  save writes. So a `.mobix` edit inflates exactly the page it touched, the stroke lands in the file (the
+  page's thumbnail catches up when the burst goes quiet, above), and a lift costs the stroke and not the
+  sheet — `PagePicture` records only the ink appended on top, see *A stroke costs the stroke*. A press
+  that lands on the desk starts nothing, because the desk is not paper. The eraser is the shared `PageEraser` in standard mode — it rubs out the part of a stroke it
   crosses and splits it in two, at a tip the pen width sizes — and a highlighter band keeps its
   multiply. Pressure is the shared filter's: a mouse reports none, which draws at the tool's width,
   exactly as the tablet's cursor does. What Compose actually hands over was measured, not assumed: the
@@ -211,8 +220,26 @@ its own:
   without recruiting the elements it passes, and the whole drag is one undo step. A drag that shifts
   nothing records nothing. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
   snaps to the ruling only when its Snap-to-grid setting is on, and the window has no such setting yet.
+  Like a geometry slot, the drag is **not ink**, so the pen's packets stand aside for it too
+  (`DesktopTool.inksByPackets()`): only the pen and the two erasers are fed from the driver. That is what
+  makes the tool reachable with a stylus at all — while the packets owned the pen the Compose gesture stood
+  aside, so a pen in proximity opened a contact and the grab line never moved. `DesktopVerticalSpaceTest`
+  drags the grab line with a live packet stream and checks the block follows it.
   The arithmetic is shared: `VerticalSpaceOps`, its `Snapping` and the per-element move (`ElementShift`)
   live in `mobix-core`, and the app's `SelectionOps.translate` delegates to the same `ElementShift`.
+
+### A stroke costs the stroke
+
+The page is a Skia picture (`PagePicture`), and a picture is immutable — so a lift used to re-record the
+**whole sheet**, 2–4 ms on `udiff.xopp` and more on a page written for a term. The pen lifts once per
+letter, so that was a dropped frame per letter, and the eraser paid it again on every bite. The picture is
+now a **base** plus a **tail**: the base is the last full record, the tail is the elements that were
+*appended on top of the page's last layer* since then, and an append records only the new ink — a stroke or
+two. Anything else (an erase, an undo, a reflow, a stroke moved) changes ink the base already holds, which a
+picture cannot take back, so it re-records the sheet and starts a new base. The tail folds back into a base
+every 48 appended elements, so a page of handwriting re-records once per paragraph instead of once per
+stroke. `PagePictureTest` pins the rule — three strokes in a row leave `records` at one — proves the base
+plus the tail is the direct paint, and states which edits count as appends (`appendedElements`, pure).
 
 ### Scrolling and zooming a dense page
 

@@ -25,6 +25,7 @@ import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -207,6 +208,131 @@ class PagePictureTest {
         }
     }
 
+    /**
+     * A lift must not cost the sheet: a stroke added on top is recorded into the tail, and the base — the
+     * other hundred-and-something strokes, the measured text, the paper — is replayed untouched.
+     *
+     * The counters are the contract: `records` is the full paint, `tailRecords` is the new ink. A removal
+     * is deliberately the other case: it erases ink the base already holds, which a picture cannot take
+     * back, so that frame re-records the sheet.
+     */
+    @Test
+    fun `a stroke appended on top is recorded on its own, not the whole sheet`() {
+        val page = page(strokes = 60)
+        val shot = mutableStateOf(page)
+        val picture = PagePicture()
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            val measurer = rememberTextMeasurer()
+            Canvas(Modifier.fillMaxSize()) {
+                picture.draw(this, shot.value, Viewport(zoom = 1f), 1f, 1f, null, emptySet(), measurer)
+            }
+        }
+        try {
+            frame(scene)
+            assertEquals("the sheet is recorded once", 1, picture.records)
+            assertEquals("and there is no tail yet", 0, picture.tailRecords)
+
+            for (index in 0 until 3) {
+                shot.value = withStroke(shot.value, thinStroke(300.0 + index * 10))
+                frame(scene)
+            }
+            assertEquals("three strokes do not re-record the sheet", 1, picture.records)
+            assertEquals("every lift recorded just the new ink", 3, picture.tailRecords)
+
+            // An erase takes ink away: the base cannot un-draw it, so the sheet is recorded again.
+            shot.value = withoutLastStroke(shot.value)
+            frame(scene)
+            assertEquals("a removal re-records the sheet", 2, picture.records)
+        } finally {
+            scene.close()
+        }
+    }
+
+    /** The tail is *the same page*: base plus tail must land the pixels the direct paint does. */
+    @Test
+    fun `base plus tail is the painted page`() {
+        val base = page(strokes = 40)
+        var grown = base
+        for (index in 0 until 5) grown = withStroke(grown, thinStroke(120.0 + index * 14))
+        val shot = mutableStateOf(base)
+        val picture = PagePicture()
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            val measurer = rememberTextMeasurer()
+            Canvas(Modifier.fillMaxSize()) {
+                picture.draw(this, shot.value, Viewport(zoom = 1f), 1f, 1f, null, emptySet(), measurer)
+            }
+        }
+        try {
+            frame(scene)
+            shot.value = grown
+            val replayed = frame(scene)
+            assertEquals("one base, and the strokes added since", 1, picture.records)
+            assertEquals(1, picture.tailRecords)
+
+            val direct = directFrame(grown, Viewport(zoom = 1f))
+            var worst = 0
+            var differing = 0
+            for (index in direct.indices) {
+                var diff = 0
+                for (shift in intArrayOf(16, 8, 0)) {
+                    diff = maxOf(diff, abs(((direct[index] shr shift) and 0xFF) - ((replayed[index] shr shift) and 0xFF)))
+                }
+                if (diff > 0) differing++
+                worst = maxOf(worst, diff)
+            }
+            assertTrue(
+                "the tail composes into the painted page (worst channel difference $worst, " +
+                    "$differing of ${direct.size} pixels)",
+                worst <= 2 && differing < direct.size / 100,
+            )
+        } finally {
+            scene.close()
+        }
+    }
+
+    /**
+     * Which edits may go through the tail, as a pure rule: only what was appended to the **top** layer,
+     * with every other layer holding the very same element objects. Anything else would paint out of
+     * order or keep showing ink the page no longer has.
+     */
+    @Test
+    fun `only an append on the top layer counts as an append`() {
+        val stroke = thinStroke(100.0)
+        val one = page(strokes = 2)
+        assertEquals(
+            "appending on top is incremental",
+            listOf(stroke),
+            appendedElements(one, withStroke(one, stroke)),
+        )
+        assertEquals(
+            "an unchanged page appends nothing",
+            emptyList<com.mobixournal.format.model.Element>(),
+            appendedElements(one, one),
+        )
+        assertNull("a removal is not an append", appendedElements(withStroke(one, stroke), one))
+
+        // The same element appended to a layer that is not on top would be painted after the layers above
+        // it, so the base cannot stay: the change is refused.
+        val lower = one.copy(
+            layers = listOf(
+                Layer(one.layers.single().elements + stroke, one.layers.single().name),
+                Layer(emptyList()),
+            ),
+        )
+        val two = one.copy(layers = one.layers + Layer(emptyList()))
+        assertNull("an append below the top layer is not incremental", appendedElements(two, lower))
+    }
+
+    /** One frame of [scene], as ARGB pixels. */
+    private fun frame(scene: ImageComposeScene): IntArray {
+        Snapshot.sendApplyNotifications()
+        val png = scene.render().encodeToData()?.bytes ?: error("Skia produced no image")
+        val image = ImageIO.read(ByteArrayInputStream(png))
+        return IntArray(image.width * image.height).also {
+            image.getRGB(0, 0, image.width, image.height, it, 0, image.width)
+        }
+    }
+
     /** The page drawn straight at [viewport] — the reference the replay is compared with. */
     private fun directFrame(page: Page, viewport: Viewport): IntArray = headless(width, height) {
         val measurer = rememberTextMeasurer()
@@ -225,6 +351,29 @@ class PagePictureTest {
             picture.draw(this, page, viewport, viewport.zoom, 1f, null, emptySet(), measurer)
         }
     }
+
+    /** [page] with [stroke] added on top of its top layer. */
+    private fun withStroke(page: Page, stroke: Stroke): Page = page.copy(
+        layers = page.layers.mapIndexed { index, layer ->
+            if (index == page.layers.lastIndex) Layer(layer.elements + stroke, layer.name) else layer
+        },
+    )
+
+    /** [page] without the last element of its top layer — what a whole-stroke erase leaves. */
+    private fun withoutLastStroke(page: Page): Page = page.copy(
+        layers = page.layers.mapIndexed { index, layer ->
+            if (index == page.layers.lastIndex) Layer(layer.elements.dropLast(1), layer.name) else layer
+        },
+    )
+
+    /** A two-point pen stroke, the smallest ink a lift can add. */
+    private fun thinStroke(y: Double): Stroke = Stroke(
+        points = listOf(StrokePoint(30.0, y, 2.0), StrokePoint(180.0, y + 6, 2.0)),
+        color = 0xFF000000.toInt(),
+        tool = Tool.PEN,
+        capStyle = "round",
+        uniformWidth = true,
+    )
 
     /** One frame of a scene, as ARGB pixels. */
     private fun headless(width: Int, height: Int, content: @androidx.compose.runtime.Composable () -> Unit): IntArray {

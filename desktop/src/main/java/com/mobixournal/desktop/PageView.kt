@@ -91,8 +91,24 @@ internal fun DrawScope.drawPageContent(
     // not paint them (the same view state that hides it in the sidebar's list).
     for ((index, layer) in page.layers.withIndex()) {
         if (index in hiddenLayers) continue
-        for (element in layer.elements) drawElement(element, pxPerPt, textMeasurer)
+        drawElements(layer.elements, pxPerPt, textMeasurer)
     }
+}
+
+/**
+ * A page's elements in document order — the one loop that paints ink, and the one a *partial* record
+ * reuses when only the strokes added since the last one are new (`PagePicture`).
+ *
+ * Shared rather than duplicated: a tail picture that painted its strokes with a second rule would let the
+ * freshly drawn ink and the ink recorded before it drift apart at a seam. Hidden layers are the caller's
+ * filter, so this is exactly the elements it was handed.
+ */
+internal fun DrawScope.drawElements(
+    elements: List<Element>,
+    pxPerPt: Float,
+    textMeasurer: TextMeasurer,
+) {
+    for (element in elements) drawElement(element, pxPerPt, textMeasurer)
 }
 
 /**

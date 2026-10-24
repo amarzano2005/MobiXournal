@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
@@ -366,9 +367,64 @@ class DesktopShellTest {
     @OptIn(ExperimentalComposeUiApi::class)
     private fun renderSidebar(tab: DesktopTab, cache: MutableMap<Int, ImageBitmap>, name: String): File {
         val scene = ImageComposeScene(240, 460, Density(1f)) {
-            PageSidebar(tab = tab, cache = cache, onSelectPage = {})
+            PageSidebar(tab = tab, cache = cache, onSelectPage = {}, revision = 0)
         }
         return save(scene, name)
+    }
+
+    /**
+     * A page thumbnail is painted **once the hand stops**, never inside the frames the hand is producing.
+     *
+     * Painting one means rendering a whole page through a second `ImageComposeScene` — 29–39 ms on
+     * `udiff.xopp`, measured — so keying the sidebar on the document's edit count made the window drop
+     * frames on every finished letter and on every bite of the eraser. The sidebar now keys on the shell's
+     * deferred revision: an edit drops the stale bitmap, and the quiet moment re-renders that one page
+     * (the other rows still hit the cache).
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun `an edit does not repaint a thumbnail until the edits go quiet`() {
+        val tab = DesktopTabs().open(document("thumbs.mobix", pages = 3))
+        val cache = CountingCache()
+        val revision = mutableStateOf(0)
+        val scene = ImageComposeScene(240, 460, Density(1f)) {
+            PageSidebar(tab = tab, cache = cache, onSelectPage = {}, revision = revision.value)
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            val painted = cache.writes
+            assertTrue("the sidebar painted the pages it shows ($painted)", painted > 0)
+
+            // What a committed stroke does: the document edits, and the shell drops that page's bitmap.
+            tab.document.editPage(0) { page -> page.withElement(SyntheticNotebook.stroke(400.0)) }
+            cache.remove(0)
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            assertEquals("no thumbnail was painted mid-stroke", painted, cache.writes)
+
+            // …and the quiet moment the shell schedules afterwards: one page painted again, not the list.
+            revision.value = 1
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            assertEquals("the edited page alone is painted again", painted + 1, cache.writes)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /** A thumbnail cache that counts what was painted into it — the render happens only on a miss. */
+    private class CountingCache(
+        private val delegate: MutableMap<Int, ImageBitmap> = mutableMapOf(),
+    ) : MutableMap<Int, ImageBitmap> by delegate {
+        var writes: Int = 0
+            private set
+
+        override fun put(key: Int, value: ImageBitmap): ImageBitmap? {
+            writes++
+            return delegate.put(key, value)
+        }
     }
 
     /**

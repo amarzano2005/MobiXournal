@@ -147,7 +147,7 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   frame. The page is painted straight into the window's canvas again, and the numbers above are the
   first, honest ones: what a dense page costs is a *frame* (tens of milliseconds), not a second.
 
-  **The page is a Skia `Picture`, recorded once per viewport** (`PagePicture.kt`) and replayed by every
+  **The page is a Skia `Picture`, recorded once** (`PagePicture.kt`) and replayed by every
   frame of a stroke. What this removes is Kotlin's cost, not Skia's: `drawPageContent` recompiles every
   living entity through `LivingInk`, measures every text box and builds a `Path` — or a whole taper
   outline — for each of the document's strokes, thousands of allocations a frame for ink that did not
@@ -161,8 +161,8 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   | direct, every frame | **3,8 ms / 8,8–10,2 ms** |
   | recorded picture, replayed | **0,1–0,3 ms / 1,0 ms** |
 
-  The recording itself is a one-off cost paid when something changes the page (an edit, a scroll, a zoom,
-  a window resize, a layer switched off) — a frame of drawing never pays it. `PagePictureTest` pins the
+  The recording itself is a one-off cost paid when something changes the page (an edit, a window resize, a
+  layer switched off; a scroll and a zoom do not, below) — a frame of drawing never pays it. `PagePictureTest` pins the
   two properties that matter: the replay is **pixel-identical** to the direct paint (a cache with its own
   idea of the page would be a silent divergence) and a frame of a live stroke does not record it again.
   The remaining 144 Hz work is dirty-rect pacing for scrolling and zooming, which re-record per frame,
@@ -208,6 +208,17 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   is confirmed by the pipeline's numbers and not by a frame rate on this screen — the status bar now names
   the rate it found, so the difference between a 144 Hz monitor and a 120 Hz one is visible rather than
   inferred from the watchdog.
+
+  **A lift records the stroke, not the sheet** — and the frame it used to lose went to a *thumbnail*. Two
+  costs sat on every committed stroke, both measured on `udiff.xopp` (770 strokes), and neither was the
+  ink: the base picture was re-recorded whole (2–4 ms) and, worse, the sidebar painted the edited page's
+  thumbnail again (a second `ImageComposeScene` through the **software** rasteriser, **29–39 ms**, inside
+  composition). The picture is now a base plus a **tail** of the strokes appended on top, recorded on their
+  own, and the thumbnail is repainted only after a burst of edits has been quiet for 600 ms
+  (`DesktopShellState.thumbnailRevision`), one page at a time. What is left per lift is the stroke itself.
+  The two properties are pinned where they belong: `PagePictureTest` (three appends leave `records` at
+  one, and base plus tail is pixel-identical to the direct paint) and `DesktopShellTest` (an edit writes
+  nothing into the thumbnail cache; one quiet moment paints one page).
 - **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
   line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a
   drawing tool is active — so every hit test and hover event still works — and `drawToolCursor` paints the

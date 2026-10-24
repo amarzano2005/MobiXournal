@@ -38,6 +38,8 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                     tab = tab,
                     cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
                     onSelectPage = { index -> selectPage(tab, index) },
+                    // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
+                    revision = state.thumbnailRevision,
                 )
             }
             if (state.toolPlacement.showsRail) {
@@ -72,8 +74,10 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 onViewport = { tab.viewport = it },
                 onFit = { tab.fit = it },
                 // An edit changes the page's picture, so the thumbnail cached for it is stale; the other
-                // pages keep theirs. It also starts the clock on the crash snapshot: the shell writes one
-                // after the edits go quiet.
+                // pages keep theirs. It is only *dropped* here — re-rendering it now would cost a full
+                // software paint per stroke, so the sidebar paints it again once the burst is quiet
+                // (`ThumbnailRefresh`, keyed on `thumbnailRevision`). The edit also starts the clock on
+                // the crash snapshot, which the shell writes after the same burst.
                 onEdited = { index ->
                     state.thumbnails[tab.key]?.remove(index)
                     state.noteEdit()

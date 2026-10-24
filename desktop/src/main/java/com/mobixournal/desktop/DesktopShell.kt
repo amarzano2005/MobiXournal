@@ -50,13 +50,6 @@ import java.io.File
 import kotlinx.coroutines.delay
 
 /**
- * How quiet the edits have to be before a crash snapshot is written: a snapshot is the whole notebook,
- * so it is taken between bursts of drawing rather than during one. Short enough that a crash loses
- * seconds, long enough that a continuous stroke never writes one.
- */
-private const val RECOVERY_QUIET_MS = 3_000L
-
-/**
  * The window's content, and everything it needs to be driven — **without a window**.
  *
  * This is the piece that used to live inside `DesktopApp`, tangled with `FrameWindowScope`, a
@@ -101,6 +94,14 @@ class DesktopShellState(
     var editRevision: Int by mutableStateOf(0)
         internal set
 
+    /**
+     * Bumped **after** a burst of edits goes quiet ([ThumbnailRefresh]), and the only key the sidebar
+     * re-renders a page's thumbnail on — separate from [editRevision] because a thumbnail is expensive in a
+     * way a stroke is not (`DesktopQuiet.kt` owns the reasoning and the two quiet periods).
+     */
+    var thumbnailRevision: Int by mutableStateOf(0)
+        internal set
+
     /** The last failed open, or null — cleared on the next successful one or by [dismissFailure]. */
     var failure by mutableStateOf<OpenFailure?>(null)
 
@@ -119,6 +120,16 @@ class DesktopShellState(
 
     /** Page thumbnails, one map per document, kept by the shell so a scroll back is not a repaint. */
     val thumbnails = mutableMapOf<String, MutableMap<Int, ImageBitmap>>()
+
+    /**
+     * Let the sidebar paint the pages it shows again — the debounced half of [thumbnailRevision].
+     *
+     * Called from [ThumbnailRefresh] and by undo/redo: a stale cached bitmap is dropped where the edit
+     * happens (`DesktopWorkspace`), so the re-render finds the page it must draw.
+     */
+    fun refreshThumbnails() {
+        thumbnailRevision++
+    }
 
     /** The picked tool: what a primary drag on the page does (pen and highlighter ink, eraser rubs out). */
     var tools by mutableStateOf(ToolSelection())
@@ -400,46 +411,25 @@ class DesktopShellState(
                 panMode = true; true
             }
             // Undo and redo are the tab's own history, so they are **unavailable** — not merely no-ops —
-            // while it is empty, which is the state a header control greys the command out on. A step
-            // may restore a page's picture, so the tab's cached thumbnails are dropped with it.
-            ShellCommand.UNDO -> {
-                if (!tab.undo()) return false
-                thumbnails[tab.key]?.clear()
-                true
-            }
-            ShellCommand.REDO -> {
-                if (!tab.redo()) return false
-                thumbnails[tab.key]?.clear()
-                true
-            }
+            // while it is empty, which is the state a header control greys the command out on.
+            ShellCommand.UNDO -> stepHistory(tab, redo = false)
+            ShellCommand.REDO -> stepHistory(tab, redo = true)
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.SAVE, ShellCommand.SAVE_AS -> false
         }
     }
-}
 
-/**
- * The shell as the drawing in `docs/ui-modernization.md` lays it out: a header carrying the tab strip,
- * a sidebar in a lane of its own beside the canvas, the page on the desk, and the status bar under it.
- *
- * The bands are **glass, and the page is not underneath them**: the header and the status bar take their
- * own rows and the canvas takes the rectangle that is left, so no band ever lies on the sheet
- * (`docs/chrome.md`). Everything that floats — the failed-open card — may sit over the page, because it
- * comes and goes with a gesture.
- */
-/**
- * The crash snapshot, written once the edits have been quiet for a moment: a snapshot is the whole
- * notebook, so per-stroke writes would trade one risk for another. A cancelled coroutine **is** the
- * debounce — the next edit cancels the write the previous one scheduled — and the shell's state bump
- * ([DesktopShellState.editRevision]) is the only thing that starts it.
- */
-@Composable
-private fun RecoverySnapshots(state: DesktopShellState) {
-    LaunchedEffect(state.editRevision) {
-        if (state.editRevision == 0) return@LaunchedEffect
-        delay(RECOVERY_QUIET_MS)
-        state.flushRecovery()
+    /**
+     * One step through [tab]'s history, as a command: the cached thumbnails go with it, because a step may
+     * restore a page's picture, and the step starts the same quiet period an edit does — the restored pages
+     * reach the sidebar there, and the document is dirty again either way.
+     */
+    private fun stepHistory(tab: DesktopTab, redo: Boolean): Boolean {
+        if (!(if (redo) tab.redo() else tab.undo())) return false
+        thumbnails[tab.key]?.clear()
+        noteEdit()
+        return true
     }
 }
 
@@ -473,6 +463,15 @@ private fun BoxScope.ColourPanelHost(state: DesktopShellState) {
     }
 }
 
+/**
+ * The shell as the drawing in `docs/ui-modernization.md` lays it out: a header carrying the tab strip,
+ * a sidebar in a lane of its own beside the canvas, the page on the desk, and the status bar under it.
+ *
+ * The bands are **glass, and the page is not underneath them**: the header and the status bar take their
+ * own rows and the canvas takes the rectangle that is left, so no band ever lies on the sheet
+ * (`docs/chrome.md`). Everything that floats — the failed-open card — may sit over the page, because it
+ * comes and goes with a gesture. The two jobs that wait for the edits to go quiet are [DesktopQuiet.kt]'s.
+ */
 @Composable
 internal fun DesktopShell(
     state: DesktopShellState,
@@ -481,6 +480,7 @@ internal fun DesktopShell(
     /** The window's devices, or null in a test that has none — the canvas then keeps the mouse path. */
     tablet: DesktopTablet? = null,
 ) {
+    ThumbnailRefresh(state)
     RecoverySnapshots(state)
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
         Header(

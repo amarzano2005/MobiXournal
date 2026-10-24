@@ -55,12 +55,21 @@ import kotlin.math.roundToInt
  * page that scrolls out of the sidebar and back must not be inflated and painted again, and a 300-page
  * notebook must not build 300 skia scenes on the way in — the lazy list only asks for the rows near the
  * viewport, and each of those is rendered the first time it is seen.
+ *
+ * An edit does not repaint one either. Rendering a thumbnail is a page painted **and** rasterised in
+ * software — 29–39 ms on a dense sheet, measured — so the rows are keyed on [revision], which the shell
+ * bumps once a burst of edits has gone quiet (`ThumbnailRefresh`), never on the document's edit count: that
+ * key made every finished letter and every eraser bite pay for one inside composition, on the frame the pen
+ * was still moving in. A stale bitmap is dropped where the edit happens, so the deferred re-render paints
+ * the edited page and the other rows still hit the cache.
  */
 @Composable
 fun PageSidebar(
     tab: DesktopTab,
     cache: MutableMap<Int, ImageBitmap>,
     onSelectPage: (Int) -> Unit,
+    /** The shell's deferred [DesktopShellState.thumbnailRevision] — see the KDoc above. */
+    revision: Int,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -104,10 +113,11 @@ fun PageSidebar(
             items(count = tab.pageCount) { index ->
                 // The hidden set is part of the key: switching a layer off repaints this page's thumbnail
                 // rather than leaving a preview that disagrees with the sheet beside it. So is the
-                // document's edit count — an edit changes the picture, and the shell drops the page's
-                // cached bitmap, so this re-renders the edited page and takes the others from the cache.
+                // shell's **deferred** revision, and deliberately not the document's edit count: an edit
+                // drops the page's cached bitmap, and the next quiet moment re-renders that one page here
+                // (the other rows hit the cache) instead of re-rendering it in the middle of a stroke.
                 val hidden = tab.hiddenOn(index)
-                val preview = remember(tab, index, hidden, tab.document.edits) {
+                val preview = remember(tab, index, hidden, revision) {
                     thumbnail(tab, index, THUMB_WIDTH.value, cache)
                 }
                 Row(
