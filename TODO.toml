@@ -36,62 +36,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-eraser-and-selection-on-shared-geometry"
-title = "Desktop: marquee and lasso selection on the shared geometry"
-description = "What is left of the selection half; the eraser half shipped with editable-page-window-for-a-paged-desktop (2026-10-22) and is closed here: the window's eraser erases through the shared PageEraser in STANDARD and WHOLE_STROKE modes with eraserRadiusPt sizing the tip, committed through the tab's page window (DesktopEditingTest renders a bar, erases across it and asserts the gap is paper again with both halves still inked). Still owed: (1) the three marquee tools - MARQUEE drags a rectangle, LASSO a freehand loop and BG_SELECT the same region flattened onto the background - each painting the window's own marching outline over the page (not a material of their own, docs/interface-contract.md) and each committing through the page window as one undo step; (2) what a selection then does - move by dragging, scale from the corner handles, rotate once a handle is turned (desktop-living-entity-editors owns editing a living entity's own handles, this owns the selection transform), with the transform maths taken from the app's SelectionOps, which still lives in the app module because it uses ElementRef, FigureRedraw and TableElementFactory; the per-element move is already cut out into mobix-core's ElementShift (the seam VerticalSpaceOps and SelectionOps both walk), so continue along that seam and move the rest, or split it the same way, rather than starting a second geometry; (3) core tests for whatever maths moves plus a desktop render test that a marquee drag paints an outline and a lift moves exactly what it caught; (4) the packets gate: a selection drag is not ink, so DesktopTool.inksByPackets must stay false for it and the pen's packets must not take the drag (DesktopVerticalSpaceTest is the pattern). Docs: docs/selection.md (the shared maths) and docs/desktop-workstation.md. No emulator; run :desktop:test and regenerate the distributable."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 40
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-shape-text-and-math-tools"
-title = "Desktop: shape perfection, text boxes and math blocks (scope)"
-description = "Desktop parity for the three Android engines that are not geometry slots; the geometry itself has shipped (the seven shape slots draw through ShapeBuilder). (1) Hold-to-perfect shapes (docs/shape-perfection-engine.md): decide whether the recogniser is platform-free enough for mobix-core, then make a pen held still for 300 ms perfect the ink already on the page instead of only the shape slots - the tablet's dwell, not a new gesture. (2) The text box tool (X) and markdown text (docs/text-and-markdown.md): what a press creates, how the editor opens without a dialog over the page (the window's glass: an in-place field or the inspector row, owned for living elements by desktop-living-entity-editors), what the element writes on commit, and how Enter/Esc and the caret behave; the model (TextElement with its font, size, colour, alignment) already round-trips through both formats. (3) Math blocks: the viewer already draws a math block through LivingInk, so what is missing is authoring - an editor for the LaTeX source and the typesetting path (docs/latex-typst-rendering.md), reusing the tablet's offline KaTeX/Typst path so the two shells do not compile differently. Add task-level children in dependency order (text before math, perfect-shapes independent), each with its JVM test of what the edit writes, an ImageComposeScene test that the gesture writes one element and one undo step, and its docs (README, docs/desktop-workstation.md, the owning engine doc). Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 50
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-stem-slot-placement"
-title = "Desktop: the STEM slots place a living element (scope)"
-description = "Four slots - PLOT, AXES, TABLE, CIRCUIT - are on the strip and pan the page, because DesktopPen.activeTool() reduces them to HAND; they are the tools that CREATE a living element, while desktop-living-entity-editors edits one that exists and desktop-export-pdf-svg writes files - three jobs, three owners, no overlap. The tablet asks first (a formula for a plot, rows/columns for a table, a component for a circuit) and its dialogs are Compose-for-Android, so nothing carries over unchanged: mobix-core has the geometry (PlotInk, PlotFrame, FunctionPlot, TableInk, CircuitInk, CircuitShapes, ParametricShapes) and the element types (PlotElement, TableElement, CircuitElement, ParametricShapeElement), but not the question the user answers when the tool is picked. Investigate and then add the atomic tasks: (1) how a press places an element on the desktop - drag a box (the tablet's gesture) or place at the click with a default size - and where the size and position land in each element's own fields; (2) what the user fills in first, per family, and where that happens without a modal over the page (the window's glass: a header-tethered editor, an inspector row, or the same question the tablet asks, re-drawn in Compose Desktop), reusing the apply functions the Android editors already call (render/ElementEdits.kt, applyPlotEdit) so both shells write the same element; (3) the order of families - plot first (the formula is one line and the geometry is already shared), then axes, table, circuit - and what each still lacks in mobix-core to be placed without the app module; (4) the tests each child owes (a JVM test of what the placement writes, an ImageComposeScene test that picking the tool and dragging writes exactly one element and one undo step, and that the pen's packets do not take the drag); (5) the doc updates (docs/mobix-elements.md, docs/desktop-workstation.md, README). Depends on desktop-living-entity-editors for the editor surface it opens after placing. Produce tasks, not code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 60
-created = 2026-10-24
-tags = ["desktop", "ui"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-living-entity-editors"
-title = "Desktop: editing a living entity in place and in the inspector (scope)"
-description = "One owner for every way the window CHANGES a living element that already exists: the on-page gestures and the non-modal property inspector, merged here so the same edit is not specified twice. Not here: creating one (desktop-stem-slot-placement) and exporting pages (desktop-export-pdf-svg). Investigate, then add the atomic tasks in this order: (1) the selection bridge - what the inspector and the on-page handles read: the element under the selection, its family and its current values (this depends on desktop-eraser-and-selection-on-shared-geometry for the selection itself); (2) the inspector as a 300 dp right lane, sections per family (plot: formula, interval, resolution, stroke; table: rows and columns, headers, alignment; circuit: component values; parametric shape: parameters), never a dialog over the page, committing into the same undo stack as a stroke - reusing the codecs in format/mobix/ and the apply functions the Android inspectors call (render/ElementEdits.kt, applyPlotEdit), so both shells write the same element; (3) the on-page gestures per family: double-click to edit, vertex and pin handles, drag to resize without changing line weight, each a preview that is exactly what the commit writes; (4) layout and keyboard: the inspector docks at a fixed width and shows and hides without moving the page, every field is reachable by keyboard, Esc cancels a field edit rather than the whole element; (5) tests: a JVM test of each apply path (the element that comes out is the one the tablet's editor would write), an ImageComposeScene test that a handle drag is one undo step and that the inspector's field commits, and a render test of the lane beside the page (no band over the sheet). Docs: docs/mobix-elements.md per family, docs/desktop-workstation.md, README. Produce tasks, no code."
-status = "active"
-level = "scope"
-category = "feature"
-urgency = "high"
-order = 70
-created = 2026-10-21
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-pdf-annotation"
 title = "Desktop: PDF annotation and outline (scope)"
 description = "The desktop viewer rasterises an annotated PDF page as a background but cannot work on it, while the tablet has the tools. Investigate for desktop (PDFBox, not pdfbox-android) and then add the atomic tasks: (1) PDF text selection - what the text layer gives on a JVM, how a selection's rectangles are built, and how the selected text reaches the clipboard; (2) the snap-to-text magnetic highlighter (docs/pdf-annotation-engine.md, docs/pdf.md) - whether its geometry is platform-free enough for mobix-core so both shells snap the same way, and what a highlighter stroke stores so it round-trips; (3) the PDF outline and bookmarks in the sidebar (docs/ui-modernization.md lists PDF outlines there), including a lazily loaded outline for a big document; (4) the tools' slots: PDF text select and the magnetic highlighter are entries of the strip, so their slot faces and shortcuts follow the same rules as every other tool (unify-remaining-stem-tool-glyphs, docs/ui-modernization.md section 3) and a drag with them is not ink, so the pen's packets must not take it (DesktopTool.inksByPackets). Leaving the page's PDF untouched until a save writes it is the Android rule and applies here. Export is not in this scope: desktop-export-pdf-svg owns it. Verification per child: a JVM test over a fixture PDF for the geometry, a render test that a selection or a highlight lands where the text is. Docs: docs/pdf.md, docs/desktop-workstation.md, README. Produce tasks, no code."
@@ -326,5 +270,201 @@ urgency = "normal"
 order = 990
 created = 2026-10-21
 tags = []
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-region-copy-flattened"
+title = "Desktop: Select background (flatten), the third select tool"
+description = "The one marquee member the window still lacks (splitting it out of desktop-eraser-and-selection-on-shared-geometry, which shipped marquee, lasso and the selection transform). On the tablet, BG_SELECT is not a selection transform: a drag records a rectangle, clips it to the page, resolves the page background (PDF page cache / image background) and composites background + every visible layer into a capped PNG with PageRegionRenderer; that PNG becomes one ImageElement on a view-held clipboard (docs/selection.md, 'Background-copy (region) select'). What the window needs first is the clipboard it has never had: a tab-level element clipboard (SelectionOps.elementsAt / addToTopLayer already exist in mobix-core) that Cut, Copy and Paste drive from the header and from shortcuts (Ctrl+C / Ctrl+X / Ctrl+V), with the four flavours the tablet offers — the app's own element payload, SVG, PNG and text/plain — written through java.awt.datatransfer plus Skia's PNG encoder, since there is no Android ContentResolver here. Then the tool itself: a DesktopTool.SELECT_BG entry (glyph, label, shortcut), selectionToolOf answering SelectionTool.RECT for it, the flattened capture through a mobix-core region renderer that takes an already-decoded background bitmap, the same marching outline as the marquee, and Cut that deletes what the region wholly contains on the active layer as one undo step. Tests: a core test that the region renderer composites layers in order over the background, a desktop render test that a drag on SELECT_BG paints an outline and that Copy puts an image element payload on the clipboard, and a shell test that Cut is one undo step. Docs: desktop-workstation.md (its 'what the window does not do' bullet and the file table), docs/selection.md and README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "normal"
+order = 1000
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-shape-recogniser-in-mobix-core"
+title = "Desktop: move the shape recogniser into mobix-core"
+description = "The window's hold-to-perfect (docs/shape-perfection-engine.md) needs the recogniser, and the recogniser is still in the app module even though it is pure. Move these files from app/src/main/java/com/mobixournal/render/ to mobix-core/src/main/java/com/mobixournal/render/ unchanged (same package, so every existing import keeps compiling): ShapeRecognizer.kt, CircleRecognizer.kt, RecoSegment.kt, Inertia.kt, PolygonCorners.kt, ArrowRecognizer.kt and StrokeSmoothing.kt; RecognisedFigure.kt is already in the core. Verify each file against the core's header rule (no android.*, no Compose) before moving it; a file that fails is split along the seam instead of copied. Move the pure tests with them (ShapeRecognizerTest, ShapeRecognizerCornersTest and whatever else of app/src/test/java/com/mobixournal/render/ tests only those files), and leave DrawingSurfaceHoldSnap.kt (and HoldSnapDwellTest's constants check, retargeted at the moved constants) in the app, because the 300 ms timer is Android's postDelayed and the window will drive its own. No behaviour change is the goal: :mobix-core:test and :app:testDebugUnitTest must be green with the same assertions, SourceStructureTest must not need a raised ceiling, and DocsGuardTest stays green. Docs: docs/codebase.md's file tree, docs/shape-perfection-engine.md (the owning spoke gains a line saying where the recogniser lives now), docs/desktop-workstation.md's move table gains the row with its line count and verdict moved."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1010
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-hold-to-perfect-a-stroke"
+title = "Desktop: hold the pen still and the stroke perfects itself"
+description = "The tablet's dwell, in the window: a pen that rests within SHAPE_DWELL_SLOP_PT (3 pt in page space) for SHAPE_DWELL_MS (300 ms) while a stroke is in progress replaces the preview with the recognised geometry, and any move past the slop gives the user's own ink back and re-arms. Both constants already exist (app/render/DrawingSurfaceHoldSnap.kt) and the recogniser moved to mobix-core with desktop-shape-recogniser-in-mobix-core. The window has no postDelayed, so the timer must be driven from the stream the draft is already fed by: PenPacketStroke (the packets) and PageCanvasInput's compose moves each check the last sample's age against a `nanoTime` reading, and the check itself belongs in a pure mobix-core helper (`dwellFigure(samples: List<StrokePoint>, widthPt: Double): RecognisedFigure?` plus the slop/stillness rule) so a JVM test owns it. The preview is the same draft list the sheet already paints, so what is previewed is what the lift commits; a recognised closed polygon commits as a ParametricShapeElement (ParametricShapes, as the tablet does) and a line/arrow/arc as the cleaned stroke. No new gesture and no new slot: the dwell works with the pen and the highlighter, like the tablet. Tests: a core JVM test that a wobbly square, a straight line and a squiggle answer square/line/null, and that a sample 4 pt away re-arms; an ImageComposeScene test that holding still for past the dwell rewrites the preview (the painted ink is the figure, not the wobble) and that the lift writes exactly one element and one undo step. Docs: docs/shape-perfection-engine.md (a desktop row: same trigger, same classes), docs/desktop-workstation.md, README's desktop paragraph. Run :desktop:test :mobix-core:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1020
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-text-slot-and-in-place-field"
+title = "Desktop: the Text slot places a box and edits it in place"
+description = "The Text tool (X) on the window's strips. Add a DesktopTool.TEXT slot (label and glyph from the tablet's catalogue: ToolGlyph for text) to DESKTOP_TOOL_GROUPS and DESKTOP_TOOLS_THAT_ACT, and make a press on the sheet place a TextElement as one edit and one undo step: a pure `textPlacement(x, y, ink) -> TextElement` decides the box (one line high at the ink's size, a third of the page's width, the ink's colour, LEFT alignment) so a JVM test pins it. The editor is in place, not a dialog over the page: a BasicTextField drawn inside the canvas over the element's box (the window's own glass, no material of its own, docs/interface-contract.md), the caret where the press landed, Enter a new line, Esc or a click outside committing; empty text removes the element and its undo step. While the field is up it owns the keyboard, so the shell's key handler must not steal Space (pan), B/H/V (tools) or Delete. Whatever docs/text-and-markdown.md says a text box's markup carries, the field and the commit must not diverge from it - the painter is shared (LivingInk), so only authoring can drift. Tests: the placement JVM test; an ImageComposeScene test that a press writes one TextElement, typing changes the model through the field, Enter commits as one undo step, Esc leaves the element as it was, and an empty box leaves no element; a desktop test that the key handler ignores shortcuts while the field is up. Docs: docs/text-and-markdown.md, docs/desktop-workstation.md's 'what the window does not do' (text leaves the list), README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1030
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-math-block-authoring"
+title = "Desktop: author a living math block"
+description = "The window already DRAWS a MathBlockElement (LivingInk + LatexLayout), so what is missing is authoring it. Add a Math slot to the strips (label, key and glyph taken from the tablet's LaTeX tool in app/ui/EditorTool.kt - no invented shortcut), whose press places a MathBlockElement at a default box as one undo step and immediately asks for its source in a small glass panel anchored beside it (the colour panel's pattern, ColourPanel.kt, not a modal over the page). The source field takes LaTeX or Typst (MathFlavor), the live preview typesets through the shared LatexParser + LatexLayout (never a second renderer: the tablet has no KaTeX/Typst binary in this tree, it lays glyphs out with LatexLayout), Enter or Set commits the block through the tab's page window as the same undo step, and Esc on an empty block removes it. Reuse the tablet's edit path so both shells write the element the same way: the commit is the same replacement `replaceMathBlock`-shaped edit, and an existing block re-opened from the selection commits through it too. Tests: a JVM test that the placement writes the box and flavour asked for and that an empty source is removed; a core test that LatexLayout lays out the source the field accepted (fraction and superscript); an ImageComposeScene test that picking the slot and typing writes exactly one MathBlockElement and one undo step, and that the page's painted ink changes after Set. Docs: docs/mobix-elements.md (the math block's desktop authoring), docs/latex-typst-rendering.md if it names the shells, docs/desktop-workstation.md, README (its math-block bullet is the tablet's; say the window can write one now). Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1040
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-living-slot-dispatch-and-placement"
+title = "Desktop: a STEM slot places, it does not pan (the shared plumbing)"
+description = "The first child of desktop-stem-slot-placement, and the one the other three stand on: today DesktopTool.activeTool() reduces PLOT, TABLE and CIRCUIT to ActiveTool.HAND, so picking one only pans the page. This task builds the seam, not a family: (1) a pure mobix-core `livingPlacement(dragStart, dragEnd, page, defaultSize)` that answers the Bounds a press-drag means (the tablet's gesture) and the box a bare click means (the default size, clamped inside the page), so both the caller and a JVM test agree; (2) the dispatch in the window: a slot whose product is a living element is not ink, so DesktopTool.inksByPackets() stays false for it, the packets stand aside as they do for a geometry slot (DesktopVerticalSpaceTest is the pattern), and the press is taken before the ink router with a `livingSlotOf(tool)` beside `selectionToolOf`; (3) one commit path, `DesktopDocument.editPage` with the new element appended to the top layer, one undo step per placement, and the new element left selected (a PageSelection of one ref) so a second gesture acts on what was just placed; (4) the AXES decision recorded: the tablet's Axes tool is the coordinate-axis FIGURE, which the window already ships as a geometry slot, and a PlotElement draws its own frame through PlotInk, so no new axes slot is created - write that in docs/mobix-elements.md so it is not re-opened. Tests: the placement JVM test (click box, drag box, both clamped to the page, a zero-area drag falling back to the default); an ImageComposeScene test with a stub family that picking such a slot and dragging writes exactly one element and one undo step and that the drag is not taken by the packets. Docs: docs/desktop-workstation.md, docs/mobix-elements.md. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1050
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-place-a-plot"
+title = "Desktop: the Plot slot places a live plot"
+description = "Depends on desktop-living-slot-dispatch-and-placement. Add a DesktopTool.PLOT slot that places a PlotElement: drag a box (or click for the default size) and the element is written at those bounds with the tablet's own defaults - read them from app/render/PlotElementFactory.kt, which is also the file whose `applyPlotEdit` must come to mobix-core for the desktop to ask the question: move `PlotElementFactory` (and the pure part of `applyPlotEdit`) into mobix-core with its test PlotElementFactoryTest, since it holds the element's non-dialog fields and the rule that an unedited field is preserved rather than dropped; the app's callers keep importing it unchanged. The first question is the formula (one line, exactly the tablet's), asked in the window's glass beside the placed element - a small panel with the formula field, the interval and a Set button, no modal over the page - and the answer rewrites the element through applyPlotEdit as part of the same undo step; Esc leaves the default plot in place or removes it (decide once: an unanswered placement is removed, so a stray click leaves no empty frame). The drawing is already shared (PlotInk through LivingInk, which the window paints), so nothing new renders. Tests: a JVM test that the placement writes the bounds and the defaults, and that applyPlotEdit keeps an unedited field; an ImageComposeScene test that a drag on the Plot slot writes one PlotElement, the panel commits the formula, and one undo takes the whole placement back. Docs: docs/mobix-elements.md (the plot's placement and the window's question), docs/desktop-workstation.md, README. Run :desktop:test :mobix-core:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1060
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-place-a-table"
+title = "Desktop: the Table slot places a live table"
+description = "Depends on desktop-living-slot-dispatch-and-placement. Add a DesktopTool.TABLE slot: a drag (or a click for the default size) places a TableElement at those bounds, sized by the grid the user asks for first - rows and columns, asked in the window's glass next to the placed element (steppers plus Set, the tablet's question re-drawn, no dialog over the page) - and writes it with headers on and the page's ruling-agnostic defaults. The factories are already shared: TableElementFactory is in mobix-core (moved with the selection work), TableInk draws it through LivingInk, and ElementShift/SelectionOps already translate and scale it; what must be checked is that the element's colWidths/rowHeights divide the placed box, so the table is exactly as wide as the drag. The grid answer is one edit: the placed element is not committed twice (place with the answered grid, or place empty and rewrite it inside the same undo step - pick one and say so in the code's own comment). Esc on an unanswered placement leaves no table. Tests: a JVM test that a 3x4 answer divides the drag's box exactly and that the bounds are the drag's; an ImageComposeScene test that a drag on the Table slot plus the answer writes exactly one TableElement and one undo step. Docs: docs/mobix-elements.md (the table's placement), docs/desktop-workstation.md, README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1070
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-place-a-circuit"
+title = "Desktop: the Circuit slot places a component"
+description = "Depends on desktop-living-slot-dispatch-and-placement. Add a DesktopTool.CIRCUIT slot: picking it opens the component picker (the tablet's own catalogue - read app/ui/CircuitGlyphs.kt and the CircuitElement model in mobix-core's format/model/Living.kt for the kinds and their default values), and a press places the picked component at a default size with its pins where CircuitInk draws them; a drag may set the size if it is cheap, but placement-at-a-click with rotation 0 is enough for this task. The commit is one element on the top layer and one undo step, left selected like the other STEM placements. The picker is the strip's pattern, not a new surface: a glass panel beside the slot (the ToolGroupPicker's material, docs/interface-contract.md) listing each kind with its glyph and label, closing on pick and on Esc. Component values (resistance etc.) are NOT edited here - that is desktop-inspector-circuit-fields - so the placement writes the model's defaults and says so. Tests: a JVM test that the placement writes the picked kind with its default values at the asked bounds; an ImageComposeScene test that picking a resistor in the picker and clicking the page writes exactly one CircuitElement and one undo step, and that the picker closes on Esc. Docs: docs/mobix-elements.md (the circuit's placement), docs/desktop-workstation.md, README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1080
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-selection-bridge"
+title = "Desktop: the bridge from a selection to the one living element it names"
+description = "First child of desktop-living-entity-editors, and the only part of the inspector that is pure. The selection now exists (desktop-eraser-and-selection-on-shared-geometry shipped PageSelection in mobix-core), so this task answers, without Compose: which living element a PageSelection names (exactly one ref, and that ref is a living element - TableElement, PlotElement, ParametricShapeElement, CircuitElement or MathBlockElement, per `is LivingEntity` in format/model/Living.kt), its family, and its current values as one immutable snapshot the inspector reads (never the whole document); and the write side: `replace(target, element)` producing the page with that ref's element replaced, through DesktopDocument.editPage so the tab's page window and the dirty set are respected, recorded as one undo step by the caller. Nothing here may re-derive geometry: ElementBounds owns the box and the family's codec (MobixElementCodec) owns what survives a save, so a field the model does not carry is not offered - the rule the tablet's editors follow (docs/mobix-elements.md). Tests: a JVM test that a selection over one plot answers that plot's family and values, that a selection over two elements answers none, that a ref pointing at a stroke answers none, and that replace() writes exactly one element and leaves every other ref where it was. Docs: docs/desktop-workstation.md (a paragraph on what the inspector reads), docs/mobix-elements.md. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1090
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-lane"
+title = "Desktop: the inspector as a right-hand lane, not a dialog"
+description = "Depends on desktop-inspector-selection-bridge. Add the lane itself: a 300 dp column on the right of the canvas in DesktopShell, inside its own lane like the rail - the page gets the rectangle that is left, so no band and no glass ever lies over the sheet (docs/interface-contract.md, docs/chrome.md; ToolStripsTest's 'the page starts after the rail' is the mechanical form of the same rule, and its right-hand twin belongs here). It docks and undocks as the toolbar placements do (the window's settings file, the chooseToolPlacement pattern), it shows when the bridge names a living element and hides otherwise, and opening or closing it does not move the page: reserve the lane's width while a document is open, or refit the zoom when it appears - pick one and pin it in a test. A header names the family and offers the family's Edit action, and Esc in a focused field cancels the field edit rather than the whole element, so the shell's key handler must know a field has focus. Every control is a design token, English copy, all five states. Tests: a render test that the page's rectangle ends 300 dp before the window's edge with the lane open and that no glass is drawn over the page's pixels; a shell test that Esc with a field focused cancels the field and a second Esc drops the selection. Docs: docs/desktop-workstation.md, docs/ui-modernization.md if it enumerates the lanes, README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1100
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-plot-and-shape-fields"
+title = "Desktop: the inspector's plot and shape sections"
+description = "Depends on desktop-inspector-lane. Two families whose editors the tablet already has as dialogs, re-drawn as lane sections: **plot** - formula (the source line, applied through PlotElementFactory.applyPlotEdit, which desktop-place-a-plot moves to mobix-core; if that task has not landed, move it here), the x interval, the sample resolution and the stroke colour and width, each field committing on Enter or focus loss as one undo step of its own; **parametric shape** - the drawn figure's side lengths and interior angles as READ-ONLY readouts (ParametricShapes.sideLengthPt / interiorAngleDeg, the same numbers ShapeInk writes on the page; dragging a vertex is the on-page half, a later child) plus its outline width and colour, which are editable. The rule for both: a field the model does not carry is not shown, and an unedited field is preserved rather than rewritten from the default - the tablet's own rule, already tested by PlotElementFactoryTest and TableCellEditorDialogTest. Tests: a JVM test per section that the element that comes out is the one the tablet's editor would write (same values, same untouched fields), and that an invalid entry (an empty formula, a non-numeric interval) is refused instead of written; a render test that the section draws in the lane without covering the page. Docs: docs/mobix-elements.md per family, docs/desktop-workstation.md, README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1110
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-inspector-table-and-circuit-fields"
+title = "Desktop: the inspector's table and circuit sections"
+description = "Depends on desktop-inspector-lane. The other two families, same rules as the plot section: **table** - rows and columns (adding or removing one rewrites colWidths/rowHeights so the table keeps the box it has), the header row on or off, per-column alignment and the cell fill colours; the cell TEXT is not typed here (that is the in-place cell editor, a later on-page child) and the section says so. Use the shared appliers the tablet uses (TableCellEditorModel.applyEditedTable / applyEditedCells, which must move to mobix-core with their tests in this task, since the desktop cannot see the app module), so both shells write the same TableElement. **circuit** - the component's own values as the model carries them (read CircuitElement in format/model/Living.kt: kind, label, value, pins), edited in place with the keyboard and committed through the same replace() path as one undo step. Tests: a JVM test per family that the edit writes exactly the changed field and preserves every other one, that a malformed grid is refused, and that a component's value round-trips through MobixElementCodec after the edit; a render test that both sections draw in the lane. Docs: docs/mobix-elements.md (table, circuit), docs/desktop-workstation.md, README. Run :desktop:test :mobix-core:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1120
+created = 2026-10-24
+tags = ["desktop"]
+rebuild = false
+emulator_debug = false
+
+[[task]]
+id = "desktop-living-handles-on-the-page"
+title = "Desktop: handles on the living element itself (vertices, dividers, sliders)"
+description = "Depends on desktop-inspector-selection-bridge, and on the family sections for the readouts a handle updates. The on-page half of editing a living entity, one handle kind at a time, each drawn by SelectionOverlay beside the selection's own five handles, each drag a preview that is exactly what the commit writes: **a parametric shape's vertices** (ParametricShapes.moveVertex, snapping the leading side onto the page's 0/30/45/90 directions with the tablet's 7 degree tolerance); **a table's row and column dividers** (rewriting colWidths/rowHeights, never the cells' text, keeping the box's outer bounds); **a plot's interval sliders** if PlotInk exposes them as handles - otherwise say so in the docs and leave that to the slot's panel. A double-click on the element opens its family's lane section with the caret in the first field (the tablet's double-tap), and a drag that changes nothing records nothing. The handle's hit radius is the selection's own rule (a screen-pixel radius divided by zoom and density), so a handle is as easy to hit zoomed out as in. Tests: a JVM test per handle kind that the drag's arithmetic rewrites the intended field and no other; an ImageComposeScene test per kind that a handle drag is one undo step, that the preview frame and the committed page agree, and that a double-click opens the lane's section. Docs: docs/mobix-elements.md per family, docs/selection.md (the desktop's handle set), docs/desktop-workstation.md, README. Run :desktop:test and regenerate the distributable."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 1130
+created = 2026-10-24
+tags = ["desktop"]
 rebuild = false
 emulator_debug = false

@@ -25,6 +25,50 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-living-entity-editors"
+title = "Desktop: editing a living entity in place and in the inspector (scope)"
+description = "Broken into five atomic tasks in the order the scope asked for, no code written. desktop-inspector-selection-bridge is the pure half: which single living element a PageSelection names, its family and its values, and replace() through DesktopDocument.editPage - the field rule being that a field the model does not carry is never offered. desktop-inspector-lane docks a 300 dp right-hand lane in its own column so no glass lies over the page, opens without moving the sheet, and teaches the key handler that a focused field owns Esc. desktop-inspector-plot-and-shape-fields and desktop-inspector-table-and-circuit-fields are the four family sections, each reusing the appliers the tablet's dialogs already call (PlotElementFactory.applyPlotEdit, TableCellEditorModel.applyEditedTable and applyEditedCells, moved to mobix-core where the desktop can reach them) and each tested against the element the tablet would write. desktop-living-handles-on-the-page is the on-page half: shape vertices with the tablet's direction snapping, table row and column dividers, double-click opening the family's section, each drag one undo step with its preview equal to its commit."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-stem-slot-placement"
+title = "Desktop: the STEM slots place a living element (scope)"
+description = "Broken into four atomic tasks, no code written. desktop-living-slot-dispatch-and-placement is the shared seam the other three stand on: the pure livingPlacement geometry, livingSlotOf before the ink router, inksByPackets staying false so the pen packets stand by, one editPage commit per placement, the new element left selected, and the recorded decision that AXES needs no new slot (the tablet's Axes tool is the coordinate-axis figure the window already ships, and a plot draws its own frame through PlotInk). desktop-place-a-plot adds the Plot slot and moves PlotElementFactory and its applyPlotEdit into mobix-core, asking the formula in the window's glass. desktop-place-a-table adds the Table slot with the rows-and-columns question and checks that colWidths and rowHeights divide the placed box. desktop-place-a-circuit adds the Circuit slot with the component picker built from the tablet's own catalogue, placing the model's default values, with the values themselves owned by the inspector child."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-24
+tags = ["desktop", "ui"]
+
+[[task]]
+id = "desktop-shape-text-and-math-tools"
+title = "Desktop: shape perfection, text boxes and math blocks (scope)"
+description = "Broken into four atomic tasks, no code written. desktop-shape-recogniser-in-mobix-core moves ShapeRecognizer, CircleRecognizer, RecoSegment, Inertia, PolygonCorners, ArrowRecognizer and StrokeSmoothing (plus their pure tests) from app into mobix-core, leaving the Android dwell timer in DrawingSurfaceHoldSnap. desktop-hold-to-perfect-a-stroke brings the 300 ms / 3 pt dwell to the window, driven from the packet and Compose streams the draft is already fed by, with the stillness rule as a pure core helper and a recognised polygon committing as a ParametricShapeElement. desktop-text-slot-and-in-place-field adds the Text slot, the placement arithmetic and an in-place BasicTextField over the element (Enter commits, Esc cancels, an empty box leaves nothing) that keeps the keyboard while it is up. desktop-math-block-authoring adds the Math slot with a source panel typeset by the shared LatexParser and LatexLayout, because this tree has no KaTeX or Typst binary and the tablet typesets with the same layout engine. Each child states its JVM test, its ImageComposeScene test and its docs; the order is text before math, the recogniser independent."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-21
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
+id = "desktop-eraser-and-selection-on-shared-geometry"
+title = "Desktop: marquee and lasso selection on the shared geometry"
+description = "Marquee and lasso selection in the desktop window, on the tablet's own geometry. The shared maths moved to mobix-core: PageSelection (a traced Rect/Polygon region plus the ElementRefs it caught, with translate/scale/rotate that move region and elements together), SelectionEdit (move/scale/rotate/delete as page rewrites, one per committed gesture), and SelectionOps / Selection / FigureRedraw / TableElementFactory followed it out of the app module; VerticalSpaceOps keeps sharing the same ElementShift seam. The window keeps only the pointer half: DesktopSelection.kt (which handle a press grabbed, the corner scale factors about the opposite corner, the turn between two bearings with Shift snapping to 15 deg, the finished trace, and selectionToolOf), SelectionGesture.kt (the drag, recomputed from the grab-time page so it cannot compound) and SelectionOverlay.kt (the marching outline, four corner handles, the stem and ring above the box, and the region being traced). Marquee (S) and Lasso (V) share one slot; a press inside the live outline moves, a corner scales, the handle above turns; Delete/Backspace removes what is caught as one undo step through the new DesktopSelectionCommands.kt, and Esc drops the outline before it means anything else. A selection drag is not ink, so the pen's packets stand by (DesktopTool.inksByPackets stays false) and a stylus still reaches it; turning the page lets the selection go, because its refs name indexes of that page. The third select tool, Select background (flatten), is split out as desktop-region-copy-flattened because it needs the window's own clipboard. Structure: the erase-and-select shape of the canvas outgrew two budgets, so the shell's selection commands and the colour panel moved out (DesktopSelectionCommands.kt, ColourPanel.kt), PenPointer now carries the pen's five readings as one value (hover, atNanos, owns, grabLine, previewRegion) and the selection press is dispatched through selectionPress in SelectionGesture.kt - file and function ceilings back under SourceStructureTest with no new exemptions. Tests: DesktopSelectionTest (handle picking, the rotate handle grabbed first, corner scaling, the no-invert clamp, the snapped turn, an empty region leaving no selection, both marquee tools in one slot, a marquee drag catching a stroke and one undo taking the move back, Delete with and without a selection, and the lasso tracing a loop), plus :desktop:test and :mobix-core:test green. Docs: desktop-workstation.md gains \"Selecting, moving, resizing and turning\" and its \"what the window does not do\" list no longer claims there is no selection; docs/selection.md states the shared PageSelection/SelectionEdit seam; README's desktop section tells the reader how to pick things up and what each drag commits."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-24
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-tool-groups-and-pickers"
 title = "Give the desktop tool strips the tablet's tool groups"
 description = "A strip slot is a ToolGroup now, as on the tablet. ToolGroups.kt holds the model (members, face, hasPicker, faceFor(selection), toggledPicker) and the strips iterate groups instead of DesktopTool.entries: the two erasers share a slot, the seven figures share another, and pen/highlighter/vertical space stand alone. ToolGroupPicker.kt adds the glass picker (a row per member: its glyph, its name, its key) and the chevron a grouped slot wears; the chevron, a long press or Alt+Down opens it, Esc or a pick closes it, and picking only re-faces the slot - every member is still reachable by the key it prints, so no shortcut changed. The strips also stopped offering tools the canvas cannot act on: DESKTOP_TOOLS_THAT_ACT is the map in code, and text, plot, table, circuit, lasso and marquee get their slot back when their task lands. ToolGroupsTest (9 tests) pins the invariants, ToolStripsTest gained the shell-level open/pick/close walk and a render test that the eraser slot draws the picked member; the rail/ribbon render tests moved to the group list, and the ink-slot probe now measures from below the last slot. Docs: desktop-workstation's tool-placement entry, ui-modernization's shortcut table (Alt+Down) and its icon-set bullet, README's tool-strip paragraph. Distributable regenerated with the group code inside."
