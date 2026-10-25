@@ -292,6 +292,15 @@ the packaged window carries `mobix-core` too. A stale `.exe` is a feature delive
 person double-clicking it cannot tell that apart from a feature nobody built. The MSI installer and a CI
 artifact are the open task `desktop-packaging-installers-and-ci-artifact`.
 
+### Measuring ink latency on screen (this window against Xournal++)
+
+`scripts/desktop-latency.ps1 -App mobixournal|xournalpp [-Trials 20] [-Out file] [-Shot png]` drives
+pointer strokes into the running app and polls the screen for the ink, reporting median / p95 / min / max
+of pointer-move → visible ink. It launches the program itself, picks the pen slot (Xournal++ ignores
+canvas presses until its toolbar has been used once), and measures both programs the same way — which is
+what makes the two numbers comparable. The measurements and their caveats are owned by
+`docs/desktop-tablet.md`; the script is a diagnostic, not part of a build.
+
 ---
 
 ## Cutting a release

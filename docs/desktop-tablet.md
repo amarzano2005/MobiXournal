@@ -291,3 +291,25 @@ tablet's working area, not by the arm across a desk, so a matched pan reads as a
 is plainly moving. The gain is a feel constant, not a measurement, and it is the pen's alone — a mouse drag
 and a wheel notch keep the distance their device reports. A held **Space** takes the packets from the
 stroke path, so a pen in hand never inks the sheet it is scrolling.
+
+## Against Xournal++: one measurement, both programs
+
+The probe above times the window's own path (packet → painted). What a hand feels is one step further
+out — pointer moved, ink **on the screen** — and that is the only number the same yardstick can take
+from two programs, because Xournal++ has no probe to instrument. `scripts/desktop-latency.ps1` drives
+short strokes with synthetic pointer messages and polls a small box around each target for the first
+dark pixel, so its answer carries the app's processing, its frame, the compositor's present and a
+fraction of a millisecond of probing. Both programs were measured through that one loop, on this PC
+(3440 × 1440 at 120 Hz), on a blank A4 page, with the pen slot clicked first in each:
+
+| pointer → visible ink (n = 40 each) | median | p95 | mean | min | max |
+|---|---|---|---|---|---|
+| **MobiXournal** (packaged `.exe`) | **16.9 ms** | **31.5 ms** | 16.9 ms | 4.2 ms | 34.9 ms |
+| **Xournal++ 1.3.8** | **16.4 ms** | **40.5 ms** | 19.7 ms | 11.6 ms | 40.5 ms |
+
+Read literally: at the median the two land in the same place, **two 8.33 ms frames** — cursor move,
+one frame to paint, one to present — so this metric cannot separate them. The difference is in the
+**tail and the floor**: MobiXournal reaches a single frame at its best (4.2 ms) where Xournal++'s
+floor is 11.6 ms, and its worst case is 34.9 ms against 40.5 ms. The mouse is a *proxy*: the tablet
+cannot be automated, so these numbers say nothing about the Huion's own path, whose packet → painted
+figure is the 1.48 ms median above and which is measured at a different boundary (before the present).
