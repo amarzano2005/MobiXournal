@@ -130,13 +130,19 @@ internal fun HeaderGlyph(
     draw: DrawScope.(androidx.compose.ui.graphics.Color) -> Unit,
 ) {
     var hovered by remember { mutableStateOf(false) }
-    val lit = enabled && (active || hovered)
+    // Two states, two fills: the picked steel for an open menu, the **hover step** for a resting
+    // pointer, never the picked fill for a mere hover (`docs/interface-contract.md` §6).
+    val fill = when {
+        active && enabled -> DesktopTheme.activeSlot
+        hovered && enabled -> DesktopTheme.hoverSlot
+        else -> DesktopTheme.glass
+    }
     Box(
         Modifier
             .size(DesktopTheme.headerControlSize)
             .glassCapsule(
                 cornerRadius = DesktopTheme.headerControlSize / 2,
-                fill = if (lit) DesktopTheme.activeSlot else DesktopTheme.glass,
+                fill = fill,
                 shadow = DesktopTheme.bandShadow,
             )
             .onPointerEvent(PointerEventType.Enter) { hovered = true }

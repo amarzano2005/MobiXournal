@@ -8,6 +8,7 @@ import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
@@ -117,12 +118,8 @@ class DesktopHeaderTest {
                 onRedo = {},
             )
         }
-        val png = try {
-            Snapshot.sendApplyNotifications()
-            requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
-        } finally {
-            scene.close()
-        }
+        val png = frame(scene)
+        scene.close()
         File("build/desktop-render/header-actions.png").apply { parentFile?.mkdirs() }.writeBytes(png)
         val image = ImageIO.read(ByteArrayInputStream(png))
 
@@ -135,6 +132,63 @@ class DesktopHeaderTest {
             }
             assertTrue("capsule $index has its glyph drawn in it", inked > 8)
         }
+    }
+
+    /**
+     * The pointer's answer: a capsule under the pointer takes the steel, one step short of pick — the
+     * measure `ToolStripsTest` makes of the rail's slots, applied to the band's own controls.
+     */
+    @Test
+    fun `the capsule under the pointer is brighter than the one beside it`() {
+        val tabs = DesktopTabs()
+        val tab = tabs.open(DocumentLoader.load(twoPages()))
+        tab.record(tab.document.snapshot())
+        tab.record(tab.document.snapshot())
+        tab.undo()
+
+        val width = 900
+        val centre = capsuleCentre(width, 3)
+        val probeX = (centre - 15f).toInt()
+        val probeY = DesktopTheme.headerHeight.value.toInt() / 2
+
+        // A fresh scene per state, as `ToolStripsTest` measures a slot: an `Enter` on a scene nothing has
+        // pointed at yet is what a cursor arriving over the window sends.
+        fun render(hovered: Boolean): Int {
+            val scene = ImageComposeScene(width, DesktopTheme.headerHeight.value.toInt(), Density(1f)) {
+                Header(
+                    tabs = tabs,
+                    sidebarVisible = true,
+                    onActivate = {},
+                    onClose = {},
+                    onMove = { _, _ -> },
+                    onNew = {},
+                    onOpen = {},
+                    onSave = {},
+                    onSaveAs = {},
+                    onExportPdf = {},
+                    onExportSvg = {},
+                    onToggleSidebar = {},
+                    onUndo = {},
+                    onRedo = {},
+                )
+            }
+            return try {
+                if (hovered) scene.sendPointerEvent(PointerEventType.Enter, Offset(centre, probeY.toFloat()))
+                val image = ImageIO.read(ByteArrayInputStream(frame(scene)))
+                image.getRGB(probeX, probeY) and 0xFFFFFF
+            } finally {
+                scene.close()
+            }
+        }
+
+        val rest = render(hovered = false)
+        val lit = render(hovered = true)
+        // Inside the capsule's fill but clear of its 20 dp glyph.
+        assertTrue("hovering the capsule changed nothing (#%06X)".format(rest), rest != lit)
+        assertTrue(
+            "a hovered control paints the hover step, not the picked steel (#%06X)".format(lit),
+            lit != DesktopTheme.activeSlot.toArgb() and 0xFFFFFF,
+        )
     }
 
     @Test
@@ -172,6 +226,12 @@ class DesktopHeaderTest {
 
     private fun twoPages(): File = temp.newFile("header.mobix").also { file ->
         SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
+    }
+
+    /** One frame of the open scene, with the snapshot notifications a frame loop would send. */
+    private fun frame(scene: ImageComposeScene): ByteArray {
+        Snapshot.sendApplyNotifications()
+        return requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
     }
 
     /**
