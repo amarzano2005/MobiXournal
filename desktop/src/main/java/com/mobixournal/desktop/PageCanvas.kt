@@ -2,10 +2,8 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,33 +23,27 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
-import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.CircuitElementFactory
-import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
-import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.text.rememberTextMeasurer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.exp
 import kotlin.math.roundToInt
 
 /**
@@ -578,7 +570,7 @@ private val DESK = DesktopTheme.desk
  * The connector whose pins the sheet should mark: the line tool, or the circuit slot's armed part.
  * Everything else marks nothing, exactly as the tablet draws nothing for it.
  */
-private fun connectorKindFor(tool: DesktopTool, circuitKind: ShapeKind): ShapeKind? {
+internal fun connectorKindFor(tool: DesktopTool, circuitKind: ShapeKind): ShapeKind? {
     val candidate = if (circuitFamilyOf(tool) != null) circuitKind else tool.shapeKind()
     return candidate?.takeIf { CircuitElementFactory.isConnectorKind(it) }
 }
