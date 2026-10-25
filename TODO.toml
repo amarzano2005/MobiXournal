@@ -134,20 +134,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-header-undo-redo-controls"
-title = "Desktop: undo and redo controls in the header"
-description = "The desktop commands know when they are unavailable (DesktopTab.canUndo/canRedo, and DesktopShellState.apply answers false on an empty history), but no control reads them: today Ctrl+Z and Ctrl+Shift+Z are the only way to reach undo/redo. Put the two controls in the header of desktop/src/main/java/com/mobixournal/desktop/DesktopShell.kt, one capsule each on the existing HeaderGlyph (36 dp, the band's own glass, the rim and 4 dp lift - not a new material), with the monoline glyphs drawn for the catalogue's grid rather than a Material icon (docs/interface-contract.md section 4; the header's glyphs are hand-drawn DrawScope strokes like the sidebar and placement ones, so add them beside those, not to ToolGlyphCatalogue which is the tool set). States: default and hover on the capsule, picked while the press is down, focus visible without the pointer, and disabled when there is nothing to undo/redo - dimmed and with no hit area (PanelButton's alpha rule is the same one, use a shared helper if it fits), because the commands already report unavailability. Placement: left of the tab strip beside the sidebar toggle, since they act on the active tab and a tab switch must not move them. Wire them to state.apply(ShellCommand.UNDO/REDO) so the keyboard and the buttons cannot diverge, and make sure a click returns the keyboard focus to the canvas (DesktopApp's focus requester) or the next Ctrl+Z is swallowed by the button. Tests in a new desktop test class or DesktopShellTest: a rendered header with a clean tab draws both controls in the disabled tone (no active-slot fill, and the pixels under the undo glyph match the header's ink rather than the accent), after one stroke undo lights up and redo stays disabled, pressing the undo capsule (pointer input or the same command path the capsule calls) removes the stroke and moves the lit state to redo, and the hovered capsule is visibly brighter than the unhovered one (the ToolStripsTest measure). Docs in the same change: the shortcut table of docs/ui-modernization.md gains no new key (the keys exist) but the section on the two history commands says the header now shows them and what disabled looks like; docs/desktop-workstation.md's 'What the window does not do' loses the sentence about having no undo/redo buttons; README's desktop paragraph mentions the two arrows. Finish by regenerating the distributable (:desktop:createDistributable)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 300
-created = 2026-10-22
-tags = ["desktop"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ultrawide-21x9-layout"
 title = "Desktop: 21:9 ultrawide layout (scope)"
 description = "Optimise desktop/ for 21:9 monitors (3440x1440 and 2560x1080). This scope owns the LAYOUT and nothing of the settings that expose it: the page spread, the fixed widths and the fits are specified here, and the window that offers them is desktop-settings-and-status-ui's. Investigate and break into tasks: (1) multi-page spread - 2 or 3 pages side by side with fit-to-height, chosen per tab and remembered, with a status-bar indicator and keys; (2) sidebar (240 dp) and inspector (300 dp) stay docked at fixed width so the extra width goes to the desk, never stretching the page or the chrome; (3) rail and ribbon placement on ultrawide (rail in its own lane, ribbon optional) per docs/ui-modernization.md; (4) the AUTO fit mode learns the window's aspect ratio; (5) thumbnails and AUTO fit for long-strip pages. Document the layout in the desktop section of docs/ui-modernization.md. Verify headlessly with ImageComposeScene renders at 3440x1440 and 2560x1080 into desktop/build/desktop-render/, asserting pixel regions (no band over the page, pages side by side), plus one manual check on the owner's monitor."

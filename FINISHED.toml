@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-header-undo-redo-controls"
+title = "Desktop: undo and redo controls in the header"
+description = "The window's header carries the two history commands as 36 dp glass capsules with a 20 dp monoline glyph each (ChromeGlyphs.UNDO/REDO, drawn on the catalogue's 24-unit grid and stroke and mirrored from one drawing), wired to state.apply(ShellCommand.UNDO/REDO) so the buttons and Ctrl+Z cannot diverge. They sit at the right of the band with Save and Export PDF — the owner's later direction, which the mobile bar's own photo confirms — rather than left of the tab strip. Disabled is a muted glyph and no hit area, so a click on an empty history is not a command that did nothing; hover paints the steel at hoverSlotAlpha and the picked fill is left to an open menu. DesktopHeaderTest presses each capsule by the layout's own arithmetic, proves the dead state with nothing open, reads the four glyphs out of the pixels, and measures hover against rest and against the picked tone."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-22
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-pdf-export-keeps-source-page-vectors"
 title = "Desktop: keep an imported PDF's own vectors in an exported PDF"
 description = "An exported PDF imports each source page verbatim (PDFBox PDFMergerUtility over the crop box) and writes only the overlay over it, so a page's own text layer and vectors survive an annotation pass instead of being flattened into a picture — the 200-page scan no longer becomes a hundred megabytes. PdfOverlayMatrix moved to mobix-core so the crop and /Rotate rule is one implementation for both shells; PageBackdrop answers the source document it rendered from, and a source it cannot open falls back to the sheet with the ink kept. DesktopPdfExportVectorsTest pins extracted text after export, ink on a rotated page landing where it was drawn, and the missing-source fallback. docs/pdf.md records the decision."
