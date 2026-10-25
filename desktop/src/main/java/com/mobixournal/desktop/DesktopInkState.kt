@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.render.InkGeometry
 
 /**
  * The window's **ink**: the two tools' colours, widths and stroke patterns, the palette they share and
@@ -41,8 +42,27 @@ internal class DesktopInkState(
         ),
     )
 
-    /** The ink of the picked tool — the pen's, or the highlighter's own colour and width. */
+    /** The ink of the picked tool, **as the strips and the settings file hold it** — a slot width. */
     val ink: DesktopInk get() = inks.forTool(currentTool())
+
+    /**
+     * The ink the **page** is written with — the same ink, with the highlighter's band scaled.
+     *
+     * A marker is not a wide pen: the tablet reads the picked S/M/L slot as a highlighter **tip**
+     * (`InkGeometry.highlighterWidthFor`: about six times the pen, snapped to the 1 / 3 / 7 mm tips), so
+     * the same slot draws a 2 pt line with the pen and an 8.5 pt band with the highlighter. Without this
+     * the window's marker was exactly as thick as its pen, which is not what the tool is for. The stored
+     * ink stays the slot value, so the strip's dots, the `[`/`]` steps and the settings file are unchanged
+     * and both shells read the same rule.
+     */
+    val pageInk: DesktopInk
+        get() = ink.let { picked ->
+            if (currentTool() == DesktopTool.HIGHLIGHTER) {
+                picked.copy(width = InkGeometry.highlighterWidthFor(picked.width).toFloat())
+            } else {
+                picked
+            }
+        }
 
     /**
      * The **pen's** ink, whatever tool is in hand — what a figure, a circuit or a placement writes with.

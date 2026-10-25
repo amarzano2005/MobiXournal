@@ -59,7 +59,8 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 tab = tab,
                 panMode = state.panMode,
                 tool = state.tools.current,
-                ink = state.ink,
+                // The page's ink, not the strip's: a highlighter writes a band, not a wide pen.
+                ink = state.pageInk,
                 // Figures, circuits and placements always take the pen's ink, never the highlighter's.
                 shapeInk = state.shapeInk,
                 // The component the Circuit slot is armed with — the picker's answer the drag reads.

@@ -140,8 +140,9 @@ box you are typing** and closes when you finish it. Select a box and press the p
 and the same column sets its **face** — Sans, Serif or Monospace, bold, italic — its **size** and its
 **colour**, one undo step per change, the same five choices the tablet's text dialog offers. The pen and the highlighter keep **separate colours, widths and favourite colours**,
 as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
-switching back brings that ink back with it, and each tool also remembers its **stroke pattern** — solid,
-long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,
+switching back brings that ink back with it — and the marker draws a **band** about six times the pen at
+the same size, the same three tips the tablet uses, instead of a wide pen. Each tool also remembers its
+**stroke pattern** — solid, long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,
 Axes, Rectangle, Ellipse or Spline — one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to
 cancel — each of the seven a slot of its own, one click and no submenu, and a figure always draws in the
 pen's ink and at the pen's width even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a

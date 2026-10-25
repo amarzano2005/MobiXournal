@@ -61,6 +61,14 @@ Android-facing names (`renderColor`, `bandWidth`, `dashIntervalsPt`, `uniformWid
 the desktop shell's painter converts the same geometry into Compose paths, so the tablet and the PC
 cannot disagree about how ink looks. Only the raster backend differs.
 
+**A marker is a band, not a wide pen** — and that is the same rule in both shells. The highlighter's
+width is `InkGeometry.highlighterWidthFor`: the pen's S/M/L slot scaled by `HIGHLIGHTER_WIDTH_FACTOR`
+(6, desktop Xournal++'s own ratio) and snapped to the three canonical tips `HIGHLIGHTER_SIZES_PT`
+(2.83 / 8.5 / 19.84 pt — the 1 / 3 / 7 mm markers). The tablet reads its stored slot through it, and
+the window does the same in `DesktopInkState.pageInk`: the strip's dots and the settings file keep the
+slot, while the stroke, the live preview and the ring take the tip, so a highlighter on the PC is the
+band it is on the phone (`DesktopInkSplitTest`, `DesktopColorParityTest`).
+
 **The window smooths its own line — but never a corner.** A page stores *samples*, and on the desktop they
 are 8 ms apart at best, so joining them with `lineTo` drew the sampling rate as facets along every
 diagonal — the tablet never looked that way because it paints through a spline. `InkSmoothing.kt` turns

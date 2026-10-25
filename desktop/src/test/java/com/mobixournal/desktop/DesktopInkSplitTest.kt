@@ -1,9 +1,11 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.design.PenPalette
+import com.mobixournal.render.InkGeometry
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -34,6 +36,52 @@ class DesktopInkSplitTest {
             inks.forTool(DesktopTool.HIGHLIGHTER).width,
             1e-4f,
         )
+    }
+
+    /**
+     * A marker writes a **band**, not a wide pen: the picked slot is read as a highlighter tip.
+     *
+     * The tablet does exactly this — `InkGeometry.highlighterWidthFor` scales the pen's S/M/L slot by six
+     * and snaps it to the 1 / 3 / 7 mm tips — so the same slot is a fine line with the pencil and a broad
+     * band with the marker. The window used to paint the marker at the pen's width, which is the one thing
+     * a highlighter must not be. The **stored** ink stays the slot, so the strip's dots and the settings
+     * file keep their meaning (`DesktopInkState.pageInk` is the page's ink only).
+     */
+    @Test
+    fun `the highlighter's band is the pen's slot read as a marker tip`() {
+        val state = DesktopShellState(settings = settings())
+        try {
+            state.selectTool(DesktopTool.HIGHLIGHTER)
+            for ((index, slot) in PenPalette.DEFAULT_WIDTHS.withIndex()) {
+                state.pickWidth(slot)
+                assertEquals(
+                    "the strip still holds slot $index",
+                    slot,
+                    state.ink.width,
+                    1e-6f,
+                )
+                assertEquals(
+                    "while the band is the marker's own tip",
+                    InkGeometry.highlighterWidthFor(slot),
+                    state.pageInk.width.toDouble(),
+                    1e-6,
+                )
+            }
+            val band = state.pageInk.width
+            state.selectTool(DesktopTool.PEN)
+            assertTrue(
+                "and a marker is several times the pen at the same slot ($band pt)",
+                band > PenPalette.DEFAULT_WIDTHS.last() * 2f,
+            )
+            assertEquals(
+                "the pen writes its own width, untouched",
+                state.ink.width,
+                state.pageInk.width,
+                1e-6f,
+            )
+        } finally {
+            state.tabs.closeAll()
+        }
     }
 
     @Test

@@ -38,32 +38,17 @@ internal object DrawingSurfaceDefaults {
     const val WHEEL_SCROLL_DP = 64f
 
     /**
-     * Highlighter width as a multiple of the pen's base width — desktop Xournal++'s highlighter is
-     * about six times the pen at the same size slot (its pen medium is 1.41 pt, its highlighter
-     * medium 8.50 pt). This is only an intermediate: the product is then snapped to one of
-     * [HIGHLIGHTER_SIZES_PT], so a highlighter stroke is always one of the desktop's own tip sizes.
+     * The highlighter's width rule, **owned by `mobix-core`** ([InkGeometry]): a marker is a band, not a
+     * pen, and the PC window reads the same numbers. These three names stay as delegates so the app's
+     * call sites (and `DesktopColorParityTest`) keep their vocabulary.
      */
-    const val HIGHLIGHTER_WIDTH_FACTOR = 6f
+    const val HIGHLIGHTER_WIDTH_FACTOR: Float = InkGeometry.HIGHLIGHTER_WIDTH_FACTOR
 
-    /**
-     * Desktop Xournal++'s highlighter tip sizes in points — its **fine / medium / thick** highlighter
-     * slots, the 1 mm / 3 mm / 7 mm tips (`ToolHandler::initTools` in upstream:
-     * `highlighter thicknesses = {1, 2.83, 8.50, 19.84, 30}`, of which these three are the canonical
-     * 1 mm / 3 mm / 7 mm set). The app's highlighter borrows the pen's S/M/L slots, so its width is
-     * snapped onto this list rather than left as `penWidth × HIGHLIGHTER_WIDTH_FACTOR` — that keeps
-     * a highlighter band the thickness the desktop app would draw, independent of how the pen slots
-     * happen to be configured.
-     */
-    val HIGHLIGHTER_SIZES_PT: List<Double> = listOf(2.83, 8.50, 19.84)
+    /** Desktop Xournal++'s three canonical highlighter tips — see [InkGeometry.HIGHLIGHTER_SIZES_PT]. */
+    val HIGHLIGHTER_SIZES_PT: List<Double> = InkGeometry.HIGHLIGHTER_SIZES_PT
 
-    /**
-     * The highlighter tip size (pt) nearest [baseWidthPt] scaled by [HIGHLIGHTER_WIDTH_FACTOR] — see
-     * [HIGHLIGHTER_SIZES_PT]. Pure, so the mapping is pinned by a unit test.
-     */
-    fun highlighterWidthFor(baseWidthPt: Float): Double {
-        val wanted = baseWidthPt * HIGHLIGHTER_WIDTH_FACTOR
-        return HIGHLIGHTER_SIZES_PT.minByOrNull { kotlin.math.abs(it - wanted) } ?: HIGHLIGHTER_SIZES_PT[0]
-    }
+    /** The highlighter tip size (pt) for a pen of [baseWidthPt], as `mobix-core` defines it. */
+    fun highlighterWidthFor(baseWidthPt: Float): Double = InkGeometry.highlighterWidthFor(baseWidthPt)
 
     const val ZOOM_STEP = ViewportState.ZOOM_STEP
     const val MIN_ZOOM = ViewportState.MIN_ZOOM

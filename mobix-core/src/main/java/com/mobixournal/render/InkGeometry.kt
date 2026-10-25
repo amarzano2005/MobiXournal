@@ -35,6 +35,35 @@ object InkGeometry {
      */
     const val HIGHLIGHTER_RENDER_ALPHA: Int = 0x78
 
+    /**
+     * Highlighter width as a multiple of the pen's base width — desktop Xournal++'s highlighter is
+     * about six times the pen at the same size slot (its pen medium is 1.41 pt, its highlighter
+     * medium 8.50 pt). This is only an intermediate: the product is then snapped to one of
+     * [HIGHLIGHTER_SIZES_PT], so a highlighter stroke is always one of the tablet's own tip sizes.
+     */
+    const val HIGHLIGHTER_WIDTH_FACTOR: Float = 6f
+
+    /**
+     * Desktop Xournal++'s highlighter tip sizes in points — its **fine / medium / thick** slots, the
+     * 1 mm / 3 mm / 7 mm tips (`ToolHandler::initTools` upstream: `highlighter thicknesses =
+     * {1, 2.83, 8.50, 19.84, 30}` and these three are the canonical set). A highlighter's width is
+     * snapped onto this list rather than left as `penWidth × HIGHLIGHTER_WIDTH_FACTOR`, which keeps a
+     * band the thickness the desktop app would draw, whatever the pen slots are set to.
+     *
+     * It lives here, beside the band's alpha and dash rules, so **both shells** take the same answer:
+     * a marker that is a fat band on the tablet and a thin pen on the PC is one rule in two places.
+     */
+    val HIGHLIGHTER_SIZES_PT: List<Double> = listOf(2.83, 8.50, 19.84)
+
+    /**
+     * The highlighter tip size (pt) nearest the pen's [baseWidthPt] scaled by
+     * [HIGHLIGHTER_WIDTH_FACTOR] — the pen's S/M/L slot read as a marker's tip.
+     */
+    fun highlighterWidthFor(baseWidthPt: Float): Double {
+        val wanted = baseWidthPt * HIGHLIGHTER_WIDTH_FACTOR
+        return HIGHLIGHTER_SIZES_PT.minByOrNull { kotlin.math.abs(it - wanted) } ?: HIGHLIGHTER_SIZES_PT[0]
+    }
+
     /** True when every point carries the same width, i.e. the stroke has no pressure taper. */
     fun uniformWidth(pts: List<StrokePoint>): Boolean {
         if (pts.isEmpty()) return true
