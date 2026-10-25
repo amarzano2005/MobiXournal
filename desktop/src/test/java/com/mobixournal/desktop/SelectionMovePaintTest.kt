@@ -113,6 +113,44 @@ class SelectionMovePaintTest {
         }
     }
 
+    /**
+     * The same part, but picked up **later** — a click on it after the insertion is long gone.
+     *
+     * The window's own path, not a selection written into the tab: the press picks the element it landed on
+     * (`pickForDrag`), the click makes it the selection, and the drag that follows must still find the pins
+     * it can join. A part that only snaps while its insertion is still holding the selection would work once
+     * and never again.
+     */
+    @Test
+    fun `a part clicked after the insertion still snaps to a pin`() {
+        val tab = tab()
+        tab.selection = null
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            PageCanvas(tab = tab, panMode = false, tool = DesktopTool.MARQUEE, onViewport = {}, onFit = {})
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+
+            // A click on the part: press and release with nothing in between.
+            pointer(scene, PointerEventType.Press, 350f, 150f, 1_000L)
+            pointer(scene, PointerEventType.Release, 350f, 150f, 1_060L, pressed = false)
+            assertEquals("the click selects the part", 1, tab.selection?.refs?.size)
+
+            pointer(scene, PointerEventType.Press, 350f, 150f, 2_000L)
+            pointer(scene, PointerEventType.Move, 300f, 152f, 2_016L)
+            pointer(scene, PointerEventType.Move, 234f, 156f, 2_032L)
+            pointer(scene, PointerEventType.Release, 234f, 156f, 2_048L, pressed = false)
+
+            val moved = pageOf(tab).layers[0].elements[1] as CircuitElement
+            assertEquals("the pin still joins the anchor's pin", 190.0, moved.positionX - 40.0, 1e-6)
+            assertEquals(150.0, moved.positionY, 1e-6)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
     private fun pageOf(tab: DesktopTab): Page = tab.document.page(0)
 
     /** Whether any pixel in a small window around ([x], [y]) is ink rather than paper. */
