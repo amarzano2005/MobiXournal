@@ -15,7 +15,9 @@ import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
+import java.io.ByteArrayInputStream
 import java.io.File
+import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -229,6 +231,49 @@ class DesktopTextSceneTest {
                 "and in the first half of the line, where the click was (index ${caret.start})",
                 caret.start <= "words here".length / 2,
             )
+        } finally {
+            fixture.scene.close()
+            fixture.tab.document.close()
+        }
+    }
+
+    /**
+     * The field lays the words out **the way the page will**, so nothing re-flows while it is being edited.
+     *
+     * A `.xopp` `<text>` carries no width: the painter breaks a box's lines on its own newlines and nothing
+     * else. The field used to invent one — a third of the page — so a longer line wrapped while it was being
+     * typed and snapped back to one line on the commit, and a caret placed from that wrapped layout pointed
+     * at a letter the page does not draw there. One line here is far wider than a third of the page.
+     */
+    @Test
+    fun `the field lays the words out as the page will`() {
+        val fixture = fixture()
+        try {
+            placeLivingElement(
+                fixture.tab,
+                TextElement(
+                    "Sans",
+                    18.0,
+                    20.0,
+                    300.0,
+                    0xFF000000.toInt(),
+                    "a long line of words that runs past a third of the page",
+                    id = "txt_nowrap",
+                ),
+            )
+            frame(fixture.scene)
+            tap(fixture.scene, 40f, 310f)
+            assertNotNull("the box is open", fixture.state.textBox.box)
+
+            // One line occupies y 300..324 at 18 pt; a wrapped second line would put ink in 330..352.
+            val painted = ImageIO.read(ByteArrayInputStream(frame(fixture.scene)))
+            var below = 0
+            for (y in 330 until 352) {
+                for (x in 0 until 500) {
+                    if (painted.getRGB(x, y) and 0xFFFFFF < 0x606060) below++
+                }
+            }
+            assertEquals("the field adds no line the page does not draw", 0, below)
         } finally {
             fixture.scene.close()
             fixture.tab.document.close()

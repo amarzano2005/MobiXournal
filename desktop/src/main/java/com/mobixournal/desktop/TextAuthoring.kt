@@ -121,7 +121,15 @@ data class TextBoxDraft(
     /** The typing, as the element and the painter read it. */
     val text: String get() = typing.text
 
-    /** The box's width in page points: a third of the page, the width the field draws at. */
+    /**
+     * The box's **nominal** width in page points — a third of the page: what a new box is placed within,
+     * and the slack a press has to land in.
+     *
+     * It is *not* a wrap width and the field does not draw at it: a `.xopp` `<text>` carries no width, so a
+     * line is broken by its own newlines and by nothing else. Wrapping the field at this guess was why the
+     * words re-flowed while being typed and went back on the commit, and why a caret placed from the field's
+     * layout pointed at a different letter than the page shows.
+     */
     val width: Double get() = textBoxWidth(pageW)
 
     /** One line's height in page points. */

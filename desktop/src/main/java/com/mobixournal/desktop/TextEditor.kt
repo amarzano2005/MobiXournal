@@ -2,7 +2,6 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,15 +14,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.format.FontDescription
 import kotlin.math.roundToInt
@@ -87,12 +84,8 @@ internal fun TextBoxHost(
     // The sheet's own mapping: page points → canvas pixels, the same sum the ink is drawn with.
     val leftPx = ((box.x.toFloat() * zoom + offsetX) * density).roundToInt()
     val topPx = ((box.y.toFloat() * zoom + offsetY) * density).roundToInt()
-    val widthDp = (box.width.toFloat() * zoom).dp
     val face = textFace(box.font)
     val measurer = rememberTextMeasurer()
-    // The field's own width in pixels: the same product `.dp` resolves to, so the layout the caret is read
-    // from is the layout the field wraps at.
-    val widthPx = (box.width.toFloat() * zoom * density).roundToInt().coerceAtLeast(1)
     val style = TextStyle(
         color = Color(box.colour),
         fontSize = (box.size.toFloat() * zoom).sp,
@@ -104,18 +97,16 @@ internal fun TextBoxHost(
     // Focus per box, not per keystroke: a new press is a new box and should take the keyboard again —
     // and a box opened **on** existing words drops the caret where the press landed, which is the one
     // thing that makes correcting a word in the middle of a line a click rather than a run of arrows.
-    // The index is the field's to work out: it measures with its own style and width, so the caret lands
-    // under the pointer instead of at the first character that happens to be nearest on another face.
+    // The index is the field's to work out: it measures the words with its own style and the same rule the
+    // page paints them by (**no invented wrap width** — a `.xopp` text box carries no width, so a line is
+    // wrapped by its own newlines and nothing else), which is what makes the caret land on the letter under
+    // the pointer instead of one from a line the painter never drew.
     LaunchedEffect(box.tabKey, box.page, box.x, box.y) {
         runCatching { focus.requestFocus() }
         val editing = box.editing ?: return@LaunchedEffect
         val anchor = box.caretAnchorPx(zoom, density)
         val layout = runCatching {
-            measurer.measure(
-                AnnotatedString(editing.content),
-                style = style,
-                constraints = Constraints(maxWidth = widthPx),
-            )
+            measurer.measure(AnnotatedString(editing.content), style = style)
         }.getOrNull() ?: return@LaunchedEffect
         val offset = layout.getOffsetForPosition(anchor)
         if (box.typing.selection.start != offset || box.typing.selection.end != offset) {
@@ -124,8 +115,7 @@ internal fun TextBoxHost(
     }
     Box(
         modifier
-            .offset { IntOffset(leftPx, topPx) }
-            .width(widthDp),
+            .offset { IntOffset(leftPx, topPx) },
     ) {
         BasicTextField(
             // The draft *is* the field's state, caret included: a `TextFieldValue` rebuilt here would

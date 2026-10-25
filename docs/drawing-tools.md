@@ -279,7 +279,12 @@ under it shows the caret instead.
 The field wears **no surface**: what is being typed is page content, like the strokes a draft draws, so the
 words appear in the document's own ink and face at the document's own place — and, with its padding gone,
 exactly where the commit will write them. Only the accent caret marks it (`DesktopTextPaintTest` reads the
-paper through a point inside the box).
+paper through a point inside the box). It also breaks lines **where the page does**: a `.xopp` `<text>`
+carries no width, so the painter wraps on the box's own newlines and nothing else, and the field used to
+invent a third-of-the-page width — a long line wrapped while being typed and snapped back to one line on
+the commit, and a caret placed from that layout pointed at a letter the page does not draw there
+(`DesktopTextSceneTest` opens a box on a line wider than a third of the page and measures the band where a
+second line would be).
 
 Nothing is written while typing — the shell holds a `TextBoxDraft` (`DesktopTextBox`), so the page and its
 history are untouched — and the commit (`Esc`, a click elsewhere, or leaving the tool) appends **one**
