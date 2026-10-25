@@ -140,7 +140,8 @@ pen's ink even while the highlighter is the tool in hand, as on the tablet. Whil
 circuit family is armed, every **circuit pin** on the page wears a small dot, and the ends of what you draw
 are **pulled onto the nearest pin**: a wire drawn near a terminal joins it, and a part dropped on one meets
 it, so a circuit can be assembled rather than drawn near — a selected part keeps its pins marked, so you can
-**pick the part up by its pin** and drag it onto another one, where it settles exactly. **Pan** with the **hand** (`G`): a drag
+**pick the part up by its pin** and drag it onto another pin or onto the end of a line you have drawn there,
+where it settles exactly. **Pan** with the **hand** (`G`): a drag
 moves the page instead of drawing on it, and with the pen it follows the stylus at the tablet's own rate,
 travelling further than the pen does so a flick of the wrist crosses the sheet — while every tool keeps its
 own state meanwhile. The sheet itself is editable from the **toolbar**: its last three buttons, after a

@@ -465,4 +465,104 @@ class CircuitSnappingTest {
         assertEquals("the far pin sits on the wire's end", 200.0, p2.first, 1e-9)
         assertEquals(50.0, p2.second, 1e-9)
     }
+
+    // --- moving a selection: aiming at a wire that is already drawn -----------------------------
+
+    /**
+     * The other half of the same joint: **the part is already on the page and is dragged onto the wire.**
+     *
+     * A moved selection aimed at pins only, so the end of the line the reader had drawn for it was not a
+     * target: the pins were marked and the drag was magnetised, and the joint never closed. A component
+     * being *placed* has always been offered a wire's ends, which is what made the two gestures disagree.
+     */
+    @Test
+    fun aMovedComponentSnapsOntoAWiresEnd() {
+        val part = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 100.0,
+            positionY = 100.0,
+            pins = listOf(CircuitPin("p1", -40.0, 0.0), CircuitPin("p2", 40.0, 0.0)),
+            id = "c1",
+        )
+        val page = Page(
+            width = 612.0,
+            height = 792.0,
+            background = Background.Solid(-1, "plain"),
+            layers = listOf(Layer(listOf(part, wire(300.0, 100.0, 420.0, 100.0)))),
+        )
+        val moved = setOf(ElementRef(0, 0))
+        assertEquals(
+            "a moved part is offered the wire's ends",
+            2,
+            CircuitSnapping.collectMoveTargets(page, moved).size,
+        )
+
+        // The part's far pin is at (140, 100); a raw move of (152, 4) leaves it 8.9 pt short of the wire's
+        // start (300, 100) — inside the reach, so only the magnet can put it exactly there.
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, moved, 152.0, 4.0)
+        assertEquals("the pin lands on the wire's end", 160.0, dx, 1e-6)
+        assertEquals(0.0, dy, 1e-6)
+    }
+
+    /** Only a **wire** is a terminal: a figure near the drop keeps the hand's own translation. */
+    @Test
+    fun aMovedComponentIgnoresADrawnFigure() {
+        val part = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 100.0,
+            positionY = 100.0,
+            pins = listOf(CircuitPin("p2", 40.0, 0.0)),
+            id = "c1",
+        )
+        val triangle = Stroke(
+            Tool.PEN,
+            0xFF000000.toInt(),
+            "round",
+            listOf(
+                StrokePoint(300.0, 100.0, 1.0),
+                StrokePoint(340.0, 140.0, 1.0),
+                StrokePoint(280.0, 140.0, 1.0),
+                StrokePoint(300.0, 100.0, 1.0),
+            ),
+            true,
+        )
+        val page = Page(
+            width = 612.0,
+            height = 792.0,
+            background = Background.Solid(-1, "plain"),
+            layers = listOf(Layer(listOf(part, triangle))),
+        )
+        val moved = setOf(ElementRef(0, 0))
+        assertTrue(CircuitSnapping.collectMoveTargets(page, moved).isEmpty())
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, moved, 152.0, 4.0)
+        assertEquals("a corner of a figure is not a terminal", 152.0, dx, 1e-6)
+        assertEquals(4.0, dy, 1e-6)
+    }
+
+    /** A wire cannot join itself: the selection's own wire is left out of its target list. */
+    @Test
+    fun aMovedWireIsNotItsOwnTarget() {
+        val page = wirePage(wire(50.0, 50.0, 200.0, 50.0))
+        assertTrue(CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 0))).isEmpty())
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 0)), 4.0, 3.0)
+        assertEquals(4.0, dx, 1e-6)
+        assertEquals(3.0, dy, 1e-6)
+    }
+
+    /** Two wires are two connectors, so one dragged onto the other's end is a joint too. */
+    @Test
+    fun aMovedWireJoinsAnotherWiresEnd() {
+        val page = Page(
+            width = 612.0,
+            height = 792.0,
+            background = Background.Solid(-1, "plain"),
+            layers = listOf(
+                Layer(listOf(wire(50.0, 50.0, 150.0, 50.0), wire(158.0, 52.0, 260.0, 52.0))),
+            ),
+        )
+        // The second wire's start is at (158, 52); the first one's end at (150, 50).
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 1)), 0.0, 0.0)
+        assertEquals("the start is pulled onto the other end", -8.0, dx, 1e-6)
+        assertEquals(-2.0, dy, 1e-6)
+    }
 }

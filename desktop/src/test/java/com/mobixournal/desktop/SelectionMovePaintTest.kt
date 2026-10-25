@@ -16,6 +16,9 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.Tool
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.ShapeKind
@@ -246,6 +249,53 @@ class SelectionMovePaintTest {
                 (twice as CircuitElement).positionX - 40.0,
                 1e-6,
             )
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The joint the reader was aiming at, from the other side: the **line is drawn first**, the part is
+     * carried onto its end.
+     *
+     * A moved selection was only ever offered the page's *pins*, so a component dragged onto the wire drawn
+     * for it could not close the joint — the pins were marked and the drag was magnetised, yet the one
+     * terminal the hand was aiming at was not a target (`CircuitSnapping.collectMoveTargets`). The drag here
+     * stops 5 pt short of the wire's end; only the magnet can put the pin exactly on it.
+     */
+    @Test
+    fun `a part dragged onto the end of a line joins it`() {
+        val line = Stroke(
+            tool = Tool.PEN,
+            color = 0xFF000000.toInt(),
+            capStyle = "round",
+            points = listOf(StrokePoint(100.0, 400.0, 1.0), StrokePoint(220.0, 400.0, 1.0)),
+            uniformWidth = true,
+        )
+        val tab = tab()
+        tab.document.editPage(0) { page ->
+            page.copy(layers = listOf(Layer(listOf(anchor, movable, line))))
+        }
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            PageCanvas(tab = tab, panMode = false, tool = DesktopTool.MARQUEE, onViewport = {}, onFit = {})
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+
+            // Grabbed by its left pin (310, 150) and dropped with that pin 5 pt short of the wire's end
+            // (220, 400).
+            pointer(scene, PointerEventType.Press, 310f, 150f, 1_000L)
+            pointer(scene, PointerEventType.Move, 260f, 260f, 1_016L)
+            pointer(scene, PointerEventType.Move, 224f, 402f, 1_032L)
+            pointer(scene, PointerEventType.Release, 224f, 402f, 1_048L, pressed = false)
+
+            val moved = pageOf(tab).layers[0].elements[1] as CircuitElement
+            assertEquals("the pin lands on the wire's end", 220.0, moved.positionX - 40.0, 1e-6)
+            assertEquals(400.0, moved.positionY, 1e-6)
+            val kept = pageOf(tab).layers[0].elements[2] as Stroke
+            assertEquals("the wire is not moved by the part", 100.0, kept.points.first().x, 1e-6)
         } finally {
             scene.close()
             tab.document.close()

@@ -121,6 +121,40 @@ object CircuitSnapping {
         )
 
     /**
+     * Everything a **moved selection** may join: the page's pins, plus both ends of every wire on the
+     * page ([isWire]) — minus the moved elements' own geometry, which cannot join itself.
+     *
+     * A wire is a connector, so a pin meeting a wire's end is a joint, exactly as it is for a component
+     * being *placed* (`collectPlacementTargets`). A **moved** part only ever aimed at pins, so a component
+     * dragged onto the line drawn for it never joined it: the pins were marked, the drag was magnetised,
+     * and the one thing the reader was aiming at was not among the targets. Only the ends of a wire are
+     * offered, so a symbol is still never pulled onto ink lying beside it, and a selected wire is left out
+     * of its own target list.
+     */
+    fun collectMoveTargets(page: Page, refs: Set<ElementRef>): List<PinTarget> {
+        val out = mutableListOf<PinTarget>()
+        page.layers.forEachIndexed { layerIndex, layer ->
+            layer.elements.forEachIndexed { elementIndex, element ->
+                if (ElementRef(layerIndex, elementIndex) in refs) return@forEachIndexed
+                when (element) {
+                    is CircuitElement -> for (pin in element.pins) {
+                        val (x, y) = pinAbsolutePosition(element, pin)
+                        out += PinTarget(element.id, pin.id, x, y, pin.connectedTo)
+                    }
+                    is Stroke -> if (isWire(element)) {
+                        val first = element.points.first()
+                        val last = element.points.last()
+                        out += PinTarget(null, "wire-end", first.x, first.y, null)
+                        out += PinTarget(null, "wire-end", last.x, last.y, null)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+        return out
+    }
+
+    /**
      * Everything a **component being placed** may join: the page's pins, plus both ends of every wire
      * already drawn ([isWire]).
      *
@@ -259,11 +293,11 @@ object CircuitSnapping {
 
     /**
      * Snaps translation ([rawDx], [rawDy]) of selected circuits or wires on [page] so that their
-     * pins/endpoints land on a component pin.
+     * pins/endpoints land on a **terminal** — a component pin, or the end of a wire already on the page.
      *
-     * Only connectors are considered, and only toward component pins ([collectAllTargets] is empty
-     * on a page without circuits): a wire is never a target, so dragging an ordinary figure, or a
-     * wire, across the sheet is a free move unless a real pin is in reach.
+     * Only connectors are considered, and only toward terminals ([collectMoveTargets] is empty on a
+     * page with neither a circuit nor a wire): a figure, or a free stroke, keeps the hand's own
+     * translation whatever it passes over.
      */
     fun snapTranslation(
         page: Page?,
@@ -285,14 +319,9 @@ object CircuitSnapping {
         // The moved parts' **own** pins are not targets: a pin cannot join itself, and offering it made the
         // magnet pull the part back onto where it already was for the first few points of every drag. By
         // position, not by id — a part read from a `.xopp` has no id, and one exclusion covered only the
-        // first of a multi-part selection.
-        val targets = collectTargets(
-            page.layers.flatMapIndexed { layerIndex, layer ->
-                layer.elements.mapIndexedNotNull { elementIndex, element ->
-                    if (ElementRef(layerIndex, elementIndex) in refs) null else element as? CircuitElement
-                }
-            },
-        )
+        // first of a multi-part selection. The ends of the page's **wires** are targets too: a part dragged
+        // onto the line drawn for it is the joint the magnet exists for (`collectMoveTargets`).
+        val targets = collectMoveTargets(page, refs)
         if (targets.isEmpty()) return rawDx to rawDy
 
         var bestDx = rawDx
