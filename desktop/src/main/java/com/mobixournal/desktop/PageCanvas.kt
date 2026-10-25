@@ -515,7 +515,11 @@ private fun DrawScope.paintSheet(
     paintProbe?.invoke(drafts, System.nanoTime())
     // The watchdog counts every repaint, whichever path caused it — a window that paints while nothing is
     // happening is the failure it exists to catch — and times it, which is what the frame budget is.
-    DesktopDiagnostics.painted((System.nanoTime() - startedAt) / 1_000_000.0)
+    DesktopDiagnostics.painted(
+        (System.nanoTime() - startedAt) / 1_000_000.0,
+        sheetPicture.records,
+        System.identityHashCode(page),
+    )
 }
 
 /**

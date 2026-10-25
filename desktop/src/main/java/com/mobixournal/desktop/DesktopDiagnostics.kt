@@ -15,7 +15,11 @@ import java.io.File
  *    window that repaints when *nothing is happening* shows up as a line with no input at all (which is
  *    how the perpetual `withFrameNanos` loop was found: ~120 paints a second on an idle sheet);
  *  - **the worst interval** is only a *paint* gap: a window that was idle for a minute and then painted
- *    must not report that minute as a stall, so gaps longer than [IDLE_GAP_NANOS] are not counted.
+ *    must not report that minute as a stall, so gaps longer than [IDLE_GAP_NANOS] are not counted;
+ *  - **`sheet=` and `page=`** are the sheet picture's own full-record count and the identity of the page
+ *    the painter was handed: a frame that repaints while the sheet stops recording, and keeps the same
+ *    page object, is the shape of "the ink did not follow the drag" — which is how the tail that never
+ *    noticed a changed element was found, live, without a debugger attached.
  *
  * Off by default: a file per second is not something an editor should leave behind.
  */
@@ -60,7 +64,7 @@ internal object DesktopDiagnostics {
      * Called from the canvas's own ticker — the same loop that empties the queue — so the numbers belong
      * to the frame the reader actually sees.
      */
-    fun painted(paintMs: Double) {
+    fun painted(paintMs: Double, sheetRecords: Int = -1, pageId: Int = 0) {
         if (!enabled) return
         if (frameThread == null) frameThread = Thread.currentThread().name
         val now = System.nanoTime()
@@ -82,6 +86,8 @@ internal object DesktopDiagnostics {
             append(" paint=").append(String.format(java.util.Locale.ROOT, "%.1f", paintTotalMs / frames))
             append("/").append(String.format(java.util.Locale.ROOT, "%.1f", paintWorstMs)).append("ms")
             append(" packet=").append(packetThread ?: "-")
+            append(" sheet=").append(sheetRecords)
+            append(" page=").append(Integer.toHexString(pageId))
             append(" paint=").append(frameThread ?: "-")
         }
         write(line)
