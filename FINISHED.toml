@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-export-pdf-svg"
+title = "Desktop: PDF and SVG export (scope)"
+description = "Scope closed as five atomic tasks, no code. It found that the vector half already exists in mobix-core and is Android-free (PageSvgWriter and PdfPagePlan), and that the missing pieces are a driver, a second PDF emitter and the paper. The children: desktop-export-svg-one-file-per-page (PageSvgWriter gains a backdrop picture for a PDF/image page, plus a desktop writer that emits one SVG per page atomically, asserted byte-equal to the tablet's output); desktop-pdf-op-emitter (a DesktopPdfPainter that replays PdfPagePlan through org.apache.pdfbox, with ImageIO for images); desktop-export-pdf-document (PdfPagePlan.paper moves the sheet fill and ruling out of the Android-only PdfBackgroundPainter so both shells print the same page, then the document-level PDF writer with its raster backdrop and board refusal); desktop-export-command-in-the-window (Export PDF and Export pages as SVG in the hamburger menu, Ctrl+E in the shortcut table, FileDialog destinations, English confirmations and failures through describeExportFailure); desktop-pdf-export-keeps-source-page-vectors (PdfOverlayMatrix moves to mobix-core so an imported PDF page is imported verbatim rather than flattened, rotation included). The scope's own decisions: PDFBox on the JVM not pdfbox-android, one plan with two emitters, annotations (/Highlight, /Ink, /Text) left as a documented difference for now."
+status = "finished"
+level = "scope"
+category = "feature"
+created = 2026-10-24
+completed = 2026-10-25
+tags = ["desktop"]
+
+[[task]]
 id = "desktop-parity-batch-pins-hand-page-setup"
 title = "Desktop: pins, hand, page setup, new page and the tablet's pen settings"
 description = "The window now has the tablet's parity pieces: circuit pins drawn while the Line tool or a circuit family is armed (shared CircuitSnapping, moved to mobix-core), figures/circuits/placements written in the pen's ink with the highlighter as its own case, a Hand slot (G) that pans on a primary drag, the system pointer kept for every tool with the width ring as an extra readout, Page background and Page format surfaces (six styles, 2/3/5/7/10 mm rulings, four presets and orientation, each one undo step), one-click figure slots with no submenu, per-tool stroke patterns remembered in the settings file, a caption carrying no app name or icon, a hamburger menu with New/Open/Save/Save As/page setup/sidebar, a + and a start-up screen that both open a fresh A4 page, and an app icon with the navy field removed. DesktopShell/PageCanvas were split into DesktopInkState, DesktopPageSetupState, PageSheet and PageCanvasOverlay to stay inside the source budget; docs/desktop-workstation.md, docs/desktop-tablet.md, docs/ui-modernization.md and README.md were updated, and the desktop tests, the app guards and the debug APK all pass."
