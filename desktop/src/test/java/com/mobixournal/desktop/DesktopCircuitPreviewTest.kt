@@ -12,6 +12,7 @@ import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.ShapeKind
 import java.io.File
@@ -105,6 +106,139 @@ class DesktopCircuitPreviewTest {
         }
     }
 
+    /**
+     * The magnet, through the **real pointer path**: a second part dragged until its end reaches the first
+     * part's pin must land *on* it, not a few points beside it.
+     *
+     * This is the end-to-end half of `CircuitGestureTest`'s pure span: a span can be right while the canvas
+     * never uses it, which is exactly what a reader who says "the pins don't attach" is describing.
+     */
+    @Test
+    fun `a dragged part lands its end on the pin of the one already there`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        placeResistor(tab, 200.0, 200.0)
+        val scene = scene(tab)
+        try {
+            // Press three points off the resistor's right pin (240, 200) and pull right: the press is the
+            // new part's first end, and it has to be pulled onto that pin.
+            pen(scene, PointerEventType.Press, 243f, 203f, 1_000L)
+            pen(scene, PointerEventType.Move, 420f, 203f, 1_016L)
+            pen(scene, PointerEventType.Release, 420f, 203f, 1_032L, pressed = false)
+            scene.render()
+
+            val placed = elements(tab).filterIsInstance<CircuitElement>()
+            assertEquals("the first part and the new one", 2, placed.size)
+            val pins = placed.flatMap { part ->
+                part.pins.map { pin -> CircuitSnapping.pinAbsolutePosition(part, pin) }
+            }
+            val joined = pins.count { (x, y) -> kotlin.math.abs(x - 240.0) < 1e-6 && kotlin.math.abs(y - 200.0) < 1e-6 }
+            assertEquals("two parts, one shared pin position: $pins", 2, joined)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The magnet on a part **selected after insertion**: the drag of a caught component is snapped too.
+     *
+     * The reader's second way to build a circuit — place the parts, then drag them until they meet — and
+     * the one the window never magnetised: its move was the pointer's exact translation, so a pin could
+     * only ever be joined while the part was still being drawn.
+     */
+    @Test
+    fun `a selected part is pulled onto a pin when it is dragged`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        placeResistor(tab, 200.0, 200.0)
+        placeResistor(tab, 500.0, 200.0)
+        val scene = marqueeScene(tab)
+        try {
+            // Catch the second part where it lies, then drag it left until its left pin is 3 pt off the
+            // first part's right pin (240, 200).
+            pen(scene, PointerEventType.Press, 500f, 200f, 1_000L, tool = DesktopTool.MARQUEE)
+            pen(scene, PointerEventType.Release, 500f, 200f, 1_016L, pressed = false, tool = DesktopTool.MARQUEE)
+            scene.render()
+            assertTrue("the press caught the part", tab.selection?.refs?.isNotEmpty() == true)
+
+            // A different point from the catching click: two presses in the same place are a double-click
+            // (`TapTracker`), which opens an editor instead of moving the ink.
+            pen(scene, PointerEventType.Press, 520f, 200f, 2_000L, tool = DesktopTool.MARQUEE)
+            pen(scene, PointerEventType.Move, 303f, 200f, 2_016L, tool = DesktopTool.MARQUEE)
+            pen(scene, PointerEventType.Release, 303f, 200f, 2_032L, pressed = false, tool = DesktopTool.MARQUEE)
+            scene.render()
+
+            val pins = elements(tab).filterIsInstance<CircuitElement>().flatMap { part ->
+                part.pins.map { pin -> CircuitSnapping.pinAbsolutePosition(part, pin) }
+            }
+            val joined = pins.count { (x, y) -> kotlin.math.abs(x - 240.0) < 1e-6 && kotlin.math.abs(y - 200.0) < 1e-6 }
+            assertEquals("the dragged part's pin sits on the anchor's: $pins", 2, joined)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * A part **caught by its pin**: the press lands past its end, over bare paper, and still moves it.
+     *
+     * The reader aims at the pin — that is the thing being joined — so the ink picker's reach, which stops
+     * where the drawn part stops, used to answer nothing and trace a marquee instead. The part stayed put,
+     * and the complaint was that the pins "did not attach": nothing had been picked up to move.
+     */
+    @Test
+    fun `a press on a pin carries the part onto the pin it was dropped on`() {
+        val tab = DesktopTabs().open(DocumentLoader.load(notebook()))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        placeResistor(tab, 200.0, 200.0)
+        placeResistor(tab, 500.0, 200.0)
+        val scene = marqueeScene(tab)
+        try {
+            // The second part's right-hand pin is at (540, 200); six points further out is bare paper.
+            pen(scene, PointerEventType.Press, 546f, 200f, 1_000L, tool = DesktopTool.MARQUEE)
+            pen(scene, PointerEventType.Move, 326f, 200f, 1_016L, tool = DesktopTool.MARQUEE)
+            pen(scene, PointerEventType.Release, 326f, 200f, 1_032L, pressed = false, tool = DesktopTool.MARQUEE)
+            scene.render()
+
+            val pins = elements(tab).filterIsInstance<CircuitElement>().flatMap { part ->
+                part.pins.map { pin -> CircuitSnapping.pinAbsolutePosition(part, pin) }
+            }
+            val joined = pins.count { (x, y) -> kotlin.math.abs(x - 240.0) < 1e-6 && kotlin.math.abs(y - 200.0) < 1e-6 }
+            assertEquals("the carried part's pin sits on the anchor's: $pins", 2, joined)
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    private fun marqueeScene(tab: DesktopTab): ImageComposeScene {
+        val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
+            PageCanvas(tab = tab, panMode = false, tool = DesktopTool.MARQUEE, onViewport = {}, onFit = {})
+        }
+        scene.render()
+        Snapshot.sendApplyNotifications()
+        return scene
+    }
+
+    /** A resistor placed as the reader would: a drag with the circuit slot, committed on the lift. */
+    private fun placeResistor(tab: DesktopTab, x: Double, y: Double) {
+        val part = com.mobixournal.render.CircuitElementFactory.circuitElementFor(
+            symbol = ShapeKind.RESISTOR.name,
+            startX = x - 40.0,
+            startY = y,
+            endX = x + 40.0,
+            endY = y,
+        ) ?: error("the resistor is in the library")
+        val index = tab.page
+        val before = tab.document.snapshot()
+        tab.document.editPage(index) { page -> page.withElement(part) }
+        tab.record(before)
+    }
+
     private fun elements(tab: DesktopTab) = tab.document.page(tab.page).layers.flatMap { it.elements }
 
     /** Dark pixels inside a screen-space rectangle — a page's paper is white, so this counts ink. */
@@ -128,6 +262,7 @@ class DesktopCircuitPreviewTest {
         y: Float,
         time: Long,
         pressed: Boolean = true,
+        tool: DesktopTool = DesktopTool.CIRCUIT,
     ) {
         scene.sendPointerEvent(
             eventType = type,

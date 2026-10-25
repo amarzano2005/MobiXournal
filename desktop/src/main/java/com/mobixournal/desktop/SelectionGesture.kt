@@ -135,13 +135,26 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap)
     }
     val page = runCatching { tab.document.page(tab.page) }.getOrNull()
-    val picked = page?.let { SelectionTester.pickTopmost(it, x0, y0) }
-    // A **double-click** anywhere on an element: pick it, and if it is a living recipe open its editor —
-    // the tablet's double-tap. Recorded for every press, so two clicks in one place are always a pair.
-    if (taps.isSecond(System.currentTimeMillis(), (x0 * pxPerPt), (y0 * pxPerPt)) && page != null && picked != null) {
+    // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
+    // which is where the hand aims when two parts have to be joined (`PinPress`).
+    val picked = page?.let { pickForDrag(it, x0, y0, tol) }
+    // A **double-click** anywhere on an element picks it, and if it is a living recipe opens its editor —
+    // the tablet's double-tap. The question is settled on the **lift**, not on the press: a placed part is
+    // clicked into being and dragged into place a moment later, and a press that treats the second click
+    // as a double-click made that drag open the editor instead of moving the part (which is how a pin
+    // "stopped attaching" right after the part was inserted). A pair of presses is a double-click only
+    // when the second one travels nowhere.
+    val secondOfPair = taps.isSecond(System.currentTimeMillis(), (x0 * pxPerPt), (y0 * pxPerPt)) &&
+        page != null && picked != null
+    if (secondOfPair) {
         tab.selection = selectionOf(page, picked)
         val element = elementAt(page, picked)
-        if (element != null && element.isLivingEntity) onEditLiving?.invoke()
+        val living = element != null && element.isLivingEntity
+        val editsBefore = tab.document.edits
+        transformSelection(
+            tab.selection ?: return, SelectionHandle.BODY, x0, y0, tab, view, density, onLiveDrag, onEdited,
+        )
+        if (living && tab.document.edits == editsBefore) onEditLiving?.invoke()
         return
     }
     if (handle.startsRegion()) {
