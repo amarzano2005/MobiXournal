@@ -28,12 +28,30 @@ import java.util.Base64
  * the element's own encoded bytes inline as a `data:` URL. Elements we don't model ([Element.RawElement])
  * are skipped — SVG has no faithful translation for a shape we never interpreted.
  *
+ * The one thing the model cannot draw here is the **picture a page sits on**: a page written over an
+ * annotated PDF, or one backed by a photograph, is pixels, and SVG has no way to name them. So the caller
+ * that *has* those pixels passes them in ([write] with a backdrop) and they are emitted as the page's
+ * picture under the ink, the way the canvas paints the picture between the paper and the strokes. The
+ * tablet, which writes one page from a live render, passes `null` — and with nothing passed the output
+ * is byte for byte what it always was, which is the check that keeps the two shells from drifting.
+ *
  * Kept Android-free so it is unit-testable on the JVM: it reads only the document model and the pure
  * [BackgroundGrid] geometry.
  */
 object PageSvgWriter {
 
-    fun write(page: Page): String {
+    /** The page on its own: its sheet, ruling and ink. What the tablet's export and both shells' callers ask for. */
+    fun write(page: Page): String = write(page, null)
+
+    /**
+     * The same document, with the pixels of the picture the page sits on (an annotated PDF page, a
+     * bitmap background) when [backdrop] carries them.
+     *
+     * [backdrop] is already encoded — PNG, or JPEG, both self-describing through [mimeOf] — because
+     * deciding *how* to rasterise a PDF page is the shell's business, not this writer's. `null` means
+     * "there is nothing behind the ink", and the emitted document is the one [write] has always made.
+     */
+    fun write(page: Page, backdrop: ByteArray?): String {
         val w = page.width
         val h = page.height
         val sb = StringBuilder()
@@ -46,6 +64,10 @@ object PageSvgWriter {
         val bg = solid?.color ?: WHITE
         sb.append("  <rect x=\"0\" y=\"0\" width=\"").append(num(w)).append("\" height=\"").append(num(h))
             .append("\" fill=\"").append(hex(bg)).append("\"/>\n")
+
+        // The picture comes after the sheet and before everything else: on screen it lies between the
+        // paper and the ink, so a highlighter multiplies into it and no stroke is painted over.
+        if (backdrop != null && backdrop.isNotEmpty()) emitImage(sb, 0.0, 0.0, w, h, backdrop)
 
         ruling(sb, page, solid)
 

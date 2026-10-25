@@ -130,6 +130,15 @@ the ruling, text boxes and images alongside, and the whole document wrapped in a
 pt size. It is deliberately **not** a screenshot: no Android type is involved, so the writer stays
 pure and unit-testable, and the output scales without the raster's pixel ceiling.
 
+**The picture behind a page is the caller's, and only pixels can carry it.** A sheet written over an
+annotated PDF, or one backed by a photograph, is not geometry the model holds, so `PageSvgWriter` does
+not resolve it: `write(page, backdrop)` takes the already-encoded bytes (PNG or JPEG, self-describing)
+and puts one `<image>` over the page box between the sheet and the ink, which is where the canvas paints
+the picture. A caller with nothing to hand over — the tablet's page export, a ruled sheet — passes
+`null`, and the document it gets is byte for byte the one the writer made before the parameter existed;
+`DesktopSvgExportTest` asserts exactly that, so the two shells cannot drift apart page by page. The
+desktop's per-document driver (`DesktopSvgExport`, one file per page) is the caller that supplies them.
+
 **A living entity is drawn as compiled ink.** `.mobix`'s table, plot, shape and circuit have no drawing
 of their own: each is compiled by its family's compiler and the result painted in its place, through the
 single dispatch in `LivingInk` — the same one the PDF painter and the SVG writer above use, so an entity
