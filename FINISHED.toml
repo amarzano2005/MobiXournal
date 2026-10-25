@@ -25,6 +25,61 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-pdf-export-keeps-source-page-vectors"
+title = "Desktop: keep an imported PDF's own vectors in an exported PDF"
+description = "An exported PDF imports each source page verbatim (PDFBox PDFMergerUtility over the crop box) and writes only the overlay over it, so a page's own text layer and vectors survive an annotation pass instead of being flattened into a picture — the 200-page scan no longer becomes a hundred megabytes. PdfOverlayMatrix moved to mobix-core so the crop and /Rotate rule is one implementation for both shells; PageBackdrop answers the source document it rendered from, and a source it cannot open falls back to the sheet with the ink kept. DesktopPdfExportVectorsTest pins extracted text after export, ink on a rotated page landing where it was drawn, and the missing-source fallback. docs/pdf.md records the decision."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-25
+completed = 2026-10-25
+tags = ["desktop", "export"]
+
+[[task]]
+id = "desktop-export-command-in-the-window"
+title = "Desktop: Export PDF and Export SVG in the window's menu, with Ctrl+E"
+description = "The File menu carries Export PDF… (Ctrl+E) and Export SVG…, and the command asks the window where to write before it writes anything (DesktopExportCommands, lent the window by DesktopApp). Both are unavailable with no document open, a written export says what it wrote in the notice line, and a refused or failed destination becomes the same failure card an open or a save uses — checked through a click on the menu row and a real key event. DesktopExportCommandTest pins the shortcut, the empty state, both successful exports and the failure card."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-25
+completed = 2026-10-25
+tags = ["desktop", "export"]
+
+[[task]]
+id = "desktop-export-pdf-document"
+title = "Desktop: export the document as one PDF, paper and ink from the shared plan"
+description = "Export PDF… writes the whole document as one PDF, a page per page at each page's own size, built from the shared PdfPagePlan so paper, ruling and ink come from the code the screen and the tablet already use (DesktopPdfExport). A PDF-backed page is flattened under the ink; a board page and a document with no pages are refused in words rather than exported as something the reader would mistake for the document. DesktopPdfExportTest pins the page count and sizes, the ruling, the flattened picture, and both refusals."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-25
+completed = 2026-10-25
+tags = ["desktop", "export"]
+
+[[task]]
+id = "desktop-pdf-op-emitter"
+title = "Desktop: replay PdfPagePlan into a PDF with the JVM PDFBox"
+description = "DesktopPdfPainter replays a PdfPagePlan into a PDFBox page with the JVM's own PDFBox: text as a real font and a real string (DCText, not outlines), strokes as an SVG path stroked with the plan's colour and width (a tapered segment becomes its own stroke), pictures decoded and drawn as an XObject, and the ruling as the plan drew it. An unreadable picture is skipped and the rest of the page survives. DesktopPdfPainterTest pins extracted text, the stroked path, colour and taper, the XObject, and the skip."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-25
+completed = 2026-10-25
+tags = ["desktop", "export"]
+
+[[task]]
+id = "desktop-export-svg-one-file-per-page"
+title = "Desktop: export the active document as one SVG per page"
+description = "Export SVG… in the File menu writes one SVG per page beside the document, named in reading order (page-001, page-002, zero-padded to the widest page number) — DesktopSvgExport. A page with no picture goes through the shared PageSvgWriter verbatim; a page backed by a PDF carries that page's rendered image as one <image> over the sheet and the ink on top. A destination that cannot take the pages is refused in words instead of half-writing a set. DesktopSvgExportTest pins names, well-formedness, the picture's extent, byte-equality with the shared writer, and the refusal."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-25
+completed = 2026-10-25
+tags = ["desktop", "export"]
+
+[[task]]
 id = "desktop-export-pdf-svg"
 title = "Desktop: PDF and SVG export (scope)"
 description = "Scope closed as five atomic tasks, no code. It found that the vector half already exists in mobix-core and is Android-free (PageSvgWriter and PdfPagePlan), and that the missing pieces are a driver, a second PDF emitter and the paper. The children: desktop-export-svg-one-file-per-page (PageSvgWriter gains a backdrop picture for a PDF/image page, plus a desktop writer that emits one SVG per page atomically, asserted byte-equal to the tablet's output); desktop-pdf-op-emitter (a DesktopPdfPainter that replays PdfPagePlan through org.apache.pdfbox, with ImageIO for images); desktop-export-pdf-document (PdfPagePlan.paper moves the sheet fill and ruling out of the Android-only PdfBackgroundPainter so both shells print the same page, then the document-level PDF writer with its raster backdrop and board refusal); desktop-export-command-in-the-window (Export PDF and Export pages as SVG in the hamburger menu, Ctrl+E in the shortcut table, FileDialog destinations, English confirmations and failures through describeExportFailure); desktop-pdf-export-keeps-source-page-vectors (PdfOverlayMatrix moves to mobix-core so an imported PDF page is imported verbatim rather than flattened, rotation included). The scope's own decisions: PDFBox on the JVM not pdfbox-android, one plan with two emitters, annotations (/Highlight, /Ink, /Text) left as a documented difference for now."
