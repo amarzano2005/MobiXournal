@@ -167,6 +167,93 @@ internal fun FormatSection(
 }
 
 /**
+ * The **defaults** section: the sheet every new page is born on.
+ *
+ * It is the tablet's own page settings, in the panel the page tools open: a default is a property of the
+ * app (`DesktopSettings`, `DefaultSheet`), not an edit of the page in view, so it edits nothing on the
+ * sheet behind it and records no undo step. The same presets, the same orientations and the same three
+ * units as the format section, because the two answer the same question about two different sheets — this
+ * one is *the next page's*.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun DefaultsSection(
+    /** The stored default, in points — what the fields show and the chips mark. */
+    defaultSize: Pair<Double, Double>,
+    /** A new default, in points: [onSetDefault]'s answer, stored and applied to new pages. */
+    onDefault: (Double, Double) -> Unit,
+) {
+    val width = defaultSize.first
+    val height = defaultSize.second
+    val landscape = width > height
+    var unit by remember { mutableStateOf(PageUnit.MM) }
+
+    SectionLabel("New sheets are born on")
+    FlowRowChips {
+        for (preset in PageSetup.PRESETS) {
+            SetupChip(
+                label = preset.label,
+                picked = matchesSize(width, height, preset.widthPt, preset.heightPt),
+                onClick = {
+                    if (landscape) onDefault(preset.heightPt, preset.widthPt)
+                    else onDefault(preset.widthPt, preset.heightPt)
+                },
+            )
+        }
+    }
+
+    SectionLabel("Orientation")
+    FlowRowChips {
+        SetupChip(label = "Portrait", picked = !landscape, onClick = {
+            onDefault(minOf(width, height), maxOf(width, height))
+        })
+        SetupChip(label = "Landscape", picked = landscape, onClick = {
+            onDefault(maxOf(width, height), minOf(width, height))
+        })
+    }
+
+    SectionLabel("Default size")
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (candidate in PageUnit.entries) {
+            SetupChip(label = candidate.label, picked = candidate == unit, onClick = { unit = candidate })
+        }
+        Spacer(Modifier.weight(1f))
+        SetupChip(label = "Swap", picked = false, onClick = { onDefault(height, width) })
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.weight(1f)) {
+            DimensionField(
+                label = "Width (${unit.label})",
+                initial = formatDimension(unit.fromPt(width)),
+                unit = unit,
+                onCommit = { pt -> pt.takeIf { it in MIN_PAGE_PT..MAX_PAGE_PT }?.let { onDefault(it, height) } },
+            )
+        }
+        Box(Modifier.weight(1f)) {
+            DimensionField(
+                label = "Height (${unit.label})",
+                initial = formatDimension(unit.fromPt(height)),
+                unit = unit,
+                onCommit = { pt -> pt.takeIf { it in MIN_PAGE_PT..MAX_PAGE_PT }?.let { onDefault(width, it) } },
+            )
+        }
+    }
+    Text(
+        String.format(
+            Locale.US,
+            "New pages open at %.0f × %.0f pt (%.1f × %.1f mm), and the page in view is not touched.",
+            width,
+            height,
+            width / PageSetup.MM_PT,
+            height / PageSetup.MM_PT,
+        ),
+        color = DesktopTheme.inkMuted,
+        style = DesktopTheme.label,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+}
+
+/**
  * One dimension of the sheet: a field that commits on `Enter` or when it loses focus, in **points**.
  *
  * The field prints and parses in the section's [PageUnit]; the answer is always the document's own unit,

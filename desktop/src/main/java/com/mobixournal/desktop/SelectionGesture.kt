@@ -268,7 +268,20 @@ private suspend fun AwaitPointerEventScope.transformSelection(
     fun apply(px: Float, py: Float) {
         val (x1, y1) = pagePointOf(px, py, density, view.current())
         val (edited, next) = when (handle) {
-            SelectionHandle.BODY -> SelectionEdit.move(original, selection, x1 - x0, y1 - y0)
+            // A moved **component** or **wire** is magnetised onto the pins in reach, exactly as a drawn one
+            // is: a part is placed, then dragged into its place in the circuit, and without this the only
+            // moment a pin could be joined was while the part was being drawn. Only connectors and
+            // components are considered (`snapTranslation`), so a figure across the sheet is a free move.
+            SelectionHandle.BODY -> {
+                val (dx, dy) = snapSelectionMove(
+                    original,
+                    selection,
+                    x1 - x0,
+                    y1 - y0,
+                    scale = view.current().zoom * density,
+                )
+                SelectionEdit.move(original, selection, dx, dy)
+            }
             SelectionHandle.ROTATE -> SelectionEdit.rotate(
                 original,
                 selection,

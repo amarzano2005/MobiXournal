@@ -11,7 +11,8 @@ Four readers sit beside Compose — `desktop/TabletWintab.kt` (the pen's packet 
 and `desktop/TabletDial.kt` (a radial controller, if one is ever bound) — opened by `DesktopTablet` from
 `DesktopApp` and closed with the window. The pen's stream **draws** the stroke (`PenPacketStroke`, below)
 while the mouse keeps Compose's own pointer events; what the other readers add is a reading for the event
-being handled and the dial's notch as a zoom. `DesktopTablet` asks **Wintab first**, then Windows Ink, and
+being handled and the dial's notch as a zoom. The hand's own pan, and why it travels further than the pen,
+are the last section. `DesktopTablet` asks **Wintab first**, then Windows Ink, and
 the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `pen: mouse`.
 
 **What was measured, not assumed** (`--probe-tablet`, `Main.kt`, writing `tablet-probe.csv`):
@@ -275,3 +276,18 @@ The window says what it has in the status bar — `pen: Wintab`, `pen: Windows I
 controller is bound — so "the pen draws at one width" and "the pen is a mouse as far as this window can
 tell" can never be confused. With no device, both readers answer null after logging the step that said
 so, and the window keeps the wheel, the keyboard and the mouse.
+
+## The hand on the pen
+
+A pan built on Compose's pointer crawled, because Windows' copy of this pen is coalesced: the driver sends
+400 readings a second and the mouse emulation delivers a handful. So the **hand** pans from the same packets
+the stroke does (`PenPacketPan`): a tip-down opens the pan and records where it landed, every later reading
+adds its travel — the packet delta over the display's density — and the whole batch is **one** viewport
+write per frame instead of one per reading (`PenPacketPanTest` pins the distance, the single write and the
+lift's own travel).
+
+It also pans **further than the pen travels** (`PAN_GAIN`, 1.6): a stylus is moved by the wrist across a
+tablet's working area, not by the arm across a desk, so a matched pan reads as a page that lags a hand which
+is plainly moving. The gain is a feel constant, not a measurement, and it is the pen's alone — a mouse drag
+and a wheel notch keep the distance their device reports. A held **Space** takes the packets from the
+stroke path, so a pen in hand never inks the sheet it is scrolling.

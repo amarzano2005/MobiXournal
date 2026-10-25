@@ -130,6 +130,7 @@ internal fun PlacementButton(placement: ToolPlacement, onPlacement: (ToolPlaceme
             Popup(
                 offset = with(density) { IntOffset(0, (DesktopTheme.headerHeight + 6.dp).roundToPx()) },
                 onDismissRequest = { open = false },
+                properties = FloatingSurface,
             ) {
                 Column(
                     Modifier

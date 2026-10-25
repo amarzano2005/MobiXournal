@@ -202,7 +202,7 @@ internal fun SelectionBar(
 /** The six alignments and the two distributions, in the bar's own material, anchored under the button. */
 @Composable
 private fun AlignMenu(ui: SelectionBarUi, onClose: () -> Unit) {
-    Popup(offset = IntOffset(0, 46), onDismissRequest = onClose) {
+    Popup(offset = IntOffset(0, 46), onDismissRequest = onClose, properties = FloatingSurface) {
         Column(Modifier.glassSurface().padding(6.dp)) {
             Text("Align", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
             Spacer(Modifier.height(4.dp))

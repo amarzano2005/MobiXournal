@@ -47,22 +47,18 @@ import org.jetbrains.skia.Rect
  *
  * A re-record on every edit is the wrong price for writing: the pen lifts once per letter, and each lift
  * used to throw the sheet away and build it again (3–7 ms on a dense page — a dropped frame every
- * stroke, `desktop-stroke-latency`). So the page is kept as a **base** picture plus a **tail**: the base
- * holds everything as of the last full record, and the tail holds **every** stroke *appended on the top of
- * the page's top layer* since then — the whole run, always measured from the base, never just the newest
- * one (a tail holding only the latest stroke would drop the ones before it off the sheet until something
- * forced a full record). An append records only that run — a few strokes, a fraction
- * of a millisecond — and leaves the base alone; anything else (an erase, an undo, a reflow, a move)
- * changes ink the base already contains, which a picture cannot take back, so that case re-records the
- * sheet in full and starts a new base.
+ * stroke, `desktop-stroke-latency`). So the page is kept as a **base** picture plus **tails**: the base
+ * holds everything as of the last full record, and each tail holds the elements **one lift appended on
+ * the top of the page's top layer** — one picture per append, in the page's own order.
  *
- * Painting the base and then the tail is the same drawing order the page describes, because the tail is
- * only ever the elements appended to the **last** layer: nothing recorded earlier may paint over them.
- * The two pictures are replayed under one transform into one canvas, so they composite exactly as the
- * single record did (`PagePictureTest` compares both against the direct paint).
+ * One picture per lift, not one picture re-recorded from the whole run: replaying a run from the base at
+ * every lift made the cost of a lift grow with the length of the writing burst (48 strokes of freehand is
+ * thousands of segments to re-record), which is exactly the stutter a writer feels between two letters of
+ * the same word. A lift now records the one element it added, and painting replays base plus one picture
+ * per stroke — the GPU's own work, with no Kotlin paint at all.
  *
  * A run that grows past [MAX_TAIL_ELEMENTS] folds back into a base, so a long writing run re-records once
- * every few dozen strokes instead of recording an ever longer tail on every lift.
+ * every few pages of handwriting instead of recording an ever longer tail on every lift.
  *
  * A stroke being drawn does **not** invalidate either picture: that stroke is painted over them
  * (`PageCanvas`'s drafts).
@@ -72,8 +68,14 @@ internal class PagePicture {
     /** Everything as of the last full record — the page's paper, backdrop and ink. */
     private var base: Picture? = null
 
-    /** The strokes appended on top since [base] was recorded, or null when the page is all in [base]. */
-    private var tail: Picture? = null
+    /** One picture per lift since [base], with how many elements it holds. */
+    private var tails: MutableList<TailRecord> = mutableListOf()
+
+    /** How many elements the [tails] hold together — the run appended since [base]. */
+    private var tailCount: Int = 0
+
+    /** The elements one tail picture drew; a lift appends one, a paste may append several. */
+    private class TailRecord(val elements: Int, val picture: Picture)
 
     /** The page [base] is the **full** record of — the line the tail's elements are measured from. */
     private var basePage: Page? = null
@@ -151,7 +153,7 @@ internal class PagePicture {
             native.translate(viewport.offsetX * density, viewport.offsetY * density)
             native.scale(zoom, zoom)
             native.drawPicture(sheet)
-            tail?.let(native::drawPicture)
+            for (tail in tails) native.drawPicture(tail.picture)
             native.restore()
         }
         replays++
@@ -160,9 +162,10 @@ internal class PagePicture {
     /** Release the native pictures — a canvased page holds a few megabytes of drawing instructions. */
     fun close() {
         base?.close()
-        tail?.close()
+        for (tail in tails) tail.picture.close()
+        tails.clear()
+        tailCount = 0
         base = null
-        tail = null
         basePage = null
         shown = null
         key = null
@@ -184,25 +187,51 @@ internal class PagePicture {
      */
     private fun adopt(page: Page, wanted: Key, measurer: TextMeasurer) {
         val base = basePage ?: return recordAll(wanted, page, measurer)
-        val added = appendedElements(base, page)
-        if (added == null || added.size > MAX_TAIL_ELEMENTS) {
+        val added = appendedElements(base, page) ?: return recordAll(wanted, page, measurer)
+        // An append to a hidden top layer changes no pixel and complicates the run's bookkeeping for
+        // nothing; the key changes the moment the layer comes back, which records the sheet in full.
+        if (added.size > MAX_TAIL_ELEMENTS || page.layers.lastIndex in wanted.hiddenLayers) {
             recordAll(wanted, page, measurer)
             return
         }
-        tail?.close()
-        // An append to a hidden top layer changes no pixel, and a page back at the base's content (an undo
-        // that landed on it) has nothing left over it: in both cases the base alone is the page.
-        val paints = added.isNotEmpty() && page.layers.lastIndex !in wanted.hiddenLayers
-        tail = if (paints) record(wanted, page, measurer) { drawElements(added, wanted.density, measurer) } else null
-        if (paints) tailRecords++
+        // A shorter run is an undo of ink the base never held: drop the pictures it took back.
+        if (added.size < tailCount && !dropTailsDown(added.size)) return recordAll(wanted, page, measurer)
+        val fresh = added.subList(tailCount, added.size)
+        if (fresh.isNotEmpty()) {
+            tails += TailRecord(
+                elements = fresh.size,
+                picture = record(wanted, page, measurer) { drawElements(fresh, wanted.density, measurer) },
+            )
+            tailCount = added.size
+            tailRecords++
+        }
         shown = page
+    }
+
+    /**
+     * Take the run back down to [target] elements, newest picture first.
+     *
+     * False when a picture would have to be split — one lift's several elements (a paste) cannot be
+     * taken back halfway by a picture — and the caller then records the sheet again instead.
+     */
+    private fun dropTailsDown(target: Int): Boolean {
+        var total = tailCount
+        while (total > target) {
+            val last = tails.lastOrNull() ?: return false
+            if (total - last.elements < target) return false
+            tails.removeAt(tails.lastIndex).picture.close()
+            total -= last.elements
+        }
+        tailCount = total
+        return true
     }
 
     /** The one place the whole page becomes drawing instructions — a full record, and a new base. */
     private fun recordAll(wanted: Key, page: Page, measurer: TextMeasurer) {
         base?.close()
-        tail?.close()
-        tail = null
+        for (tail in tails) tail.picture.close()
+        tails.clear()
+        tailCount = 0
         base = record(wanted, page, measurer) {
             drawPageContent(
                 page = page,
@@ -248,13 +277,13 @@ internal class PagePicture {
         const val MIN_CULL_MARGIN_PX = 128f
 
         /**
-         * How many appended elements a tail may hold before the sheet is recorded again.
+         * How many appended elements the tails may hold before the sheet is recorded again.
          *
-         * Sized to a burst of handwriting: re-recording a dense page costs 3–7 ms, so a fold every few
-         * dozen strokes is one hitch in a paragraph instead of one per letter, while the tail itself
-         * stays negligible to record and to replay.
+         * A lift no longer costs the run (one picture per append), so the cap is only about how many
+         * pictures a frame replays and how far a fold's 3–7 ms of recording falls from the writer's
+         * attention: a pageful of handwriting, not a paragraph.
          */
-        const val MAX_TAIL_ELEMENTS = 48
+        const val MAX_TAIL_ELEMENTS = 160
     }
 }
 

@@ -51,7 +51,7 @@ internal fun CircuitKindPicker(
     onDismiss: () -> Unit,
     offset: IntOffset,
 ) {
-    Popup(offset = offset, onDismissRequest = onDismiss) {
+    Popup(offset = offset, onDismissRequest = onDismiss, properties = FloatingSurface) {
         Column(
             Modifier
                 .glassSurface()

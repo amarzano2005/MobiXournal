@@ -333,7 +333,7 @@ internal fun SheetCanvas(
 ) {
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
     // Its position is `pointer.hover`, lifted into `PageCanvas` so the driver's own readings can move it.
-    val ringPx = toolCursorDiameterPx(tool, ink.width, sheet.zoom, density)
+    val ringPx = toolCursorDiameterPx(tool, tool.ringWidthPt(ink, shapeInk), sheet.zoom, density)
     // A mouse move that is a *copy* of the contact must not drag the ring back to a position the driver
     // has already left behind; the packets win for as long as they are arriving.
     val followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS }

@@ -117,9 +117,15 @@ internal class PenPacketPan(
 
     /** The dp the sheet moves by for one reading, or null when the contact did not travel. */
     private fun deltaTo(packet: PenPacket): Pair<Float, Float>? {
-        val dx = (packet.x - lastX) / density
-        val dy = (packet.y - lastY) / density
-        return if (dx == 0f && dy == 0f) null else dx to dy
+        val dx = packet.x - lastX
+        val dy = packet.y - lastY
+        if (dx == 0f && dy == 0f) return null
+        // A stylus pans **further than it travels**: a pen is moved by the wrist across a tablet's own
+        // working area, not by the arm across a desk, so a 1:1 pan reads as a page that crawls under a
+        // hand which is plainly moving. [PAN_GAIN] is the same feel rule as the tablet's, not a
+        // measurement, and it is applied to the pen's packets only — a mouse drag and a wheel keep the
+        // distance their device reports (`panByDrag`).
+        return (dx / density * PAN_GAIN) to (dy / density * PAN_GAIN)
     }
 
     /** End the pan where it is — the canvas's ticker also calls this when the packets go quiet. */
@@ -129,6 +135,16 @@ internal class PenPacketPan(
         onOwnership(false)
     }
 }
+
+/**
+ * How much further the page travels than the pen does, on the pen's own packets.
+ *
+ * A stylus is held like a pen: the hand moves it a few centimetres while the page has to cross a window
+ * that may be forty wide, so matched 1:1 the pan reads as broken rather than precise. 1.6 is the point
+ * where a wrist-flick crosses a third of a 21:9 sheet; it is a feel constant — the only one in this file
+ * — and it is applied to the pen only, never to a mouse drag or a wheel notch.
+ */
+internal const val PAN_GAIN = 1.6f
 
 /**
  * The hand's packet pan, composed while the **Hand** slot is picked (or Space is held, which is the same

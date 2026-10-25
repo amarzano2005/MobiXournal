@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.ui.input.pointer.PointerIcon
 import com.mobixournal.render.eraserRadiusPt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -53,8 +54,8 @@ class DesktopCursorTest {
      *
      * A ring drawn beside the mouse's arrow pointed at nothing — two marks for one point, one of them
      * saying the wrong thing — so a tool whose ring is up wears a cursor with no picture, and the ring is
-     * the pointer. The Hand moves the page and gets the hand; every other slot keeps the arrow it acts
-     * with, and Space (the hand's pan with any tool picked) wears the hand too.
+     * the pointer. The Hand moves the page and gets the hand, and Space (the hand's pan with any tool
+     * picked) wears the hand too.
      */
     @Test
     fun `the pointer is the tool's, not always the arrow`() {
@@ -70,22 +71,47 @@ class DesktopCursorTest {
             toolPointerIcon(DesktopTool.HAND, ringVisible = false),
             toolPointerIcon(DesktopTool.PEN, ringVisible = false, panMode = true),
         )
+    }
+
+    /**
+     * The hand's pointer is the hand **even when a shape's ring is offered** — Space held with the pen
+     * picked is the hand's pan, and a ring over it would promise ink that is not going to land.
+     */
+    @Test
+    fun `the hand beats the ring, and a figure wears the ring`() {
         assertEquals(
-            "a figure or a selection keeps the arrow",
-            toolPointerIcon(DesktopTool.PEN, ringVisible = false),
-            toolPointerIcon(DesktopTool.RECTANGLE, ringVisible = false),
+            "space with any tool is the hand's pan",
+            PointerIcon.Hand,
+            toolPointerIcon(DesktopTool.RECTANGLE, ringVisible = true, panMode = true),
+        )
+        assertEquals(
+            "and the hand itself",
+            PointerIcon.Hand,
+            toolPointerIcon(DesktopTool.HAND, ringVisible = false),
+        )
+        assertTrue(
+            "a figure's ring is the pointer, with no arrow beside it",
+            toolPointerIcon(DesktopTool.RECTANGLE, ringVisible = true) !=
+                toolPointerIcon(DesktopTool.RECTANGLE, ringVisible = false),
         )
     }
 
+    /**
+     * Every tool that marks the page wears the ring; the **hand** is the only one that does not.
+     *
+     * A figure, a circuit, Text, vertical space and the selection all write at the pen's width, and the
+     * person drawing at 27 % needs the same width readout they get from the pen — the window used to draw
+     * the ring for the pen and the highlighter only, so half the tools acted at a point nobody could see.
+     */
     @Test
-    fun `a tool that draws nothing keeps the desktop's arrow`() {
-        for (tool in DesktopTool.entries - setOf(
-            DesktopTool.PEN,
-            DesktopTool.HIGHLIGHTER,
-            DesktopTool.ERASER,
-            DesktopTool.ERASER_WHOLE,
-        )) {
-            assertNull("$tool has no ring", toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f))
+    fun `every tool but the hand wears the ring`() {
+        for (tool in DesktopTool.entries) {
+            val ring = toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f)
+            if (tool == DesktopTool.HAND) {
+                assertNull("the hand moves the page and wears the hand instead", ring)
+            } else {
+                assertTrue("$tool marks the page, so it wears a ring", ring != null && ring > 0f)
+            }
         }
     }
 }

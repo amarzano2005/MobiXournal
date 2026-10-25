@@ -44,6 +44,9 @@ enum class ToolGlyph {
     /** The page's measured format — its size on the sheet. */
     PAGE_SIZE,
 
+    /** The sheet a **new** page is born with — the defaults the window keeps. */
+    PAGE_DEFAULT,
+
     LINE,
     ARROW,
     DOUBLE_ARROW,
@@ -165,6 +168,7 @@ object ToolGlyphCatalogue {
         ToolGlyph.PLAY -> play()
         ToolGlyph.PAGE -> page()
         ToolGlyph.PAGE_SIZE -> pageSize()
+        ToolGlyph.PAGE_DEFAULT -> pageDefault()
         ToolGlyph.LINE -> line()
         ToolGlyph.ARROW -> arrow()
         ToolGlyph.DOUBLE_ARROW -> doubleArrow()
@@ -257,6 +261,26 @@ object ToolGlyphCatalogue {
         GlyphPart.Line(4f, 20f, 20f, 20f),
         GlyphPart.Line(4f, 17.5f, 4f, 21f),
         GlyphPart.Line(20f, 17.5f, 20f, 21f),
+    )
+
+    /**
+     * The sheet with a **tick** in it: the size a new page is born with.
+     *
+     * Three page glyphs have to be told apart at 20 dp — the paper (a fold), the format (a measured span)
+     * and this one — so the difference is inside the sheet, where the eye already is: a tick says *this is
+     * the one that is kept*, which is what a default is.
+     */
+    private fun pageDefault(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(4f, 3f), GlyphPoint(20f, 3f),
+                GlyphPoint(20f, 21f), GlyphPoint(4f, 21f),
+            ),
+            closed = true,
+        ),
+        GlyphPart.Polyline(
+            listOf(GlyphPoint(8f, 12.5f), GlyphPoint(11f, 16f), GlyphPoint(17f, 8.5f)),
+        ),
     )
 
     // --- Inking tools --------------------------------------------------------------------------

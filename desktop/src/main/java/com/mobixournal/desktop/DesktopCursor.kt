@@ -18,9 +18,9 @@ import kotlin.math.max
  * On a workstation the arrow is the wrong instrument over paper — it hides the point you are about to
  * draw at and says nothing about how wide the line will be. The tablet already answered this with a ring
  * the size of the tool, and the window adds it: [drawToolCursor] paints the ring **and the arrow goes
- * away** while a pen, a highlighter or an eraser is in hand, so the ring *is* the pointer rather than a
- * second mark stuck to the mouse's own (an arrow beside a ring points at nothing). Every other slot
- * keeps a pointer that means something — the hand for the Hand, the arrow elsewhere ([toolPointerIcon]).
+ * away** for every tool that marks the page, so the ring *is* the pointer rather than a second mark
+ * stuck to the mouse's own (an arrow beside a ring points at nothing). The one exception is the **hand**,
+ * which moves the page instead of marking it and keeps the hand ([toolPointerIcon]).
  *
  * It reports the tool, not the device: an inverted pen rubs out because the **tool** is the eraser, and
  * the packet-driven stroke reads the eraser end from the tablet (`docs/desktop-workstation.md`).
@@ -40,7 +40,12 @@ internal fun cursorDiameterPx(radiusPt: Float, zoom: Float, density: Float): Flo
     max(CURSOR_MIN_PX, radiusPt * 2f * zoom * density)
 
 /**
- * The ring for the tool in hand, or null when the tool draws nothing (every other slot keeps the arrow).
+ * The ring for the tool in hand, or null for the one slot that moves the page instead of marking it.
+ *
+ * Every tool that acts **on** the page wears it — the pen, the highlighter, both erasers, each figure, the
+ * circuit slots, Text, vertical space and the selection — because they all mark the sheet at the pen's
+ * width and the ring is the only thing that says where and how wide. Only the **hand** does not: it
+ * carries the page, so it wears the hand (`toolPointerIcon`), which is the one pointer that describes it.
  *
  * A pen and a highlighter are as wide as their line; the **eraser is a radius** in the shared geometry
  * (`eraserRadiusPt`), which is why it goes through the same function with its own answer rather than the
@@ -48,12 +53,25 @@ internal fun cursorDiameterPx(radiusPt: Float, zoom: Float, density: Float): Flo
  */
 internal fun toolCursorDiameterPx(tool: DesktopTool, widthPt: Float, zoom: Float, density: Float): Float? =
     when (tool) {
-        DesktopTool.PEN, DesktopTool.HIGHLIGHTER -> cursorDiameterPx(widthPt / 2f, zoom, density)
+        DesktopTool.HAND -> null
         // Both erasers show the tip they cut with: the whole-stroke eraser is a disc like the partial one,
         // it simply takes everything the disc touches.
         DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)
-        else -> null
+        // Everything else — a figure, a circuit, Text, vertical space, the marquee and the lasso — writes
+        // at the pen's width, so its ring is the pen's ring at that point.
+        else -> cursorDiameterPx(widthPt / 2f, zoom, density)
     }
+
+/**
+ * The width the ring is drawn at for this slot: the tool's **own** ink, or the pen's when the slot writes
+ * with the pen's ([DesktopTool.inksByPackets]).
+ *
+ * The distinction matters at exactly one point: a figure drawn while the highlighter is in hand lands at
+ * the pen's width (`DesktopShellState.shapeInk`), so its ring has to be the pen's ring — a marker-wide ring
+ * over a 2 pt line would promise ink five times too thick.
+ */
+internal fun DesktopTool.ringWidthPt(ink: DesktopInk, shapeInk: DesktopInk): Float =
+    if (inksByPackets()) ink.width else shapeInk.width
 
 /**
  * A cursor with **no picture**, so the ring the canvas paints is the only pointer over the sheet.
@@ -72,15 +90,14 @@ private val blankCursor: Cursor by lazy {
 /**
  * The pointer the sheet wears for [tool].
  *
- * Three answers, one per meaning: a tool that paints the page gets **no arrow at all** (its ring is the
- * pointer, [drawToolCursor]), the hand gets the hand (it moves the page, and the arrow said the page
- * would be drawn on), and every other slot — a figure, a selection, a living placement — keeps the
- * desktop's arrow, which is what those tools act with. `panMode` is Space held, which is the hand's pan
- * with any slot picked.
+ * Two answers, one per meaning: the **hand** gets the hand, because it is the only slot that moves the
+ * page rather than marking it — and `panMode` is Space held, which is that same pan with any slot picked;
+ * every other tool gets **no arrow at all**, because its ring is the pointer ([drawToolCursor]). An arrow
+ * beside a ring points at nothing, and a ring alone is the mark the tablet draws.
  */
 internal fun toolPointerIcon(tool: DesktopTool, ringVisible: Boolean, panMode: Boolean = false): PointerIcon = when {
-    ringVisible -> PointerIcon(blankCursor)
     panMode || tool == DesktopTool.HAND -> PointerIcon.Hand
+    ringVisible -> PointerIcon(blankCursor)
     else -> PointerIcon.Default
 }
 

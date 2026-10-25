@@ -6,6 +6,12 @@ import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.Tool
+import com.mobixournal.render.Bounds
+import com.mobixournal.render.ElementRef
+import com.mobixournal.render.PageSelection
+import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
 import kotlin.math.hypot
 import org.junit.Assert.assertEquals
@@ -113,6 +119,73 @@ class CircuitGestureTest {
         val first = part.pins.first()
         val last = part.pins.last()
         return hypot(last.relX - first.relX, last.relY - first.relY)
+    }
+}
+
+/**
+ * The magnet on a **selected** component: a part placed first and dragged into its place.
+ *
+ * This is the half a person actually uses after the first few parts: insert a resistor, then drag it until
+ * it meets the wire. The window snapped the strip's drag and nothing else, so a moved part could only be
+ * placed by eye and its pins never joined anything.
+ */
+class SelectionMagnetTest {
+
+    private fun resistor(id: String, x: Double, y: Double) = CircuitElement(
+        id = id,
+        symbol = ShapeKind.RESISTOR.name,
+        positionX = x,
+        positionY = y,
+        pins = listOf(CircuitPin("p1", -40.0, 0.0), CircuitPin("p2", 40.0, 0.0)),
+    )
+
+    private val anchors = resistor("c1", 200.0, 200.0)
+    private val moved = resistor("c2", 600.0, 200.0)
+
+    private val page = Page(
+        width = 1000.0,
+        height = 841.89,
+        background = Background.Solid(color = 0xFFFFFFFF.toInt(), style = "plain"),
+        layers = listOf(Layer(listOf(anchors, moved))),
+    )
+
+    /** The second part, caught by a marquee around it. */
+    private val selection = PageSelection(
+        region = SelectionRegion.Rect(Bounds(550.0, 150.0, 650.0, 250.0)),
+        refs = setOf(ElementRef(layerIndex = 0, elementIndex = 1)),
+    )
+
+    @Test
+    fun `a dragged component's pin settles on a pin in reach`() {
+        // Dragged left until its left pin is 3 pt off the anchor's right pin (240, 200) — the magnet takes
+        // the last few points, so the moved pin lands exactly on it.
+        val (dx, dy) = snapSelectionMove(page, selection, dx = -323.0, dy = 3.0, scale = 1f)
+        val pin = moved.pins.first()
+        assertEquals("p1 lands on the anchor's pin", 240.0, moved.positionX + dx + pin.relX, 1e-6)
+        assertEquals(200.0, moved.positionY + dy + pin.relY, 1e-6)
+    }
+
+    @Test
+    fun `a drag out of reach is the hand's own translation, and a figure is never pulled`() {
+        val (dx, dy) = snapSelectionMove(page, selection, dx = -100.0, dy = 120.0, scale = 1f)
+        assertEquals("nothing in reach, so nothing moves it off the pointer", -100.0, dx, 1e-9)
+        assertEquals(120.0, dy, 1e-9)
+
+        val inkStroke = Stroke(
+            tool = Tool.PEN,
+            color = 0xFF000000.toInt(),
+            capStyle = "round",
+            points = listOf(StrokePoint(560.0, 190.0, 1.0), StrokePoint(640.0, 190.0, 1.0)),
+            uniformWidth = true,
+        )
+        val inkyPage = page.copy(layers = listOf(Layer(listOf(anchors, inkStroke))))
+        val caught = PageSelection(
+            region = SelectionRegion.Rect(Bounds(550.0, 150.0, 650.0, 250.0)),
+            refs = setOf(ElementRef(0, 1)),
+        )
+        val (fx, fy) = snapSelectionMove(inkyPage, caught, dx = -357.0, dy = 3.0, scale = 1f)
+        assertEquals("a plain stroke keeps its drag", -357.0, fx, 1e-9)
+        assertEquals(3.0, fy, 1e-9)
     }
 }
 

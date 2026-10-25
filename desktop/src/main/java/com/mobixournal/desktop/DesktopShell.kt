@@ -336,6 +336,9 @@ class DesktopShellState(
             // beside it, which is why both strips put them after a divider.
             onPageBackground = { openPageSetup(PageSetupSection.PAPER) },
             onPageFormat = { openPageSetup(PageSetupSection.FORMAT) },
+            // The page's settings, in the tablet's own section: what a new sheet is born on, which is a
+            // setting of the window rather than an edit of the page in view (`DefaultsSection`).
+            onPageDefaults = { openPageSetup(PageSetupSection.DEFAULT) },
         )
 
     /**

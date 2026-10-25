@@ -135,20 +135,22 @@ What it does today:
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
-- **Restyles the sheet, from the strip**: its last two slots, after a divider, are **Page background** (the
-  six paper styles and the 2/3/5/7/10 mm rulings) and **Page format** (A4/A5/Letter/Legal either way up,
-  mm/in/pt custom fields with a swap, a **Default** entry and **Set as default**), floating over the page,
-  which repaints with every tap. Each change is one edit and one undo step in desktop's own ruling
-  parameter; a new page is born on the stored default (`DesktopPageSetupTest`); a PDF page says so.
+- **Restyles the sheet, from the strip**: its last three slots, after a divider, are **Page background**
+  (six paper styles, 2/3/5/7/10 mm rulings), **Page format** (A4/A5/Letter/Legal either way up, mm/in/pt
+  custom fields with a swap, a **Default** entry and **Set as default**) and **Page defaults** — the tablet's
+  page settings, in a section of their own because a default is a setting, not an edit of this page. Each
+  page change is one undo step; a new page is born on the stored default (`DesktopPageSetupTest`).
 - **Marks the pins a connection would join, and joins them**: while a connector is armed — the Line tool or
   a circuit family — every pin wears an accent dot and the part being pulled out shows its own, as the
-  tablet draws them; the ends of a wire and of a placed part are then **magnetised** onto the nearest pin
-  (`snapWireEnds`, `circuitSpan`), so what was aimed at is what is joined (`CircuitGestureTest`).
+  tablet draws them; the ends of a wire and of a placed part are **magnetised** onto the nearest pin
+  (`snapWireEnds`, `circuitSpan`), and so is a part **selected after insertion** when it is dragged
+  (`SelectionMagnet`), so what was aimed at is what is joined (`CircuitGestureTest`, `SelectionMagnetTest`).
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
-  surface the drawn rim, and both keep the **shared fill with no gradient of the window's own** — a sheen
-  made the same charcoal read a shade lighter on the PC. Glyphs are the tablet's `mobix-core`
-  `ToolGlyphCatalogue` strokes, drawn in the chrome's ink, so the PC's pen and the tablet's pen are the
-  same art; `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.
+  surface the drawn rim — and every one is a **menu that never takes the keyboard** (`FloatingSurface`,
+  `DesktopPopupFocusTest`), so the shortcuts survive a flyout or a hover pill. Both keep the **shared fill
+  with no gradient of the window's own** — a sheen made the same charcoal read a shade lighter on the PC.
+  Glyphs are the tablet's `mobix-core` `ToolGlyphCatalogue` strokes, drawn in the chrome's ink;
+  `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.
 - Consumes **`mobix-core`**, the platform-free module — model, XML/JSON layers, `.xopp` and `.mobix`
   codecs, shared paper/ink geometry, and the `.mobix` engine behind
   [`mobix-streaming-api.md`](mobix-streaming-api.md). `DesktopMobixOpenTest` opens a 40-page notebook
@@ -285,15 +287,15 @@ living element in the inspector lane beside the page — both owned by [selectio
 The page is a Skia picture (`PagePicture`), and a picture is immutable — so a lift used to re-record the
 **whole sheet**, 2–4 ms on `udiff.xopp` and more on a page written for a term. The pen lifts once per
 letter, so that was a dropped frame per letter, and the eraser paid it again on every bite. The picture is
-now a **base** plus a **tail**: the base is the last full record, the tail is **every** element *appended on
-top of the page's last layer* since the base — the whole run, always measured from the base, never from the
-previous frame, which would drop a stroke off the sheet mid-run — and that run is what an append records: a
-few strokes, not the sheet. `PagePictureTest` paints a four-stroke run frame by frame against the direct
-paint. Anything else (an erase of ink the base holds, an undo, a reflow, a stroke moved) changes ink the base
-already contains, which a picture cannot take back, so it re-records the sheet and starts a new base; taking
-back a stroke *of the run* is still the cheap case, because the base never held it. The run folds back into
-a base every 48 elements, so a page of handwriting re-records once per paragraph instead of once per stroke. `PagePictureTest` pins the rule — three strokes in a row leave `records` at one — proves the base
-plus the tail is the direct paint, and states which edits count as appends (`appendedElements`, pure).
+now a **base** plus **one tail picture per lift**: the base is the last full record, and each tail holds the
+elements *one append put on top of the page's last layer*, in the page's own order. One picture per lift,
+not one picture of the whole run: replaying the run made a lift cost what the writing burst was worth, so a
+long word stuttered before its last letters even though nothing had been erased. Anything that changes ink
+the base holds (an erase, an undo of old ink, a reflow, a moved stroke) re-records the sheet and starts a
+new base; taking back a stroke *of the run* just drops its picture, because the base never held it. The run
+folds into a base every 160 elements — a pageful of handwriting. `PagePictureTest` pins the counters (three
+strokes leave `records` at one), proves base plus tails is the direct paint, and states which edits count
+as appends (`appendedElements`, pure).
 
 ### Scrolling and zooming a dense page
 
@@ -315,13 +317,11 @@ with the record count staying at one. [desktop-tablet.md](desktop-tablet.md) own
 
 ### The graphics tablet
 
-The pen's two Windows streams, the packet path that draws a stroke and the dial's COM handler have their
-own spoke ([desktop-tablet.md](desktop-tablet.md)): the measurements, the batch rule, the latency numbers.
-The window's side is one rule: the driver's packets draw the stroke, the mouse Windows emulates never does,
-and one contact is one stroke. The **hand** pans from the same packets (`PenPacketPan`, since Windows' copy
-of this pen is coalesced and a pan built on it crawled), one viewport write per frame; a held **Space**
-takes the packets from the stroke path (`PenPacketPanTest`). The pointer is the **tool's**
-(`toolPointerIcon`): ring with a pen, highlighter or eraser, hand for the Hand, arrow for the rest.
+The pen's two Windows streams, the packet path that draws a stroke, the dial's COM handler and the hand's
+own gain are [desktop-tablet.md](desktop-tablet.md)'s. The window's side is one rule: the driver's packets
+draw the stroke, the mouse Windows emulates never does, one contact is one stroke. The **hand** pans from
+the same packets (`PenPacketPan`), one viewport write per frame; a held **Space** takes them from the
+stroke path (`PenPacketPanTest`). The pointer is the **tool's**: the ring for every tool but the hand.
 
 ### Verification, runnable on any JVM host (no emulator)
 

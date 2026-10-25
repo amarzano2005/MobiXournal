@@ -126,7 +126,7 @@ internal fun ColourSlot(
             StripPill(label = "Colour", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)
         }
         if (open) {
-            Popup(offset = anchor, onDismissRequest = { open = false }) {
+            Popup(offset = anchor, onDismissRequest = { open = false }, properties = FloatingSurface) {
                 PaletteFlyout(
                     palette = palette,
                     current = ink.colour,
@@ -189,7 +189,7 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
             )
         }
         if (open) {
-            Popup(offset = anchor, onDismissRequest = { open = false }) {
+            Popup(offset = anchor, onDismissRequest = { open = false }, properties = FloatingSurface) {
                 SizeFlyout(
                     ink = ink,
                     onPick = { width ->

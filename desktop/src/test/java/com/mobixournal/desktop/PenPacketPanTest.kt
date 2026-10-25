@@ -77,9 +77,10 @@ class PenPacketPanTest {
         pan.packet(140f, 120f)
         pan.flush()
         assertEquals(1, pan.writes.size)
-        // 40 px and 20 px at 2× are 20 dp and 10 dp of page travel, in the hand's own direction.
-        assertEquals(-480f, pan.viewport.offsetX, 0.001f)
-        assertEquals(-490f, pan.viewport.offsetY, 0.001f)
+        // 40 px and 20 px at 2× are 20 dp and 10 dp of travel, and a stylus pans PAN_GAIN times further
+        // than it travels — a pen is moved by the wrist, not by the arm.
+        assertEquals(-500f + 20f * PAN_GAIN, pan.viewport.offsetX, 0.001f)
+        assertEquals(-500f + 10f * PAN_GAIN, pan.viewport.offsetY, 0.001f)
     }
 
     @Test
@@ -91,12 +92,12 @@ class PenPacketPanTest {
         for (step in 1..10) pan.packet(100f + step * 5f, 100f)
         pan.flush()
         assertEquals(1, pan.writes.size)
-        assertEquals(-450f, pan.viewport.offsetX, 0.001f)
+        assertEquals(-500f + 50f * PAN_GAIN, pan.viewport.offsetX, 0.001f)
         // The lift arrives in the same batch as the travel before it: the sheet still moves.
         pan.packet(160f, 100f, tip = false)
         pan.flush()
         assertEquals(2, pan.writes.size)
-        assertEquals(-440f, pan.viewport.offsetX, 0.001f)
+        assertEquals(-500f + 60f * PAN_GAIN, pan.viewport.offsetX, 0.001f)
         assertFalse(pan.ownership.last())
     }
 

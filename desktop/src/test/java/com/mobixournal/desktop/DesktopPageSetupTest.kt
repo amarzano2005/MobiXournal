@@ -122,13 +122,42 @@ class DesktopPageSetupTest {
     }
 
     @Test
-    fun `the page's two commands are on the strip, and they open their section`() {
+    fun `the page's three commands are on the strip, and each opens its own section`() {
         val state = DesktopShellState()
-        // The strip's own two slots call these; the menu no longer has a page row at all.
+        // The strip's own slots call these; the menu no longer has a page row at all.
         state.stripState.onPageBackground()
         assertEquals(PageSetupSection.PAPER, state.pageSetup)
         state.closePageSetup()
         state.stripState.onPageFormat()
         assertEquals(PageSetupSection.FORMAT, state.pageSetup)
+        state.closePageSetup()
+        // The tablet's page settings, in a section of their own: a default is not an edit of this page.
+        state.stripState.onPageDefaults()
+        assertEquals(PageSetupSection.DEFAULT, state.pageSetup)
+    }
+
+    /**
+     * The **defaults** section is a setting, and it must not resize the page in view.
+     *
+     * It stores the sheet new pages are born on and leaves the open page exactly as it was: a click meant
+     * to set a default that resized the sheet under the reader would be an edit nobody asked for, and on a
+     * page of ink it is the one mistake an undo may not be able to put back (the ink was laid out for the
+     * other size).
+     */
+    @Test
+    fun `setting a default leaves the open page alone`() {
+        val state = DesktopShellState(settings = DesktopSettings(temp.newFile("defaults.properties")))
+        state.open(notebook())
+        val before = state.tabs.active!!.document.page(0)
+        val undoDepth = state.tabs.active!!.canUndo
+
+        state.setDefaultPageSize(612.0, 792.0)
+
+        val after = state.tabs.active!!.document.page(0)
+        assertEquals("the open sheet keeps its size", before.width, after.width, 1e-9)
+        assertEquals(before.height, after.height, 1e-9)
+        assertEquals("and it is not an undo step", undoDepth, state.tabs.active!!.canUndo)
+        assertEquals(612.0 to 792.0, state.defaultPageSize)
+        state.tabs.active?.document?.close()
     }
 }

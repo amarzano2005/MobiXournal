@@ -139,14 +139,16 @@ cancel — each of the seven a slot of its own, one click and no submenu, and a 
 pen's ink even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
 circuit family is armed, every **circuit pin** on the page wears a small dot, and the ends of what you draw
 are **pulled onto the nearest pin**: a wire drawn near a terminal joins it, and a part dropped on one meets
-it, so a circuit can be assembled rather than drawn near. **Pan** with the **hand** (`G`): a drag moves the
-page instead of drawing on it, and with the pen it follows the stylus at the tablet's own rate rather than
-at the slower pace of the mouse the system emulates — while every tool keeps its own state meanwhile. The
-sheet itself is editable from the **toolbar**: its last two buttons, after a divider, open **Page
-background** (the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling) and **Page format** — the
-A4/A5/Letter/Legal presets either way up, **any size you type** in millimetres, inches or points with a
-swap button, a **Default** entry and **Set as default**, which decides the sheet every new page is born
-with. Either change is one undoable edit written in the file's own ruling parameter. And **shift a page down**
+it, so a circuit can be assembled rather than drawn near — and a part you **select after inserting it**
+equally settles onto the nearest pin when you drag it into place. **Pan** with the **hand** (`G`): a drag
+moves the page instead of drawing on it, and with the pen it follows the stylus at the tablet's own rate,
+travelling further than the pen does so a flick of the wrist crosses the sheet — while every tool keeps its
+own state meanwhile. The sheet itself is editable from the **toolbar**: its last three buttons, after a
+divider, open **Page background** (the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling), **Page
+format** — the A4/A5/Letter/Legal presets either way up, **any size you type** in millimetres, inches or
+points with a swap button — and **Page defaults**, the tablet's page settings in a section of their own:
+the sheet every **new** page is born with, kept out of the page in view so setting a default never resizes
+the sheet under your ink. Either change is one undoable edit written in the file's own ruling parameter. And **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
 crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): a click on any element catches it where it
 lies (one click on empty paper lets the selection go, and a double-click opens a living element's editor),
@@ -208,10 +210,13 @@ document scale and moved by the canvas, so a wheel notch or a pinch costs a repl
 re-render (0.2 ms a frame on this project's densest document, where it used to cost 3.6–4.3 ms). The line was measured against the nib (`--probe-ink`): a pen reading becomes ink in a
 median 1.5–2.0 ms (5.2 ms p95) on a blank page and on this project's densest six-page document, so the
 line lands on the very next frame your screen shows instead of the one after — at 144 Hz that is 6.9 ms,
-and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. Over the page
-the pointer **is the tool's**: a pen, a highlighter or an eraser wears a ring the size of the line it will
-write — and the desktop's arrow goes away while it does, instead of sitting glued to the ring and pointing
-at nothing — the hand wears the hand, and every other tool keeps the arrow it acts with. The ring
+and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. A lift costs
+one stroke, not the page: the sheet keeps a recorded base plus one picture per stroke since it, so writing
+for a minute is as quick as the first letter. Over the page the pointer **is the tool's**: every tool that
+marks the sheet — pen, highlighter, both erasers, every figure, a circuit, Text, vertical space, the
+selection — wears a ring the size of the line it will write, and the desktop's arrow goes away while it
+does, instead of sitting glued to the ring and pointing at nothing; only the **hand** carries the hand,
+because it moves the page. The ring
 adds the width and the exact point you are about to draw at. The ring is driven by the tablet's own readings rather than by the slower mouse
 copy of them, so it sits under the nib instead of trailing it, and it keeps its place while you hold the
 pen still above the page. The status bar says which stream the window has — `pen: Wintab`,
@@ -238,7 +243,8 @@ default) and a horizontal ribbon under the header, each a rounded pane of glass 
 it rather than a strip glued to the window's edge. The header's **Tool placement** control switches
 between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
-tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard.
+tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
+including while a flyout, a hover pill or a palette is open, because none of them takes the keyboard.
 A slot can hold a **family**: the eraser slot holds both erasers and the figure slot holds the seven
 figures, with a small chevron that opens the family's list — click it, click the slot again once it is
 the tool in hand, right-click the slot, hold it, or press `Alt`+`Down`, and picking a row re-faces the slot. Nothing on the strip is a button that does

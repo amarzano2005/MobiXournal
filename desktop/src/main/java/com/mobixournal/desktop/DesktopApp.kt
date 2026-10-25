@@ -4,10 +4,14 @@ import androidx.compose.foundation.focusable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.EventQueue
@@ -37,6 +41,11 @@ fun FrameWindowScope.DesktopApp(
     onExit: () -> Unit,
 ) {
     val focus = remember { FocusRequester() }
+    // Whether anything in the window holds the keyboard. A panel that closes takes its text field with
+    // it, and Compose is then left with **no** focused element — the shortcuts would be dead until the
+    // page was clicked. The window hands the keyboard back to its root instead, so `Ctrl+Z` or `G` works
+    // the moment the panel is gone.
+    var keyboardHeld by remember { mutableStateOf(false) }
 
     /** The system picker. `FileDialog`'s filter is ignored on Windows, so it is a convenience only. */
     fun pick() {
@@ -73,6 +82,7 @@ fun FrameWindowScope.DesktopApp(
         state.start(initial)
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(keyboardHeld) { if (!keyboardHeld) runCatching { focus.requestFocus() } }
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
     // one surface from the top of the window down (`DesktopTitleBar`).
     LaunchedEffect(Unit) { applyDarkTitleBar(window) }
@@ -104,6 +114,7 @@ fun FrameWindowScope.DesktopApp(
             modifier = Modifier
                 .focusRequester(focus)
                 .focusable()
+                .onFocusChanged { keyboardHeld = it.hasFocus }
                 .onPreviewKeyEvent { event -> state.onKey(event, ::pick, ::pickSaveDestination) },
         )
     }
