@@ -94,10 +94,13 @@ class DesktopTextSceneTest {
             assertEquals("", box.text)
             assertEquals("nothing was written yet", emptyList<String>(), texts(fixture.tab))
             assertFalse("and nothing is in the history", fixture.tab.canUndo)
-            assertNotEquals(
+            // The field's own mark on an **empty** box is its caret, and a caret blinks: sampling one
+            // frame can land on the dark half of the blink and compare two identical pictures. Four
+            // samples half a second apart cover both halves, so this fails only when nothing is painted —
+            // which is the claim, unchanged.
+            assertTrue(
                 "the field is painted over the sheet, or the press would be invisible",
-                before.toList(),
-                frame(fixture.scene).toList(),
+                (0..3).any { step -> !frameAt(fixture.scene, 1_200L + step * 500L).contentEquals(before) },
             )
 
             // A drag with the Text slot types nothing and inks nothing: it is a click, not a stroke.
@@ -294,6 +297,12 @@ class DesktopTextSceneTest {
     private fun frame(scene: ImageComposeScene): ByteArray {
         Snapshot.sendApplyNotifications()
         return requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
+    }
+
+    /** The same frame, drawn at [millis] on the scene's clock — how a blinking caret is sampled. */
+    private fun frameAt(scene: ImageComposeScene, millis: Long): ByteArray {
+        Snapshot.sendApplyNotifications()
+        return requireNotNull(scene.render(millis * 1_000_000L).encodeToData()?.bytes) { "Skia produced no PNG" }
     }
 
     private fun drag(scene: ImageComposeScene, fromX: Float, fromY: Float, toX: Float, toY: Float) {
