@@ -103,6 +103,7 @@ internal val DesktopTool.glyph: ToolGlyph
     get() = when (this) {
         DesktopTool.PEN -> ToolGlyph.PEN
         DesktopTool.HIGHLIGHTER -> ToolGlyph.HIGHLIGHTER
+        DesktopTool.HAND -> ToolGlyph.HAND
         DesktopTool.ERASER -> ToolGlyph.ERASER
         // The same eraser with its struck-through ring — the catalogue's own picture of the second
         // member, not a Material icon (`docs/interface-contract.md` §4).

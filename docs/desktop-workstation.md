@@ -23,12 +23,17 @@ What it does today:
   and a 24 dp status bar with the page counter, the effective zoom, the fit mode, the pen stream, the
   display's refresh rate with the frame budget it allows (`120 Hz · 8.3 ms frame`) and the container. The
   chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
-  header carrying 30 dp tab capsules (the active one rimmed like the object it is) under a **native caption
-  painted in the band's own composite colour** (`DesktopTitleBar.kt` sets Windows' immersive dark mode and
-  its caption/border/text colours through DWM, best effort) and **the app's own icon** in the caption and
-  taskbar (`DesktopIcon.kt`, the tablet's launcher art, where the JVM's coffee cup used to be), 1.5 dp
-  monoline glyphs, Inter with tabular figures, one cast shadow under each band and one under the sheet —
-  `docs/ui-modernization.md` owns the material and `DesktopThemeTest` pins it.
+  header carrying the **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is)
+  and the strip's own **`+`**, under a **native caption painted in the band's own composite colour**
+  (`DesktopTitleBar.kt` sets Windows' immersive dark mode and its caption/border/text colours through DWM,
+  best effort). The caption carries **no app name and no icon**: the header below it already says what the
+  window is (the tabs), so a title repeating the product name was a second, heavier header; the taskbar
+  and the packaged executable keep **the app's icon** (`DesktopIcon.kt`), 1.5 dp monoline glyphs, Inter with
+  tabular figures, one cast shadow under each band and one under the sheet — `docs/ui-modernization.md`
+  owns the material and `DesktopThemeTest` pins it.
+  The icon is the tablet's launcher art **without its navy field**: the sheet and the pen, scaled up to fill
+  the tile on transparency (`desktop/icon/`, `resources/icon.png`) — a dark rectangle around a light mark
+  read as two icons at taskbar size.
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
   key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
   eased rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`), so a marquee, a figure or a reflow can
@@ -44,13 +49,11 @@ What it does today:
   per page (`DesktopTab.hiddenOn` / `toggleLayer`): nothing is written to the document, and a second press
   brings the layer back. A hidden layer's thumbnail is painted fresh instead of taking the page cache, so a
   preview can never show a layer the sheet beside it is missing.
-  A thumbnail is only painted **once the hand stops**: an edit drops that page's cached bitmap, and the
-  sidebar re-renders it on the shell's deferred `thumbnailRevision` — bumped 600 ms after the last edit —
-  instead of on the document's edit count. The reason is a measurement, not a taste: rendering one builds a
-  second `ImageComposeScene` and paints the whole page through the **software** rasteriser, **29–39 ms** on
-  `udiff.xopp`, so re-rendering it per edit dropped frames on every finished letter. Until the quiet moment
-  the preview shows the page as it was when the burst began. `DesktopShellTest` pins it: an edit writes
-  nothing into the thumbnail cache, and one edit's quiet moment paints **one** page, not the visible list.
+  A thumbnail is only painted **once the hand stops**: an edit drops that page's cached bitmap and the
+  sidebar re-renders it on the shell's deferred `thumbnailRevision`, bumped 600 ms after the last edit —
+  rendering one is a second `ImageComposeScene` through the **software** rasteriser, **29–39 ms** on
+  `udiff.xopp`, which dropped a frame per finished letter. Until then the preview shows the page as the
+  burst found it. `DesktopShellTest` pins it.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
   those documents — the header says nothing about a count instead of showing a wrong one.
@@ -82,15 +85,11 @@ What it does today:
   sheet — `PagePicture` records only the ink appended on top, see *A stroke costs the stroke*. A press
   that lands on the desk starts nothing, because the desk is not paper. The eraser is the shared `PageEraser` in standard mode — it rubs out the part of a stroke it
   crosses and splits it in two, at a tip the pen width sizes — and a highlighter band keeps its
-  multiply. Pressure is the shared filter's: a mouse reports none, which draws at the tool's width,
-  exactly as the tablet's cursor does. What Compose actually hands over was measured, not assumed: the
-  pointer carries `pressure` and its button bits, and **no tilt or azimuth at all** (there is no such
-  field on `PointerInputChange` in 1.7.3) — and on this machine's Huion it reports the pen as a **mouse**
-  with `pressure = 1.0`. So the pen's own stream is read beside it (below): for a contact Windows has just
-  delivered, its pressure, tilt, twist and eraser end replace the mouse's, and a device that declares no
-  pressure keeps the tool's width instead of drawing nothing. `DesktopPointerSceneTest` proves the wire:
-  real pointer events pushed through an `ImageComposeScene` into this canvas, and the stroke that reaches
-  the model carries the filtered pressure ramp (0.2 → 0.5 → 1.0 becomes 0.8 → 2.0 → 4.0 pt at a 4 pt pen).
+  multiply. Pressure is the shared filter's, and the driver's own stream is read beside it
+  ([desktop-tablet.md](desktop-tablet.md) owns what each stream carries). `DesktopPointerSceneTest` proves
+  the wire: real pointer events pushed through an `ImageComposeScene` into this canvas, and the stroke that
+  reaches the model carries the filtered pressure ramp (0.2 → 0.5 → 1.0 becomes 0.8 → 2.0 → 4.0 pt at a
+  4 pt pen).
 - **Takes it back and puts it again** — `Ctrl + Z` / `Ctrl + Shift + Z`, each tab with its own
   `EditHistory` of document snapshots. One gesture is one step (a stroke records on its lift, an eraser
   drag on its first bite, and a drag that touches no ink records nothing), undo restores the page window
@@ -98,10 +97,14 @@ What it does today:
   **unavailable** — not merely no-ops — while the stack is empty, which is the state a header control
   would grey out. A save starts a fresh history: it closed the archive whose pages the old steps named.
 - **Keeps one ink per tool, as the tablet does** — the pen and the highlighter each own their colour, their
-  width and their three favourites (`DesktopInks`, `DesktopFavourites`), so a yellow highlighter leaves the
-  pencil black, `1`–`3` take the terna of the tool in hand, and both inks are remembered in the settings
-  file. The palette itself is shared, because a palette is what the user has, not what a tool is; the
-  editable custom slot is its property too, not the ink's. `DesktopInkSplitTest` pins the pair.
+  width, their **stroke pattern** (solid, dashed, dash-dot, dotted — the tablet's pen settings, offered in
+  the colour flyout and baked into every stroke it writes) and their three favourites (`DesktopInks`,
+  `DesktopFavourites`), so a yellow highlighter leaves the pencil black, `1`–`3` take the terna of the tool
+  in hand, and both inks are remembered in the settings file. **A figure, a circuit or a placement draws
+  in the pen's ink whatever tool is in hand** (`DesktopShellState.shapeInk`): a marker never turns a
+  rectangle yellow, exactly as on the tablet, and the highlighter stays its own case. The palette itself is
+  shared, because a palette is what the user has, not what a tool is; the editable custom slot is its
+  property too, not the ink's. `DesktopInkSplitTest` pins the pair.
 - **Paints living entities** — tables, plots, parametric shapes, circuit components and formulas — by running
   the same compiler the Android canvas and every export use (`LivingInk`, platform-free in `mobix-core`). A
   table on the PC is the table on the tablet; an entity this build cannot draw is reported, not drawn blank.
@@ -119,37 +122,39 @@ What it does today:
   header control is the same object at 36 dp. Both placements draw the same slots, in the order, glyphs
   and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
   squircle in the steel `#38383E` and a name-and-hotkey pill on hover.
-  **A slot is a tool *group*, as on the tablet**: pen, highlighter and vertical space stand alone, the
-  **eraser slot** holds its two members (partial, whole-stroke) and the **figure slot** holds the seven
-  geometry tools. A grouped slot wears a chevron, and the chevron (or a right-click, or a hold, or a
-  **second click on the slot that is already picked**, or `Alt`+`Down`) opens the group's **glass picker** — the members as rows with their own glyph, name and
-  key. **One click never opens a submenu**: the first click arms the slot and the second one asks, and a
-  circuit slot obeys the same rule — its family palette is its submenu, so arming a slot cannot drop a
-  palette over the page. Picking a row re-faces the slot and closes the picker; `Esc` closes it too, and no
-  key ever changes meaning, so a user who never opens a picker still reaches every member by its accelerator. The picked
-  member is the slot's face, which is why the group needs no state of its own. **A tool whose behaviour has
-  not landed gets no slot**: Text was the last one that did nothing, so every slot both strips draw now acts —
-  it types in place, and its group's second member (`Shift+T`) authors a living **formula** by asking for its
-  source ([drawing-tools.md](drawing-tools.md) owns both). `ToolGroupsTest` fails if an acting tool has no
-  slot, or a slot lists one that cannot act.
-- **One material and one icon set, not a lookalike**: every band (header, status bar, sidebar) takes the
-  band lift instead of a bare fill, every surface that floats takes the drawn rim, and
-  both keep the **shared fill with no gradient of the window's own** — a sheen over the bands made the
-  same charcoal read a shade lighter on the PC. Glyphs are drawn in the chrome's ink (white, the tablet's
-  `#FFFFFF`), with the picked slot in the steel and its glyph in the accent. The tool glyphs are
-  no longer the window's own art: they come from `ToolGlyphCatalogue` in `mobix-core` — plain geometry on
-  the 24-unit grid — which the tablet turns into an `ImageVector` and this shell draws into a
-  `DrawScope`, so the PC's pen and the tablet's pen are the same strokes. `ChromeMaterialRenderTest`
-  proves the lift, the flat fill and the rim as pixels, and `ToolGlyphCatalogueTest` pins the geometry
-  both shells read.
-- Consumes **`mobix-core`**, the platform-free module that holds the document model, the XML/JSON
-  layers, the `.xopp` and `.mobix` codecs, and the shared paper/ink geometry — one codec, one ruling and
-  one ink rule book rather than a fork.
-- The `.mobix` engine lives in `mobix-core` too, behind a published streaming contract
-  ([`mobix-streaming-api.md`](mobix-streaming-api.md)): the paged reader, the asset sources, the page
-  and element codecs, the incremental save and the merge are callable from this module, and
-  `DesktopMobixOpenTest` opens a 40-page notebook through them without the Android app on the
-  classpath. The window opens those documents through the same reader.
+  **A slot is a tool *group*, as on the tablet**: the **eraser slot** holds its two members (partial,
+  whole-stroke), the **Text slot** holds prose and formula, and pen, highlighter, the **hand**, vertical
+  space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, Spline, Axes)
+  stand alone — seven figure slots, one click each and no submenu, the tablet's rail geometry. A grouped
+  slot wears a chevron, and the chevron (or a right-click, a hold, a **second click on the slot already
+  picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first
+  click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is
+  its submenu. Picking a row re-faces the slot and closes the picker, `Esc` closes it too, and no key ever
+  changes meaning. **A tool whose behaviour has not landed gets no slot**: `ToolGroupsTest` fails if an
+  acting tool has no slot, or a slot lists one that cannot act.
+- **A door for the file commands, and a page to start on**: a **hamburger menu** in the header holds New,
+  Open, Save, Save As, the two page-setup sections and the sidebar toggle, in the tablet's order. The tab
+  strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
+  that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
+  on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
+- **Restyles the sheet, as the tablet's Pages dialogs do**: **Page background…** offers the six paper
+  styles and the 2/3/5/7/10 mm rulings, **Page format…** the A4/A5/Letter/Legal presets in either
+  orientation, both floating over the page, which repaints with every tap. Each change is one edit, one
+  undo step, written in desktop's own ruling parameter, so the page reopens at that ruling in Xournal++; a
+  page whose background is a picture or a PDF says so instead of offering paper it does not have.
+- **Marks the pins a connection would join**: while a connector is armed — the Line tool or a circuit
+  family — every component pin on the page wears a small accent dot and the pins of the part being pulled
+  out are filled, as the tablet draws them (`CircuitSnapping.gestureTargets`, shared). Chrome only:
+  nothing is written, and no other tool marks anything.
+- **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
+  surface the drawn rim, and both keep the **shared fill with no gradient of the window's own** — a sheen
+  made the same charcoal read a shade lighter on the PC. Glyphs are the tablet's `mobix-core`
+  `ToolGlyphCatalogue` strokes, drawn in the chrome's ink, so the PC's pen and the tablet's pen are the
+  same art; `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.
+- Consumes **`mobix-core`**, the platform-free module — model, XML/JSON layers, `.xopp` and `.mobix`
+  codecs, shared paper/ink geometry, and the `.mobix` engine behind
+  [`mobix-streaming-api.md`](mobix-streaming-api.md). `DesktopMobixOpenTest` opens a 40-page notebook
+  through it without the Android app on the classpath, which is also how the window opens them.
 
 ### Opening, and what a failed open says
 
@@ -165,10 +170,9 @@ rewrites the class files under the live JVM and any synthetic class the JVM had 
 Closing the window and relaunching is the fix; the same file opens in ~40 ms in a fresh process.
 
 A failed open **never takes the document on screen with it**: the report is a card at the top of the
-canvas, dismissed with a click or `Esc`, while the page, the tab and the sidebar stay exactly as they
-were. The card's fill is opaque rather than the floating family's frosted 0.88, because it straddles the
-edge where the desk meets the sheet — at 0.88 the part over the white page came out a tone lighter than
-the part over the black desk, and the panel read as two materials split down its middle.
+canvas, dismissed with a click or `Esc`, while the page, the tab and the sidebar stay as they were. Its
+fill is opaque rather than the floating family's 0.88, because it straddles the desk and the sheet — at
+0.88 the part over the page read a tone lighter, as two materials split down the middle.
 
 ### Saving, and what a refused save says
 
@@ -178,24 +182,21 @@ window cannot write faithfully — it has no image or PDF store to bundle a pict
 — so it is refused with the two ways round it (save it as a gzip `.xopp` or as a `.mobix`) rather than
 written with a reference to an entry it did not produce; the file stays byte-identical, because a staging
 file that is never committed is all that existed. An **I/O failure** says so and adds that the document on
-disk was left as it was — the staged-then-moved write is what makes that true. A **`LinkageError`** is
-reported as the window being stale, exactly as on an open, since the class files it needs were rewritten
-under a running JVM. `DesktopSaveTest` pins all three, and byte-compares the original to prove a refused
-save touched nothing.
+disk was left as it was — the staged-then-moved write makes that true. A **`LinkageError`** is reported as
+the window being stale, exactly as on an open. `DesktopSaveTest` pins all three, and byte-compares the
+original to prove a refused save touched nothing.
 
-`--args` splits its value on spaces, so a notebook kept under `Il mio Drive/…` arrives as several
-arguments and `File(args[0])` does not exist: `initialDocument` puts the pieces back together when the
-first one is not itself a file, so a path with spaces works from the command line as it does from the
-picker.
+`--args` splits its value on spaces, so a notebook under `Il mio Drive/…` arrives as several arguments:
+`initialDocument` puts the pieces back together when the first is not itself a file, so a path with
+spaces works from the command line as it does from the picker.
 
 ### Unsaved edits: the dot, the question, and a snapshot
 
 A tab is **dirty** when the document holds commands its file does not, and the window does not answer that
-with a flag somebody clears: it is the tab's history **state id** compared with the **save point** recorded
-on open and on every successful save (`EditHistory.stateId`). Undoing back to the saved state makes the tab
-clean again, and a new edit gets a new id even when the bytes happen to match, so nothing can be mistaken for
-the file. The strip draws it as one accent dot after the label — a status readout, absent when the tab is
-clean.
+with a flag somebody clears: it compares the history **state id** with the **save point** recorded on open
+and on every successful save (`EditHistory.stateId`). Undoing back to the saved state makes the tab clean
+again, and a new edit gets a new id even when the bytes match. The strip draws it as one accent dot after
+the label — a status readout, absent when the tab is clean.
 
 Closing a dirty tab (its `×`, `Ctrl+W`) or the window (its X) is a **question**, not a close: *Save*,
 *Discard*, *Cancel*, in the floating glass over the page, naming the document at stake. The X goes through

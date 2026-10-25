@@ -68,8 +68,9 @@ fun FrameWindowScope.DesktopApp(
     // Recovery first: a snapshot is newer than the file it stands for, so a file named on the command
     // line then lands on its recovered tab instead of opening a second view of the older bytes.
     LaunchedEffect(initial) {
-        state.recover()
-        initial?.let(state::open)
+        // Recovered edits first, then the document named on the command line; with neither, a **new
+        // page**, because the window's default screen is a sheet to write on, not an empty notice.
+        state.start(initial)
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
@@ -98,6 +99,7 @@ fun FrameWindowScope.DesktopApp(
         DesktopShell(
             state = state,
             onOpenPicker = ::pick,
+            onSavePicker = ::pickSaveDestination,
             tablet = tablet,
             modifier = Modifier
                 .focusRequester(focus)

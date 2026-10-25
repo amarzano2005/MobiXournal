@@ -31,9 +31,12 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.TextMeasurer
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
+import com.mobixournal.render.CircuitElementFactory
+import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.LivingPlacement
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
@@ -89,6 +92,12 @@ internal fun PageCanvas(
     onFit: (FitMode) -> Unit,
     tool: DesktopTool = DesktopTool.PEN,
     ink: DesktopInk = DesktopInk(),
+    /**
+     * The ink a **figure, a circuit or a placement** is written in: the pen's own, whatever tool is
+     * picked. The tablet keeps figures on the pencil's colour even while the highlighter is in hand, so a
+     * yellow marker never turns a rectangle yellow; a canvas on its own uses the picked tool's ink.
+     */
+    shapeInk: DesktopInk = ink,
     circuitKind: ShapeKind = LivingPlacement.DEFAULT_CIRCUIT_KIND,
     /**
      * What a lifted living-slot drag means. The window asks the family's values first ([DesktopShellState]'s
@@ -143,21 +152,14 @@ internal fun PageCanvas(
                 extent = coordinates.size.toSize()
             },
     ) {
-        val viewW = maxWidth.value
-        val viewH = maxHeight.value
-        if (loaded == null) {
-            PageReadFailure(page.exceptionOrNull()?.message)
-            return@BoxWithConstraints
-        }
-
-        PageSheet(
+        CanvasBox(
             tab = tab,
-            page = loaded,
-            sheet = sheetLayout(tab, loaded, viewW, viewH),
+            page = page,
             tool = tool,
             ink = ink,
+            shapeInk = shapeInk,
             circuitKind = circuitKind,
-            onPlaceLiving = placeLiving,
+            placeLiving = placeLiving,
             text = text,
             onEditLiving = onEditLiving,
             draft = memory.draft,
@@ -230,113 +232,12 @@ private fun rememberedPage(tab: DesktopTab): Result<Page> =
  * instructions, so a page outliving its picture would leak them.
  */
 @Composable
-private fun rememberSheetPicture(tab: DesktopTab): PagePicture {
+internal fun rememberSheetPicture(tab: DesktopTab): PagePicture {
     val picture = remember(tab, tab.page) { PagePicture() }
     DisposableEffect(picture) { onDispose { picture.close() } }
     return picture
 }
 
-/**
- * The page inside the box the canvas measured: the tablet's packets first (they draw their own stroke),
- * then the sheet's canvas, which paints the page and takes the Compose pointer.
- *
- * Split out of [PageCanvas] rather than inlined: the canvas keeps the state a page needs, this keeps the
- * two children that spend it, which is the hundred-line rule `SourceStructureTest` enforces.
- */
-@Composable
-private fun PageSheet(
-    tab: DesktopTab,
-    page: Page,
-    sheet: SheetLayout,
-    tool: DesktopTool,
-    ink: DesktopInk,
-    circuitKind: ShapeKind,
-    onPlaceLiving: (LivingSlot, Bounds) -> Unit,
-    text: TextBoxUi,
-    /** What a double-click on the selected living element means: open its editor. */
-    onEditLiving: (() -> Unit)?,
-    draft: SnapshotStateList<InkSample>,
-    penDraft: SnapshotStateList<InkSample>,
-    pen: PenContactStream?,
-    /** The pen's own readings: who owns the stroke, the ring, the grab line and the traced region. */
-    pointer: PenPointer,
-    sheetPicture: PagePicture,
-    paintProbe: ((List<List<InkSample>>, Long) -> Unit)?,
-    measurer: TextMeasurer,
-    density: Float,
-    panMode: Boolean,
-    dialWheel: () -> Boolean,
-    onLiveDrag: ((() -> Unit)?) -> Unit,
-    selectionBar: SelectionBarUi,
-    origin: () -> Offset,
-    extent: () -> Size,
-    onViewport: (Viewport) -> Unit,
-    onFit: (FitMode) -> Unit,
-    onEdited: (Int) -> Unit,
-    packets: PenPacketSource?,
-) {
-    // A slot whose product is not ink draws it from the Compose drag, so the pen's packets must not take
-    // the pen under it: the packets are only composed for the slots that lay ink down or rub it out, and
-    // the rule is stated (and tested) where a contact on the glass with Line or Vertical space picked
-    // draws no ink and still runs its drag.
-    if (tool.inksByPackets()) {
-        PenPacketStrokes(
-            tab = tab,
-            tool = tool,
-            ink = ink,
-            density = density,
-            pageW = sheet.pageW,
-            pageH = sheet.pageH,
-            viewport = sheet.viewport,
-            draft = penDraft,
-            onEdited = onEdited,
-            origin = origin,
-            extent = extent,
-            owns = pointer.owns,
-            hover = pointer.hover,
-            penAtNanos = pointer.atNanos,
-            packets = packets,
-        )
-    }
-    SheetCanvas(
-        tab = tab,
-        page = page,
-        sheet = sheet,
-        tool = tool,
-        ink = ink,
-        circuitKind = circuitKind,
-        onPlaceLiving = onPlaceLiving,
-        onTextPress = text.onPress,
-        onEditLiving = onEditLiving,
-        draft = draft,
-        penDraft = penDraft,
-        pen = pen,
-        pointer = pointer,
-        sheetPicture = sheetPicture,
-        paintProbe = paintProbe,
-        measurer = measurer,
-        density = density,
-        panMode = panMode,
-        dialWheel = dialWheel,
-        onLiveDrag = onLiveDrag,
-        onViewport = onViewport,
-        onFit = onFit,
-        onEdited = onEdited,
-    )
-    // What floats over the sheet — the Text field and the selection's bar — in the page's own mapping.
-    SheetOverlays(
-        text = text,
-        zoom = sheet.zoom,
-        density = density,
-        offsetX = sheet.viewport.offsetX,
-        offsetY = sheet.viewport.offsetY,
-        selectionBounds = tab.selection?.bounds,
-        selectionBar = selectionBar,
-        canvas = extent(),
-        viewW = sheet.viewW,
-        viewH = sheet.viewH,
-    )
-}
 
 /**
  * The ring follows the mouse — but only while the driver's packets are quiet, so a contact the driver has
@@ -372,7 +273,7 @@ internal data class SheetLayout(
  * user asked for is overwritten by the fitted value of the *previous* frame.
  */
 @Composable
-private fun sheetLayout(tab: DesktopTab, page: Page, viewW: Float, viewH: Float): SheetLayout {
+internal fun sheetLayout(tab: DesktopTab, page: Page, viewW: Float, viewH: Float): SheetLayout {
     val pageW = page.width.toFloat()
     val pageH = page.height.toFloat()
     val zoom = tab.fit.zoomFor(pageW, pageH, viewW, viewH) ?: tab.viewport.zoom
@@ -394,12 +295,13 @@ private fun sheetLayout(tab: DesktopTab, page: Page, viewW: Float, viewH: Float)
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun SheetCanvas(
+internal fun SheetCanvas(
     tab: DesktopTab,
     page: Page,
     sheet: SheetLayout,
     tool: DesktopTool,
     ink: DesktopInk,
+    shapeInk: DesktopInk,
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
     onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
@@ -426,14 +328,15 @@ private fun SheetCanvas(
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
     // Its position is `pointer.hover`, lifted into `PageCanvas` so the driver's own readings can move it.
     val ringPx = toolCursorDiameterPx(tool, ink.width, sheet.zoom, density)
-    val penIcon = rememberBlankPointerIcon()
     // A mouse move that is a *copy* of the contact must not drag the ring back to a position the driver
     // has already left behind; the packets win for as long as they are arriving.
     val followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
 
     Canvas(
         Modifier.fillMaxSize()
-            .pointerHoverIcon(if (ringPx != null) penIcon else PointerIcon.Default)
+            // The desktop's own pointer stays over the page with **every** tool: the ring is an extra
+            // width readout, never a replacement for the arrow the rest of the window uses.
+            .pointerHoverIcon(PointerIcon.Default)
             .hoverTracking(pointer, followMouse)
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 wheelViewport(
@@ -443,7 +346,7 @@ private fun SheetCanvas(
                 )?.let(onViewport)
             }
             .sheetGestures(
-                tab, panMode, tool, ink, pen, sheet, pointer, draft,
+                tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft,
                 PagePressTargets(
                     onPlaceLiving = onPlaceLiving,
                     onTextPress = onTextPress,
@@ -452,7 +355,7 @@ private fun SheetCanvas(
                     // Only a family whose element needs no question is drawn live: a plot or a table is
                     // still waiting for its values, and previewing a default would promise the wrong graph.
                     buildLivingPreview = if (circuitFamilyOf(tool) != null) {
-                        { bounds -> livingElementFor(LivingSlot.CIRCUIT, bounds, ink, circuitKind) }
+                        { bounds -> livingElementFor(LivingSlot.CIRCUIT, bounds, shapeInk, circuitKind) }
                     } else {
                         null
                     },
@@ -467,11 +370,13 @@ private fun SheetCanvas(
             viewport = sheet.viewport,
             zoom = sheet.zoom,
             density = density,
+            connectorKind = connectorKindFor(tool, circuitKind),
             measurer = measurer,
             backdrop = tab.document.backdrop,
             hiddenLayers = tab.hiddenOn(tab.page),
             tool = tool,
             ink = ink,
+            shapeInk = shapeInk,
             drafts = listOf(draft.toList(), penDraft.toList()),
             grabLineY = pointer.grabLine.value,
             selection = tab.selection,
@@ -503,11 +408,15 @@ private fun DrawScope.paintSheet(
     viewport: Viewport,
     zoom: Float,
     density: Float,
+    /** The connector whose **pins** the sheet marks, or null for a tool that cannot join anything. */
+    connectorKind: ShapeKind? = null,
     measurer: TextMeasurer,
     backdrop: PageBackdrop?,
     hiddenLayers: Set<Int>,
     tool: DesktopTool,
     ink: DesktopInk,
+    /** The pen's ink for a geometry slot — the picked tool's ink is only for its own live stroke. */
+    shapeInk: DesktopInk,
     /**
      * The strokes in progress, one list per input path.
      *
@@ -535,37 +444,20 @@ private fun DrawScope.paintSheet(
     // Kotlin cost — `LivingInk`, text measurement, a `Path` per stroke — and a frame must not pay it.
     sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer)
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
-        // A geometry slot's preview is the figure's own points, drawn with the pen's rule: same width,
-        // same colour, and the same list the lift reads, so what is previewed is what is written.
-        val previewTool = tool.previewTool()
-        if (previewTool != null) {
-            for (draft in drafts) {
-                if (draft.isEmpty()) continue
-                strokeOf(previewTool, ink.colour, ink.width, draft)?.let { draftStroke ->
-                    drawInkStroke(draftStroke, pxPerPt)
-                }
-            }
-        }
-        // The element a placement drag has drawn so far, in the same painter the page uses: a component is
-        // pulled out of the sheet along the pen, so the drag promises exactly what the lift writes.
-        previewLiving?.let { preview -> drawElements(listOf(preview), pxPerPt, measurer) }
-        // The selection's marching outline and its handles, above the ink: what is caught stays visible.
-        // A single living element also wears its own grips (a figure's corners, a table's dividers).
-        val livingElement = selection?.takeIf { it.refs.size == 1 }?.let { picked ->
-            val ref = picked.refs.first()
-            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
-        }
-        selection?.let { drawSelection(it, pxPerPt, living = livingElement) }
-        previewRegion?.let { drawSelectionPreview(it, pxPerPt) }
-        // Above the ink, as the tablet draws it: the line the vertical-space drag would move the page at.
-        grabLineY?.let { y ->
-            drawLine(
-                color = DesktopTheme.accent,
-                start = Offset(0f, (y * pxPerPt).toFloat()),
-                end = Offset((page.width * pxPerPt).toFloat(), (y * pxPerPt).toFloat()),
-                strokeWidth = 1f,
-            )
-        }
+        paintLiveOverlay(
+            page = page,
+            tool = tool,
+            ink = ink,
+            shapeInk = shapeInk,
+            connectorKind = connectorKind,
+            drafts = drafts,
+            previewLiving = previewLiving,
+            selection = selection,
+            previewRegion = previewRegion,
+            grabLineY = grabLineY,
+            pxPerPt = pxPerPt,
+            measurer = measurer,
+        )
     }
     // The probe times the paint itself, after the ink was laid down: that is the frame the eye saw.
     paintProbe?.invoke(drafts, System.nanoTime())
@@ -587,7 +479,7 @@ private fun DrawScope.paintSheet(
  * mouse neither begins, extends nor ends this stroke.
  */
 @Composable
-private fun PenPacketStrokes(
+internal fun PenPacketStrokes(
     tab: DesktopTab,
     tool: DesktopTool,
     ink: DesktopInk,
@@ -681,6 +573,15 @@ private fun PenPacketStrokes(
 
 /** The desk behind the page: true black, as decided in `docs/ui-modernization.md`. */
 private val DESK = DesktopTheme.desk
+
+/**
+ * The connector whose pins the sheet should mark: the line tool, or the circuit slot's armed part.
+ * Everything else marks nothing, exactly as the tablet draws nothing for it.
+ */
+private fun connectorKindFor(tool: DesktopTool, circuitKind: ShapeKind): ShapeKind? {
+    val candidate = if (circuitFamilyOf(tool) != null) circuitKind else tool.shapeKind()
+    return candidate?.takeIf { CircuitElementFactory.isConnectorKind(it) }
+}
 
 /** A page's on-screen size in dp at [zoom] — used by the sidebar's progress bar and the status bar. */
 internal fun pageSizeDp(pageW: Double, pageH: Double, zoom: Float): Pair<Float, Float> =

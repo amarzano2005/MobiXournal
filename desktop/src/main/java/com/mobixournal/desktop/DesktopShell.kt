@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.Page
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.CircuitFamily
 import com.mobixournal.render.LivingSlot
@@ -247,12 +249,12 @@ class DesktopShellState(
      */
     fun placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Bounds) {
         if (slot == LivingSlot.CIRCUIT) {
-            val element = livingElementFor(slot, bounds, ink, activeCircuitKind) ?: return
+            val element = livingElementFor(slot, bounds, shapeInk, activeCircuitKind) ?: return
             if (placeLivingElement(tab, element) { index -> edited(tab, index) }) handToSelection()
             return
         }
-        // A graph's first equation starts in the slot's ink until a curve is given its own colour.
-        pendingPlacement = PendingPlacement(slot, bounds, tab.key, ink.colour)
+        // A graph's first equation starts in the pen's ink until a curve is given its own colour.
+        pendingPlacement = PendingPlacement(slot, bounds, tab.key, shapeInk.colour)
     }
 
     /** Pick the selection tool, so the element just placed can be moved with the next press. */
@@ -270,7 +272,7 @@ class DesktopShellState(
             pendingPlacement = null
             return
         }
-        val element = pending.element(ink, activeCircuitKind) ?: return
+        val element = pending.element(shapeInk, activeCircuitKind) ?: return
         if (placeLivingElement(tab, element) { index -> edited(tab, index) }) {
             pendingPlacement = null
             // The same hand-over the circuit slot makes: the placed element is what stays selected, so
@@ -293,44 +295,28 @@ class DesktopShellState(
         private set
 
     /**
-     * The two inks the window holds — the pen's and the highlighter's — restored from the settings file.
-     *
-     * Held as a pair and read through [ink], which answers for the **picked tool**: the strips, the canvas
-     * and the selection's recolour must all show the ink that would be written with, and a second copy of
-     * "the current ink" could only be a copy that disagrees with the tool.
+     * The window's ink and palette, its own piece of the state, owned here and forwarded below so every
+     * caller keeps reading `state.ink` and `state.pickColour(…)` (`DesktopInkState`).
      */
-    private var inks by mutableStateOf(
-        DesktopInks(
-            pen = DesktopInk(colour = settings.inkColour, width = settings.inkWidth),
-            highlighter = DesktopInk(colour = settings.highlighterColour, width = settings.highlighterWidth),
-        ),
-    )
+    private val inkState = DesktopInkState(settings) { tools.current }
 
     /** The ink of the picked tool — the pen's, or the highlighter's own colour and width. */
-    val ink: DesktopInk get() = inks.forTool(tools.current)
+    val ink: DesktopInk get() = inkState.ink
 
-    /**
-     * The palette's editable custom slot, shared by both tools like the palette itself (a palette is what
-     * the user has, not what a tool is). Null while it is empty.
-     */
-    var paletteCustom by mutableStateOf(settings.paletteCustom)
-        private set
+    /** The pen's ink, whatever tool is in hand: a figure, a circuit or a placement writes with this one. */
+    val shapeInk: DesktopInk get() = inkState.shapeInk
+
+    /** The palette's editable custom slot, shared by both tools. Null while it is empty. */
+    val paletteCustom: Int? get() = inkState.paletteCustom
 
     /** What the colour panel is editing, or null while it is closed. */
-    var editing by mutableStateOf<ColourEditorTarget?>(null)
-        private set
+    val editing: ColourEditorTarget? get() = inkState.editing
 
-    /** The palette the colour flyout offers; the factory eight until the settings file says otherwise. */
-    var palette by mutableStateOf(settings.paletteColours)
-        private set
-
-    /** The three favourites of each tool, restored from the settings file. */
-    private var favs by mutableStateOf(
-        DesktopFavourites(pen = settings.colourFavourites, highlighter = settings.highlighterFavourites),
-    )
+    /** The palette the colour flyout offers. */
+    val palette: List<Int> get() = inkState.palette
 
     /** The terna the picked tool picks from — keys `1`–`3` and `Alt`+digit read this one. */
-    val favourites: List<Int> get() = favs.forTool(tools.current)
+    val favourites: List<Int> get() = inkState.favourites
 
     /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
     val stripState: ToolStripState
@@ -369,88 +355,32 @@ class DesktopShellState(
      * Pick the ink colour **of the picked tool**, and remember it: the pen and the highlighter keep their
      * own, so switching to the highlighter never repaints the pencil.
      */
-    fun pickColour(colour: Int) {
-        val tool = tools.current
-        inks = inks.withInk(tool, inks.forTool(tool).withColour(colour))
-        persistInk(tool)
-    }
+    /** Pick the picked tool's ink colour, and remember it — what [DesktopInkState] keeps per tool. */
+    fun pickColour(colour: Int) = inkState.pickColour(colour)
 
     /** Pick the picked tool's stroke width, and remember it. */
-    fun pickWidth(width: Float) {
-        val tool = tools.current
-        inks = inks.withInk(tool, inks.forTool(tool).withWidth(width))
-        persistInk(tool)
-    }
+    fun pickWidth(width: Float) = inkState.pickWidth(width)
 
-    /** Write [tool]'s ink to the settings file — the other tool's entry is not touched. */
-    private fun persistInk(tool: DesktopTool) {
-        val value = inks.forTool(tool)
-        if (tool == DesktopTool.HIGHLIGHTER) {
-            settings.highlighterColour = value.colour
-            settings.highlighterWidth = value.width
-        } else {
-            settings.inkColour = value.colour
-            settings.inkWidth = value.width
-        }
-    }
+    /** Pick the picked tool's stroke pattern (solid, dashed, dash-dot or dotted), and remember it. */
+    fun pickLineStyle(style: LineStyle) = inkState.pickLineStyle(style)
 
     /** Pick favourite [index] — what keys `1`–`3` do. */
-    fun pickFavourite(index: Int) {
-        favourites.getOrNull(index)?.let(::pickColour)
-    }
+    fun pickFavourite(index: Int) = inkState.pickFavourite(index)
 
-    /** Make the colour in use favourite [index] **of the picked tool** — what `Alt`+digit does. */
-    fun setFavourite(index: Int) {
-        val tool = tools.current
-        val current = favs.forTool(tool)
-        if (index !in current.indices) return
-        favs = favs.withFavourites(tool, current.toMutableList().also { it[index] = ink.colour })
-        if (tool == DesktopTool.HIGHLIGHTER) settings.highlighterFavourites = favs.highlighter
-        else settings.colourFavourites = favs.pen
-    }
+    /** Make the colour in use favourite [index] of the picked tool — what `Alt`+digit does. */
+    fun setFavourite(index: Int) = inkState.setFavourite(index)
 
-    /**
-     * Step the width one slot up ([direction] `+1`, `]`) or down (`-1`, `[`), stopping at the ends
-     * rather than wrapping: a thin pen must not jump to the thickest one.
-     */
-    fun stepWidth(direction: Int) {
-        val widths = PenPalette.DEFAULT_WIDTHS
-        val slot = PenPalette.widthSlot(ink.width) + direction
-        pickWidth(widths[slot.coerceIn(0, widths.lastIndex)])
-    }
+    /** Step the width one slot up (`+1`, `]`) or down (`-1`, `[`), stopping at the ends. */
+    fun stepWidth(direction: Int) = inkState.stepWidth(direction)
 
-
-    /** Open the panel on the custom slot (`CUSTOM`) or on a colour to append (`NEW`). */
-    fun editColour(target: ColourEditorTarget) {
-        editing = target
-    }
+    /** Open the colour panel on the custom slot, or on a colour to append to the palette. */
+    fun editColour(target: ColourEditorTarget) = inkState.editColour(target)
 
     /** Close the panel without committing anything. */
-    fun cancelColourEdit() {
-        editing = null
-    }
+    fun cancelColourEdit() = inkState.cancelColourEdit()
 
-    /**
-     * Commit what the panel's **Set** handed back: the custom slot for [ColourEditorTarget.CUSTOM], a new
-     * palette entry for [ColourEditorTarget.NEW] — and in both cases the colour becomes the ink, which is
-     * what picking a swatch would have done.
-     */
-    fun commitColour(colour: Int) {
-        when (editing) {
-            ColourEditorTarget.CUSTOM -> {
-                paletteCustom = colour
-                settings.paletteCustom = colour
-                pickColour(colour)
-            }
-            ColourEditorTarget.NEW -> {
-                palette = PenPalette.add(palette, colour)
-                settings.paletteColours = palette
-                pickColour(colour)
-            }
-            null -> return
-        }
-        editing = null
-    }
+    /** Commit the colour the panel handed back: the custom slot, or a new palette entry, as the ink. */
+    fun commitColour(colour: Int) = inkState.commitColour(colour)
 
     /** Move the tool strips, and remember the choice across restarts. */
     fun chooseToolPlacement(placement: ToolPlacement) {
@@ -460,6 +390,53 @@ class DesktopShellState(
 
     /** The active document, if any. */
     val active: DesktopTab? get() = tabs.active
+
+    /**
+     * The window's page setup — the section that is up, and the edits it makes to the page in view — as
+     * its own piece of the state (`DesktopPageSetupState`), forwarded so every caller keeps its name.
+     */
+    private val pageSetupState = DesktopPageSetupState(tabs) { tab, index -> edited(tab, index) }
+
+    /** The section of the page-setup surface that is up, or null while it is closed. */
+    val pageSetup: PageSetupSection? get() = pageSetupState.section
+
+    /** Open the page-setup surface on its paper or its format section. */
+    fun openPageSetup(section: PageSetupSection) = pageSetupState.open(section)
+
+    /** Close the page-setup surface without touching the page again. */
+    fun closePageSetup() = pageSetupState.close()
+
+    /** The active page as it is now, or null when nothing is open. */
+    fun activePage(): Page? = pageSetupState.activePage()
+
+    /** Change the active page's paper style — one edit, one undo step. */
+    fun setPageStyle(style: String) = pageSetupState.setStyle(style)
+
+    /** Change the active page's ruling spacing, in millimetres, as desktop's own `r1` parameter. */
+    fun setPageSpacingMm(mm: Double) = pageSetupState.setSpacingMm(mm)
+
+    /** Resize the active page, keeping its ink and its paper. */
+    fun setPageSize(widthPt: Double, heightPt: Double) = pageSetupState.setSize(widthPt, heightPt)
+
+    /** A new page: a blank document tab, its file still to be written. */
+    fun newDocument() {
+        tabs.newBlankDocument()
+        failure = null
+    }
+
+    /**
+     * What the window shows at startup: recovered edits first, then the file named on the command line,
+     * and otherwise a **new page** rather than an empty notice — the default screen is something to write
+     * on.
+     */
+    fun start(initial: File?) {
+        recover()
+        if (initial != null) {
+            open(initial)
+        } else if (tabs.isEmpty) {
+            newDocument()
+        }
+    }
 
     /**
      * Open [file] as a tab (or activate its tab when it is already open). A failure is **reported as

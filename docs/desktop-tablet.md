@@ -219,14 +219,16 @@ the status bar names whichever answered: `pen: Wintab`, `pen: Windows Ink` or `p
   The two properties are pinned where they belong: `PagePictureTest` (three appends leave `records` at
   one, and base plus tail is pixel-identical to the direct paint) and `DesktopShellTest` (an edit writes
   nothing into the thumbnail cache; one quiet moment paints one page).
-- **The pen gets a pen's pointer.** Over the page the desktop's arrow is swapped for a ring the size of the
-  line the tool will write (`DesktopCursor.kt`): the system cursor becomes an invisible AWT one while a
-  drawing tool is active — so every hit test and hover event still works — and `drawToolCursor` paints the
-  ring at the pointer, in the window's own tokens ([`DesktopTheme`]`desk` under [`DesktopTheme`]`ink`, so
-  it reads on paper, on the black desk and over ink of either colour). Its diameter is the stroke's stored
-  width × zoom × density with a 7 px floor, and the **eraser's** ring is its radius doubled
-  (`eraserRadiusPt`), not its width — a ring that said 4 pt over a 12 pt stroke would be worse than the
-  arrow. A tool that draws nothing keeps the arrow.
+- **The pen gets a pen's pointer, and the arrow always stays.** Over the page a ring the size of the line
+  the tool will write is painted at the pointer (`DesktopCursor.kt`, `drawToolCursor`), in the window's own
+  tokens ([`DesktopTheme`]`desk` under [`DesktopTheme`]`ink`, so it reads on paper, on the black desk and
+  over ink of either colour). Its diameter is the stroke's stored width × zoom × density with a 7 px
+  floor, and the **eraser's** ring is its radius doubled (`eraserRadiusPt`), not its width — a ring that
+  said 4 pt over a 12 pt stroke would be worse than the arrow. A tool that draws nothing (a figure, the
+  hand, a text box) simply gets no ring. The ring is an **extra width readout, never a replacement for the
+  cursor**: the canvas keeps `PointerIcon.Default` for **every** tool, because a hidden system cursor left
+  the window with no pointer at all whenever the ring had nothing to draw — over a figure, over the chrome,
+  or before the first hover reading arrived.
 
   The ring is **this window's own ink**, so it also had to stop being driven by the mouse: Windows'
   emulation is a coalesced *copy* of the contact, which put the ring a frame or two behind the nib. It is

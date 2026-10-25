@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.PenPalette
+import com.mobixournal.format.model.LineStyle
 
 /**
  * The two ink slots at the tail of each strip — the colour in use and the width it draws at — and the
@@ -91,6 +92,7 @@ internal fun ColourSlot(
     custom: Int? = null,
     favourites: List<Int> = emptyList(),
     onPick: (Int) -> Unit,
+    onLineStyle: (LineStyle) -> Unit = {},
     onEditCustom: () -> Unit = {},
     onAddColour: () -> Unit = {},
     side: StripSide,
@@ -129,10 +131,12 @@ internal fun ColourSlot(
                     palette = palette,
                     current = ink.colour,
                     custom = custom,
+                    lineStyle = ink.lineStyle,
                     onPick = { colour ->
                         onPick(colour)
                         open = false
                     },
+                    onLineStyle = onLineStyle,
                     onEditCustom = {
                         onEditCustom()
                         open = false
@@ -207,36 +211,79 @@ internal fun PaletteFlyout(
     palette: List<Int>,
     current: Int,
     custom: Int?,
+    lineStyle: LineStyle = LineStyle.PLAIN,
     onPick: (Int) -> Unit,
+    onLineStyle: (LineStyle) -> Unit = {},
     onEditCustom: () -> Unit,
     onAddColour: () -> Unit,
 ) {
-    Row(
-        Modifier
-            .glassSurface()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
-    ) {
-        for (colour in palette) {
-            Box(
-                Modifier
-                    .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
-                    .background(
-                        if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
-                        DesktopTheme.capsuleShape,
-                    )
-                    .padding(InkSlotMetrics.swatchRing)
-                    .background(Color(colour), DesktopTheme.capsuleShape)
-                    .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
-                    .pointerInput(colour) { detectTapGestures { onPick(colour) } },
-            )
+    Column(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
+        ) {
+            for (colour in palette) {
+                Box(
+                    Modifier
+                        .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
+                        .background(
+                            if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
+                            DesktopTheme.capsuleShape,
+                        )
+                        .padding(InkSlotMetrics.swatchRing)
+                        .background(Color(colour), DesktopTheme.capsuleShape)
+                        .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
+                        .pointerInput(colour) { detectTapGestures { onPick(colour) } },
+                )
+            }
+            CustomSwatch(custom = custom, onPick = onPick, onEdit = onEditCustom)
+            AddSwatch(onAdd = onAddColour)
         }
-        CustomSwatch(custom = custom, onPick = onPick, onEdit = onEditCustom)
-        AddSwatch(onAdd = onAddColour)
+        LineStylePicker(lineStyle = lineStyle, onPick = onLineStyle)
     }
 }
+
+/**
+ * The pen's **line style**, as the tablet's colour-and-size pop-up offers it: four chips under the
+ * swatches, the live one wearing the steel. It belongs to the ink, like the colour and the width, so the
+ * next stroke — and the next figure — is drawn with the pattern the chip names.
+ */
+@Composable
+private fun LineStylePicker(lineStyle: LineStyle, onPick: (LineStyle) -> Unit) {
+    Row(
+        Modifier.padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(InkSlotMetrics.swatchGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        for ((style, label) in LINE_STYLE_LABELS) {
+            val picked = style == lineStyle
+            Box(
+                Modifier
+                    .background(
+                        if (picked) DesktopTheme.activeSlot else Color.Transparent,
+                        DesktopTheme.capsuleShape,
+                    )
+                    .pointerInput(style) { detectTapGestures { onPick(style) } }
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
+            ) {
+                Text(
+                    label,
+                    color = if (picked) DesktopTheme.ink else DesktopTheme.inkSecondary,
+                    style = DesktopTheme.label,
+                )
+            }
+        }
+    }
+}
+
+/** The four patterns the pen can write, and the words the chip row prints. */
+private val LINE_STYLE_LABELS: List<Pair<LineStyle, String>> = listOf(
+    LineStyle.PLAIN to "Solid",
+    LineStyle.DASHED to "Dashed",
+    LineStyle.DASH_DOT to "Dash-dot",
+    LineStyle.DOTTED to "Dotted",
+)
 
 /**
  * The editable custom slot: filled with the colour the user defined, or an empty ring carrying the pencil

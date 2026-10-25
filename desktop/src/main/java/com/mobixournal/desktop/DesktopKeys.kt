@@ -111,6 +111,7 @@ internal fun inkCommand(key: Key, alt: Boolean, ctrl: Boolean): InkCommand? {
 internal val toolKeyLetters = mapOf(
     Key.B to "B",
     Key.H to "H",
+    Key.G to "G",
     Key.E to "E",
     Key.V to "V",
     Key.S to "S",

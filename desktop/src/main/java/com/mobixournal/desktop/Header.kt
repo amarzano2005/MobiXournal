@@ -65,7 +65,12 @@ internal fun Header(
     onActivate: (Int) -> Unit,
     onClose: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
+    onNew: () -> Unit,
     onOpen: () -> Unit,
+    onSave: () -> Unit,
+    onSaveAs: () -> Unit,
+    onPageBackground: () -> Unit,
+    onPageFormat: () -> Unit,
     onToggleSidebar: () -> Unit,
     onPlacement: (ToolPlacement) -> Unit,
 ) {
@@ -77,14 +82,16 @@ internal fun Header(
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        HeaderGlyph(
-            active = sidebarVisible,
-            onClick = onToggleSidebar,
-            draw = { color, stroke ->
-                drawLine(color, androidx.compose.ui.geometry.Offset(0f, 2f), androidx.compose.ui.geometry.Offset(size.width, 2f), stroke)
-                drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
-                drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height - 2f), androidx.compose.ui.geometry.Offset(size.width, size.height - 2f), stroke)
-            },
+        HeaderMenu(
+            sidebarVisible = sidebarVisible,
+            canSave = tabs.active?.isDirty == true,
+            onNew = onNew,
+            onOpen = onOpen,
+            onSave = onSave,
+            onSaveAs = onSaveAs,
+            onPageBackground = onPageBackground,
+            onPageFormat = onPageFormat,
+            onToggleSidebar = onToggleSidebar,
         )
         Spacer(Modifier.width(10.dp))
         TabStrip(
@@ -92,7 +99,7 @@ internal fun Header(
             onActivate = onActivate,
             onClose = onClose,
             onMove = onMove,
-            onOpen = onOpen,
+            onNew = onNew,
             modifier = Modifier.weight(1f),
         )
         // Air between the last tab and the header's own control: the strip and the placement button were

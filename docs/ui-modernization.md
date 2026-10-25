@@ -282,7 +282,8 @@ selects:
 - **Ribbon**: the 48 dp capsule in a 56 dp band under the header, for a window that is short or narrow.
 - **Both**: the ribbon above the rail, each with its own slots.
 - **1-click STEM access**: `f(x)`, shapes, tables and circuits sit in the same strip as the inking tools,
-  with no submenu between the user and them.
+  with no submenu between the user and them — and so does **every figure**: Line, Arrow, Double arrow,
+  Rectangle, Ellipse, Spline and Axes are seven slots of their own on the desktop, one click each.
 - **Hover names the slot**: a pill tooltip shows the tool's name and its key (e.g. `Function plot [M]`).
 
 ### 3. Universal shortcuts across all tools (Mobile & Desktop)
@@ -299,7 +300,8 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Marquee Rect Select | `S` | Selection mode toggle |
 | | Text Box | `X` | Screen double-tap with finger |
 | | Formula (LaTeX / Typst) | `Shift + T` | The Text slot's second member (the tablet's LaTeX tool); asks its source first |
-| | Pan / Hand Tool | `Space` (held) | Two-finger scroll / drag |
+| | Hand Tool | `G` | A slot of the rail: a primary drag moves the page |
+| | Pan | `Space` (held) | Two-finger scroll / drag |
 | **Geometry & Figures** | Straight Line / Ruler | `L` | Hold-to-straighten dwell (300 ms) |
 | | Arrow | `A` | Arrow shape toggle |
 | | Double arrow | `Shift + A` | Arrow slot's second member |
@@ -319,9 +321,8 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap |
 
 - **Universal Shortcut & Individual Color Remapping**: All keybindings, tools, and **individual color palette slots**
-  are remappable via **Settings → Input & Shortcuts**. A keyboard shortcut or a stylus gesture can select a
-  specific user-defined custom HEX color (e.g. `Alt+1` for Pure Black `#000000`, `Alt+2` for Crimson Red
-  `#D32F2F`, `Alt+3` for Royal Blue `#1565C0`), not just the 3 factory favourites.
+  are remappable via **Settings → Input & Shortcuts**: a shortcut or a stylus gesture can select a specific
+  user-defined HEX color (e.g. `Alt+1` for Pure Black `#000000`), not just the 3 factory favourites.
 
 ---
 
@@ -395,6 +396,5 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one. Every floating
   dialog — the editor's, the pages menu's, the settings pickers' — is gated that way.
 - **The plot editor anchors to its element**: editing an existing `PlotElement` opens `PlotInspectorAnchor`
-  beside the selection, commits through `applyPlotEdit` with full undo coverage and unedited fields kept;
-  creating a new plot uses the modal `AdvancedFunctionGraphDialog`, whose placement arithmetic is
-  viewport-centred.
+  beside the selection (committed through `applyPlotEdit`, unedited fields kept); a new plot uses the modal
+  `AdvancedFunctionGraphDialog`, whose placement arithmetic is viewport-centred.

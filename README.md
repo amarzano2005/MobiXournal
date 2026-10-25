@@ -110,8 +110,11 @@ the tablet — the picker panel grows in and draws back on the same spring the t
 Windows title bar is painted in the same band colour as the header, so the window reads as one surface
 from the caption down instead of a light system bar sitting on a dark app, and the document tabs are the
 same glass capsules as the rest of the chrome, the active one wearing the family's edge. The window wears the
-app's own icon too — the tablet's launcher art, in the caption and the taskbar, where the JVM's coffee cup
-used to be. The toolbars are
+app's own icon on the taskbar, where the JVM's coffee cup used to be — the tablet's launcher art with its
+navy field dropped, so the sheet and the pen are the whole mark — while the title bar above the header
+carries no app name and no second icon. A **hamburger** in the header opens New, Open, Save, Save As, the
+page-setup dialogs and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens
+without a file opens one too, instead of an empty notice. The toolbars are
 the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
@@ -127,8 +130,17 @@ put it again). The eraser has its two members as two slots: `E` cuts the ink it 
 takes whole strokes. **Type on it** with Text (`X`): a press opens a box where you pressed, `Enter` starts
 a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way. The pen and the highlighter keep **separate colours, widths and favourite colours**,
 as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
-switching back brings that ink back with it. **Drag a figure** with Line, Arrow, Double arrow, Axes, Rectangle, Ellipse or Spline —
-one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to cancel — and **shift a page down**
+switching back brings that ink back with it, and each tool also remembers its **stroke pattern** — solid,
+long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,
+Axes, Rectangle, Ellipse or Spline — one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to
+cancel — each of the seven a slot of its own, one click and no submenu, and a figure always draws in the
+pen's ink even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
+circuit family is armed, every **circuit pin** on the page wears a small dot, so a wire can be aimed at the
+terminal it should join. **Pan** with the **hand** (`G`): a drag moves the page instead of drawing on it,
+with every tool keeping its own state meanwhile. The sheet itself is editable too: **Page background…**
+offers the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling, **Page format…** the A4/A5/Letter/Legal
+presets in either orientation, and either change is one undoable edit written in the file's own ruling
+parameter. And **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
 crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): a click on any element catches it where it
 lies (one click on empty paper lets the selection go, and a double-click opens a living element's editor),
@@ -189,10 +201,10 @@ document scale and moved by the canvas, so a wheel notch or a pinch costs a repl
 re-render (0.2 ms a frame on this project's densest document, where it used to cost 3.6–4.3 ms). The line was measured against the nib (`--probe-ink`): a pen reading becomes ink in a
 median 1.5–2.0 ms (5.2 ms p95) on a blank page and on this project's densest six-page document, so the
 line lands on the very next frame your screen shows instead of the one after — at 144 Hz that is 6.9 ms,
-and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. Over the page the desktop's
-arrow is replaced by
-a ring the size of the line the tool will write, so the point you are about to draw at is never hidden and
-the width is never a guess. The ring is driven by the tablet's own readings rather than by the slower mouse
+and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. Over the page
+the pointer wears a ring the size of the line the tool will write — beside the arrow, never instead of it:
+the cursor stays visible with every tool, so it never vanishes over a figure or the chrome, and the ring
+adds the width and the exact point you are about to draw at. The ring is driven by the tablet's own readings rather than by the slower mouse
 copy of them, so it sits under the nib instead of trailing it, and it keeps its place while you hold the
 pen still above the page. The status bar says which stream the window has — `pen: Wintab`,
 `pen: Windows Ink` or `pen: mouse` — and on `pen: mouse` the pen draws at the tool's width, because

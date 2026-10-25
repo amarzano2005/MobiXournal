@@ -15,6 +15,9 @@ package com.mobixournal.desktop
 enum class DesktopTool(val label: String, val shortcut: String) {
     PEN("Pen", "B"),
     HIGHLIGHTER("Highlighter", "H"),
+    // The tablet's view-only pan mode, as a slot: a primary drag moves the page instead of drawing on it,
+    // and every tool keeps its own state while the hand is picked.
+    HAND("Hand", "G"),
     ERASER("Eraser", "E"),
     // The eraser's second member (`docs/drawing-tools.md`): a touched stroke goes whole, where the
     // partial eraser cuts the disc's path out of it.

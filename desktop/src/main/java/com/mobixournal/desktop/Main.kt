@@ -126,8 +126,10 @@ fun main(args: Array<String>) {
         Window(
             onCloseRequest = { if (state.requestExit()) exitApplication() },
             state = rememberWindowState(width = 1100.dp, height = 1000.dp),
-            title = "MobiXournal Desktop",
-            icon = appIcon(),
+            // The caption carries **no app name and no icon**: the header below it already says what the
+            // window is (the tabs), so a title bar repeating the product name was a second, heavier
+            // header. The packaged executable keeps the app's icon on the taskbar (item 10).
+            title = "",
         ) {
             DesktopApp(initial = initial, state = state, onExit = ::exitApplication)
         }

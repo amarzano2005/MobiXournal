@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 internal fun DesktopShell(
     state: DesktopShellState,
     onOpenPicker: () -> Unit,
+    /** The system Save As picker, opened from the menu and from `Ctrl+Shift+S`. */
+    onSavePicker: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** The window's devices, or null in a test that has none — the canvas then keeps the mouse path. */
     tablet: DesktopTablet? = null,
@@ -41,7 +43,12 @@ internal fun DesktopShell(
             onActivate = { index -> state.tabs.activate(index) },
             onClose = { index -> state.requestCloseTab(index) },
             onMove = { from, to -> state.tabs.move(from, to) },
+            onNew = { state.newDocument() },
             onOpen = onOpenPicker,
+            onSave = { state.save() },
+            onSaveAs = onSavePicker,
+            onPageBackground = { state.openPageSetup(PageSetupSection.PAPER) },
+            onPageFormat = { state.openPageSetup(PageSetupSection.FORMAT) },
             onToggleSidebar = { state.toggleSidebar() },
             onPlacement = state::chooseToolPlacement,
         )
@@ -69,6 +76,7 @@ internal fun DesktopShell(
                 }
             }
             ColourPanelHost(state)
+            PageSetupHost(state)
             CloseDialogHost(state)
         }
         StatusBar(state.active, tablet)

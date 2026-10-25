@@ -46,6 +46,7 @@ class ToolStripsTest {
     private val documented = listOf(
         "Pen" to "B",
         "Highlighter" to "H",
+        "Hand" to "G",
         "Eraser" to "E",
         "Eraser (whole)" to "Shift+E",
         "Vertical space" to "Shift+V",

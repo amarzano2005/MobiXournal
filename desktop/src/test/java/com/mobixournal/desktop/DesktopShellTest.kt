@@ -156,7 +156,7 @@ class DesktopShellTest {
                 onActivate = {},
                 onClose = {},
                 onMove = { _, _ -> },
-                onOpen = {},
+                onNew = {},
             )
         }
         try {
@@ -358,7 +358,7 @@ class DesktopShellTest {
                 onActivate = {},
                 onClose = {},
                 onMove = { _, _ -> },
-                onOpen = {},
+                onNew = {},
             )
         }
         return save(scene, name)

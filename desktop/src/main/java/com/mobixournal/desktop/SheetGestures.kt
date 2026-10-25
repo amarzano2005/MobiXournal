@@ -21,6 +21,8 @@ internal fun Modifier.sheetGestures(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
+    /** The pen's ink for a geometry slot; [ink] is the picked tool's own. */
+    shapeInk: DesktopInk,
     pen: PenContactStream?,
     sheet: SheetLayout,
     pointer: PenPointer,
@@ -29,7 +31,7 @@ internal fun Modifier.sheetGestures(
     onViewport: (Viewport) -> Unit,
     onEdited: (Int) -> Unit,
 ): Modifier = pointerInput(
-    tab, panMode, tool, ink, pen,
+    tab, panMode, tool, ink, shapeInk, pen,
     sheet.pageW, sheet.pageH, sheet.zoom, sheet.viewW, sheet.viewH,
 ) {
     pageGestures(
@@ -37,6 +39,7 @@ internal fun Modifier.sheetGestures(
         panMode = panMode,
         tool = tool,
         ink = ink,
+        shapeInk = shapeInk,
         targets = targets,
         viewport = {
             tab.viewport.copy(zoom = sheet.zoom)

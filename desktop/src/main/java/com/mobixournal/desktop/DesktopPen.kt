@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
@@ -56,6 +57,7 @@ fun DesktopTool.activeTool(): ActiveTool = when (this) {
     DesktopTool.PEN -> ActiveTool.PEN
     DesktopTool.HIGHLIGHTER -> ActiveTool.HIGHLIGHTER
     DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> ActiveTool.ERASER
+    DesktopTool.HAND -> ActiveTool.HAND
     DesktopTool.VERTICAL_SPACE -> ActiveTool.VERTICAL_SPACE
     // The two marquee tools select rather than ink; the shared router's `SELECT` arm therefore never starts a
     // stroke, and the canvas hands the drag to `SelectionGesture` before it asks the router anything.
@@ -154,7 +156,12 @@ fun shapeFromDrag(
  * A shape as the stroke the page stores: one constant width, because a geometric figure is drawn with a
  * pen of one size — the drag says where it goes, the palette says how thick it is.
  */
-fun shapeStroke(points: List<StrokePoint>, colour: Int, widthPt: Float): Stroke? {
+fun shapeStroke(
+    points: List<StrokePoint>,
+    colour: Int,
+    widthPt: Float,
+    lineStyle: LineStyle = LineStyle.PLAIN,
+): Stroke? {
     if (points.size < 2) return null
     return Stroke(
         tool = Tool.PEN,
@@ -162,6 +169,7 @@ fun shapeStroke(points: List<StrokePoint>, colour: Int, widthPt: Float): Stroke?
         capStyle = "round",
         points = points.map { it.copy(width = widthPt.toDouble()) },
         uniformWidth = true,
+        lineStyle = lineStyle,
     )
 }
 
@@ -174,7 +182,13 @@ fun shapeStroke(points: List<StrokePoint>, colour: Int, widthPt: Float): Stroke?
  * palette's opaque ARGB, the cap is `round` as Xournal++ writes it, and the per-sample `dtMs` is the
  * time since the stroke began (the same telemetry field the tablet records).
  */
-fun strokeOf(tool: Tool, colour: Int, widthPt: Float, samples: List<InkSample>): Stroke? {
+fun strokeOf(
+    tool: Tool,
+    colour: Int,
+    widthPt: Float,
+    samples: List<InkSample>,
+    lineStyle: LineStyle = LineStyle.PLAIN,
+): Stroke? {
     if (samples.size < 2) return null
     val uniform = tool == Tool.HIGHLIGHTER
     val start = samples.first().pointer.timeMs
@@ -189,7 +203,14 @@ fun strokeOf(tool: Tool, colour: Int, widthPt: Float, samples: List<InkSample>):
             dtMs = (sample.pointer.timeMs - start).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
         )
     }
-    return Stroke(tool = tool, color = colour, capStyle = "round", points = points, uniformWidth = uniform)
+    return Stroke(
+        tool = tool,
+        color = colour,
+        capStyle = "round",
+        points = points,
+        uniformWidth = uniform,
+        lineStyle = lineStyle,
+    )
 }
 
 /**

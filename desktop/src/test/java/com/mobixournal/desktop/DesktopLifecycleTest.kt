@@ -237,7 +237,7 @@ class DesktopLifecycleTest {
         try {
             tabs.open(DocumentLoader.load(notebook()))
             val scene = ImageComposeScene(420, 34, Density(1f)) {
-                TabStrip(tabs = tabs, onActivate = {}, onClose = {}, onMove = { _, _ -> }, onOpen = {})
+                TabStrip(tabs = tabs, onActivate = {}, onClose = {}, onMove = { _, _ -> }, onNew = {})
             }
             try {
                 val clean = accents(scene.render().encodeToData()?.bytes!!)

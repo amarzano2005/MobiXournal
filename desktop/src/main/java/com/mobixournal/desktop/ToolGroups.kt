@@ -84,23 +84,23 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     ToolGroup(listOf(DesktopTool.PEN)),
     ToolGroup(listOf(DesktopTool.HIGHLIGHTER)),
     ToolGroup(listOf(DesktopTool.ERASER, DesktopTool.ERASER_WHOLE)),
+    // Panning as a tool of its own, with the hand the tablet's rail shows (`docs/drawing-tools.md`).
+    ToolGroup(listOf(DesktopTool.HAND)),
     ToolGroup(listOf(DesktopTool.VERTICAL_SPACE)),
     // The two ways to select a region on the page: a rectangle and a freehand loop.
     ToolGroup(listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)),
     // Typing on the page: a slot of its own, because a text box is neither ink nor a figure. It carries the
     // tablet's two members — prose and a formula — with Text as its face.
     ToolGroup(listOf(DesktopTool.TEXT, DesktopTool.MATH)),
-    ToolGroup(
-        listOf(
-            DesktopTool.LINE,
-            DesktopTool.ARROW,
-            DesktopTool.DOUBLE_ARROW,
-            DesktopTool.RECTANGLE,
-            DesktopTool.ELLIPSE,
-            DesktopTool.SPLINE,
-            DesktopTool.AXES,
-        ),
-    ),
+    // Every figure is a slot of its own, as the tablet's rail draws them: one click picks a figure,
+    // never a picker. The strip scrolls, so the seven slots cost no reachability.
+    ToolGroup(listOf(DesktopTool.LINE)),
+    ToolGroup(listOf(DesktopTool.ARROW)),
+    ToolGroup(listOf(DesktopTool.DOUBLE_ARROW)),
+    ToolGroup(listOf(DesktopTool.RECTANGLE)),
+    ToolGroup(listOf(DesktopTool.ELLIPSE)),
+    ToolGroup(listOf(DesktopTool.SPLINE)),
+    ToolGroup(listOf(DesktopTool.AXES)),
     // The STEM slots: each places a **living element** (a re-editable recipe), not ink, so each keeps a
     // slot of its own rather than sharing a picker — a plot, a table and a component are three tools, the
     // same way the pen and the highlighter are.
@@ -127,6 +127,8 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
 val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.PEN,
     DesktopTool.HIGHLIGHTER,
+    // The hand moves the view with a primary drag (`pageGestureLoop`), so it acts on the page.
+    DesktopTool.HAND,
     DesktopTool.ERASER,
     DesktopTool.ERASER_WHOLE,
     DesktopTool.VERTICAL_SPACE,

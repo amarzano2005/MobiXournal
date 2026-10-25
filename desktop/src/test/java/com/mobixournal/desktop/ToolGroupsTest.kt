@@ -66,7 +66,10 @@ class ToolGroupsTest {
     fun `only a group with more than one member carries a picker`() {
         assertFalse("the pen has nothing to pick from", groupOf(DesktopTool.PEN)!!.hasPicker)
         assertTrue(groupOf(DesktopTool.ERASER)!!.hasPicker)
-        assertTrue("the figures share one slot", groupOf(DesktopTool.SPLINE)!!.hasPicker)
+        assertFalse(
+            "every figure is a slot of its own, so it carries no picker",
+            groupOf(DesktopTool.SPLINE)!!.hasPicker,
+        )
     }
 
     /**
@@ -99,21 +102,21 @@ class ToolGroupsTest {
 
     @Test
     fun `clicking the picked slot opens its picker instead of doing nothing`() {
-        val figures = groupOf(DesktopTool.LINE)!!
+        val erasers = groupOf(DesktopTool.ERASER)!!
         assertEquals(
             "the first click arms the group's face",
-            SlotClick.Pick(DesktopTool.LINE),
-            slotClick(figures, ToolSelection(DesktopTool.PEN)),
+            SlotClick.Pick(DesktopTool.ERASER),
+            slotClick(erasers, ToolSelection(DesktopTool.PEN)),
         )
         assertEquals(
             "clicking the slot that is already picked asks which member",
             SlotClick.OpenPicker,
-            slotClick(figures, ToolSelection(DesktopTool.LINE)),
+            slotClick(erasers, ToolSelection(DesktopTool.ERASER)),
         )
         assertEquals(
             "the rule follows the member, not the face",
             SlotClick.OpenPicker,
-            slotClick(figures, ToolSelection(DesktopTool.SPLINE)),
+            slotClick(erasers, ToolSelection(DesktopTool.ERASER_WHOLE)),
         )
         assertEquals(
             "a lone tool has no submenu, so a second click is still a pick",
@@ -155,20 +158,28 @@ class ToolGroupsTest {
         }
     }
 
+    /**
+     * The tablet's rail, as the window now draws it: **every figure is a slot**, one click each, and no
+     * picker stands between them. A shared figures slot would put six of the seven behind a submenu.
+     */
     @Test
-    fun `a group's rows are its members, in the order the slot offers them`() {
-        val figures = groupOf(DesktopTool.LINE)!!
+    fun `every figure is a slot of its own, in the order the rail draws them`() {
+        val figures = listOf(
+            DesktopTool.LINE,
+            DesktopTool.ARROW,
+            DesktopTool.DOUBLE_ARROW,
+            DesktopTool.RECTANGLE,
+            DesktopTool.ELLIPSE,
+            DesktopTool.SPLINE,
+            DesktopTool.AXES,
+        )
+        for (figure in figures) {
+            assertEquals("${figure.label} shares a slot", listOf(figure), groupOf(figure)!!.members)
+        }
         assertEquals(
-            listOf(
-                DesktopTool.LINE,
-                DesktopTool.ARROW,
-                DesktopTool.DOUBLE_ARROW,
-                DesktopTool.RECTANGLE,
-                DesktopTool.ELLIPSE,
-                DesktopTool.SPLINE,
-                DesktopTool.AXES,
-            ),
-            figures.members,
+            "the figures keep the strip's order, one slot each",
+            figures,
+            DESKTOP_TOOL_GROUPS.map { it.face }.filter { it in figures.toSet() },
         )
     }
 }

@@ -51,6 +51,8 @@ internal suspend fun PointerInputScope.pageGestures(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
+    /** The pen's ink for a geometry slot; [ink] is the picked tool's own. */
+    shapeInk: DesktopInk = ink,
     /** The shell's answers for a press that is not ink (`PagePressTargets`). */
     targets: PagePressTargets = PagePressTargets(),
     /**
@@ -114,7 +116,7 @@ internal suspend fun PointerInputScope.pageGestures(
             }
         }
         pageGestureLoop(
-            tab = tab, panMode = panMode, tool = tool, ink = ink, targets = targets,
+            tab = tab, panMode = panMode, tool = tool, ink = ink, shapeInk = shapeInk, targets = targets,
             taps = taps, dragView = dragView, gesture = gesture,
             draft = draft, grabLine = grabLine, previewRegion = previewRegion,
             onEdited = onEdited,
@@ -130,6 +132,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
     panMode: Boolean,
     tool: DesktopTool,
     ink: DesktopInk,
+    shapeInk: DesktopInk,
     targets: PagePressTargets,
     taps: TapTracker,
     dragView: DragView,
@@ -153,10 +156,10 @@ private suspend fun PointerInputScope.pageGestureLoop(
         val packetsOwn = { penActive() && tool.inksByPackets() }
         if (packetsOwn()) return@awaitEachGesture
         val buttons = currentEvent.buttons
-        // Middle-drag always pans; a primary drag pans only while Space is held, so the pen gets the
-        // primary button.
+        // Middle-drag always pans; a primary drag pans while Space is held or the Hand slot is picked,
+        // so the pen keeps the primary button for every other tool.
         val vp = viewport()
-        if (buttons.isTertiaryPressed || (panMode && buttons.isPrimaryPressed)) {
+        if (buttons.isTertiaryPressed || ((panMode || tool == DesktopTool.HAND) && buttons.isPrimaryPressed)) {
             panByDrag(vp, pageW, pageH, viewW, viewH, onViewport)
             return@awaitEachGesture
         }
@@ -178,7 +181,7 @@ private suspend fun PointerInputScope.pageGestureLoop(
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
-            shapeDrag(down, kind, tab, ink, dragView, draft, targets.onLiveDrag, onEdited)
+            shapeDrag(down, kind, tab, shapeInk, dragView, draft, targets.onLiveDrag, onEdited)
             return@awaitEachGesture
         }
         // The vertical-space tool reflows the page under a grab line instead of drawing on it.
@@ -365,7 +368,7 @@ private fun commitShape(
     ink: DesktopInk,
     onEdited: (Int) -> Unit,
 ) {
-    val stroke = shapeStroke(points, ink.colour, ink.width) ?: return
+    val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle) ?: return
     val index = tab.page
     val before = tab.document.snapshot()
     tab.document.editPage(index) { page -> page.withElement(stroke) }
@@ -627,7 +630,9 @@ internal class PageInkGesture(
     private fun commit() {
         val samples = draft.toList()
         draft.clear()
-        val stroke = tool.inkTool()?.let { strokeOf(it, ink.colour, ink.width, samples) } ?: return
+        val stroke = tool.inkTool()?.let {
+            strokeOf(it, ink.colour, ink.width, samples, ink.lineStyle)
+        } ?: return
         val index = tab.page
         val before = tab.document.snapshot()
         tab.document.editPage(index) { page -> page.withElement(stroke) }

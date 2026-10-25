@@ -27,6 +27,7 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 ink = InkActions(
                     onColour = state::pickColour,
                     onWidth = state::pickWidth,
+                    onLineStyle = state::pickLineStyle,
                     onEditCustom = { state.editColour(ColourEditorTarget.CUSTOM) },
                     onAddColour = { state.editColour(ColourEditorTarget.NEW) },
                 ),
@@ -59,6 +60,8 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 panMode = state.panMode,
                 tool = state.tools.current,
                 ink = state.ink,
+                // Figures, circuits and placements always take the pen's ink, never the highlighter's.
+                shapeInk = state.shapeInk,
                 // The component the Circuit slot is armed with: the picker's answer, read by the
                 // placement when the press is lifted.
                 circuitKind = state.activeCircuitKind,

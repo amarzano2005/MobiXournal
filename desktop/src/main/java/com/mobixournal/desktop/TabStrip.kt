@@ -59,7 +59,7 @@ fun TabStrip(
     onActivate: (Int) -> Unit,
     onClose: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
-    onOpen: () -> Unit,
+    onNew: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val widths = remember { mutableMapOf<String, Float>() }
@@ -141,7 +141,7 @@ fun TabStrip(
             }
         }
 
-        AddTabButton(onOpen)
+        AddTabButton(onNew)
         Spacer(Modifier.width(4.dp))
     }
 }
@@ -202,9 +202,9 @@ private fun CloseGlyph(onClose: () -> Unit) {
     }
 }
 
-/** A monoline `+`: the open button at the end of the strip. */
+/** A monoline `+`: a new page at the end of the strip, the tablet's New command. */
 @Composable
-private fun AddTabButton(onOpen: () -> Unit) {
+private fun AddTabButton(onNew: () -> Unit) {
     Box(
         Modifier
             .width(28.dp)
@@ -212,7 +212,7 @@ private fun AddTabButton(onOpen: () -> Unit) {
             .background(Color.Transparent, DesktopTheme.capsuleShape)
             .hoverFill(DesktopTheme.capsuleShape)
             .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
-            .pointerInput(Unit) { detectTapGestures { onOpen() } },
+            .pointerInput(Unit) { detectTapGestures { onNew() } },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.width(9.dp).height(9.dp)) {

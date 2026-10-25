@@ -134,6 +134,8 @@ internal enum class StripSide { RIGHT, BELOW }
 class InkActions(
     val onColour: (Int) -> Unit = {},
     val onWidth: (Float) -> Unit = {},
+    /** The pen's stroke pattern: solid, dashed, dash-dot or dotted. */
+    val onLineStyle: (com.mobixournal.format.model.LineStyle) -> Unit = {},
     val onEditCustom: () -> Unit = {},
     val onAddColour: () -> Unit = {},
 )
@@ -202,6 +204,7 @@ fun ToolRail(
                     custom = state.custom,
                     favourites = state.favourites,
                     onPick = ink.onColour,
+                    onLineStyle = ink.onLineStyle,
                     onEditCustom = ink.onEditCustom,
                     onAddColour = ink.onAddColour,
                     side = StripSide.RIGHT,
@@ -271,6 +274,7 @@ fun ToolRibbon(
                     custom = state.custom,
                     favourites = state.favourites,
                     onPick = ink.onColour,
+                    onLineStyle = ink.onLineStyle,
                     onEditCustom = ink.onEditCustom,
                     onAddColour = ink.onAddColour,
                     side = StripSide.BELOW,

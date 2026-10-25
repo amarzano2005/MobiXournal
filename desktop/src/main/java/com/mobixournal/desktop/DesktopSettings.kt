@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.design.PenPalette
+import com.mobixournal.format.model.LineStyle
 import java.io.File
 import java.util.Properties
 
@@ -154,6 +155,22 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /** The pen's stroke pattern — the tablet's solid/dashed/dash-dot/dotted choice. */
+    var inkLineStyle: LineStyle
+        get() = lineStyleOf(properties.getProperty(KEY_INK_LINE_STYLE))
+        set(value) {
+            properties.setProperty(KEY_INK_LINE_STYLE, value.name)
+            save()
+        }
+
+    /** The highlighter's own stroke pattern, kept apart exactly as its colour and width are. */
+    var highlighterLineStyle: LineStyle
+        get() = lineStyleOf(properties.getProperty(KEY_HIGHLIGHTER_LINE_STYLE))
+        set(value) {
+            properties.setProperty(KEY_HIGHLIGHTER_LINE_STYLE, value.name)
+            save()
+        }
+
     /** Write the file; a failure leaves the window running on the value just chosen. */
     private fun save() {
         runCatching {
@@ -189,6 +206,17 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The stroke width the strips show, in points. */
         const val KEY_INK_WIDTH = "ink.width"
+
+        /** The pen's stroke pattern, as [LineStyle]'s name. */
+        const val KEY_INK_LINE_STYLE = "ink.lineStyle"
+
+        /** The highlighter's stroke pattern, as [LineStyle]'s name. */
+        const val KEY_HIGHLIGHTER_LINE_STYLE = "ink.highlighterLineStyle"
+
+        /** [LineStyle] named by [name], or the solid default for an unknown or absent entry. */
+        fun lineStyleOf(name: String?): LineStyle =
+            LineStyle.entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) }
+                ?: LineStyle.PLAIN
 
         /**
          * The store's home: `%APPDATA%\MobiXournal\desktop.properties` on Windows, and the same

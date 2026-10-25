@@ -149,10 +149,16 @@ class InkShortcutsTest {
 
     // --- rendering ------------------------------------------------------------------------------
 
-    /** The whole rail, tall enough to hold every tool and the two ink slots under them. */
+    /**
+     * The whole rail, tall enough to hold every tool and the two ink slots under them:
+     * the lane scrolls, so a height written down for a shorter strip would cut the ink slots off
+     * the bottom — and a clipped size dot measures the same at every width.
+     */
     @OptIn(ExperimentalComposeUiApi::class)
     private fun railPng(ink: DesktopInk, name: String): ByteArray {
-        val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), 900, Density(1f)) {
+        val stride = (ToolStripMetrics.slotSize + ToolStripMetrics.gap).value.toInt()
+        val height = (DESKTOP_TOOL_GROUPS.size + 4) * stride
+        val scene = ImageComposeScene(ToolStripMetrics.railWidth.value.toInt(), height, Density(1f)) {
             ToolRail(state = ToolStripState(ink = ink), onSelect = {})
         }
         val png = try {

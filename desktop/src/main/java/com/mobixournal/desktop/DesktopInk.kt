@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.design.PenPalette
+import com.mobixournal.format.model.LineStyle
 
 /**
  * One tool's ink: the colour and the width it draws at.
@@ -13,6 +14,8 @@ import com.mobixournal.design.PenPalette
 data class DesktopInk(
     val colour: Int = PenPalette.COLORS.first(),
     val width: Float = PenPalette.DEFAULT_WIDTHS[1],
+    /** The stroke pattern the tablet's pen settings offer: solid, dashed, dash-dot or dotted. */
+    val lineStyle: LineStyle = LineStyle.PLAIN,
 ) {
 
     /** The same ink in [colour], promoted to opaque like every palette entry. */
@@ -20,6 +23,9 @@ data class DesktopInk(
 
     /** The same ink at [width], clamped to the range a document may carry. */
     fun withWidth(width: Float): DesktopInk = copy(width = PenPalette.clampWidth(width))
+
+    /** The same ink with a different stroke pattern — baked into every stroke it writes. */
+    fun withLineStyle(style: LineStyle): DesktopInk = copy(lineStyle = style)
 }
 
 /**

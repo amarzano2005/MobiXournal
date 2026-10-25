@@ -37,6 +37,11 @@ class DesktopTab(
      * does not.
      */
     recoveredFrom: File? = null,
+    /**
+     * True for a **new page** whose file has not been written yet. It starts dirty, so `Ctrl+S` asks
+     * where to put it and closing asks whether to keep it — the same promise a recovered tab makes.
+     */
+    unsaved: Boolean = false,
 ) {
     /**
      * The document this tab shows. A Save As **re-homes** the tab onto the file it just wrote, so the
@@ -111,8 +116,9 @@ class DesktopTab(
         private set
 
     init {
-        if (recoveredFrom != null) {
-            // The snapshot is newer than the file it stands for, so the tab starts with unpublished work.
+        if (recoveredFrom != null || unsaved) {
+            // The snapshot is newer than the file it stands for, and a new page has no file at all, so
+            // both start with unpublished work.
             savePoint = NO_SAVE_POINT
             isDirty = true
         }
@@ -271,6 +277,22 @@ class DesktopTabs {
     val size: Int get() = tabs.size
     val isEmpty: Boolean get() = tabs.isEmpty()
     val active: DesktopTab? get() = tabs.getOrNull(activeIndex)
+
+    /**
+     * A **new page**: a blank document tab, its file name still unwritten. This is what the strip's `+`,
+     * the menu's New command and a window with nothing open all produce.
+     */
+    fun newBlankDocument(): DesktopTab {
+        val path = DesktopDocuments.newPath(tabs.map { it.key }.toSet())
+        val tab = DesktopTab(
+            document = DesktopDocuments.blank(path),
+            title = path.nameWithoutExtension,
+            unsaved = true,
+        )
+        tabs += tab
+        activeIndex = tabs.lastIndex
+        return tab
+    }
 
     /**
      * Add [document] as a tab and activate it. When the same file is already open, that tab is
