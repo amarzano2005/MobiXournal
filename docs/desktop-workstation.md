@@ -54,13 +54,12 @@ What it does today:
   thread while the window's scene is live tears it down. Until the new one lands the preview shows the page
   as the burst found it (`DesktopShellTest`).
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
-  view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
-  those documents — the header says nothing about a count instead of showing a wrong one.
+  view, so a notebook opens without reading it; a pressed-for stroke count is left out, never guessed.
 - Paints solid/ruled/graph/dotted/**isometric** paper (`config`'s `r1`, else `BackgroundGrid`'s defaults;
   an isometric sheet strokes the segments `BackgroundGrid.isometric` returns — the same mesh the tablet
   and the SVG/PDF exports draw — so a ±30° sheet is ruled by shared geometry and not a second grid),
-  pen strokes with their pressure taper, highlighter bands with multiply, dashed/dotted line styles, and
-  text boxes.
+  pen strokes with their pressure taper (smoothed, `InkSmoothing.kt`), highlighter bands with multiply,
+  dashed/dotted line styles, and text boxes.
 - **Writes the document back** (`Ctrl + S`; `Ctrl + Shift + S` is Save As). The bytes are
   `DocumentEncoder.write` from `mobix-core` — the same three format arms the tablet saves through —
   staged into a temp file beside the target and then moved over it, so a crash mid-write cannot leave a
@@ -328,8 +327,9 @@ the numbers).
 The pen's two Windows streams, the packet path that draws a stroke, the dial's COM handler and the hand's own
 gain are [desktop-tablet.md](desktop-tablet.md)'s. The window's side is one rule: the driver's packets draw
 the stroke, the mouse Windows emulates never does, one contact is one stroke. The **hand** pans from the same
-packets (`PenPacketPan`), one viewport write per frame; a held **Space** takes them from the stroke path
-(`PenPacketPanTest`). The pointer is the **tool's**: the ring for every tool but the hand.
+packets (`PenPacketPan`), one viewport write per frame; a held **Space** takes them from the stroke path.
+The pointer over the sheet is the **tool's**: a ring wherever the tool lays ink at a width, the text cursor
+for Text (it writes words, not a band), and the hand for the hand.
 
 ### Verification, runnable on any JVM host (no emulator)
 

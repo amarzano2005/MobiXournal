@@ -17,12 +17,25 @@ import com.mobixournal.render.InkGeometry
  */
 internal object PageInk {
 
-    /** The stroke's polyline as a Compose path, in device pixels (page pt × [scale]). */
+    /**
+     * The stroke's line as a Compose path, in device pixels (page pt × [scale]).
+     *
+     * It is the **smoothed** line ([smoothedInk]), not a chain of `lineTo`s: on the desktop the samples
+     * are 8 ms apart at best, so joining them straight drew the sampling rate as facets along every
+     * diagonal. The quadratics run through the midpoints of the samples, which is a fraction of a point of
+     * deviation and no corner at all — and, because the samples themselves are untouched, the page is
+     * unchanged for Android and for Xournal++.
+     */
     fun polyline(pts: List<StrokePoint>, scale: Float): Path = Path().apply {
-        for ((i, p) in pts.withIndex()) {
-            val x = (p.x * scale).toFloat()
-            val y = (p.y * scale).toFloat()
-            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        val first = pts.firstOrNull() ?: return@apply
+        moveTo((first.x * scale).toFloat(), (first.y * scale).toFloat())
+        for (curve in smoothedInk(pts)) {
+            quadraticBezierTo(
+                (curve.controlX * scale).toFloat(),
+                (curve.controlY * scale).toFloat(),
+                (curve.toX * scale).toFloat(),
+                (curve.toY * scale).toFloat(),
+            )
         }
     }
 

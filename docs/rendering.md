@@ -61,6 +61,14 @@ Android-facing names (`renderColor`, `bandWidth`, `dashIntervalsPt`, `uniformWid
 the desktop shell's painter converts the same geometry into Compose paths, so the tablet and the PC
 cannot disagree about how ink looks. Only the raster backend differs.
 
+**The window smooths its own line.** A page stores *samples*, and on the desktop they are 8 ms apart at
+best, so joining them with `lineTo` drew the sampling rate as facets along every diagonal — the tablet
+never looked that way because it paints through a spline. `InkSmoothing.kt` turns the samples into the
+standard midpoint quadratics (each sample is a control point, each curve ends on a midpoint, the chain
+starts and ends on real samples), and `PageInk.polyline` draws those; the deviation is half a sample
+spacing, and **the stored points are untouched**, so the page is identical on Android, in Xournal++ and in
+the window (`DesktopInkSmoothingTest`).
+
 ## When the pane under the canvas changes size (`render/DrawingSurfaceResize.kt`)
 
 A resize is the one change to the canvas that **no event announces**: a split-divider drag, a pane
