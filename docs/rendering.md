@@ -61,13 +61,21 @@ Android-facing names (`renderColor`, `bandWidth`, `dashIntervalsPt`, `uniformWid
 the desktop shell's painter converts the same geometry into Compose paths, so the tablet and the PC
 cannot disagree about how ink looks. Only the raster backend differs.
 
-**The window smooths its own line.** A page stores *samples*, and on the desktop they are 8 ms apart at
-best, so joining them with `lineTo` drew the sampling rate as facets along every diagonal — the tablet
-never looked that way because it paints through a spline. `InkSmoothing.kt` turns the samples into the
-standard midpoint quadratics (each sample is a control point, each curve ends on a midpoint, the chain
-starts and ends on real samples), and `PageInk.polyline` draws those; the deviation is half a sample
-spacing, and **the stored points are untouched**, so the page is identical on Android, in Xournal++ and in
-the window (`DesktopInkSmoothingTest`).
+**The window smooths its own line — but never a corner.** A page stores *samples*, and on the desktop they
+are 8 ms apart at best, so joining them with `lineTo` drew the sampling rate as facets along every
+diagonal — the tablet never looked that way because it paints through a spline. `InkSmoothing.kt` turns
+the samples into the standard midpoint quadratics (each sample a control point, each curve ending on a
+midpoint, the chain starting and ending on real samples), and `PageInk.polyline` draws those; the
+deviation is half a sample spacing, and **the stored points are untouched**, so the page is identical on
+Android, in Xournal++ and in the window.
+
+A **figure is a stroke too**, though, and averaging through its vertices turned every rectangle, triangle
+and arrow head into a rounded blob — the smoothing was right and the shapes were wrong. So a sample whose
+turn is at least `CORNER_DEGREES` (35°) is an **anchor**: the runs either side of it are smoothed
+separately and the vertex stays exactly where the geometry put it. Freehand turns a few degrees per
+sample, so handwriting is smoothed whole; a 60° or 90° corner is drawn as the shape it is
+(`DesktopInkSmoothingTest`: a rectangle's perimeter comes out exactly its polygon's, an arc's comes out
+slightly shorter than the faceted one it replaces).
 
 ## When the pane under the canvas changes size (`render/DrawingSurfaceResize.kt`)
 

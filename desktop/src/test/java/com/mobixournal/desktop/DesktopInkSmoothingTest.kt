@@ -1,18 +1,24 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.format.model.StrokePoint
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The window's ink smoothing: the samples of a stroke as a **tangent-continuous** curve.
+ * The window's ink smoothing: a **freehand** stroke as a tangent-continuous curve, a **figure** exactly the
+ * shape its corners make.
  *
  * The rule is pure arithmetic, so it is checked without a canvas: each curve ends at the midpoint of two
- * samples, its control point is the sample between them, the chain still starts on the first sample and
- * ends on the last, and the line it draws is shorter than the faceted one across a corner — which is the
- * whole claim. The page's samples are untouched, so this is a painter's decision and not a format one.
+ * samples with the sample between them as its control point, the chain still starts on the first sample and
+ * ends on the last, a gentle arc comes out shorter than the faceted one it replaces — and a corner (a
+ * rectangle, a triangle, an arrow's head) is kept where the geometry put it, which is the difference
+ * between a rectangle and a rounded blob. The page's samples are untouched either way, so this is a
+ * painter's decision and not a format one.
  */
 class DesktopInkSmoothingTest {
 
@@ -42,6 +48,10 @@ class DesktopInkSmoothingTest {
         return total
     }
 
+    /** The length of the faceted line: what `lineTo` drew. */
+    private fun faceted(points: List<StrokePoint>): Double =
+        (1 until points.size).sumOf { hypot(points[it].x - points[it - 1].x, points[it].y - points[it - 1].y) }
+
     @Test
     fun `nothing to smooth below two samples`() {
         assertEquals("a press is not a stroke", emptyList<InkCurve>(), smoothedInk(emptyList()))
@@ -57,29 +67,56 @@ class DesktopInkSmoothingTest {
     }
 
     @Test
-    fun `every interior sample is a control point, not a corner`() {
-        val zigzag = points(0.0, 0.0, 10.0, 0.0, 10.0, 10.0, 0.0, 10.0)
-        val curves = smoothedInk(zigzag)
-        assertEquals("one curve per gap between samples", zigzag.size - 1, curves.size)
+    fun `a gentle arc is one smoothed run through its midpoints`() {
+        val arc = (0..36).map { step ->
+            val angle = step * 5.0 * PI / 180.0
+            StrokePoint(100 + 100 * cos(angle), 100 + 100 * sin(angle), 1.0)
+        }
+        val curves = smoothedInk(arc)
+        assertEquals("one curve per interior sample: no corner splits an arc", arc.size - 2, curves.size)
+        assertTrue("the curves bend: the control point is not their end", curves[0].controlX != curves[0].toX)
+        assertEquals(
+            "the first curve runs to the midpoint, as the rule says",
+            (arc[1].x + arc[2].x) / 2,
+            curves.first().toX,
+            1e-9,
+        )
+        assertEquals("ending on the last sample", arc.last().x, curves.last().toX, 1e-9)
+        assertEquals(arc.last().y, curves.last().toY, 1e-9)
 
-        // The curve through the corner's *neighbour* has the corner itself as its control point, and ends
-        // half way to the next sample — so the drawn line never turns on the corner.
-        assertEquals(10.0, curves[0].controlX, 1e-9)
-        assertEquals(0.0, curves[0].controlY, 1e-9)
-        assertEquals(10.0, curves[0].toX, 1e-9)
-        assertEquals(5.0, curves[0].toY, 1e-9)
-
-        assertEquals("the chain starts where the pen touched down", 0.0, zigzag.first().x, 1e-9)
-        assertEquals("and ends on the last sample", 0.0, curves.last().toX, 1e-9)
-        assertEquals(10.0, curves.last().toY, 1e-9)
+        val smooth = length(arc)
+        val drawn = faceted(arc)
+        assertTrue("the smoothed arc is shorter than the faceted one ($smooth vs $drawn)", smooth < drawn)
+        assertTrue("but only just: it still follows the hand ($smooth vs $drawn)", smooth > drawn * 0.99)
     }
 
     @Test
-    fun `the drawn line cuts the corner the faceted one turned on`() {
-        val corner = points(0.0, 0.0, 100.0, 0.0, 100.0, 100.0)
-        val faceted = 100.0 + 100.0
-        val smooth = length(corner)
-        assertTrue("a smoothed corner is shorter than two legs ($smooth vs $faceted)", smooth < faceted - 1.0)
-        assertTrue("but it still goes the long way round ($smooth)", smooth > faceted * 0.75)
+    fun `a rectangle stays a rectangle`() {
+        val rectangle = points(0.0, 0.0, 100.0, 0.0, 100.0, 60.0, 0.0, 60.0, 0.0, 0.0)
+        val curves = smoothedInk(rectangle)
+        assertEquals("one straight side per corner", 4, curves.size)
+        for ((i, curve) in curves.withIndex()) {
+            val corner = rectangle[i + 1]
+            assertEquals("side ${i + 1} ends on its corner, x", corner.x, curve.toX, 1e-9)
+            assertEquals("side ${i + 1} ends on its corner, y", corner.y, curve.toY, 1e-9)
+            assertEquals("and is straight, not rounded (control x)", corner.x, curve.controlX, 1e-9)
+            assertEquals("and is straight, not rounded (control y)", corner.y, curve.controlY, 1e-9)
+        }
+        assertEquals("so it is drawn exactly as long as it is", faceted(rectangle), length(rectangle), 1e-6)
+    }
+
+    @Test
+    fun `a sharp turn keeps its vertex while the run into it is smoothed`() {
+        // Freehand wobble, then an arrow's head: the samples before the turn curve, the turn itself does not.
+        val stroke = points(0.0, 0.0, 10.0, 1.0, 20.0, 0.0, 30.0, 1.0, 40.0, 0.0, 40.0, 20.0)
+        val curves = smoothedInk(stroke)
+        val head = curves.last()
+        assertEquals("the head's point is a vertex", 40.0, head.toX, 1e-9)
+        assertEquals(20.0, head.toY, 1e-9)
+        assertEquals("reached straight from the turn", 40.0, head.controlX, 1e-9)
+        assertTrue(
+            "while the wobbling run before it is curved",
+            curves.first().controlX != curves.first().toX,
+        )
     }
 }
