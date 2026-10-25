@@ -73,3 +73,32 @@ fun describeSaveFailure(failure: Throwable): OpenFailure {
         else -> OpenFailure("Could not save the document", "${failure::class.simpleName}: $detail")
     }
 }
+
+/**
+ * What the window says when an **export** failed — a PDF or a folder of SVG pages.
+ *
+ * Same rule as a save (say what happened and what to do, never an internal class name), different causes:
+ * an export writes new files beside the document rather than over it, so the original is never in danger
+ * and the sentence should say that instead of reassuring about the document. A refused destination is
+ * [DesktopSaves.SaveRefused] whatever the command — the message already names the reason (a board, no
+ * pages, a folder it may not write) — and a full disk is the one case worth its own wording.
+ */
+fun describeExportFailure(failure: Throwable): OpenFailure {
+    val detail = failure.message?.takeIf { it.isNotBlank() } ?: "no detail available"
+    return when (failure) {
+        is DesktopSaves.SaveRefused -> OpenFailure("This document cannot be exported there", detail)
+        is java.io.IOException -> OpenFailure(
+            "Could not write the export",
+            "$detail — nothing was written, and the document on disk was left as it was.",
+        )
+        is OutOfMemoryError -> OpenFailure(
+            "Not enough memory",
+            "This document is larger than the available memory: $detail",
+        )
+        is LinkageError -> OpenFailure(
+            "The preview has fallen behind",
+            "The window was open while the code was rebuilt. Close it, relaunch, then export again.",
+        )
+        else -> OpenFailure("Could not export the document", "${failure::class.simpleName}: $detail")
+    }
+}

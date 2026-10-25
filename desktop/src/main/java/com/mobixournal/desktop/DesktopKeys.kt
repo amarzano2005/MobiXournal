@@ -39,6 +39,9 @@ enum class ShellCommand {
     /** Write it somewhere else, choosing the container by the name: `Ctrl+Shift+S`. */
     SAVE_AS,
 
+    /** Export the document as a PDF, asking where to put it: `Ctrl+E`. */
+    EXPORT_PDF,
+
     /**
      * Take back the active tab's last command (`Ctrl+Z`). **Unavailable while its history is empty** —
      * the command is then not handled at all (`apply` answers false), which is the state a header
@@ -168,6 +171,7 @@ internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand
     ctrl && key == Key.C -> ShellCommand.COPY_SELECTION
     ctrl && key == Key.V -> ShellCommand.PASTE_CLIPBOARD
     ctrl && key == Key.D -> ShellCommand.DUPLICATE_SELECTION
+    ctrl && !shift && key == Key.E -> ShellCommand.EXPORT_PDF
     !ctrl && (key == Key.PageDown || key == Key.DirectionDown) -> ShellCommand.NEXT_PAGE
     !ctrl && (key == Key.PageUp || key == Key.DirectionUp) -> ShellCommand.PREVIOUS_PAGE
     key == Key.Delete || key == Key.Backspace -> ShellCommand.DELETE_SELECTION

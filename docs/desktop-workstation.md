@@ -71,6 +71,8 @@ What it does today:
   packaged, an unrecognised name keeps what the document had), and the tab is re-homed onto the file it
   just wrote. A save writes the document **with its edits**: a page the window drew on is the page the
   file gets, and a `.mobix` repack still streams the pages nobody touched out of the archive.
+- **Exports it too** — `Ctrl + E` (or the menu's *Export PDF…*) writes one PDF, and *Export pages as SVG…*
+  one file per page beside the notebook; both use the shared plan and see the window's unsaved pages.
 - **Draws and erases on the page** — pen (`B`), highlighter (`H`) and eraser (`E`). A primary drag is
   fed to the shared `InkPointerRouter` (`mobix-core`) as a stream of `InkPointer`s, so what a press
   means, how hard the pen draws and when a drag is a stroke rather than a tap are the same decisions the
@@ -186,17 +188,15 @@ fill is opaque rather than the floating family's 0.88, because it straddles the 
 
 A save can be refused before anything is written, and the sentence says which case it is
 (`describeSaveFailure`). A **packaged `.xopp` whose background lives inside the package** is the one this
-window cannot write faithfully — it has no image or PDF store to bundle a picture or a PDF back out of
-— so it is refused with the two ways round it (save it as a gzip `.xopp` or as a `.mobix`) rather than
-written with a reference to an entry it did not produce; the file stays byte-identical, because a staging
-file that is never committed is all that existed. An **I/O failure** says so and adds that the document on
-disk was left as it was — the staged-then-moved write makes that true. A **`LinkageError`** is reported as
-the window being stale, exactly as on an open. `DesktopSaveTest` pins all three, and byte-compares the
-original to prove a refused save touched nothing.
+window cannot write faithfully — it has no image or PDF store to bundle one back out of — so it is refused
+with the two ways round it (a gzip `.xopp` or a `.mobix`) rather than written with a reference to an entry
+it did not produce; the file stays byte-identical, because only a staging file that is never committed existed. An **I/O failure** says so and adds that the document on
+disk was left as it was — the staged-then-moved write makes that true. A **`LinkageError`** is the window
+being stale, as on an open. `DesktopSaveTest` pins all three, and byte-compares the original to prove a
+refused save touched nothing.
 
 `--args` splits its value on spaces, so a notebook under `Il mio Drive/…` arrives as several arguments:
-`initialDocument` puts the pieces back together when the first is not itself a file, so a path with
-spaces works from the command line as it does from the picker.
+`initialDocument` puts the pieces back together when the first is not itself a file.
 
 ### Unsaved edits: the dot, the question, and a snapshot
 
@@ -358,13 +358,13 @@ painted ink both return), a second undo that reports nothing left, a redo that r
 starts a new history. `DesktopLifecycleTest` is the lifecycle headless: an edit makes a tab dirty, a save and
 an undo back to the save point make it clean, closing a dirty tab asks first, a snapshot written by one shell
 is adopted by the next and deleted once saved, and the strip's dot is drawn only while there are unsaved
-edits. Every render is written under `desktop/build/desktop-render/` so it can be looked at: `glass-parity.png`
-(the same panel in the tablet's material and in this window's, by `GlassParityRenderTest`), and
+edits. Every render lands under `desktop/build/desktop-render/`: `glass-parity.png` (the same panel in the
+tablet's material and in this window's, by `GlassParityRenderTest`), and
 `glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which `GlassEdgeTest` samples — the rim
 brighter at the top than at the bottom, or it is a border and not the family's edge, and a band of ink under
 the panel still reading through it, or the fill is a slab. `GlassMotionTest` drives the arrival through a
-scene's frame clock (`render(nanoTime)`): nothing at t=0, faint at 40 ms and still inside its 82 % box, the
-glass at full size by 700 ms, with `GlassPresence` holding it composed through the 230 ms exit.
+scene's frame clock (`render(nanoTime)`): nothing at t=0, faint at 40 ms inside its 82 % box, the glass at
+full size by 700 ms, with `GlassPresence` holding it composed through the 230 ms exit.
 `PageLayersAndPaperTest` reads pixels too: `isometric-paper.png`'s line midpoints must fall on
 `BackgroundGrid.isometric`'s segments, and `hidden-layer.png` is a two-layer page with one off — the band
 that is gone is the check.

@@ -42,10 +42,14 @@ import androidx.compose.ui.window.Popup
 internal fun HeaderMenu(
     sidebarVisible: Boolean,
     canSave: Boolean,
+    /** Whether a document is open at all — what makes the two export rows available. */
+    canExport: Boolean,
     onNew: () -> Unit,
     onOpen: () -> Unit,
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
+    onExportPdf: () -> Unit,
+    onExportSvg: () -> Unit,
     onToggleSidebar: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -77,6 +81,15 @@ internal fun HeaderMenu(
                     MenuRow("Open…", enabled = true) { open = false; onOpen() }
                     MenuRow("Save", enabled = canSave) { open = false; onSave() }
                     MenuRow("Save As…", enabled = true) { open = false; onSaveAs() }
+                    MenuDivider()
+                    // The two exports, after the saves: a PDF of the whole document, then the pages as
+                    // SVG files beside it. Both write new files and never touch the document.
+                    MenuRow("Export PDF…", shortcut = "Ctrl+E", enabled = canExport) {
+                        open = false; onExportPdf()
+                    }
+                    MenuRow("Export pages as SVG…", enabled = canExport) {
+                        open = false; onExportSvg()
+                    }
                     MenuDivider()
                     MenuRow(
                         label = if (sidebarVisible) "Hide sidebar" else "Show sidebar",

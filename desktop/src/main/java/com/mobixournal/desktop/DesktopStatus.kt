@@ -120,6 +120,12 @@ internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null) {
         val hz = remember { displayRefreshHz() }
         Text(refreshLabel(hz), color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         Spacer(Modifier.weight(1f))
+        // The last export's own sentence — `Exported 12 pages to notes.pdf` — in the accent, because it is
+        // news rather than a reading of the document. A write that worked is worth one line, not a card.
+        DesktopExportNotice.text?.let { message ->
+            Text(message, color = DesktopTheme.accent, style = DesktopTheme.label, maxLines = 1)
+            Spacer(Modifier.width(14.dp))
+        }
         Text(
             text = "${tab.document.container.label} · ${tab.file.name}",
             color = DesktopTheme.inkMuted,

@@ -498,15 +498,14 @@ class DesktopShellState(
      * [apply]. Compose's `KeyEvent` cannot be built outside a real window, so keeping the decision out
      * of it is what lets the shortcuts be tested at all.
      */
-    fun onKey(event: KeyEvent, onOpenPicker: () -> Unit, onSavePicker: () -> Unit = {}): Boolean {
+    fun onKey(event: KeyEvent, onOpenPicker: () -> Unit, onSavePicker: () -> Unit = {}, onExportPicker: () -> Unit = {}): Boolean {
         // A held Space is a modifier, not a command: it starts on the press and ends on the release.
         if (event.key == Key.Spacebar && event.type == KeyEventType.KeyUp) {
             panMode = false
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
-        // A text box owns the keyboard: `Esc` commits it, and every other key is a character it types
-        // (no `Space` to pan, no `B` for the pen, no `Delete` that deletes something other than a letter).
+        // A text box owns the keyboard: `Esc` commits it, every other key is a character it types.
         textBox.command(event.key)?.let {
             textBox.commit(tabs.active, ::edited)
             return true
@@ -529,14 +528,12 @@ class DesktopShellState(
             cancelColourEdit()
             return true
         }
-        // So does a tool group's picker: a chevron that opened a list is closed by the key that closes
-        // every other surface, not left hanging over the page.
+        // So does a tool group's picker: a chevron that opened a list must not hang over the page.
         if (event.key == Key.Escape && openGroup != null) {
             openGroup = null
             return true
         }
-        // `Alt + Down` is the picker's own key: it opens the picked tool's group and closes it again.
-        // Checked before the shortcut table, where a bare `Down` means "next page".
+        // `Alt + Down` is the picker's key, checked before the table where bare `Down` means "next page".
         if (toolPickerKey(event.key, alt = event.isAltPressed)) {
             toggleToolPicker()
             return true
@@ -544,7 +541,7 @@ class DesktopShellState(
         // The order is the table's: a `Ctrl` command first (`Ctrl+1` stays fit width), then the ink keys
         // (digits and brackets, none of which is a tool's letter), then the tools.
         val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed)
-        if (command != null) return apply(command, onOpenPicker, onSavePicker)
+        if (command != null) return apply(command, onOpenPicker, onSavePicker, onExportPicker)
         inkCommand(event.key, alt = event.isAltPressed, ctrl = event.isCtrlPressed)?.let { pressed ->
             when (pressed) {
                 is InkCommand.PickFavourite -> pickFavourite(pressed.index)
@@ -576,6 +573,7 @@ class DesktopShellState(
         command: ShellCommand,
         onOpenPicker: () -> Unit = {},
         onSavePicker: () -> Unit = {},
+        onExportPicker: () -> Unit = {},
     ): Boolean {
         when (command) {
             ShellCommand.DISMISS_FAILURE -> return dismissSurface()
@@ -587,9 +585,10 @@ class DesktopShellState(
                 toggleSidebar()
                 return true
             }
-            ShellCommand.SAVE_AS -> {
+            // Both ask the window where the file goes: this class has no dialog to open.
+            ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> {
                 if (tabs.active == null) return false
-                onSavePicker()
+                if (command == ShellCommand.SAVE_AS) onSavePicker() else onExportPicker()
                 return true
             }
             // Ctrl+S is **unavailable** on a tab whose file already holds it: there is nothing to
@@ -655,7 +654,7 @@ class DesktopShellState(
             ShellCommand.DUPLICATE_SELECTION -> duplicateSelection(tab) { index -> edited(tab, index) }
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
-            ShellCommand.SAVE, ShellCommand.SAVE_AS -> false
+            ShellCommand.SAVE, ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> false
         }
     }
 
@@ -664,8 +663,7 @@ class DesktopShellState(
      * failure card. A surface that is not up answers false, so the key is not swallowed by nothing.
      */
     private fun dismissSurface(): Boolean {
-        // A drag that has not finished is the first thing `Esc` answers: cancelling the figure being
-        // drawn is the only way back from a geometry gesture the pointer has not released.
+        // A drag that has not finished is first: cancelling the figure is the only way back from it.
         val cancel = liveDrag
         if (cancel != null) {
             liveDrag = null

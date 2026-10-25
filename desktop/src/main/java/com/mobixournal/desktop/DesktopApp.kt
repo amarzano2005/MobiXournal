@@ -16,6 +16,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.window.FrameWindowScope
 import java.awt.EventQueue
 import java.awt.FileDialog
+import java.awt.Frame
 import java.io.File
 
 /**
@@ -47,31 +48,31 @@ fun FrameWindowScope.DesktopApp(
     // the moment the panel is gone.
     var keyboardHeld by remember { mutableStateOf(false) }
 
-    /** The system picker. `FileDialog`'s filter is ignored on Windows, so it is a convenience only. */
+    /** The system picker for a document to open. */
     fun pick() {
-        val dialog = FileDialog(window, "Open a document", FileDialog.LOAD)
-        dialog.setFilenameFilter { _, name ->
-            name.endsWith(".xopp", ignoreCase = true) || name.endsWith(".mobix", ignoreCase = true)
-        }
-        dialog.isVisible = true
-        val dir = dialog.directory
-        val name = dialog.file
-        if (dir != null && name != null) state.open(File(dir, name))
+        chooseDocument(window)?.let(state::open)
     }
 
     /**
-     * Save As: the system dialog, proposing the name the document already has. The **container** follows
-     * the suffix the user leaves on the name (`DesktopSaves.formatFor`) — `.mobix` for the native
-     * archive, `.xopp` for the interchange one — so the dialog is where a format is chosen.
+     * Export PDF: the dialog proposes the document's own name with a `.pdf` suffix, so the export lands
+     * beside the notebook unless the user says otherwise. The write itself is queued ([DesktopExportQueue])
+     * and runs off the UI thread.
+     */
+    fun pickExportDestination() {
+        val tab = state.active ?: return
+        val proposed = "${tab.file.nameWithoutExtension}.pdf"
+        chooseSave(window, "Export the document as a PDF", proposed)
+            ?.let { DesktopExportQueue.request(ExportRequest.Pdf(it)) }
+    }
+
+    /**
+     * Save As: the dialog proposes the name the document already has. The **container** follows the
+     * suffix the user leaves on the name (`DesktopSaves.formatFor`) — `.mobix` for the native archive,
+     * `.xopp` for the interchange one — so the dialog is where a format is chosen.
      */
     fun pickSaveDestination() {
         val tab = state.active ?: return
-        val dialog = FileDialog(window, "Save the document as", FileDialog.SAVE)
-        dialog.file = tab.file.name
-        dialog.isVisible = true
-        val dir = dialog.directory
-        val name = dialog.file
-        if (dir != null && name != null) state.saveAs(File(dir, name))
+        chooseSave(window, "Save the document as", tab.file.name)?.let(state::saveAs)
     }
 
     // Recovery first: a snapshot is newer than the file it stands for, so a file named on the command
@@ -95,6 +96,12 @@ fun FrameWindowScope.DesktopApp(
     // `null` on a host without them, which the status bar then says in words. The dial's events arrive on
     // Windows' own thread, so they are posted to the window's event queue before they touch any state.
     val tablet = remember { DesktopTablet() }
+    // `Ctrl+E` arrives at the shell, which has no window to hang a dialog on: the window lends it one for
+    // as long as it is up.
+    DisposableEffect(Unit) {
+        DesktopExportQueue.pickPdfDestination = ::pickExportDestination
+        onDispose { DesktopExportQueue.pickPdfDestination = null }
+    }
     DisposableEffect(Unit) {
         tablet.open(
             window = window,
@@ -110,12 +117,44 @@ fun FrameWindowScope.DesktopApp(
             state = state,
             onOpenPicker = ::pick,
             onSavePicker = ::pickSaveDestination,
+            onExportPdfPicker = ::pickExportDestination,
             tablet = tablet,
             modifier = Modifier
                 .focusRequester(focus)
                 .focusable()
                 .onFocusChanged { keyboardHeld = it.hasFocus }
-                .onPreviewKeyEvent { event -> state.onKey(event, ::pick, ::pickSaveDestination) },
+                .onPreviewKeyEvent { event ->
+                    state.onKey(event, ::pick, ::pickSaveDestination, ::pickExportDestination)
+                },
         )
     }
+}
+
+/**
+ * The native open dialog, or null when it was cancelled.
+ *
+ * `FileDialog`'s filter is ignored on Windows, so the `.xopp`/`.mobix` suffix test is a convenience for the
+ * platforms that honour it and never a restriction: the loader identifies a document by its bytes.
+ */
+private fun chooseDocument(window: Frame): File? {
+    val dialog = FileDialog(window, "Open a document", FileDialog.LOAD)
+    dialog.setFilenameFilter { _, name ->
+        name.endsWith(".xopp", ignoreCase = true) || name.endsWith(".mobix", ignoreCase = true)
+    }
+    return awaitChoice(dialog)
+}
+
+/** The native save dialog with [proposed] already in its name field, or null when it was cancelled. */
+private fun chooseSave(window: Frame, title: String, proposed: String): File? {
+    val dialog = FileDialog(window, title, FileDialog.SAVE)
+    dialog.file = proposed
+    return awaitChoice(dialog)
+}
+
+/** Show [dialog] modally and answer the file it chose — null covers Cancel and an unnamed field alike. */
+private fun awaitChoice(dialog: FileDialog): File? {
+    dialog.isVisible = true
+    val dir = dialog.directory ?: return null
+    val name = dialog.file ?: return null
+    return File(dir, name)
 }

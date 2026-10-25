@@ -69,6 +69,8 @@ internal fun Header(
     onOpen: () -> Unit,
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
+    onExportPdf: () -> Unit,
+    onExportSvg: () -> Unit,
     onToggleSidebar: () -> Unit,
     onPlacement: (ToolPlacement) -> Unit,
 ) {
@@ -83,10 +85,13 @@ internal fun Header(
         HeaderMenu(
             sidebarVisible = sidebarVisible,
             canSave = tabs.active?.isDirty == true,
+            canExport = tabs.active != null,
             onNew = onNew,
             onOpen = onOpen,
             onSave = onSave,
             onSaveAs = onSaveAs,
+            onExportPdf = onExportPdf,
+            onExportSvg = onExportSvg,
             onToggleSidebar = onToggleSidebar,
         )
         Spacer(Modifier.width(10.dp))

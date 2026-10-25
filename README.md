@@ -207,8 +207,13 @@ the **edge of the canvas scrolls the view** while the drag keeps going, and the 
 rather than jumping: a marquee keeps catching ink past the border, a box or an arrow keeps opening, and an
 element can be carried to a part of the sheet that is off screen without lifting the pen. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
 (a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
-the format its name asks for. The window speaks English, like the tablet app, and it is a separate
-module, so it never affects the Android build.
+the format its name asks for. The same document leaves the window a second way: **Export PDF** in the menu
+(or `Ctrl + E`) writes the whole notebook as one PDF — the paper and its ruling, every stroke, text box,
+figure, table, plot, component and formula, with the page of an annotated PDF or a photograph underneath —
+and **Export pages as SVG** writes one vector file per page beside the notebook. Neither command touches the
+document; a PDF is asked where to go, the SVG pages go next to the file you opened, and an infinite board
+is politely refused rather than printed as one sheet of itself. The window speaks English, like the tablet
+app, and it is a separate module, so it never affects the Android build.
 
 The graphics tablet is read directly, through the tablet driver's own packet stream rather than the
 desktop's mouse pointer, and the stroke itself begins and ends with that stream — so the pen behaves like
@@ -267,8 +272,8 @@ one, and the palette, the favourites and the width are remembered between runs.
 
 | Key | What it does |
 |---|---|
-| `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) |
-| `Ctrl + S` / `Ctrl + Shift + S` | save back to the file, when it has unsaved edits / Save As (the name's suffix picks the format) |
+| `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) || `Ctrl + S` / `Ctrl + Shift + S` | save back to the file, when it has unsaved edits / Save As (the name's suffix picks the format) |
+| `Ctrl + E` | export the document as a PDF (the menu also exports the pages as SVG files) |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the last edit in the current document |
 | `Ctrl + W`, `×` on a tab | close the tab (it asks first if the tab has unsaved edits) |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |

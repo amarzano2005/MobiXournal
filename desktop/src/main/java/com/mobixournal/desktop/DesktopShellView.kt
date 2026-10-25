@@ -29,12 +29,16 @@ internal fun DesktopShell(
     onOpenPicker: () -> Unit,
     /** The system Save As picker, opened from the menu and from `Ctrl+Shift+S`. */
     onSavePicker: () -> Unit = {},
+    /** Where the export's PDF should go, opened from the menu and from `Ctrl+E`. */
+    onExportPdfPicker: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** The window's devices, or null in a test that has none — the canvas then keeps the mouse path. */
     tablet: DesktopTablet? = null,
 ) {
     ThumbnailRefresh(state)
     RecoverySnapshots(state)
+    // The one export in flight, written off the UI thread (`DesktopExportCommands.kt`).
+    ExportWorker(state)
     Column(modifier.fillMaxSize().background(DesktopTheme.desk)) {
         Header(
             tabs = state.tabs,
@@ -47,6 +51,10 @@ internal fun DesktopShell(
             onOpen = onOpenPicker,
             onSave = { state.save() },
             onSaveAs = onSavePicker,
+            onExportPdf = onExportPdfPicker,
+            // The pages go beside the document, which is the folder the user opened it from; no dialog,
+            // because AWT has no folder-only picker and a file picker would ask the wrong question.
+            onExportSvg = { DesktopExportQueue.request(ExportRequest.Svg()) },
             // The page's two commands live in the tool strips now, after their divider
             // (`ToolStrips.PageSetupSlots`): the header keeps the file and the view.
             onToggleSidebar = { state.toggleSidebar() },

@@ -40,8 +40,7 @@ the tablet and the `desktop/` window; the layout it produces is owned by [chrome
   lies on. A bar *on* the sheet hides the ink under it, swallows the stylus there, and covers the top of the
   sheet, where a hand reaches first ([chrome.md](chrome.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
   **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: an anchored
-  popover, a dialog or a selection bar comes and goes with the gesture, so it may sit over the ink, and
-  none of them is ever a permanent band.
+  popover, dialog or selection bar comes and goes with the gesture, so it may sit over the ink, never as a band.
 - **One edge per surface**: a header closes on **one** bottom edge, across the full width, with one shadow
   and **no rim**; its rows (tools, document tabs) are separated by their own content, not by a line. A rim
   and an inner hairline are tidy on a light scheme, but over the true-black one they read as three grey
@@ -233,6 +232,7 @@ Everything the chrome does can also be done from the keyboard:
 | `Ctrl + W`, `×` | close the tab, activating its neighbour — asking first while it has unsaved edits |
 | `Ctrl + S` | save the active document back into the container it was opened as; unavailable while the file already holds it |
 | `Ctrl + Shift + S` | Save As — the name's suffix chooses the container |
+| `Ctrl + E` | export the active document as a PDF, asking where to put it |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the active tab's last command |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
 | `Ctrl + B`, `≡` | show or hide the sidebar |
