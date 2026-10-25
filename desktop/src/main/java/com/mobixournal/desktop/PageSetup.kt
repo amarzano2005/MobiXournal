@@ -40,15 +40,11 @@ enum class PageSetupSection {
     /** What the sheet is: its paper style and ruling spacing. */
     PAPER,
 
-    /** How big **this** sheet is: a preset, any size, in either orientation. */
-    FORMAT,
-
     /**
-     * How big every **new** sheet is — the window's page settings, as the tablet keeps them in its own
-     * section: a default is a setting of the app, not an edit of the page in view, so it has a section of
-     * its own rather than a button at the bottom of the format one.
+     * How big **this** sheet is: a preset, any size, in either orientation — and, under it, the **defaults**
+     * every new sheet is born on, as the tablet keeps them in the same page-format dialog.
      */
-    DEFAULT,
+    FORMAT,
 }
 
 /** Points per millimetre — the unit the tablet's ruling chips use, written here because the app's own. */
@@ -133,27 +129,23 @@ private fun PageSetupPanel(
 ) {
     Column(Modifier.width(430.dp).glassSpring().glassSurface().padding(18.dp)) {
         Text(
-            when (section) {
-                PageSetupSection.PAPER -> "Page background"
-                PageSetupSection.FORMAT -> "Page format"
-                PageSetupSection.DEFAULT -> "Page defaults"
-            },
+            if (section == PageSetupSection.PAPER) "Page background" else "Page format",
             color = DesktopTheme.ink,
             style = DesktopTheme.title,
         )
         Spacer(Modifier.height(12.dp))
-        when (section) {
-            PageSetupSection.PAPER -> PaperSection(page, onStyle, onSpacing)
-            PageSetupSection.FORMAT -> FormatSection(page, onSize, defaultSize)
-            PageSetupSection.DEFAULT -> DefaultsSection(defaultSize, onSetDefault)
+        if (section == PageSetupSection.PAPER) {
+            PaperSection(page, onStyle, onSpacing)
+        } else {
+            FormatSection(page, onSize, defaultSize, onDefault = onSetDefault)
         }
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             if (section == PageSetupSection.FORMAT) {
                 // The tablet's own two answers, in the same order: store this sheet as the default, or
                 // close the surface. Storing is a *setting*, not a page edit, so the page keeps its size
-                // and the next new sheet is born with this one; the defaults themselves are edited in
-                // their own section (`DefaultsSection`).
+                // and the next new sheet is born with this one; the defaults themselves are the block at
+                // the last line of the format section (`DefaultLine`).
                 PanelButton(
                     label = "Set as default",
                     primary = false,

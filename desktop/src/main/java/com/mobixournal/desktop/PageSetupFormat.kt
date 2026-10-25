@@ -2,13 +2,11 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -73,6 +71,8 @@ internal fun FormatSection(
     onSize: (Double, Double) -> Unit,
     /** The size new sheets are born with — what the **Default** entry applies. */
     defaultSize: Pair<Double, Double>,
+    /** A new default sheet, in points: the last line of the section (`DefaultLine`). */
+    onDefault: (Double, Double) -> Unit,
 ) {
     var unit by remember { mutableStateOf(PageUnit.MM) }
     val landscape = page.width > page.height
@@ -153,42 +153,37 @@ internal fun FormatSection(
         style = DesktopTheme.numeric,
         modifier = Modifier.padding(top = 8.dp),
     )
-    Text(
-        String.format(
-            Locale.US,
-            "Default sheet: %s",
-            PageSetup.PRESETS.firstOrNull { matchesSize(defaultSize.first, defaultSize.second, it.widthPt, it.heightPt) }
-                ?.label
-                ?: "%.0f × %.0f pt".format(defaultSize.first, defaultSize.second),
-        ),
-        color = DesktopTheme.inkMuted,
-        style = DesktopTheme.label,
-    )
+    // The tablet keeps its **page settings** in this same dialog: what a new sheet is born on, under the
+    // size of the one in view, so the two cannot drift apart or become two places to look. One list, not a
+    // section of its own — the default is a line of the page's own settings, the way the tablet draws it.
+    DefaultLine(page, defaultSize, onDefault)
 }
 
 /**
- * The **defaults** section: the sheet every new page is born on.
+ * The **default** of the page, as one line of the page's own settings: the sheet every new page is born on.
  *
- * It is the tablet's own page settings, in the panel the page tools open: a default is a property of the
- * app (`DesktopSettings`, `DefaultSheet`), not an edit of the page in view, so it edits nothing on the
- * sheet behind it and records no undo step. The same presets, the same orientations and the same three
- * units as the format section, because the two answer the same question about two different sheets — this
- * one is *the next page's*.
+ * A default is a property of the app (`DesktopSettings`, `DefaultSheet`), not an edit of the page in view, so
+ * this line edits nothing on the sheet behind it and records no undo step. It used to be a block of its own —
+ * its own heading, its own presets, its own orientation and its own size fields — which read as a second
+ * dialog stacked under the first. The tablet has one dialog, so this is one line of it: the presets that are
+ * worth a shortcut, then the answer that matters, *this page's size*, which is what a reader who just typed a
+ * custom size wants to keep.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DefaultsSection(
-    /** The stored default, in points — what the fields show and the chips mark. */
+internal fun DefaultLine(
+    /** The page in view: its size is what **Use this size** stores. */
+    page: Page,
+    /** The stored default, in points — what the line prints and its chips mark. */
     defaultSize: Pair<Double, Double>,
-    /** A new default, in points: [onSetDefault]'s answer, stored and applied to new pages. */
+    /** A new default, in points: stored and applied to new pages. */
     onDefault: (Double, Double) -> Unit,
 ) {
     val width = defaultSize.first
     val height = defaultSize.second
     val landscape = width > height
-    var unit by remember { mutableStateOf(PageUnit.MM) }
 
-    SectionLabel("New sheets are born on")
+    SectionLabel("Default for new pages")
     FlowRowChips {
         for (preset in PageSetup.PRESETS) {
             SetupChip(
@@ -200,48 +195,16 @@ internal fun DefaultsSection(
                 },
             )
         }
-    }
-
-    SectionLabel("Orientation")
-    FlowRowChips {
-        SetupChip(label = "Portrait", picked = !landscape, onClick = {
-            onDefault(minOf(width, height), maxOf(width, height))
-        })
-        SetupChip(label = "Landscape", picked = landscape, onClick = {
-            onDefault(maxOf(width, height), minOf(width, height))
-        })
-    }
-
-    SectionLabel("Default size")
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (candidate in PageUnit.entries) {
-            SetupChip(label = candidate.label, picked = candidate == unit, onClick = { unit = candidate })
-        }
-        Spacer(Modifier.weight(1f))
-        SetupChip(label = "Swap", picked = false, onClick = { onDefault(height, width) })
-    }
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.weight(1f)) {
-            DimensionField(
-                label = "Width (${unit.label})",
-                initial = formatDimension(unit.fromPt(width)),
-                unit = unit,
-                onCommit = { pt -> pt.takeIf { it in MIN_PAGE_PT..MAX_PAGE_PT }?.let { onDefault(it, height) } },
-            )
-        }
-        Box(Modifier.weight(1f)) {
-            DimensionField(
-                label = "Height (${unit.label})",
-                initial = formatDimension(unit.fromPt(height)),
-                unit = unit,
-                onCommit = { pt -> pt.takeIf { it in MIN_PAGE_PT..MAX_PAGE_PT }?.let { onDefault(width, it) } },
-            )
-        }
+        SetupChip(
+            label = "Use this size",
+            picked = matchesSize(page.width, page.height, width, height),
+            onClick = { onDefault(page.width, page.height) },
+        )
     }
     Text(
         String.format(
             Locale.US,
-            "New pages open at %.0f × %.0f pt (%.1f × %.1f mm), and the page in view is not touched.",
+            "New pages open at %.0f × %.0f pt (%.1f × %.1f mm); the page in view keeps its own size.",
             width,
             height,
             width / PageSetup.MM_PT,
@@ -249,7 +212,7 @@ internal fun DefaultsSection(
         ),
         color = DesktopTheme.inkMuted,
         style = DesktopTheme.label,
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = Modifier.padding(top = 6.dp),
     )
 }
 

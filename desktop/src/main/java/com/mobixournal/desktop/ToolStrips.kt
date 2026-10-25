@@ -128,8 +128,6 @@ data class ToolStripState(
      */
     val onPageBackground: () -> Unit = {},
     val onPageFormat: () -> Unit = {},
-    /** The **defaults** of the page: the sheet every new page is born on (`DefaultsSection`). */
-    val onPageDefaults: () -> Unit = {},
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -523,18 +521,16 @@ private fun SlotFace(
 }
 
 /**
- * The strip's three **page** slots: the sheet's paper, its format, and the defaults new sheets are born on,
- * drawn after the divider.
+ * The strip's two **page** slots: the sheet's paper and its format, drawn after the divider.
  *
  * They are commands, not tools — nothing about them becomes the picked slot — but they wear the same
  * frame, hover and glyph as every other object on the strip, because the strip is one family and a
  * command that looked like a link beside it would be a second visual language (`docs/interface-contract.md`
- * §4: the glyph comes from the catalogue, which is why `ToolGlyph.PAGE`, `PAGE_SIZE` and `PAGE_DEFAULT`
- * exist there).
+ * §4: the glyph comes from the catalogue, which is why `ToolGlyph.PAGE` and `PAGE_SIZE` exist there).
  *
- * The third is the tablet's **page settings**: the two about *this* sheet act on the page in view, the one
- * about the next sheet is a setting of the app and has its own section, so a page is never resized by a
- * click meant to set a default.
+ * The **defaults** for new sheets are not a third command: they are part of the page's settings, and they
+ * live inside the format panel (`DefaultLine`), under the page's own size — the tablet keeps them in one
+ * place too, and a default must never be a button away from the size it belongs to.
  */
 @Composable
 private fun PageSetupSlots(state: ToolStripState, side: StripSide) {
@@ -549,12 +545,6 @@ private fun PageSetupSlots(state: ToolStripState, side: StripSide) {
         label = "Page format",
         offsetSide = side,
         onClick = state.onPageFormat,
-    )
-    StripCommandSlot(
-        glyph = ToolGlyph.PAGE_DEFAULT,
-        label = "Page defaults",
-        offsetSide = side,
-        onClick = state.onPageDefaults,
     )
 }
 
