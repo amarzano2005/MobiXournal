@@ -31,6 +31,7 @@ import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -82,6 +83,24 @@ class DesktopTextStyleTest {
         assertEquals("Sans", box("Sans Bold Italic").withBold(false).withItalic(false).font)
         val both = box("Serif").withBold(true).withItalic(true)
         assertEquals("the family survives both", "Serif", FontDescription.parse(both.font).family)
+    }
+
+    /**
+     * The lane's numbers are written and read in one notation, whatever locale the window runs in.
+     *
+     * A `"%.1f".format` used the default locale, so an Italian machine showed `26,0` in the size field and
+     * the field's own parse then refused the value it had just printed — pressing `Enter` wrote nothing.
+     * A whole size also printed as `26.0`, which is not a size anyone typed.
+     */
+    @Test
+    fun `the lane's numbers print and parse in one notation`() {
+        assertEquals("a whole size has no decimal", "26", formatNumber(26.000000000000004))
+        assertEquals("and a fraction keeps one", "1.5", formatNumber(1.54))
+        assertEquals("a full stop separates the fraction", "18.5", formatNumber(18.5))
+        assertEquals("a comma is read too, for an Italian keyboard", 26.5, parseNumber("26,5")!!, 1e-9)
+        assertEquals("and so is a full stop", 26.5, parseNumber("26.5")!!, 1e-9)
+        assertEquals("as is a padded entry", 8.0, parseNumber(" 8 ")!!, 1e-9)
+        assertNull("a word is not a number", parseNumber("large"))
     }
 
     @Test
