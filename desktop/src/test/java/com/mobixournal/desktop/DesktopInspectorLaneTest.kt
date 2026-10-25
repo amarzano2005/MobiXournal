@@ -3,6 +3,14 @@ package com.mobixournal.desktop
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerButtons
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.mobix.SyntheticNotebook
@@ -299,6 +307,97 @@ class DesktopInspectorLaneTest {
         } finally {
             state.tabs.closeAll()
         }
+    }
+
+    /**
+     * The panel follows the **text box**: opening the field opens it, committing closes both.
+     *
+     * The style of a box has to be settable while it is being written — that is the moment the user is
+     * looking at it — so the lane comes up with the in-place field and goes with it, one gesture each way
+     * and no hunting for the box afterwards. The pixels are the lane's own band, as in every test here.
+     */
+    @Test
+    fun `the lane opens with the text box and closes with it`() {
+        val state = shell()
+        try {
+            val tab = state.tabs.active!!
+            assertNotBand("nothing being typed: no column", render(state))
+
+            state.textBox.begin(tab, 120.0, 200.0, 595.0, 842.0, state.ink) { _, _ -> }
+            state.textBox.change(TextFieldValue("typing", TextRange(6)))
+            assertNearBand("the box's face and size are the lane's while typing", render(state))
+
+            state.textBox.commit(tab) { _, _ -> }
+            assertNotBand("the commit closes the box and the column with it", render(state))
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
+    /**
+     * The lane's controls are built **on the element as it is now**, not on the one the lane opened with.
+     *
+     * This is the bug the scene is needed for: a page read is not snapshot state, so the cards kept the
+     * element they were first composed with. Every control then wrote a copy of *that* one — so Bold
+     * pressed twice stayed bold, the Italic after it dropped the bold, and the swatch last in the card
+     * restored the original face. Each click here is a real pointer press at the control's own row, and
+     * the button's answer is read back out of the page.
+     */
+    @Test
+    fun `the lane's controls compose with each other`() {
+        val state = shell()
+        val scene = ImageComposeScene(1000, 700, Density(1f)) {
+            DesktopShell(state = state, onOpenPicker = {})
+        }
+        try {
+            val tab = state.tabs.active!!
+            placeLivingElement(
+                tab,
+                TextElement("Sans", 18.0, 120.0, 200.0, 0xFF112233.toInt(), "words here", id = "txt_controls"),
+            )
+            state.runSelection(SelectionAction.EDIT)
+            Snapshot.sendApplyNotifications()
+            scene.render()
+
+            click(scene, 750, 181)
+            assertEquals("Bold is set", "Sans Bold", textBox(tab).font)
+            click(scene, 750, 181)
+            assertEquals("and the same switch takes it away again", "Sans", textBox(tab).font)
+
+            click(scene, 750, 181)
+            click(scene, 750, 213)
+            assertEquals("the italic switch adds to the bold, not over it", "Sans Bold Italic", textBox(tab).font)
+
+            click(scene, 850, 141)
+            assertEquals("the family chip keeps the two styles", "Serif Bold Italic", textBox(tab).font)
+
+            click(scene, 764, 399)
+            assertEquals("the ink keeps the face", "Serif Bold Italic", textBox(tab).font)
+            assertEquals("and is the swatch that was clicked", 0xFFFF0000.toInt(), textBox(tab).color)
+            assertEquals("the size was never touched", 18.0, textBox(tab).size, 1e-9)
+        } finally {
+            scene.close()
+            state.tabs.closeAll()
+        }
+    }
+
+    /** One click at a window pixel: press and release, then a frame so the lane can rebuild. */
+    private fun click(scene: ImageComposeScene, x: Int, y: Int) {
+        val at = Offset(x.toFloat(), y.toFloat())
+        scene.sendPointerEvent(
+            eventType = PointerEventType.Press,
+            pointers = listOf(ComposeScenePointer(PointerId(1), at, pressed = true, type = PointerType.Mouse, pressure = 1f)),
+            buttons = PointerButtons(isPrimaryPressed = true),
+            timeMillis = 1_000,
+        )
+        scene.sendPointerEvent(
+            eventType = PointerEventType.Release,
+            pointers = listOf(ComposeScenePointer(PointerId(1), at, pressed = false, type = PointerType.Mouse, pressure = 1f)),
+            buttons = PointerButtons(),
+            timeMillis = 1_032,
+        )
+        Snapshot.sendApplyNotifications()
+        scene.render()
     }
 
     // --- rendering ------------------------------------------------------------------------------

@@ -212,7 +212,10 @@ one does not answer `EDIT`, so a family added later cannot ship uneditable.
 That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
 rectangle that is left and nothing lies over the sheet. It is drawn in **three parts, always** — a header, a
 body of cards and a footer — and it is up **only while there is something to edit**: a placement asking its
-values, or the one element the pencil opened. A selection alone opens no column, and the lane goes the
+values, the one element the pencil opened, or a **text box being typed** — a box in the field has a face, a
+size and an ink too, and the moment to set them is while the words are being written, so pressing with the
+Text slot opens the column and committing the box (or its `Done`, its ×, `Esc`) closes both. A selection
+alone opens no column, and the lane goes the
 moment the selection stops naming the element it belongs to (`attachedLivingEditor`), so moving on to
 another element or to empty paper leaves the page its full width again (`DesktopInspectorLaneTest` renders
 the lane's own pixel with nothing selected, with a selection, while editing, and after the selection moves
@@ -242,6 +245,15 @@ among them because the format cannot store it. A field commits on
 field back, `Esc` again closes the lane, and a focused field wears the accent's ring so the keyboard user can
 see where they are typing. `LivingTarget.kt` resolves the ref against the document as it is *now*, so an undo
 cannot leave a panel showing a value the file no longer holds.
+
+**Reading the element is also how the lane follows it.** A page read is not snapshot state, so the column
+reads the document's **edit count** (`DesktopDocument.edits`) through `livingTarget`; without that one
+read the cards kept the element they were first composed with, and every control wrote a copy of *that*
+one — Bold pressed twice stayed bold, the italic after it dropped the bold, and a swatch last in the card
+restored the original face. Each control also reports through a holder (`rememberUpdatedState`), because a
+`pointerInput` keeps the lambda it was built with; the two halves are what make a row of controls behave
+like one editor (`DesktopInspectorLaneTest` clicks the real rows: bold on, bold off, bold+italic, a chip,
+a swatch, and reads the element back).
 
 A placement never leaves the tool armed: once the element exists it is what stays selected, and the window
 picks the **marquee** (`S`) the way the tablet does, so the next drag moves the element just placed instead of

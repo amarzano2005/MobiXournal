@@ -87,6 +87,11 @@ data class LivingTarget(
  */
 fun livingTarget(tab: DesktopTab, target: LivingTargetRef): LivingTarget? {
     if (target.documentKey != tab.key || target.page != tab.page) return null
+    // The edit count is **snapshot state**, and reading it is the whole point: a page read is not
+    // observable, so without this line a lane that opened on a box kept the element it opened with.
+    // Every control then wrote a copy of *that* element — so Bold pressed twice stayed bold, the
+    // italic that followed dropped it again, and a colour last in the row restored the original face.
+    @Suppress("UNUSED_VARIABLE") val revision = tab.document.edits
     val page = runCatching { tab.document.page(target.page) }.getOrNull() ?: return null
     val element = page.layers.getOrNull(target.ref.layerIndex)
         ?.elements?.getOrNull(target.ref.elementIndex) ?: return null
@@ -166,12 +171,20 @@ fun livingSummary(target: LivingTarget): String = when (val element = target.ele
         val source = element.source.lineSequence().firstOrNull()?.trim().orEmpty()
         if (source.isEmpty()) language else "$language · $source"
     }
-    is TextElement -> {
-        val line = element.content.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }
-        val look = "${element.font} · ${number(element.size)} pt"
-        if (line == null) look else "${line.take(38)} · ${number(element.size)} pt"
-    }
+    is TextElement -> textSummary(element)
     else -> target.family.title
+}
+
+/**
+ * A **text box**'s one line: its first words and its size, or its face and size while it is still empty.
+ *
+ * Shared by the lane's header for an element already on the page and for the box being typed, so the two
+ * moments of the same box cannot describe it two ways.
+ */
+fun textSummary(element: TextElement): String {
+    val line = element.content.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }
+    val look = "${element.font} · ${number(element.size)} pt"
+    return if (line == null) look else "${line.take(38)} · ${number(element.size)} pt"
 }
 
 /**
@@ -185,6 +198,8 @@ fun livingSummary(target: LivingTarget): String = when (val element = target.ele
 fun attachedLivingEditor(tab: DesktopTab, editing: LivingTargetRef?): LivingTargetRef? {
     if (editing == null) return null
     if (livingTargetOf(tab) != editing.ref) return null
+    // Reading through [livingTarget] is also what subscribes the lane to the document: an edit of the
+    // element rebuilt the cards only because of the revision read in there.
     return editing.takeIf { livingTarget(tab, it) != null }
 }
 
@@ -216,6 +231,11 @@ fun plotWithoutEquation(plot: PlotElement, index: Int): PlotElement {
     )
 }
 
-/** A number as a summary prints it: an integer without a pointless `.0`, one decimal otherwise. */
-private fun number(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else "%.1f".format(value)
+/**
+ * A number as a summary prints it: an integer without a pointless `.0`, one decimal otherwise.
+ *
+ * The same function the lane's fields format with ([formatNumber]), so a header and the field under it
+ * cannot print one value two ways — and both are **locale-free**: `"%.1f".format` put a comma in an
+ * Italian locale, which no field could then parse back.
+ */
+internal fun number(value: Double): String = formatNumber(value)

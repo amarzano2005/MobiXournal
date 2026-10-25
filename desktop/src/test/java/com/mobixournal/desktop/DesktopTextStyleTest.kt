@@ -1,5 +1,25 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.ImageComposeScene
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerButtons
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.mobixournal.format.FontDescription
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Stroke
@@ -133,6 +153,90 @@ class DesktopTextStyleTest {
             "and the box is what the undo took",
             tab.document.page(tab.page).layers.flatMap { it.elements }.none { it is TextElement },
         )
+    }
+
+    @Test
+    fun `the lane's answer reaches the box that is being typed`() {
+        val state = DesktopShellState()
+        val tab = state.tabs.open(DocumentLoader.load(notebook()))
+        state.textBox.begin(tab, 140.0, 220.0, 595.0, 842.0, state.ink) { _, _ -> }
+        state.textBox.change(TextFieldValue("styled", TextRange(6)))
+
+        // What the panel's controls hand back while the field is up: a face, a size and an ink.
+        state.textBox.restyle(
+            TextElement("Serif Bold Italic", 24.0, 0.0, 0.0, 0xFF00FF00.toInt(), "", id = "ignored"),
+        )
+        assertEquals("the field follows the restyle while typing", "Serif Bold Italic", state.textBox.box!!.font)
+        assertEquals(24.0, state.textBox.box!!.size, 1e-9)
+
+        state.textBox.commit(tab) { _, _ -> }
+
+        val written = textElement(tab)
+        assertEquals("the words are what was typed", "styled", written.content)
+        assertEquals("in the face the lane set", "Serif Bold Italic", written.font)
+        assertEquals("at the size the lane set", 24.0, written.size, 1e-9)
+        assertEquals("in the colour the lane set", 0xFF00FF00.toInt(), written.color)
+        assertEquals("and where the press put it, not where the style element claimed", 140.0, written.x, 1e-9)
+    }
+
+    // --- the controls' own answer ----------------------------------------------------------------
+
+    /** One `ChoiceRow` as the lane composes it, with a tag captured as a **plain** value. */
+    @Composable
+    private fun Probe(tag: String, onCall: (String) -> Unit) {
+        Box(Modifier.width(300.dp)) {
+            ChoiceRow(options = listOf("Sans", "Serif"), picked = "Sans") { choice -> onCall("$tag:$choice") }
+        }
+    }
+
+    /**
+     * A chip answers with the callback it has **now**.
+     *
+     * A `pointerInput` keeps the lambda it was built with, so a chip composed while the box said one thing
+     * went on reporting that box after the lane had moved on — the bug the user sees as "the buttons don't
+     * do what I clicked": a family picked after a colour, or a colour after a size, was written into the
+     * element as it had been before the previous change.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun `a chip answers with the answer it has now, not the one it was built with`() {
+        var tag by mutableStateOf("first")
+        val calls = mutableListOf<String>()
+        val scene = ImageComposeScene(300, 40, Density(1f)) { Probe(tag) { call -> calls += call } }
+        try {
+            scene.render()
+            tag = "second"
+            Snapshot.sendApplyNotifications()
+            scene.render()
+
+            click(scene, 220f, 16f)
+
+            assertEquals("the chip used the callback the lane has now", listOf("second:Serif"), calls)
+        } finally {
+            scene.close()
+        }
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    private fun click(scene: ImageComposeScene, x: Float, y: Float) {
+        for ((type, pressed) in listOf(PointerEventType.Press to true, PointerEventType.Release to false)) {
+            scene.sendPointerEvent(
+                eventType = type,
+                pointers = listOf(
+                    ComposeScenePointer(
+                        id = PointerId(1),
+                        position = Offset(x, y),
+                        pressed = pressed,
+                        type = PointerType.Mouse,
+                        pressure = 1f,
+                    ),
+                ),
+                buttons = if (pressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
+                timeMillis = if (pressed) 1_000L else 1_032L,
+            )
+            Snapshot.sendApplyNotifications()
+            scene.render()
+        }
     }
 
     private fun textElement(tab: DesktopTab): TextElement =

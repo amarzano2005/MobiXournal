@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
@@ -16,9 +17,13 @@ import androidx.compose.ui.unit.dp
  * everything beside it, and a dimmed, hit-less body while it is disabled.
  *
  * It is shared by every dialog the window draws — the colour panel's Set and Cancel, the close
- * confirmation's three answers — so the family's smallest surface has one recipe instead of one per
- * panel (`docs/interface-contract.md` §1). A disabled button keeps its ink and loses its hit area: the
- * pointer handler is only installed when it is enabled.
+ * confirmation's three answers, the inspector lane's Place and Done — so the family's smallest surface
+ * has one recipe instead of one per panel (`docs/interface-contract.md` §1). A disabled button keeps its
+ * ink and loses its hit area: the pointer handler is only installed when it is enabled.
+ *
+ * The tap goes through a holder for the reason the lane's controls do (`InspectorControls.kt`): a
+ * `pointerInput` keeps the lambda it was built with, so a **Place** or an **Add equation** built against
+ * one element used to answer with that element long after the card had moved on.
  */
 @Composable
 internal fun PanelButton(
@@ -28,6 +33,7 @@ internal fun PanelButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val answer = rememberUpdatedState(onClick)
     Box(
         modifier
             .alpha(if (enabled) 1f else 0.4f)
@@ -35,8 +41,8 @@ internal fun PanelButton(
                 if (primary) DesktopTheme.accent else DesktopTheme.activeSlot,
                 DesktopTheme.capsuleShape,
             )
-            .pointerInput(label, enabled) {
-                if (enabled) detectTapGestures { onClick() }
+            .pointerInput(enabled) {
+                if (enabled) detectTapGestures { answer.value() }
             }
             .padding(horizontal = 16.dp, vertical = 7.dp),
     ) {

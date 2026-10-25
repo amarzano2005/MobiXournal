@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -203,7 +204,7 @@ internal fun NumberField(label: String, value: Double, onCommit: (Double) -> Uni
             initial = text,
             numeric = true,
             onCommit = { entered ->
-                entered.toDoubleOrNull()?.let { parsed ->
+                parseNumber(entered)?.let { parsed ->
                     text = formatNumber(parsed)
                     onCommit(parsed)
                 }
@@ -211,6 +212,16 @@ internal fun NumberField(label: String, value: Double, onCommit: (Double) -> Uni
         )
     }
 }
+
+/**
+ * [entered] as a number, or null when it is not one.
+ *
+ * A comma is a decimal separator on an Italian keyboard and a full stop on an English one, and the value
+ * in the field is written by the same user who types the next one — so both separators are read, instead
+ * of a `26,5` that parsed to nothing and left the field silently ignoring `Enter`.
+ */
+internal fun parseNumber(entered: String): Double? =
+    entered.trim().replace(',', '.').toDoubleOrNull()
 
 /** A labelled control: the label above, the control under it. */
 @Composable
@@ -248,7 +259,7 @@ internal fun ValueField(
     BasicTextField(
         value = text,
         onValueChange = { entered ->
-            if (!numeric || entered.isEmpty() || entered.toDoubleOrNull() != null || entered == "-" || entered == ".") {
+            if (!numeric || entered.isEmpty() || entered == "-" || entered == "." || parseNumber(entered) != null) {
                 text = entered
                 onDraft(entered)
             }
@@ -293,12 +304,16 @@ internal fun ValueField(
  */
 @Composable
 internal fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) {
+    // Same rule as `ChoiceRow`: the switch reports through the holder, so a toggle is applied to the
+    // element as it is now rather than to the one that was on screen when the row was built.
+    val toggle = rememberUpdatedState(onToggle)
+    val shown = rememberUpdatedState(on)
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 32.dp)
             .hoverFill(DesktopTheme.railSlotShape)
-            .pointerInput(on) { detectTapGestures { onToggle(!on) } }
+            .pointerInput(Unit) { detectTapGestures { toggle.value(!shown.value) } }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -332,6 +347,12 @@ internal fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -> Unit) {
+    // The gesture node outlives a recomposition: a `pointerInput` keyed on the option keeps the lambda
+    // it was built with, so a chip built while the box said `Sans` would go on reporting that box long
+    // after the family had changed — writing with the old face, size and ink and quietly undoing what
+    // the control next to it had just set. The holder is what makes the tap use the answer the caller
+    // has **now**.
+    val answer = rememberUpdatedState(onPick)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         for (option in options) {
             val selected = option.equals(picked, ignoreCase = true)
@@ -344,7 +365,7 @@ internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -
                         DesktopTheme.railSlotShape,
                     )
                     .hoverFill(DesktopTheme.railSlotShape, active = selected)
-                    .pointerInput(option) { detectTapGestures { onPick(option) } }
+                    .pointerInput(option) { detectTapGestures { answer.value(option) } }
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -369,6 +390,8 @@ internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun ColourRow(current: Int? = null, onPick: (Int) -> Unit) {
+    // And here: a swatch tapped after another field changed must write into the element as it is now.
+    val answer = rememberUpdatedState(onPick)
     Spacer(Modifier.height(4.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
         for (colour in PenPalette.COLORS.take(COLOUR_SWATCHES)) {
@@ -390,7 +413,7 @@ internal fun ColourRow(current: Int? = null, onPick: (Int) -> Unit) {
                     )
                     .onPointerEvent(PointerEventType.Enter) { hovered = true }
                     .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                    .pointerInput(colour) { detectTapGestures { onPick(colour) } },
+                    .pointerInput(colour) { detectTapGestures { answer.value(colour) } },
             )
         }
     }
@@ -416,11 +439,12 @@ internal fun RemoveGlyph(onClick: () -> Unit) = CrossGlyph(ink = DesktopTheme.in
 /** The one × of the lane, at its one size and with its one hover state. */
 @Composable
 private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
+    val dismiss = rememberUpdatedState(onClick)
     Box(
         Modifier
             .size(24.dp)
             .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(Unit) { detectTapGestures { onClick() } },
+            .pointerInput(Unit) { detectTapGestures { dismiss.value() } },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.size(10.dp)) {
@@ -432,11 +456,19 @@ private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
 }
 
 /** A number as the lane prints it: an integer without a pointless `.0`, one decimal otherwise. */
-internal fun formatNumber(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else "%.1f".format(value)
+internal fun formatNumber(value: Double): String {
+    // One decimal is the lane's whole precision, and rounding **first** matters: a size derived from a
+    // pen width is 26.000000000000004, which used to print as `26.0` in a field that wanted `26`.
+    val rounded = kotlin.math.round(value * 10.0) / 10.0
+    return if (rounded == rounded.toLong().toDouble()) {
+        rounded.toLong().toString()
+    } else {
+        String.format(java.util.Locale.ROOT, "%.1f", rounded)
+    }
+}
 
-/** [value] at one decimal, for a readout. */
-internal fun Double.roundToTenth(): String = "%.1f".format(this)
+/** [value] at one decimal, for a readout — `Locale.ROOT`, so a readout never prints a comma. */
+internal fun Double.roundToTenth(): String = String.format(java.util.Locale.ROOT, "%.1f", this)
 
 /**
  * One **equation row** of a graph: the colour its curve is drawn in, the source field, its remove glyph —

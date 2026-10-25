@@ -75,8 +75,13 @@ internal fun InspectorLane(
     LaunchedEffect(editing, tab.key, tab.page) {
         if (state.editingLiving != null && editing == null) state.closeLivingEditor()
     }
+    // A text box **being typed** owns the lane too, and for the same reason: it has a face, a size and an
+    // ink, and the moment to set them is while the words are being written. It comes first, so opening the
+    // field opens the panel and committing it closes both — one gesture, no hunting for the box afterwards.
+    val drafting = state.textBox.box?.takeIf { it.tabKey == tab.key && it.page == tab.page }
     // Nothing to edit, nothing to draw: a selection alone is the bar's business, not this column's.
-    if (pending == null && live == null) return
+    if (pending == null && drafting == null && live == null) return
+    val commitBox = { state.textBox.commit(tab, state::edited) }
 
     Column(
         modifier
@@ -85,10 +90,16 @@ internal fun InspectorLane(
             .bandSurface(),
     ) {
         LaneHeader(
-            tool = pending?.slot?.tool() ?: live?.family?.tool(),
-            title = pending?.let { "New ${it.slot.label().lowercase()}" } ?: live?.family?.title.orEmpty(),
-            summary = pending?.summary() ?: live?.let { livingSummary(it) },
-            onClose = pending?.let { { state.cancelPlacement() } } ?: { state.closeLivingEditor() },
+            tool = pending?.slot?.tool() ?: drafting?.let { DesktopTool.TEXT } ?: live?.family?.tool(),
+            title = pending?.let { "New ${it.slot.label().lowercase()}" }
+                ?: drafting?.let { "Text" }
+                ?: live?.family?.title.orEmpty(),
+            summary = pending?.summary() ?: drafting?.let { textSummary(it.element()) } ?: live?.let { livingSummary(it) },
+            onClose = when {
+                pending != null -> ({ state.cancelPlacement() })
+                drafting != null -> commitBox
+                else -> ({ state.closeLivingEditor() })
+            },
         )
         Column(
             Modifier
@@ -99,16 +110,24 @@ internal fun InspectorLane(
         ) {
             when {
                 pending != null -> PlacementBody(pending)
+                // The draft's own element is what the controls read and write: a restyle here changes
+                // what the commit will write, and the field above follows it as it is typed.
+                drafting != null -> TextBody(drafting.element()) { edited ->
+                    if (edited is TextElement) state.textBox.restyle(edited)
+                }
                 live != null -> EditorBody(live) { element -> state.commitLiving(element) }
                 else -> Unit
             }
         }
         LaneFooter {
-            if (pending != null) {
-                PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
-                PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
-            } else {
-                PanelButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
+            when {
+                pending != null -> {
+                    PanelButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
+                    PanelButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
+                }
+                // A box being typed is finished by the same answer the field's `Esc` gives: it is written.
+                drafting != null -> PanelButton("Done", primary = true, enabled = true, onClick = commitBox)
+                else -> PanelButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
             }
         }
     }

@@ -63,6 +63,14 @@ class DesktopTextBox {
     }
 
     /**
+     * Take the lane's answer for the box's **face, size or ink**. The page is still untouched: a restyle
+     * while typing changes what the commit will write, not what the document holds.
+     */
+    fun restyle(edited: TextElement) {
+        box = box?.withStyle(edited)
+    }
+
+    /**
      * Write the box as **one** element and one undo step, then close it — or drop it when it is blank and
      * new, or when the page it was opened on is no longer the page being shown.
      *
