@@ -7,6 +7,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.key.Key
@@ -76,6 +77,14 @@ class DesktopShellTest {
         val first = thumbnail(tab, 0, THUMB_WIDTH.value, cache)
         assertNotNull("the first page produced a thumbnail", first)
         assertTrue("and was cached", cache.containsKey(0))
+        // Painted onto a raster surface rather than through a scene (`renderPageBitmap`), so this is the
+        // check that the sheet and its ink really landed on it instead of an empty tile.
+        val pixels = first!!.toPixelMap()
+        val shades = mutableSetOf<androidx.compose.ui.graphics.Color>()
+        for (x in 0 until pixels.width step 4) {
+            for (y in 0 until pixels.height step 4) shades += pixels[x, y]
+        }
+        assertTrue("the thumbnail is a page, not an empty tile (${shades.size} shades)", shades.size >= 2)
         val second = thumbnail(tab, 0, THUMB_WIDTH.value, cache)
         assertSame("the second ask reuses the bitmap instead of repainting the page", first, second)
 
@@ -391,33 +400,58 @@ class DesktopShellTest {
             PageSidebar(tab = tab, cache = cache, onSelectPage = {}, revision = revision.value)
         }
         try {
-            Snapshot.sendApplyNotifications()
-            scene.render()
-            val painted = cache.writes
-            assertTrue("the sidebar painted the pages it shows ($painted)", painted > 0)
+            // The paint is **off the UI thread** — that is the fix — so the test waits for the hand-over
+            // instead of expecting the bitmap inside the frame that asked for it.
+            val shown = awaitSettled(scene, cache)
+            assertTrue("the sidebar painted the pages it shows ($shown)", shown > 0)
 
             // What a committed stroke does: the document edits, and the shell drops that page's bitmap.
             tab.document.editPage(0) { page -> page.withElement(SyntheticNotebook.stroke(400.0)) }
             cache.remove(0)
             Snapshot.sendApplyNotifications()
             scene.render()
-            assertEquals("no thumbnail was painted mid-stroke", painted, cache.writes)
+            // A re-render would land within a frame or two: give it several and expect nothing.
+            Thread.sleep(200)
+            scene.render()
+            assertEquals("no thumbnail was painted mid-stroke", shown, cache.writes)
 
             // …and the quiet moment the shell schedules afterwards: one page painted again, not the list.
             revision.value = 1
             Snapshot.sendApplyNotifications()
             scene.render()
-            assertEquals("the edited page alone is painted again", painted + 1, cache.writes)
+            assertEquals("the edited page alone is painted again", shown + 1, awaitSettled(scene, cache))
         } finally {
             scene.close()
             tab.document.close()
         }
     }
 
+    /**
+     * Frames until the sidebar's thumbnails have **stopped arriving**, and how many there were — the paint
+     * is a background job now, so a row that has not been handed its bitmap yet is a row still painting.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    private fun awaitSettled(scene: ImageComposeScene, cache: CountingCache): Int {
+        val deadline = System.currentTimeMillis() + 10_000L
+        var quiet = 0
+        var last = -1
+        while (System.currentTimeMillis() < deadline) {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            quiet = if (cache.writes == last) quiet + 1 else 0
+            last = cache.writes
+            if (quiet >= 8) return last
+            Thread.sleep(20)
+        }
+        return last
+    }
+
     /** A thumbnail cache that counts what was painted into it — the render happens only on a miss. */
     private class CountingCache(
-        private val delegate: MutableMap<Int, ImageBitmap> = mutableMapOf(),
+        private val delegate: MutableMap<Int, ImageBitmap> = java.util.concurrent.ConcurrentHashMap(),
     ) : MutableMap<Int, ImageBitmap> by delegate {
+        /** Written from the sidebar's own painting thread (`ThumbnailPaint`), read from the test's. */
+        @Volatile
         var writes: Int = 0
             private set
 

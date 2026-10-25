@@ -158,6 +158,20 @@ private fun DrawScope.drawElement(element: Element, scale: Float, textMeasurer: 
  * drawn and the ink the lift commits are painted by the same rule (highlighter band, taper, dash).
  */
 internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
+    drawStrokeShapes(stroke, StrokePathCache.of(stroke, scale), scale)
+}
+
+/**
+ * One stroke's cached geometry, painted — the half [drawInkStroke] and the live draft share.
+ *
+ * The paths come from [StrokePathCache], so a re-recorded page replays outlines it already built instead
+ * of rebuilding a path per stroke per frame, and the draft being drawn is cached by its own length.
+ */
+internal fun DrawScope.drawStrokeShapes(
+    stroke: InkStroke,
+    shapes: StrokePathCache.Shapes,
+    scale: Float,
+) {
     val pts = stroke.points
     if (pts.size < 2) return
     val color = Color(InkGeometry.renderColor(stroke.tool, stroke.color))
@@ -166,10 +180,10 @@ internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
         // One translucent band, multiplied into the paper: the marker reads over ink instead of
         // veiling it, exactly as the Android painter's `drawBand` does.
         drawPath(
-            PageInk.polyline(pts, scale),
+            shapes.polyline,
             color,
             style = Stroke(
-                width = (InkGeometry.bandWidth(pts) * scale).toFloat().coerceAtLeast(0.5f),
+                width = shapes.bandWidthPx ?: 1f,
                 cap = StrokeCap.Round,
                 join = StrokeJoin.Round,
             ),
@@ -178,14 +192,13 @@ internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
         return
     }
 
-    val strokeWidth = (pts.first().width * scale).toFloat().coerceAtLeast(0.5f)
-    if (stroke.uniformWidth || InkGeometry.uniformWidth(pts)) {
+    if (shapes.taper == null) {
         val widthPt = pts.first().width
         drawPath(
-            PageInk.polyline(pts, scale),
+            shapes.polyline,
             color,
             style = Stroke(
-                width = strokeWidth,
+                width = (widthPt * scale).toFloat().coerceAtLeast(0.5f),
                 cap = StrokeCap.Round,
                 join = StrokeJoin.Round,
                 pathEffect = PageInk.dashEffect(stroke.lineStyle, widthPt, scale),
@@ -193,7 +206,7 @@ internal fun DrawScope.drawInkStroke(stroke: InkStroke, scale: Float) {
         )
     } else {
         // A pressure stroke keeps its taper by filling one variable-width outline.
-        drawPath(PageInk.taperPath(pts, scale), color)
+        drawPath(shapes.taper, color)
     }
 }
 

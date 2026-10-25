@@ -121,8 +121,13 @@ class DesktopShellState(
     /** True while `Space` is held: a primary-button drag pans instead of drawing. */
     var panMode by mutableStateOf(false)
 
-    /** Page thumbnails, one map per document, kept by the shell so a scroll back is not a repaint. */
-    val thumbnails = mutableMapOf<String, MutableMap<Int, ImageBitmap>>()
+    /**
+     * Page thumbnails, one map per document, kept by the shell so a scroll back is not a repaint.
+     *
+     * Concurrent because the maps are read where the picture is painted — the sidebar's own rendering
+     * thread (`ThumbnailPaint`) — while an edit on the UI thread drops the page it just changed.
+     */
+    val thumbnails = java.util.concurrent.ConcurrentHashMap<String, MutableMap<Int, ImageBitmap>>()
 
     /**
      * The window's clipboard — the tablet's Copy, fulfilled in memory rather than through the system's
@@ -336,9 +341,6 @@ class DesktopShellState(
             // beside it, which is why both strips put them after a divider.
             onPageBackground = { openPageSetup(PageSetupSection.PAPER) },
             onPageFormat = { openPageSetup(PageSetupSection.FORMAT) },
-            // The page's settings, in the tablet's own section: what a new sheet is born on, which is a
-            // setting of the window rather than an edit of the page in view (`DefaultsSection`).
-            onPageDefaults = { openPageSetup(PageSetupSection.DEFAULT) },
         )
 
     /**

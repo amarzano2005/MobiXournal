@@ -23,21 +23,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.jetbrains.skia.Surface
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.format.model.Layer
@@ -115,9 +125,7 @@ fun PageSidebar(
                 // drops the page's cached bitmap, and the next quiet moment re-renders that one page here
                 // (the other rows hit the cache) instead of re-rendering it in the middle of a stroke.
                 val hidden = tab.hiddenOn(index)
-                val preview = remember(tab, index, hidden, revision) {
-                    thumbnail(tab, index, THUMB_WIDTH.value, cache)
-                }
+                val preview = rememberThumbnail(tab, index, hidden, revision, cache)
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -249,14 +257,49 @@ internal val THUMB_WIDTH = 148.dp
 private val SIDEBAR_WIDTH = 240.dp
 
 /**
+ * One row's thumbnail, painted **off the UI thread** and handed over when it is ready.
+ *
+ * A thumbnail is a full software paint of the page — 29–39 ms on a dense sheet, measured — and it used to
+ * run inside composition, so every quiet moment in a burst of writing or erasing paid for one on the frame
+ * the window was drawing. The render now runs on [THUMBNAIL_PAINT], one at a time, and only the finished
+ * bitmap reaches the UI thread; the row keeps the picture it already had until then, so a refresh never
+ * blanks the sidebar.
+ *
+ * The slot is keyed on the **page**, not on [revision]: that is what keeps the old picture up across a
+ * refresh. The effect re-runs on every key change (the hidden layers, the shell's deferred revision) and
+ * only publishes a bitmap it actually got.
+ */
+@Composable
+private fun rememberThumbnail(
+    tab: DesktopTab,
+    index: Int,
+    hidden: Set<Int>,
+    revision: Int,
+    cache: MutableMap<Int, ImageBitmap>,
+): ImageBitmap? {
+    val slot = remember(tab, index) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(tab, index, hidden, revision) {
+        val painted = withContext(THUMBNAIL_PAINT) { thumbnail(tab, index, THUMB_WIDTH.value, cache) }
+        if (painted != null) slot.value = painted
+    }
+    return slot.value
+}
+
+/**
+ * The thread thumbnails are painted on: the pool's own, narrowed to **one** lane.
+ *
+ * One, because a page's paint builds a scene and walks the page it shares with the document; a single lane
+ * keeps that walk serial — never the UI thread's, and never two pages' at once.
+ */
+private val THUMBNAIL_PAINT = Dispatchers.Default.limitedParallelism(1)
+
+/**
  * The page's thumbnail: rendered on first sight, then kept.
  *
- * Building an [ImageComposeScene] is what makes this a *picture* of the page rather than a second
- * painter — the same `PageView` draws it, so a thumbnail cannot disagree with the page it previews.
- * (It is also why thumbnails are cached: a scene per page per scroll would be far more expensive than
- * the page render it replaces.)
+ * [renderPageBitmap] is what makes this a *picture* of the page rather than a second painter — the same
+ * `drawPageContent` paints it, so a thumbnail cannot disagree with the page it previews. (It is also why
+ * thumbnails are cached: a page render per scroll would be far more expensive than the picture it keeps.)
  */
-@OptIn(ExperimentalComposeUiApi::class)
 internal fun thumbnail(
     tab: DesktopTab,
     index: Int,
@@ -276,8 +319,24 @@ internal fun thumbnail(
     return bitmap
 }
 
-/** Renders [page] at [scale] into a bitmap — thumbnails today, page-list previews tomorrow. */
-@OptIn(ExperimentalComposeUiApi::class)
+/**
+ * The font resolver thumbnails measure text with — built once, for the painting lane alone.
+ *
+ * A thumbnail is painted **outside any composition** (`ThumbnailPaint`), and a `TextMeasurer` needs a
+ * resolver of its own there: the composition's is not reachable, and borrowing the window's would put two
+ * threads on one font cache.
+ */
+private val THUMBNAIL_FONTS by lazy { createFontFamilyResolver() }
+
+/**
+ * Renders [page] at [scale] into a bitmap — thumbnails today, page-list previews tomorrow.
+ *
+ * Painted onto a **raster Skia surface** with the page's own painter, not through an `ImageComposeScene`:
+ * a scene is a composition with a lifecycle, and one rendered on the sidebar's thread while the window's
+ * own scene was drawing took that shared lifecycle apart ("must run runDetachLifecycle()…" on teardown).
+ * A surface is just pixels, so the row can be painted wherever there is a thread to spare, and what is
+ * drawn is still `drawPageContent` — the painter the page itself uses.
+ */
 internal fun renderPageBitmap(
     page: Page,
     scale: Float,
@@ -286,10 +345,28 @@ internal fun renderPageBitmap(
 ): ImageBitmap {
     val w = (page.width * scale).roundToInt().coerceAtLeast(1)
     val h = (page.height * scale).roundToInt().coerceAtLeast(1)
-    val scene = ImageComposeScene(w, h, density) { PageView(page, scale, hiddenLayers = hiddenLayers) }
+    val measurer = TextMeasurer(
+        defaultFontFamilyResolver = THUMBNAIL_FONTS,
+        defaultDensity = density,
+        defaultLayoutDirection = LayoutDirection.Ltr,
+    )
+    val surface = Surface.makeRasterN32Premul(w, h)
     return try {
-        scene.render().toComposeImageBitmap()
+        CanvasDrawScope().draw(
+            density = density,
+            layoutDirection = LayoutDirection.Ltr,
+            canvas = surface.canvas.asComposeCanvas(),
+            size = Size(w.toFloat(), h.toFloat()),
+        ) {
+            drawPageContent(
+                page,
+                pxPerPt = scale * density.density,
+                textMeasurer = measurer,
+                hiddenLayers = hiddenLayers,
+            )
+        }
+        surface.makeImageSnapshot().toComposeImageBitmap()
     } finally {
-        scene.close()
+        surface.close()
     }
 }

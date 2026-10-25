@@ -339,35 +339,36 @@ internal fun SheetCanvas(
     val followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
 
     Canvas(
-        Modifier.fillMaxSize()
-            // The pointer over the page is the *tool's*: a ring is the pointer while a pen, a highlighter
-            // or an eraser is in hand (an arrow beside it pointed at nothing), a hand for the hand, and
-            // the desktop's arrow for every other slot. See `DesktopCursor.toolPointerIcon`.
-            .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringPx != null, panMode = panMode))
-            .hoverTracking(pointer, followMouse)
-            .onPointerEvent(PointerEventType.Scroll) { event ->
-                wheelViewport(
-                    event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
-                    sheet.viewW, sheet.viewH, onFit,
-                    forceZoom = dialWheel(),
-                )?.let(onViewport)
-            }
-            .sheetGestures(
-                tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft,
-                PagePressTargets(
-                    onPlaceLiving = onPlaceLiving,
-                    onPlaceCircuit = onPlaceCircuit,
-                    circuitKind = circuitKind,
-                    onTextPress = onTextPress,
-                    onEditLiving = onEditLiving,
-                    // Only the component is drawn live: a plot or a table is still waiting for its
-                    // values, and previewing a default would promise the wrong graph. The circuit's
-                    // preview is its own drag's (`CircuitGesture`), aimed at the page's pins.
-                    livingPreview = pointer.previewLiving,
-                    onLiveDrag = onLiveDrag,
-                ),
-                onViewport, onEdited,
+        Modifier.fillMaxSize().sheetInput(
+            tab = tab,
+            panMode = panMode,
+            tool = tool,
+            ink = ink,
+            shapeInk = shapeInk,
+            pen = pen,
+            sheet = sheet,
+            pointer = pointer,
+            draft = draft,
+            ringVisible = ringPx != null,
+            followMouse = followMouse,
+            dialWheel = dialWheel,
+            targets = PagePressTargets(
+                onPlaceLiving = onPlaceLiving,
+                onPlaceCircuit = onPlaceCircuit,
+                circuitKind = circuitKind,
+                onTextPress = onTextPress,
+                onEditLiving = onEditLiving,
+                // Only the component is drawn live: a plot or a table is still waiting for its values,
+                // and previewing a default would promise the wrong graph. The circuit's preview is its
+                // own drag's (`CircuitGesture`), aimed at the page's pins.
+                livingPreview = pointer.previewLiving,
+                onLiveDrag = onLiveDrag,
             ),
+            density = density,
+            onViewport = onViewport,
+            onFit = onFit,
+            onEdited = onEdited,
+        ),
     ) {
         paintSheet(
             sheetPicture = sheetPicture,
@@ -382,21 +383,65 @@ internal fun SheetCanvas(
             tool = tool,
             ink = ink,
             shapeInk = shapeInk,
-            drafts = listOf(draft.toList(), penDraft.toList()),
+            // The drafts themselves, not copies: their **identity** is the key the painted geometry is
+            // cached by (`StrokePathCache`), and a fresh list per frame would miss on every paint.
+            drafts = listOf(draft, penDraft),
             grabLineY = pointer.grabLine.value,
             selection = tab.selection,
             previewRegion = pointer.previewRegion.value,
             previewLiving = pointer.previewLiving.value,
             paintProbe = paintProbe,
         )
-        // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings
-        // are taken **here**, in the draw scope, so a hover reading repaints the sheet and never
-        // recomposes it — the driver sends several hundred a second.
-        val ring = ringPx
-        val at = pointer.hover.value
-        if (ring != null && at != null) drawToolCursor(at, ring)
+        // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings are
+        // taken **here**, in the draw scope, so a hover reading repaints the sheet and never recomposes it.
+        val ring = ringPx ?: return@Canvas
+        pointer.hover.value?.let { at -> drawToolCursor(at, ring) }
     }
 }
+
+/**
+ * The sheet's **input surface**, as one modifier: the tool's pointer, the pen's readings, the wheel and the
+ * gestures a press can start.
+ *
+ * The pointer over the page is the *tool's*: a ring is the pointer while a pen, a highlighter or an eraser is
+ * in hand (an arrow beside it pointed at nothing), a hand for the hand, and the desktop's arrow for every
+ * other slot (`DesktopCursor.toolPointerIcon`). Split out of the composable so the surface that owns a page
+ * stays layout and wiring (`SourceStructureTest`).
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.sheetInput(
+    tab: DesktopTab,
+    panMode: Boolean,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    shapeInk: DesktopInk,
+    pen: PenContactStream?,
+    sheet: SheetLayout,
+    pointer: PenPointer,
+    draft: SnapshotStateList<InkSample>,
+    /** Whether the tool draws a ring: the pointer is blank behind it, the arrow otherwise. */
+    ringVisible: Boolean,
+    /** A mouse move that is a copy of the contact must not drag the ring back (`PenPacketStroke`). */
+    followMouse: () -> Boolean,
+    dialWheel: () -> Boolean,
+    targets: PagePressTargets,
+    density: Float,
+    onViewport: (Viewport) -> Unit,
+    onFit: (FitMode) -> Unit,
+    onEdited: (Int) -> Unit,
+): Modifier = this
+    .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringVisible, panMode = panMode))
+    .hoverTracking(pointer, followMouse)
+    .onPointerEvent(PointerEventType.Scroll) { event ->
+        wheelViewport(
+            event, sheet.viewport, sheet.zoom, density, sheet.pageW, sheet.pageH,
+            sheet.viewW, sheet.viewH, onFit,
+            forceZoom = dialWheel(),
+        )?.let(onViewport)
+    }
+    .sheetGestures(
+        tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft, targets, onViewport, onEdited,
+    )
 
 /**
  * The sheet and the stroke being drawn, in the **page's own** coordinate space, carried by [viewport]:

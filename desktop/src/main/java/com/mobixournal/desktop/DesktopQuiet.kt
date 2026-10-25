@@ -2,7 +2,9 @@ package com.mobixournal.desktop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /**
  * The two jobs the shell runs **after a burst of edits goes quiet** — and why each of them waits.
@@ -33,14 +35,18 @@ private const val THUMBNAIL_QUIET_MS = 600L
 /**
  * The crash snapshot, written once the edits have been quiet for a moment.
  *
- * Short enough that a crash loses seconds, long enough that a continuous stroke never writes one.
+ * Short enough that a crash loses seconds, long enough that a continuous stroke never writes one. The
+ * write itself is a whole notebook encoded and gzipped, so it runs on [Dispatchers.IO]: on the UI thread it
+ * was a freeze in the middle of a pause between two letters, which is a hitch a note-taker feels and cannot
+ * explain. A write that loses a race with a new stroke fails quietly (`DesktopRecovery.save` answers null)
+ * and the next quiet moment tries again.
  */
 @Composable
 internal fun RecoverySnapshots(state: DesktopShellState) {
     LaunchedEffect(state.editRevision) {
         if (state.editRevision == 0) return@LaunchedEffect
         delay(RECOVERY_QUIET_MS)
-        state.flushRecovery()
+        withContext(Dispatchers.IO) { state.flushRecovery() }
     }
 }
 
