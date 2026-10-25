@@ -148,7 +148,10 @@ seven of them (Line, Arrow, Double arrow, Axes, Rectangle, Ellipse, Spline) from
 same `ShapeBuilder` and holding `Shift` to snap the drag's direction to 45°, so a figure made on the PC
 is the same stroke a tablet makes (`docs/desktop-workstation.md` owns the window's slots): `ShapeBuilder` (pure, tested) converts the
 drag's start/end into a vertex list, previewed live and committed as one undoable stroke, so shapes
-round-trip like any stroke. The **triangle tool** supports four geometric variants (`TriangleKind`):
+round-trip like any stroke. A figure writes with **the pen's ink**, never the highlighter's, so the width
+and colour on the strips are the ones it lands at even while the marker is in hand — and the width is
+read from that ink, not from a constant of the tool's own (`DesktopGeometryTest` pins the chain from
+`pickWidth` to the every-point width of the committed stroke). The **triangle tool** supports four geometric variants (`TriangleKind`):
 equilateral (factory default, preserved 60° angles), right-angled, isosceles (centered apex), and scalene
 (with customizable interior angles A, B, and C constrained to sum to 180° and previewed on a live canvas).
 The **trapezoid tool** (right after the rhombus) is the same pattern with three variants
@@ -270,6 +273,9 @@ every page, layer, and element round-trips through save.
 **On the window** the Text slot (`X`) is the same tool, typed in place rather than in a dialog: a press
 opens a field **over the sheet** (`TextBoxHost`), positioned by the same page-points-to-pixels mapping the
 ink is drawn with, in the ink's colour and at a size the pen's width sets (8–48 pt, `TextAuthoring`).
+The slot's pointer is the **text cursor**, not the pen's ring: a circle the size of the nib promised a
+band of ink no character has, so the ring is not drawn for Text at all (`toolPointerIcon`), and the field
+under it shows the caret instead.
 The field wears **no surface**: what is being typed is page content, like the strokes a draft draws, so the
 words appear in the document's own ink and face at the document's own place — and, with its padding gone,
 exactly where the commit will write them. Only the accent caret marks it (`DesktopTextPaintTest` reads the
@@ -285,8 +291,10 @@ keyboard — only `Esc` is the shell's — so `Space`, `B`, `H`, `V` and `Delete
 **A press on words already on the page re-opens them**, which is what makes text written on the tablet, or
 in desktop Xournal++, editable in the window at all: `textBoxHit` picks the **top-most** box under the
 point with the same padded bounds the tablet's `ElementEdits.pickText` uses, and the field comes up with
-that box's own words, its own font description (family, bold, italic), its own size and colour, the caret
-at the end of them. The retype is **one** edit that replaces the element where it sits — same layer, same
+that box's own words, its own font description (family, bold, italic), its own size and colour — and the
+caret **at the point pressed**, measured with the field's own layout (`TextBoxHost` reads it from the
+draft's press point, `caretAnchorPx`), so correcting a word in the middle of a line is one click and not
+a run of arrow keys. The retype is **one** edit that replaces the element where it sits — same layer, same
 index, same id, same unmodelled attributes — so a corrected box keeps its z-order and the `.mobix`
 incremental save keeps keying the same element; emptying the box deletes it, and closing it without
 typing records nothing. The caret travels with the text (`TextBoxDraft.typing` is a `TextFieldValue`, not a

@@ -197,6 +197,44 @@ class DesktopTextSceneTest {
         }
     }
 
+    /**
+     * A press **inside** words opens the box with the caret where the click landed.
+     *
+     * This is the difference between "the words can be edited" and "the words can be edited naturally":
+     * a box opened with the caret at the end made every correction in the middle of a line start with a
+     * run of arrow keys. The index comes from the field's own layout, so the claim is the field's: a third
+     * of the way into the line is a third of the way into its characters.
+     */
+    @Test
+    fun `a press inside words puts the caret at that point`() {
+        val fixture = fixture()
+        try {
+            placeLivingElement(
+                fixture.tab,
+                TextElement("Sans", 24.0, 60.0, 300.0, 0xFF000000.toInt(), "words here", id = "txt_caret"),
+            )
+            frame(fixture.scene)
+            tap(fixture.scene, 60f + 24f, 300f + 12f)
+
+            val box = fixture.state.textBox.box
+            assertNotNull("the words are re-opened", box)
+            assertEquals("the element under the press", "txt_caret", box!!.editing?.id)
+            val caret = box.typing.selection
+            assertEquals("one caret, not a range", caret.start, caret.end)
+            assertTrue(
+                "the caret is at the click, not at the end (index ${caret.start})",
+                caret.start in 1 until "words here".length,
+            )
+            assertTrue(
+                "and in the first half of the line, where the click was (index ${caret.start})",
+                caret.start <= "words here".length / 2,
+            )
+        } finally {
+            fixture.scene.close()
+            fixture.tab.document.close()
+        }
+    }
+
     /** Type [text] into the open box, the way the field hands it over (caret at the end). */
     private fun type(state: DesktopShellState, text: String) =
         state.textBox.change(TextFieldValue(text, TextRange(text.length)))

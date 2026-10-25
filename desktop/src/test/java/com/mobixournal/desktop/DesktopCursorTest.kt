@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.ui.input.pointer.PointerIcon
 import com.mobixournal.render.eraserRadiusPt
+import java.awt.Cursor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -97,21 +98,41 @@ class DesktopCursorTest {
     }
 
     /**
-     * Every tool that marks the page wears the ring; the **hand** is the only one that does not.
+     * Every tool that marks the page **at the pen's width** wears the ring; the hand and Text do not.
      *
-     * A figure, a circuit, Text, vertical space and the selection all write at the pen's width, and the
-     * person drawing at 27 % needs the same width readout they get from the pen — the window used to draw
-     * the ring for the pen and the highlighter only, so half the tools acted at a point nobody could see.
+     * A figure, a circuit, vertical space and the selection all write at the pen's width, and the person
+     * drawing at 27 % needs the same width readout they get from the pen — the window used to draw the
+     * ring for the pen and the highlighter only, so half the tools acted at a point nobody could see.
+     *
+     * **Text** is the one marking slot that is not a band of ink: a circle the size of the nib promised a
+     * width no character has, so it wears the text cursor instead and the field shows the caret.
      */
     @Test
-    fun `every tool but the hand wears the ring`() {
+    fun `the ring is for the tools that lay ink at a width`() {
         for (tool in DesktopTool.entries) {
             val ring = toolCursorDiameterPx(tool, 4f, zoom = 1f, density = 1f)
-            if (tool == DesktopTool.HAND) {
-                assertNull("the hand moves the page and wears the hand instead", ring)
+            if (tool == DesktopTool.HAND || tool == DesktopTool.TEXT) {
+                assertNull("$tool is not a band of ink, so it has no ring", ring)
             } else {
                 assertTrue("$tool marks the page, so it wears a ring", ring != null && ring > 0f)
             }
         }
+    }
+
+    /** The Text slot wears the platform's **text cursor**: what a press there produces is a caret. */
+    @Test
+    fun `text wears the text cursor, not a blank pointer`() {
+        val text = toolPointerIcon(DesktopTool.TEXT, ringVisible = false)
+        assertEquals(
+            "the bar every text field on the desktop wears",
+            PointerIcon(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR)),
+            text,
+        )
+        assertTrue("and not the arrow", text != PointerIcon.Default)
+        assertEquals(
+            "Space still pans with the hand",
+            PointerIcon.Hand,
+            toolPointerIcon(DesktopTool.TEXT, ringVisible = false, panMode = true),
+        )
     }
 }

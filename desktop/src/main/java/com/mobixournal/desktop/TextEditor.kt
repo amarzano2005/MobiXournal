@@ -12,7 +12,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -80,15 +84,15 @@ internal fun TextBoxHost(
 ) {
     if (box == null) return
     val focus = remember { FocusRequester() }
-    // Focus per box, not per keystroke: a new press is a new box and should take the keyboard again.
-    LaunchedEffect(box.tabKey, box.page, box.x, box.y) {
-        runCatching { focus.requestFocus() }
-    }
     // The sheet's own mapping: page points → canvas pixels, the same sum the ink is drawn with.
     val leftPx = ((box.x.toFloat() * zoom + offsetX) * density).roundToInt()
     val topPx = ((box.y.toFloat() * zoom + offsetY) * density).roundToInt()
     val widthDp = (box.width.toFloat() * zoom).dp
     val face = textFace(box.font)
+    val measurer = rememberTextMeasurer()
+    // The field's own width in pixels: the same product `.dp` resolves to, so the layout the caret is read
+    // from is the layout the field wraps at.
+    val widthPx = (box.width.toFloat() * zoom * density).roundToInt().coerceAtLeast(1)
     val style = TextStyle(
         color = Color(box.colour),
         fontSize = (box.size.toFloat() * zoom).sp,
@@ -97,6 +101,27 @@ internal fun TextBoxHost(
         fontStyle = face.style,
         textAlign = TextAlign.Start,
     )
+    // Focus per box, not per keystroke: a new press is a new box and should take the keyboard again —
+    // and a box opened **on** existing words drops the caret where the press landed, which is the one
+    // thing that makes correcting a word in the middle of a line a click rather than a run of arrows.
+    // The index is the field's to work out: it measures with its own style and width, so the caret lands
+    // under the pointer instead of at the first character that happens to be nearest on another face.
+    LaunchedEffect(box.tabKey, box.page, box.x, box.y) {
+        runCatching { focus.requestFocus() }
+        val editing = box.editing ?: return@LaunchedEffect
+        val anchor = box.caretAnchorPx(zoom, density)
+        val layout = runCatching {
+            measurer.measure(
+                AnnotatedString(editing.content),
+                style = style,
+                constraints = Constraints(maxWidth = widthPx),
+            )
+        }.getOrNull() ?: return@LaunchedEffect
+        val offset = layout.getOffsetForPosition(anchor)
+        if (box.typing.selection.start != offset || box.typing.selection.end != offset) {
+            onChange(box.typing.copy(selection = TextRange(offset)))
+        }
+    }
     Box(
         modifier
             .offset { IntOffset(leftPx, topPx) }

@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -105,6 +106,12 @@ data class TextBoxDraft(
     val colour: Int,
     /** The font description the box writes: a new box's is [TEXT_FONT], a re-opened one keeps its own. */
     val font: String = TEXT_FONT,
+    /**
+     * Where the press that opened the box landed, in page points — the caret starts there, so a click
+     * inside existing words edits at that click instead of at the end of them.
+     */
+    val pressX: Double = x,
+    val pressY: Double = y,
     /** What is typed and where the caret is — the one state the field hands back and forth. */
     val typing: TextFieldValue = TextFieldValue(),
     /** The box being re-typed, or null for a new one — what decides replace-in-place on commit. */
@@ -148,6 +155,13 @@ data class TextBoxDraft(
     fun withField(value: TextFieldValue): TextBoxDraft = copy(typing = value)
 
     /**
+     * The same box with another element's **face, size and ink** — the lane's answer while the box is
+     * being typed. What is typed stays what was typed: a restyle is not a retype.
+     */
+    fun withStyle(edited: TextElement): TextBoxDraft =
+        copy(font = edited.font, size = edited.size, colour = edited.color)
+
+    /**
      * True when ([px], [py]) is inside the box (plus [padPt] of slack) — a press there belongs to the
      * field rather than to a new box.
      */
@@ -157,6 +171,16 @@ data class TextBoxDraft(
 
     /** How many lines the typing needs, so the field grows with it instead of scrolling a one-line slit. */
     fun lines(): Int = text.count { it == '\n' } + 1
+
+    /**
+     * Where the press landed, in the **field's own pixels**: the point from the box's corner, scaled by
+     * the canvas's zoom and the window's density — the same mapping the field is placed with, so the
+     * caret the field computes from it is under the pointer the user clicked with.
+     */
+    fun caretAnchorPx(zoom: Float, density: Float): Offset = Offset(
+        ((pressX - x) * zoom * density).toFloat(),
+        ((pressY - y) * zoom * density).toFloat(),
+    )
 }
 
 /**
@@ -172,7 +196,7 @@ internal fun textBoxAt(
     ink: DesktopInk,
 ): TextBoxDraft {
     val hit = runCatching { tab.document.page(tab.page) }.getOrNull()?.let { textBoxHit(it, x, y) }
-    if (hit != null) return editingBox(tab, pageW, pageH, hit)
+    if (hit != null) return editingBox(tab, pageW, pageH, hit, x, y)
     val placement = textPlacement(pageW, pageH, x, y, ink)
     return TextBoxDraft(
         tabKey = tab.key,
@@ -203,14 +227,20 @@ internal fun textBoxHit(page: Page, xPt: Double, yPt: Double): TextElement? {
 }
 
 /**
- * The field a press on [element] opens: its own words, caret at the end of them, and its own face, size
- * and colour — so a retype corrects the box instead of restyling it.
+ * The field a press at ([pressX], [pressY]) on [element] opens: its own words, its own face, size and
+ * colour, and the press point the caret is placed at — so a retype corrects the box instead of restyling
+ * it, and starts where the user pointed rather than at the end of the text.
+ *
+ * The caret's index is the field's to work out (it owns the layout, `TextBoxHost`); the draft carries the
+ * point, and its selection starts at the end so a box that never gets a layout still types sanely.
  */
 internal fun editingBox(
     tab: DesktopTab,
     pageW: Double,
     pageH: Double,
     element: TextElement,
+    pressX: Double = element.x,
+    pressY: Double = element.y,
 ): TextBoxDraft = TextBoxDraft(
     tabKey = tab.key,
     page = tab.page,
@@ -221,6 +251,8 @@ internal fun editingBox(
     size = element.size,
     colour = element.color,
     font = element.font,
+    pressX = pressX,
+    pressY = pressY,
     typing = TextFieldValue(element.content, TextRange(element.content.length)),
     editing = element,
 )

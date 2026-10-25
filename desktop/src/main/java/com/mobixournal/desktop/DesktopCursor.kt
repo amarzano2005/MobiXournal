@@ -40,12 +40,15 @@ internal fun cursorDiameterPx(radiusPt: Float, zoom: Float, density: Float): Flo
     max(CURSOR_MIN_PX, radiusPt * 2f * zoom * density)
 
 /**
- * The ring for the tool in hand, or null for the one slot that moves the page instead of marking it.
+ * The ring for the tool in hand, or null for the slots that do not mark the sheet at a width.
  *
- * Every tool that acts **on** the page wears it — the pen, the highlighter, both erasers, each figure, the
- * circuit slots, Text, vertical space and the selection — because they all mark the sheet at the pen's
- * width and the ring is the only thing that says where and how wide. Only the **hand** does not: it
- * carries the page, so it wears the hand (`toolPointerIcon`), which is the one pointer that describes it.
+ * Every tool that lays ink **at the pen's width** wears it — the pen, the highlighter, both erasers, each
+ * figure, the circuit slots, vertical space and the selection — because the ring is the only thing that
+ * says where and how wide the mark will be.
+ *
+ * Two slots do not. The **hand** carries the page instead of marking it, so it wears the hand; and **Text**
+ * writes words, not a band of ink, so a circle the size of the nib promised a width no character has. It
+ * wears the text cursor instead ([toolPointerIcon]) and the field under it shows the caret.
  *
  * A pen and a highlighter are as wide as their line; the **eraser is a radius** in the shared geometry
  * (`eraserRadiusPt`), which is why it goes through the same function with its own answer rather than the
@@ -53,12 +56,12 @@ internal fun cursorDiameterPx(radiusPt: Float, zoom: Float, density: Float): Flo
  */
 internal fun toolCursorDiameterPx(tool: DesktopTool, widthPt: Float, zoom: Float, density: Float): Float? =
     when (tool) {
-        DesktopTool.HAND -> null
+        DesktopTool.HAND, DesktopTool.TEXT -> null
         // Both erasers show the tip they cut with: the whole-stroke eraser is a disc like the partial one,
         // it simply takes everything the disc touches.
         DesktopTool.ERASER, DesktopTool.ERASER_WHOLE -> cursorDiameterPx(eraserRadiusPt(widthPt).toFloat(), zoom, density)
-        // Everything else — a figure, a circuit, Text, vertical space, the marquee and the lasso — writes
-        // at the pen's width, so its ring is the pen's ring at that point.
+        // Everything else — a figure, a circuit, vertical space, the marquee and the lasso — writes at the
+        // pen's width, so its ring is the pen's ring at that point.
         else -> cursorDiameterPx(widthPt / 2f, zoom, density)
     }
 
@@ -87,16 +90,25 @@ private val blankCursor: Cursor by lazy {
         .getOrElse { Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR) }
 }
 
+/** The platform's own **text cursor** — the bar every text field on the desktop wears. */
+private val textCursor: Cursor by lazy {
+    runCatching { Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR) }
+        .getOrElse { Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR) }
+}
+
 /**
  * The pointer the sheet wears for [tool].
  *
- * Two answers, one per meaning: the **hand** gets the hand, because it is the only slot that moves the
+ * Three answers, one per meaning: the **hand** gets the hand, because it is the only slot that moves the
  * page rather than marking it — and `panMode` is Space held, which is that same pan with any slot picked;
- * every other tool gets **no arrow at all**, because its ring is the pointer ([drawToolCursor]). An arrow
- * beside a ring points at nothing, and a ring alone is the mark the tablet draws.
+ * **Text** gets the text cursor, because what a press produces there is a caret and words, not a band of
+ * ink, and an I-beam is the one pointer that says so; every other tool gets **no arrow at all**, because
+ * its ring is the pointer ([drawToolCursor]). An arrow beside a ring points at nothing, and a ring alone
+ * is the mark the tablet draws.
  */
 internal fun toolPointerIcon(tool: DesktopTool, ringVisible: Boolean, panMode: Boolean = false): PointerIcon = when {
     panMode || tool == DesktopTool.HAND -> PointerIcon.Hand
+    tool == DesktopTool.TEXT -> PointerIcon(textCursor)
     ringVisible -> PointerIcon(blankCursor)
     else -> PointerIcon.Default
 }
