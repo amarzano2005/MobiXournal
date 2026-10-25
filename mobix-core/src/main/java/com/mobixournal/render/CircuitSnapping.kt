@@ -282,8 +282,17 @@ object CircuitSnapping {
         }
         if (selectedCircuits.isEmpty() && selectedStrokes.isEmpty()) return rawDx to rawDy
 
-        val excludeId = selectedCircuits.firstOrNull()?.id
-        val targets = collectAllTargets(page, excludeCircuitId = excludeId)
+        // The moved parts' **own** pins are not targets: a pin cannot join itself, and offering it made the
+        // magnet pull the part back onto where it already was for the first few points of every drag. By
+        // position, not by id — a part read from a `.xopp` has no id, and one exclusion covered only the
+        // first of a multi-part selection.
+        val targets = collectTargets(
+            page.layers.flatMapIndexed { layerIndex, layer ->
+                layer.elements.mapIndexedNotNull { elementIndex, element ->
+                    if (ElementRef(layerIndex, elementIndex) in refs) null else element as? CircuitElement
+                }
+            },
+        )
         if (targets.isEmpty()) return rawDx to rawDy
 
         var bestDx = rawDx

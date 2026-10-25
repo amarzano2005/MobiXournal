@@ -165,6 +165,26 @@ class SelectionMagnetTest {
         assertEquals(200.0, moved.positionY + dy + pin.relY, 1e-6)
     }
 
+    /**
+     * The part's **own** pin is not a target, so a small drag moves it instead of snapping it back.
+     *
+     * A pin can only be joined to *another* pin. Offering the moved part's own pins made the nearest target
+     * its own position, so the first few points of every drag were pulled straight back — the part looked
+     * stuck, and a nudge meant to line it up with a neighbour did nothing. A part read from a `.xopp` has
+     * no id at all, which is why the exclusion is by position.
+     */
+    @Test
+    fun `a part nudged a few points follows the hand instead of snapping onto itself`() {
+        val lone = page.copy(layers = listOf(Layer(listOf(moved.copy(id = null)))))
+        val caught = PageSelection(
+            region = SelectionRegion.Rect(Bounds(550.0, 150.0, 650.0, 250.0)),
+            refs = setOf(ElementRef(0, 0)),
+        )
+        val (dx, dy) = snapSelectionMove(lone, caught, dx = 6.0, dy = -4.0, scale = 1f)
+        assertEquals("a nudge stays a nudge", 6.0, dx, 1e-9)
+        assertEquals(-4.0, dy, 1e-9)
+    }
+
     @Test
     fun `a drag out of reach is the hand's own translation, and a figure is never pulled`() {
         val (dx, dy) = snapSelectionMove(page, selection, dx = -100.0, dy = 120.0, scale = 1f)
