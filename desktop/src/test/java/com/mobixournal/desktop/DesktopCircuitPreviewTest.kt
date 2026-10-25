@@ -215,6 +215,53 @@ class DesktopCircuitPreviewTest {
         }
     }
 
+    /**
+     * The **shell's own flow**: both parts placed by `placeCircuit`, then the second carried onto the first
+     * by its pin, as the window hands the page to the selection after every placement.
+     *
+     * The placement commits through `DesktopShellState` (the wiring the tool strip calls), so what this
+     * covers is the pair a reader actually uses: insert, then drag into place.
+     */
+    @Test
+    fun `a part placed by the shell is carried onto another part's pin`() {
+        val state = DesktopShellState().also { it.open(notebook()) }
+        val tab = state.tabs.active!!
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        try {
+            val ink = state.shapeInk
+            val firstSpan = CircuitSpan(160.0, 200.0, 240.0, 200.0)
+            state.placeCircuit(tab, ShapeKind.RESISTOR, firstSpan)
+            assertEquals("the placement hands the page to the selection", DesktopTool.MARQUEE, state.tools.current)
+            val secondSpan = CircuitSpan(400.0, 200.0, 480.0, 200.0)
+            state.placeCircuit(tab, ShapeKind.RESISTOR, secondSpan)
+            require(ink.colour != 0)
+            assertEquals("two parts on the page", 2, elements(tab).count { it is CircuitElement })
+
+            val scene = marqueeScene(tab)
+            try {
+                // The press is five points past the second part's left pin, and it is dragged to five points
+                // short of the first part's right pin: only the magnet can close either gap.
+                pen(scene, PointerEventType.Press, 405f, 200f, 1_000L, tool = DesktopTool.MARQUEE)
+                pen(scene, PointerEventType.Move, 250f, 200f, 1_016L, tool = DesktopTool.MARQUEE)
+                pen(scene, PointerEventType.Release, 250f, 200f, 1_032L, pressed = false, tool = DesktopTool.MARQUEE)
+                scene.render()
+
+                val pins = elements(tab).filterIsInstance<CircuitElement>().flatMap { part ->
+                    part.pins.map { pin -> CircuitSnapping.pinAbsolutePosition(part, pin) }
+                }
+                val joined = pins.count { (x, y) ->
+                    kotlin.math.abs(x - 240.0) < 1e-6 && kotlin.math.abs(y - 200.0) < 1e-6
+                }
+                assertEquals("the carried part's pin sits on the other's: $pins", 2, joined)
+            } finally {
+                scene.close()
+            }
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
     private fun marqueeScene(tab: DesktopTab): ImageComposeScene {
         val scene = ImageComposeScene(viewW, viewH, Density(1f)) {
             PageCanvas(tab = tab, panMode = false, tool = DesktopTool.MARQUEE, onViewport = {}, onFit = {})
