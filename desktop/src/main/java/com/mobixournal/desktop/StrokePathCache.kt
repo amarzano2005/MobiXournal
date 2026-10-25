@@ -47,8 +47,21 @@ internal object StrokePathCache {
     var builds: Int = 0
         private set
 
-    /** A draft's identity plus the length it has reached: a longer draft is a different shape. */
-    private data class DraftKey(val size: Int, val scale: Float, val tool: Tool, val dash: LineStyle)
+    /**
+     * A draft's identity plus the length and the **last sample** it has reached.
+     *
+     * Both are needed. A pen's draft grows, so its length says what it is; a **figure's** draft is
+     * rewritten each frame at the same length (a rectangle is four corners however far it is dragged), so
+     * a key of length alone handed back the first frame's geometry for the whole drag — the preview stood
+     * still and jumped at the lift, which reads as a lag. The last point moves with the hand in both cases.
+     */
+    private data class DraftKey(
+        val size: Int,
+        val scale: Float,
+        val tool: Tool,
+        val dash: LineStyle,
+        val last: StrokePoint?,
+    )
 
     /** The shapes of one recorded stroke at [scale]. */
     @Synchronized
@@ -72,7 +85,7 @@ internal object StrokePathCache {
      */
     @Synchronized
     fun draft(identity: Any, size: Int, tool: Tool, lineStyle: LineStyle, points: List<StrokePoint>, scale: Float): Shapes {
-        val key = DraftKey(size, scale, tool, lineStyle)
+        val key = DraftKey(size, scale, tool, lineStyle, points.lastOrNull())
         val perDraft = byDraft.getOrPut(identity) { HashMap(4) }
         perDraft[key]?.let { return it }
         if (perDraft.size >= 4) perDraft.clear()

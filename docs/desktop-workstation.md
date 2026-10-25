@@ -25,25 +25,24 @@ What it does today:
   chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
   header carrying the **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is)
   and the strip's own **`+`**, under a **native caption painted in the band's own composite colour**
-  (`DesktopTitleBar.kt` sets Windows' immersive dark mode and its caption/border/text colours through DWM,
-  best effort). The caption carries **no app name and no icon**, its corner blanked too: `captionIcon` splits
-  the window's icons — transparent at the caption's sizes, the art at the taskbar's — so the caption is the
-  tabs alone while the taskbar keeps the app's art. 1.5 dp monoline glyphs, Inter with tabular figures, one
-  cast shadow under each band and one under the sheet — `docs/ui-modernization.md` owns the material and
-  `DesktopThemeTest` pins it. The art is the tablet's launcher icon **without its navy field**, enlarged a
-  little inside its tile so the mark still reads at taskbar size (`desktop/icon/`, `resources/icon.png`).
+  (`DesktopTitleBar.kt` sets Windows' immersive dark mode and its caption/border/text colours through DWM).
+  The caption carries **no app name and no icon**, its corner blanked too: `captionIcon` splits the window's
+  icons — transparent at the caption's sizes, the art at the taskbar's. 1.5 dp monoline glyphs, Inter with
+  tabular figures, one cast shadow under each band and one under the sheet — `docs/ui-modernization.md` owns
+  the material and `DesktopThemeTest` pins it.  The art is the tablet's launcher icon **without its navy
+  field**, enlarged inside its tile so the mark reads at taskbar size (`desktop/icon/`).
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
   key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
   eased rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`), so a marquee, a figure or a reflow reaches
   past one screenful. A tab opens in **`AUTO` fit**, which asks what the page *is*: a sheet (A4 is 1.41
-  high) is shown whole, and a page saved as a
-  long strip — the tablet writes one 850 × 2976 pt page for a lecture that fills the sheet — is fitted to
-  its **width**, because the whole page lands at 27 %,  where a 12 pt hand is three pixels tall. The status bar names the fit in use, `Ctrl + 0` still means the
-  whole sheet, and a width-fitted page stays fitted while you read down it. Thumbnails come from the
+  high) is shown whole, and a page saved as a long strip — the tablet writes one 850 × 2976 pt page for a
+  lecture that fills the sheet — is fitted to its **width**, because the whole page lands at 27 %, where a
+  12 pt hand is three pixels tall. The status bar names the fit in use, `Ctrl + 0` still means the whole
+  sheet, and a width-fitted page stays fitted while you read down it. Thumbnails come from the
   same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
-  once per page per tab. The sidebar's layer list carries an **eye per layer** (`LayerEye`, monoline like
-  the rest of the chrome): switching one off skips that layer in the page painter *and* in the thumbnail,
-  and the layer stays listed in the muted ink — switched off, not gone. That is **view** state, per tab and
+  once per page per tab.  The sidebar's layer list carries an **eye per layer** (`LayerEye`, monoline like
+  the rest of the chrome): switching one off skips that layer in the painter *and* in the thumbnail, and
+  the layer stays listed in the muted ink — switched off, not gone. That is **view** state, per tab and
   per page (`DesktopTab.hiddenOn` / `toggleLayer`): nothing is written to the document, and a second press
   brings the layer back. A hidden layer's thumbnail is painted fresh instead of taking the page cache, so a
   preview can never show a layer the sheet beside it is missing.
@@ -83,9 +82,10 @@ What it does today:
   save writes. So a `.mobix` edit inflates exactly the page it touched, the stroke lands in the file (the
   page's thumbnail catches up when the burst goes quiet, above), and a lift costs the stroke and not the
   sheet — `PagePicture` records only the ink appended on top, see *A stroke costs the stroke*. A press
-  that lands on the desk starts nothing, because the desk is not paper. The eraser is the shared `PageEraser` in standard mode — it rubs out the part of a stroke it
-  crosses and splits it in two, at a tip the pen width sizes — and a highlighter band keeps its
-  multiply. Pressure is the shared filter's, and the driver's own stream is read beside it
+  that lands on the desk starts nothing, because the desk is not paper. The eraser is the shared `PageEraser`
+  in standard mode — it rubs out the part of a stroke it crosses and splits it in two, at a tip the pen width
+  sizes — and a highlighter band keeps its multiply. Its bites are gathered one frame at a time
+  (`EraseBatch`): one edit per *move* meant two or three page copies and picture records per frame. Pressure is the shared filter's, and the driver's own stream is read beside it
   ([desktop-tablet.md](desktop-tablet.md) owns what each stream carries). `DesktopPointerSceneTest` proves
   the wire: real pointer events pushed through an `ImageComposeScene` into this canvas, and the stroke that
   reaches the model carries the filtered pressure ramp (0.2 → 0.5 → 1.0 becomes 0.8 → 2.0 → 4.0 pt at a
@@ -150,8 +150,10 @@ What it does today:
   (`SelectionMagnet`), so what was aimed at is what is joined (`CircuitGestureTest`, `SelectionMagnetTest`).
   A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it, and a
   press **on** a pin picks the part up (`PinPress`): the pin is at the part's very end, which is where the
-  hand aims and the one place the ink picker can miss — so it falls through to the magnet's own reach
-  instead of tracing a marquee (`PinPressTest`, `DesktopCircuitPreviewTest`).
+  hand aims and the one place the ink picker can miss, so it falls through to the magnet's reach instead of
+  tracing a marquee (`PinPressTest`, `DesktopCircuitPreviewTest`). A moved part's **own** pins are never its
+  targets, by position rather than id — otherwise the magnet pulled the part back for the first points of
+  every drag (`SelectionMagnetTest`).
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
   surface the drawn rim — and every one is a **menu that never takes the keyboard** (`FloatingSurface`,
   `DesktopPopupFocusTest`), so the shortcuts survive a flyout or a hover pill. Both keep the **shared fill
@@ -310,15 +312,14 @@ The page is recorded **once** per document state, not per viewport: `PagePicture
 **document scale** and every frame replays it under the canvas's own matrix, so a scroll is a translate and
 a zoom is a scale. Scaling a *picture* is not resampling (the commands are vectors) and `PagePictureTest`
 measures the difference against the direct paint rather than assuming it; `--probe-scroll` with `--diagnose`
-measured **3.6–4.3 ms mean before** and **0.0–0.2 ms after**, the record count staying at one.
-[desktop-tablet.md](desktop-tablet.md) owns the numbers.
+measured **3.6–4.3 ms mean before** and **0.0–0.2 ms after** ([desktop-tablet.md](desktop-tablet.md) owns
+the numbers).
 
 ### What the window does not do
 
 - No layer editing (hiding one is view state, above). There are no header buttons for undo and redo — the
   commands exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
-- No sketch/PDF/text import and no **images as elements** (only as page backgrounds).
-- No search, and no page reordering or insertion.
+- No import of anything but a document (no images as elements, no search, no page reordering or insertion).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
   the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
 
