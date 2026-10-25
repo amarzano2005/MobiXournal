@@ -145,6 +145,23 @@ class SelectionMovePaintTest {
             val moved = pageOf(tab).layers[0].elements[1] as CircuitElement
             assertEquals("the pin still joins the anchor's pin", 190.0, moved.positionX - 40.0, 1e-6)
             assertEquals(150.0, moved.positionY, 1e-6)
+
+            // And again, now that the part has a move behind it: the element a magnetised drag wrote must
+            // still be a component with pins, or the second attempt would find nothing to join.
+            pointer(scene, PointerEventType.Press, 230f, 150f, 3_000L)
+            pointer(scene, PointerEventType.Release, 230f, 150f, 3_060L, pressed = false)
+            pointer(scene, PointerEventType.Press, 230f, 150f, 4_000L)
+            pointer(scene, PointerEventType.Move, 260f, 300f, 4_016L)
+            pointer(scene, PointerEventType.Move, 320f, 400f, 4_032L)
+            pointer(scene, PointerEventType.Release, 320f, 400f, 4_048L, pressed = false)
+            val twice = pageOf(tab).layers[0].elements[1]
+            assertTrue("a moved part is still a component", twice is CircuitElement)
+            assertEquals(
+                "and its pins are still targets for the next drag",
+                320.0 - 40.0,
+                (twice as CircuitElement).positionX - 40.0,
+                1e-6,
+            )
         } finally {
             scene.close()
             tab.document.close()
