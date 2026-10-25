@@ -138,6 +138,19 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).
     val picked = page?.let { pickForDrag(it, x0, y0, tol) }
+    // A pin sits on the box's own edge, inside the corner handles' reach, and the corner is asked first —
+    // so a press on the terminal, which is the grab a person uses to join two parts, **scaled** the symbol
+    // instead of moving it, and a scale never magnetises (`pressesOwnPin`). On its own pin a part is moved;
+    // its corners still scale it when the press is off the terminal.
+    val grabbed = if (handle == SelectionHandle.NONE || handle == SelectionHandle.ROTATE) {
+        handle
+    } else {
+        val own = live?.takeIf { it.refs.size == 1 }?.let { one ->
+            val ref = one.refs.first()
+            page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+        }
+        if (pressesOwnPin(own, x0, y0, tol)) SelectionHandle.BODY else handle
+    }
     // A **double-click** anywhere on an element picks it, and if it is a living recipe opens its editor —
     // the tablet's double-tap. The question is settled on the **lift**, not on the press: a placed part is
     // clicked into being and dragged into place a moment later, and a press that treats the second click
@@ -157,7 +170,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         if (living && tab.document.edits == editsBefore) onEditLiving?.invoke()
         return
     }
-    if (handle.startsRegion()) {
+    if (grabbed.startsRegion()) {
         // A **click on an element** selects it, and the drag that follows carries it: the marquee used to
         // trace a zero-size region and drop the selection, so picking one thing up meant boxing it.
         if (page != null && picked != null) {
@@ -179,7 +192,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
         dragLivingGrip(living, grip, x0, y0, tab, view, density, onLiveDrag, onEdited)
         return
     }
-    transformSelection(selection, handle, x0, y0, tab, view, density, onLiveDrag, onEdited)
+    transformSelection(selection, grabbed, x0, y0, tab, view, density, onLiveDrag, onEdited)
 }
 
 /** The trace half: collect the drag into a rectangle or a loop, and hand it to the page on lift. */

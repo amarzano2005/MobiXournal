@@ -148,10 +148,10 @@ What it does today:
   tablet draws them; the ends of a wire and of a placed part are **magnetised** onto the nearest pin
   (`snapWireEnds`, `circuitSpan`), and so is a part **selected after insertion** when it is dragged
   (`SelectionMagnet`), so what was aimed at is what is joined (`CircuitGestureTest`, `SelectionMagnetTest`).
-  A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it, and a
-  press **on** a pin picks the part up (`PinPress`): the pin is at the part's very end, which is where the
-  hand aims and the one place the ink picker can miss, so it falls through to the magnet's reach instead of
-  tracing a marquee (`PinPressTest`, `DesktopCircuitPreviewTest`). A moved part's **own** pins are never its
+  A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it. A press
+  **on** a pin picks the part up (`PinPress`), and on a selected part's own pin the drag **moves** it rather
+  than scaling at the corner handle that sits there (`pressesOwnPin`: a scale never magnetises), so the dot
+  the hand aims at is the one the magnet joins (`PinPressTest`). A moved part's **own** pins are never its
   targets, by position rather than id — otherwise the magnet pulled the part back for the first points of
   every drag (`SelectionMagnetTest`).
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating

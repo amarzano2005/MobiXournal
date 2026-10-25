@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.format.model.CircuitElement
+import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitElementFactory
 import com.mobixournal.render.CircuitSnapping
@@ -46,6 +47,24 @@ internal fun pinnedElementAt(page: Page, x: Double, y: Double, radiusPt: Double)
  */
 internal fun pickForDrag(page: Page, x: Double, y: Double, radiusPt: Double): ElementRef? =
     SelectionTester.pickTopmost(page, x, y) ?: pinnedElementAt(page, x, y, radiusPt)
+
+/**
+ * Whether a press at ([x], [y]) lands on a **pin** of [element] — the grab that must *move* the part.
+ *
+ * A pin sits on the part's own edge, which is also where the selection's corner handles are, and a corner
+ * handle is grabbed first. Within the magnet's reach a press aimed at the pin therefore hit a corner and
+ * **scaled** the part: the hand pulled the terminal towards the other one and the symbol grew instead of
+ * travelling, and a scale never magnetises — the report that the pins were "there but would not attach".
+ * On its own pin, a part is moved; its corners still scale it when the press is off the terminal.
+ */
+internal fun pressesOwnPin(element: Element?, x: Double, y: Double, radiusPt: Double): Boolean {
+    val part = element as? CircuitElement ?: return false
+    if (radiusPt <= 0.0) return false
+    return part.pins.any { pin ->
+        val (px, py) = CircuitSnapping.pinAbsolutePosition(part, pin)
+        hypot(px - x, py - y) <= radiusPt
+    }
+}
 
 /**
  * The connector kind a selection stands for, so the sheet keeps marking the pins of a part that was picked

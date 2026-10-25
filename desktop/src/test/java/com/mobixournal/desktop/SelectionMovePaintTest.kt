@@ -11,6 +11,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.model.Background
+import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitPin
 import com.mobixournal.format.model.Layer
@@ -107,6 +108,89 @@ class SelectionMovePaintTest {
             val pixels = frame(scene)
             assertTrue("the ink is where the part was dropped", inkNear(pixels, 190, 150))
             assertTrue("and not where it used to be", !inkNear(pixels, 350, 150))
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * Grabbed **by its pin**, which is where the hand aims and where the box's corners are.
+     *
+     * The pin sits on the part's own edge, so the press was inside the corner handle's reach and the drag
+     * **scaled** the symbol: the terminal was pulled towards the other one and the part grew instead of
+     * travelling, and a scale never magnetises. That is the report of pins that are there but never attach.
+     */
+    @Test
+    fun `a part grabbed by its pin moves and joins instead of scaling`() {
+        val tab = tab()
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            PageCanvas(tab = tab, panMode = false, tool = DesktopTool.MARQUEE, onViewport = {}, onFit = {})
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+
+            // The press is **on the left pin** (310, 150), six points inside the top-left corner's reach.
+            // Dragged so that pin lands 4 pt short of the anchor's right pin (190, 150).
+            pointer(scene, PointerEventType.Press, 310f, 150f, 1_000L)
+            pointer(scene, PointerEventType.Move, 260f, 152f, 1_016L)
+            pointer(scene, PointerEventType.Move, 194f, 156f, 1_032L)
+            pointer(scene, PointerEventType.Release, 194f, 156f, 1_048L, pressed = false)
+
+            val moved = pageOf(tab).layers[0].elements[1] as CircuitElement
+            assertEquals("the pin joins the anchor's pin", 190.0, moved.positionX - 40.0, 1e-6)
+            assertEquals(150.0, moved.positionY, 1e-6)
+            assertEquals(
+                "and the part was moved, not scaled",
+                80.0,
+                moved.pins[1].relX - moved.pins[0].relX,
+                1e-6,
+            )
+        } finally {
+            scene.close()
+            tab.document.close()
+        }
+    }
+
+    /**
+     * The same drag on a page **read back from a `.mobix`**, which is how a real document arrives.
+     *
+     * A document built in memory and a document decoded from the container are different reaches of the
+     * same code: the page comes out of the reader with its elements decoded by the codec, and the magnet's
+     * targets and the moved element are compared through those objects. A `.mobix` is also the container
+     * that keeps circuits natively, so nothing here may depend on a claim being revived.
+     */
+    @Test
+    fun `a part read back from a mobix container still snaps to a pin`() {
+        val file = temp.newFile("magnet.mobix")
+        SyntheticNotebook.write(file, listOf(page()))
+        val tab = DesktopTabs().open(DocumentLoader.load(file))
+        tab.fit = FitMode.NONE
+        tab.viewport = Viewport(zoom = 1f)
+        assertEquals(
+            "the container kept the parts as components",
+            2,
+            tab.document.page(0).layers.flatMap { it.elements }.count { it is CircuitElement },
+        )
+        tab.selection = PageSelection(
+            region = rectRegion(310.0, 150.0, 390.0, 150.0),
+            refs = setOf(ElementRef(layerIndex = 0, elementIndex = 1)),
+        )
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            PageCanvas(tab = tab, panMode = false, tool = DesktopTool.MARQUEE, onViewport = {}, onFit = {})
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            scene.render()
+            pointer(scene, PointerEventType.Press, 350f, 150f, 1_000L)
+            pointer(scene, PointerEventType.Move, 300f, 152f, 1_016L)
+            pointer(scene, PointerEventType.Move, 234f, 156f, 1_032L)
+            pointer(scene, PointerEventType.Release, 234f, 156f, 1_048L, pressed = false)
+
+            val moved = tab.document.page(0).layers[0].elements[1] as CircuitElement
+            assertEquals("the pin joins the anchor's pin", 190.0, moved.positionX - 40.0, 1e-6)
+            assertEquals(150.0, moved.positionY, 1e-6)
         } finally {
             scene.close()
             tab.document.close()
