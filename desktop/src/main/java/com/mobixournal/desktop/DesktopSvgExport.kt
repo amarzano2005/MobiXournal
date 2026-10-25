@@ -44,13 +44,17 @@ internal object DesktopSvgExport {
         backdrop: (Background) -> ByteArray?,
     ): List<File> {
         prepare(folder)
-        val pages = document.model.pages
-        if (pages.isEmpty()) {
+        // The **window's** pages, not the model's list: a paged `.mobix` describes its pages in the
+        // manifest and inflates one when it is read, and an edit lives in the window's overlay, so
+        // walking `model.pages` would export the file as it was opened — or nothing at all.
+        val pages = document.pageCount
+        if (pages <= 0) {
             throw DesktopSaves.SaveRefused("This document has no pages, so there is nothing to export.")
         }
         val base = document.file.nameWithoutExtension.ifBlank { "document" }
-        val digits = maxOf(PAGE_DIGITS, pages.size.toString().length)
-        return pages.mapIndexed { index, page ->
+        val digits = maxOf(PAGE_DIGITS, pages.toString().length)
+        return (0 until pages).map { index ->
+            val page = document.page(index)
             val name = "$base-p${(index + 1).toString().padStart(digits, '0')}.svg"
             val target = File(folder, name)
             val temp = File.createTempFile(".$name.", ".writing", folder)
