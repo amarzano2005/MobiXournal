@@ -14,14 +14,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
-import androidx.compose.ui.unit.sp
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke as InkStroke
@@ -75,6 +73,8 @@ internal fun DrawScope.drawPageContent(
     textMeasurer: TextMeasurer,
     backdrop: PageBackdrop? = null,
     hiddenLayers: Set<Int> = emptySet(),
+    /** The one element not to paint — the text box the in-place field is retyping, if any. */
+    skip: Element? = null,
 ) {
     // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
     // window, so `size` here would paint the paper across the whole viewport.
@@ -92,7 +92,7 @@ internal fun DrawScope.drawPageContent(
     // not paint them (the same view state that hides it in the sidebar's list).
     for ((index, layer) in page.layers.withIndex()) {
         if (index in hiddenLayers) continue
-        drawElements(layer.elements, pxPerPt, textMeasurer)
+        drawElements(layer.elements, pxPerPt, textMeasurer, skip)
     }
 }
 
@@ -108,8 +108,15 @@ internal fun DrawScope.drawElements(
     elements: List<Element>,
     pxPerPt: Float,
     textMeasurer: TextMeasurer,
+    /** The element the live field has taken over, or null to paint them all. */
+    skip: Element? = null,
 ) {
-    for (element in elements) drawElement(element, pxPerPt, textMeasurer)
+    for (element in elements) {
+        // Identity: the field holds the very element the page holds, so "the box being retyped" is one
+        // reference, not a search for an element that looks the same.
+        if (element === skip) continue
+        drawElement(element, pxPerPt, textMeasurer)
+    }
 }
 
 /**
@@ -212,19 +219,20 @@ internal fun DrawScope.drawStrokeShapes(
 
 private fun DrawScope.drawTextBox(box: TextElement, scale: Float, textMeasurer: TextMeasurer) {
     if (box.content.isBlank()) return
+    val face = textFace(box.font)
     val layout = textMeasurer.measure(
         text = box.content,
         style = TextStyle(
             color = Color(box.color),
-            fontSize = (box.size * scale).sp,
-            fontFamily = box.family(),
+            // [scale] is **pixels per point** (pt × zoom × density), so the size has to come back out of
+            // px before it can be asked for in sp: `.sp` on a page point multiplied the display density
+            // in a second time and painted every box — and every formula — [density] times too large,
+            // while its position stayed right. `toSp` divides the canvas's own density back out.
+            fontSize = (box.size * scale).toFloat().toSp(),
+            fontFamily = face.family,
+            fontWeight = face.weight,
+            fontStyle = face.style,
         ),
     )
     drawText(layout, topLeft = Offset((box.x * scale).toFloat(), (box.y * scale).toFloat()))
 }
-
-/**
- * The text box's face: `TextAuthoring`'s mapper, which the in-place Text field reads too — so the line
- * being typed breaks where the written one will.
- */
-private fun TextElement.family(): FontFamily = textFontFamily(font)

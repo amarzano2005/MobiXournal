@@ -311,6 +311,8 @@ internal fun SheetCanvas(
     /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
     onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
     onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
+    /** The text box the in-place field has taken over, or null — the sheet leaves it to the field. */
+    editingText: Element? = null,
     /** What a double-click on the selected living element means — the shell's pencil, from the canvas. */
     onEditLiving: (() -> Unit)?,
     draft: SnapshotStateList<InkSample>,
@@ -334,8 +336,7 @@ internal fun SheetCanvas(
     // The pen's pointer: a ring the size of the tool instead of the desktop's arrow (`DesktopCursor.kt`).
     // Its position is `pointer.hover`, lifted into `PageCanvas` so the driver's own readings can move it.
     val ringPx = toolCursorDiameterPx(tool, tool.ringWidthPt(ink, shapeInk), sheet.zoom, density)
-    // A mouse move that is a *copy* of the contact must not drag the ring back to a position the driver
-    // has already left behind; the packets win for as long as they are arriving.
+    // A mouse move that copies the contact must not drag the ring behind the packets still arriving.
     val followMouse = { System.nanoTime() - pointer.atNanos.value > PenPacketStroke.HOVER_STALE_NANOS }
 
     Canvas(
@@ -358,9 +359,7 @@ internal fun SheetCanvas(
                 circuitKind = circuitKind,
                 onTextPress = onTextPress,
                 onEditLiving = onEditLiving,
-                // Only the component is drawn live: a plot or a table is still waiting for its values,
-                // and previewing a default would promise the wrong graph. The circuit's preview is its
-                // own drag's (`CircuitGesture`), aimed at the page's pins.
+                // Only the component is drawn live: a plot or table is still waiting for its values.
                 livingPreview = pointer.previewLiving,
                 onLiveDrag = onLiveDrag,
             ),
@@ -391,6 +390,7 @@ internal fun SheetCanvas(
             previewRegion = pointer.previewRegion.value,
             previewLiving = pointer.previewLiving.value,
             paintProbe = paintProbe,
+            skip = editingText,
         )
         // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings are
         // taken **here**, in the draw scope, so a hover reading repaints the sheet and never recomposes it.
@@ -487,6 +487,8 @@ private fun DrawScope.paintSheet(
     previewLiving: Element? = null,
     /** The ink probe's sink; null in the editor. Called after the ink, at the same clock reading. */
     paintProbe: ((List<List<InkSample>>, Long) -> Unit)? = null,
+    /** The element the in-place field is retyping, left out of the recorded sheet. */
+    skip: Element? = null,
 ) {
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
@@ -494,7 +496,7 @@ private fun DrawScope.paintSheet(
     val pxPerPt = zoom * density
     // The sheet: recorded once per viewport, replayed per frame (see `PagePicture`). Recording is the
     // Kotlin cost — `LivingInk`, text measurement, a `Path` per stroke — and a frame must not pay it.
-    sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer)
+    sheetPicture.draw(this, page, viewport, zoom, density, backdrop, hiddenLayers, measurer, skip)
     withTransform({ translate(viewport.offsetX * density, viewport.offsetY * density) }) {
         paintLiveOverlay(
             page = page,

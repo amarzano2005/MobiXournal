@@ -79,6 +79,9 @@ internal fun PageSheet(
         onPlaceLiving = onPlaceLiving,
         onPlaceCircuit = onPlaceCircuit,
         onTextPress = text.onPress,
+        // The words being retyped belong to the field while it is up: the sheet must not paint them
+        // underneath it as well.
+        editingText = text.box?.editing,
         onEditLiving = onEditLiving,
         draft = draft,
         penDraft = penDraft,

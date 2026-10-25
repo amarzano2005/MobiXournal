@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.unit.sp
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.render.LatexLayout
 import com.mobixournal.render.LatexParser
@@ -35,7 +34,10 @@ internal fun DrawScope.drawTexImage(tex: TexImageElement, scale: Float, measurer
         if (glyph.text.isBlank()) continue
         val measured = measurer.measure(
             text = glyph.text,
-            style = TextStyle(color = ink, fontSize = (glyph.size * scale).sp),
+            // [scale] is pixels per point, so the glyph's size is already in px: `.sp` would multiply the
+            // display density in again and paint a formula [density] times too large beside its own box
+            // (the text boxes had the same defect — see `drawTextBox`).
+            style = TextStyle(color = ink, fontSize = (glyph.size * scale).toFloat().toSp()),
         )
         drawText(
             textLayoutResult = measured,

@@ -130,7 +130,10 @@ page** with the pen and the highlighter and **rub ink out** with the eraser — 
 draw and lands in the document when you lift, and `Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to
 put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
 takes whole strokes. **Type on it** with Text (`X`): a press opens a box where you pressed, `Enter` starts
-a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way. The pen and the highlighter keep **separate colours, widths and favourite colours**,
+a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way.
+**Click words that are already on the page and you edit them**: the box comes up with your text, in its own
+font, size and colour, and correcting it — or emptying it, which deletes the box — is one undo step, whether
+the words were typed on the PC, on the tablet or in desktop Xournal++. The pen and the highlighter keep **separate colours, widths and favourite colours**,
 as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
 switching back brings that ink back with it, and each tool also remembers its **stroke pattern** — solid,
 long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,
@@ -185,7 +188,9 @@ selection tool, as the tablet does, so the next drag moves what you just made in
 **Type on the page** with Text (`X`): click where the line should start and a field opens there, in your ink's
 colour and size, with the page still untouched — `Enter` starts a new line, and `Esc` (or a click somewhere
 else) writes the box as one undoable edit. Type nothing and nothing is written, so a click you change your
-mind about leaves no empty box and nothing to undo. The Text slot's second member, **Formula** (`Shift + T`),
+mind about leaves no empty box and nothing to undo. Clicking **words already on the page** opens them for
+editing instead (whatever wrote them — this window, the tablet, or desktop Xournal++), with their own font,
+size and colour; clearing the text deletes the box, and both are one undo step. The Text slot's second member, **Formula** (`Shift + T`),
 notes a formula instead: it asks for the LaTeX (or Typst) source, shows it typeset as you type, and **Place**
 writes it as one live math block — the same element the tablet edits and the `.xopp` export understands.
 A live element can also be shaped **where it sits**: a figure wears a ring on each corner and a table a ring

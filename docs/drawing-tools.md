@@ -275,7 +275,18 @@ history are untouched — and the commit (`Esc`, a click elsewhere, or leaving t
 `TextElement` to the page's top layer as one undo step, left selected. A blank box writes nothing: a press
 you change your mind about leaves no element and no step to undo. While the field is up it owns the
 keyboard — only `Esc` is the shell's — so `Space`, `B`, `H`, `V` and `Delete` are characters, not commands
-(`DesktopTextAuthoringTest`, `DesktopTextSceneTest`). Its group's second member is the tablet's **LaTeX**
+(`DesktopTextAuthoringTest`, `DesktopTextSceneTest`).
+
+**A press on words already on the page re-opens them**, which is what makes text written on the tablet, or
+in desktop Xournal++, editable in the window at all: `textBoxHit` picks the **top-most** box under the
+point with the same padded bounds the tablet's `ElementEdits.pickText` uses, and the field comes up with
+that box's own words, its own font description (family, bold, italic), its own size and colour, the caret
+at the end of them. The retype is **one** edit that replaces the element where it sits — same layer, same
+index, same id, same unmodelled attributes — so a corrected box keeps its z-order and the `.mobix`
+incremental save keeps keying the same element; emptying the box deletes it, and closing it without
+typing records nothing. The caret travels with the text (`TextBoxDraft.typing` is a `TextFieldValue`, not a
+string), so a word can be fixed in the middle. While the field is up the sheet stops painting the box it
+has taken over (`PagePicture`'s `skip`), or the old words would show through the new ones. Its group's second member is the tablet's **LaTeX**
 tool, and it asks before it writes, as Plot and Table do: a press with Formula (`Shift+T`) reserves the box
 and the lane asks for the source (LaTeX, or Typst with the switch) with a live typeset preview, and **Place**
 appends one `MathBlockElement` as one undo step, left selected — a blank source disables Place rather than

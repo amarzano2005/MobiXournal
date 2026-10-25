@@ -111,6 +111,16 @@ of their own: each is compiled by its family's compiler and the result painted i
 single dispatch in `LivingInk` — the same one the PDF painter and the SVG writer above use, so an entity
 cannot look one way on the canvas and another way in an export. See [mobix-elements.md](mobix-elements.md).
 
+**A page point is one pixel per point of density, in every painter.** The desktop shell records a page at
+`pxPerPt = zoom × density` and asks Compose for type sizes in `sp`, so a size that is already in px has to
+come back out of px (`toSp`) before it is asked for in sp: `.sp` on a page point multiplied the display
+density in a second time and painted every text box — and every formula's glyphs — `density` times too large
+while the position stayed right, on a 150 % screen half again as large as the place it was written.
+`drawTextBox` and `TexPainter` convert, and `DesktopTextPaintTest` measures the ratio between two densities
+instead of trusting it. The one element a live in-place field has taken over (the text box being retyped) is
+left out of the recording (`PagePicture`'s `skip`, part of its key, so opening and closing a box re-records
+once each) — otherwise the old words are painted under the new ones for the whole edit.
+
 The compilers themselves (`LivingInk`, `TableInk`, `PlotInk`, `ShapeInk`, `CircuitInk`, and the
 function/geometry helpers they use) are **platform-free and live in `mobix-core`**: they turn a recipe
 into ordinary ink — strokes and text boxes — rather than painting it, so whoever paints (Android

@@ -13,14 +13,16 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobixournal.format.FontDescription
 import kotlin.math.roundToInt
 
 /**
@@ -34,7 +36,11 @@ import kotlin.math.roundToInt
 data class TextBoxUi(
     val box: TextBoxDraft? = null,
     val onPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)? = null,
-    val onChange: (String) -> Unit = {},
+    /**
+     * The field's answer: the text **and** the caret. A string alone would lose the caret on every
+     * keystroke, so a word could only ever be corrected at the end of the box.
+     */
+    val onChange: (TextFieldValue) -> Unit = {},
 )
 
 /**
@@ -48,9 +54,13 @@ data class TextBoxUi(
  * floating glass so an empty box is still visible on a white page, and its rim is the family's edge: the
  * one material class of `docs/interface-contract.md`, no material of its own.
  *
- * The typing is the caller's: [onChange] hands the text back and the shell keeps it in its draft, so
- * nothing reaches the document until the box is committed — an abandoned box leaves no element and no
- * undo step. `Enter` is a new line (the field is not single-line), and the shell owns `Esc`.
+ * The typing is the caller's: [onChange] hands the field's value back and the shell keeps it in its
+ * draft, so nothing reaches the document until the box is committed — an abandoned box leaves no element
+ * and no undo step. `Enter` is a new line (the field is not single-line), and the shell owns `Esc`.
+ *
+ * A box opened on an existing element shows **that element's** words, caret in them, in its own face,
+ * size and colour — and the sheet stops painting the element underneath while the field is up
+ * (`PagePicture`'s skip), so the old text is not doubled behind the new.
  */
 @Composable
 internal fun TextBoxHost(
@@ -59,7 +69,7 @@ internal fun TextBoxHost(
     density: Float,
     offsetX: Float,
     offsetY: Float,
-    onChange: (String) -> Unit,
+    onChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (box == null) return
@@ -72,10 +82,13 @@ internal fun TextBoxHost(
     val leftPx = ((box.x.toFloat() * zoom + offsetX) * density).roundToInt()
     val topPx = ((box.y.toFloat() * zoom + offsetY) * density).roundToInt()
     val widthDp = (box.width.toFloat() * zoom).dp
+    val face = textFace(box.font)
     val style = TextStyle(
         color = Color(box.colour),
         fontSize = (box.size.toFloat() * zoom).sp,
-        fontFamily = textFontFamily(TEXT_FONT),
+        fontFamily = face.family,
+        fontWeight = face.weight,
+        fontStyle = face.style,
         textAlign = TextAlign.Start,
     )
     Box(
@@ -86,10 +99,11 @@ internal fun TextBoxHost(
             .padding(horizontal = 4.dp, vertical = 2.dp),
     ) {
         BasicTextField(
-            // The caret sits where the typing is: the end of the box, which is the press point of a new
-            // one. A `TextFieldValue` rebuilt from the draft keeps the field and the shell in one state.
-            value = TextFieldValue(box.text, TextRange(box.text.length)),
-            onValueChange = { value -> onChange(value.text) },
+            // The draft *is* the field's state, caret included: a `TextFieldValue` rebuilt here would
+            // move the caret to the end after every keystroke and no arrow or click could hold it
+            // anywhere else.
+            value = box.typing,
+            onValueChange = onChange,
             textStyle = style,
             cursorBrush = SolidColor(DesktopTheme.accent),
             modifier = Modifier.focusRequester(focus),
@@ -98,13 +112,32 @@ internal fun TextBoxHost(
 }
 
 /**
- * Xournal++'s font families are CSS-ish names; map the ones we can name to a platform family.
+ * A `.xopp` font description as the face Compose paints: family, and the bold/italic its tokens name.
  *
  * Shared by the painter and the field, so the text being typed and the text that gets written are the
- * same face — a field in another font would show a line break in a different place than the page does.
+ * same face — a field in another font would show a line break in a different place than the page does,
+ * and a `Sans Bold` read as plain Sans is a different box from the one the tablet and Xournal++ draw.
  */
-internal fun textFontFamily(font: String): FontFamily = when {
-    font.contains("mono", ignoreCase = true) -> FontFamily.Monospace
-    font.contains("serif", ignoreCase = true) && !font.contains("sans", ignoreCase = true) -> FontFamily.Serif
+internal data class TextFace(
+    val family: FontFamily,
+    val weight: FontWeight,
+    val style: FontStyle,
+)
+
+internal fun textFace(font: String): TextFace {
+    val description = FontDescription.parse(font)
+    return TextFace(
+        family = textFontFamily(description.family),
+        weight = if (description.bold) FontWeight.Bold else FontWeight.Normal,
+        style = if (description.italic) FontStyle.Italic else FontStyle.Normal,
+    )
+}
+
+/**
+ * Xournal++'s font families are CSS-ish names; map the ones we can name to a platform family.
+ */
+internal fun textFontFamily(family: String): FontFamily = when {
+    family.contains("mono", ignoreCase = true) -> FontFamily.Monospace
+    family.contains("serif", ignoreCase = true) && !family.contains("sans", ignoreCase = true) -> FontFamily.Serif
     else -> FontFamily.SansSerif
 }

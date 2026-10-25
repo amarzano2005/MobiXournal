@@ -9,6 +9,8 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Stroke
@@ -112,7 +114,7 @@ class DesktopTextSceneTest {
         val fixture = fixture()
         try {
             tap(fixture.scene, 150f, 200f)
-            fixture.state.textBox.change("Hello page")
+            type(fixture.state, "Hello page")
             val typed = frame(fixture.scene)
 
             fixture.state.textBox.commit(fixture.tab) { _, _ -> }
@@ -143,7 +145,7 @@ class DesktopTextSceneTest {
         val fixture = fixture()
         try {
             tap(fixture.scene, 140f, 180f)
-            fixture.state.textBox.change("first")
+            type(fixture.state, "first")
             tap(fixture.scene, 320f, 420f)
 
             assertEquals("the first box was written", listOf("first"), texts(fixture.tab))
@@ -157,6 +159,47 @@ class DesktopTextSceneTest {
             fixture.tab.document.close()
         }
     }
+
+    /**
+     * The tablet's rule, through the same canvas a click goes through: words already on the page are
+     * **edited**, not covered by a second box. This is the whole path a press to correct text takes —
+     * Compose's dispatch, the padded hit test, the field opened on that element, one in-place write.
+     */
+    @Test
+    fun `a press on words already on the page re-opens them, not a new box`() {
+        val fixture = fixture()
+        try {
+            placeLivingElement(
+                fixture.tab,
+                TextElement("Sans Bold", 20.0, 120.0, 200.0, 0xFF000000.toInt(), "existing"),
+            )
+            val before = frame(fixture.scene)
+            tap(fixture.scene, 140f, 208f)
+
+            val box = fixture.state.textBox.box
+            assertNotNull("the field opens on the words", box)
+            assertEquals("with the box's own words in it", "existing", box!!.text)
+            assertNotNull("retyping them rather than starting a new box", box.editing)
+            assertEquals("the box's own face", "Sans Bold", box.font)
+            assertEquals("and nothing on the page changed yet", listOf("existing"), texts(fixture.tab))
+            assertNotEquals(
+                "the field is painted over the sheet",
+                before.toList(),
+                frame(fixture.scene).toList(),
+            )
+
+            type(fixture.state, "corrected")
+            fixture.state.textBox.commit(fixture.tab) { _, _ -> }
+            assertEquals("one box, corrected where it stood", listOf("corrected"), texts(fixture.tab))
+        } finally {
+            fixture.scene.close()
+            fixture.tab.document.close()
+        }
+    }
+
+    /** Type [text] into the open box, the way the field hands it over (caret at the end). */
+    private fun type(state: DesktopShellState, text: String) =
+        state.textBox.change(TextFieldValue(text, TextRange(text.length)))
 
     private fun elements(tab: DesktopTab) = tab.document.page(tab.page).layers.flatMap { it.elements }
 

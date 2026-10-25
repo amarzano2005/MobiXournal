@@ -123,6 +123,14 @@ internal class PagePicture {
         val width: Double,
         val height: Double,
         val background: Background,
+        /**
+         * The element the in-place Text field has taken over, if any.
+         *
+         * The field draws the box being retyped; the sheet must not draw it underneath as well, or the
+         * old words show through the new. It is part of the key because the pixels differ: a box opens
+         * (one full record) and closes (one more) around an edit that changes nothing else.
+         */
+        val skip: Element? = null,
     )
 
     /**
@@ -142,6 +150,8 @@ internal class PagePicture {
         backdrop: PageBackdrop?,
         hiddenLayers: Set<Int>,
         measurer: TextMeasurer,
+        /** The element the in-place field is retyping: painted by the field, not by the sheet. */
+        skip: Element? = null,
     ) {
         val wanted = Key(
             density = density,
@@ -150,6 +160,7 @@ internal class PagePicture {
             width = page.width,
             height = page.height,
             background = page.background,
+            skip = skip,
         )
         val current = shown
         if (wanted != key || current == null || base == null) {
@@ -198,6 +209,9 @@ internal class PagePicture {
      * measured text box) and it is never touched by an append.
      */
     private fun adopt(page: Page, wanted: Key, measurer: TextMeasurer) {
+        // A box hidden from the sheet is not a pure append of ink: the base has to lose it, and only a
+        // full record can take a pixel back.
+        if (wanted.skip != null) return recordAll(wanted, page, measurer)
         val base = basePage ?: return recordAll(wanted, page, measurer)
         val added = appendedElements(base, page) ?: return recordAll(wanted, page, measurer)
         // An append to a hidden top layer changes no pixel and complicates the run's bookkeeping for
@@ -215,7 +229,9 @@ internal class PagePicture {
         if (fresh.isNotEmpty()) {
             tails += TailRecord(
                 elements = fresh.size,
-                picture = record(wanted, page, measurer) { drawElements(fresh, wanted.density, measurer) },
+                picture = record(wanted, page, measurer) {
+                    drawElements(fresh, wanted.density, measurer, wanted.skip)
+                },
             )
             tailRecords++
         }
@@ -272,6 +288,7 @@ internal class PagePicture {
                 textMeasurer = measurer,
                 backdrop = wanted.backdrop,
                 hiddenLayers = wanted.hiddenLayers,
+                skip = wanted.skip,
             )
         }
         basePage = page
