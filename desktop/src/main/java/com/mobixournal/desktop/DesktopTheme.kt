@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -161,19 +162,56 @@ object DesktopTheme {
     )
 
     /**
-     * A figure: Inter with **tabular numerals**. Every number the window shows — page, zoom, progress —
-     * uses this style, so the readout does not shuffle sideways as it changes.
+     * The tablet's **Material 3 scale**, in Inter — the same mapping `ModernTypography` makes in the app
+     * module (`ui/theme/Type.kt`), from the same three faces.
+     *
+     * This is what `MaterialTheme` gets, so a `Text` that names no style is still Inter at the size and
+     * tracking the tablet would set: the window's own styles below are roles of this scale, not a second
+     * opinion about type. Without it, a `Text` fell back to the framework's default face and the window
+     * mixed two typefaces.
      */
-    val numeric = TextStyle(fontFamily = inter, fontSize = 11.sp, fontFeatureSettings = "tnum")
+    val typography: Typography = Typography().let { base ->
+        Typography(
+            displayLarge = base.displayLarge.copy(fontFamily = inter),
+            displayMedium = base.displayMedium.copy(fontFamily = inter),
+            displaySmall = base.displaySmall.copy(fontFamily = inter),
+            headlineLarge = base.headlineLarge.copy(fontFamily = inter),
+            headlineMedium = base.headlineMedium.copy(fontFamily = inter),
+            headlineSmall = base.headlineSmall.copy(fontFamily = inter),
+            titleLarge = base.titleLarge.copy(fontFamily = inter),
+            titleMedium = base.titleMedium.copy(fontFamily = inter),
+            titleSmall = base.titleSmall.copy(fontFamily = inter),
+            bodyLarge = base.bodyLarge.copy(fontFamily = inter),
+            bodyMedium = base.bodyMedium.copy(fontFamily = inter),
+            bodySmall = base.bodySmall.copy(fontFamily = inter),
+            labelLarge = base.labelLarge.copy(fontFamily = inter),
+            labelMedium = base.labelMedium.copy(fontFamily = inter),
+            labelSmall = base.labelSmall.copy(fontFamily = inter),
+        )
+    }
 
-    /** The status bar's plain word: same face, muted, prose rather than a figure. */
-    val label = TextStyle(fontFamily = inter, fontSize = 11.sp)
+    /**
+     * A figure: the tablet's small label with **tabular numerals**. Every number the window shows — page,
+     * zoom, progress — uses this style, so the readout does not shuffle sideways as it changes.
+     */
+    val numeric = typography.labelSmall.copy(fontFeatureSettings = "tnum")
 
-    /** The empty state's title. */
-    val title = TextStyle(fontFamily = inter, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+    /** The status bar's plain word: the same role, muted, prose rather than a figure. */
+    val label = typography.labelSmall
 
-    /** The empty state's explanation, and a tab label. */
-    val body = TextStyle(fontFamily = inter, fontSize = 13.sp)
+    /** The empty state's title: the tablet's large title, in the regular face it actually ships. */
+    val title = typography.titleLarge.copy(fontWeight = FontWeight.Medium)
+
+    /** The empty state's explanation: the tablet's body, not a smaller face of its own. */
+    val body = typography.bodyMedium
+
+    /**
+     * A document's name on its tab: the tablet's label role, at the weight its picked chip wears.
+     *
+     * Inter ships a **Medium**, not a SemiBold, so a 600 request is a weight the family does not have —
+     * the renderer picks the neighbouring face and the label comes out heavier than the strip's other words.
+     */
+    val tab = typography.labelMedium.copy(fontWeight = FontWeight.Medium)
 
     /**
      * The band's **effective** colour: the glass composited over the desk.
@@ -229,10 +267,13 @@ object DesktopTheme {
      * A value inside a field: Inter at 12 sp with tabular figures — a size up from [numeric], because a
      * field the user types into is read at a glance, not scanned like a status figure.
      */
-    val field = TextStyle(fontFamily = inter, fontSize = 12.sp, fontFeatureSettings = "tnum")
+    val field = typography.bodySmall.copy(fontFeatureSettings = "tnum")
 
     /** A card's heading, and a section's: the lane's one step of hierarchy. */
-    val eyebrow = TextStyle(fontFamily = inter, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+    val eyebrow = typography.labelSmall.copy(fontWeight = FontWeight.Medium)
+
+    /** A panel's title — a message, a card's own name: the tablet's small title, in Medium. */
+    val heading = typography.titleSmall.copy(fontWeight = FontWeight.Medium)
 
     /** An `0xRRGGBB` colour in Win32's `COLORREF` order (`0x00BBGGRR`). */
     fun colourRef(rgb: Int): Int =
@@ -257,9 +298,15 @@ object DesktopTheme {
         outlineVariant = tokenColour(DesignTokens.GLASS_DARK_RGB),
     )
 
-    /** The window's theme wrapper: one scheme, no dynamic colour, no light variant yet. */
+    /**
+     * The window's theme wrapper: one scheme, one type scale, no dynamic colour, no light variant yet.
+     *
+     * The scale is the tablet's own ([typography]), so the two shells cannot disagree about a word's face
+     * or its tracking — which is what made the PC read as a different product.
+     */
     @Composable
-    fun Apply(content: @Composable () -> Unit) = MaterialTheme(colorScheme = chromeScheme, content = content)
+    fun Apply(content: @Composable () -> Unit) =
+        MaterialTheme(colorScheme = chromeScheme, typography = typography, content = content)
 
     /** A token's RGB (`0xRRGGBB`) and alpha as a Compose [Color]. */
     fun tokenColour(rgb: Int, alpha: Float = 1f): Color = Color(

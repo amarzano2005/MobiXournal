@@ -118,10 +118,11 @@ fun TabStrip(
                     androidx.compose.material3.Text(
                         text = tab.title,
                         color = if (active) DesktopTheme.ink else DesktopTheme.inkSecondary,
-                        fontFamily = DesktopTheme.inter,
-                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                        fontSize = 12.sp,
-                        letterSpacing = if (active) 0.2.sp else 0.sp,
+                        // The tablet's label role, in the Medium face the family actually ships: the picked
+                        // tab is heavier than the rest without borrowing a weight Inter does not have.
+                        style = DesktopTheme.tab.copy(
+                            fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 160.dp),

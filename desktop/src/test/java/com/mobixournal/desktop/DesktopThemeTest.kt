@@ -8,6 +8,7 @@ import java.io.File
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -150,6 +151,37 @@ class DesktopThemeTest {
         }
         assertEquals("tabular figures", "tnum", DesktopTheme.numeric.fontFeatureSettings)
         assertEquals(DesktopTheme.inter, DesktopTheme.numeric.fontFamily)
+    }
+
+    /**
+     * **Every** Material role is Inter, not just the window's named styles: a `Text` that names no style
+     * reads the theme's own typography, and a role left at the framework's default face made the window
+     * mix two typefaces — which is what made the PC's text look unlike the tablet's.
+     */
+    @Test
+    fun `the theme's type scale is the tablet's, in Inter`() {
+        val scale = DesktopTheme.typography
+        val roles = listOf(
+            scale.displayLarge, scale.displayMedium, scale.displaySmall,
+            scale.headlineLarge, scale.headlineMedium, scale.headlineSmall,
+            scale.titleLarge, scale.titleMedium, scale.titleSmall,
+            scale.bodyLarge, scale.bodyMedium, scale.bodySmall,
+            scale.labelLarge, scale.labelMedium, scale.labelSmall,
+        )
+        for (role in roles) {
+            assertEquals("a Material role kept the framework's face", DesktopTheme.inter, role.fontFamily)
+        }
+        assertEquals(
+            "the chrome's styles are roles of that scale",
+            scale.labelSmall.fontSize,
+            DesktopTheme.label.fontSize,
+        )
+        assertEquals(scale.bodyMedium.fontSize, DesktopTheme.body.fontSize)
+        assertNotEquals(
+            "a weight the family does not ship is not asked for",
+            androidx.compose.ui.text.font.FontWeight.SemiBold,
+            DesktopTheme.tab.fontWeight,
+        )
     }
 
     /**

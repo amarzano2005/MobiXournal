@@ -99,9 +99,7 @@ fun PageSidebar(
         Text(
             text = "Pages",
             color = DesktopTheme.inkSecondary,
-            fontFamily = DesktopTheme.inter,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
+            style = DesktopTheme.eyebrow,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
         )
         LazyColumn(
@@ -140,8 +138,7 @@ fun PageSidebar(
                     Text(
                         text = "${index + 1}",
                         color = if (index == current) DesktopTheme.accent else DesktopTheme.inkMuted,
-                        fontFamily = DesktopTheme.inter,
-                        fontSize = 11.sp,
+                        style = DesktopTheme.numeric,
                         modifier = Modifier.width(22.dp),
                     )
                     if (preview == null) {
@@ -173,13 +170,11 @@ private fun LayersSection(tab: DesktopTab) {
         Text(
             text = "Layers",
             color = DesktopTheme.inkSecondary,
-            fontFamily = DesktopTheme.inter,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
+            style = DesktopTheme.eyebrow,
         )
         Spacer(Modifier.height(4.dp))
         if (layers.isEmpty()) {
-            Text("No layers", color = DesktopTheme.inkMuted, fontFamily = DesktopTheme.inter, fontSize = 11.sp)
+            Text("No layers", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         }
         for (index in layers.indices.reversed()) {
             val hidden = tab.isLayerHidden(tab.page, index)
@@ -197,8 +192,7 @@ private fun LayersSection(tab: DesktopTab) {
                     text = layers[index].label(index),
                     // A hidden layer stays listed, in the muted ink: it is switched off, not gone.
                     color = if (hidden) DesktopTheme.inkMuted else DesktopTheme.ink,
-                    fontFamily = DesktopTheme.inter,
-                    fontSize = 11.sp,
+                    style = DesktopTheme.label,
                 )
             }
         }

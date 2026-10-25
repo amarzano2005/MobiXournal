@@ -50,20 +50,17 @@ internal fun OpenFailureCard(failure: OpenFailure, onDismiss: () -> Unit, modifi
             Text(
                 text = failure.title,
                 color = DesktopTheme.ink,
-                fontFamily = DesktopTheme.inter,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = DesktopTheme.heading,
                 modifier = Modifier.widthIn(max = 420.dp),
             )
             Spacer(Modifier.weight(1f))
-            Text("Esc", color = DesktopTheme.inkMuted, fontFamily = DesktopTheme.inter, fontSize = 10.sp)
+            Text("Esc", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
         }
         Spacer(Modifier.height(6.dp))
         Text(
             text = failure.detail,
             color = DesktopTheme.inkSecondary,
-            fontFamily = DesktopTheme.inter,
-            fontSize = 12.sp,
+            style = DesktopTheme.body,
         )
     }
 }

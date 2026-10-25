@@ -105,8 +105,9 @@ shapes, circuit components and our formulas, plus photo and annotated-PDF page b
 name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
 page up front.
 
-The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface as
-the tablet — the picker panel grows in and draws back on the same spring the tablet's panels use. Its
+The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface and
+the same Material text scale as the tablet — the picker panel grows in and draws back on the same spring
+the tablet's panels use. Its
 Windows title bar is painted in the same band colour as the header, so the window reads as one surface
 from the caption down instead of a light system bar sitting on a dark app, and the document tabs are the
 same glass capsules as the rest of the chrome, the active one wearing the family's edge. The window wears the
