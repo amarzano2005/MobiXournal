@@ -121,7 +121,13 @@ native for stylus latency and platform fit).
   own private copy.
 - **PDF backgrounds on the desktop — PDFBox for the JVM (`org.apache.pdfbox:pdfbox 2.0.31`).** The
   Android port cannot rasterise outside Android, so the `desktop/` module links the same 2.0 API on a
-  plain JVM; the app keeps `pdfbox-android`, and the two never share a classpath.
+  plain JVM; the app keeps `pdfbox-android`, and the two never share a classpath. The **same split**
+  covers writing: the geometry is `PdfPagePlan` in `mobix-core` and each shell replays it with its own
+  library (`PdfVectorPainter` in the app, `DesktopPdfPainter` in the window), so no painter holds a
+  second opinion about a pressure taper or a highlighter band. Two differences are real and stay
+  shell-side: images decode with `BitmapFactory` there and `ImageIO` here, and Apache PDFBox has no
+  `setStrokingArgb` (the port's helper), so the window splits the colour into three channels and keeps
+  the alpha in the graphics state.
 - **PDF export — PDFBox (`com.tom-roush:pdfbox-android`).** *Decision (2026-07-31):* the one
   non-framework runtime dependency, taken deliberately. The framework `android.graphics.pdf`
   writer (`PdfDocument`) can only paint onto a canvas, so exporting an imported PDF forced every

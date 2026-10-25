@@ -69,6 +69,17 @@ the window does the same in `DesktopInkState.pageInk`: the strip's dots and the 
 slot, while the stroke, the live preview and the ring take the tip, so a highlighter on the PC is the
 band it is on the phone (`DesktopInkSplitTest`, `DesktopColorParityTest`).
 
+**One plan, two emitters.** The PDF half of a page is not a painter's opinion: `PdfPagePlan` in
+`mobix-core` compiles a page into an ordered list of ops (a filled outline, a stroked polyline with the
+pressure's per-segment widths, a text run at its baseline, an image at its box) and each shell replays
+that list with one arm per op and `runCatching` around each, so one unencodable op is skipped instead of
+losing the page. `PdfVectorPainter` is the app's replay through `pdfbox-android`; `DesktopPdfPainter` is
+the window's through `org.apache.pdfbox` — arms in the same order, the same graphics state, and the only
+differences the ones the platforms force (images decode with `ImageIO` rather than `BitmapFactory`, and
+Apache PDFBox has no `setStrokingArgb`, so the colour is split into three channels while the alpha stays
+in the state). `DesktopPdfPainterTest` reads the produced content stream, so the claim that the PC prints
+the tablet's page is checked against the plan's own colours rather than against a guess.
+
 **The window smooths its own line — but never a corner.** A page stores *samples*, and on the desktop they
 are 8 ms apart at best, so joining them with `lineTo` drew the sampling rate as facets along every
 diagonal — the tablet never looked that way because it paints through a spline. `InkSmoothing.kt` turns
