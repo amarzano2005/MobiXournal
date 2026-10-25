@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import com.mobixournal.design.ChromeGlyph
 
 /**
  * The window's **overflow menu** — the mobile bar's menu, ported and laid out the same way.
@@ -65,7 +66,7 @@ internal fun HeaderMenu(
     val density = LocalDensity.current
     Box {
         HeaderGlyph(active = open, onClick = { open = !open }) { color ->
-            drawGlyphParts(chromeGlyphParts(ChromeGlyph.MENU), color)
+            drawChromeGlyph(ChromeGlyph.MENU, color)
         }
         if (open) {
             Popup(
@@ -188,7 +189,7 @@ private fun RowScope.MenuTile(label: String, glyph: ChromeGlyph, enabled: Boolea
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Canvas(Modifier.size(22.dp)) {
-            drawGlyphParts(chromeGlyphParts(glyph), if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted)
+            drawChromeGlyph(glyph, if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted)
         }
         Text(
             label,
@@ -229,7 +230,7 @@ private fun MenuChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Canvas(Modifier.size(18.dp)) { drawGlyphParts(chromeGlyphParts(glyph), ink) }
+        Canvas(Modifier.size(18.dp)) { drawChromeGlyph(glyph, ink) }
         Text(label, color = ink, style = DesktopTheme.body, maxLines = 1)
     }
 }

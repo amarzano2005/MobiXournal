@@ -204,8 +204,8 @@ window's own made the same material lighter (`interface-contract.md` §2 owns th
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither
 shell keeps a set of its own — the tablet's deep circuit, gate, bond and variant vectors were transcribed
 and deleted — so a picker row and a slot face cannot disagree; the picked slot is a 10 dp steel squircle.
-The window's **chrome** art (undo, redo, the files) is its own, `ChromeGlyphs.kt`, on that same grid and
-stroke: a header button is not a tablet tool, and the grammar is what is shared.
+The **chrome's** own pictures are the tablet's, transcribed as path data in `ChromeGlyphCatalogue`: the
+phone's icons are Material's, and the window fills those same `d` strings, so two screens show one set.
 - **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option, the open and
   close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
   short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only

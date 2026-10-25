@@ -23,6 +23,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 
 /**
  * The window's **header**: the menu, the tab strip, and the file commands on its right.
@@ -91,25 +92,25 @@ internal fun Header(
             active = false,
             enabled = tab?.canUndo == true,
             onClick = onUndo,
-        ) { color -> drawGlyphParts(chromeGlyphParts(ChromeGlyph.UNDO), color) }
+        ) { color -> drawChromeGlyph(ChromeGlyph.UNDO, color) }
         Spacer(Modifier.width(6.dp))
         HeaderGlyph(
             active = false,
             enabled = tab?.canRedo == true,
             onClick = onRedo,
-        ) { color -> drawGlyphParts(chromeGlyphParts(ChromeGlyph.REDO), color) }
+        ) { color -> drawChromeGlyph(ChromeGlyph.REDO, color) }
         Spacer(Modifier.width(12.dp))
         HeaderGlyph(
             active = false,
             enabled = tab?.isDirty == true,
             onClick = onSave,
-        ) { color -> drawGlyphParts(chromeGlyphParts(ChromeGlyph.SAVE), color) }
+        ) { color -> drawChromeGlyph(ChromeGlyph.SAVE, color) }
         Spacer(Modifier.width(6.dp))
         HeaderGlyph(
             active = false,
             enabled = tab != null,
             onClick = onExportPdf,
-        ) { color -> drawGlyphParts(chromeGlyphParts(ChromeGlyph.PDF), color) }
+        ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
     }
 }
 

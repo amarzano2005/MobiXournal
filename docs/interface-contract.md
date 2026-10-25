@@ -75,11 +75,11 @@ Every surface is one of three objects. Pick the class from what the element *doe
   (`TOOL_GLYPH_GRID`, `TOOL_GLYPH_STROKE_UNITS`); the tablet builds an `ImageVector`, the desktop fills a
   `DrawScope`. A shell may not keep a hand-drawn set of its own, and `material.icons` is not an import the
   desktop's chrome may have.
-- The window's **chrome** art — undo, redo, the file commands and the menu (`ChromeGlyphs.kt`) — is the
-  desktop's own set, on that same grid and stroke and drawn through the same adapter. It is not in the tool
-  catalogue because a header button is not a tool on the tablet; what must match is the hand, not the
-  subject. `ChromeGlyphsTest` holds it to the grid, to one drawing per command, and to `redo` being
-  `undo` mirrored.
+- The **chrome's** glyphs — undo, redo, the file commands, the menu (`ChromeGlyphCatalogue`, `mobix-core`)
+  — are the *tablet's own pictures*: the path data Material publishes for the icons the phone's header and
+  menu draw, transcribed once as `d` strings on the same 24-unit grid. The window fills them (`svgPath`),
+  so a phone and a PC side by side show one set of icons instead of two nearly-equal drawings.
+  `ChromeGlyphsTest` holds every glyph to a shape that parses, stays on the grid and is its own picture.
 - The `when` in `ToolGlyphCatalogue.parts` is exhaustive: a new tool does not compile without art.
   `ToolGlyphCoverageTest` additionally requires **every** `EditorTool` — the rail's slots, the STEM dock's
   families, every member a picker row offers, the variant faces a slot takes on and the authoring modes —
