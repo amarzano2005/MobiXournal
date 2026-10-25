@@ -117,6 +117,17 @@ crop-box origin folded in) that maps visual coordinates into the page's unrotate
 viewer's `/Rotate` then cancels back to the drawn position, so strokes, text, and images all land
 correctly. For `/Rotate 0` the matrix is just the crop-origin shift.
 
+**The PC writes the same page with the same plan.** `PdfPagePlan.paper` compiles the sheet and its
+ruling into ops beside the elements, so the paper is no longer an arm of the app's painter: `DesktopPdfExport`
+writes each page as paper, then picture, then ink, and `DesktopPdfPainter` replays every op through
+`org.apache.pdfbox` (see [stack.md](stack.md) for why the two shells carry two libraries). Two differences
+are stated rather than hidden: the picture behind a `pdf`/`pixmap` page is written as the **raster**
+`PageBackdrop` has already cached, and **no `/Highlight`, `/Ink` or `/Text` annotation dictionaries are
+added** — the ink is flattened, so every reader shows the page, but a reader's annotation pane stays
+empty. A **board** (a chunked infinite canvas) is refused in words: slicing it into sheets is the
+tablet's `BoardSlicer` and the window has no slicer yet. The window's pages are read through its page
+window, so a paged `.mobix` inflates one sheet at a time and an unsaved edit is in the export.
+
 ## Fonts in generated PDFs
 
 **Fonts in generated PDFs.** The PDF **base-14** fonts (`PDType1Font.HELVETICA` and friends) only

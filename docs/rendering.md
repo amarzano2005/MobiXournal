@@ -80,6 +80,12 @@ Apache PDFBox has no `setStrokingArgb`, so the colour is split into three channe
 in the state). `DesktopPdfPainterTest` reads the produced content stream, so the claim that the PC prints
 the tablet's page is checked against the plan's own colours rather than against a guess.
 
+**A page is its paper and its ink, and both come from the plan.** `PdfPagePlan.paper` compiles the sheet
+fill and its ruling — the page's own spacing, bold interval, margin and widths, the dotted sheet's small
+squares and the isometric mesh — into the same op list, so a ruled page cannot print blank on one shell
+(`PdfPagePlanTest` counts the rules against the sheet's own spacing). `PdfBackgroundPainter` is now a
+one-line replay of it: the geometry has no second home to drift into.
+
 **The window smooths its own line — but never a corner.** A page stores *samples*, and on the desktop they
 are 8 ms apart at best, so joining them with `lineTo` drew the sampling rate as facets along every
 diagonal — the tablet never looked that way because it paints through a spline. `InkSmoothing.kt` turns

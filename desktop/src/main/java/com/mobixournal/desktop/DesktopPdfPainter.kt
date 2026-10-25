@@ -5,6 +5,7 @@ import com.mobixournal.render.PdfFamily
 import com.mobixournal.render.PdfFill
 import com.mobixournal.render.PdfFontFace
 import com.mobixournal.render.PdfImage
+import com.mobixournal.render.PdfOp
 import com.mobixournal.render.PdfPagePlan
 import com.mobixournal.render.PdfPageTransform
 import com.mobixournal.render.PdfPath
@@ -44,8 +45,15 @@ import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
  */
 internal class DesktopPdfPainter {
 
-    fun paint(doc: PDDocument, cs: PDPageContentStream, page: Page, t: PdfPageTransform) {
-        for (op in PdfPagePlan.of(page, t)) {
+    fun paint(doc: PDDocument, cs: PDPageContentStream, page: Page, t: PdfPageTransform) =
+        paint(doc, cs, PdfPagePlan.of(page, t))
+
+    /**
+     * Replay [ops] — the sheet ([PdfPagePlan.paper]) or the page's ink, in the order given. The window
+     * writes the paper with the same replay as the ink, so a ruling line is one rule on both shells.
+     */
+    fun paint(doc: PDDocument, cs: PDPageContentStream, ops: List<PdfOp>) {
+        for (op in ops) {
             runCatching {
                 when (op) {
                     is PdfFill -> fill(cs, op)

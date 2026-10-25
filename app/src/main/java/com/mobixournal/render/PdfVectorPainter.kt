@@ -25,8 +25,18 @@ import com.tom_roush.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
  */
 class PdfVectorPainter {
 
-    fun paint(doc: PDDocument, cs: PDPageContentStream, page: Page, t: PdfPageTransform) {
-        for (op in PdfPagePlan.of(page, t)) {
+    fun paint(doc: PDDocument, cs: PDPageContentStream, page: Page, t: PdfPageTransform) =
+        paint(doc, cs, PdfPagePlan.of(page, t))
+
+    /**
+     * Replay [ops] — a page's ink, the paper under it, or a paper-then-ink pair, in the order given.
+     *
+     * The op list is public so a caller can write the sheet ([PdfPagePlan.paper]) with this same replay
+     * instead of owning a second painter: the window does exactly that with the ops and the desktop's own
+     * emitter, so a ruling line is one rule on both shells.
+     */
+    fun paint(doc: PDDocument, cs: PDPageContentStream, ops: List<PdfOp>) {
+        for (op in ops) {
             runCatching {
                 when (op) {
                     is PdfFill -> fill(cs, op)

@@ -203,4 +203,51 @@ class PdfPagePlanTest {
         assertTrue("the fill blends the same way the stroke does", fill.multiply)
         assertEquals(1f, fill.alpha, 1e-6f)
     }
+
+    /**
+     * The paper is part of the page, not of a shell: a ruled sheet that exported blank on the PC while the
+     * phone ruled it is what a geometry owned by one emitter produces. The fill comes first and every rule
+     * after it, at the sheet's own spacing and widths.
+     */
+    @Test
+    fun aRuledPagesPlanIsItsSheetAndOnePathPerRule() {
+        val ruled = page().copy(background = Background.Solid(0xFFFFFFFF.toInt(), "ruled"))
+
+        val paper = PdfPagePlan.paper(ruled, transform)
+
+        val sheet = paper.first()
+        assertTrue("the sheet is one filled outline, and it comes first", sheet is PdfFill)
+        sheet as PdfFill
+        assertEquals("the page's four corners", 4, sheet.points.size)
+        assertEquals("flooded opaque white", 0xFFFFFFFF.toInt(), sheet.colour)
+        assertEquals(false, sheet.multiply)
+        val rules = paper.drop(1).filterIsInstance<PdfPath>()
+        assertEquals("one path per rule and nothing else", paper.size - 1, rules.size)
+        // 842 pt of sheet at the default 24 pt spacing: the interior rules the screen draws.
+        assertEquals(
+            "the sheet's own spacing, not a number of the emitter's",
+            BackgroundGrid.lines(ruled.height, BackgroundRulings.defaultSpacingPt("ruled")).size + 1,
+            rules.size,
+        )
+        val body = rules.dropLast(1)
+        assertTrue(
+            "each rule spans the page, at the paper's own colour",
+            body.all { it.points.size == 2 && it.colour == (0xFF000000.toInt() or BackgroundGrid.LINED_RGB) },
+        )
+        assertEquals(
+            "and a ruled sheet closes with its margin line",
+            0xFF000000.toInt() or BackgroundGrid.MARGIN_RGB,
+            rules.last().colour,
+        )
+        assertTrue("every rule has a width to stroke with", rules.all { it.width > 0.0 })
+    }
+
+    /** A plain sheet is its fill alone — no rules invented for a page that carries none. */
+    @Test
+    fun aPlainPagesPlanIsOnlyItsSheet() {
+        val paper = PdfPagePlan.paper(page(), transform)
+
+        assertEquals("one op: the sheet", 1, paper.size)
+        assertTrue(paper.single() is PdfFill)
+    }
 }

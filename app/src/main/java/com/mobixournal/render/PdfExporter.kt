@@ -90,7 +90,7 @@ internal class PdfExporter(
         outDoc.addPage(pdPage)
         val transform = PdfPageTransform(0f, 0f, page.height.toFloat())
         PDPageContentStream(outDoc, pdPage).use { cs ->
-            PdfBackgroundPainter.draw(cs, page, transform)
+            PdfBackgroundPainter.draw(outDoc, cs, page, transform)
             pixmapBackground(outDoc, cs, page, transform)
             painter.paint(outDoc, cs, page, transform)
         }

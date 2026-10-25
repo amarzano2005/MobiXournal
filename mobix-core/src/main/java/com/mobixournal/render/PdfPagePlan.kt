@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.FontDescription
+import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
@@ -22,7 +23,7 @@ import com.mobixournal.format.model.Tool
  * The drawing itself is the shared part — the pressure taper, the highlighter's flat translucent band,
  * the fill under a closed stroke, the text baseline arithmetic, a living entity compiled through
  * [LivingInk] — and it must not be written twice. What is *not* shared is the library: the Android app
- * carries `com.tom_roush.pdfbox` (the port), the desktop carries `org.apache.pdfbox` 3. So the page is
+ * carries `com.tom_roush.pdfbox` (the port), the desktop carries `org.apache.pdfbox` 2.0. So the page is
  * compiled here, in page coordinates flipped into PDF user space by [PdfPageTransform], and each shell
  * replays the ops through its own emitter. One geometry, two writers.
  *
@@ -139,6 +140,49 @@ object PdfPagePlan {
     /** A `<teximage>` is drawn as its source: monospace, sized from the box, clamped to be readable. */
     private const val TEX_MIN_SIZE = 6.0
     private const val TEX_MAX_SIZE = 14.0
+
+    /**
+     * The **paper** under a page's ink: the sheet fill and its ruling, as ops.
+     *
+     * The elements are only half of a printed page. A ruled sheet that exported blank, or a graph sheet
+     * whose grid appeared on the phone but not on the PC, is exactly what a second implementation of the
+     * ruling would produce, so this compile belongs beside [of]: both read the same pure [BackgroundGrid]
+     * and [BackgroundRulings] geometry the canvas and the SVG export use, and both emitters replay it.
+     *
+     * The ops come in the order the paint does — the sheet, then the ruling over it — and a page with no
+     * ruling style (`plain`, an annotated PDF, a photograph) is the fill alone, which is what the paper
+     * behind a preserved PDF page or an embedded picture is.
+     */
+    fun paper(page: Page, transform: PdfPageTransform): List<PdfOp> {
+        val ops = mutableListOf<PdfOp>()
+        val solid = page.background as? Background.Solid
+        ops += PdfFill(
+            points = listOf(
+                PdfPoint(transform.x(0.0), transform.y(0.0)),
+                PdfPoint(transform.x(page.width), transform.y(0.0)),
+                PdfPoint(transform.x(page.width), transform.y(page.height)),
+                PdfPoint(transform.x(0.0), transform.y(page.height)),
+            ),
+            colour = opaque(solid?.color ?: WHITE),
+            alpha = 1f,
+            multiply = false,
+        )
+        val style = solid?.style ?: return ops
+        val ruling = BackgroundRuling.parse(solid.config)
+        when (style) {
+            "lined" -> horizontals(ops, page, transform, style, ruling)
+            "ruled" -> {
+                horizontals(ops, page, transform, style, ruling)
+                marginLine(ops, page, transform, ruling)
+            }
+            "graph" -> grid(ops, page, transform, ruling)
+            "dotted" -> dots(ops, page, transform, ruling)
+            "isograph", "isodotted" -> isometric(ops, page, transform, style, ruling)
+            // "plain", an unknown style, or a non-solid background: the bare sheet.
+            else -> Unit
+        }
+        return ops
+    }
 
     fun of(page: Page, transform: PdfPageTransform): List<PdfOp> {
         val ops = mutableListOf<PdfOp>()
@@ -270,6 +314,133 @@ object PdfPagePlan {
             lineHeight = size * LINE_HEIGHT_RATIO,
         )
     }
+
+    /** The horizontal rules of a `lined` or `ruled` sheet, bold where the page's own `bli` says so. */
+    private fun horizontals(
+        ops: MutableList<PdfOp>,
+        page: Page,
+        t: PdfPageTransform,
+        style: String,
+        ruling: BackgroundRuling,
+    ) {
+        val spacing = BackgroundRulings.spacingPt(style, ruling)
+        val widthPt = BackgroundRulings.lineWidthPt(ruling)
+        val interval = BackgroundRulings.boldInterval(ruling)
+        val boldWidthPt = BackgroundRulings.boldWidthPt(ruling, widthPt)
+        for (y in BackgroundGrid.lines(page.height, spacing)) {
+            val bold = BackgroundRulings.isBold(Math.round(y / spacing).toInt(), interval)
+            rule(
+                ops, t.x(0.0), t.y(y), t.x(page.width), t.y(y),
+                opaque(BackgroundGrid.LINED_RGB), if (bold) boldWidthPt else widthPt,
+            )
+        }
+    }
+
+    /** A ruled sheet's margin line, at its own `m1` or the default margin. */
+    private fun marginLine(ops: MutableList<PdfOp>, page: Page, t: PdfPageTransform, ruling: BackgroundRuling) {
+        val xPt = BackgroundRulings.marginPt(ruling) ?: BackgroundGrid.MARGIN_PT
+        rule(
+            ops, t.x(xPt), t.y(0.0), t.x(xPt), t.y(page.height),
+            opaque(BackgroundGrid.MARGIN_RGB), BackgroundRulings.lineWidthPt(ruling, MARGIN_WIDTH_PT),
+        )
+    }
+
+    /** A `graph` sheet: horizontals then verticals, inset by the page's margin on every side. */
+    private fun grid(ops: MutableList<PdfOp>, page: Page, t: PdfPageTransform, ruling: BackgroundRuling) {
+        val spacing = BackgroundRulings.spacingPt("graph", ruling)
+        val widthPt = BackgroundRulings.lineWidthPt(ruling)
+        val interval = BackgroundRulings.boldInterval(ruling)
+        val boldWidthPt = BackgroundRulings.boldWidthPt(ruling, widthPt)
+        val colour = opaque(BackgroundGrid.GRAPH_RGB)
+        val m = BackgroundRulings.marginPt(ruling) ?: 0.0
+        val x1 = (page.width - m).coerceAtLeast(m)
+        val y1 = (page.height - m).coerceAtLeast(m)
+        for (y in BackgroundGrid.lines(y1 - m, spacing)) {
+            val abs = m + y
+            val bold = BackgroundRulings.isBold(Math.round(abs / spacing).toInt(), interval)
+            rule(ops, t.x(m), t.y(abs), t.x(x1), t.y(abs), colour, if (bold) boldWidthPt else widthPt)
+        }
+        for (x in BackgroundGrid.lines(x1 - m, spacing)) {
+            val abs = m + x
+            val bold = BackgroundRulings.isBold(Math.round(abs / spacing).toInt(), interval)
+            rule(ops, t.x(abs), t.y(m), t.x(abs), t.y(y1), colour, if (bold) boldWidthPt else widthPt)
+        }
+    }
+
+    /**
+     * A `dotted` sheet. PDF has no dot primitive, so each intersection is a tiny square fill — the same
+     * approximation the app's paper painter has always made, kept here so both shells make it.
+     */
+    private fun dots(ops: MutableList<PdfOp>, page: Page, t: PdfPageTransform, ruling: BackgroundRuling) {
+        val spacing = BackgroundRulings.spacingPt("dotted", ruling)
+        val m = BackgroundRulings.marginPt(ruling) ?: 0.0
+        val x1 = (page.width - m).coerceAtLeast(m)
+        val y1 = (page.height - m).coerceAtLeast(m)
+        val colour = opaque(BackgroundGrid.DOT_RGB)
+        fun square(cx: Float, cy: Float) = PdfFill(
+            points = listOf(
+                PdfPoint(cx - DOT_HALF_PT, cy - DOT_HALF_PT),
+                PdfPoint(cx + DOT_HALF_PT, cy - DOT_HALF_PT),
+                PdfPoint(cx + DOT_HALF_PT, cy + DOT_HALF_PT),
+                PdfPoint(cx - DOT_HALF_PT, cy + DOT_HALF_PT),
+            ),
+            colour = colour,
+            alpha = 1f,
+            multiply = false,
+        )
+        for (y in BackgroundGrid.lines(y1 - m, spacing)) {
+            for (x in BackgroundGrid.lines(x1 - m, spacing)) {
+                ops += square(t.x(m + x), t.y(m + y))
+            }
+        }
+    }
+
+    /** An isometric sheet: the ±30° mesh, from the geometry the paper itself draws on screen. */
+    private fun isometric(
+        ops: MutableList<PdfOp>,
+        page: Page,
+        t: PdfPageTransform,
+        style: String,
+        ruling: BackgroundRuling,
+    ) {
+        val size = BackgroundRulings.spacingPt(style, ruling)
+        val widthPt = BackgroundRulings.lineWidthPt(ruling)
+        val colour = opaque(BackgroundGrid.GRAPH_RGB)
+        for (segment in BackgroundGrid.isometric(page.width, page.height, size)) {
+            rule(ops, t.x(segment[0]), t.y(segment[1]), t.x(segment[2]), t.y(segment[3]), colour, widthPt)
+        }
+    }
+
+    /** One stroked segment of the paper, in PDF user space, at [width] pt. */
+    private fun rule(
+        ops: MutableList<PdfOp>,
+        x1: Float,
+        y1: Float,
+        x2: Float,
+        y2: Float,
+        colour: Int,
+        width: Double,
+    ) {
+        ops += PdfPath(
+            points = listOf(PdfPoint(x1, y1), PdfPoint(x2, y2)),
+            colour = colour,
+            alpha = 1f,
+            multiply = false,
+            width = width,
+        )
+    }
+
+    /** A packed RGB as an opaque ARGB — what the emitters' colour calls read. */
+    private fun opaque(rgb: Int): Int = 0xFF000000.toInt() or rgb
+
+    /** The sheet colour of a page that names none. */
+    private const val WHITE = 0xFFFFFF
+
+    /** The ruled margin line's base width, as the paper has always drawn it. */
+    private const val MARGIN_WIDTH_PT = 1.5
+
+    /** Half the side of the square that stands in for a dot, in points. */
+    private const val DOT_HALF_PT = 1.0f
 
     /**
      * The base-14 fonts only encode WinAnsi, and `showText` **throws** on anything outside it. Dropping
