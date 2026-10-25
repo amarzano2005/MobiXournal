@@ -139,16 +139,17 @@ cancel — each of the seven a slot of its own, one click and no submenu, and a 
 pen's ink even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
 circuit family is armed, every **circuit pin** on the page wears a small dot, and the ends of what you draw
 are **pulled onto the nearest pin**: a wire drawn near a terminal joins it, and a part dropped on one meets
-it, so a circuit can be assembled rather than drawn near — and a part you **select after inserting it**
-equally settles onto the nearest pin when you drag it into place. **Pan** with the **hand** (`G`): a drag
+it, so a circuit can be assembled rather than drawn near — a selected part keeps its pins marked, so you can
+**pick the part up by its pin** and drag it onto another one, where it settles exactly. **Pan** with the **hand** (`G`): a drag
 moves the page instead of drawing on it, and with the pen it follows the stylus at the tablet's own rate,
 travelling further than the pen does so a flick of the wrist crosses the sheet — while every tool keeps its
 own state meanwhile. The sheet itself is editable from the **toolbar**: its last three buttons, after a
 divider, open **Page background** (the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling), **Page
 format** — the A4/A5/Letter/Legal presets either way up, **any size you type** in millimetres, inches or
-points with a swap button — and **Page defaults**, the tablet's page settings in a section of their own:
-the sheet every **new** page is born with, kept out of the page in view so setting a default never resizes
-the sheet under your ink. Either change is one undoable edit written in the file's own ruling parameter. And **shift a page down**
+points with a swap button, and — on the same panel's last line — the **default for new pages**: the four
+presets, **Use this size** to keep the sheet you just typed, and the size new pages will open at. Changing a
+page is one undoable edit written in the file's own ruling parameter, while setting the default only
+affects sheets that do not exist yet, so it never resizes the page under your ink. And **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
 crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): a click on any element catches it where it
 lies (one click on empty paper lets the selection go, and a double-click opens a living element's editor),
