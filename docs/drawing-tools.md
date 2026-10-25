@@ -270,6 +270,11 @@ every page, layer, and element round-trips through save.
 **On the window** the Text slot (`X`) is the same tool, typed in place rather than in a dialog: a press
 opens a field **over the sheet** (`TextBoxHost`), positioned by the same page-points-to-pixels mapping the
 ink is drawn with, in the ink's colour and at a size the pen's width sets (8–48 pt, `TextAuthoring`).
+The field wears **no surface**: what is being typed is page content, like the strokes a draft draws, so the
+words appear in the document's own ink and face at the document's own place — and, with its padding gone,
+exactly where the commit will write them. Only the accent caret marks it (`DesktopTextPaintTest` reads the
+paper through a point inside the box).
+
 Nothing is written while typing — the shell holds a `TextBoxDraft` (`DesktopTextBox`), so the page and its
 history are untouched — and the commit (`Esc`, a click elsewhere, or leaving the tool) appends **one**
 `TextElement` to the page's top layer as one undo step, left selected. A blank box writes nothing: a press
@@ -286,7 +291,14 @@ index, same id, same unmodelled attributes — so a corrected box keeps its z-or
 incremental save keeps keying the same element; emptying the box deletes it, and closing it without
 typing records nothing. The caret travels with the text (`TextBoxDraft.typing` is a `TextFieldValue`, not a
 string), so a word can be fixed in the middle. While the field is up the sheet stops painting the box it
-has taken over (`PagePicture`'s `skip`), or the old words would show through the new ones. Its group's second member is the tablet's **LaTeX**
+has taken over (`PagePicture`'s `skip`), or the old words would show through the new ones.
+
+**Its face, size and ink are the inspector lane's** (`InspectorText.kt`): a text box is one of the families
+`hasInspector` opens, so a click to select it and the bar's pencil (or a double-click) brings up the same
+300 dp column a table or a plot uses, with **family** (Sans / Serif / Monospace — any other family a file
+names joins the row as the picked answer), **Bold**, **Italic**, **size** in pt and the palette's colour.
+Each is one committed field and one undo step, and all five write what the tablet's dialog writes: a Pango
+font description, a size in pt, an ARGB colour, so the box reopens on the tablet with the same face. Its group's second member is the tablet's **LaTeX**
 tool, and it asks before it writes, as Plot and Table do: a press with Formula (`Shift+T`) reserves the box
 and the lane asks for the source (LaTeX, or Typst with the switch) with a live typeset preview, and **Place**
 appends one `MathBlockElement` as one undo step, left selected — a blank source disables Place rather than

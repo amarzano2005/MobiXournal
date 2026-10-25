@@ -19,6 +19,7 @@ Every surface is one of three objects. Pick the class from what the element *doe
 | **Band** | chrome that borders the canvas — header, status bar, sidebar, a lane's dividing rule | the glass fill + **one 4 dp cast shadow**, no rim, no gradient | never lies over the page |
 | **Capsule** | an object lying *in* a band's space — the rail, the ribbon, a header control | the glass fill + its own 6 dp lift + the family's rim, inside a lane of **air** | never a second sheet of glass behind it |
 | **Floating surface** | something shown over the page for a moment — menus, dialogs, toasts, badges | the glass fill at `floatingPanelAlpha` + the rim, at the 20 dp panel corner | never an opaque Material card or a system `Toast` |
+| **None** | the page's own content being authored — a stroke being drawn, a text box being typed | the document's own ink and face, in the document's own place | no fill, no rim, no padding |
 
 - **A lane is air, not a band.** Painting a lane and its capsule both gives 0.85 over 0.85 (0.98) and the
   strip composites to `#161618` where the tablet measures `#131314`. This is the mistake the contract
@@ -26,6 +27,11 @@ Every surface is one of three objects. Pick the class from what the element *doe
 - **A band is not a panel.** No rim above and below a slit of chrome: on the true-black scheme that reads
   as two grey rules across the window. The shadow is a band's whole edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.
+- **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the
+  desktop's in-place text field is the same thing for words: it takes the document's own ink, face and
+  place, and **no fill and no rim** — it wore the floating glass once and read as a charcoal slab across a
+  third of a white page. Only the accent caret marks it. `DesktopTextPaintTest` reads the paper through a
+  point inside the box, so glass cannot come back.
 
 ## 2. Colour: tokens or nothing
 

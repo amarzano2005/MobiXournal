@@ -225,9 +225,10 @@ private inline fun editSelection(
 }
 
 /**
- * The living element the bar's pencil would open: the selection must name **exactly one** element and
- * that element must be living (a table, a plot, a figure, a component, a math block). Ink has no
- * inspector, so the pencil is unavailable for it rather than opening an empty panel.
+ * The element the bar's pencil would open: the selection must name **exactly one** element and the window
+ * must have an editor for it — a table, a plot, a figure, a component, a math block, or a text box (whose
+ * face, size and ink the lane edits). Ink has none, so the pencil is unavailable for it rather than opening
+ * an empty panel.
  */
 internal fun livingTargetOf(tab: DesktopTab): ElementRef? {
     val selection = tab.selection ?: return null
@@ -235,7 +236,7 @@ internal fun livingTargetOf(tab: DesktopTab): ElementRef? {
     val ref = selection.refs.first()
     val element = tab.document.page(tab.page).layers.getOrNull(ref.layerIndex)
         ?.elements?.getOrNull(ref.elementIndex) ?: return null
-    return if (element.isLivingEntity) ref else null
+    return if (hasInspector(element)) ref else null
 }
 
 /**

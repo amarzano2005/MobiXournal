@@ -133,7 +133,10 @@ takes whole strokes. **Type on it** with Text (`X`): a press opens a box where y
 a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way.
 **Click words that are already on the page and you edit them**: the box comes up with your text, in its own
 font, size and colour, and correcting it — or emptying it, which deletes the box — is one undo step, whether
-the words were typed on the PC, on the tablet or in desktop Xournal++. The pen and the highlighter keep **separate colours, widths and favourite colours**,
+the words were typed on the PC, on the tablet or in desktop Xournal++. What you type sits exactly where it
+will land, on the bare page: no panel, just the caret. Select a box and press the pencil (or double-click it)
+and the side column sets its **face** — Sans, Serif or Monospace, bold, italic — its **size** and its
+**colour**, one undo step per change, the same five choices the tablet's text dialog offers. The pen and the highlighter keep **separate colours, widths and favourite colours**,
 as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
 switching back brings that ink back with it, and each tool also remembers its **stroke pattern** — solid,
 long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,

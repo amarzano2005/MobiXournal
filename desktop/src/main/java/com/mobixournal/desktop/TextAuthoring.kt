@@ -3,6 +3,7 @@ package com.mobixournal.desktop
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.mobixournal.format.FontDescription
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.ElementBounds
@@ -29,6 +30,14 @@ import com.mobixournal.render.ElementRef
 
 /** The font a new box is written with — Xournal++'s default CSS-ish family. */
 internal const val TEXT_FONT: String = "Sans"
+
+/**
+ * The families the lane offers, the same three the tablet's text dialog does.
+ *
+ * The format carries a free-form Pango description, so a file may name any family and it is kept: this
+ * list is only what the picker *offers*, never what it accepts.
+ */
+internal val TEXT_FAMILIES: List<String> = listOf("Sans", "Serif", "Monospace")
 
 /** How much of the page's width a new box spans: a third, so a line of prose fits before it wraps. */
 internal const val TEXT_WIDTH_FRACTION: Double = 1.0 / 3.0
@@ -245,6 +254,27 @@ internal fun Page.replaceTextBox(old: TextElement, fresh: TextElement?): TextRew
 enum class TextBoxKey {
     /** `Esc`: write the box (or drop it when there is nothing in it) and give the keyboard back. */
     COMMIT,
+}
+
+/**
+ * [this] with its family changed — the bold and italic tokens it already carries are kept, because the
+ * picker says *which face*, not *how much of it*.
+ */
+internal fun TextElement.withFamily(family: String): TextElement {
+    val current = FontDescription.parse(font)
+    return copy(font = current.copy(family = family.ifBlank { TEXT_FONT }).compose())
+}
+
+/** [this] with `Bold` added or taken away, the family and italic kept. */
+internal fun TextElement.withBold(bold: Boolean): TextElement {
+    val current = FontDescription.parse(font)
+    return copy(font = current.copy(bold = bold).compose())
+}
+
+/** [this] with `Italic` added or taken away, the family and bold kept. */
+internal fun TextElement.withItalic(italic: Boolean): TextElement {
+    val current = FontDescription.parse(font)
+    return copy(font = current.copy(italic = italic).compose())
 }
 
 /**

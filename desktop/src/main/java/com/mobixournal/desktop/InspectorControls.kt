@@ -321,6 +321,46 @@ internal fun SwitchRow(label: String, on: Boolean, onToggle: (Boolean) -> Unit) 
 }
 
 /**
+ * **A few answers, one of which is picked** — a text box's family, where a dropdown would cost two clicks
+ * and a popup the lane does not need for three words.
+ *
+ * The recipe is the header placement menu's own ([Header]'s `PLACEMENT_OPTIONS`): the picked row takes the
+ * steel slot and the accent ink, hover is [Modifier.hoverFill] and never a second state colour, and the
+ * unpicked rows sit on the field fill so they still read as controls. A control that offered no picked
+ * state would be the one place in the lane where the user cannot see what is set.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+internal fun ChoiceRow(options: List<String>, picked: String, onPick: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (option in options) {
+            val selected = option.equals(picked, ignoreCase = true)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 32.dp)
+                    .background(
+                        if (selected) DesktopTheme.activeSlot else DesktopTheme.activeSlot.copy(alpha = 0.35f),
+                        DesktopTheme.railSlotShape,
+                    )
+                    .hoverFill(DesktopTheme.railSlotShape, active = selected)
+                    .pointerInput(option) { detectTapGestures { onPick(option) } }
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    option,
+                    color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
+                    style = DesktopTheme.label,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/**
  * The palette, as a row of swatches: a colour field is a colour, not a hex box.
  *
  * The current colour wears the accent ring and a hovered swatch a muted one, so a row of eight tints still

@@ -1,6 +1,8 @@
 package com.mobixournal.desktop
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +11,8 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.model.Background
@@ -138,6 +142,57 @@ class DesktopTextPaintTest {
         return pixels.count { argb ->
             argb ushr 24 and 0xFF == 0xFF && ((argb shr 16 and 0xFF) + (argb shr 8 and 0xFF) + (argb and 0xFF)) / 3 < 160
         }
+    }
+
+    /**
+     * The in-place field is the **page's own ink**, not a surface over it.
+     *
+     * It used to wear the window's floating glass, so typing opened a charcoal slab across a third of a
+     * white sheet — the one material class the element does not belong to (what is being typed is page
+     * content, like the strokes a draft draws). With no fill, the paper showing through a point inside the
+     * box's width and away from its glyphs is the check that the slab is gone.
+     */
+    @Test
+    fun `the field paints no slab over the page`() {
+        val draft = TextBoxDraft(
+            tabKey = "field.mobix",
+            page = 0,
+            pageW = 300.0,
+            pageH = 200.0,
+            x = 20.0,
+            y = 20.0,
+            size = 20.0,
+            colour = 0xFF000000.toInt(),
+            typing = TextFieldValue("Hi"),
+        )
+        val scene = ImageComposeScene(300, 200, Density(1f)) {
+            Box(Modifier.fillMaxSize().background(Color.White)) {
+                TextBoxHost(
+                    box = draft,
+                    zoom = 1f,
+                    density = 1f,
+                    offsetX = 0f,
+                    offsetY = 0f,
+                    onChange = {},
+                )
+            }
+        }
+        try {
+            val png = scene.render().encodeToData()?.bytes ?: error("Skia produced no image")
+            val image = ImageIO.read(ByteArrayInputStream(png))
+            // Inside the box's third of the page (20…120 pt) and past the two glyphs, so this pixel is
+            // either the field's fill or the paper.
+            val inside = image.getRGB(100, 26)
+            assertTrue("the box's fill is gone, not merely faint: ${Integer.toHexString(inside)}", isPaper(inside))
+        } finally {
+            scene.close()
+        }
+    }
+
+    /** Opaque white, to within antialiasing's tolerance. */
+    private fun isPaper(argb: Int): Boolean {
+        if (argb ushr 24 and 0xFF != 0xFF) return false
+        return (argb shr 16 and 0xFF) >= 250 && (argb shr 8 and 0xFF) >= 250 && (argb and 0xFF) >= 250
     }
 
     @Test

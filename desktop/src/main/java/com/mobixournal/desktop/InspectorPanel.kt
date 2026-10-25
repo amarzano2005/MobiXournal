@@ -32,6 +32,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PlotCurve
@@ -256,6 +257,7 @@ private fun EditorBody(live: LivingTarget, commit: (Element) -> Unit) {
         LivingFamily.SHAPE -> ShapeBody(live.element as ParametricShapeElement, commit)
         LivingFamily.CIRCUIT -> CircuitBody(live.element as CircuitElement, commit)
         LivingFamily.MATH -> MathBody(live.element as MathBlockElement, commit)
+        LivingFamily.TEXT -> TextBody(live.element as TextElement, commit)
     }
 }
 
@@ -536,6 +538,7 @@ private fun LivingFamily.tool(): DesktopTool = when (this) {
     LivingFamily.SHAPE -> DesktopTool.RECTANGLE
     LivingFamily.CIRCUIT -> DesktopTool.CIRCUIT
     LivingFamily.MATH -> DesktopTool.MATH
+    LivingFamily.TEXT -> DesktopTool.TEXT
 }
 
 /** The slot whose glyph stands for a pending placement's family. */

@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.Density
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.LivingPlacement
@@ -268,6 +269,38 @@ class DesktopInspectorLaneTest {
         }
     }
 
+    /**
+     * A **text box** is one of the elements the lane edits: its face, its size and its ink.
+     *
+     * The pixel is the proof that the section builds at all — a card of chips, switches, a number and a
+     * palette — and that a selection alone still opens nothing, exactly as it does for a plot.
+     */
+    @Test
+    fun `a text box opens the lane, and its face is set there`() {
+        val state = shell()
+        try {
+            val tab = state.tabs.active!!
+            placeLivingElement(
+                tab,
+                TextElement("Sans Bold", 18.0, 120.0, 200.0, 0xFF112233.toInt(), "words", id = "txt_lane"),
+            )
+            assertNotBand("a selection alone opens no column", render(state))
+
+            state.runSelection(SelectionAction.EDIT)
+            assertNearBand("the box's family, size and ink are the lane's to set", render(state))
+
+            state.commitLiving(textBox(tab).withItalic(true))
+
+            assertEquals(
+                "the italic the lane wrote is the file's own font description",
+                "Sans Bold Italic",
+                textBox(tab).font,
+            )
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
     // --- rendering ------------------------------------------------------------------------------
 
     private fun render(state: DesktopShellState): BufferedImage {
@@ -302,4 +335,6 @@ class DesktopInspectorLaneTest {
 
     private fun elements(tab: DesktopTab): List<com.mobixournal.format.model.Element> =
         tab.document.page(tab.page).layers.flatMap { it.elements }
+
+    private fun textBox(tab: DesktopTab): TextElement = elements(tab).filterIsInstance<TextElement>().single()
 }

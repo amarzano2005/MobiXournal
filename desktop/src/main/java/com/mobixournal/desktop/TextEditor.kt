@@ -2,7 +2,6 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
@@ -50,9 +49,16 @@ data class TextBoxUi(
  * The field is not a dialog over the page — the tablet's text tool writes in place, and a box that opened
  * elsewhere would have the user typing in one place while looking at another. It is mounted **inside the
  * canvas**, above the sheet's picture and below nothing else, positioned by the same mapping the ink is
- * transformed by (`page point × zoom + viewport`, in the canvas's pixels). Its fill is the window's
- * floating glass so an empty box is still visible on a white page, and its rim is the family's edge: the
- * one material class of `docs/interface-contract.md`, no material of its own.
+ * transformed by (`page point × zoom + viewport`, in the canvas's pixels).
+ *
+ * It wears **no surface at all** — no fill, no rim, no padding. A field over paper that drew the window's
+ * floating glass was a charcoal slab lying on the sheet, the one material class of
+ * `docs/interface-contract.md` the element does not belong to: what is being typed is *the page's own
+ * content*, the same thing a stroke being drawn is, and the ink drafts are not glass either. So the words
+ * appear in the document's own colour and face at the document's own place — and, with the padding gone,
+ * exactly where the commit will write them, instead of a few points off to the right. The caret is the
+ * field's whole affordance: a token-coloured bar at the point the next character will land, which is also
+ * the contract's visible-focus state.
  *
  * The typing is the caller's: [onChange] hands the field's value back and the shell keeps it in its
  * draft, so nothing reaches the document until the box is committed — an abandoned box leaves no element
@@ -94,9 +100,7 @@ internal fun TextBoxHost(
     Box(
         modifier
             .offset { IntOffset(leftPx, topPx) }
-            .width(widthDp)
-            .glassSurface(cornerRadius = DesktopTheme.panelRadius)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .width(widthDp),
     ) {
         BasicTextField(
             // The draft *is* the field's state, caret included: a `TextFieldValue` rebuilt here would

@@ -10,6 +10,7 @@ import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.ElementShift
 import com.mobixournal.render.LivingPlacement
@@ -28,27 +29,46 @@ import com.mobixournal.render.LivingPlacement
 /** A living element being edited, named by **the document it lives in**, its page, and its position. */
 data class LivingTargetRef(val documentKey: String, val page: Int, val ref: ElementRef)
 
-/** The families the window can edit, each with the words its panel prints. */
+/**
+ * The families the window can edit, each with the words its panel prints.
+ *
+ * A **text box** is one of them. It carries no recipe — it is not a living entity — but it is an element
+ * with values of its own (its face, its size, its ink), and the lane's mechanics are exactly what editing
+ * them needs: which element the selection names, one committed field at a time, one undo step per field.
+ * The tablet's dialog offers those same five controls for the same box, so leaving text out would be two
+ * shells with two ideas of what a text box is (`docs/interface-contract.md` §9).
+ */
 enum class LivingFamily(val title: String) {
     PLOT("Plot"),
     TABLE("Table"),
     SHAPE("Shape"),
     CIRCUIT("Component"),
     MATH("Formula"),
+    TEXT("Text"),
     ;
 
     companion object {
-        /** The family of [element], or null for anything that is not a living entity (ink included). */
+        /** The family of [element], or null for anything the window has no editor for (ink included). */
         fun of(element: Element): LivingFamily? = when (element) {
             is PlotElement -> PLOT
             is TableElement -> TABLE
             is ParametricShapeElement -> SHAPE
             is CircuitElement -> CIRCUIT
             is MathBlockElement -> MATH
+            is TextElement -> TEXT
             else -> null
         }
     }
 }
+
+/**
+ * Whether the window has an editor for [element] — the pencil's and the double-click's one rule.
+ *
+ * It used to be `isLivingEntity` alone, which left a text box with no way to change its face, its size or
+ * its ink from the window at all: the tablet offers all three in its dialog, and "the lane edits elements"
+ * is the window's answer to the same question.
+ */
+fun hasInspector(element: Element): Boolean = LivingFamily.of(element) != null
 
 /** One living element, read out of the page it lives on. */
 data class LivingTarget(
@@ -145,6 +165,11 @@ fun livingSummary(target: LivingTarget): String = when (val element = target.ele
         val language = element.flavor.name.lowercase().replaceFirstChar { it.uppercase() }
         val source = element.source.lineSequence().firstOrNull()?.trim().orEmpty()
         if (source.isEmpty()) language else "$language · $source"
+    }
+    is TextElement -> {
+        val line = element.content.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }
+        val look = "${element.font} · ${number(element.size)} pt"
+        if (line == null) look else "${line.take(38)} · ${number(element.size)} pt"
     }
     else -> target.family.title
 }

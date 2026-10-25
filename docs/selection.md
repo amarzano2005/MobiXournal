@@ -202,10 +202,12 @@ drag, a miss moving the element instead of dividing it).
 
 A **click on an element picks it** — `SelectionTester.pickTopmost`, the topmost element under the pointer — and
 the drag that follows carries the new selection, so picking one thing up no longer means boxing it; a click on
-empty paper lets it go. The **pencil** on that bar opens the selected living element's editor, and is offered
-only for exactly one living element; a **double-click on any living element**, selected or not, is the same
-command (`TapTracker`: 400 ms, 8 px), so the tablet's double-tap has a twin on the page. `DesktopSelectionBarTest` walks the five families — plot, table, figure, component, formula
-— and fails if one does not answer `EDIT`, so a family added later cannot ship uneditable.
+empty paper lets it go. The **pencil** on that bar opens the selected element's editor, and is offered only
+for exactly one element the window has an editor for; a **double-click on any of them**, selected or not, is
+the same command (`TapTracker`: 400 ms, 8 px), so the tablet's double-tap has a twin on the page.
+`hasInspector` is that one rule (`LivingFamily.of`, which is the living families **and** a text box);
+`DesktopSelectionBarTest` walks the families — plot, table, figure, component, formula, text — and fails if
+one does not answer `EDIT`, so a family added later cannot ship uneditable.
 
 That editor is the **inspector lane**: 300 dp of its own column on the right, so the page keeps the
 rectangle that is left and nothing lies over the sheet. It is drawn in **three parts, always** — a header, a
@@ -217,9 +219,9 @@ the lane's own pixel with nothing selected, with a selection, while editing, and
 away).
 
 The **header** is the lane's identity, not just its title: the family's own catalogue glyph, the family's
-name, and one line of the element's content (`sin(x) · −6…6`, `4 × 6 · header`, `BJT NPN · 10 kΩ`) from
-`livingSummary`, because three plots on a page are all `Plot` and the fields below write into exactly one of
-them. The **body** groups the fields into cards — Graph, Function, Display, Look; Grid, Rules, Cells; Component,
+name, and one line of the element's content (`sin(x) · −6…6`, `4 × 6 · header`, `BJT NPN · 10 kΩ`, a text
+box's first line and its size) from `livingSummary`, because three plots on a page are all `Plot` and the
+fields below write into exactly one of them. The **body** groups the fields into cards — Graph, Function, Display, Look; Grid, Rules, Cells; Component,
 Placement, Stroke — so a plot's switches no longer read as one wall of 11 sp labels, and a plot's card leads
 with the **graph itself**, compiled by `LivingInk` from the element as it stands, so an equation is no longer
 committed blind: the same picture the placement promised follows every edit. A graph carries several
@@ -229,10 +231,13 @@ next palette ink rather than in the same black as the one above it, and the draw
 the placement question — Place/Cancel while it asks, Done once the element exists — and it keeps its height,
 so the fields above it do not move when a card grows.
 
-The sections offer only what `format/model/Living.kt` carries — a plot's formula, domain, resolution, the
+The sections offer only what the model carries — a plot's formula, domain, resolution, the
 display flags and **one colour per curve**; a table's grid, header row, rules and **cells** (a column added divides
 the width rather than growing the table); a figure's side lengths and interior angles as read-outs beside its
-outline; a component's part, value, placement and stroke; a formula's source and language. A field commits on
+outline; a component's part, value, placement and stroke; a formula's source and language; and a **text box's
+face** (family, bold, italic), its size and its ink (`InspectorText.kt`) — the tablet's text dialog's own
+controls, minus the words, which the Text tool types on the sheet (`docs/drawing-tools.md`). Underline is not
+among them because the format cannot store it. A field commits on
 `Enter` or when the caret leaves, as **one** undo step, and an unchanged value writes nothing; `Esc` puts a
 field back, `Esc` again closes the lane, and a focused field wears the accent's ring so the keyboard user can
 see where they are typing. `LivingTarget.kt` resolves the ref against the document as it is *now*, so an undo
