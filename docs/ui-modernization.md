@@ -156,7 +156,7 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 
 ```text
 ┌───────────────────────────────────────────────────────────────────────────────────────┐
-│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]                          [Tool placement]      │  header band
+│ [≡] [Notebook 1 ×] [Notebook 2 ×] [+]           [↶] [↷] [Save] [Export PDF]         │  header band
 ├─────────┬─────────────────────────────────────────────────────────────────────────────┤
 │ Sidebar │                                CANVAS                                       │
 │ Pages   │                                                                             │
@@ -168,10 +168,11 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 ```
 
 ### 1. Window layout & workspace panes
-- **Slim header band**: one tab per open document (each keeps its own page, zoom and fit), the `+` to open
-  another, and the **Tool placement** control; the window wears the OS's own decorations.
+- **Header band, 48 dp** (the token plus 8: it carries the tabs *and* the file commands): one tab per open
+  document (each keeps its page, zoom and fit), the `+` for another, and right **undo, redo, Save, PDF**.
 - **Collapsible navigation sidebar (`Ctrl+B`)**: page thumbnails and the current page's layers, with an eye
-  per layer that hides it from the page and from its thumbnail without writing to the document.
+  per layer that hides it without writing to the document; it opens itself only when the document has
+  **more than one page**.
 - **The sheet alone on the desk**: one page at a time, fitted by what the page is (a sheet whole, a long
   strip to its width), with the fit mode named in the status bar.
 - **Status bar**: page counter, effective zoom, fit mode and the container behind the document.
@@ -182,30 +183,29 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
   page is `#000000`; platform materials (Windows 11 Mica) are **not** used. Mica replaces the
   app's material with a wallpaper-tinted one, so the desktop window would stop matching the phone and
   its contrast would change with the user's wallpaper — the opposite of the pinned ramps above.
-- **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon is the
-  alternative for 16:9 monitors, and the header's **Tool placement** control chooses Rail / Ribbon /
-  Both. Whichever is on, the strip is a capsule in a lane of **air** beside the canvas, never a bar over
-  the page. The choice is written to the window's settings file, so it survives a restart.
+- **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon the alternative
+  for 16:9 monitors. Whichever is on, the strip is a capsule in a lane of **air** beside the canvas, never a
+  bar over the page; the choice lives in the window's settings file, so it survives a restart and the
+  Interface section will own its door.
 
-**The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status
-bar and both tool strips; [`desktop-workstation.md`](desktop-workstation.md) owns the shell's inventory.
-From **this** spoke it takes four rules, and the parity work of 2026-10-22 is what put them all in the
-window:
+**The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status bar
+and both tool strips; [`desktop-workstation.md`](desktop-workstation.md) owns its inventory. From **this**
+spoke it takes four rules, and the parity work of 2026-10-22 put them all in the window:
 
 - **A band is chrome, a capsule is an object.** The header, status bar and sidebar take the glass fill
-and **one 4 dp cast shadow**, and **no rim** (the rule above). A strip's lane is **air, not a band** —
-painting it too stacked two sheets of 0.85 glass and the rail read #161618. The rail is a **52 dp capsule
-in a 64 dp lane** (6 dp of side air, 8 above and below) and the ribbon a 48 dp capsule in a 56 dp band;
-each takes its **own 6 dp lift** and the family's rim, and a header control is the same capsule at 36 dp.
-Without those lifts the bands were a flat fill, because over a true-black desk the glass' alpha is
-invisible: the shadow is the only depth the window has (`Modifier.bandSurface()` / `glassCapsule()`,
-`GlassEdge.kt`). The fill is the **shared token with no gradient of the window's own** — the tablet's
-bands are flat, and a sheen over the PC's made the same material a shade lighter — and glyphs are the
-chrome ink (white), the picked slot steel with the glyph in the accent, exactly as the rail draws them.
+and **one 4 dp cast shadow**, no rim. A strip's lane is **air, not a band** — painting it too stacked two
+sheets of 0.85 glass and the rail read #161618. The rail is a **52 dp capsule in a 64 dp lane** (6 dp of
+side air, 8 above and below), the ribbon a 48 dp capsule in a 56 dp band; each takes its **own 6 dp lift**
+and the family's rim, and a header control is that capsule at 36 dp. Without the lifts the bands were flat,
+because over a true-black desk the glass' alpha is invisible: the shadow is the only depth the window has
+(`Modifier.bandSurface()` / `glassCapsule()`). The fill and the ink are the shared tokens' — a sheen of the
+window's own made the same material lighter (`interface-contract.md` §2 owns the colours).
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither
 shell keeps a set of its own — the tablet's deep circuit, gate, bond and variant vectors were transcribed
 and deleted — so a picker row and a slot face cannot disagree; the picked slot is a 10 dp steel squircle.
+The window's **chrome** art (undo, redo, the files) is its own, `ChromeGlyphs.kt`, on that same grid and
+stroke: a header button is not a tablet tool, and the grammar is what is shared.
 - **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option, the open and
   close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
   short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only
@@ -274,8 +274,8 @@ Two decisions taken while building it:
   `=` shares the `0` key, and `Ctrl` + wheel (zoom at the cursor) is the one that always works.
 
 ### 2. Tool placement on Desktop
-The drawing and STEM tools are always on screen, in whichever strip the header's **Tool placement** control
-selects:
+The drawing and STEM tools are always on screen, in whichever strip the window's saved placement selects
+(`toolPlacement` in its settings file; the Interface section will own the control):
 
 - **Rail (default)**: the 52 dp capsule in its 64 dp lane down one edge — the tablet's own geometry, which
   leaves the sheet its full height on 16:9 and 21:9 monitors.

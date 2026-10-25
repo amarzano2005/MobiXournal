@@ -124,7 +124,10 @@ class DesktopThemeTest {
     fun `the window's geometry is the tokens`() {
         assertEquals(CornerSize(DesignTokens.PANEL_CORNER_RADIUS_DP.dp), DesktopTheme.panelShape.topStart)
         assertEquals(CornerSize(DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp), DesktopTheme.capsuleShape.topStart)
-        assertEquals(DesignTokens.HEADER_HEIGHT_DP.dp, DesktopTheme.headerHeight)
+        // The window's band is the token plus 8: the tablet's header carries one row of glyphs, the
+        // window's carries the tab strip and four 36 dp capsules beside it (`DesktopTheme.headerHeight`).
+        assertEquals(DesignTokens.HEADER_HEIGHT_DP.dp + 8.dp, DesktopTheme.headerHeight)
+        assertEquals("a header glyph is drawn at the 20 dp it has to read at", 20.dp, DesktopTheme.headerGlyphSize)
         assertEquals(DesignTokens.STATUS_HEIGHT_DP.dp, DesktopTheme.statusHeight)
         assertEquals(DesignTokens.GLYPH_STROKE_DP, DesktopTheme.glyphStroke.value, 1e-4f)
         assertEquals(DesignTokens.PAGE_SHADOW_DP.dp, DesktopTheme.pageShadow)

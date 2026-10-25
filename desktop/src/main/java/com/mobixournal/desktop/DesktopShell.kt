@@ -115,17 +115,19 @@ class DesktopShellState(
      */
     var liveDrag: (() -> Unit)? = null
 
-    /** Whether the page sidebar is showing (`Ctrl+B`). */
-    var sidebarVisible by mutableStateOf(true)
+    /** The page list's lane and its one rule: a document of more than one page shows it (`DesktopSidebar`). */
+    private val sidebar = DesktopSidebar()
+
+    /** Whether the page list is showing (`Ctrl+B`) — computed, so opening a file needs no second step. */
+    val sidebarVisible: Boolean get() = sidebar.shows(active)
 
     /** True while `Space` is held: a primary-button drag pans instead of drawing. */
     var panMode by mutableStateOf(false)
 
     /**
-     * Page thumbnails, one map per document, kept by the shell so a scroll back is not a repaint.
-     *
-     * Concurrent because the maps are read where the picture is painted — the sidebar's own rendering
-     * thread (`ThumbnailPaint`) — while an edit on the UI thread drops the page it just changed.
+     * Page thumbnails, one map per document, kept so a scroll back is not a repaint. Concurrent because
+     * the maps are read where the picture is painted (the sidebar's own thread, `ThumbnailPaint`) while
+     * an edit drops the page it just changed on the UI thread.
      */
     val thumbnails = java.util.concurrent.ConcurrentHashMap<String, MutableMap<Int, ImageBitmap>>()
 
@@ -485,7 +487,7 @@ class DesktopShellState(
     }
 
     fun toggleSidebar() {
-        sidebarVisible = !sidebarVisible
+        sidebar.toggle(active)
     }
 
     /**

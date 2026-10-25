@@ -27,11 +27,18 @@ import com.mobixournal.design.ToolGlyphCatalogue
 internal fun DrawScope.drawToolGlyph(tool: DesktopTool, color: Color) = drawToolGlyph(tool.glyph, color)
 
 /** The same glyph, addressed by its catalogue entry — what a slot face ultimately is. */
-internal fun DrawScope.drawToolGlyph(glyph: ToolGlyph, color: Color) {
+internal fun DrawScope.drawToolGlyph(glyph: ToolGlyph, color: Color) =
+    drawGlyphParts(ToolGlyphCatalogue.parts(glyph), color)
+
+/**
+ * A glyph's parts, drawn on the 24-unit grid at the catalogue's stroke — the one adapter the whole
+ * window shares, so the chrome's own art ([ChromeGlyph]) weighs exactly what a tool slot does.
+ */
+internal fun DrawScope.drawGlyphParts(parts: List<GlyphPart>, color: Color) {
     val grid = DesktopTheme.TOOL_GLYPH_GRID
     val scale = size.minDimension / grid
     val stroke = DesktopTheme.TOOL_GLYPH_STROKE_UNITS * scale
-    for (part in ToolGlyphCatalogue.parts(glyph)) {
+    for (part in parts) {
         when (part) {
             is GlyphPart.Line -> drawLine(
                 color = color,

@@ -139,8 +139,21 @@ object DesktopTheme {
     /** A tool glyph's stroke, in grid units: 1.5 of 24. */
     const val TOOL_GLYPH_STROKE_UNITS: Float = DesignTokens.TOOL_GLYPH_STROKE_UNITS
 
-    /** The header band's height, in dp. */
-    val headerHeight = DesignTokens.HEADER_HEIGHT_DP.dp
+    /**
+     * The header band's height, in dp: the token plus 8.
+     *
+     * The tablet's header carries one row of glyphs; the window's carries the tab strip *and* the four
+     * file commands beside it, on a band that has to hold a 36 dp capsule with air above and below it.
+     * At the token's 40 dp the capsules sat 2 dp from either edge and read as a strip of controls glued
+     * to the window's top — so the band grows, and every glyph it holds grows with it.
+     */
+    val headerHeight = (DesignTokens.HEADER_HEIGHT_DP + 8).dp
+
+    /**
+     * A header glyph's own box, in dp: 20, the size `docs/interface-contract.md` requires every glyph to
+     * read at. The capsule around it is [headerControlSize].
+     */
+    val headerGlyphSize = 20.dp
 
     /** The status bar's height, in dp. */
     val statusHeight = DesignTokens.STATUS_HEIGHT_DP.dp

@@ -258,11 +258,21 @@ two shells draw the same grid.
 
 The drawing tools have their two placements here as well: a vertical rail beside the page (the
 default) and a horizontal ribbon under the header, each a rounded pane of glass with a little air around
-it rather than a strip glued to the window's edge. The header's **Tool placement** control switches
-between Rail, Ribbon or Both, and the choice is remembered the next time you start the app. Whichever
+it rather than a strip glued to the window's edge. Rail, Ribbon or Both is remembered the next time you start
+the app (the chooser moves into the Settings section; for now it lives in the window's settings file). Whichever
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
 including while a flyout, a hover pill or a palette is open, because none of them takes the keyboard.
+The top right of the window holds the four commands you reach for constantly — **undo**, **redo**, **Save**
+and **Export PDF** — and they grey out when there is nothing to undo, nothing to save or nothing open. The
+**page list** on the left opens by itself only for a document with more than one page: a single sheet does
+not need a list of one, and `Ctrl + B` still shows or hides it whenever you want, remembering your answer
+for that document.
+
+The hamburger menu is the tablet's menu in a window: **New**, **Open**, **Save** and **Save As** as four
+pictures with their names under them, **Export PDF** and **Export SVG** as two blue chips, and the page list
+under a hairline. Pick anything and the panel closes behind it.
+
 A slot can hold a **family**: the eraser slot holds both erasers and the figure slot holds the seven
 figures, with a small chevron that opens the family's list — click it, click the slot again once it is
 the tool in hand, right-click the slot, hold it, or press `Alt`+`Down`, and picking a row re-faces the slot. Nothing on the strip is a button that does
@@ -273,7 +283,7 @@ one, and the palette, the favourites and the width are remembered between runs.
 | Key | What it does |
 |---|---|
 | `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) || `Ctrl + S` / `Ctrl + Shift + S` | save back to the file, when it has unsaved edits / Save As (the name's suffix picks the format) |
-| `Ctrl + E` | export the document as a PDF (the menu also exports the pages as SVG files) |
+| `Ctrl + E` | export the document as a PDF (the menu also exports the pages as SVG files) |
 | `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the last edit in the current document |
 | `Ctrl + W`, `×` on a tab | close the tab (it asks first if the tab has unsaved edits) |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |

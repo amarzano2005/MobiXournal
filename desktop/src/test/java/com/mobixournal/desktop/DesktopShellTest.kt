@@ -30,6 +30,12 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
+ * The widest run of white the header's own art can make, in pixels: the Save floppy's top edge is 12 of
+ * the 24 grid units at 20 dp, so ~10 px. A sheet showing through the band is a run of hundreds.
+ */
+private const val MAX_INK_RUN = 16
+
+/**
  * The shell's parts, rendered and driven headlessly.
  *
  * The window itself needs a real frame (`FrameWindowScope`), so what is checked here is every piece the
@@ -304,6 +310,9 @@ class DesktopShellTest {
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun `the shell paints chrome above a page that starts below the header`() {
+        // The widest white run the band's own art can make: the Save floppy's shutter is 12 of the 24
+        // grid units at 20 dp, i.e. 10 px, and the header's glyphs are 20 dp.
+        // (Kept as a number here rather than a token: it is this assertion's tolerance, not chrome.)
         // A settings file of this test's own: the placement a developer happens to have picked on this
         // machine must not change what the shell's chrome test measures.
         val state = DesktopShellState(DesktopSettings(temp.newFile("settings.properties")))
@@ -320,14 +329,21 @@ class DesktopShellTest {
             val header = DesktopTheme.headerHeight.value.toInt()
             assertTrue("the header has a height", header in 1 until image.height)
 
-            // The band is the glass, never the sheet: no white pixel (the paper) may appear inside it.
-            // The chrome's own ink is near-white, so only the exact paper colour is rejected.
+            // The band is the glass, never the sheet: no **run** of paper may appear inside it.
+            //
+            // A single white pixel is not the answer any more, because the band's own ink is pure white
+            // (`CHROME_INK_DARK_RGB`) and the header now carries four glyphs: a stroke is a few pixels
+            // across, while a sheet showing through the band is a strip hundreds of pixels long. So the
+            // check is the width of the longest white run in each row — which is also what a person
+            // sees when a band goes transparent.
             for (y in 0 until header) {
-                for (x in 0 until image.width step 5) {
-                    val rgb = image.getRGB(x, y) and 0xFFFFFF
+                var run = 0
+                for (x in 0 until image.width) {
+                    val paper = (image.getRGB(x, y) and 0xFFFFFF) == 0xFFFFFF
+                    run = if (paper) run + 1 else 0
                     assertTrue(
-                        "the page shows through the header at ($x, $y): #%06X".format(rgb),
-                        rgb != 0xFFFFFF,
+                        "the page shows through the header at ($x, $y)",
+                        run <= MAX_INK_RUN,
                     )
                 }
             }

@@ -43,7 +43,6 @@ internal fun DesktopShell(
         Header(
             tabs = state.tabs,
             sidebarVisible = state.sidebarVisible,
-            placement = state.toolPlacement,
             onActivate = { index -> state.tabs.activate(index) },
             onClose = { index -> state.requestCloseTab(index) },
             onMove = { from, to -> state.tabs.move(from, to) },
@@ -58,7 +57,10 @@ internal fun DesktopShell(
             // The page's two commands live in the tool strips now, after their divider
             // (`ToolStrips.PageSetupSlots`): the header keeps the file and the view.
             onToggleSidebar = { state.toggleSidebar() },
-            onPlacement = state::chooseToolPlacement,
+            // The two history steps and the two file commands are the same commands the keys and the
+            // menu reach: a header button is a third door, never a third implementation.
+            onUndo = { state.apply(ShellCommand.UNDO) },
+            onRedo = { state.apply(ShellCommand.REDO) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             val tab = state.active

@@ -19,47 +19,45 @@ What it does today:
   its **bytes** (`FileKind` plus a ZIP's `mimetype`), never its extension, so a rename still opens.
 - **Navigates like a workstation, not like a phone**: a header carrying one tab per open document (each
   tab keeps its own page, zoom and fit, so going back to a tab lands where you left it), a collapsible
-  240 dp sidebar of page thumbnails and the current page's layers, the page alone on the true-black desk,
-  and a 24 dp status bar with the page counter, the effective zoom, the fit mode, the pen stream, the
-  display's refresh rate with the frame budget it allows (`120 Hz · 8.3 ms frame`) and the container. The
-  chrome is the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 40 dp
-  header carrying the **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is)
-  and the strip's own **`+`**, under a **native caption painted in the band's own composite colour**
-  (`DesktopTitleBar.kt` sets Windows' immersive dark mode and its caption/border/text colours through DWM).
-  The caption carries **no app name and no icon**, its corner blanked too: `captionIcon` splits the window's
-  icons — transparent at the caption's sizes, the art at the taskbar's. 1.5 dp monoline glyphs, Inter with
-  tabular figures, one cast shadow under each band and one under the sheet — `docs/ui-modernization.md` owns
-  the material and `DesktopThemeTest` pins it.  The art is the tablet's launcher icon **without its navy
-  field**, enlarged inside its tile so the mark reads at taskbar size (`desktop/icon/`).
+  240 dp sidebar of page thumbnails and the current page's layers — opened by the document itself, only for
+  **more than one page**, with `Ctrl + B` remembered per document (`DesktopSidebar`) — the page alone on the
+  true-black desk, and a 24 dp status bar with the page counter, the zoom, the fit mode, the pen stream, the
+  display's refresh rate with its frame budget (`120 Hz · 8.3 ms frame`) and the container. The chrome is
+  the app's **own glass** (the shared tokens, `DesktopTheme`) over a `#000000` desk: a 48 dp header carrying the
+  **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is), the strip's own
+  **`+`** and, on the right, **undo, redo, Save and Export PDF** — the mobile bar's four commands, on 36 dp
+  capsules with 20 dp glyphs; the band is 8 dp taller than the tablet's token because it carries that row of
+  controls as well as the tabs (`DesktopTheme.headerHeight`), under a **native caption painted in the
+  band's own composite colour** (`DesktopTitleBar.kt`: immersive dark mode, the caption, border and text
+  colours through DWM). It carries **no app name and no icon** (`captionIcon` keeps the art for the taskbar
+  only), with 1.5 dp monoline glyphs, Inter with tabular figures, one cast shadow under each band and one
+  under the sheet — `docs/ui-modernization.md` owns the material, `DesktopThemeTest` pins it. The art is the
+  tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar
+  size (`desktop/icon/`).
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
   key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
-  eased rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`), so a marquee, a figure or a reflow reaches
-  past one screenful. A tab opens in **`AUTO` fit**, which asks what the page *is*: a sheet (A4 is 1.41
-  high) is shown whole, and a page saved as a long strip — the tablet writes one 850 × 2976 pt page for a
-  lecture that fills the sheet — is fitted to its **width**, because the whole page lands at 27 %, where a
-  12 pt hand is three pixels tall. The status bar names the fit in use, `Ctrl + 0` still means the whole
-  sheet, and a width-fitted page stays fitted while you read down it. Thumbnails come from the
+  eased rather than stepped (`EdgePan.kt`), so a marquee, a figure or a reflow reaches past one screenful.
+  A tab opens in **`AUTO` fit**, which asks what the page *is*: a sheet (A4 is 1.41 high) is shown whole, and
+  a long strip — the tablet writes one 850 × 2976 pt page for a lecture that fills the sheet — is fitted to
+  its **width**, because the whole page lands at 27 %, where a 12 pt hand is three pixels tall. The status
+  bar names the fit in use, `Ctrl + 0` still means the whole sheet, and a width-fitted page stays fitted
+  while you read down it. Thumbnails come from the
   same `PageView` that paints the page — a preview cannot disagree with what it previews — and are cached
-  once per page per tab.  The sidebar's layer list carries an **eye per layer** (`LayerEye`, monoline like
-  the rest of the chrome): switching one off skips that layer in the painter *and* in the thumbnail, and
-  the layer stays listed in the muted ink — switched off, not gone. That is **view** state, per tab and
-  per page (`DesktopTab.hiddenOn` / `toggleLayer`): nothing is written to the document, and a second press
-  brings the layer back. A hidden layer's thumbnail is painted fresh instead of taking the page cache, so a
-  preview can never show a layer the sheet beside it is missing.
-  A thumbnail is painted **once the hand stops**, on the sidebar's own background lane: an edit drops the
-  page's bitmap and the deferred `thumbnailRevision` re-renders it 600 ms later — a whole page, **29–39 ms**
-  on `udiff.xopp`, and a dropped frame at every pause between two words while it ran in composition. It is
-  painted onto a **raster Skia surface** with `drawPageContent` (the page's own painter) and not through a
-  second `ImageComposeScene`: a scene is a composition with a lifecycle, and one rendered from another
-  thread while the window's scene is live tears it down. Until the new one lands the preview shows the page
-  as the burst found it (`DesktopShellTest`).
+  once per page per tab.  The sidebar's layer list carries an **eye per layer** (`LayerEye`): switching one off skips it in the
+  painter *and* in the thumbnail, and the layer stays listed in the muted ink — switched off, not gone.
+  That is **view** state, per tab and page (`DesktopTab.hiddenOn`), nothing written to the file; a hidden
+  layer's thumbnail is painted fresh, so a preview never shows a layer the sheet is missing.
+  A thumbnail is painted **once the hand stops**, on the sidebar's own lane: an edit drops the page's
+  bitmap and `thumbnailRevision` re-renders it 600 ms later — **29–39 ms** a page, where painting it in
+  composition dropped a frame at every pause between two words. It goes onto a **raster Skia surface**
+  through `drawPageContent`, never a second `ImageComposeScene` (a scene rendered from another thread while
+  the window's is live tears it down); until it lands the preview shows the page the burst found.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it; a pressed-for stroke count is left out, never guessed.
 - Paints solid/ruled/graph/dotted/**isometric** paper (`config`'s `r1`, else `BackgroundGrid`'s defaults;
-  an isometric sheet strokes the segments `BackgroundGrid.isometric` returns — the same mesh the tablet
-  and the SVG/PDF exports draw — so a ±30° sheet is ruled by shared geometry and not a second grid),
-  pen strokes with their pressure taper (smoothed, `InkSmoothing.kt`), highlighter bands with multiply,
-  dashed/dotted line styles, and text boxes.
+  an isometric sheet strokes `BackgroundGrid.isometric`'s segments — the mesh the tablet and the SVG/PDF
+  exports also draw — so a ±30° sheet is ruled by shared geometry), pen strokes with their pressure taper
+  (`InkSmoothing.kt`), highlighter bands with multiply, dashed/dotted line styles, and text boxes.
 - **Writes the document back** (`Ctrl + S`; `Ctrl + Shift + S` is Save As). The bytes are
   `DocumentEncoder.write` from `mobix-core` — the same three format arms the tablet saves through —
   staged into a temp file beside the target and then moved over it, so a crash mid-write cannot leave a
@@ -115,10 +113,10 @@ What it does today:
   what keeps a shared notebook looking right after the picture's file has moved away.
 - **Shows both tool placements**: a **52 dp rail capsule in a 64 dp lane** beside the page (the
   default, the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the
-  header, switched from the header's **Tool placement** control (Rail / Ribbon / Both) — a 200 dp popup
-  beside the control, never a panel across the window — and remembered in the window's settings file, so
-  the choice survives a restart. The lane is **air, not a second sheet of
-  glass**: painting it too made 0.85 over 0.85, and the rail read #161618. The strip is a **capsule** with
+  header, read from the window's settings file (`DesktopSettings.toolPlacement`) so the choice survives a
+  restart. Moving the strips is a setting, and the header carries no chooser for it — the Interface section
+  will own that door. The lane is **air, not a second sheet of glass**: painting it too made 0.85 over 0.85,
+  and the rail read #161618. The strip is a **capsule** with
   its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
   header control is the same object at 36 dp. Both placements draw the same slots, in the order, glyphs
   and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
@@ -133,8 +131,11 @@ What it does today:
   its submenu. Picking a row re-faces the slot and closes the picker, `Esc` closes it too, and no key ever
   changes meaning. **A tool whose behaviour has not landed gets no slot**: `ToolGroupsTest` fails if an
   acting tool has no slot, or a slot lists one that cannot act.
-- **A door for the file commands, and a page to start on**: a **hamburger menu** in the header holds New,
-  Open, Save, Save As and the sidebar toggle, in the tablet's order. The tab
+- **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
+  glass panel — four **tiles** of art over a word (New, Open, Save, Save As), the two exports as **accent
+  chips** (Export PDF, Export SVG), then a hairline and the page list's row. The tablet's Import PDF, Page
+  as PNG and Settings rows are absent because the window has no such command yet, not because it has a
+  different menu (`MenuPanel`; `DesktopMenuTest` clicks all seven rows by the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
@@ -316,8 +317,7 @@ the numbers).
 
 ### What the window does not do
 
-- No layer editing (hiding one is view state, above). There are no header buttons for undo and redo — the
-  commands exist and know when they are unavailable, so a control only has to read `canUndo`/`canRedo`.
+- No layer editing (hiding one is view state, above).
 - No import of anything but a document (no images as elements, no search, no page reordering or insertion).
 - No **absolute pen mapping** — the readings are folded into the Compose pointer, already transformed by
   the driver's own active area — and no installer: `run` and `createDistributable` are the entry points.
@@ -396,5 +396,5 @@ Measured on 2026-10-22 against the Android editing path (line counts re-checked 
 Three decisions taken on 2026-10-21, owned by [`ui-modernization.md`](ui-modernization.md): the chrome is
 the app's **own glass on a true-black desk** (Mica/Vibrancy would tint the window with the wallpaper and stop
 it matching the tablet); **both tool placements ship** — vertical rail by default, horizontal ribbon as the
-alternative — switched in the settings file, written by the header's own control; and the tab/view model is
+alternative — stored in the settings file; and the tab/view model is
 Compose **snapshot state**, so the chrome is redrawn by the state it reads instead of a second copy.
