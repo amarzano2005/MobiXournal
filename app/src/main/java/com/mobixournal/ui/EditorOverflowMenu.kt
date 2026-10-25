@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
@@ -233,7 +234,7 @@ internal fun OverflowMenu(
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
-                    Icons.Outlined.Menu,
+                    ChromeGlyph.MENU.imageVector(),
                     contentDescription = "Menu",
                     tint = rememberChromeInk(),
                     modifier = Modifier.size(20.dp),
@@ -253,26 +254,26 @@ internal fun OverflowMenu(
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 MenuQuickAction(
-                    icon = Icons.AutoMirrored.Outlined.NoteAdd,
+                    icon = ChromeGlyph.NEW.imageVector(),
                     label = "New",
                     onClick = { open = false; onNewTab() },
                     modifier = Modifier.weight(1f),
                 )
                 MenuQuickAction(
-                    icon = Icons.Outlined.FileOpen,
+                    icon = ChromeGlyph.OPEN.imageVector(),
                     label = "Open",
                     onClick = { open = false; onOpen() },
                     modifier = Modifier.weight(1f),
                 )
                 MenuQuickAction(
-                    icon = Icons.Outlined.Save,
+                    icon = ChromeGlyph.SAVE.imageVector(),
                     label = "Save",
                     enabled = !isReadOnly,
                     onClick = { open = false; onSave() },
                     modifier = Modifier.weight(1f),
                 )
                 MenuQuickAction(
-                    icon = Icons.Outlined.SaveAs,
+                    icon = ChromeGlyph.SAVE_AS.imageVector(),
                     label = "Save As",
                     enabled = !isReadOnly,
                     onClick = { open = false; onSaveAs() },
@@ -288,7 +289,7 @@ internal fun OverflowMenu(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 GlassActionButton(
-                    icon = Icons.Outlined.PictureAsPdf,
+                    icon = ChromeGlyph.PDF.imageVector(),
                     label = "Import PDF",
                     tint = DocumentRed,
                     enabled = !isReadOnly,
@@ -296,7 +297,7 @@ internal fun OverflowMenu(
                     modifier = Modifier.weight(1f),
                 )
                 GlassActionButton(
-                    icon = Icons.Outlined.PictureAsPdf,
+                    icon = ChromeGlyph.PDF.imageVector(),
                     label = "Export PDF",
                     tint = DocumentRed,
                     enabled = !isReadOnly,
@@ -313,7 +314,7 @@ internal fun OverflowMenu(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 GlassActionButton(
-                    icon = Icons.Outlined.Image,
+                    icon = ChromeGlyph.PICTURE.imageVector(),
                     label = "Page as PNG",
                     tint = MaterialTheme.colorScheme.primary,
                     enabled = !isReadOnly,
@@ -321,7 +322,7 @@ internal fun OverflowMenu(
                     modifier = Modifier.weight(1f),
                 )
                 GlassActionButton(
-                    icon = Icons.Outlined.Image,
+                    icon = ChromeGlyph.PICTURE.imageVector(),
                     label = "Page as SVG",
                     tint = MaterialTheme.colorScheme.primary,
                     enabled = !isReadOnly,

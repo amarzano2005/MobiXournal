@@ -33,11 +33,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.TextMeasurer
@@ -50,6 +47,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Surface
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
 import kotlin.math.roundToInt
@@ -217,30 +215,9 @@ private fun LayersSection(tab: DesktopTab) {
 private fun LayerEye(hidden: Boolean) {
     val ink = if (hidden) DesktopTheme.inkMuted else DesktopTheme.ink
     Canvas(Modifier.size(16.dp)) {
-        val w = size.width
-        val h = size.height
-        val stroke = 1.2.dp.toPx()
-        val lid = Path().apply {
-            moveTo(w * 0.08f, h * 0.5f)
-            cubicTo(w * 0.28f, h * 0.3f, w * 0.72f, h * 0.3f, w * 0.92f, h * 0.5f)
-            cubicTo(w * 0.72f, h * 0.7f, w * 0.28f, h * 0.7f, w * 0.08f, h * 0.5f)
-        }
-        drawPath(lid, ink, style = Stroke(width = stroke, cap = StrokeCap.Round))
-        drawCircle(
-            color = ink,
-            radius = w * 0.1f,
-            center = Offset(w * 0.5f, h * 0.5f),
-            style = Stroke(width = stroke),
-        )
-        if (hidden) {
-            drawLine(
-                ink,
-                Offset(w * 0.14f, h * 0.86f),
-                Offset(w * 0.86f, h * 0.14f),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
-            )
-        }
+        // The phone's own eye, from the catalogue: the window used to draw a lid, a pupil and a slash,
+        // and the two shells' layers list wore two different eyes for one state.
+        drawChromeGlyph(if (hidden) ChromeGlyph.VISIBILITY_OFF else ChromeGlyph.VISIBILITY, ink)
     }
 }
 

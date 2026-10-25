@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 
@@ -140,7 +141,7 @@ fun ColorSwatch(
         ) {
             when {
                 add -> Icon(
-                    Icons.Filled.Add,
+                    ChromeGlyph.ADD.imageVector(),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),

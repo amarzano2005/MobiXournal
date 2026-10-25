@@ -44,6 +44,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   cursor, a swatch's tint chosen by luminance) — never as a surface fill the chrome returns to.
 - The chrome ink is **`#FFFFFF`** (`CHROME_INK_DARK_RGB`): tool glyphs and header glyphs are white in both
   shells, active or not. The secondary and muted inks are for figures and explanatory labels only.
+- **Two commands have a colour of their own, on both shells**: a PDF command is `DocumentRed`
+  (`DOCUMENT_RED_RGB`, `#E53935`) and Save is the accent — the tablet's convention, which the window now
+  follows (`DesktopTheme.documentRed`, `DesktopTheme.accent`). A third named colour is a decision for this
+  file, not a call site's taste.
 - **One tone is the window's own**: its bands take the glass RGB at `DESKTOP_BAND_ALPHA` (0.58, i.e.
   `#0C0C0D` over the black desk) rather than the tablet's 0.85 (`#131314`), by the owner's decision of
   2026-10-25 — `ui-modernization.md` owns the reasoning. Every other colour is shared, and the desktop's
@@ -75,11 +79,15 @@ Every surface is one of three objects. Pick the class from what the element *doe
   (`TOOL_GLYPH_GRID`, `TOOL_GLYPH_STROKE_UNITS`); the tablet builds an `ImageVector`, the desktop fills a
   `DrawScope`. A shell may not keep a hand-drawn set of its own, and `material.icons` is not an import the
   desktop's chrome may have.
-- The **chrome's** glyphs — undo, redo, the file commands, the menu (`ChromeGlyphCatalogue`, `mobix-core`)
-  — are the *tablet's own pictures*: the path data Material publishes for the icons the phone's header and
-  menu draw, transcribed once as `d` strings on the same 24-unit grid. The window fills them (`svgPath`),
-  so a phone and a PC side by side show one set of icons instead of two nearly-equal drawings.
-  `ChromeGlyphsTest` holds every glyph to a shape that parses, stays on the grid and is its own picture.
+- The **chrome's** glyphs (`ChromeGlyphCatalogue`, `mobix-core`) are every mark that is not a tool face:
+  undo, redo, the file commands, the menu, the dismiss and add marks, the layer eye, and the whole
+  selection bar — cut, copy, paste, duplicate, recolour, width, edit, delete and the six alignments with
+  the two distributions. The art is the path data Material publishes, transcribed once as `d` strings on
+  the same 24-unit grid, and **both shells read it**: the tablet builds an `ImageVector` from the string
+  (`ChromeGlyphIcons.kt`), the window fills a `Path` parsed from it (`SvgPath.kt`) — a shell may not
+  hand-draw a mark of its own, which is how a phone and a PC came to show two nearly-equal icons for one
+  command. `ChromeGlyphsTest` holds every glyph to a shape that parses, stays on the grid and is its own
+  picture.
 - The `when` in `ToolGlyphCatalogue.parts` is exhaustive: a new tool does not compile without art.
   `ToolGlyphCoverageTest` additionally requires **every** `EditorTool` — the rail's slots, the STEM dock's
   families, every member a picker row offers, the variant faces a slot takes on and the authoring modes —

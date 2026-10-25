@@ -126,8 +126,10 @@ internal fun MenuPanel(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap),
         ) {
-            MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), onExportPdf)
-            MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), onExportSvg)
+            // The tablet's rule for the two exports: the PDF chip is the document red, the page raster
+            // stays in the accent. Colouring both the same made the PDF look like any other export.
+            MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
+            MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
         }
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
@@ -213,9 +215,11 @@ private fun MenuChip(
     glyph: ChromeGlyph,
     enabled: Boolean,
     modifier: Modifier = Modifier,
+    /** The command's own colour while it can act — red for a PDF, the accent for a page export. */
+    tone: Color,
     onClick: () -> Unit,
 ) {
-    val ink = if (enabled) DesktopTheme.accent else DesktopTheme.inkMuted
+    val ink = if (enabled) tone else DesktopTheme.inkMuted
     Row(
         modifier
             .height(MenuMetrics.chipHeight)

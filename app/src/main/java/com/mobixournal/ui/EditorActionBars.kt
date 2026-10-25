@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.SelectionOps
 import com.mobixournal.ui.theme.FloatingSurface
@@ -109,31 +110,31 @@ fun SelectionActionBar(
         ) {
             if (hasSelection) {
                 if (canEditShape) {
-                    BarIconButton("Edit shape", Icons.Outlined.Edit, onEditShape)
+                    BarIconButton("Edit shape", ChromeGlyph.EDIT.imageVector(), onEditShape)
                 }
                 if (canEditPlot) {
-                    BarIconButton("Edit plot", Icons.Outlined.Edit, onEditPlot)
+                    BarIconButton("Edit plot", ChromeGlyph.EDIT.imageVector(), onEditPlot)
                 }
                 if (canEditTable) {
-                    BarIconButton("Edit table", Icons.Outlined.Edit, onEditTable)
+                    BarIconButton("Edit table", ChromeGlyph.EDIT.imageVector(), onEditTable)
                 }
                 if (canEditCircuit) {
-                    BarIconButton("Edit circuit", Icons.Outlined.Edit, onEditCircuit)
+                    BarIconButton("Edit circuit", ChromeGlyph.EDIT.imageVector(), onEditCircuit)
                 }
-                BarIconButton("Cut", Icons.Outlined.ContentCut, onCut)
-                BarIconButton("Copy", Icons.Outlined.ContentCopy, onCopy)
+                BarIconButton("Cut", ChromeGlyph.CUT.imageVector(), onCut)
+                BarIconButton("Copy", ChromeGlyph.COPY.imageVector(), onCopy)
             }
             // Paste rides with Copy: the same idea in the opposite direction, and putting it here is
             // what keeps it usable while something *is* selected.
             if (canPaste) {
-                BarIconButton("Paste", Icons.Outlined.ContentPaste, onPaste)
+                BarIconButton("Paste", ChromeGlyph.PASTE.imageVector(), onPaste)
             }
             if (hasSelection) {
-                BarIconButton("Duplicate", Icons.Outlined.LibraryAdd, onDuplicate)
+                BarIconButton("Duplicate", ChromeGlyph.DUPLICATE.imageVector(), onDuplicate)
                 RecolorMenu(onRecolor, palette)
                 ReWidthMenu(widthSlots, onReWidth)
                 AlignMenu(onAlign, onDistribute)
-                BarIconButton("Delete", Icons.Outlined.Delete, onDelete)
+                BarIconButton("Delete", ChromeGlyph.DELETE.imageVector(), onDelete)
             }
         }
     }
@@ -151,7 +152,7 @@ private fun AlignMenu(
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        BarIconButton("Align & distribute", Icons.AutoMirrored.Outlined.FormatAlignLeft) { open = true }
+        BarIconButton("Align & distribute", ChromeGlyph.ALIGN_LEFT.imageVector()) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             @Composable
             fun row(label: String, action: () -> Unit) {
@@ -212,7 +213,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     var open by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     Box {
-        BarIconButton("Recolour", Icons.Outlined.Palette) { open = true }
+        BarIconButton("Recolour", ChromeGlyph.RECOLOUR.imageVector()) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             ColorPaletteRows(
                 selected = null,
@@ -230,7 +231,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
 private fun ReWidthMenu(widthSlots: List<Float>, onReWidth: (Float) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        BarIconButton("Width", Icons.Outlined.LineWeight) { open = true }
+        BarIconButton("Width", ChromeGlyph.WIDTH.imageVector()) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
             widthSlots.forEachIndexed { i, pt ->
                 DropdownMenuItem(
@@ -270,12 +271,12 @@ fun SelectModeBar(
         ) {
             if (hasRegion) {
                 TextButton(onClick = onCopyRegion) {
-                    Icon(Icons.Outlined.ContentCopy, contentDescription = null)
+                    Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Copy")
                 }
                 TextButton(onClick = onCutRegion) {
-                    Icon(Icons.Outlined.ContentCut, contentDescription = null)
+                    Icon(ChromeGlyph.CUT.imageVector(), contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Cut")
                 }
@@ -342,7 +343,7 @@ fun TextSelectionBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(onClick = onCopy) {
-                Icon(Icons.Outlined.ContentCopy, contentDescription = null)
+                Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null)
                 Spacer(Modifier.width(6.dp))
                 Text("Copy")
             }

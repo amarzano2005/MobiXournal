@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.PenPalette
 
 /**
@@ -95,11 +96,8 @@ internal fun LaneHeader(
             if (tool != null) {
                 Canvas(Modifier.size(18.dp)) { drawToolGlyph(tool, DesktopTheme.chromeInk) }
             } else {
-                Canvas(Modifier.size(18.dp)) {
-                    val stroke = DesktopTheme.glyphStroke.toPx()
-                    drawLine(DesktopTheme.inkSecondary, Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), stroke)
-                    drawLine(DesktopTheme.inkSecondary, Offset(size.width / 2f, 0f), Offset(size.width / 2f, size.height), stroke)
-                }
+                // A lane with no tool is the palette itself: the add mark, the phone's own.
+                Canvas(Modifier.size(18.dp)) { drawChromeGlyph(ChromeGlyph.ADD, DesktopTheme.inkSecondary) }
             }
         }
         Spacer(Modifier.width(10.dp))
@@ -447,11 +445,7 @@ private fun CrossGlyph(ink: Color, onClick: () -> Unit) {
             .pointerInput(Unit) { detectTapGestures { dismiss.value() } },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(10.dp)) {
-            val stroke = DesktopTheme.glyphStroke.toPx()
-            drawLine(ink, Offset(0f, 0f), Offset(size.width, size.height), stroke)
-            drawLine(ink, Offset(size.width, 0f), Offset(0f, size.height), stroke)
-        }
+        Canvas(Modifier.size(14.dp)) { drawChromeGlyph(ChromeGlyph.CLOSE, ink) }
     }
 }
 

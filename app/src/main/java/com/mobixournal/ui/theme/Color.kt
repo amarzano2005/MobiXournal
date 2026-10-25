@@ -1,6 +1,7 @@
 package com.mobixournal.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import com.mobixournal.design.DesignTokens
 
 /*
  * The app's static brand palette.
@@ -29,14 +30,17 @@ val PurpleDark = Color(0xFFC084FC)
 val Amber = Color(0xFFFFB300)
 
 /**
- * The pixel-document red (#E53935) — the PDF actions' colour in the top-bar menu.
+ * The pixel-document red — the PDF actions' colour in the top-bar menu.
  *
  * The menu's file actions are blue like every other control; the two that are about a **PDF** (import
  * the pages of one, write the document out as one) wear this red instead, so the row reads as the
  * PDF row at a glance and not as two more ordinary buttons. It is the same red as the recording dot,
  * which is the one red the chrome already used.
+ *
+ * The value lives in the shared tokens (`DesignTokens.DOCUMENT_RED_RGB`), because the desktop window
+ * draws the same PDF command and must not pick a red of its own.
  */
-val DocumentRed = Color(0xFFE53935)
+val DocumentRed = Color(0xFF000000.toInt() or DesignTokens.DOCUMENT_RED_RGB)
 
 // --- Formal Semantic Chrome Palette (docs/ui-modernization.md) ---
 

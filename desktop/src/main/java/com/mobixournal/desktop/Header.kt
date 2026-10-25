@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -100,15 +101,20 @@ internal fun Header(
             onClick = onRedo,
         ) { color -> drawChromeGlyph(ChromeGlyph.REDO, color) }
         Spacer(Modifier.width(12.dp))
+        // The tablet's colours for the two file commands: Save in the accent, PDF in the document red.
+        // They were both chrome ink here, which made the one command that writes a PDF look like the
+        // history steps beside it. The rule is `docs/ui-modernization.md`'s, not the window's.
         HeaderGlyph(
             active = false,
             enabled = tab?.isDirty == true,
+            colour = DesktopTheme.accent,
             onClick = onSave,
         ) { color -> drawChromeGlyph(ChromeGlyph.SAVE, color) }
         Spacer(Modifier.width(6.dp))
         HeaderGlyph(
             active = false,
             enabled = tab != null,
+            colour = DesktopTheme.documentRed,
             onClick = onExportPdf,
         ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
     }
@@ -127,6 +133,8 @@ internal fun Header(
 internal fun HeaderGlyph(
     active: Boolean,
     enabled: Boolean = true,
+    /** A command that wears one of the **named** colours (Save, PDF); null keeps the chrome's ink. */
+    colour: Color? = null,
     onClick: () -> Unit,
     draw: DrawScope.(androidx.compose.ui.graphics.Color) -> Unit,
 ) {
@@ -154,7 +162,7 @@ internal fun HeaderGlyph(
         Canvas(Modifier.size(DesktopTheme.headerGlyphSize)) {
             // The chrome ink, lit or not: on the tablet a header glyph is white and only its capsule
             // changes tone when it is active.
-            draw(if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted)
+            draw(if (enabled) colour ?: DesktopTheme.chromeInk else DesktopTheme.inkMuted)
         }
     }
 }

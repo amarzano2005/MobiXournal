@@ -112,6 +112,7 @@ import com.mobixournal.render.resetZoom
 import com.mobixournal.render.zoomIn
 import com.mobixournal.render.zoomOut
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
@@ -281,7 +282,7 @@ fun EditorTopBar(
                         val redoEnabled = !pane.isReadOnly && pane.canRedo
                         IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
                             Icon(
-                                Icons.AutoMirrored.Outlined.Undo,
+                                ChromeGlyph.UNDO.imageVector(),
                                 contentDescription = "Undo",
                                 tint = if (undoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
                                 modifier = Modifier.size(20.dp),
@@ -289,7 +290,7 @@ fun EditorTopBar(
                         }
                         IconButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled, modifier = Modifier.size(36.dp)) {
                             Icon(
-                                Icons.AutoMirrored.Outlined.Redo,
+                                ChromeGlyph.REDO.imageVector(),
                                 contentDescription = "Redo",
                                 tint = if (redoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
                                 modifier = Modifier.size(20.dp),
@@ -306,7 +307,7 @@ fun EditorTopBar(
                 ) {
                     IconButton(onClick = onExportPdf, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
                         Icon(
-                            Icons.Outlined.PictureAsPdf,
+                            ChromeGlyph.PDF.imageVector(),
                             contentDescription = "Export PDF",
                             tint = DocumentRed,
                             modifier = Modifier.size(20.dp),
@@ -321,7 +322,7 @@ fun EditorTopBar(
                     modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
                 ) {
                     IconButton(onClick = onSave, enabled = !pane.isReadOnly, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Outlined.Save, contentDescription = "Save", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                        Icon(ChromeGlyph.SAVE.imageVector(), contentDescription = "Save", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                     }
                 }
                 OverflowMenu(
@@ -834,7 +835,6 @@ fun rememberToolbarStyleCallbacks(
     lineStyle = ui.lineStyle,
     onLineStyle = { ui.lineStyle = it; surface?.currentLineStyle = it },
 )
-
 
 /**
  * Maps stroke width [width] to its pen-width size label ("S", "M", or "L") based on [widthSlots].

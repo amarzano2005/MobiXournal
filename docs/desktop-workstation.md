@@ -30,7 +30,7 @@ What it does today:
   controls as well as the tabs (`DesktopTheme.headerHeight`), under a **native caption painted in the
   band's own composite colour** (`DesktopTitleBar.kt`: immersive dark mode, the caption, border and text
   colours through DWM). It carries **no app name and no icon** (`captionIcon` keeps the art for the taskbar
-  only), with the tablet's own glyphs — monoline tools on the 24 grid, the chrome's Material icons — Inter
+  only), with the tablet's own glyphs — monoline tools and the chrome's filled marks, one catalogue each — Inter
   with tabular figures, one cast shadow under each band and one under the sheet. The art is the
   tablet's launcher icon **without its navy field**, enlarged inside its tile so the mark reads at taskbar
   size (`desktop/icon/`).
@@ -132,8 +132,8 @@ What it does today:
   changes meaning. **A tool whose behaviour has not landed gets no slot**: `ToolGroupsTest` fails if an
   acting tool has no slot, or a slot lists one that cannot act.
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
-  glass panel — four **tiles** of art over a word (New, Open, Save, Save As), the two exports as **accent
-  chips** (Export PDF, Export SVG), then a hairline and the page list's row. The tablet's Import PDF, Page
+  glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
+  document-red chip** and Export SVG in the accent, then a hairline and the page list's row. The tablet's Import PDF, Page
   as PNG and Settings rows are absent because the window has no such command yet, not because it has a
   different menu (`MenuPanel`; `DesktopMenuTest` clicks all seven rows by the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window

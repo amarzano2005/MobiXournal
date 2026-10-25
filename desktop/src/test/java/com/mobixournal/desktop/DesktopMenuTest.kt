@@ -87,13 +87,14 @@ class DesktopMenuTest {
     }
 
     /**
-     * The panel's picture: white art on the tiles, the accent on the chips.
+     * The panel's picture: white art on the tiles, the PDF chip in the document red, the raster in the
+     * accent — the tablet's own colour rule for its exports.
      *
      * The frame is filed in `desktop/build/desktop-render/` so the panel can be looked at next to the
      * tablet's, which is what "the same menu" has to mean in the end.
      */
     @Test
-    fun `the tiles wear the chrome ink and the chips the accent`() {
+    fun `the tiles wear the chrome ink, the pdf chip the document red and the raster the accent`() {
         val scene = scene()
         val png = try {
             Snapshot.sendApplyNotifications()
@@ -117,11 +118,13 @@ class DesktopMenuTest {
                 .count { (it and 0xFFFFFF) >= INK_FLOOR }
             assertTrue("tile $index draws its glyph and label", white > 12)
         }
-        for (index in 0..1) {
-            val blue = pixelsAround(chipCentre(index), chipCentreY(), 16)
-                .count { colour -> ((colour shr 16) and 0xFF) < ((colour) and 0xFF) - 40 }
-            assertTrue("chip $index is written in the accent", blue > 12)
-        }
+        val pdfChip = pixelsAround(chipCentre(0), chipCentreY(), 16)
+            .count { colour -> ((colour shr 16) and 0xFF) > (colour and 0xFF) + 60 }
+        assertTrue("the PDF chip is written in the document red", pdfChip > 12)
+
+        val rasterChip = pixelsAround(chipCentre(1), chipCentreY(), 16)
+            .count { colour -> (colour and 0xFF) > ((colour shr 16) and 0xFF) + 40 }
+        assertTrue("the raster chip is written in the accent", rasterChip > 12)
     }
 
     private fun scene(canSave: Boolean = true, canExport: Boolean = true): ImageComposeScene =

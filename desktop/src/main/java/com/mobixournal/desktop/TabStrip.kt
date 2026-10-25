@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.mobixournal.design.ChromeGlyph
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
@@ -195,10 +196,8 @@ private fun CloseGlyph(onClose: () -> Unit) {
             .pointerInput(Unit) { detectTapGestures { onClose() } },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.width(9.dp).height(9.dp)) {
-            val stroke = DesktopTheme.glyphStroke.toPx()
-            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), stroke)
-            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height), stroke)
+        Canvas(Modifier.size(14.dp)) {
+            drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkSecondary)
         }
     }
 }
@@ -216,10 +215,8 @@ private fun AddTabButton(onNew: () -> Unit) {
             .pointerInput(Unit) { detectTapGestures { onNew() } },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.width(9.dp).height(9.dp)) {
-            val stroke = DesktopTheme.glyphStroke.toPx()
-            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height / 2f), stroke)
-            drawLine(DesktopTheme.inkSecondary, androidx.compose.ui.geometry.Offset(size.width / 2f, 0f), androidx.compose.ui.geometry.Offset(size.width / 2f, size.height), stroke)
+        Canvas(Modifier.size(16.dp)) {
+            drawChromeGlyph(ChromeGlyph.ADD, DesktopTheme.inkSecondary)
         }
     }
 }

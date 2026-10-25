@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.LineStyle
 
@@ -329,12 +330,7 @@ private fun AddSwatch(onAdd: () -> Unit) {
             .pointerInput(Unit) { detectTapGestures { onAdd() } },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(10.dp)) {
-            val colour = DesktopTheme.accent
-            val stroke = DesktopTheme.glyphStroke.toPx()
-            drawLine(colour, Offset(size.width / 2f, 0f), Offset(size.width / 2f, size.height), stroke)
-            drawLine(colour, Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), stroke)
-        }
+        Canvas(Modifier.size(14.dp)) { drawChromeGlyph(ChromeGlyph.ADD, DesktopTheme.accent) }
     }
 }
 

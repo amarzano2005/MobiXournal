@@ -127,8 +127,11 @@ class DesktopHeaderTest {
             val centre = capsuleCentre(width, index)
             val half = DesktopTheme.headerControlSize.value / 2f
             val glyphPixels = (centre - half + 2f).toInt()..<(centre + half - 2f).toInt()
+            // Ink is **white or one of the two named colours**: Save is the accent and the PDF export the
+            // document red on this band, as on the tablet, and a "bright pixel" measure saw only the
+            // white one (`docs/interface-contract.md` §2).
             val inked = glyphPixels.sumOf { x ->
-                (0 until image.height).count { y -> image.getRGB(x, y) and 0xFFFFFF >= INK_FLOOR }
+                (0 until image.height).count { y -> isInk(image.getRGB(x, y)) }
             }
             assertTrue("capsule $index has its glyph drawn in it", inked > 8)
         }
@@ -295,6 +298,15 @@ class DesktopHeaderTest {
     private companion object {
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090
+
+        /** White art, or art in the accent/document red — the second is chromatic where the first is not. */
+        fun isInk(argb: Int): Boolean {
+            val r = (argb shr 16) and 0xFF
+            val g = (argb shr 8) and 0xFF
+            val b = argb and 0xFF
+            val saturation = maxOf(r, g, b) - minOf(r, g, b)
+            return argb and 0xFFFFFF >= INK_FLOOR || saturation > 40
+        }
 
         const val UNDO = 0
         const val REDO = 1

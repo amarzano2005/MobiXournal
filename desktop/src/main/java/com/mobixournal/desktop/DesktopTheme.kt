@@ -71,6 +71,16 @@ object DesktopTheme {
     /** The luminescent accent: what is active, never a wash. */
     val accent: Color = tokenColour(DesignTokens.ACCENT_DARK_RGB)
 
+    /**
+     * The pixel-document red: the colour of a command that is about a **PDF**.
+     *
+     * The tablet's header draws Export PDF in it and its menu draws both PDF rows in it, while Save wears
+     * the accent (`docs/ui-modernization.md`). The window's header and menu had every glyph in the chrome
+     * ink, so the one command that writes the document out as a different kind of file looked like any
+     * other — the same convention has to hold on both screens.
+     */
+    val documentRed: Color = tokenColour(DesignTokens.DOCUMENT_RED_RGB)
+
     /** The steel a *picked* slot wears — a selected tab, a held toggle. */
     val activeSlot: Color = tokenColour(DesignTokens.ACTIVE_SLOT_DARK_RGB)
 

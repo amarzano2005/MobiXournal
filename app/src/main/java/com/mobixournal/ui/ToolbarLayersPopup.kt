@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.render.LayerInfo
 import com.mobixournal.ui.theme.DialogPresence
 
@@ -118,7 +119,7 @@ private fun LayerRow(
         Spacer(Modifier.width(4.dp))
         IconButton(onClick = onToggleHidden, modifier = Modifier.size(32.dp)) {
             Icon(
-                if (info.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                if (info.visible) ChromeGlyph.VISIBILITY.imageVector() else ChromeGlyph.VISIBILITY_OFF.imageVector(),
                 contentDescription = if (info.visible) "Hide layer" else "Show layer",
             )
         }

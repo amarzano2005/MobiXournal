@@ -219,6 +219,19 @@ object DesignTokens {
     /** The accent, light theme (`Blue`). */
     const val ACCENT_LIGHT_RGB: Int = 0x2563EB
 
+    /**
+     * The pixel-document red (`#E53935`) — the colour of every command that is about a **PDF**.
+     *
+     * The tablet's menu has worn it since the file commands moved into the glass: New, Open, Save and
+     * Save As are blue like every other control, and the two that import or write a PDF are red, so the
+     * row reads as the PDF row at a glance. The window's header and menu draw the same commands, and a
+     * token keeps them from picking a second red — or, worse, the chrome's own white.
+     */
+    const val DOCUMENT_RED_RGB: Int = 0xE53935
+
+    /** Raw definition of [DOCUMENT_RED_RGB], as the doc's token block writes it. */
+    const val DOCUMENT_RED_RAW: String = "#E53935"
+
     /** The steel a *picked* tool slot wears (`ActiveSlotDark`) — never the accent. */
     const val ACTIVE_SLOT_DARK_RGB: Int = 0x38383E
 

@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.TabChipBorderLight
 import com.mobixournal.ui.theme.TabChipFillDark
@@ -232,7 +233,7 @@ private fun AddTabButton(isDark: Boolean, onNew: () -> Unit) {
     ) {
         IconButton(onClick = onNew, modifier = Modifier.size(30.dp)) {
             Icon(
-                Icons.Outlined.Add,
+                ChromeGlyph.ADD.imageVector(),
                 contentDescription = "New document",
                 modifier = Modifier.size(TAB_NEW_ICON),
                 tint = MaterialTheme.colorScheme.primary,
@@ -423,7 +424,7 @@ private fun TabCloseButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Outlined.Close,
+            ChromeGlyph.CLOSE.imageVector(),
             contentDescription = "Close $title",
             modifier = Modifier.size(TAB_CLOSE_ICON),
             tint = if (selected) colors.onSurface else colors.onSurfaceVariant,

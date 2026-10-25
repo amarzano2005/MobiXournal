@@ -25,9 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -35,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.SelectionOps
 import kotlin.math.roundToInt
@@ -165,22 +163,24 @@ internal fun SelectionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            BarButton(BarGlyph.CUT, ui.enabled(SelectionAction.CUT), "Cut", "Ctrl+X") { ui.onAction(SelectionAction.CUT) }
-            BarButton(BarGlyph.COPY, ui.enabled(SelectionAction.COPY), "Copy", "Ctrl+C") { ui.onAction(SelectionAction.COPY) }
-            BarButton(BarGlyph.PASTE, ui.enabled(SelectionAction.PASTE), "Paste", "Ctrl+V") { ui.onAction(SelectionAction.PASTE) }
-            BarButton(BarGlyph.DUPLICATE, ui.enabled(SelectionAction.DUPLICATE), "Duplicate", "Ctrl+D") {
+            BarButton(ChromeGlyph.CUT, ui.enabled(SelectionAction.CUT), "Cut", "Ctrl+X") { ui.onAction(SelectionAction.CUT) }
+            BarButton(ChromeGlyph.COPY, ui.enabled(SelectionAction.COPY), "Copy", "Ctrl+C") { ui.onAction(SelectionAction.COPY) }
+            BarButton(ChromeGlyph.PASTE, ui.enabled(SelectionAction.PASTE), "Paste", "Ctrl+V") { ui.onAction(SelectionAction.PASTE) }
+            BarButton(ChromeGlyph.DUPLICATE, ui.enabled(SelectionAction.DUPLICATE), "Duplicate", "Ctrl+D") {
                 ui.onAction(SelectionAction.DUPLICATE)
             }
             BarDivider()
-            BarButton(BarGlyph.RECOLOUR, ui.enabled(SelectionAction.RECOLOUR), "Recolour", "") {
+            BarButton(ChromeGlyph.RECOLOUR, ui.enabled(SelectionAction.RECOLOUR), "Recolour", "") {
                 ui.onAction(SelectionAction.RECOLOUR)
             }
-            BarButton(BarGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
+            BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
                 ui.onAction(SelectionAction.WIDTH)
             }
             Box {
                 BarButton(
-                    BarGlyph.ALIGN,
+                    // The tablet's own align button wears FormatAlignLeft; the catalogue's left-aligned
+                    // lines are that picture, so the menu opens from the same mark on both shells.
+                    ChromeGlyph.ALIGN_LEFT,
                     ui.enabled(SelectionAction.ALIGN_LEFT),
                     "Align & distribute",
                     "",
@@ -189,10 +189,10 @@ internal fun SelectionBar(
                 if (alignOpen) AlignMenu(ui) { alignOpen = false }
             }
             BarDivider()
-            BarButton(BarGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {
+            BarButton(ChromeGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {
                 ui.onAction(SelectionAction.EDIT)
             }
-            BarButton(BarGlyph.DELETE, ui.enabled(SelectionAction.DELETE), "Delete", "Del") {
+            BarButton(ChromeGlyph.DELETE, ui.enabled(SelectionAction.DELETE), "Delete", "Del") {
                 ui.onAction(SelectionAction.DELETE)
             }
         }
@@ -208,18 +208,18 @@ private fun AlignMenu(ui: SelectionBarUi, onClose: () -> Unit) {
             Spacer(Modifier.height(4.dp))
             val rows = listOf(
                 listOf(
-                    SelectionAction.ALIGN_LEFT to BarGlyph.ALIGN_LEFT,
-                    SelectionAction.ALIGN_H_CENTRE to BarGlyph.ALIGN_H_CENTRE,
-                    SelectionAction.ALIGN_RIGHT to BarGlyph.ALIGN_RIGHT,
+                    SelectionAction.ALIGN_LEFT to ChromeGlyph.ALIGN_LEFT,
+                    SelectionAction.ALIGN_H_CENTRE to ChromeGlyph.ALIGN_H_CENTRE,
+                    SelectionAction.ALIGN_RIGHT to ChromeGlyph.ALIGN_RIGHT,
                 ),
                 listOf(
-                    SelectionAction.ALIGN_TOP to BarGlyph.ALIGN_TOP,
-                    SelectionAction.ALIGN_V_MIDDLE to BarGlyph.ALIGN_V_MIDDLE,
-                    SelectionAction.ALIGN_BOTTOM to BarGlyph.ALIGN_BOTTOM,
+                    SelectionAction.ALIGN_TOP to ChromeGlyph.ALIGN_TOP,
+                    SelectionAction.ALIGN_V_MIDDLE to ChromeGlyph.ALIGN_V_MIDDLE,
+                    SelectionAction.ALIGN_BOTTOM to ChromeGlyph.ALIGN_BOTTOM,
                 ),
                 listOf(
-                    SelectionAction.DISTRIBUTE_H to BarGlyph.DISTRIBUTE_H,
-                    SelectionAction.DISTRIBUTE_V to BarGlyph.DISTRIBUTE_V,
+                    SelectionAction.DISTRIBUTE_H to ChromeGlyph.DISTRIBUTE_H,
+                    SelectionAction.DISTRIBUTE_V to ChromeGlyph.DISTRIBUTE_V,
                 ),
             )
             for (row in rows) {
@@ -258,7 +258,7 @@ private fun BarDivider() {
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun BarButton(
-    glyph: BarGlyph,
+    glyph: ChromeGlyph,
     enabled: Boolean,
     tooltip: String,
     shortcut: String,
@@ -286,11 +286,12 @@ private fun BarButton(
                 .pointerInput(glyph, enabled) { detectTapGestures { if (enabled) onClick() } },
             contentAlignment = Alignment.Center,
         ) {
-            Canvas(Modifier.size(14.dp)) {
-                drawBarGlyph(
+            // The catalogue's filled art at the tablet's own 18 dp, not the bar's old 14 dp monoline: the
+            // two shells draw one picture, which means one size and one kind of mark.
+            Canvas(Modifier.size(BAR_GLYPH)) {
+                drawChromeGlyph(
                     glyph,
-                    color = if (enabled) DesktopTheme.chromeInk else DesktopTheme.chromeInk.copy(alpha = 0.32f),
-                    stroke = DesktopTheme.glyphStroke.toPx(),
+                    if (enabled) DesktopTheme.chromeInk else DesktopTheme.chromeInk.copy(alpha = 0.32f),
                 )
             }
         }
@@ -307,154 +308,12 @@ private fun BarButton(
 /** The bar's square, in dp — the tablet's `SelectionBarButton`. */
 internal val BAR_BUTTON = 32.dp
 
+/** The glyph inside it, in dp — the tablet's `SelectionBarIcon`. */
+private val BAR_GLYPH = 18.dp
+
 /** How many squares and dividers the bar draws, so its width is arithmetic and not a measurement. */
 internal const val BAR_BUTTONS = 8
 internal const val BAR_DIVIDERS = 2
-
-/** Every glyph the bar draws, as values so a drawing function cannot miss one. */
-internal enum class BarGlyph {
-    CUT, COPY, PASTE, DUPLICATE, RECOLOUR, WIDTH, DELETE, EDIT, ALIGN,
-    ALIGN_LEFT, ALIGN_H_CENTRE, ALIGN_RIGHT, ALIGN_TOP, ALIGN_V_MIDDLE, ALIGN_BOTTOM, DISTRIBUTE_H, DISTRIBUTE_V,
-}
-
-/**
- * The bar's monoline art, drawn in a 14 dp box in the strip glyphs' own stroke — the same hand as the tool
- * slots, because these controls act on the page the tools drew.
- */
-internal fun DrawScope.drawBarGlyph(glyph: BarGlyph, color: Color, stroke: Float) {
-    val w = size.width
-    val h = size.height
-    fun line(x1: Float, y1: Float, x2: Float, y2: Float) = drawLine(
-        color, Offset(x1 * w, y1 * h), Offset(x2 * w, y2 * h), stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round,
-    )
-    fun box(x1: Float, y1: Float, x2: Float, y2: Float) = drawRect(
-        color, Offset(x1 * w, y1 * h), Size((x2 - x1) * w, (y2 - y1) * h), style = Stroke(stroke),
-    )
-    if (glyph.ordinal >= BarGlyph.ALIGN_LEFT.ordinal) {
-        drawAlignGlyph(glyph, color, stroke)
-        return
-    }
-    when (glyph) {
-        // Scissors: two blades crossing over a pair of rings.
-        BarGlyph.CUT -> {
-            line(0.15f, 0.1f, 0.8f, 0.75f)
-            line(0.15f, 0.9f, 0.8f, 0.25f)
-            drawCircle(color, stroke * 1.4f, Offset(0.18f * w, 0.85f * h), style = Stroke(stroke))
-            drawCircle(color, stroke * 1.4f, Offset(0.18f * w, 0.15f * h), style = Stroke(stroke))
-        }
-        // Two sheets, one behind the other.
-        BarGlyph.COPY -> {
-            box(0.1f, 0.1f, 0.65f, 0.65f)
-            box(0.35f, 0.35f, 0.9f, 0.9f)
-        }
-        // A clipboard with its clip.
-        BarGlyph.PASTE -> {
-            box(0.15f, 0.15f, 0.85f, 0.95f)
-            line(0.35f, 0.15f, 0.35f, 0.05f)
-            line(0.65f, 0.15f, 0.65f, 0.05f)
-            line(0.35f, 0.05f, 0.65f, 0.05f)
-            line(0.3f, 0.55f, 0.7f, 0.55f)
-        }
-        BarGlyph.DUPLICATE -> {
-            box(0.05f, 0.05f, 0.6f, 0.6f)
-            box(0.4f, 0.4f, 0.95f, 0.95f)
-            line(0.5f, 0.67f, 0.85f, 0.67f)
-            line(0.67f, 0.5f, 0.67f, 0.85f)
-        }
-        // A filled drop: the colour the strip's ink is.
-        BarGlyph.RECOLOUR -> {
-            drawCircle(color, w * 0.34f, Offset(w / 2f, h / 2f), style = Stroke(stroke))
-            drawCircle(color, w * 0.14f, Offset(w / 2f, h / 2f))
-        }
-        // Three weights, the middle one picked.
-        BarGlyph.WIDTH -> {
-            line(0.05f, 0.2f, 0.95f, 0.2f)
-            line(0.05f, 0.5f, 0.95f, 0.5f)
-            line(0.05f, 0.8f, 0.95f, 0.8f)
-        }
-        BarGlyph.DELETE -> {
-            line(0.2f, 0.2f, 0.8f, 0.8f)
-            line(0.8f, 0.2f, 0.2f, 0.8f)
-        }
-        // The pencil: a body, its tip and the nib.
-        BarGlyph.EDIT -> {
-            val path = Path().apply {
-                moveTo(0.1f * w, 0.9f * h)
-                lineTo(0.2f * w, 0.55f * h)
-                lineTo(0.7f * w, 0.05f * h)
-                lineTo(0.95f * w, 0.3f * h)
-                lineTo(0.45f * w, 0.8f * h)
-                close()
-            }
-            drawPath(path, color, style = Stroke(stroke))
-            line(0.2f, 0.55f, 0.45f, 0.8f)
-        }
-        BarGlyph.ALIGN -> {
-            line(0.1f, 0.15f, 0.9f, 0.15f)
-            line(0.1f, 0.5f, 0.6f, 0.5f)
-            line(0.1f, 0.85f, 0.75f, 0.85f)
-        }
-        // The alignments are drawn by `drawAlignGlyph`, which the early return above reaches.
-        else -> Unit
-    }
-}
-
-/**
- * The alignment half of the bar's art: six alignments and two distributions, in the same 14 dp box and the
- * same stroke as the commands beside them. Split from [drawBarGlyph] because the whole set is more than a
- * function should hold, and a glyph is either an action or an alignment — never both.
- */
-internal fun DrawScope.drawAlignGlyph(glyph: BarGlyph, color: Color, stroke: Float) {
-    val w = size.width
-    val h = size.height
-    fun line(x1: Float, y1: Float, x2: Float, y2: Float) = drawLine(
-        color, Offset(x1 * w, y1 * h), Offset(x2 * w, y2 * h), stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round,
-    )
-    when (glyph) {
-        BarGlyph.ALIGN_LEFT -> {
-            line(0.1f, 0.1f, 0.1f, 0.9f)
-            line(0.2f, 0.3f, 0.9f, 0.3f)
-            line(0.2f, 0.7f, 0.6f, 0.7f)
-        }
-        BarGlyph.ALIGN_H_CENTRE -> {
-            line(0.5f, 0.1f, 0.5f, 0.9f)
-            line(0.2f, 0.3f, 0.8f, 0.3f)
-            line(0.3f, 0.7f, 0.7f, 0.7f)
-        }
-        BarGlyph.ALIGN_RIGHT -> {
-            line(0.9f, 0.1f, 0.9f, 0.9f)
-            line(0.1f, 0.3f, 0.8f, 0.3f)
-            line(0.4f, 0.7f, 0.8f, 0.7f)
-        }
-        BarGlyph.ALIGN_TOP -> {
-            line(0.1f, 0.1f, 0.9f, 0.1f)
-            line(0.3f, 0.2f, 0.3f, 0.9f)
-            line(0.7f, 0.2f, 0.7f, 0.6f)
-        }
-        BarGlyph.ALIGN_V_MIDDLE -> {
-            line(0.1f, 0.5f, 0.9f, 0.5f)
-            line(0.3f, 0.2f, 0.3f, 0.8f)
-            line(0.7f, 0.3f, 0.7f, 0.7f)
-        }
-        BarGlyph.ALIGN_BOTTOM -> {
-            line(0.1f, 0.9f, 0.9f, 0.9f)
-            line(0.3f, 0.1f, 0.3f, 0.8f)
-            line(0.7f, 0.4f, 0.7f, 0.8f)
-        }
-        BarGlyph.DISTRIBUTE_H -> {
-            line(0.1f, 0.15f, 0.1f, 0.85f)
-            line(0.5f, 0.15f, 0.5f, 0.85f)
-            line(0.9f, 0.15f, 0.9f, 0.85f)
-        }
-        BarGlyph.DISTRIBUTE_V -> {
-            line(0.15f, 0.1f, 0.85f, 0.1f)
-            line(0.15f, 0.5f, 0.85f, 0.5f)
-            line(0.15f, 0.9f, 0.85f, 0.9f)
-        }
-        else -> Unit
-    }
-}
-
 
 /**
  * The availability a document gives the bar, in one place: what the shell hands [SelectionBar] so the UI
