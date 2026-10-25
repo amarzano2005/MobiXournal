@@ -363,22 +363,32 @@ object ToolGlyphCatalogue {
      * Pan: a palm with four finger lines, the tablet's `PanTool` in monoline. A four-way arrow was the
      * other candidate and reads as "move object"; a hand is what every editor uses for "move the view".
      */
+    /**
+     * The pan hand: a **U** of palm under four fingers, and a thumb hanging off the wrist.
+     *
+     * The first version closed the palm into a box and let the fingers rise out of its top edge, which at
+     * slot size read as a cup with sticks in it — the edge crossed the fingers as one hard line, the box's
+     * right side doubled the little finger, and the thumb sat beside the shape instead of on it. A hand is
+     * a *silhouette*: the palm's mouth is open (no line between the fingers), the fingers are the top of
+     * that silhouette, and the thumb is a curve of the same outline that reaches across the palm.
+     */
     private fun pan(): List<GlyphPart> = listOf(
-        // The mitt: palm and wrist closed as one outline, the way a hand pictogram is built.
-        GlyphPart.Polyline(
-            listOf(
-                GlyphPoint(7.6f, 11.6f), GlyphPoint(7.6f, 18.4f), GlyphPoint(9.4f, 20.6f),
-                GlyphPoint(15.2f, 20.6f), GlyphPoint(17.2f, 18.2f), GlyphPoint(17.2f, 11.6f),
-            ),
-            closed = true,
-        ),
-        // Four fingers of four heights, so the silhouette is a hand and not a comb.
-        GlyphPart.Line(9.1f, 11.6f, 9.1f, 6.6f),
-        GlyphPart.Line(11.4f, 11.6f, 11.4f, 4.8f),
-        GlyphPart.Line(13.7f, 11.6f, 13.7f, 6.2f),
-        GlyphPart.Line(16f, 11.6f, 16f, 8.6f),
-        // The thumb leaves the palm's left edge on a curve, not as a stick bolted to it.
-        GlyphPart.Cubic(7.6f, 13.8f, 6.2f, 13.4f, 5.2f, 12.2f, 4.8f, 10.4f),
+        // The palm: left side, round heel, and right side — the top stays open for the fingers, so no
+        // line runs under them.
+        GlyphPart.Line(8.5f, 13.4f, 8.5f, 16.6f),
+        GlyphPart.Cubic(8.5f, 16.6f, 8.5f, 18.4f, 9.8f, 19.4f, 11.5f, 19.4f),
+        GlyphPart.Line(11.5f, 19.4f, 15.5f, 19.4f),
+        GlyphPart.Cubic(15.5f, 19.4f, 17.2f, 19.4f, 18.5f, 18.4f, 18.5f, 16.6f),
+        GlyphPart.Line(18.5f, 16.6f, 18.5f, 13.4f),
+        // Four fingers, tallest in the middle and clearly longer than they are wide, so the silhouette
+        // is a hand rather than the teeth of a comb.
+        GlyphPart.Line(10.2f, 13.4f, 10.2f, 6.0f),
+        GlyphPart.Line(12.8f, 13.4f, 12.8f, 3.8f),
+        GlyphPart.Line(15.4f, 13.4f, 15.4f, 4.6f),
+        GlyphPart.Line(17.9f, 13.4f, 17.9f, 7.2f),
+        // The thumb is a lobe of the same hand: it leaves the palm's **mouth** on the index side and
+        // curves up beside the fingers, so it reads as a thumb rather than a stray tick on the wrist.
+        GlyphPart.Cubic(8.5f, 13.4f, 6.8f, 13.1f, 5.6f, 11.7f, 5.6f, 9.8f),
     )
 
     // --- Selection and authoring ---------------------------------------------------------------
