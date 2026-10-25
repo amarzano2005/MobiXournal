@@ -115,12 +115,12 @@ What it does today:
   default, the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the
   header, read from the window's settings file (`DesktopSettings.toolPlacement`) so the choice survives a
   restart. Moving the strips is a setting, and the header carries no chooser for it — the Interface section
-  will own that door. The lane is **air, not a second sheet of glass**: painting it too made 0.85 over 0.85,
-  and the rail read #161618. The strip is a **capsule** with
-  its own 6 dp lift and the family's rim, so its fill is the tablet's #131314 (+1 rounding), and each
-  header control is the same object at 36 dp. Both placements draw the same slots, in the order, glyphs
-  and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked slot a 10 dp
-  squircle in the steel `#38383E` and a name-and-hotkey pill on hover.
+  will own that door. The lane is **air, not a second sheet of glass**: painting it too stacked two sheets
+  and the rail read #161618. The strip is a **capsule** with its own 6 dp lift and the family's rim, so
+  its fill is the window's band `#0C0C0D` (the glass at `DESKTOP_BAND_ALPHA`, blacker than the tablet's
+  `#131314`), and each header control is the same object at 36 dp. Both placements draw the same slots,
+  in the order, glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked
+  slot a 10 dp squircle in the steel `#38383E` and a name-and-hotkey pill on hover.
   **A slot is a tool *group*, as on the tablet**: the **eraser slot** holds its two members (partial,
   whole-stroke), the **Text slot** holds prose and formula, and pen, highlighter, the **hand**, vertical
   space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, Spline, Axes)

@@ -109,10 +109,10 @@ class ChromeMaterialRenderTest {
         val upper = luminance(image.getRGB(width / 2, 10))
         val lower = luminance(image.getRGB(width / 2, 34))
         assertTrue("a band must not carry a gradient of its own: upper $upper, lower $lower", kotlin.math.abs(upper - lower) <= 2)
-        // The glass at 0.85 over the white underlay: 22·0.85 + 255·0.15 ≈ 57 on every channel.
+        // The glass at the window's alpha over the white underlay: 22·0.58 + 255·0.42 ≈ 120 a channel.
         val token = DesignTokens.GLASS_DARK_RGB
-        val expected = (((token shr 16) and 0xFF) * DesignTokens.GLASS_DARK_ALPHA +
-            255f * (1f - DesignTokens.GLASS_DARK_ALPHA))
+        val expected = (((token shr 16) and 0xFF) * DesignTokens.DESKTOP_BAND_ALPHA +
+            255f * (1f - DesignTokens.DESKTOP_BAND_ALPHA))
         assertTrue(
             "the fill must be the glass token over the underlay, not a lighter charcoal: $upper vs $expected",
             kotlin.math.abs(upper - expected) <= 4f,

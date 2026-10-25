@@ -44,6 +44,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   cursor, a swatch's tint chosen by luminance) — never as a surface fill the chrome returns to.
 - The chrome ink is **`#FFFFFF`** (`CHROME_INK_DARK_RGB`): tool glyphs and header glyphs are white in both
   shells, active or not. The secondary and muted inks are for figures and explanatory labels only.
+- **One tone is the window's own**: its bands take the glass RGB at `DESKTOP_BAND_ALPHA` (0.58, i.e.
+  `#0C0C0D` over the black desk) rather than the tablet's 0.85 (`#131314`), by the owner's decision of
+  2026-10-25 — `ui-modernization.md` owns the reasoning. Every other colour is shared, and the desktop's
+  chrome tests pin this one so it cannot drift silently.
 - The picked state is the **steel `#38383E`** (`ACTIVE_SLOT_DARK_RGB`) with the glyph in the accent
   (`#60A5FA`). A new "selected" look is not a design decision; it is a second state the user has to learn.
 - Enforced by `ColorContractGuardTest` (Android chrome) and `DesktopThemeTest` (desktop chrome literal

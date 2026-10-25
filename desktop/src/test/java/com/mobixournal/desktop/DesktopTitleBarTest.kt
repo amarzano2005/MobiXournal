@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.design.DesignTokens
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -18,8 +19,19 @@ class DesktopTitleBarTest {
     @Test
     fun `the band's colour is the glass composited over the desk`() {
         val band = DesktopTheme.bandRgb
-        assertEquals("the glass keeps the desk's red channel", 0x12, (band shr 16) and 0xFF)
-        assertEquals("and its own slight warmth on blue", 0x14, band and 0xFF)
+        // The window's own alpha (`DESKTOP_BAND_ALPHA`): a blacker band than the tablet's `#131314`, by
+        // the owner's decision of 2026-10-25 (`docs/ui-modernization.md`).
+        assertEquals("the glass keeps the desk's red channel", 0x0C, (band shr 16) and 0xFF)
+        assertEquals("and its own slight warmth on blue", 0x0D, band and 0xFF)
+        assertTrue(
+            "and the window's band is darker than the tablet's composite",
+            ((band shr 8) and 0xFF) <
+                (DesktopTheme.blendRgb(
+                    DesignTokens.GLASS_DARK_RGB,
+                    DesignTokens.GLASS_DARK_ALPHA,
+                    DesignTokens.DESK_RGB,
+                ) shr 8) and 0xFF,
+        )
         assertEquals(
             "an opaque band with no alpha is the glass itself",
             DesignTokens.GLASS_DARK_RGB,

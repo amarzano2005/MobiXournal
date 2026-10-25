@@ -36,6 +36,17 @@ object DesignTokens {
     /** The glass' alpha, as the doc's `rgba(…, 0.85)` writes it. */
     const val GLASS_DARK_ALPHA: Float = 0.85f
 
+    /**
+     * The **window's** band alpha: the same glass, thinner, over a true-black desk.
+     *
+     * The tablet's 0.85 composites to `#131314`, which is right on a phone held in the hand; in a
+     * maximised window on a 3440 × 1440 monitor the same tone read as a grey slab beside the phone's
+     * darker chrome (owner's decision, 2026-10-25, `docs/ui-modernization.md`). Thin enough that only a
+     * third of the glass' own RGB survives over black gives `#0D0D0E` — the band is still a material,
+     * just a blacker one. It is a **desktop** number: the two shells deliberately part on this tone.
+     */
+    const val DESKTOP_BAND_ALPHA: Float = 0.58f
+
     /** `#FFFFFF` — the light theme's glass RGB. */
     const val GLASS_LIGHT_RGB: Int = 0xFFFFFF
 

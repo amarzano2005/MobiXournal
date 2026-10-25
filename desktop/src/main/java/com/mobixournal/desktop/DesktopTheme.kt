@@ -33,8 +33,17 @@ object DesktopTheme {
     /** The desk the sheet lies on: true OLED black, never a charcoal. */
     val desk: Color = tokenColour(DesignTokens.DESK_RGB)
 
-    /** The bands' fill — the header, the sidebar and the status bar — over the desk. */
-    val glass: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.GLASS_DARK_ALPHA)
+    /**
+     * The bands' fill — the header, the sidebar, the status bar, the rail and every capsule — over the
+     * desk, at the **window's** alpha rather than the tablet's.
+     *
+     * The same RGB, thinned: over a true-black desk `0.85` composites to `#131314`, which in a maximised
+     * window on a 34" monitor read as a grey slab beside the phone's chrome. At
+     * `DESKTOP_BAND_ALPHA` it is `#0D0D0E` — a blacker band, still a material (there is a fill, a rim and
+     * a lift) and still the same colour family. The decision and its reasoning are
+     * `docs/ui-modernization.md`'s; `DesktopThemeTest` pins the composite.
+     */
+    val glass: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA)
 
     /**
      * What floats over the page: the bands' own RGB with the see-through turned down to
@@ -234,7 +243,7 @@ object DesktopTheme {
      * for the band: the Windows title bar, which the system paints and cannot be given a fill with an
      * alpha.
      */
-    val bandRgb: Int = blendRgb(DesignTokens.GLASS_DARK_RGB, DesignTokens.GLASS_DARK_ALPHA, DesignTokens.DESK_RGB)
+    val bandRgb: Int = blendRgb(DesignTokens.GLASS_DARK_RGB, DesignTokens.DESKTOP_BAND_ALPHA, DesignTokens.DESK_RGB)
 
     /** [bandRgb] in Win32's `COLORREF` order (`0x00BBGGRR`), which is what DWM attributes take. */
     val bandColourRef: Int = colourRef(bandRgb)

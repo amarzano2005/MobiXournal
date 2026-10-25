@@ -331,16 +331,16 @@ class ToolStripsTest {
                 paperRows.min() >= band,
             )
             if (placement.showsRail) {
-                // One layer of glass, as on the tablet. A lane painted as a band as well put 0.85 over
-                // 0.85 (0.98) and the rail came out #161618 instead of the tablet's #131314.
+                // One layer of glass. A lane painted as a band as well stacked two sheets and the rail
+                // came out #161618 — the glass' raw RGB — instead of the window's band.
                 // Under BOTH the rail's strip starts below the ribbon, so its top is the ribbon's band.
                 val midGap = band + ToolStripMetrics.railSlotTop.value.toInt() +
                     ToolStripMetrics.slotSize.value.toInt() + gapPx / 2
                 val capsule = image.getRGB(ToolStripMetrics.railWidth.value.toInt() / 2, midGap) and 0xFFFFFF
                 assertTrue(
-                    "$placement: the rail's fill is the tablet's glass, not a lane's band under it " +
-                        "(sampled #%06X, expected #%06X)".format(capsule, tabletGlass),
-                    difference(capsule, tabletGlass) <= 3,
+                    "$placement: the rail's fill is the window's glass, not a lane's band under it " +
+                        "(sampled #%06X, expected #%06X)".format(capsule, windowGlass),
+                    difference(capsule, windowGlass) <= 3,
                 )
             }
             state.tabs.closeAll()
@@ -402,12 +402,14 @@ class ToolStripsTest {
         )
     }
 
-    /** The glass composited over the desk, as the tablet's rail measures it: #131314. */
-    private val tabletGlass: Int get() {
-        fun channel(shift: Int) =
-            (((DesignTokens.GLASS_DARK_RGB shr shift) and 0xFF) * DesignTokens.GLASS_DARK_ALPHA).toInt()
-        return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
-    }
+    /**
+     * The glass composited over the desk at the **window's** alpha: `#0C0C0D`, one tone above black.
+     *
+     * It is not the tablet's `#131314`: the window's bands are deliberately blacker (2026-10-25,
+     * `docs/ui-modernization.md`), and this is the number that decision lands on.
+     */
+    private val windowGlass: Int get() =
+        DesktopTheme.bandRgb
 
     /**
      * Every slot must have drawn its glyph: the slot is sampled against its own background (the steel

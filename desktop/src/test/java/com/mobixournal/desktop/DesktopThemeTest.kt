@@ -100,7 +100,9 @@ class DesktopThemeTest {
         assertEquals(0x16 / 255f, DesktopTheme.glass.red, tolerance)
         assertEquals(0x16 / 255f, DesktopTheme.glass.green, tolerance)
         assertEquals(0x18 / 255f, DesktopTheme.glass.blue, tolerance)
-        assertEquals(DesignTokens.GLASS_DARK_ALPHA, DesktopTheme.glass.alpha, tolerance)
+        // The window's band alpha, not the tablet's: `DESKTOP_BAND_ALPHA` is the one number the two
+        // shells deliberately part on (docs/ui-modernization.md, 2026-10-25).
+        assertEquals(DesignTokens.DESKTOP_BAND_ALPHA, DesktopTheme.glass.alpha, tolerance)
 
         assertEquals("the desk is true OLED black", 0f, DesktopTheme.desk.red, 0f)
         assertEquals(0f, DesktopTheme.desk.green, 0f)

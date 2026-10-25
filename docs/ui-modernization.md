@@ -160,7 +160,6 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 ├─────────┬─────────────────────────────────────────────────────────────────────────────┤
 │ Sidebar │                                CANVAS                                       │
 │ Pages   │                                                                             │
-│ Layers  │                                                                             │
 │ [Ctrl+B]│                                                                             │
 ├─────────┴─────────────────────────────────────────────────────────────────────────────┤
 │ Page 1 / 6    100%    fit page                                  notebook.mobix        │  status bar
@@ -180,16 +179,17 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 **Desktop decisions (2026-10-21):**
 - **The chrome is the app's own, on a true-black desk — not the window manager's.** The header, the
   sidebar and the tool strips are the same frosted glass the mobile chrome uses, and the desk behind the
-  page is `#000000`; platform materials (Windows 11 Mica) are **not** used. Mica replaces the
-  app's material with a wallpaper-tinted one, so the desktop window would stop matching the phone and
-  its contrast would change with the user's wallpaper — the opposite of the pinned ramps above.
+  page is `#000000`; platform materials (Windows 11 Mica) are **not** used: Mica tints the window with the
+  wallpaper, so it would stop matching the phone and change with the user's own picture.
 - **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon the alternative
   for 16:9 monitors. Whichever is on, the strip is a capsule in a lane of **air** beside the canvas, never a
-  bar over the page; the choice lives in the window's settings file, so it survives a restart and the
-  Interface section will own its door.
+  bar over the page; the choice lives in the settings file, and the Interface section will own its door.
+- **The window's bands are blacker than the tablet's** (2026-10-25): the same glass RGB at
+  `DESKTOP_BAND_ALPHA` (0.58), because 0.85 composites to `#131314`, which in a maximised window on a 34"
+  screen read as a grey slab beside the phone; the band is `#0C0C0D` — the one tone the shells do not share.
 
 **The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status bar
-and both tool strips; [`desktop-workstation.md`](desktop-workstation.md) owns its inventory. From **this**
+and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
 spoke it takes four rules, and the parity work of 2026-10-22 put them all in the window:
 
 - **A band is chrome, a capsule is an object.** The header, status bar and sidebar take the glass fill
