@@ -127,22 +127,24 @@ where it is while you zoom. A page saved as one long strip — how a lecture
 written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
 shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. You can **write on the
 page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
-draw and lands in the document when you lift, and `Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to
-put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
+draw, a smooth line rather than a chain of corners, and lands in the document when you lift, and
+`Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
 takes whole strokes. **Type on it** with Text (`X`): a press opens a box where you pressed, `Enter` starts
 a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way.
 **Click words that are already on the page and you edit them**: the box comes up with your text, in its own
-font, size and colour, and correcting it — or emptying it, which deletes the box — is one undo step, whether
-the words were typed on the PC, on the tablet or in desktop Xournal++. What you type sits exactly where it
-will land, on the bare page: no panel, just the caret. Select a box and press the pencil (or double-click it)
-and the side column sets its **face** — Sans, Serif or Monospace, bold, italic — its **size** and its
+font, size and colour, the caret where you clicked, so a word in the middle of a line is corrected in one
+click — and correcting it (or emptying it, which deletes the box) is one undo step, whether the words were
+typed on the PC, on the tablet or in desktop Xournal++. What you type sits exactly where it
+will land, on the bare page: no panel, just the caret. The side column that styles a box opens **with the
+box you are typing** and closes when you finish it. Select a box and press the pencil (or double-click it)
+and the same column sets its **face** — Sans, Serif or Monospace, bold, italic — its **size** and its
 **colour**, one undo step per change, the same five choices the tablet's text dialog offers. The pen and the highlighter keep **separate colours, widths and favourite colours**,
 as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
 switching back brings that ink back with it, and each tool also remembers its **stroke pattern** — solid,
 long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,
 Axes, Rectangle, Ellipse or Spline — one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to
 cancel — each of the seven a slot of its own, one click and no submenu, and a figure always draws in the
-pen's ink even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
+pen's ink and at the pen's width even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
 circuit family is armed, every **circuit pin** on the page wears a small dot, and the ends of what you draw
 are **pulled onto the nearest pin**: a wire drawn near a terminal joins it, and a part dropped on one meets
 it, so a circuit can be assembled rather than drawn near — a selected part keeps its pins marked, so you can
@@ -223,10 +225,10 @@ line lands on the very next frame your screen shows instead of the one after —
 and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. A lift costs
 one stroke, not the page: the sheet keeps a recorded base plus one picture per stroke since it, so writing
 for a minute is as quick as the first letter. Over the page the pointer **is the tool's**: every tool that
-marks the sheet — pen, highlighter, both erasers, every figure, a circuit, Text, vertical space, the
+marks the sheet at a width — pen, highlighter, both erasers, every figure, a circuit, vertical space, the
 selection — wears a ring the size of the line it will write, and the desktop's arrow goes away while it
-does, instead of sitting glued to the ring and pointing at nothing; only the **hand** carries the hand,
-because it moves the page. The ring
+does, instead of sitting glued to the ring and pointing at nothing; the **hand** carries the hand, because
+it moves the page, and **Text** carries the text cursor, because it writes words and not a band of ink. The ring
 adds the width and the exact point you are about to draw at. The ring is driven by the tablet's own readings rather than by the slower mouse
 copy of them, so it sits under the nib instead of trailing it, and it keeps its place while you hold the
 pen still above the page. The status bar says which stream the window has — `pen: Wintab`,

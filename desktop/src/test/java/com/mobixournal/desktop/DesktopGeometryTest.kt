@@ -100,6 +100,43 @@ class DesktopGeometryTest {
         scene.render()
     }
 
+    /**
+     * A figure is drawn at the width **the strips are set to**, end to end: the width control writes the
+     * ink the figure reads, and the stroke that lands carries it on every point.
+     *
+     * The two inks are per tool on the tablet, and a figure is not the highlighter: it writes with the
+     * pen's ink whatever is in hand, which is exactly why the chain is worth a test — a rectangle drawn
+     * while the marker is picked must be the pen's colour **and** the pen's width, not the marker's band.
+     */
+    @Test
+    fun `a figure lands at the width the window is set to`() {
+        val state = DesktopShellState().also { it.open(notebook("figure-width.mobix")) }
+        try {
+            state.selectTool(DesktopTool.RECTANGLE)
+            state.pickWidth(6f)
+            assertEquals("the strip writes the pen's width", 6f, state.ink.width, 1e-6f)
+            assertEquals("and the figure reads the same ink", 6f, state.shapeInk.width, 1e-6f)
+
+            val points = shapeFromDrag(
+                ShapeKind.RECTANGLE, 10.0, 10.0, 60.0, 40.0, state.shapeInk.width, constrained = false,
+            )
+            val stroke = shapeStroke(points, state.shapeInk.colour, state.shapeInk.width, state.shapeInk.lineStyle)
+            requireNotNull(stroke)
+            assertTrue("every corner carries the set width", stroke.points.all { it.width == 6.0 })
+
+            // The marker's own band is not the figure's width, even with the highlighter in hand.
+            state.selectTool(DesktopTool.HIGHLIGHTER)
+            assertEquals(
+                "a figure still writes with the pen, not the marker's band",
+                6f,
+                state.shapeInk.width,
+                1e-6f,
+            )
+        } finally {
+            state.tabs.closeAll()
+        }
+    }
+
     // ---------------------------------------------------------------- the pure mapping
 
     @Test
