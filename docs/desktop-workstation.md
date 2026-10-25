@@ -297,14 +297,14 @@ The page is a Skia picture (`PagePicture`), and a picture is immutable — so a 
 letter, so that was a dropped frame per letter, and the eraser paid it again on every bite. The picture is
 now a **base** plus **one tail picture per lift**: each tail holds the elements *one append put on top of
 the page's last layer*, in the page's own order — one picture per lift, not one of the whole run, so a long
-word cannot stutter before its last letters. Anything that changes ink the base holds (an erase, an undo of
-old ink, a reflow, a moved stroke) re-records the sheet and starts a new base; taking back a stroke *of the
-run* just drops its picture. The run folds into a base every 160 elements — a pageful of handwriting — and
+word cannot stutter before its last letters. Anything changing the ink of the base **or a tail** (an erase,
+a reflow, a moved stroke, a part dragged after placement) re-records the sheet and starts a new base — a
+tail's elements are compared by identity too, or a placed part would keep the ink it was placed with;
 every stroke's outline is built **once** and cached by identity (`StrokePathCache`), so a re-record is a
-replay. `PagePictureTest` pins the counters (three strokes leave `records` at one), proves base plus tails
-is the direct paint, and states which edits count as appends (`appendedElements`, pure);
-`DesktopWritingCostTest` pins that a written or rubbed frame costs an idle one and that a rub-out rebuilds
-only the stroke it split.
+replay, and the run folds into a base every 160 elements — a pageful of writing. `PagePictureTest` pins the
+counters (three strokes leave `records` at one), proves base plus tails is the direct paint, that a changed
+tail element is recorded again, and states which edits count as appends;
+`DesktopWritingCostTest` pins that a written or rubbed frame costs an idle one and a rub-out rebuilds one.
 
 ### Scrolling and zooming a dense page
 

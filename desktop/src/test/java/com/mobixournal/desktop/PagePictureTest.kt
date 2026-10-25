@@ -254,6 +254,46 @@ class PagePictureTest {
         }
     }
 
+    /**
+     * A **tail element that changed** is not an append: the part placed a moment ago, then dragged.
+     *
+     * The run of appended elements was compared against the *base* only, so an element living in a tail was
+     * never checked: dragging it kept the run the same length with the same objects before it, which read as
+     * "nothing was appended", and the sheet went on replaying the tail's old picture. On screen the selection
+     * outline travelled with the pointer while the ink stayed where the part was first placed — the report
+     * that a pin "never attaches". The tail cannot be patched, so the sheet is recorded again.
+     */
+    @Test
+    fun `a tail element that changes is recorded again instead of keeping the old ink`() {
+        val shot = mutableStateOf(page(strokes = 20))
+        val picture = PagePicture()
+        val scene = ImageComposeScene(width, height, Density(1f)) {
+            val measurer = rememberTextMeasurer()
+            Canvas(Modifier.fillMaxSize()) {
+                picture.draw(this, shot.value, Viewport(zoom = 1f), 1f, 1f, null, emptySet(), measurer)
+            }
+        }
+        try {
+            frame(scene)
+            shot.value = withStroke(shot.value, thinStroke(300.0))
+            frame(scene)
+            assertEquals("the placed stroke went into the tail", 1, picture.records)
+            assertEquals(1, picture.tailRecords)
+
+            val changed = withLastReplaced(shot.value, thinStroke(340.0))
+            shot.value = changed
+            val replayed = frame(scene)
+            assertEquals("a changed tail element re-records the sheet", 2, picture.records)
+            assertSamePixels(
+                directFrame(changed, Viewport(zoom = 1f)),
+                replayed,
+                "the replay shows the element where it is now, not where it was",
+            )
+        } finally {
+            scene.close()
+        }
+    }
+
     /** The tail is *the same page*: base plus tail must land the pixels the direct paint does. */
     @Test
     fun `base plus tail is the painted page`() {
@@ -405,6 +445,17 @@ class PagePictureTest {
     private fun withStroke(page: Page, stroke: Stroke): Page = page.copy(
         layers = page.layers.mapIndexed { index, layer ->
             if (index == page.layers.lastIndex) Layer(layer.elements + stroke, layer.name) else layer
+        },
+    )
+
+    /** [page] with its last element **replaced** — the same slot, a different object (a moved element). */
+    private fun withLastReplaced(page: Page, element: Stroke): Page = page.copy(
+        layers = page.layers.mapIndexed { index, layer ->
+            if (index == page.layers.lastIndex) {
+                Layer(layer.elements.dropLast(1) + element, layer.name)
+            } else {
+                layer
+            }
         },
     )
 

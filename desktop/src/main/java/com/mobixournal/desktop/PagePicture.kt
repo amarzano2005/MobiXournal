@@ -74,6 +74,17 @@ internal class PagePicture {
     /** How many elements the [tails] hold together — the run appended since [base]. */
     private var tailCount: Int = 0
 
+    /**
+     * The very element objects the [tails] drew, in the page's own order — the run's identity.
+     *
+     * Without it the run was only compared against [base], so the elements the tails hold were never
+     * checked: a component placed a moment ago lives in a tail, and dragging it left the run the same
+     * *length* with the same objects before it. That read as "nothing was appended", the sheet kept the
+     * tail's old picture, and the part on screen stayed where it was first placed while the page — and
+     * the selection outline around it — moved: exactly the "the pin never attaches" report.
+     */
+    private var tailElements: List<Element> = emptyList()
+
     /** The elements one tail picture drew; a lift appends one, a paste may append several. */
     private class TailRecord(val elements: Int, val picture: Picture)
 
@@ -169,6 +180,7 @@ internal class PagePicture {
         basePage = null
         shown = null
         key = null
+        tailElements = emptyList()
     }
 
     /**
@@ -196,16 +208,35 @@ internal class PagePicture {
         }
         // A shorter run is an undo of ink the base never held: drop the pictures it took back.
         if (added.size < tailCount && !dropTailsDown(added.size)) return recordAll(wanted, page, measurer)
+        // ...and a run whose elements are not the ones the tails drew is a **modification**, not an append:
+        // the tail's picture holds the old ink and cannot be patched, so the sheet is recorded again.
+        if (!stillTheSameRun(added)) return recordAll(wanted, page, measurer)
         val fresh = added.subList(tailCount, added.size)
         if (fresh.isNotEmpty()) {
             tails += TailRecord(
                 elements = fresh.size,
                 picture = record(wanted, page, measurer) { drawElements(fresh, wanted.density, measurer) },
             )
-            tailCount = added.size
             tailRecords++
         }
+        tailCount = added.size
+        // The run's own identity, kept for the next frame's check (`stillTheSameRun`).
+        tailElements = added.toList()
         shown = page
+    }
+
+    /**
+     * Whether [added] still starts with the elements the tails drew.
+     *
+     * Identity, not equality, for the same reason [appendedElements] uses it: an untouched element is the
+     * object the base and the tails already hold, so a replaced one is a changed element. A run that is
+     * *shorter* than the tails is compared over the part that remains — that is an undo of ink the base
+     * never held, which [dropTailsDown] can take back exactly.
+     */
+    private fun stillTheSameRun(added: List<Element>): Boolean {
+        val shared = minOf(tailCount, added.size)
+        for (position in 0 until shared) if (tailElements[position] !== added[position]) return false
+        return true
     }
 
     /**
@@ -223,6 +254,7 @@ internal class PagePicture {
             total -= last.elements
         }
         tailCount = total
+        tailElements = tailElements.take(total)
         return true
     }
 
@@ -232,6 +264,7 @@ internal class PagePicture {
         for (tail in tails) tail.picture.close()
         tails.clear()
         tailCount = 0
+        tailElements = emptyList()
         base = record(wanted, page, measurer) {
             drawPageContent(
                 page = page,
