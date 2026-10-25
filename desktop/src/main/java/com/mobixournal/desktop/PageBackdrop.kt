@@ -51,6 +51,23 @@ class PageBackdrop(
         return bitmap
     }
 
+    /**
+     * The **source document** behind a `pdf` background, open and ready to import a page from — the caller
+     * must close it.
+     *
+     * The PDF export needs the page itself, not a picture of it: importing it verbatim keeps its vectors,
+     * its text layer and its original size, which is the one thing a raster flatten loses. Resolution is
+     * the same bundle-first-then-file one [image] uses, so a document whose bundled page still opens
+     * exports exactly what it showed. An unreadable source answers null and the export falls back to the
+     * rendered picture.
+     */
+    fun sourcePdf(background: Background.Pdf): PDDocument? {
+        val bytes = bytesOf(background.bundledAsset, background.domain, background.filename)
+        if (bytes != null) return runCatching { PDDocument.load(ByteArrayInputStream(bytes)) }.getOrNull()
+        val file = fileOf(background.domain, background.filename) ?: return null
+        return runCatching { PDDocument.load(file) }.getOrNull()
+    }
+
     private fun keyOf(background: Background): String? = when (background) {
         is Background.Pixmap -> "pixmap|${background.bundledAsset}|${background.domain}|${background.filename}"
         is Background.Pdf -> "pdf|${background.bundledAsset}|${background.domain}|${background.filename}|${background.pageNo}"

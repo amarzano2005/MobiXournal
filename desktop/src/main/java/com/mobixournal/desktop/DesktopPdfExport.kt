@@ -1,7 +1,9 @@
 package com.mobixournal.desktop
 
 import androidx.compose.ui.graphics.toAwtImage
+import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Page
+import com.mobixournal.render.PdfOverlayMatrix
 import com.mobixournal.render.PdfPagePlan
 import com.mobixournal.render.PdfPageTransform
 import java.io.File
@@ -10,6 +12,7 @@ import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
+import org.apache.pdfbox.util.Matrix
 
 /**
  * The window's **PDF export**: the document, as one PDF file.
@@ -20,10 +23,14 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
  * replays them with this shell's PDFBox. Nothing here knows what a pressure taper or a grid spacing is,
  * which is what stops the PC's print from being a second, slightly different rendering of the same page.
  *
- * Two honest differences from the phone, both stated in `docs/pdf.md`: the picture behind a page is
- * written as a **raster** (`PageBackdrop` has already resolved and cached it, and a flatten is what the
- * window is doing), and no `/Highlight`, `/Ink` or `/Text` annotation dictionaries are added — the ink is
- * flattened, so every viewer shows the page, but a reader's annotation pane stays empty.
+ * A page written over a source PDF keeps that PDF's **own vectors**, as the tablet's exporter does: the
+ * page is imported verbatim ([preservedPage]) and only the annotation overlay is written on top, so a
+ * scanned notebook does not become a pile of bitmaps and its text stays selectable. The raster picture
+ * (`PageBackdrop`) is the fallback for a source this window cannot open.
+ *
+ * The one honest difference from the phone, stated in `docs/pdf.md`: no `/Highlight`, `/Ink` or `/Text`
+ * annotation dictionaries are added — the ink is flattened, so every viewer shows the page, but a
+ * reader's annotation pane stays empty.
  */
 internal object DesktopPdfExport {
 
@@ -64,6 +71,12 @@ internal object DesktopPdfExport {
             PDDocument().use { doc ->
                 for (index in 0 until pages) {
                     val page = document.page(index)
+                    // The tablet's first arm: a page over a PDF whose source opens keeps its vectors.
+                    val source = page.background as? Background.Pdf
+                    val preserved = source
+                        ?.let(backdropPage::sourcePdf)
+                        ?.use { pdf -> preservedPage(doc, pdf, source.pageNo, page, painter) } == true
+                    if (preserved) continue
                     val pdPage = PDPage(PDRectangle(page.width.toFloat(), page.height.toFloat()))
                     doc.addPage(pdPage)
                     val t = PdfPageTransform(0f, 0f, page.height.toFloat())
@@ -82,6 +95,40 @@ internal object DesktopPdfExport {
             temp.delete()
             throw failure
         }
+    }
+
+    /**
+     * Import the source PDF's page [pageNo] verbatim and append the annotation overlay over it — the arm
+     * the tablet's `PdfExporter.preservedPage` takes, with the same rotation handling: annotations are
+     * authored in the page's **visual** space, so the content stream is pre-transformed by
+     * [PdfOverlayMatrix] and the viewer's `/Rotate` cancels it back to the drawn position. For `/Rotate 0`
+     * the matrix is the crop-origin shift.
+     *
+     * Answers false when the source has no such page, so the caller writes the fresh sheet instead of
+     * failing the export over one unreadable page.
+     */
+    private fun preservedPage(
+        doc: PDDocument,
+        source: PDDocument,
+        pageNo: Int,
+        page: Page,
+        painter: DesktopPdfPainter,
+    ): Boolean {
+        if (pageNo !in 0 until source.numberOfPages) return false
+        val pdPage = doc.importPage(source.getPage(pageNo))
+        val crop = pdPage.cropBox
+        val m = PdfOverlayMatrix.forPage(
+            cropX = crop.lowerLeftX,
+            cropY = crop.lowerLeftY,
+            cropW = crop.width,
+            cropH = crop.height,
+            rotation = pdPage.rotation,
+        )
+        PDPageContentStream(doc, pdPage, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
+            cs.transform(Matrix(m.a, m.b, m.c, m.d, m.e, m.f))
+            painter.paint(doc, cs, page, PdfPageTransform(0f, 0f, m.visualHeight))
+        }
+        return true
     }
 
     /**

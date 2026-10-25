@@ -120,13 +120,18 @@ correctly. For `/Rotate 0` the matrix is just the crop-origin shift.
 **The PC writes the same page with the same plan.** `PdfPagePlan.paper` compiles the sheet and its
 ruling into ops beside the elements, so the paper is no longer an arm of the app's painter: `DesktopPdfExport`
 writes each page as paper, then picture, then ink, and `DesktopPdfPainter` replays every op through
-`org.apache.pdfbox` (see [stack.md](stack.md) for why the two shells carry two libraries). Two differences
-are stated rather than hidden: the picture behind a `pdf`/`pixmap` page is written as the **raster**
-`PageBackdrop` has already cached, and **no `/Highlight`, `/Ink` or `/Text` annotation dictionaries are
-added** — the ink is flattened, so every reader shows the page, but a reader's annotation pane stays
-empty. A **board** (a chunked infinite canvas) is refused in words: slicing it into sheets is the
-tablet's `BoardSlicer` and the window has no slicer yet. The window's pages are read through its page
-window, so a paged `.mobix` inflates one sheet at a time and an unsaved edit is in the export.
+`org.apache.pdfbox` (see [stack.md](stack.md) for why the two shells carry two libraries). A page over an
+imported PDF keeps that PDF's **own vectors** here too: the source page is imported verbatim and only the
+overlay is written over it, with `PdfOverlayMatrix` (now in `mobix-core`, so one rotation rule serves both
+shells) cancelling a `/Rotate` back to the drawn position — an annotated 200-page scan neither bloats nor
+loses its text layer, and `DesktopPdfExportVectorsTest` proves it by reading the source's words back out of
+the exported file. `PageBackdrop`'s **raster** is the fallback, for a source this window cannot open, and
+the only path for a photograph-backed page. One difference is stated rather than hidden: **no
+`/Highlight`, `/Ink` or `/Text` annotation dictionaries are added** — the ink is flattened, so every reader
+shows the page, but a reader's annotation pane stays empty. A **board** (a chunked infinite canvas) is
+refused in words: slicing it into sheets is the tablet's `BoardSlicer` and the window has no slicer yet.
+The window's pages are read through its page window, so a paged `.mobix` inflates one sheet at a time and an
+unsaved edit is in the export.
 
 ## Fonts in generated PDFs
 
