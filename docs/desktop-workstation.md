@@ -26,14 +26,13 @@ What it does today:
   header carrying the **hamburger menu**, 30 dp tab capsules (the active one rimmed like the object it is)
   and the strip's own **`+`**, under a **native caption painted in the band's own composite colour**
   (`DesktopTitleBar.kt` sets Windows' immersive dark mode and its caption/border/text colours through DWM,
-  best effort). The caption carries **no app name and no icon**: the header below it already says what the
-  window is (the tabs), so a title repeating the product name was a second, heavier header; the taskbar
-  and the packaged executable keep **the app's icon** (`DesktopIcon.kt`), 1.5 dp monoline glyphs, Inter with
-  tabular figures, one cast shadow under each band and one under the sheet — `docs/ui-modernization.md`
-  owns the material and `DesktopThemeTest` pins it.
-  The icon is the tablet's launcher art **without its navy field**: the sheet and the pen, scaled up to fill
-  the tile on transparency (`desktop/icon/`, `resources/icon.png`) — a dark rectangle around a light mark
-  read as two icons at taskbar size.
+  best effort). The caption carries **no app name and no icon**, and its corner is blanked too: `captionIcon`
+  splits the window's icons — transparent at the caption's sizes, the art at the taskbar's — so the caption
+  is the tabs alone while the taskbar keeps the app's art. 1.5 dp monoline glyphs, Inter with tabular
+  figures, one cast shadow under each band and one under the sheet — `docs/ui-modernization.md` owns the
+  material and `DesktopThemeTest` pins it.
+  The art is the tablet's launcher icon **without its navy field** — a dark rectangle around a light mark read
+  as two icons at taskbar size (`desktop/icon/`, `resources/icon.png`).
   Wheel scrolls, `Ctrl` + wheel zooms **at the cursor**, middle-drag or `Space` + drag pans, and each has a
   key too (`docs/ui-modernization.md` owns the table). A drag at the canvas's border **scrolls the view**,
   eased rather than stepped (`EdgePan.kt`, `DesktopEdgePanTest`), so a marquee, a figure or a reflow can
@@ -49,11 +48,10 @@ What it does today:
   per page (`DesktopTab.hiddenOn` / `toggleLayer`): nothing is written to the document, and a second press
   brings the layer back. A hidden layer's thumbnail is painted fresh instead of taking the page cache, so a
   preview can never show a layer the sheet beside it is missing.
-  A thumbnail is only painted **once the hand stops**: an edit drops that page's cached bitmap and the
-  sidebar re-renders it on the shell's deferred `thumbnailRevision`, bumped 600 ms after the last edit —
-  rendering one is a second `ImageComposeScene` through the **software** rasteriser, **29–39 ms** on
-  `udiff.xopp`, which dropped a frame per finished letter. Until then the preview shows the page as the
-  burst found it. `DesktopShellTest` pins it.
+  A thumbnail is painted **once the hand stops**: an edit drops the page's cached bitmap and the shell's
+  deferred `thumbnailRevision` re-renders it 600 ms later — one is a second `ImageComposeScene` through
+  the **software** rasteriser, **29–39 ms** on `udiff.xopp`, a dropped frame per finished letter. Until
+  then the preview shows the page as the burst found it. `DesktopShellTest` pins it.
 - Shows a `.mobix` **page by page**: the list is lazy and pages are inflated only as they scroll into
   view, so a notebook opens without reading it. A pressed-for stroke count is therefore not shown for
   those documents — the header says nothing about a count instead of showing a wrong one.
@@ -133,19 +131,19 @@ What it does today:
   changes meaning. **A tool whose behaviour has not landed gets no slot**: `ToolGroupsTest` fails if an
   acting tool has no slot, or a slot lists one that cannot act.
 - **A door for the file commands, and a page to start on**: a **hamburger menu** in the header holds New,
-  Open, Save, Save As, the two page-setup sections and the sidebar toggle, in the tablet's order. The tab
+  Open, Save, Save As and the sidebar toggle, in the tablet's order. The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
-- **Restyles the sheet, as the tablet's Pages dialogs do**: **Page background…** offers the six paper
-  styles and the 2/3/5/7/10 mm rulings, **Page format…** the A4/A5/Letter/Legal presets in either
-  orientation, both floating over the page, which repaints with every tap. Each change is one edit, one
-  undo step, written in desktop's own ruling parameter, so the page reopens at that ruling in Xournal++; a
-  page whose background is a picture or a PDF says so instead of offering paper it does not have.
-- **Marks the pins a connection would join**: while a connector is armed — the Line tool or a circuit
-  family — every component pin on the page wears a small accent dot and the pins of the part being pulled
-  out are filled, as the tablet draws them (`CircuitSnapping.gestureTargets`, shared). Chrome only:
-  nothing is written, and no other tool marks anything.
+- **Restyles the sheet, from the strip**: its last two slots, after a divider, are **Page background** (the
+  six paper styles and the 2/3/5/7/10 mm rulings) and **Page format** (A4/A5/Letter/Legal either way up,
+  mm/in/pt custom fields with a swap, a **Default** entry and **Set as default**), floating over the page,
+  which repaints with every tap. Each change is one edit and one undo step in desktop's own ruling
+  parameter; a new page is born on the stored default (`DesktopPageSetupTest`); a PDF page says so.
+- **Marks the pins a connection would join, and joins them**: while a connector is armed — the Line tool or
+  a circuit family — every pin wears an accent dot and the part being pulled out shows its own, as the
+  tablet draws them; the ends of a wire and of a placed part are then **magnetised** onto the nearest pin
+  (`snapWireEnds`, `circuitSpan`), so what was aimed at is what is joined (`CircuitGestureTest`).
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
   surface the drawn rim, and both keep the **shared fill with no gradient of the window's own** — a sheen
   made the same charcoal read a shade lighter on the PC. Glyphs are the tablet's `mobix-core`
@@ -247,7 +245,8 @@ Four more gestures beside the ink, all built on `mobix-core` so the window has n
 Plot (`M`) and Table (`T`) place a living element instead of drawing it: a drag is its box, a click its
 family's default size, then the lift **asks first** in this lane — the graph dialog's fields, or the table's
 grid — before committing **one** element as **one undo step**; a cancelled question leaves nothing behind. A
-**circuit component** is asked nothing: the drag is the part, drawn **live** along the pen where it will land
+**circuit component** is asked nothing: its drag's two **ends** are the part — rotated to the hand and snapped
+onto the pins in reach — drawn **live** along the pen where it will land
 (`DesktopCircuitPreviewTest`). The placement hands the window to the **marquee** (`S`), as the tablet does, so
 the next drag moves what was just made; the **pencil**, or a **double-click** on the element, reopens the same
 lane on it ([selection.md](selection.md) owns the grips). Geometry, builders and the family palettes
@@ -287,11 +286,9 @@ The page is a Skia picture (`PagePicture`), and a picture is immutable — so a 
 **whole sheet**, 2–4 ms on `udiff.xopp` and more on a page written for a term. The pen lifts once per
 letter, so that was a dropped frame per letter, and the eraser paid it again on every bite. The picture is
 now a **base** plus a **tail**: the base is the last full record, the tail is **every** element *appended on
-top of the page's last layer* since the base — the whole run, always measured from the base — and that run
-is what an append records: a few strokes, not the sheet. The run being the whole thing is the part that is
-easy to get wrong: a tail re-recorded from the *previous frame* holds only the newest stroke, so the first
-one silently drops off the sheet while the pen is still in hand, until something forces a full record.
-`PagePictureTest` therefore paints a four-stroke run frame by frame and compares each one with the direct
+top of the page's last layer* since the base — the whole run, always measured from the base, never from the
+previous frame, which would drop a stroke off the sheet mid-run — and that run is what an append records: a
+few strokes, not the sheet. `PagePictureTest` paints a four-stroke run frame by frame against the direct
 paint. Anything else (an erase of ink the base holds, an undo, a reflow, a stroke moved) changes ink the base
 already contains, which a picture cannot take back, so it re-records the sheet and starts a new base; taking
 back a stroke *of the run* is still the cheap case, because the base never held it. The run folds back into
@@ -318,10 +315,13 @@ with the record count staying at one. [desktop-tablet.md](desktop-tablet.md) own
 
 ### The graphics tablet
 
-The pen's two Windows streams, the packet path that draws a stroke and the dial's COM handler are their
-own spoke: [desktop-tablet.md](desktop-tablet.md) owns the measurements (`tablet-probe.csv`, `ink-probe.csv`),
-the batch rule and the latency numbers. The window's side is one rule: the driver's packet stream draws the
-stroke, the mouse Windows emulates never does, and one contact is one stroke.
+The pen's two Windows streams, the packet path that draws a stroke and the dial's COM handler have their
+own spoke ([desktop-tablet.md](desktop-tablet.md)): the measurements, the batch rule, the latency numbers.
+The window's side is one rule: the driver's packets draw the stroke, the mouse Windows emulates never does,
+and one contact is one stroke. The **hand** pans from the same packets (`PenPacketPan`, since Windows' copy
+of this pen is coalesced and a pan built on it crawled), one viewport write per frame; a held **Space**
+takes the packets from the stroke path (`PenPacketPanTest`). The pointer is the **tool's**
+(`toolPointerIcon`): ring with a pen, highlighter or eraser, hand for the Hand, arrow for the rest.
 
 ### Verification, runnable on any JVM host (no emulator)
 

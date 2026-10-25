@@ -47,8 +47,8 @@ internal fun DesktopShell(
             onOpen = onOpenPicker,
             onSave = { state.save() },
             onSaveAs = onSavePicker,
-            onPageBackground = { state.openPageSetup(PageSetupSection.PAPER) },
-            onPageFormat = { state.openPageSetup(PageSetupSection.FORMAT) },
+            // The page's two commands live in the tool strips now, after their divider
+            // (`ToolStrips.PageSetupSlots`): the header keeps the file and the view.
             onToggleSidebar = { state.toggleSidebar() },
             onPlacement = state::chooseToolPlacement,
         )

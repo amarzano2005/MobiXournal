@@ -3,7 +3,11 @@ package com.mobixournal.desktop
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import com.mobixournal.render.SelectionRegion
 
 /**
@@ -57,4 +61,35 @@ internal fun Modifier.sheetGestures(
         onViewport = onViewport,
         onEdited = onEdited,
     )
+}
+
+/**
+ * Drag the page by the pointer's movement until it lifts — the pan half of the canvas input.
+ *
+ * [owned] is the tablet's side of the same drag: while the driver's packets are panning this very contact
+ * (`PenPacketPan`), the emulated mouse deltas are **not** applied as well — doing both would pan twice as
+ * far per inch of movement, and at the coalesced rate Windows reports a pen that reads as a crawling hand.
+ */
+internal suspend fun AwaitPointerEventScope.panByDrag(
+    viewport: Viewport,
+    pageW: Float,
+    pageH: Float,
+    viewW: Float,
+    viewH: Float,
+    onViewport: (Viewport) -> Unit,
+    owned: () -> Boolean = { false },
+) {
+    var current = viewport
+    while (true) {
+        val change = awaitPointerEvent().changes.firstOrNull() ?: return
+        if (change.changedToUpIgnoreConsumed()) return
+        val drag = change.positionChange()
+        if (drag != Offset.Zero) {
+            if (!owned()) {
+                current = current.pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH)
+                onViewport(current)
+            }
+            change.consume()
+        }
+    }
 }

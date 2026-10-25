@@ -62,12 +62,12 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 ink = state.ink,
                 // Figures, circuits and placements always take the pen's ink, never the highlighter's.
                 shapeInk = state.shapeInk,
-                // The component the Circuit slot is armed with: the picker's answer, read by the
-                // placement when the press is lifted.
+                // The component the Circuit slot is armed with — the picker's answer the drag reads.
                 circuitKind = state.activeCircuitKind,
-                // A STEM slot asks its values before the element exists (the placement card in the
-                // right-hand lane), so the canvas hands the box over instead of writing it.
+                // A STEM slot asks its values before the element exists, so the canvas hands the box over.
                 onPlaceLiving = { slot, bounds -> state.placeOrAsk(tab, slot, bounds) },
+                // A component is pulled out along the drag's own two ends, aimed at the page's pins.
+                onPlaceCircuit = { kind, span -> state.placeCircuit(tab, kind, span) },
                 // A double-click on the selected living element opens the same lane its pencil does —
                 // the tablet's double-tap, and one command rather than a second way to edit.
                 onEditLiving = { state.runSelection(SelectionAction.EDIT) },
@@ -76,10 +76,7 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 text = TextBoxUi(
                     box = state.textBox.box,
                     onPress = { x, y, pageW, pageH ->
-                        state.textBox.begin(tab, x, y, pageW, pageH, state.ink) { doc, index ->
-                            state.thumbnails[doc.key]?.remove(index)
-                            state.noteEdit()
-                        }
+                        state.textBox.begin(tab, x, y, pageW, pageH, state.ink, state::edited)
                     },
                     onChange = { text -> state.textBox.change(text) },
                 ),

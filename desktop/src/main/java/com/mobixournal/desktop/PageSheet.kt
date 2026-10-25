@@ -28,6 +28,8 @@ internal fun PageSheet(
     shapeInk: DesktopInk,
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
+    onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
     text: TextBoxUi,
     /** What a double-click on the selected living element means: open its editor. */
     onEditLiving: (() -> Unit)?,
@@ -51,29 +53,21 @@ internal fun PageSheet(
     onEdited: (Int) -> Unit,
     packets: PenPacketSource?,
 ) {
-    // A slot whose product is not ink draws it from the Compose drag, so the pen's packets must not take
-    // the pen under it: the packets are only composed for the slots that lay ink down or rub it out, and
-    // the rule is stated (and tested) where a contact on the glass with Line or Vertical space picked
-    // draws no ink and still runs its drag.
-    if (tool.inksByPackets()) {
-        PenPacketStrokes(
-            tab = tab,
-            tool = tool,
-            ink = ink,
-            density = density,
-            pageW = sheet.pageW,
-            pageH = sheet.pageH,
-            viewport = sheet.viewport,
-            draft = penDraft,
-            onEdited = onEdited,
-            origin = origin,
-            extent = extent,
-            owns = pointer.owns,
-            hover = pointer.hover,
-            penAtNanos = pointer.atNanos,
-            packets = packets,
-        )
-    }
+    PenPaths(
+        tab = tab,
+        tool = tool,
+        ink = ink,
+        sheet = sheet,
+        panMode = panMode,
+        density = density,
+        draft = penDraft,
+        pointer = pointer,
+        origin = origin,
+        extent = extent,
+        onViewport = onViewport,
+        onEdited = onEdited,
+        packets = packets,
+    )
     SheetCanvas(
         tab = tab,
         page = page,
@@ -83,6 +77,7 @@ internal fun PageSheet(
         shapeInk = shapeInk,
         circuitKind = circuitKind,
         onPlaceLiving = onPlaceLiving,
+        onPlaceCircuit = onPlaceCircuit,
         onTextPress = text.onPress,
         onEditLiving = onEditLiving,
         draft = draft,
@@ -116,6 +111,69 @@ internal fun PageSheet(
 }
 
 /**
+ * The tablet's **two packet paths**, composed for the slots each owns.
+ *
+ * A slot whose product is not ink draws it from the Compose drag, so the pen's packets must not take the
+ * pen under it: the stroke path is composed only for the slots that lay ink down or rub it out, and the
+ * rule is stated (and tested) where a contact on the glass with Line or Vertical space picked draws no ink
+ * and still runs its drag. The **hand** is the other half — its pan comes from the same packets, because
+ * Windows' copy of this pen is coalesced — and neither path inks, so one contact is claimed exactly once:
+ * a held Space takes the packets from the stroke path even when a pen is the picked slot.
+ */
+@Composable
+private fun PenPaths(
+    tab: DesktopTab,
+    tool: DesktopTool,
+    ink: DesktopInk,
+    sheet: SheetLayout,
+    panMode: Boolean,
+    density: Float,
+    draft: SnapshotStateList<InkSample>,
+    pointer: PenPointer,
+    origin: () -> Offset,
+    extent: () -> Size,
+    onViewport: (Viewport) -> Unit,
+    onEdited: (Int) -> Unit,
+    packets: PenPacketSource?,
+) {
+    // A held **Space** is the hand's pan with any slot picked, so it takes the packets away from the
+    // stroke path: a pen that inked while Space was down would draw a line across the page it is
+    // scrolling.
+    if (tool.inksByPackets() && !panMode) {
+        PenPacketStrokes(
+            tab = tab,
+            tool = tool,
+            ink = ink,
+            density = density,
+            pageW = sheet.pageW,
+            pageH = sheet.pageH,
+            viewport = sheet.viewport,
+            draft = draft,
+            onEdited = onEdited,
+            origin = origin,
+            extent = extent,
+            owns = pointer.owns,
+            hover = pointer.hover,
+            penAtNanos = pointer.atNanos,
+            packets = packets,
+        )
+    }
+    if (packets != null && (tool == DesktopTool.HAND || panMode)) {
+        PenPacketPan(
+            viewport = sheet.viewport,
+            pageW = sheet.pageW,
+            pageH = sheet.pageH,
+            viewW = sheet.viewW,
+            viewH = sheet.viewH,
+            density = density,
+            onViewport = onViewport,
+            owns = pointer.owns,
+            packets = packets,
+        )
+    }
+}
+
+/**
  * The measured box the sheet is drawn in: the page — or the reason it could not be read — and the sheet's
  * own children. Below the canvas's own layout, above nothing it needs to decide, so `PageCanvas` stays the
  * state a page needs.
@@ -129,6 +187,8 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     shapeInk: DesktopInk,
     circuitKind: ShapeKind,
     placeLiving: (LivingSlot, Bounds) -> Unit,
+    /** The shell's commit for a circuit drag, or null to place the family's default here. */
+    placeCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
     text: TextBoxUi,
     onEditLiving: (() -> Unit)?,
     draft: SnapshotStateList<InkSample>,
@@ -166,6 +226,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
         shapeInk = shapeInk,
         circuitKind = circuitKind,
         onPlaceLiving = placeLiving,
+        onPlaceCircuit = placeCircuit,
         text = text,
         onEditLiving = onEditLiving,
         draft = draft,

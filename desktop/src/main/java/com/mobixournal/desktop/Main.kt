@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -131,6 +132,10 @@ fun main(args: Array<String>) {
             // header. The packaged executable keeps the app's icon on the taskbar (item 10).
             title = "",
         ) {
+            // The caption carries the tabs and nothing else, so its own corner wears no picture: the
+            // window is stamped with the app's icon by the package, and this splits that icon — nothing
+            // in the title bar, the art on the taskbar (`captionIcon`).
+            LaunchedEffect(window) { captionIcon(window) }
             DesktopApp(initial = initial, state = state, onExit = ::exitApplication)
         }
     }

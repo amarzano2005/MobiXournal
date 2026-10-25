@@ -27,6 +27,7 @@ import com.mobixournal.render.PointerKind
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.VerticalSpaceOps
+import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.render.eraserRadiusPt
 import kotlin.math.exp
@@ -151,16 +152,18 @@ private suspend fun PointerInputScope.pageGestureLoop(
 ) {
     awaitEachGesture {
         val down: PointerInputChange = awaitFirstDown(requireUnconsumed = false)
-        // The packets own the pen only for the slots they draw (`inksByPackets`): standing aside for
-        // every slot would leave a vertical-space drag or a figure unanswered by the stylus.
-        val packetsOwn = { penActive() && tool.inksByPackets() }
+        // The packets own the pen only for the slots they draw (`inksByPackets`), and never while Space
+        // is held: that is the hand's pan (`PenPacketPan`), and a pen that inked through it would draw a
+        // line across the page it is scrolling. Standing aside for every slot would leave a
+        // vertical-space drag or a figure unanswered by the stylus.
+        val packetsOwn = { penActive() && tool.inksByPackets() && !panMode }
         if (packetsOwn()) return@awaitEachGesture
         val buttons = currentEvent.buttons
         // Middle-drag always pans; a primary drag pans while Space is held or the Hand slot is picked,
         // so the pen keeps the primary button for every other tool.
         val vp = viewport()
         if (buttons.isTertiaryPressed || ((panMode || tool == DesktopTool.HAND) && buttons.isPrimaryPressed)) {
-            panByDrag(vp, pageW, pageH, viewW, viewH, onViewport)
+            panByDrag(vp, pageW, pageH, viewW, viewH, onViewport, owned = penActive)
             return@awaitEachGesture
         }
         if (!buttons.isPrimaryPressed) return@awaitEachGesture
@@ -174,6 +177,10 @@ private suspend fun PointerInputScope.pageGestureLoop(
             }
             return@awaitEachGesture
         }
+        // A **circuit** slot pulls the part out along the pen, from the press to the pointer, aimed at the
+        // page's pins: its own two ends, not a box — the tablet's rule, and the one a rotated part needs
+        // (`CircuitGesture.circuitPress`).
+        if (circuitPress(down, tool, tab, shapeInk, dragView, targets, onEdited)) return@awaitEachGesture
         // A selection, a living element or a figure takes the drag before the ink sees it.
         if (
             preInkPress(down, tool, tab, dragView, pageW, pageH, previewRegion, onEdited, taps, targets)
@@ -181,7 +188,10 @@ private suspend fun PointerInputScope.pageGestureLoop(
             return@awaitEachGesture
         }
         tool.shapeKind()?.let { kind ->
-            shapeDrag(down, kind, tab, shapeInk, dragView, draft, targets.onLiveDrag, onEdited)
+            shapeDrag(
+                down, kind, tab, shapeInk, dragView, draft, targets.onLiveDrag, onEdited,
+                page = runCatching { tab.document.page(tab.page) }.getOrNull(),
+            )
             return@awaitEachGesture
         }
         // The vertical-space tool reflows the page under a grab line instead of drawing on it.
@@ -247,7 +257,7 @@ private suspend fun AwaitPointerEventScope.preInkPress(
     }
     return livingPress(
         down, tool, view.current(), pageW, pageH, previewRegion,
-        targets.livingPreview, targets.buildLivingPreview, targets.onLiveDrag, targets.onPlaceLiving,
+        targets.livingPreview, targets.onLiveDrag, targets.onPlaceLiving,
     )
 }
 
@@ -314,6 +324,11 @@ private suspend fun AwaitPointerEventScope.shapeDrag(
     draft: SnapshotStateList<InkSample>,
     onLiveDrag: ((() -> Unit)?) -> Unit,
     onEdited: (Int) -> Unit,
+    /**
+     * The page the drag is drawn on, for the pin magnet a **wire** aims at. Null when it could not be
+     * read, in which case the figure keeps the hand's exact geometry.
+     */
+    page: Page? = null,
 ) {
     val (x0, y0) = pagePointOf(start.position.x, start.position.y, density, view.current())
     if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return
@@ -327,11 +342,21 @@ private suspend fun AwaitPointerEventScope.shapeDrag(
     }
     onLiveDrag(cancel)
 
-    /** The figure from ([x0], [y0]) to the pointer at ([px], [py]), previewed in the sheet's own draft. */
+    /**
+     * The figure from ([x0], [y0]) to the pointer at ([px], [py]), previewed in the sheet's own draft.
+     *
+     * A **wire** is magnetised here as well as at the lift (`snapWireEnds`): the preview has to show the
+     * line jumping onto the pin, or the commit would appear to move the stroke after it was drawn.
+     */
     fun preview(px: Float, py: Float): List<StrokePoint> {
         val (x1, y1) = pagePointOf(px, py, density, view.current())
         val constrained = currentEvent.keyboardModifiers.isShiftPressed
-        val points = shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained)
+        val points = snapWireEnds(
+            kind,
+            shapeFromDrag(kind, x0, y0, x1, y1, ink.width, constrained),
+            page,
+            view.current().zoom * density,
+        )
         draft.clear()
         draft.addAll(points.map { point -> InkSample(point.x, point.y, 1f, samplePointer(lastChange)) })
         return points
@@ -445,28 +470,6 @@ private fun samplePointer(change: PointerInputChange): InkPointer = InkPointer(
     phase = InkPointerPhase.MOVE,
     buttons = InkPointer.PRIMARY,
 )
-
-/** Drag the page by the pointer's movement until it lifts — the pan half of the canvas input. */
-private suspend fun AwaitPointerEventScope.panByDrag(
-    viewport: Viewport,
-    pageW: Float,
-    pageH: Float,
-    viewW: Float,
-    viewH: Float,
-    onViewport: (Viewport) -> Unit,
-) {
-    var current = viewport
-    while (true) {
-        val change = awaitPointerEvent().changes.firstOrNull() ?: return
-        if (change.changedToUpIgnoreConsumed()) return
-        val drag = change.positionChange()
-        if (drag != Offset.Zero) {
-            current = current.pannedBy(drag.x / density, drag.y / density, pageW, pageH, viewW, viewH)
-            onViewport(current)
-            change.consume()
-        }
-    }
-}
 
 /**
  * One drag, as the shared router sees it: the samples collected so far and the page they are being

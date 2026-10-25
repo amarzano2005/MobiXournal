@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.PenPalette
+import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.CircuitFamily
 import com.mobixournal.render.ShapeKind
 
@@ -120,6 +121,13 @@ data class ToolStripState(
     val onCircuitKind: (CircuitFamily, ShapeKind) -> Unit = { _, _ -> },
     /** Open one family's palette, or close the open one with null. */
     val onCircuitPicker: (CircuitFamily?) -> Unit = {},
+    /**
+     * The page's own two questions, drawn after the strip's divider: what the sheet *is* (its paper and
+     * ruling) and how big it is. They are commands on the page, not ink, which is why they stand apart
+     * from the tools and the palette (`docs/interface-contract.md` §2).
+     */
+    val onPageBackground: () -> Unit = {},
+    val onPageFormat: () -> Unit = {},
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -210,6 +218,11 @@ fun ToolRail(
                     side = StripSide.RIGHT,
                 )
                 SizeSlot(state.ink, ink.onWidth, side = StripSide.RIGHT)
+                // The page itself, after its own rule: paper and format act on the sheet under the ink,
+                // not on the ink, so they are the last two objects of the strip rather than four more
+                // tools in it.
+                StripDivider(vertical = true)
+                PageSetupSlots(state, StripSide.RIGHT)
             }
         }
     }
@@ -280,6 +293,8 @@ fun ToolRibbon(
                     side = StripSide.BELOW,
                 )
                 SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
+                StripDivider(vertical = false)
+                PageSetupSlots(state, StripSide.BELOW)
             }
         }
     }
@@ -505,6 +520,76 @@ private fun SlotFace(
     }
 }
 
+/**
+ * The strip's two **page** slots: the sheet's paper and its format, drawn after the divider.
+ *
+ * They are commands, not tools — nothing about them becomes the picked slot — but they wear the same
+ * frame, hover and glyph as every other object on the strip, because the strip is one family and a
+ * command that looked like a link beside it would be a second visual language (`docs/interface-contract.md`
+ * §4: the glyph comes from the catalogue, which is why `ToolGlyph.PAGE` and `PAGE_SIZE` exist there).
+ */
+@Composable
+private fun PageSetupSlots(state: ToolStripState, side: StripSide) {
+    StripCommandSlot(
+        glyph = ToolGlyph.PAGE,
+        label = "Page background",
+        offsetSide = side,
+        onClick = state.onPageBackground,
+    )
+    StripCommandSlot(
+        glyph = ToolGlyph.PAGE_SIZE,
+        label = "Page format",
+        offsetSide = side,
+        onClick = state.onPageFormat,
+    )
+}
+
+/**
+ * One command of a strip: the same 40 dp frame and glyph as a tool slot, with the tooltip pill a
+ * tool has and no picked state (a command is over the moment it opens its surface).
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun StripCommandSlot(
+    glyph: ToolGlyph,
+    label: String,
+    offsetSide: StripSide,
+    onClick: () -> Unit,
+) {
+    var hovered by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
+    val gapPx = with(density) { ToolStripMetrics.tooltipGap.roundToPx() }
+    Box {
+        Box(
+            Modifier
+                .size(ToolStripMetrics.slotSize)
+                .background(
+                    if (hovered) DesktopTheme.hoverSlot else Color.Transparent,
+                    DesktopTheme.railSlotShape,
+                )
+                .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                .onPointerEvent(PointerEventType.Exit) { hovered = false }
+                .pointerInput(glyph) { detectTapGestures { onClick() } },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
+                drawToolGlyph(glyph, DesktopTheme.chromeInk)
+            }
+        }
+        if (hovered) {
+            StripPill(
+                label = label,
+                accent = "",
+                offset = when (offsetSide) {
+                    StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
+                    StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
+                },
+            )
+        }
+    }
+}
+
 /** The subtle pill: the tool's name in the chrome's ink, its accelerator in the accent. */
 @Composable
 private fun TooltipPill(tool: DesktopTool, offset: IntOffset) {
@@ -527,8 +612,12 @@ internal fun StripPill(label: String, accent: String, offset: IntOffset) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(label, color = DesktopTheme.ink, style = DesktopTheme.label)
-            Spacer(Modifier.width(6.dp))
-            Text(accent, color = DesktopTheme.accent, style = DesktopTheme.numeric)
+            // A command has no accelerator: the gap and the empty accent are dropped rather than
+            // printed as a space before nothing.
+            if (accent.isNotEmpty()) {
+                Spacer(Modifier.width(6.dp))
+                Text(accent, color = DesktopTheme.accent, style = DesktopTheme.numeric)
+            }
         }
     }
 }

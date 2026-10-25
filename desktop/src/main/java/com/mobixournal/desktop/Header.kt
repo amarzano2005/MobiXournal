@@ -69,8 +69,6 @@ internal fun Header(
     onOpen: () -> Unit,
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
-    onPageBackground: () -> Unit,
-    onPageFormat: () -> Unit,
     onToggleSidebar: () -> Unit,
     onPlacement: (ToolPlacement) -> Unit,
 ) {
@@ -89,8 +87,6 @@ internal fun Header(
             onOpen = onOpen,
             onSave = onSave,
             onSaveAs = onSaveAs,
-            onPageBackground = onPageBackground,
-            onPageFormat = onPageFormat,
             onToggleSidebar = onToggleSidebar,
         )
         Spacer(Modifier.width(10.dp))

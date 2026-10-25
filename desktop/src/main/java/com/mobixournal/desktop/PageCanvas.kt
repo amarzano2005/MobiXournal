@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -37,7 +38,6 @@ import com.mobixournal.render.LivingSlot
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.ShapeKind
-import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -96,6 +96,8 @@ internal fun PageCanvas(
      * placement card); a canvas on its own commits the family's defaults, which is what a test drives.
      */
     onPlaceLiving: ((LivingSlot, Bounds) -> Unit)? = null,
+    /** What a lifted **circuit** drag means: the part, and the two page points it spanned. */
+    onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)? = null,
     /** The Text slot's box and callbacks; nothing is on the page until the shell commits it. */
     text: TextBoxUi = TextBoxUi(),
     /** What a double-click on the selected living element means: open its editor (the shell's pencil). */
@@ -127,22 +129,15 @@ internal fun PageCanvas(
     // Read once here: the gesture scope and the packet path both need it, and neither is in a draw scope.
     val density = LocalDensity.current.density
     val page = rememberedPage(tab)
-    val loaded = page.getOrNull()
-    // The strokes in progress, in page pt — the Compose pointer's and the tablet's, one draft each.
+    // The strokes in progress and where the canvas sits in the window — the readings a packet needs.
     val memory = remember(tab, tab.page) { CanvasMemory() }
-    // Where this canvas sits in the window, so a packet in client pixels becomes a point inside it.
-    var origin by remember { mutableStateOf(Offset.Zero) }
-    var extent by remember { mutableStateOf(Size.Zero) }
     val sheetPicture = rememberSheetPicture(tab)
 
     BoxWithConstraints(
         modifier
             .background(DESK)
             .clipToBounds()
-            .onGloballyPositioned { coordinates ->
-                origin = coordinates.boundsInWindow().topLeft
-                extent = coordinates.size.toSize()
-            },
+            .onGloballyPositioned(memory::track),
     ) {
         CanvasBox(
             tab = tab,
@@ -152,6 +147,7 @@ internal fun PageCanvas(
             shapeInk = shapeInk,
             circuitKind = circuitKind,
             placeLiving = placeLiving,
+            placeCircuit = onPlaceCircuit,
             text = text,
             onEditLiving = onEditLiving,
             draft = memory.draft,
@@ -166,8 +162,8 @@ internal fun PageCanvas(
             dialWheel = dialWheel,
             onLiveDrag = onLiveDrag,
             selectionBar = selectionBar,
-            origin = { origin },
-            extent = { extent },
+            origin = { memory.origin },
+            extent = { memory.extent },
             onViewport = onViewport,
             onFit = onFit,
             onEdited = onEdited,
@@ -212,6 +208,22 @@ private class CanvasMemory {
     val penDraft: SnapshotStateList<InkSample> = mutableStateListOf()
 
     val pointer = PenPointer()
+
+    /**
+     * Where this canvas sits in the window, in its client pixels — a packet arrives in the window's own
+     * space and the canvas resolves it against this (`PenPacketStroke`). Kept here rather than as two
+     * locals so both readings are written by one call and a canvas keeps them across recompositions.
+     */
+    var origin by mutableStateOf(Offset.Zero)
+        private set
+    var extent by mutableStateOf(Size.Zero)
+        private set
+
+    /** The canvas's box, as the layout reports it: its corner and its size. */
+    fun track(coordinates: LayoutCoordinates) {
+        origin = coordinates.boundsInWindow().topLeft
+        extent = coordinates.size.toSize()
+    }
 }
 
 /** The page the tab is on, re-read when the document is edited; a failure is why it could not be read. */
@@ -296,6 +308,8 @@ internal fun SheetCanvas(
     shapeInk: DesktopInk,
     circuitKind: ShapeKind,
     onPlaceLiving: (LivingSlot, Bounds) -> Unit,
+    /** The shell's commit for a circuit drag; null places the family's default on this canvas alone. */
+    onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)?,
     onTextPress: ((x: Double, y: Double, pageW: Double, pageH: Double) -> Unit)?,
     /** What a double-click on the selected living element means — the shell's pencil, from the canvas. */
     onEditLiving: (() -> Unit)?,
@@ -326,9 +340,10 @@ internal fun SheetCanvas(
 
     Canvas(
         Modifier.fillMaxSize()
-            // The desktop's own pointer stays over the page with **every** tool: the ring is an extra
-            // width readout, never a replacement for the arrow the rest of the window uses.
-            .pointerHoverIcon(PointerIcon.Default)
+            // The pointer over the page is the *tool's*: a ring is the pointer while a pen, a highlighter
+            // or an eraser is in hand (an arrow beside it pointed at nothing), a hand for the hand, and
+            // the desktop's arrow for every other slot. See `DesktopCursor.toolPointerIcon`.
+            .pointerHoverIcon(toolPointerIcon(tool, ringVisible = ringPx != null, panMode = panMode))
             .hoverTracking(pointer, followMouse)
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 wheelViewport(
@@ -341,16 +356,14 @@ internal fun SheetCanvas(
                 tab, panMode, tool, ink, shapeInk, pen, sheet, pointer, draft,
                 PagePressTargets(
                     onPlaceLiving = onPlaceLiving,
+                    onPlaceCircuit = onPlaceCircuit,
+                    circuitKind = circuitKind,
                     onTextPress = onTextPress,
                     onEditLiving = onEditLiving,
+                    // Only the component is drawn live: a plot or a table is still waiting for its
+                    // values, and previewing a default would promise the wrong graph. The circuit's
+                    // preview is its own drag's (`CircuitGesture`), aimed at the page's pins.
                     livingPreview = pointer.previewLiving,
-                    // Only a family whose element needs no question is drawn live: a plot or a table is
-                    // still waiting for its values, and previewing a default would promise the wrong graph.
-                    buildLivingPreview = if (circuitFamilyOf(tool) != null) {
-                        { bounds -> livingElementFor(LivingSlot.CIRCUIT, bounds, shapeInk, circuitKind) }
-                    } else {
-                        null
-                    },
                     onLiveDrag = onLiveDrag,
                 ),
                 onViewport, onEdited,
@@ -376,7 +389,9 @@ internal fun SheetCanvas(
             previewLiving = pointer.previewLiving.value,
             paintProbe = paintProbe,
         )
-        // Above the sheet, in the canvas's pixels: the ring marks the point, not the page.
+        // Above the sheet, in the canvas's pixels: the ring marks the point, not the page. Both readings
+        // are taken **here**, in the draw scope, so a hover reading repaints the sheet and never
+        // recomposes it — the driver sends several hundred a second.
         val ring = ringPx
         val at = pointer.hover.value
         if (ring != null && at != null) drawToolCursor(at, ring)

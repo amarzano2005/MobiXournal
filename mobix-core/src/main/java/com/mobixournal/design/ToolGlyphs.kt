@@ -38,6 +38,12 @@ enum class ToolGlyph {
     VSPACE,
     PLAY,
 
+    /** The page itself — what the sheet *is* (its paper and ruling). */
+    PAGE,
+
+    /** The page's measured format — its size on the sheet. */
+    PAGE_SIZE,
+
     LINE,
     ARROW,
     DOUBLE_ARROW,
@@ -157,6 +163,8 @@ object ToolGlyphCatalogue {
         ToolGlyph.TEXIMAGE -> texImage()
         ToolGlyph.VSPACE -> verticalSpace()
         ToolGlyph.PLAY -> play()
+        ToolGlyph.PAGE -> page()
+        ToolGlyph.PAGE_SIZE -> pageSize()
         ToolGlyph.LINE -> line()
         ToolGlyph.ARROW -> arrow()
         ToolGlyph.DOUBLE_ARROW -> doubleArrow()
@@ -210,6 +218,46 @@ object ToolGlyphCatalogue {
         ToolGlyph.CHEM_BOND_DOUBLE -> bondDouble()
         ToolGlyph.CHEM_BOND_TRIPLE -> bondTriple()
     }
+
+    /**
+     * A sheet with its corner folded — the page-setup command that restyles the paper under the ink.
+     *
+     * It is the page's own shape and nothing else: a ruled page would not survive 18 dp, and a running
+     * head is noise at that size, so the fold is the one detail that says *a sheet* rather than *a box*.
+     */
+    private fun page(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(5f, 3f), GlyphPoint(14f, 3f), GlyphPoint(19f, 8f),
+                GlyphPoint(19f, 21f), GlyphPoint(5f, 21f),
+            ),
+            closed = true,
+        ),
+        // The fold itself, so the corner reads as turned paper rather than a clipped rectangle.
+        GlyphPart.Polyline(
+            listOf(GlyphPoint(14f, 3f), GlyphPoint(14f, 8f), GlyphPoint(19f, 8f)),
+        ),
+    )
+
+    /**
+     * The same sheet, **measured**: a dimension line under it, between two end ticks.
+     *
+     * The pair only has to be told apart at a slot's 20 dp: a sheet with a fold is the paper, a sheet
+     * over a measured span is the format. Nothing else is added, because a second fold or a ruler's
+     * ticks inside the sheet turn both glyphs into the same smudge at that size.
+     */
+    private fun pageSize(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(4f, 3f), GlyphPoint(20f, 3f),
+                GlyphPoint(20f, 15f), GlyphPoint(4f, 15f),
+            ),
+            closed = true,
+        ),
+        GlyphPart.Line(4f, 20f, 20f, 20f),
+        GlyphPart.Line(4f, 17.5f, 4f, 21f),
+        GlyphPart.Line(20f, 17.5f, 20f, 21f),
+    )
 
     // --- Inking tools --------------------------------------------------------------------------
 

@@ -24,9 +24,16 @@ internal object DesktopDocuments {
     const val PAGE_WIDTH_PT: Double = 595.276
     const val PAGE_HEIGHT_PT: Double = 841.89
 
-    /** A fresh document, with one blank page. */
-    fun blank(file: File): DesktopDocument {
-        val document = Document(pages = listOf(blankPage()))
+    /**
+     * A fresh document, with one blank page — on the **default sheet** the window's settings store
+     * (`DesktopSettings.pageWidthPt`), A4 when nothing has been stored.
+     */
+    fun blank(
+        file: File,
+        widthPt: Double = PAGE_WIDTH_PT,
+        heightPt: Double = PAGE_HEIGHT_PT,
+    ): DesktopDocument {
+        val document = Document(pages = listOf(blankPage(widthPt, heightPt)))
         return DesktopDocument(
             file = file,
             source = PageSource.of(document),

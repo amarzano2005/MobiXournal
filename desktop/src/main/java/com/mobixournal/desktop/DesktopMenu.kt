@@ -31,9 +31,12 @@ import androidx.compose.ui.window.Popup
  * that opens one panel of file, page and view commands.
  *
  * The header used to spend this glyph on the sidebar toggle alone, which left the window with no visible
- * door to New, Open, Save or the page commands the tablet offers. The menu now holds them, in the same
- * order the tablet's does (file actions first, then the page, then the view), and the sidebar toggle is a
- * row of its own rather than the whole button.
+ * door to New, Open, Save or the view. The menu now holds those, in the tablet's own order (file actions
+ * first, then the view), and the sidebar toggle is a row of its own rather than the whole button.
+ *
+ * The page's two commands are **not** here: the paper and the format are objects of the strip, after its
+ * divider, because the question "what is this sheet" belongs beside the tools that write on it rather
+ * than in a file menu.
  */
 @Composable
 internal fun HeaderMenu(
@@ -43,8 +46,6 @@ internal fun HeaderMenu(
     onOpen: () -> Unit,
     onSave: () -> Unit,
     onSaveAs: () -> Unit,
-    onPageBackground: () -> Unit,
-    onPageFormat: () -> Unit,
     onToggleSidebar: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -75,9 +76,6 @@ internal fun HeaderMenu(
                     MenuRow("Open…", enabled = true) { open = false; onOpen() }
                     MenuRow("Save", enabled = canSave) { open = false; onSave() }
                     MenuRow("Save As…", enabled = true) { open = false; onSaveAs() }
-                    MenuDivider()
-                    MenuRow("Page background…", enabled = true) { open = false; onPageBackground() }
-                    MenuRow("Page format…", enabled = true) { open = false; onPageFormat() }
                     MenuDivider()
                     MenuRow(
                         label = if (sidebarVisible) "Hide sidebar" else "Show sidebar",

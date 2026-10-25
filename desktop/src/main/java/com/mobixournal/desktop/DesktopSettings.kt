@@ -171,6 +171,34 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /**
+     * The size a **new sheet** is born with, as the format section's **Set as default** stores it.
+     *
+     * It is the window's half of the tablet's *Set as default*: a reader who writes on A5 has no business
+     * resizing every new page by hand. Read back as A4 when the key is absent (the first run) or when the
+     * stored pair is not a page at all, so a hand-edited file cannot open a sheet of no size.
+     */
+    var pageWidthPt: Double
+        get() = pagePt(KEY_PAGE_WIDTH, DesktopDocuments.PAGE_WIDTH_PT)
+        set(value) = writePageSize(value, pageHeightPt)
+
+    var pageHeightPt: Double
+        get() = pagePt(KEY_PAGE_HEIGHT, DesktopDocuments.PAGE_HEIGHT_PT)
+        set(value) = writePageSize(pageWidthPt, value)
+
+    /** Store a default sheet size in one write, so the two halves can never disagree. */
+    fun setDefaultPageSize(widthPt: Double, heightPt: Double) = writePageSize(widthPt, heightPt)
+
+    private fun writePageSize(widthPt: Double, heightPt: Double) {
+        if (!(widthPt > 0.0) || !(heightPt > 0.0)) return
+        properties.setProperty(KEY_PAGE_WIDTH, widthPt.toString())
+        properties.setProperty(KEY_PAGE_HEIGHT, heightPt.toString())
+        save()
+    }
+
+    private fun pagePt(key: String, fallback: Double): Double =
+        properties.getProperty(key)?.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 } ?: fallback
+
     /** Write the file; a failure leaves the window running on the value just chosen. */
     private fun save() {
         runCatching {
@@ -206,6 +234,10 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The stroke width the strips show, in points. */
         const val KEY_INK_WIDTH = "ink.width"
+
+        /** The default sheet a new page is born with, in points — the format section's Set as default. */
+        const val KEY_PAGE_WIDTH = "page.width"
+        const val KEY_PAGE_HEIGHT = "page.height"
 
         /** The pen's stroke pattern, as [LineStyle]'s name. */
         const val KEY_INK_LINE_STYLE = "ink.lineStyle"

@@ -181,7 +181,7 @@ class DesktopShellState(
     }
 
     /** The same quiet period every edit starts: the page's picture is stale and the snapshot waits. */
-    private fun edited(tab: DesktopTab, index: Int) {
+    internal fun edited(tab: DesktopTab, index: Int) {
         thumbnails[tab.key]?.remove(index)
         noteEdit()
     }
@@ -258,7 +258,7 @@ class DesktopShellState(
     }
 
     /** Pick the selection tool, so the element just placed can be moved with the next press. */
-    private fun handToSelection() {
+    internal fun handToSelection() {
         selectTool(DesktopTool.MARQUEE)
     }
 
@@ -332,6 +332,10 @@ class DesktopShellState(
             circuitPickerOpen = circuitPickerOpen,
             onCircuitKind = ::pickCircuitKind,
             onCircuitPicker = ::showCircuitKinds,
+            // The page's own two questions, in the strip: a command of the page, not of the ink
+            // beside it, which is why both strips put them after a divider.
+            onPageBackground = { openPageSetup(PageSetupSection.PAPER) },
+            onPageFormat = { openPageSetup(PageSetupSection.FORMAT) },
         )
 
     /**
@@ -418,9 +422,20 @@ class DesktopShellState(
     /** Resize the active page, keeping its ink and its paper. */
     fun setPageSize(widthPt: Double, heightPt: Double) = pageSetupState.setSize(widthPt, heightPt)
 
-    /** A new page: a blank document tab, its file still to be written. */
+    /** The default sheet: the format section's **Default** entry, and what a new page is born on. */
+    private val defaultSheet = DefaultSheet(settings)
+
+    val defaultPageSize: Pair<Double, Double> get() = defaultSheet.size
+
+    /** Store the active page's size as the default for every new sheet (a setting, not a page edit). */
+    fun setDefaultPageSize(widthPt: Double, heightPt: Double) = defaultSheet.store(widthPt, heightPt)
+
+    /**
+     * A new page: a blank document tab, its file still to be written, on the **default sheet** the format
+     * section stored — so *Set as default* is a promise the next new page keeps.
+     */
     fun newDocument() {
-        tabs.newBlankDocument()
+        tabs.newBlankDocument(settings.pageWidthPt, settings.pageHeightPt)
         failure = null
     }
 

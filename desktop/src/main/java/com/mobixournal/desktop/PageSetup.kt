@@ -103,6 +103,8 @@ internal fun BoxScope.PageSetupHost(state: DesktopShellState) {
                 onStyle = state::setPageStyle,
                 onSpacing = state::setPageSpacingMm,
                 onSize = state::setPageSize,
+                defaultSize = state.defaultPageSize,
+                onSetDefault = state::setDefaultPageSize,
                 onDone = { state.closePageSetup() },
             )
         }
@@ -117,6 +119,9 @@ private fun PageSetupPanel(
     onStyle: (String) -> Unit,
     onSpacing: (Double) -> Unit,
     onSize: (Double, Double) -> Unit,
+    /** The size new sheets are born with — the format section's **Default** entry. */
+    defaultSize: Pair<Double, Double>,
+    onSetDefault: (Double, Double) -> Unit,
     onDone: () -> Unit,
 ) {
     Column(Modifier.width(430.dp).glassSpring().glassSurface().padding(18.dp)) {
@@ -129,10 +134,23 @@ private fun PageSetupPanel(
         if (section == PageSetupSection.PAPER) {
             PaperSection(page, onStyle, onSpacing)
         } else {
-            FormatSection(page, onSize)
+            FormatSection(page, onSize, defaultSize)
         }
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            if (section == PageSetupSection.FORMAT) {
+                // The tablet's own two answers, in the same order: store this sheet as the default, or
+                // close the surface. Storing is a *setting*, not a page edit, so the page keeps its size
+                // and the next new sheet is born with this one.
+                PanelButton(
+                    label = "Set as default",
+                    primary = false,
+                    enabled = true,
+                    onClick = { onSetDefault(page.width, page.height) },
+                )
+            } else {
+                Spacer(Modifier.width(1.dp))
+            }
             PanelButton(label = "Done", primary = true, enabled = true, onClick = onDone)
         }
     }
@@ -184,62 +202,9 @@ private fun PaperSection(page: Page, onStyle: (String) -> Unit, onSpacing: (Doub
     }
 }
 
-/** The page-size presets in either orientation, with the live size named under them. */
-@Composable
-private fun FormatSection(page: Page, onSize: (Double, Double) -> Unit) {
-    val landscape = page.width > page.height
-    SectionLabel("Paper size")
-    ChipRow {
-        for (preset in PageSetup.PRESETS) {
-            val matches = matchesSize(page.width, page.height, preset)
-            SetupChip(
-                label = preset.label,
-                picked = matches,
-                onClick = {
-                    if (landscape) onSize(preset.heightPt, preset.widthPt)
-                    else onSize(preset.widthPt, preset.heightPt)
-                },
-            )
-        }
-    }
-    SectionLabel("Orientation")
-    ChipRow {
-        SetupChip(label = "Portrait", picked = !landscape, onClick = {
-            val w = minOf(page.width, page.height)
-            val h = maxOf(page.width, page.height)
-            onSize(w, h)
-        })
-        SetupChip(label = "Landscape", picked = landscape, onClick = {
-            val w = maxOf(page.width, page.height)
-            val h = minOf(page.width, page.height)
-            onSize(w, h)
-        })
-    }
-    Text(
-        String.format(
-            java.util.Locale.US,
-            "%.0f × %.0f pt  ·  %.1f × %.1f mm",
-            page.width,
-            page.height,
-            page.width / PageSetup.MM_PT,
-            page.height / PageSetup.MM_PT,
-        ),
-        color = DesktopTheme.inkMuted,
-        style = DesktopTheme.numeric,
-        modifier = Modifier.padding(top = 8.dp),
-    )
-}
-
-/** A page size against a preset, in either orientation, with one point of slack. */
-private fun matchesSize(width: Double, height: Double, preset: PageSetup.Preset): Boolean {
-    fun near(a: Double, b: Double) = abs(a - b) <= 1.0
-    return (near(width, preset.widthPt) && near(height, preset.heightPt)) ||
-        (near(width, preset.heightPt) && near(height, preset.widthPt))
-}
-
 /** One group's heading, in the muted chrome ink the rest of the window uses. */
 @Composable
-private fun SectionLabel(text: String) {
+internal fun SectionLabel(text: String) {
     Text(
         text,
         color = DesktopTheme.inkMuted,
@@ -251,7 +216,7 @@ private fun SectionLabel(text: String) {
 /** A wrapping row of chips: the six paper styles fit two rows in a 430 dp panel. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChipRow(content: @Composable androidx.compose.foundation.layout.FlowRowScope.() -> Unit) {
+internal fun ChipRow(content: @Composable androidx.compose.foundation.layout.FlowRowScope.() -> Unit) {
     FlowRow(
         Modifier.fillMaxWidth().padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -261,7 +226,7 @@ private fun ChipRow(content: @Composable androidx.compose.foundation.layout.Flow
 
 /** One choice: a capsule that wears the steel when it is the live one. */
 @Composable
-private fun SetupChip(label: String, picked: Boolean, onClick: () -> Unit) {
+internal fun SetupChip(label: String, picked: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .background(

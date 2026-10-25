@@ -282,10 +282,17 @@ class DesktopTabs {
      * A **new page**: a blank document tab, its file name still unwritten. This is what the strip's `+`,
      * the menu's New command and a window with nothing open all produce.
      */
-    fun newBlankDocument(): DesktopTab {
+    /**
+     * A new blank tab on a sheet of [widthPt] × [heightPt] — the window's stored default page, or A4
+     * when nothing is stored (`newBlankDocument()`).
+     */
+    fun newBlankDocument(
+        widthPt: Double = DesktopDocuments.PAGE_WIDTH_PT,
+        heightPt: Double = DesktopDocuments.PAGE_HEIGHT_PT,
+    ): DesktopTab {
         val path = DesktopDocuments.newPath(tabs.map { it.key }.toSet())
         val tab = DesktopTab(
-            document = DesktopDocuments.blank(path),
+            document = DesktopDocuments.blank(path, widthPt, heightPt),
             title = path.nameWithoutExtension,
             unsaved = true,
         )

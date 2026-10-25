@@ -196,6 +196,37 @@ object LivingPlacement {
     )
 
     /**
+     * The living component a **drag** from ([startX], [startY]) to ([endX], [endY]) places — the shape a
+     * component is pulled out with, not the box it is dropped into.
+     *
+     * The difference matters and is what the tablet has always done: a component's drag names its two
+     * ends, so a part drawn diagonally is rotated to lie along the hand's own line. [circuit] takes a
+     * *box* and lays the part out horizontally inside it, which is right for a click (a box centred on
+     * the press) and wrong for a drag — a drag up or down produced a horizontal part of the drag's height,
+     * which is not the component the user drew.
+     *
+     * A drag shorter than the tap slop is a click, so [CircuitElementFactory] gives it the family's
+     * canonical length — the same rule both shells already share.
+     */
+    fun circuitBetween(
+        kind: ShapeKind,
+        startX: Double,
+        startY: Double,
+        endX: Double,
+        endY: Double,
+        colour: Int,
+        strokeWidthPt: Double,
+    ): CircuitElement? = CircuitElementFactory.circuitElementFor(
+        symbol = kind.name,
+        startX = startX,
+        startY = startY,
+        endX = endX,
+        endY = endY,
+        strokeColor = colour,
+        strokeWidth = strokeWidthPt,
+    )
+
+    /**
      * The living formula for a placed [bounds], written in [source] (LaTeX or Typst, per [flavour]) and
      * [colour].
      *

@@ -48,6 +48,35 @@ class DesktopCursorTest {
         assertTrue("and it is wider than the pen's ring at the same setting", ring > 10f)
     }
 
+    /**
+     * The pointer over the sheet is the **tool's**: no arrow beside the ring, the hand for the hand.
+     *
+     * A ring drawn beside the mouse's arrow pointed at nothing — two marks for one point, one of them
+     * saying the wrong thing — so a tool whose ring is up wears a cursor with no picture, and the ring is
+     * the pointer. The Hand moves the page and gets the hand; every other slot keeps the arrow it acts
+     * with, and Space (the hand's pan with any tool picked) wears the hand too.
+     */
+    @Test
+    fun `the pointer is the tool's, not always the arrow`() {
+        val blank = toolPointerIcon(DesktopTool.PEN, ringVisible = true)
+        assertEquals("a drawing tool's ring is the pointer", blank, toolPointerIcon(DesktopTool.ERASER, true))
+        assertEquals("and a highlighter's too", blank, toolPointerIcon(DesktopTool.HIGHLIGHTER, true))
+        assertTrue(
+            "which is not the desktop's arrow",
+            blank != toolPointerIcon(DesktopTool.PEN, ringVisible = false),
+        )
+        assertEquals(
+            "the hand pans, so it wears the hand",
+            toolPointerIcon(DesktopTool.HAND, ringVisible = false),
+            toolPointerIcon(DesktopTool.PEN, ringVisible = false, panMode = true),
+        )
+        assertEquals(
+            "a figure or a selection keeps the arrow",
+            toolPointerIcon(DesktopTool.PEN, ringVisible = false),
+            toolPointerIcon(DesktopTool.RECTANGLE, ringVisible = false),
+        )
+    }
+
     @Test
     fun `a tool that draws nothing keeps the desktop's arrow`() {
         for (tool in DesktopTool.entries - setOf(

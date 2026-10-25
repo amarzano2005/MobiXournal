@@ -4,6 +4,7 @@ import androidx.compose.runtime.MutableState
 import com.mobixournal.format.model.Element
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.LivingSlot
+import com.mobixournal.render.ShapeKind
 
 /**
  * What a press on the sheet means when it is **not ink**, carried as one value.
@@ -25,11 +26,18 @@ internal class PagePressTargets(
     /** A **double-click on a living element**: open its editor, as the tablet's double-tap does. */
     val onEditLiving: (() -> Unit)? = null,
     /**
-     * The living element a placement drag is drawing right now, and what a box would place — so a
-     * component is pulled out along the pen instead of appearing when it lifts.
+     * The living element a placement drag is drawing right now — so a component is pulled out along the
+     * pen instead of appearing when it lifts.
      */
     val livingPreview: MutableState<Element?>? = null,
-    val buildLivingPreview: ((Bounds) -> Element?)? = null,
+    /**
+     * A lifted **circuit** drag: the part and the two page points it was pulled out between, already
+     * snapped to the pins in reach (`CircuitGesture`). Null on a canvas with no shell behind it, which
+     * commits the family's defaults itself.
+     */
+    val onPlaceCircuit: ((ShapeKind, CircuitSpan) -> Unit)? = null,
+    /** The part the circuit slot in hand would place — the picker's answer, read by the drag. */
+    val circuitKind: ShapeKind = com.mobixournal.render.LivingPlacement.DEFAULT_CIRCUIT_KIND,
     /**
      * The drag in flight that `Esc` would cancel, or null once it is over. The shell holds the other end
      * (`DesktopShellState.liveDrag`): a shape is drawn from a drag, and a drag with no way back is a

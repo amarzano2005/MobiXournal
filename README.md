@@ -113,9 +113,10 @@ from the caption down instead of a light system bar sitting on a dark app, and t
 same glass capsules as the rest of the chrome, the active one wearing the family's edge. The window wears the
 app's own icon on the taskbar, where the JVM's coffee cup used to be — the tablet's launcher art with its
 navy field dropped, so the sheet and the pen are the whole mark — while the title bar above the header
-carries no app name and no second icon. A **hamburger** in the header opens New, Open, Save, Save As, the
-page-setup dialogs and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens
-without a file opens one too, instead of an empty notice. The toolbars are
+carries no app name, no logo and no second icon: **the caption is the tabs alone**, and the art stays on
+the taskbar where it belongs. A **hamburger** in the header opens New, Open, Save, Save
+As and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens without a file
+opens one too, instead of an empty notice. The toolbars are
 the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
@@ -136,12 +137,16 @@ long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** wi
 Axes, Rectangle, Ellipse or Spline — one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to
 cancel — each of the seven a slot of its own, one click and no submenu, and a figure always draws in the
 pen's ink even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
-circuit family is armed, every **circuit pin** on the page wears a small dot, so a wire can be aimed at the
-terminal it should join. **Pan** with the **hand** (`G`): a drag moves the page instead of drawing on it,
-with every tool keeping its own state meanwhile. The sheet itself is editable too: **Page background…**
-offers the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling, **Page format…** the A4/A5/Letter/Legal
-presets in either orientation, and either change is one undoable edit written in the file's own ruling
-parameter. And **shift a page down**
+circuit family is armed, every **circuit pin** on the page wears a small dot, and the ends of what you draw
+are **pulled onto the nearest pin**: a wire drawn near a terminal joins it, and a part dropped on one meets
+it, so a circuit can be assembled rather than drawn near. **Pan** with the **hand** (`G`): a drag moves the
+page instead of drawing on it, and with the pen it follows the stylus at the tablet's own rate rather than
+at the slower pace of the mouse the system emulates — while every tool keeps its own state meanwhile. The
+sheet itself is editable from the **toolbar**: its last two buttons, after a divider, open **Page
+background** (the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling) and **Page format** — the
+A4/A5/Letter/Legal presets either way up, **any size you type** in millimetres, inches or points with a
+swap button, a **Default** entry and **Set as default**, which decides the sheet every new page is born
+with. Either change is one undoable edit written in the file's own ruling parameter. And **shift a page down**
 with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
 crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): a click on any element catches it where it
 lies (one click on empty paper lets the selection go, and a double-click opens a living element's editor),
@@ -166,8 +171,9 @@ should be before it exists — the graph dialog's own questions for a plot (form
 derivative, summary, shaded area) or the table's columns, rows and header — so **Place** writes one live,
 selected element and one `Ctrl + Z` puts the page back, while Cancel leaves the page untouched. A **circuit
 component** (`K` passive parts, `Shift + K` active parts, `Alt + K` logic gates) is drawn instead of asked
-about: the drag is the part, its pins and body appearing on the sheet as the pen moves and landing on the
-lift as one live, selected element, exactly as a figure behaves. A circuit slot opens the tablet's palette
+about: the drag is the part — its **two ends** set its length *and* its angle, so a part drawn at 45° stands
+at 45° and its ends settle on the pins in reach — its pins and body appearing on the sheet as the pen moves
+and landing on the lift as one live, selected element, exactly as a figure behaves. A circuit slot opens the tablet's palette
 of that family's symbols on a **second** click — the first only arms the slot, and the little chevron on
 the slot opens the palette straight away — and the drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
 picks the tool, a second click asks which of them. Once an element is placed the window switches to the
@@ -203,8 +209,9 @@ re-render (0.2 ms a frame on this project's densest document, where it used to c
 median 1.5–2.0 ms (5.2 ms p95) on a blank page and on this project's densest six-page document, so the
 line lands on the very next frame your screen shows instead of the one after — at 144 Hz that is 6.9 ms,
 and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. Over the page
-the pointer wears a ring the size of the line the tool will write — beside the arrow, never instead of it:
-the cursor stays visible with every tool, so it never vanishes over a figure or the chrome, and the ring
+the pointer **is the tool's**: a pen, a highlighter or an eraser wears a ring the size of the line it will
+write — and the desktop's arrow goes away while it does, instead of sitting glued to the ring and pointing
+at nothing — the hand wears the hand, and every other tool keeps the arrow it acts with. The ring
 adds the width and the exact point you are about to draw at. The ring is driven by the tablet's own readings rather than by the slower mouse
 copy of them, so it sits under the nib instead of trailing it, and it keeps its place while you hold the
 pen still above the page. The status bar says which stream the window has — `pen: Wintab`,
