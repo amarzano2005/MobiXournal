@@ -46,8 +46,7 @@ object DocumentSearch {
         pdfTextIndex: PdfTextIndex?,
         rawQuery: String,
         handwritingIndex: HandwritingIndex? = null,
-        audioTranscription: com.mobixournal.audio.AudioTranscription? = null,
-    ): List<SearchHit> = find(PageSource.of(doc.pages), pdfTextIndex, rawQuery, handwritingIndex, audioTranscription, doc)
+    ): List<SearchHit> = find(PageSource.of(doc.pages), pdfTextIndex, rawQuery, handwritingIndex)
 
     /**
      * The same search over a document's **page surface** (`PageSource`): pages are read one at a
@@ -59,20 +58,12 @@ object DocumentSearch {
         pdfTextIndex: PdfTextIndex?,
         rawQuery: String,
         handwritingIndex: HandwritingIndex? = null,
-        audioTranscription: com.mobixournal.audio.AudioTranscription? = null,
-        documentForAudio: Document? = null,
     ): List<SearchHit> {
         val query = rawQuery.trim()
         if (query.isEmpty()) return emptyList()
         val needle = query.lowercase(Locale.ROOT)
         val hwIndex = handwritingIndex
-        val audioHits = if (audioTranscription != null && documentForAudio != null) {
-            transcriptionHits(documentForAudio, audioTranscription, needle)
-        } else {
-            emptyList()
-        }
         return buildList {
-            addAll(audioHits)
             for (pageIndex in 0 until source.pageCount) {
                 val page = source.page(pageIndex)
                 pdfTextIndex?.let { addAll(pdfHits(it, pageIndex, needle)) }
@@ -83,22 +74,6 @@ object DocumentSearch {
                     }
                 }
             }
-        }
-    }
-
-    private fun transcriptionHits(
-        doc: Document,
-        transcription: com.mobixournal.audio.AudioTranscription,
-        needle: String,
-    ): List<SearchHit> {
-        val matchedSegments = transcription.search(needle)
-        if (matchedSegments.isEmpty()) return emptyList()
-        val aligned = com.mobixournal.audio.AudioInkAligner.align(
-            doc,
-            transcription.copy(segments = matchedSegments),
-        )
-        return aligned.groupBy { it.pageIndex }.map { (pageIndex, hits) ->
-            SearchHit(pageIndex = pageIndex, boxes = hits.map { it.bounds })
         }
     }
 

@@ -15,8 +15,8 @@ import java.io.File
  * The post-recording work that must survive the end of a lecture.
  *
  * The owner's habit is the constraint this file exists for: the lecture ends, the file is saved, the
- * app is closed. Anything that starts at that moment — re-encoding the standalone `.m4a`, finishing a
- * transcription — is running against a process that is about to go away. Two rules keep it honest:
+ * app is closed. Anything that starts at that moment — re-encoding the standalone `.m4a` — is running
+ * against a process that is about to go away. Two rules keep it honest:
  *
  *  - **The expensive part happens during the lecture.** [StandaloneAudioTap] encodes the `.m4a` from
  *    the same PCM the recorder captures, so by Stop the only thing left is copying a file.
@@ -35,8 +35,6 @@ private fun MainActivity.standaloneCopyFor(name: String): File =
 private fun MainActivity.pendingAudioFile(): File = AudioPendingWork.file(filesDir)
 
 private fun exportJob(name: String) = PendingAudioWork(PendingAudioWork.Kind.EXPORT, name)
-
-private fun transcribeJob(name: String) = PendingAudioWork(PendingAudioWork.Kind.TRANSCRIBE, name)
 
 /** The recording [name] names inside the app's audio store. */
 private fun MainActivity.recordingFor(name: String): File = File(filesDir, "audio/$name")
@@ -120,47 +118,11 @@ private fun MainActivity.runPendingExport(name: String, ready: File? = null): Bo
  * lecture safe.
  *
  * Exports run here as ordinary background work: the `.m4a` is already encoded, so what is left is a
- * copy. A transcription whose service was killed is restarted, and the service itself resumes from the
- * transcript on disk, so nothing is transcribed twice ([com.mobixournal.audio.AudioTranscriptionService]).
+ * copy.
  */
 internal fun MainActivity.resumePendingAudioWork() {
-    val jobs = AudioPendingWork.read(pendingAudioFile())
-    if (jobs.isEmpty()) return
-
-    val exports = jobs.filter { it.kind == PendingAudioWork.Kind.EXPORT }.map { it.audioName }
-    if (exports.isNotEmpty()) {
-        lifecycleScope.launch(Dispatchers.IO) { exports.forEach { runPendingExport(it) } }
-    }
-
-    if (audio.isRecording) return
-    jobs.filter { it.kind == PendingAudioWork.Kind.TRANSCRIBE }
-        .map { recordingFor(it.audioName) }
-        .filter { it.isFile }
-        .forEach { transcribeDeferredAudio(it) }
-}
-
-/**
- * The transcript that belongs in the file being saved.
- *
- * The in-memory one is the normal answer, but a lecture saved the moment it ends still has a
- * transcription running: that transcript lives on disk ([resolveTranscriptionForClip]) and has to
- * travel into the `.mobix` anyway, or closing the app right after the save would drop a finished
- * transcript for good — the next open would find nothing in the file to put back in memory.
- */
-/** Record that [name] still has a transcription to finish, so a killed service resumes next launch. */
-internal fun MainActivity.markTranscriptionPending(name: String) {
-    AudioPendingWork.add(pendingAudioFile(), transcribeJob(name))
-}
-
-/** The transcription of [name] is finished, cancelled, or impossible: stop retrying it. */
-internal fun MainActivity.markTranscriptionDone(name: String) {
-    AudioPendingWork.remove(pendingAudioFile(), transcribeJob(name))
-}
-
-internal fun MainActivity.transcriptionForSave(): com.mobixournal.audio.AudioTranscription? {
-    activeTranscription.value?.let { return it }
-    // The document's own reference first, then the clip this session recorded last: the second is
-    // what a lecture saved without the page that names it would otherwise miss.
-    val names = listOfNotNull(findCandidateAudioRef()?.filename, lastAudioRef?.filename)
-    return names.firstNotNullOfOrNull { resolveTranscriptionForClip(it) }
+    val exports = AudioPendingWork.read(pendingAudioFile())
+        .map { it.audioName }
+    if (exports.isEmpty()) return
+    lifecycleScope.launch(Dispatchers.IO) { exports.forEach { runPendingExport(it) } }
 }

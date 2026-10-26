@@ -18,7 +18,6 @@ mlkitDigitalInk = "19.0.0"
 # The tablet's raw pen stream (pressure, tilt, the dial's ring, ExpressKeys) is not on AWT's pointer,
 # so the Windows window reads it through Wintab — the same API desktop Xournal++ uses there.
 jna = "5.14.0"
-sherpaOnnx = "v1.13.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,7 +39,6 @@ pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref
 pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 mlkit-digital-ink = { group = "com.google.mlkit", name = "digital-ink-recognition", version.ref = "mlkitDigitalInk" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
-sherpa-onnx = { group = "com.github.k2-fsa", name = "sherpa-onnx", version.ref = "sherpaOnnx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

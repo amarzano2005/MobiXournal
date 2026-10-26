@@ -456,17 +456,13 @@ fun EditorScreen(
             playheadMs = audio.playheadMs ?: 0,
             durationMs = audio.durationMs ?: 0,
             waveform = audio.waveform,
-            transcription = audio.transcription,
             clipTitle = audio.clipTitle,
             playbackSpeed = audio.playbackSpeed,
-            isTranscribing = audio.isTranscribing,
-            transcriptionStatus = audio.transcriptionStatus,
             onTogglePlay = audio.onPlayAutonomous,
             onSeek = audio.onScrub,
             onSkip = audio.onSkip,
             onSpeedChange = audio.onSpeedChange,
             onClose = audio.onStopPlayback,
-            onTranscribe = audio.onTranscribeActiveClip,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
 

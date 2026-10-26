@@ -63,10 +63,10 @@ class AudioSession(
      * The listeners receiving raw 16-bit mono PCM chunks `(buffer, bytesRead, sampleRate)` while
      * recording.
      *
-     * A **set**, not one slot: two consumers legitimately want the same microphone — the live
-     * transcription and the standalone `.m4a` encoder, which produces the export's file during the
-     * lecture — and one setting the slot would silently unhook the other. Install order is delivery
-     * order, so the recorder's capture thread never waits on a listener to make room.
+     * A **set**, not one slot: more than one consumer legitimately wants the same microphone — the
+     * standalone `.m4a` encoder, which produces the export's file during the lecture, is one today,
+     * and one setting the slot would silently unhook the others. Install order is delivery order, so
+     * the recorder's capture thread never waits on a listener to make room.
      */
     private val pcmListeners = java.util.concurrent.CopyOnWriteArrayList<(ByteArray, Int, Int) -> Unit>()
 

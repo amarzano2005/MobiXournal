@@ -7,23 +7,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
-
-    <!-- Required on Android 11+ (targetSdk >= 30) so SpeechRecognizer.isRecognitionAvailable(context)
-         and createSpeechRecognizer(context) can discover the system RecognitionService. -->
-    <queries>
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
-        <intent>
-            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
-        </intent>
-        <intent>
-            <action android:name="android.speech.action.GET_LANGUAGE_DETAILS" />
-        </intent>
-    </queries>
 
     <application
         android:name=".MobiXournalApp"
@@ -210,11 +195,6 @@
         <service
             android:name=".audio.AudioRecordingService"
             android:foregroundServiceType="microphone"
-            android:exported="false" />
-
-        <service
-            android:name=".audio.AudioTranscriptionService"
-            android:foregroundServiceType="dataSync"
             android:exported="false" />
     </application>
 

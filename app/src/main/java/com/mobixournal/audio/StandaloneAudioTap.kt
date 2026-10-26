@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
  */
 internal class StandaloneAudioTap(private val target: File) {
 
-    /** The PCM listener [AudioSession] is handed; the same shape the live transcription uses. */
+    /** The PCM listener [AudioSession] is handed; the shape the recorder's own chunks have. */
     val listener: (ByteArray, Int, Int) -> Unit = { buffer, count, rate -> feed(buffer, count, rate) }
 
     /** A bounded hand-off: a full queue drops a chunk instead of stalling the microphone. */

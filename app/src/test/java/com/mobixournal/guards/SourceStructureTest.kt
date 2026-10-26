@@ -61,7 +61,6 @@ class SourceStructureTest {
         // +3: the armed selection lift, one field, beside the clipboard it ends up on.
         "render/DrawingSurfaceView.kt" to 1841,
         "render/CircuitShapes.kt" to 1180,
-        // +5 deliberate: transcriptionLanguage setting for speech recognition language choice.
         "ui/AppSettings.kt" to 997,
         "ui/EditorDialogs.kt" to 920,
     )

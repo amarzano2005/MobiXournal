@@ -151,16 +151,10 @@ data class AudioUiState(
     val playbackSpeed: Float = 1.0f,
     /** Extracted audio waveform amplitudes for the active clip. */
     val waveform: List<Float> = emptyList(),
-    /** Active transcription for the playing clip if available. */
-    val transcription: com.mobixournal.audio.AudioTranscription? = null,
     /** Title or page context of the active audio clip. */
     val clipTitle: String? = null,
     /** Whether the floating mini-player is visible. */
     val miniPlayerVisible: Boolean = false,
-    /** Whether speech-to-text deferred transcription is running in background. */
-    val isTranscribing: Boolean = false,
-    /** In-place status message for deferred transcription. */
-    val transcriptionStatus: String? = null,
     /** Whether recording is currently paused. */
     val recordingPaused: Boolean = false,
     /** Callback to start or stop recording. */
@@ -179,16 +173,6 @@ data class AudioUiState(
     val onSkip: (Int) -> Unit = {},
     /** Callback to set the playback speed factor. */
     val onSpeedChange: (Float) -> Unit = {},
-    /** Configured transcription language tag or "auto". */
-    val transcriptionLanguage: String = "auto",
-    /** Callback to set transcription language tag. */
-    val onLanguageChange: (String) -> Unit = {},
-    /** Id of the on-device Whisper model transcription uses (`whisper-tiny`, `whisper-base`). */
-    val transcriptionModel: String = "whisper-tiny",
-    /** Ids of the Whisper models whose weights this device already holds. */
-    val installedModels: Set<String> = emptySet(),
-    /** Callback to choose a transcription model; its weights download when absent. */
-    val onModelChange: (String) -> Unit = {},
     /** Callback to open the folder picker. */
     val onChooseFolder: () -> Unit = {},
     /** Callback to toggle standalone audio export. */
@@ -197,6 +181,4 @@ data class AudioUiState(
     val onToggleMiniPlayer: () -> Unit = {},
     /** Callback to start or toggle autonomous audio playback. */
     val onPlayAutonomous: () -> Unit = {},
-    /** Callback to transcribe the currently active or selected audio recording. */
-    val onTranscribeActiveClip: () -> Unit = {},
 )

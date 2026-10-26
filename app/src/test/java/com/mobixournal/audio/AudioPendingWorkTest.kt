@@ -18,8 +18,6 @@ class AudioPendingWorkTest {
 
     private fun export(name: String) = PendingAudioWork(PendingAudioWork.Kind.EXPORT, name)
 
-    private fun transcribe(name: String) = PendingAudioWork(PendingAudioWork.Kind.TRANSCRIBE, name)
-
     @Test
     fun `a queue that was never written reads as empty`() {
         assertFalse(queue.exists())
@@ -34,25 +32,18 @@ class AudioPendingWorkTest {
 
     @Test
     fun `the same job is not queued twice`() {
-        AudioPendingWork.add(queue, transcribe("lecture.ogg"))
-        AudioPendingWork.add(queue, transcribe("lecture.ogg"))
-        assertEquals(listOf(transcribe("lecture.ogg")), AudioPendingWork.read(queue))
-    }
-
-    @Test
-    fun `an export and a transcription of the same recording coexist`() {
         AudioPendingWork.add(queue, export("lecture.ogg"))
-        AudioPendingWork.add(queue, transcribe("lecture.ogg"))
-        assertEquals(listOf(export("lecture.ogg"), transcribe("lecture.ogg")), AudioPendingWork.read(queue))
+        AudioPendingWork.add(queue, export("lecture.ogg"))
+        assertEquals(listOf(export("lecture.ogg")), AudioPendingWork.read(queue))
     }
 
     @Test
     fun `removing a finished job leaves the others and deletes the empty queue`() {
         AudioPendingWork.add(queue, export("a.ogg"))
-        AudioPendingWork.add(queue, transcribe("b.ogg"))
+        AudioPendingWork.add(queue, export("b.ogg"))
         AudioPendingWork.remove(queue, export("a.ogg"))
-        assertEquals(listOf(transcribe("b.ogg")), AudioPendingWork.read(queue))
-        AudioPendingWork.remove(queue, transcribe("b.ogg"))
+        assertEquals(listOf(export("b.ogg")), AudioPendingWork.read(queue))
+        AudioPendingWork.remove(queue, export("b.ogg"))
         assertFalse("an empty queue leaves no file behind", queue.exists())
     }
 
@@ -62,11 +53,22 @@ class AudioPendingWorkTest {
             """
             export|good.ogg
             nonsense
-            transcribe|
+            export|
             |missing-kind.ogg
-            transcribe|also-good.wav
+            export|also-good.wav
             """.trimIndent(),
         )
-        assertEquals(listOf(export("good.ogg"), transcribe("also-good.wav")), AudioPendingWork.read(queue))
+        assertEquals(listOf(export("good.ogg"), export("also-good.wav")), AudioPendingWork.read(queue))
+    }
+
+    @Test
+    fun `a transcription left by an older build is dropped, not retried`() {
+        queue.writeText(
+            """
+            transcribe|old-lecture.ogg
+            export|lecture.ogg
+            """.trimIndent(),
+        )
+        assertEquals(listOf(export("lecture.ogg")), AudioPendingWork.read(queue))
     }
 }

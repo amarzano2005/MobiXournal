@@ -67,7 +67,7 @@ mobix-core/                  # shared, platform-free core (kotlin-jvm): no andro
   src/main/java/com/mobixournal/
     format/model/            # Document/Page/Layer/Background/Element, the living entities, ids, EditedPages
     format/xml/              # XmlPullReader, XmlWriter, XmlComment — the dependency-free XML layer
-    format/json/             # the JSON value model, parser and writer (public: .mobix, settings, transcripts)
+    format/json/             # the JSON value model, parser and writer (public: .mobix, settings, backups)
     format/FontDescription.kt # Pango-style font description <-> family + bold/italic (pure)
     format/XoppColor.kt      # #RRGGBBAA <-> ARGB int, named colours
     format/XoppReader.kt     # XML -> Document

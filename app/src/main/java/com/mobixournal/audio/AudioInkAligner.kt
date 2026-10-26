@@ -5,33 +5,16 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.audioRef
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.HandwritingRecognizer
-import kotlin.math.abs
 
 /**
- * An aligned link between a recognized handwritten word/stroke and a spoken transcription segment.
+ * Where on the page the recording was being written when the playhead passed a given moment.
  *
- * @property pageIndex 0-based index of the document page containing the ink stroke.
- * @property wordText The recognized text or spoken word.
- * @property bounds Bounding box on the page in point coordinates.
- * @property timeMs Exact millisecond timestamp into the audio recording.
- * @property stroke The source stroke if mapped from inking.
- * @property segment The corresponding transcription segment if mapped from audio.
- */
-data class AlignedWordHit(
-    val pageIndex: Int,
-    val wordText: String,
-    val bounds: Bounds,
-    val timeMs: Int,
-    val stroke: Stroke? = null,
-    val segment: TranscriptionSegment? = null,
-)
-
-/**
- * Synchronizes temporal audio transcription with page handwriting ink telemetry.
- *
- * Provides bidirectional temporal lookup:
- * - Given an audio playhead time $t$, locates the active handwritten ink bounding boxes on the canvas.
- * - Given a handwritten stroke timestamp, locates the matching transcription words/sentence.
+ * The only temporal link the app keeps between ink and sound is the stroke's own timestamp
+ * (`fn`/`ts`, see `docs/audio-inking-sync.md`): a stroke started at `startMs` of a named recording.
+ * That is enough to follow a playing clip across the page — the mini-player asks which strokes were
+ * being written at the playhead and scrolls to them ([findStrokesAtTime]) — and it is all this file
+ * answers. Speech recognition, transcripts and the alignment of spoken words to ink are not part of
+ * the app.
  */
 object AudioInkAligner {
 
@@ -78,95 +61,10 @@ object AudioInkAligner {
         }
     }
 
-    /**
-     * Aligns a list of [transcription] segments with strokes on [doc].
-     * For each segment, finds any strokes committed during that segment's time span
-     * and produces [AlignedWordHit] entries for unified search and seeking.
-     */
-    fun align(
-        doc: Document,
-        transcription: AudioTranscription,
-    ): List<AlignedWordHit> {
-        val timestampedStrokes = findTimestampedStrokes(doc)
-            .filter { (_, _, ref) -> isMatchingAudio(ref.filename, transcription.audioFilename) }
-
-        return buildList {
-            for (segment in transcription.segments) {
-                // Find strokes whose interval overlaps this transcription segment
-                val matching = timestampedStrokes.filter { (_, stroke, ref) ->
-                    val start = ref.startMs
-                    val end = start + stroke.points.sumOf { (it.dtMs ?: 0).coerceAtLeast(0) }
-                    // Overlap check between [segment.startTimeMs, segment.endTimeMs] and [start, end]
-                    start <= segment.endTimeMs && end >= segment.startTimeMs
-                }
-
-                if (matching.isNotEmpty()) {
-                    for ((pageIndex, stroke, ref) in matching) {
-                        add(
-                            AlignedWordHit(
-                                pageIndex = pageIndex,
-                                wordText = segment.text,
-                                bounds = HandwritingRecognizer.strokeBounds(stroke),
-                                timeMs = ref.startMs,
-                                stroke = stroke,
-                                segment = segment,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private fun isMatchingAudio(refA: String, refB: String): Boolean {
+    /** Whether two references name the same recording, whatever folder each was written with. */
+    fun isMatchingAudio(refA: String, refB: String): Boolean {
         val a = refA.substringAfterLast('/').substringAfterLast('\\')
         val b = refB.substringAfterLast('/').substringAfterLast('\\')
         return a.equals(b, ignoreCase = true)
-    }
-
-    /**
-     * Synthesizes an aligned [AudioTranscription] from handwritten strokes on [doc]
-     * tagged with [audioFilename]. Useful for existing documents or when speech recognition
-     * was not captured during recording.
-     */
-    fun buildTranscriptFromStrokes(doc: Document, audioFilename: String): AudioTranscription? {
-        val strokes = findTimestampedStrokes(doc)
-            .filter { (_, _, ref) -> isMatchingAudio(ref.filename, audioFilename) }
-        if (strokes.isEmpty()) return null
-
-        val recognizedWords = runCatching {
-            HandwritingRecognizer.recognizePage(strokes.map { it.second })
-        }.getOrNull().orEmpty()
-
-        val segments = if (recognizedWords.isNotEmpty()) {
-            recognizedWords.mapNotNull { word ->
-                val matching = strokes.minByOrNull { (_, stroke, _) ->
-                    val b = HandwritingRecognizer.strokeBounds(stroke)
-                    val dx = b.left - word.bounds.left
-                    val dy = b.top - word.bounds.top
-                    dx * dx + dy * dy
-                } ?: return@mapNotNull null
-                val ref = matching.third
-                val dur = matching.second.points.sumOf { (it.dtMs ?: 0).coerceAtLeast(0) }.coerceAtLeast(400)
-                TranscriptionSegment(
-                    startTimeMs = ref.startMs,
-                    endTimeMs = ref.startMs + dur,
-                    text = word.text,
-                    confidence = 0.9,
-                )
-            }.distinctBy { it.startTimeMs }
-        } else {
-            strokes.mapIndexed { idx, (_, stroke, ref) ->
-                val dur = stroke.points.sumOf { (it.dtMs ?: 0).coerceAtLeast(0) }.coerceAtLeast(500)
-                TranscriptionSegment(
-                    startTimeMs = ref.startMs,
-                    endTimeMs = ref.startMs + dur,
-                    text = "Stroke #${idx + 1}",
-                    confidence = 1.0,
-                )
-            }
-        }
-
-        return AudioTranscription(audioFilename = audioFilename, segments = segments)
     }
 }

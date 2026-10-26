@@ -282,8 +282,6 @@ data class AppSettings(
     val audioFolderUri: String = "",
     /** Save standalone audio recording file to device storage alongside embedding in document. */
     val saveStandaloneAudio: Boolean = false,
-    /** BCP-47 language tag for transcription ("auto", "it-IT", "en-US", etc.). */
-    val transcriptionLanguage: String = "auto",
     /** Light, dark, or follow the system — applied to the whole app's Material 3 scheme. */
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** Whether to use Android 12+ dynamic colours from the wallpaper (Material You). */
@@ -635,7 +633,6 @@ class SettingsStore(context: Context) {
             topBarHidden = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_HIDDEN, null)).toSet(),
             audioFolderUri = prefs.getString(KEY_AUDIO_FOLDER, d.audioFolderUri) ?: d.audioFolderUri,
             saveStandaloneAudio = prefs.getBoolean(KEY_SAVE_STANDALONE_AUDIO, d.saveStandaloneAudio),
-            transcriptionLanguage = prefs.getString(KEY_TRANSCRIPTION_LANGUAGE, d.transcriptionLanguage) ?: d.transcriptionLanguage,
             themeMode = enumOr(prefs.getString(KEY_THEME_MODE, null), d.themeMode),
             dynamicColor = prefs.getBoolean(KEY_DYNAMIC_COLOR, d.dynamicColor),
             toolShortcutKeys = loadToolShortcutKeys(),
@@ -745,7 +742,6 @@ class SettingsStore(context: Context) {
         e.putString(KEY_TOP_BAR_HIDDEN, encodeTopBarIds(s.topBarHidden))
         e.putString(KEY_AUDIO_FOLDER, s.audioFolderUri)
         e.putBoolean(KEY_SAVE_STANDALONE_AUDIO, s.saveStandaloneAudio)
-        e.putString(KEY_TRANSCRIPTION_LANGUAGE, s.transcriptionLanguage)
         e.putString(KEY_THEME_MODE, s.themeMode.name)
         e.putBoolean(KEY_DYNAMIC_COLOR, s.dynamicColor)
         e.putString(KEY_TOOL_SHORTCUTS, encodeToolShortcuts(s.toolShortcutKeys))
@@ -870,7 +866,6 @@ class SettingsStore(context: Context) {
         const val KEY_TOP_BAR_HIDDEN = "top_bar_hidden"
         const val KEY_AUDIO_FOLDER = "audio_folder_uri"
         const val KEY_SAVE_STANDALONE_AUDIO = "save_standalone_audio"
-        const val KEY_TRANSCRIPTION_LANGUAGE = "transcription_language"
         /** Retired — the badge's corner is derived from the rail's side, never stored; kept only so
          * a save clears the values an older install still carries. */
         const val KEY_PAGE_COUNTER_V = "page_counter_vertical"

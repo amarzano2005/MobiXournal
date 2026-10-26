@@ -33,7 +33,7 @@ object AudioTranscoder {
     /** The MIME type that goes with [CONTAINER_SUFFIX] in the media store. */
     const val MIME_TYPE = "audio/mp4"
 
-    /** ~48 kbps mono: speech stays legible for transcription at ~21 MB an hour. */
+    /** ~48 kbps mono: speech stays clearly legible at ~21 MB an hour. */
     const val BIT_RATE = 48_000
 
     private const val MIME_TYPE_AAC = "audio/mp4a-latm"

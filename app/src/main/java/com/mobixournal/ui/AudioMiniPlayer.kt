@@ -59,7 +59,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.TransformOrigin
-import com.mobixournal.audio.AudioTranscription
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
@@ -71,7 +70,6 @@ import kotlin.math.roundToInt
  * - Stroke inking density heatmap band
  * - Play / Pause, +/- 5s skip buttons
  * - Playback speed selector (0.8x, 1.0x, 1.25x, 1.5x, 2.0x)
- * - Live synchronized subtitle preview from [transcription]
  */
 @Composable
 fun AudioMiniPlayer(
@@ -81,28 +79,19 @@ fun AudioMiniPlayer(
     durationMs: Int,
     waveform: List<Float>,
     heatmap: List<Float> = emptyList(),
-    transcription: AudioTranscription? = null,
     clipTitle: String? = null,
     playbackSpeed: Float = 1.0f,
-    isTranscribing: Boolean = false,
-    transcriptionStatus: String? = null,
     onTogglePlay: () -> Unit,
     onSeek: (Int) -> Unit,
     onSkip: (Int) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onClose: () -> Unit,
-    onTranscribe: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     if (!visible) return
 
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
-    var showTranscript by remember { mutableStateOf(false) }
-
-    val activeSubtitle = remember(playheadMs, transcription) {
-        transcription?.segmentAt(playheadMs)?.text
-    }
 
     val glassColor = rememberFloatingSurfaceColor()
 
@@ -126,21 +115,14 @@ fun AudioMiniPlayer(
                 durationMs = durationMs,
                 waveform = waveform,
                 heatmap = heatmap,
-                transcription = transcription,
-                activeSubtitle = activeSubtitle,
                 clipTitle = clipTitle,
                 playbackSpeed = playbackSpeed,
-                isTranscribing = isTranscribing,
-                transcriptionStatus = transcriptionStatus,
                 playing = playing,
-                showTranscript = showTranscript,
-                onToggleTranscript = { showTranscript = !showTranscript },
                 onTogglePlay = onTogglePlay,
                 onSeek = onSeek,
                 onSkip = onSkip,
                 onSpeedChange = onSpeedChange,
                 onClose = onClose,
-                onTranscribe = onTranscribe,
                 onDrag = { dx, dy ->
                     offsetX += dx
                     offsetY += dy
@@ -156,21 +138,14 @@ private fun MiniPlayerBody(
     durationMs: Int,
     waveform: List<Float>,
     heatmap: List<Float>,
-    transcription: AudioTranscription?,
-    activeSubtitle: String?,
     clipTitle: String?,
     playbackSpeed: Float,
-    isTranscribing: Boolean,
-    transcriptionStatus: String?,
     playing: Boolean,
-    showTranscript: Boolean,
-    onToggleTranscript: () -> Unit,
     onTogglePlay: () -> Unit,
     onSeek: (Int) -> Unit,
     onSkip: (Int) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onClose: () -> Unit,
-    onTranscribe: (() -> Unit)?,
     onDrag: (Float, Float) -> Unit,
 ) {
     Column(
@@ -184,8 +159,6 @@ private fun MiniPlayerBody(
             durationMs = durationMs,
             clipTitle = clipTitle,
             playbackSpeed = playbackSpeed,
-            showTranscript = showTranscript,
-            onToggleTranscript = onToggleTranscript,
             onSpeedChange = onSpeedChange,
             onClose = onClose,
         )
@@ -197,18 +170,6 @@ private fun MiniPlayerBody(
             playheadMs = playheadMs,
             durationMs = durationMs,
             onSeek = onSeek,
-        )
-
-        SubtitleOrTranscriptSection(
-            showTranscript = showTranscript,
-            transcription = transcription,
-            activeSubtitle = activeSubtitle,
-            playheadMs = playheadMs,
-            isTranscribing = isTranscribing,
-            transcriptionStatus = transcriptionStatus,
-            onSeek = onSeek,
-            onOpenTranscript = onToggleTranscript,
-            onTranscribe = onTranscribe,
         )
 
         Spacer(Modifier.height(6.dp))
@@ -244,8 +205,6 @@ private fun MiniPlayerHeader(
     durationMs: Int,
     clipTitle: String?,
     playbackSpeed: Float,
-    showTranscript: Boolean,
-    onToggleTranscript: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -293,18 +252,6 @@ private fun MiniPlayerHeader(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = onToggleTranscript,
-                modifier = Modifier.size(24.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Subtitles,
-                    contentDescription = "Toggle transcript panel",
-                    tint = if (showTranscript) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Spacer(Modifier.width(4.dp))
             SpeedSelectorPill(
                 currentSpeed = playbackSpeed,
                 onSpeedChange = onSpeedChange,
@@ -319,156 +266,6 @@ private fun MiniPlayerHeader(
                     contentDescription = "Close player",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SubtitleOrTranscriptSection(
-    showTranscript: Boolean,
-    transcription: AudioTranscription?,
-    activeSubtitle: String?,
-    playheadMs: Int,
-    isTranscribing: Boolean = false,
-    transcriptionStatus: String? = null,
-    onSeek: (Int) -> Unit,
-    onOpenTranscript: () -> Unit,
-    onTranscribe: (() -> Unit)? = null,
-) {
-    if (showTranscript) {
-        Spacer(Modifier.height(4.dp))
-        TranscriptPanel(
-            transcription = transcription,
-            playheadMs = playheadMs,
-            isTranscribing = isTranscribing,
-            onSeek = onSeek,
-            onTranscribe = onTranscribe,
-        )
-    } else {
-        Spacer(Modifier.height(4.dp))
-        val displayText = when {
-            isTranscribing -> "Transcribing..."
-            !activeSubtitle.isNullOrBlank() -> "“$activeSubtitle”"
-            transcription != null && transcription.segments.isNotEmpty() -> "Transcript (${transcription.segments.size} segments)"
-            !transcriptionStatus.isNullOrBlank() -> transcriptionStatus
-            else -> "Transcript (tap to open)"
-        }
-        val isHighlighted = !activeSubtitle.isNullOrBlank() || isTranscribing
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(
-                    if (isHighlighted) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                )
-                .clickable(enabled = !isTranscribing, onClick = onOpenTranscript)
-                .padding(horizontal = 6.dp, vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isTranscribing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
-                    strokeWidth = 1.5.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Outlined.Subtitles,
-                    contentDescription = null,
-                    tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(12.dp),
-                )
-            }
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = displayText,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun TranscriptPanel(
-    transcription: AudioTranscription?,
-    playheadMs: Int,
-    isTranscribing: Boolean = false,
-    onSeek: (Int) -> Unit,
-    onTranscribe: (() -> Unit)? = null,
-) {
-    val segments = transcription?.segments.orEmpty()
-    if (segments.isEmpty()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "No transcription available",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            if (onTranscribe != null && !isTranscribing) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Transcribe with Whisper",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable(onClick = onTranscribe)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                )
-            }
-        }
-        return
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 120.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(4.dp),
-    ) {
-        items(segments.size) { index ->
-            val segment = segments[index]
-            val isActive = playheadMs in segment.startTimeMs..segment.endTimeMs
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        else Color.Transparent,
-                    )
-                    .clickable { onSeek(segment.startTimeMs) }
-                    .padding(horizontal = 6.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = timeFormat(segment.startTimeMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = segment.text,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
                 )
             }
         }

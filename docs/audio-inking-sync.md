@@ -51,14 +51,6 @@ Rather than relying on vulnerable loose sidecars in user folders:
   cost three copies of it — read to hash, read to deflate, deflated buffer — which is the
   `OutOfMemoryError` a long recording produced on saving. Adoption streams the other way for the same
   reason (`io/BundledAudio.kt` takes an `InputStream`).
-- **Transcription streams too** (`audio/AudioPcmExtractor.kt` → `audio/PcmResampler16k.kt`): the WAV or
-  the decoded Opus/AAC is resampled to 16 kHz mono as it is read, keeping only the output the engine
-  needs, instead of loading the recording and then resampling it into a second array. The decimation is
-  **filtered**: a fourth-order low-pass at 7 kHz runs on every source sample before one can be picked,
-  because taking every third sample of a 44.1 kHz microphone folds 8–22 kHz — hiss, clicks, sibilance —
-  back into the band the recogniser reads as speech. The filter is causal, so a chunked pass still
-  produces exactly what a whole-array pass does, and it seeds its state from the first sample so DC
-  passes at unity from the start.
 - The audio is bound to the document and cannot be detached when sharing or syncing; a `.xopp`
   exported from it is the one shape that still needs a sidecar file on disk.
 - **Why a `.mobix` can still be large.** The codec follows the *document's* format at the moment
@@ -102,68 +94,18 @@ Rather than relying on vulnerable loose sidecars in user folders:
   under their own name and media type instead. It runs on a background thread, and only for a recording
   the tap did not already encode.
 - **What the closing process did not finish resumes next launch (`audio/AudioPendingWork.kt`).** The
-  export and the deferred transcription each leave an entry in `audio-pending.txt` when they start and
-  remove it when they finish. A lecture that ends with the app being closed therefore has its work
-  written down before it begins: `resumePendingAudioWork` copies the pre-encoded `.m4a` out on the next
-  launch, and restarts a transcription whose service was killed — which itself resumes from the sidecar
-  it already wrote, so nothing is transcribed twice. A job whose recording and pre-encoded copy are both
-  gone is dropped instead of being retried forever.
+  export leaves an entry in `audio-pending.txt` when it starts and removes it when it finishes. A lecture
+  that ends with the app being closed therefore has its work written down before it begins:
+  `resumePendingAudioWork` copies the pre-encoded `.m4a` out on the next launch. A job whose recording
+  and pre-encoded copy are both gone is dropped instead of being retried forever; a line an older build
+  wrote for a job this one no longer runs is skipped, not retried.
 
-### On-device Speech-to-Text and stroke synchronization
-- **Temporal transcript segments (`TranscriptionSegment`)**: Stores recognized speech with start and end timestamps
-  in milliseconds (`startTimeMs`, `endTimeMs`, `text`, `confidence`), serialized in `.mobix` via
-  `TranscriptionCodec` into `transcript.json`. What a save writes is the transcript in memory, or — when
-  the lecture was saved before the transcription finished — the sidecar already on disk
-  (`audio/<name>.transcript.json`), so closing the app right after saving no longer drops it: without that
-  fallback the file would carry no transcript, and the next open would have nothing to put back in memory.
-- **Where its progress is shown**: only inside the Audio pop-up (draft status line with a spinner) and
-  the mini-player's transcript section. The recording capsule in the top bar keeps showing play/pause
-  throughout — a background job must not turn a control into a status display that the user then cannot
-  press.
-- **On-device Whisper engine (`WhisperOfflineTranscriber` & `WhisperModelManager`)**: Offline automatic speech recognition
-  powered by `sherpa-onnx` ONNX Runtime int8 models (`whisper-tiny` ~39 MB, `whisper-base` ~75 MB). Runs locally at
-  without network requests or microphone timeouts. The first
-  transcription downloads `whisper-tiny` automatically (with visible progress), so transcription needs no
-  manual model setup; when no model is present the service falls back to the platform recognizer.
-- **The model is a choice (`WhisperModelManager.selectedModel`)**: the audio pop-up names the model in use
-  and offers Tiny (fast) and Base (more accurate); picking one the device does not hold downloads it with
-  a visible progress notification, and the choice lives beside the weights rather than in the settings
-  backup. Live and post-stop transcription both use the chosen model when its weights are present and fall
-  back to whatever else is installed — before this, `getAvailableModel` preferred Tiny even when Base was
-  installed, and the first-run download always fetched Tiny whatever the user had picked.
-- **Segments follow the words, not the clock (`segmentsFromTokens`)**: each decode is asked for token
-  timestamps (`OfflineWhisperModelConfig.enableTokenTimestamps`), and every token is filed under the VAD
-  phrase whose span contains the moment it was said. Asking for them costs the engine a word-alignment
-  pass on top of the decode — the one thing this pipeline change adds whose cost has not been measured on a
-  device, and the reason the live job's bounded span queue matters: a slower decode falls behind and the
-  post-stop run finishes the tail, and the transcript stays correct either way because a decode that
-  reports no timing takes the proportional path. `distributeText` stays as the fallback for a model or
-  stream that reports no usable timing. A line therefore reads like the sentence actually spoken during
-  it, and a tap on that line lands at the second the words were said.
-- **It decodes windows, not phrases (`TranscriptionWindows`)**: Whisper's encoder always works on a 30-second mel
-  window and pads shorter audio up to it, so decoding one 2–6 s VAD phrase costs what decoding 30 s costs. The
-  phrases are therefore grouped into consecutive windows of 28 s (`WINDOW_MS`, cut only between phrases at a
-  silence) and each window is one decode: on ten minutes of speech the VAD produces ~230 phrases and the grouping
-  ~24 windows, i.e. 9–10× fewer padded encoder passes for the same bytes and the same model (pinned by
-  `TranscriptionWindowsTest`). The recognised text is filed back over the phrases the window covers by the words' own timings
-  (`segmentsFromTokens`, with `distributeText` as the fallback), so segments keep the VAD's real timestamps, stay
-  chronological, none is empty and every word is kept — and a word lands in the phrase it was spoken in, not in the
-  share of the window that phrase happens to fill. Windows carry their audio lazily (`pcm()`): grouping an hour of
-  speech must not hold a second copy of the recording. Inference uses the device's cores, capped at six
-  (`WhisperOfflineTranscriber.inferenceThreads`), where it used to be a literal 4.
-- **It runs during the recording too (`LiveTranscription`)**: while the microphone is open the recorder's PCM goes into a live job (`AudioSession.addPcmListener` → `LiveResampler16k` → `LiveSpanCutter` → one worker thread). The stream is resampled to 16 kHz as it arrives and cut into **spans** at silences (≥6 s, ≤28 s, never inside a word unless the maximum forces it); each span then runs the same pipeline the file path runs (VAD phrases → windows → Whisper) and the transcript file is rewritten after every span. The post-stop job **resumes from the last segment it finds there**, so nothing is transcribed twice and a session that keeps up leaves only its final seconds for Stop. The queue holds four spans and then the live job gives up on its own: inference that falls behind the microphone must not take the machine from the app being written in, and whatever it did not reach is exactly what the post-stop path already does. It runs in the app's process, kept alive and awake by the recording foreground service, so a screen that is off changes nothing. The honest limit: this moves the wait into the recording, it does not make the engine faster — if inference is slower than real time, the tail is simply longer and the file path finishes it.
-- **Background execution (`AudioTranscriptionService`)**: Android foreground service (`FOREGROUND_SERVICE_DATA_SYNC`)
-  holding a partial wake lock with ongoing notification progress bar. Allows hour-long lectures to finish processing
-  even when the device screen is locked or another application is active. Progress reports windows, and the final
-  status carries the measured wall time (`Transcription complete (N segments in Xs)`) — for a resumed transcription
-  that is the tail's time, which is the whole point of the live job — so a windowing or thread-count change can be
-  judged on a device instead of argued about.
-- **Temporal ink alignment (`AudioInkAligner`)**: Correlates handwritten stroke telemetry (`startMs` + $\sum \Delta t$)
-  with spoken audio segments. Tapping a stroke navigates directly to the exact spoken phrase; seeking in audio
-  locates the bounding box of words written at that moment on the page canvas.
-- **Unified multi-modal search (`DocumentSearch`)**: Search queries automatically scan across typed text boxes,
-  PDF background layers, recognized handwriting, and spoken audio transcripts simultaneously, highlighting
-  both the handwritten ink on canvas and the active playback point.
+### Stroke-time lookup
+- **`AudioInkAligner`** answers one question: which strokes were being written at a given moment of a
+  named recording (`findStrokesAtTime`, a `startMs` plus the stroke's own \(\Delta t\) sum, with a
+  three-second tolerance). The mini-player uses it to scroll the canvas to the writing the playhead
+  has reached. There is no speech recognition and no transcript: the words spoken over a lecture are
+  not turned into text by this app, so search covers typed text, PDF text and handwriting only.
 
 ---
 
@@ -230,26 +172,23 @@ During playback of a lecture or meeting:
 - As the audio timestamp reaches $t_{\text{abs}}(P_i)$, the stroke path animates smoothly forward in real time.
 - The active writing tip is decorated with a subtle pulsing glowing indicator.
 
-### 3. Floating frosted-glass mini-player (`AudioMiniPlayer`)
+### 2. Floating frosted-glass mini-player (`AudioMiniPlayer`)
 - **HUD pill (`AudioMiniPlayer`)**: A modern, draggable frosted-glass pill floating over the canvas with real
-  amplitude waveform visualization, inking density heatmap, subtitle previews, +/- 5s skips, and speed selector
+  amplitude waveform visualization, inking density heatmap, +/- 5s skips, and speed selector
   (0.8x, 1.0x, 1.25x, 1.5x, 2.0x) with pitch preservation. Its width is fixed (300 dp), so the header is a
-  weighted Row: the controls (transcript, speed, close) are measured first and the clip title — which carries
+  weighted Row: the controls (speed, close) are measured first and the clip title — which carries
   the document's name — gets the leftover space and ellipsizes there. Before that the title was unweighted and
   an uncapped name pushed the speed selector out of the pill.
 - **Waveform extractor (`AudioWaveformExtractor`)**: Decodes normalized amplitude vectors from local audio recordings
   with in-memory caching to avoid redundant file reads.
 
-### 4. Tri-directional touch-to-seek synchronization
-- **Direction 1 (Ink → Audio & Transcript)**: Tapping any handwritten stroke with audio references instantly
-  seeks the audio playhead to the point-precise timestamp, summons the floating mini-player HUD, drives
-  karaoke stroke illumination and glowing nib tips, and highlights the spoken transcript segment in real time.
-- **Direction 2 (Transcript → Audio & Canvas Viewport)**: Tapping any recognized phrase in the interactive
-  transcript panel seeks the audio playback to `startTimeMs`, updates the waveform scrubber, and auto-scrolls
-  the canvas viewport directly to the handwritten strokes written at that exact moment (`scrollToAudioTimestamp`).
-- **Direction 3 (Waveform Scrub → Viewport & Transcript)**: Dragging or tapping along the amplitude waveform
-  scrubber repositions the audio playhead, repaints karaoke states immediately via single vsync publish,
-  centers the canvas on corresponding handwriting, and continuously updates the active spoken subtitle.
+### 3. Touch-to-seek synchronization
+- **Ink → Audio**: Tapping any handwritten stroke with audio references instantly seeks the audio playhead
+  to the point-precise timestamp, summons the floating mini-player HUD, and drives karaoke stroke
+  illumination and glowing nib tips.
+- **Waveform Scrub → Viewport**: Dragging or tapping along the amplitude waveform scrubber repositions the
+  audio playhead, repaints karaoke states immediately via single vsync publish, and centers the canvas on
+  the handwriting written at that moment (`scrollToAudioTimestamp`).
 
 ---
 

@@ -213,7 +213,6 @@ private fun MainActivity.applyLoadedDoc(loaded: LoadedFile.Doc, source: Uri, isR
     // A board is where this matters most — an arbitrary zoom on an unbounded sheet can leave the
     // view somewhere with no ink at all with no way back.
     surface?.resetZoom()
-    activeTranscription.value = loaded.transcription
     if (loaded.pdf != null) analyzePdfInBackground(loaded.pdf)
     else if (loaded.missingPdf) toast("Background PDF not found; those pages will be blank")
     else if (loaded.missingImage) toast("Background image not found; those pages will be blank")
@@ -550,7 +549,7 @@ internal fun MainActivity.saveDocument(uri: Uri) {
             // archive streams in ([AudioSession.recordingFile]) — a long lecture is never materialised
             // to be saved.
             val encoded = io.encode(
-                document, pdf, saveFormat, uri, images, audio::recordingFile, canvasMode, transcriptionForSave(),
+                document, pdf, saveFormat, uri, images, audio::recordingFile, canvasMode,
             )
             try {
                 io.stageOut(encoded.file, uri)

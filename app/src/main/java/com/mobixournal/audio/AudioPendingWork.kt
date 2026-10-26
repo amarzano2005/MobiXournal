@@ -6,15 +6,16 @@ import java.io.File
  * A post-recording job that has to outlive the session that started it.
  *
  * The end of a lecture is exactly when the user closes the app, so anything still running then is
- * lost unless it is written down first: the standalone export and the deferred transcription both
- * leave an entry here when they start and remove it when they finish, and the next launch picks up
- * whatever is left ([com.mobixournal.resumePendingAudioWork]).
+ * lost unless it is written down first: the standalone export leaves an entry here when it starts
+ * and removes it when it finishes, and the next launch picks up whatever is left
+ * ([com.mobixournal.resumePendingAudioWork]).
  *
  * @property audioName the bare sidecar name the job belongs to (`2026-10-22T09-00-00.ogg`).
  */
 data class PendingAudioWork(val kind: Kind, val audioName: String) {
 
-    enum class Kind { EXPORT, TRANSCRIBE }
+    /** The one post-recording job the app still runs. */
+    enum class Kind { EXPORT }
 }
 
 /**
@@ -76,15 +77,17 @@ object AudioPendingWork {
         }
     }
 
+    /**
+     * The kind as it is written on disk. A line naming a job this build no longer runs — an older
+     * queue's `transcribe|…` — is simply not a kind, so [decode] skips it instead of failing the launch.
+     */
     private enum class Kind(val label: String) {
         EXPORT("export"),
-        TRANSCRIBE("transcribe"),
         ;
 
         companion object {
             fun of(label: String): PendingAudioWork.Kind? = when (label.lowercase()) {
                 EXPORT.label -> PendingAudioWork.Kind.EXPORT
-                TRANSCRIBE.label -> PendingAudioWork.Kind.TRANSCRIBE
                 else -> null
             }
         }

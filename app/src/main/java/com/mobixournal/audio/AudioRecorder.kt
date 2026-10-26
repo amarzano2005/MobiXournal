@@ -77,7 +77,7 @@ class AudioRecorder {
     private fun openAudioRecord(bufferBytes: Int): AudioRecord? {
         val sources = intArrayOf(
             // VOICE_RECOGNITION first: it is the source Android tunes for speech (automatic gain
-            // and noise suppression), which is what a lecture transcript needs. A device that does
+            // and noise suppression), which is what a recorded lecture needs. A device that does
             // not offer it is still recorded through the plain microphone below.
             MediaRecorder.AudioSource.VOICE_RECOGNITION,
             MediaRecorder.AudioSource.MIC,

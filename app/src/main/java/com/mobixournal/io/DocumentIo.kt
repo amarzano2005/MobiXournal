@@ -272,9 +272,6 @@ class DocumentIo(
             openSessions.shape(mobixDoc)
             // …and that the reader backing it has to stay open for as long as the session holds it.
             openSessions.keep(mobixDoc.manifest.documentId, reader)
-            val transcript = entries.readBytes(MobixFormat.TRANSCRIPT_ENTRY)?.let {
-                com.mobixournal.audio.TranscriptionCodec.decode(String(it, Charsets.UTF_8))
-            }
 
             LoadedFile.Doc(
                 document = mobixDoc.toDocument(),
@@ -285,7 +282,6 @@ class DocumentIo(
                 conflictNotification = conflictNote,
                 backgrounds = backgrounds,
                 canvasMode = mobixDoc.manifest.canvasMode,
-                transcription = transcript,
             )
         } catch (e: Throwable) {
             reader.close()
@@ -486,7 +482,6 @@ class DocumentIo(
          */
         audioFiles: (String) -> File? = { null },
         canvasMode: CanvasMode = CanvasMode.PAGINATED,
-        transcription: com.mobixournal.audio.AudioTranscription? = null,
     ): Encoded {
         val out = staging.newFile("save")
         // The three formats are the core's own writers; what this class adds is the staging file and the
@@ -503,14 +498,6 @@ class DocumentIo(
                 pdf = pdf,
                 images = images,
                 audioFiles = audioFiles,
-                extraEntries = transcription?.let { transcript ->
-                    mapOf(
-                        MobixFormat.TRANSCRIPT_ENTRY to MobixPayload.of(
-                            com.mobixournal.audio.TranscriptionCodec.encode(transcript)
-                                .toByteArray(Charsets.UTF_8),
-                        ),
-                    )
-                } ?: emptyMap(),
                 entrySource = entrySources,
             )
         }

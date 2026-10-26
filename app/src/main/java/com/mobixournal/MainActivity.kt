@@ -136,6 +136,39 @@ class MainActivity : ComponentActivity() {
     internal val settingsStore: SettingsStore by lazy { SettingsStore(this) }
 
     /**
+     * **The live settings object** — what the window is drawn from, and the only value [commitSettings]
+     * ever writes.
+     *
+     * Reading the store back on every write was how a choice could be lost: a control that saved
+     * `store.load().copy(…)` never told this object, so the next unrelated change wrote the old value
+     * over it. Every writer now goes through one place, so what is on screen and what is on disk cannot
+     * disagree.
+     */
+    internal val settingsState = mutableStateOf(AppSettings())
+
+    /**
+     * Make [next] the live settings and persist it — theme and window background included, because they
+     * are consequences of the value rather than of the control that changed it.
+     */
+    internal fun commitSettings(next: AppSettings) {
+        if (settingsState.value.themeMode != next.themeMode) {
+            MobiXournalApp.applyThemeMode(this, next.themeMode)
+            window.setBackgroundDrawableResource(
+                if (isDarkTheme(next)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
+            )
+        }
+        settingsState.value = next
+        settingsStore.save(next)
+        applySettingsToLayers(next)
+    }
+
+    /**
+     * Change the live settings with [change] — the one writer for a control that only touches one
+     * preference, read out of the object the window holds rather than out of the store.
+     */
+    internal fun updateSettings(change: (AppSettings) -> AppSettings) = commitSettings(change(settingsState.value))
+
+    /**
      * The folder sidecar `.wav` files are kept in — a persisted `OpenDocumentTree` grant, normally
      * the folder the user's `.xopp` files live in. Null until they nominate one, in which case audio
      * still records and plays but never leaves the app (see [AudioSession]).
@@ -155,23 +188,8 @@ class MainActivity : ComponentActivity() {
      */
     internal var karaokeDriver: KaraokeFrameDriver? = null
 
-    /** Active speech-to-text transcription associated with the open document or current recording. */
-    internal val activeTranscription = mutableStateOf<com.mobixournal.audio.AudioTranscription?>(null)
-
-    /** The job transcribing the recording that is being made, if one is running ([beginLiveTranscription]). */
-    internal var liveTranscription: com.mobixournal.audio.LiveTranscription? = null
-
-    /** The PCM listener feeding [liveTranscription], kept so it can be unhooked by identity. */
-    internal var livePcmListener: ((ByteArray, Int, Int) -> Unit)? = null
-
     /** The encoder producing the standalone `.m4a` while this recording runs ([beginStandaloneExport]). */
     internal var standaloneTap: com.mobixournal.audio.StandaloneAudioTap? = null
-
-    /** Whether speech-to-text deferred transcription is currently running in background. */
-    internal val isTranscribing = mutableStateOf(false)
-
-    /** Status message for deferred transcription, displayed inline in the player. */
-    internal val transcriptionStatus = mutableStateOf<String?>(null)
 
     /** The most recent audio recording made or referenced, used for autonomous playback fallback. */
     internal var lastAudioRef: AudioRef? = null
@@ -181,9 +199,6 @@ class MainActivity : ComponentActivity() {
 
     /** The duration in ms of the most recent audio recording played or referenced. */
     internal var lastDurationMs: Int? = null
-
-    /** On-device speech recognition engine active during recording sessions. */
-    internal var speechEngine: com.mobixournal.audio.SpeechToTextEngine? = null
 
     /** The active pane's open documents and which one is showing (see `com.mobixournal.tabs`). */
     internal val tabs: TabManager get() = pane.tabs
@@ -433,26 +448,24 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val store = settingsStore
-        val initialSettings = store.load()
+        val initialSettings = settingsStore.load()
         setupThemeAndWindow(initialSettings)
 
         super.onCreate(savedInstanceState)
         restoreSplitWorkspace(savedInstanceState)
         applyEdgeToEdge(isDarkTheme(initialSettings))
         initSubsystems(initialSettings)
-        // Whatever the last session could not finish (a standalone export, a transcription the user
-        // closed the app on) is picked up here — closing after a lecture must never mean losing it.
+        // Whatever the last session could not finish — a standalone export the user closed the app on
+        // — is picked up here, so closing after a lecture never means losing it.
         resumePendingAudioWork()
-        showEditor(initialSettings, store)
+        showEditor(initialSettings)
     }
 
     /** The one window: the editor over the settings store, wired to every launcher this activity owns. */
-    private fun showEditor(initialSettings: AppSettings, store: SettingsStore) {
+    private fun showEditor(initialSettings: AppSettings) {
+        settingsState.value = initialSettings.also(::applySettingsToLayers)
         setContent {
-            var settings by remember {
-                mutableStateOf(initialSettings.also(::applySettingsToLayers))
-            }
+            val settings by settingsState
             XoppTheme(darkTheme = settings.themeMode.isDark(), dynamicColor = settings.dynamicColor) {
                     EditorScreen(
                     onOpen = { openLauncher.launch(arrayOf("*/*")) },
@@ -513,17 +526,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     settings = settings,
-                    onSettingsChange = {
-                        if (settings.themeMode != it.themeMode) {
-                            MobiXournalApp.applyThemeMode(this@MainActivity, it.themeMode)
-                            window.setBackgroundDrawableResource(
-                                if (isDarkTheme(it)) R.drawable.splash_screen_dark else R.drawable.splash_screen_light,
-                            )
-                        }
-                        settings = it
-                        store.save(it)
-                        applySettingsToLayers(it)
-                    },
+                    onSettingsChange = ::commitSettings,
                     audio = audioUiState(),
                     // Page bookmarks are kept per document, keyed by the tab's identity (see
                     // PageBookmarks) — never in the file, which has no page label to hold them.
