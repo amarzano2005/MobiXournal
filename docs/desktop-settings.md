@@ -137,7 +137,9 @@ two different questions:
 - **Tool strips → Placement** (`stripPlacement`): **Left**, **Right** or **Top**, and nothing else. Left and
   Right are the tablet's **rail**, on the edge opposite the writing hand; Top is the **ribbon** under the
   header. The side is part of the placement rather than a second row, so there is no "a ribbon on the left".
-  Both strips are re-laid live; neither ever lies on the page (`docs/desktop-workstation.md`).
+  Both strips are re-laid live, and both **float over the page** (decision 2026-10-26,
+  `docs/interface-contract.md`): the canvas keeps the whole body, so the choice moves the tools and never the
+  sheet.
 - **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
   whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down. The
   arrangement is `DesktopSettingsState.toolGroups` and both strips read it, so a button moved here moves in

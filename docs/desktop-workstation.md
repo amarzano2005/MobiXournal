@@ -110,16 +110,17 @@ What it does today:
 - **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF page**
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
-  and a **48 dp ribbon capsule in a 56 dp band** under the header — **Left**, **Right** or **Top**
-  (`stripPlacement`), re-laid live. `Ctrl+,` opens the panel that sets it, and
-  [`desktop-settings.md`](desktop-settings.md) owns what each of its sections answers and which of them
-  the window cannot yet; the header has no chooser, because moving the strips is a setting.
-  The lane is **air, not glass over glass**: painting it too stacked two sheets, rail #161618.
-  The strip is a **capsule** with its own 6 dp lift and the family's rim, so
-  its fill is the window's band `#0C0C0D` (the glass at `DESKTOP_BAND_ALPHA`, blacker than the tablet's
-  `#131314`), and each header control is the same object at 36 dp. Both placements draw the same slots,
-  in the order, glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked
-  slot a 10 dp squircle in the steel `#38383E` and a name-and-hotkey pill on hover.
+  and a **48 dp ribbon capsule in a 56 dp band** across the top — **Left**, **Right** or **Top**
+  (`stripPlacement`), re-laid live, and both **float over the page** (2026-10-26) — the sheet runs behind
+  them, and a drag begun on one is never a stroke under it. `Ctrl+,` opens the panel that sets it, and
+  [`desktop-settings.md`](desktop-settings.md) owns what each of its sections answers and which of them the
+  window cannot yet; the header has no chooser, because moving the strips is a setting.
+  The strip is a **capsule** — its own 6 dp lift, the family's rim, and the only glass there (the lane is
+  **air**: painting it too stacked two sheets, rail #161618) — filled with the window's glass at
+  `DESKTOP_BAND_ALPHA`, so it reads `#0C0C0D` over the desk and the sheet through it over the page. Each
+  header control is the same object at 36 dp. Both placements draw the same slots in the order, glyphs and
+  shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, the picked slot a 10 dp squircle in the
+  `#38383E` and a name-and-hotkey pill on hover.
   **A slot is a tool *group*, as on the tablet**: the **eraser slot** holds its two members (partial,
   whole-stroke), the **Text slot** holds prose and formula, and pen, highlighter, the **hand**, vertical
   space, each STEM slot and **every figure** (Line, Arrow, Double arrow, Rectangle, Ellipse, Spline, Axes)
@@ -335,14 +336,12 @@ for Text (it writes words, not a band), and the hand for the hand.
 `.xopp` and a 40-page `.mobix` (including both **misnamed**, in either direction), refuses a text file and a
 ZIP with no document inside by name, renders page 1 of each headlessly via `ImageComposeScene`, and renders a
 table, a parametric shape, a bundled pixmap and a PDF background — asserting the pixels, not that the call
-returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and after** a
-document is opened and asserts the frames differ (the regression that caught a strip which never redrew),
-renders the sidebar, and checks the keyboard's fit and zoom arithmetic. `ToolStripsTest` renders the rail and
-the ribbon on their own (every slot must have drawn its glyph — the eraser slot the *member that is picked* —
-and the picked one wears the active slot), then the whole window with the strip at the left, the right and the top, reading the paper
-out of the pixels: the page starts after the rail's lane and below the ribbon's band in every placement — the
-mechanical form of "a band never lies on the page". `OpenFailureTest` pins what a failed open says in each of
-its cases and how a command line is put back together (`DesktopLaunchPathTest`). `DesktopSaveTest` is the write's
+returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and after** a document
+is opened and asserts the frames differ, renders the sidebar, and checks the keyboard's zoom arithmetic. `ToolStripsTest` renders the rail and the
+ribbon on their own (every slot draws its glyph, the picked one wearing the active slot), then the whole window
+with the strip at the left, the right and the top, reading the pixels: the sheet keeps its place and reaches
+under the capsules, and a tap and two drags at the glass leave the page's elements untouched. `OpenFailureTest` pins what a failed open says
+(`DesktopLaunchPathTest`: a command line put back together). `DesktopSaveTest` is the write's
 round trip: an edit saved over a gzip `.xopp` and over a 40-page `.mobix`, each re-opened through
 `DocumentLoader` with the container and the untouched pages asserted, a Save As that turns a `.mobix` into a
 `.xopp` and re-homes the tab, a packaged `.xopp` refused with its file byte-identical, and the version the
@@ -398,3 +397,4 @@ same rail on the right edge for a left hand, and a horizontal ribbon under the h
 **Settings**, not by a header chooser, where the order of the tools in the strip is set too; and the
 tab/view model is Compose **snapshot
 state**, redrawn by the state it reads instead of a second copy.
+

@@ -32,7 +32,8 @@ can place. The tour that asks it is owned by [`stylus.md`](stylus.md#first-launc
 
 The chrome never sits **on** the page: the header (top bar plus its tabs row) and the rail's lane each
 take a band of their own and the canvas takes what is left, so the whole visible page stays writable —
-see _The frame around the page_, below.
+see _The frame around the page_, below. The **desktop window** is the one shell whose tool strips float
+instead (2026-10-26): a cursor says what is about to be touched — `docs/interface-contract.md` owns it.
 
 `orderedTopBarItems` places a slot the saved order doesn't name (one added since that order was written) at its **factory
 position** — just ahead of the next factory item the order does name — rather than appending it past
