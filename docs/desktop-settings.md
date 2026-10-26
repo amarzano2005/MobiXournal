@@ -7,10 +7,19 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 ## What it is
 
 `Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — glass, the
-family's rim, a 20 dp corner — so a setting is changed while looking at the thing it changes. Its index is
-the **tablet's thirteen sections**, in the tablet's order, each wearing the shared `SettingsGlyphCatalogue`
-mark (`SettingsSections.kt`); a page is **rows**, the name and one sentence on the left and the control at
-the right edge (`SettingsRows.kt`).
+family's rim, a 20 dp corner — so a setting is changed while looking at the thing it changes. It is
+**draggable by its title bar**: it opens centred, which is over the sheet the reader came to compare
+against, and dragging it is how the thing being changed is kept in view. The offset is clamped so the panel
+cannot be lost off an edge (and it is not stored — a window that opened with its panel half off the screen
+would be the setting nobody chose). Its fill is `DesktopTheme.settingsPanel`, the glass at **0.97**: at the
+floating alpha the page's own ink came up through the labels.
+
+Its index is **ten sections** — Stylus, Toolbar, Figures, Colors, Shortcuts, Navigation, Appearance,
+Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each wearing the
+shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). What the window does **not** carry is the
+phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
+shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
+**rows**, the name and one sentence on the left and the control at the right edge (`SettingsRows.kt`).
 
 A row that has a mechanism behind it is a real control and changes the open window the moment it is
 clicked. A row the window cannot answer is **drawn and disabled with one sentence saying what is
@@ -86,6 +95,14 @@ window listens to:
   frame (`DesktopTablet.open` is keyed on it), so a switch is never a stroke that jumps half way through
   one, and the status bar keeps naming the stream actually open — a preference this host cannot honour
   says so instead of looking applied.
+- **Pen → Pressure sensitivity** (`tablet.pressureEnabled`, on by default), then **Minimum pressure**
+  (`tablet.minimumPressure`) and **Multiplier** (`tablet.pressureMultiplier`): the tablet's Stylus rows, and
+  the two numbers of desktop Xournal++'s own filter (`docs/stylus.md`). The floor is the thinnest line a
+  light press can draw, the multiplier how far above 1.00 a light writer reaches the full width; both are
+  read by the same shared filter the phone and the desktop vector painter use, so a stroke is the same
+  width on either shell. With sensitivity **off** every stroke is drawn at its set width, and the two
+  numbers stay on screen because that is the state they are remembered in. The surface's hamburger menu
+  carries the same three controls (`MenuPenBlock`), because they are reached mid-drawing.
 - **Pen → Pressure curve** (`tablet.pressureExponent`, 0.5…2.0): **mine, not the desktop's**. 1.0 is the
   line above, and any other reading is opt-in shaping applied *before* the Xournal++ filter at both of the
   pen's adapters (`PenPacketStroke` for the driver's packets, `PageInkGesture.inkPointer` for Compose's
@@ -108,5 +125,49 @@ The mechanism is a real context of the window's own: `TabletAreaMap` turns the r
 `CXO_SYSTEM` cleared — a screen-mapped context would ignore every field. A driver that declares no usable
 axis, or a context it refuses to open, **keeps the system context** rather than leaving a dead pen.
 
-**Barrel button** is drawn and unavailable: the driver reads the pen's buttons and the window receives them
-as the eraser tip, so there is no second meaning to configure yet.
+The window has **no barrel-button row**: the driver reads the pen's buttons and the window receives them as
+the eraser tip, so there is no second meaning to configure — and a row for it was a page of one dead
+setting.
+
+## Toolbar — the strips' place and their order
+
+Under **Toolbar**, in two groups, because *where* the strip stands and *what order* it lists the tools in are
+two different questions:
+
+- **Tool strips → Placement** (`stripPlacement`): **Left**, **Right** or **Top**, and nothing else. Left and
+  Right are the tablet's **rail**, on the edge opposite the writing hand; Top is the **ribbon** under the
+  header. The side is part of the placement rather than a second row, so there is no "a ribbon on the left".
+  Both strips are re-laid live; neither ever lies on the page (`docs/desktop-workstation.md`).
+- **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
+  whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down. The
+  arrangement is `DesktopSettingsState.toolGroups` and both strips read it, so a button moved here moves in
+  the rail and in the ribbon — and a picker's chevron follows its slot. **Factory order** puts every slot
+  back; like **Restore defaults** on the key table, it writes nothing, because the factory order is every
+  slot that is not in the file (`toolbar.order`).
+
+## Figures — a width of their own
+
+Under **Figures**: the **preset** (the tablet's three S/M/L slots, `PenPalette.DEFAULT_WIDTHS`) and a
+**slider** for anything between them (`figures.width`). A figure has no pressure — it is drawn at its full
+width — so this value is what a rectangle, an arrow, a circuit or a placed element is stroked with, and it
+is why a figure can match a light pen stroke instead of the pen's widest slot. The pen's own widths stay in
+the strip's colour capsule, per tool.
+
+## Documents — the container a new file is born as
+
+Under **Documents**, **New document** (`documents.format`) is the tablet's three-way choice: **`.mobix`**
+keeps figures and tables as recipes, **`.xopp`** is a plain gzip document for desktop Xournal++, and
+**zipped `.xopp`** carries its attachments inside one file. The tab a new document opens in is written as
+that container, and its proposed name carries the same suffix (`Untitled 1.mobix`), so the first save writes
+what the setting promised. **Save As** still switches either way, and an opened document keeps its own
+format whatever this row says (`docs/mobix-format.md`).
+
+## Backup — the settings, in a file
+
+Under **Backup**, **Export settings…** writes every choice in `desktop.properties` to a file with a stamp
+(`backup.format` / `backup.version`), and **Import settings…** reads one back (`DesktopSettingsBackup`). The
+import is **wholesale**: a backup is a configuration, so a key it does not carry is a key that was not set
+when it was written. A file that is not a backup, or one written by a newer build, is **refused with its
+reason** and nothing changes — the sentence appears under the rows, not in a dialog. A successful import
+re-reads the inks and the palette, so the change is visible on the page behind the panel rather than only on
+the rows.

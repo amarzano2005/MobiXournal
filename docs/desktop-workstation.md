@@ -110,8 +110,8 @@ What it does today:
 - **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF page**
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
-  and a **48 dp ribbon capsule in a 56 dp band** under the header — Side, Top or Both, on either edge
-  (`stripPlacement`, `railSide`), re-laid live. `Ctrl+,` opens the panel that sets it, and
+  and a **48 dp ribbon capsule in a 56 dp band** under the header — **Left**, **Right** or **Top**
+  (`stripPlacement`), re-laid live. `Ctrl+,` opens the panel that sets it, and
   [`desktop-settings.md`](desktop-settings.md) owns what each of its sections answers and which of them
   the window cannot yet; the header has no chooser, because moving the strips is a setting.
   The lane is **air, not glass over glass**: painting it too stacked two sheets, rail #161618.
@@ -339,7 +339,7 @@ returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip *
 document is opened and asserts the frames differ (the regression that caught a strip which never redrew),
 renders the sidebar, and checks the keyboard's fit and zoom arithmetic. `ToolStripsTest` renders the rail and
 the ribbon on their own (every slot must have drawn its glyph — the eraser slot the *member that is picked* —
-and the picked one wears the active slot), then the whole window in Rail, Ribbon and Both, reading the paper
+and the picked one wears the active slot), then the whole window with the strip at the left, the right and the top, reading the paper
 out of the pixels: the page starts after the rail's lane and below the ribbon's band in every placement — the
 mechanical form of "a band never lies on the page". `OpenFailureTest` pins what a failed open says in each of
 its cases and how a command line is put back together (`DesktopLaunchPathTest`). `DesktopSaveTest` is the write's
@@ -393,6 +393,8 @@ Measured on 2026-10-22 against the Android editing path (line counts re-checked 
 
 Three decisions taken on 2026-10-21, owned by [`ui-modernization.md`](ui-modernization.md): the chrome is
 the app's **own glass on a true-black desk** (Mica/Vibrancy would tint the window with the wallpaper and stop
-it matching the tablet); **both tool placements ship** — vertical rail by default, horizontal ribbon as the
-alternative — chosen in **Settings**, not by a header chooser; and the tab/view model is Compose **snapshot
+it matching the tablet); **three tool placements ship** — a vertical rail on the left (the default), the
+same rail on the right edge for a left hand, and a horizontal ribbon under the header — chosen in
+**Settings**, not by a header chooser, where the order of the tools in the strip is set too; and the
+tab/view model is Compose **snapshot
 state**, redrawn by the state it reads instead of a second copy.

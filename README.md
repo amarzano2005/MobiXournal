@@ -118,15 +118,21 @@ carries no app name, no logo and no second icon: **the caption is the tabs alone
 the taskbar where it belongs. A **hamburger** in the header opens New, Open, Save, Save
 As and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens without a file
 opens one too, instead of an empty notice. The menu is the tablet's, command for command: the four file
-tiles, the export chips, a **Pen** block whose heading opens the colour panel and whose **Default** chip
-puts the pen back on its factory ink, and the page list and **Settings** rows under a rule. **Settings** —
-`Ctrl + ,`, or the row at the foot of that menu — opens as a **floating panel over the page** (the
-document stays in view while you change what it looks like), with the tablet's own list of sections in the
-left column — each wearing the same glyph the tablet draws — and one setting per row on the right. A row
-the window cannot answer is drawn disabled and says so rather than pretending. What it holds today: where
-the tool strips stand (side, top or both, and which edge), the zoom a document opens at, when the page
-list and the inspector appear, which pen stream the window reads, and whether the status bar reports its
-frame time; each one is stored as it is chosen and applied at once. The toolbars are
+tiles, the export chips, a **Pen** block whose **Parameters…** chip opens the pen's own settings page and
+whose **Default** chip puts the pen back on its factory ink, and the page list and **Settings** rows under a
+rule. The menu's Pen block also carries the three pressure controls — **Pressure**, **Min pressure** and
+**Multiplier** — so the hand that is drawing never has to leave the pen. **Settings** — `Ctrl + ,`, or the
+row at the foot of that menu — opens as a **floating panel over the page** (the document stays in view
+while you change what it looks like), which you can **drag by its title bar** to keep the part you are
+comparing against uncovered; its glass is nearly solid, because a settings page is read rather than looked
+through. The left column is the tablet's own list of sections — each wearing the same glyph the tablet
+draws — and one setting per row sits on the right. What it holds today: the pen's stream, **pressure
+sensitivity, minimum pressure and multiplier**, its curve and the mapped area of a graphics tablet; where
+the tool strips stand (**left**, **right** or **top**) and **the order of their buttons**; the **width the
+figure tools draw at**; the key table; the zoom a document opens at and when the page list appears; the
+theme and what the status bar reports; the format a **new document** is written in (`.mobix`, `.xopp` or a
+zipped `.xopp`); a **backup of all of it** to a file and back; and the version. Each one is stored as it is
+chosen and applied at once. The toolbars are
 the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
@@ -267,11 +273,11 @@ back on the next start marked "recovered", and saving them writes the file they 
 Isometric paper — the triangular ±30° sheet — is ruled here from the same geometry the tablet uses, so the
 two shells draw the same grid.
 
-The drawing tools have their two placements here as well: a vertical rail beside the page (the
-default) and a horizontal ribbon under the header, each a rounded pane of glass with a little air around
-it rather than a strip glued to the window's edge. Rail, Ribbon or Both is remembered the next time you start
-the app (the chooser moves into the Settings section; for now it lives in the window's settings file). Whichever
-is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
+The drawing tools stand in one of three places: a vertical rail beside the page (on the left by default, or
+on the right for a left hand) or a horizontal ribbon under the header, each a rounded pane of glass with a
+little air around it rather than a strip glued to the window's edge. **Settings → Toolbar** picks the place
+and the order of the buttons, and both are remembered the next time you start the app. Whichever is on, the
+strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
 including while a flyout, a hover pill or a palette is open, because none of them takes the keyboard.
 Every one of those keys can be changed: **Settings → Shortcuts** lists the tools and the window's commands,
