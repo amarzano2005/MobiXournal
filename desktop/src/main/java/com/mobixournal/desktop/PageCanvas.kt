@@ -121,6 +121,11 @@ internal fun PageCanvas(
     onLiveDrag: ((() -> Unit)?) -> Unit = {},
     /** What the selection bar may offer; the default draws none (a canvas on its own has no clipboard). */
     selectionBar: SelectionBarUi = SelectionBarUi(),
+    /**
+     * The room the floating tool strips take on this canvas ([ChromeInset]): a fitted page is framed in
+     * what is left of it, so opening a document puts the sheet in the clear space beside the bar.
+     */
+    chrome: ChromeInset = ChromeInset.NONE,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -147,12 +152,11 @@ internal fun PageCanvas(
             shapeInk = shapeInk,
             circuitKind = circuitKind,
             placeLiving = placeLiving,
-            placeCircuit = onPlaceCircuit,
-            text = text,
-            onEditLiving = onEditLiving,
-            draft = memory.draft,
-            penDraft = memory.penDraft,
-            pen = pen,
+            placeCircuit = onPlaceCircuit,                text = text,
+                onEditLiving = onEditLiving,
+                draft = memory.draft,
+                penDraft = memory.penDraft,
+                pen = pen,
             pointer = memory.pointer,
             sheetPicture = sheetPicture,
             paintProbe = paintProbe,
@@ -168,6 +172,7 @@ internal fun PageCanvas(
             onFit = onFit,
             onEdited = onEdited,
             packets = packets,
+            chrome = chrome,
         )
     }
 }
@@ -275,14 +280,24 @@ internal data class SheetLayout(
  * tab's stored one: publishing it keeps the readout true without a second source of truth. It happens
  * **only while a fit mode is on** — publishing it unconditionally is a stale-write race, where a zoom the
  * user asked for is overwritten by the fitted value of the *previous* frame.
+ *
+ * [chrome] is the room the floating strips take: a fitted page is measured and centred in what is left
+ * of the canvas (`ChromeInset`), so a document opens beside the toolbar instead of under it.
  */
 @Composable
-internal fun sheetLayout(tab: DesktopTab, page: Page, viewW: Float, viewH: Float): SheetLayout {
+internal fun sheetLayout(
+    tab: DesktopTab,
+    page: Page,
+    viewW: Float,
+    viewH: Float,
+    chrome: ChromeInset = ChromeInset.NONE,
+): SheetLayout {
     val pageW = page.width.toFloat()
     val pageH = page.height.toFloat()
-    val zoom = tab.fit.zoomFor(pageW, pageH, viewW, viewH) ?: tab.viewport.zoom
+    val zoom = tab.fit.zoomFor(pageW, pageH, viewW - chrome.width, viewH - chrome.height)
+        ?: tab.viewport.zoom
     // A fitted page is re-centred every layout pass; a free one keeps its own offsets, clamped.
-    val viewport = tab.viewport.copy(zoom = zoom).clamped(pageW, pageH, viewW, viewH)
+    val viewport = tab.viewport.copy(zoom = zoom).inChrome(chrome, pageW, pageH, viewW, viewH)
     LaunchedEffect(zoom, viewW, viewH, tab.fit) {
         if (tab.fit != FitMode.NONE && tab.viewport.zoom != zoom) {
             tab.viewport = tab.viewport.copy(zoom = zoom)

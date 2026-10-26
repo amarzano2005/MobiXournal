@@ -212,6 +212,8 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     onFit: (FitMode) -> Unit,
     onEdited: (Int) -> Unit,
     packets: PenPacketSource?,
+    /** The room the floating strips take, so a fitted page is framed beside them (`ChromeInset`). */
+    chrome: ChromeInset,
 ) {
     val viewW = maxWidth.value
     val viewH = maxHeight.value
@@ -223,7 +225,7 @@ internal fun BoxWithConstraintsScope.CanvasBox(
     PageSheet(
         tab = tab,
         page = loaded,
-        sheet = sheetLayout(tab, loaded, viewW, viewH),
+        sheet = sheetLayout(tab, loaded, viewW, viewH, chrome),
         tool = tool,
         ink = ink,
         shapeInk = shapeInk,

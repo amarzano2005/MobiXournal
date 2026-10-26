@@ -31,7 +31,11 @@ Every surface is one of three objects. Pick the class from what the element *doe
   rail and the ribbon float on the sheet — the capsule's recipe unchanged, glass, its own 6 dp lift and the
   family's rim — and the canvas keeps the whole body, so choosing an edge no longer moves the page. The
   tablet keeps its bands: a fingertip has no cursor to tell it what it is about to touch, while a mouse and
-  a stylus on a desk do. A strip is opaque to the pointer, so a press on its glass is never a stroke under it.
+  a stylus on a desk do. A strip is opaque to the pointer, and its fill is nearly solid
+  (`STRIP_GLASS_ALPHA`, 0.95) — at a band's 0.58 a white sheet turned the bar grey.
+- **A floating strip still frames the page.** The space it occupies (`ChromeInset`) is subtracted from the
+  *fit* and from the *centring*, never from the canvas: a document opens on the desk beside the bar, as it
+  did when a lane took that room, and a page too large for the room can still be scrolled behind the glass.
 - **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the
   desktop's in-place text field is the same thing for words: it takes the document's own ink, face and
   place, and **no fill and no rim** — it wore the floating glass once and read as a charcoal slab across a

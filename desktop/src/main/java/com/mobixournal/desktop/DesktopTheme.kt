@@ -73,6 +73,15 @@ object DesktopTheme {
     val settingsPanel: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, 0.97f)
 
     /**
+     * The **tool strips'** fill: the same glass, at `STRIP_GLASS_ALPHA`.
+     *
+     * A strip lies on the page, so the band's 0.58 let the sheet's white through and the bar went grey —
+     * the tools were read against its own ink, and the bar stopped reading as chrome at all. Nearly solid
+     * is what makes it a bar on a desk: the page shows at its rim and nowhere else.
+     */
+    val stripGlass: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, DesignTokens.STRIP_GLASS_ALPHA)
+
+    /**
      * One edge, one pixel, 12 % white — the hairline a *control* wears (a swatch's ring), never a second
      * rule on a band. A floating surface takes [glassRim] instead: a flat border was what made the
      * window's panels look like boxes while the tablet's looked like glass.

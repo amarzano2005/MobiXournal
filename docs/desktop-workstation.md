@@ -111,10 +111,10 @@ What it does today:
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
   and a **48 dp ribbon capsule in a 56 dp band** across the top — **Left**, **Right** or **Top**
-  (`stripPlacement`), re-laid live, and both **float over the page** (2026-10-26) — the sheet runs behind
-  them, and a drag begun on one is never a stroke under it. `Ctrl+,` opens the panel that sets it, and
-  [`desktop-settings.md`](desktop-settings.md) owns what each of its sections answers and which of them the
-  window cannot yet; the header has no chooser, because moving the strips is a setting.
+  (`stripPlacement`), re-laid live, and both **float over the page** (2026-10-26), the sheet running
+  behind them. Their footprint still **frames** a fitted page (`ChromeInset`), so a document opens on the
+  desk beside the bar. `Ctrl+,` opens the panel that sets it — [`desktop-settings.md`](desktop-settings.md)
+  owns what each section answers; the header has no chooser, because moving the strips is a setting.
   The strip is a **capsule** — its own 6 dp lift, the family's rim, and the only glass there (the lane is
   **air**: painting it too stacked two sheets, rail #161618) — filled with the window's glass at
   `DESKTOP_BAND_ALPHA`, so it reads `#0C0C0D` over the desk and the sheet through it over the page. Each

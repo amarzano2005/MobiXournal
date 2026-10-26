@@ -142,7 +142,8 @@ internal fun SettingsRow(
     ) {
         Column(Modifier.weight(1f)) {
             Text(label, color = DesktopTheme.ink, style = DesktopTheme.body)
-            if (note != null) {
+            // A blank note is no note: an empty line is a row that looks mis-measured.
+            if (!note.isNullOrBlank()) {
                 Text(note, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
             }
         }
@@ -475,21 +476,14 @@ internal fun SettingsSectionRow(
             )
         }
         Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                section.title,
-                color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
-                style = DesktopTheme.body,
-            )
-            Spacer(Modifier.height(1.dp))
-            Text(
-                section.summary,
-                color = DesktopTheme.inkMuted,
-                style = DesktopTheme.label,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-        }
+        // The name and its mark, and nothing else: the index is a list to scan, and the section's one
+        // sentence belongs on the page it opens rather than under all ten names at once.
+        Text(
+            section.title,
+            color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
+            style = DesktopTheme.body,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

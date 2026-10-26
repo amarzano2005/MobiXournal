@@ -277,8 +277,10 @@ The drawing tools stand in one of three places: a vertical rail beside the page 
 on the right for a left hand) or a horizontal ribbon under the header, each a rounded pane of glass with a
 little air around it rather than a strip glued to the window's edge. **Settings → Toolbar** picks the place
 and the order of the buttons, and both are remembered the next time you start the app. Whichever is on, the strip
-is a **floating bar**: it lies over the sheet, the page runs behind it and choosing another edge moves the
-tools rather than the page. A press on the bar belongs to the bar, never to the ink under it. Hovering a slot shows the
+is a **floating bar**, nearly solid so a white page never turns it grey: it lies over the sheet, the page
+runs behind it and choosing another edge moves the tools rather than the page. A press on the bar belongs
+to the bar, never to the ink under it, and a document still opens framed on the desk **beside** the bar.
+Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
 including while a flyout, a hover pill or a palette is open, because none of them takes the keyboard.
 Every one of those keys can be changed: **Settings → Shortcuts** lists the tools and the window's commands,

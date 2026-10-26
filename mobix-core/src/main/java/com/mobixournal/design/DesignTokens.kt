@@ -47,6 +47,15 @@ object DesignTokens {
      */
     const val DESKTOP_BAND_ALPHA: Float = 0.58f
 
+    /**
+     * The window's **tool strips'** alpha: the band's glass turned nearly solid.
+     *
+     * A strip floats over the page rather than beside it, and at `DESKTOP_BAND_ALPHA` the sheet's white
+     * came through it — the bar read as a grey pane instead of chrome. 0.95 leaves the material's own
+     * tone at the rim and hides what is written underneath, which is what a bar over a page has to do.
+     */
+    const val STRIP_GLASS_ALPHA: Float = 0.95f
+
     /** `#FFFFFF` — the light theme's glass RGB. */
     const val GLASS_LIGHT_RGB: Int = 0xFFFFFF
 

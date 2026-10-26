@@ -17,11 +17,11 @@ import org.junit.rules.TemporaryFolder
 /**
  * **Where the strips stand**, measured on the sheet they leave behind.
  *
- * The placement used to be a lane's width taken out of the canvas: standing the rail on the other edge
- * moved the page with it. Since 2026-10-26 the strips are floating surfaces over the page — the desktop
- * decision recorded in `docs/interface-contract.md` — so the claim is the opposite one and this file
- * measures it: the sheet keeps its place whichever placement is chosen, and the strip is painted **on**
- * the paper rather than beside it.
+ * The strips float over the page (2026-10-26, `docs/interface-contract.md`), so the canvas keeps its whole
+ * body and the sheet can run behind the glass. The **framing** still respects them: a fitted page is
+ * measured in the room the strips leave and centred there, so a document opens on the desk beside the bar
+ * — the same picture a lane used to give, without a lane. This file measures both halves: the opening
+ * frame beside the strip, and the sheet's pixels behind the capsule once it is zoomed past the room.
  *
  * The second render zooms the page past the window, because a floating strip is only visible as floating
  * where the sheet reaches under it; a fitted page stops short of the lane and would pass either way.
@@ -83,18 +83,47 @@ class DesktopStripLayoutTest {
             ?: error("no sheet in the row at $y")
     }
 
+    /** The sheet's top edge, read down the middle of it: above the page there is only the desk. */
+    private fun sheetTop(pixels: IntArray): Int {
+        val x = (0 until width).firstOrNull { px ->
+            (0 until height).count { y -> paper(pixels, px, y) } > 100
+        } ?: error("no sheet in the frame")
+        return (0 until height).firstOrNull { y -> paper(pixels, x, y) }
+            ?: error("no sheet above the desk")
+    }
+
     /**
-     * The page is the **same rectangle** in all three placements: a strip that floats cannot take width
-     * from the canvas, so choosing another edge must not move a single pixel of the sheet.
+     * A document opens **beside** the strip, on the black desk, exactly as it did when the strip took a
+     * lane: the floating bar keeps its room out of the framing, not out of the canvas.
+     *
+     * The arithmetic is `DesktopChromeInsetTest`'s; this is the frame it produces. A rail on the left
+     * shifts the sheet right by the rail's lane, a rail on the right leaves it at the window's edge, and a
+     * ribbon pushes it down by its band — the three answers a lane used to give.
      */
     @Test
-    fun `the page does not move when the strip changes edge`() {
-        val left = sheetLeft(render(StripPlacement.LEFT))
-        val right = sheetLeft(render(StripPlacement.RIGHT))
-        val top = sheetLeft(render(StripPlacement.TOP))
+    fun `the page opens beside the strip, over the desk`() {
+        val lane = ToolStripMetrics.railWidth.value.toInt()
+        val band = ToolStripMetrics.ribbonHeight.value.toInt()
+        val header = DesktopTheme.headerHeight.value.toInt()
+        val left = render(StripPlacement.LEFT)
+        val right = render(StripPlacement.RIGHT)
+        val top = render(StripPlacement.TOP)
 
-        assertEquals("a rail on either edge leaves the sheet where it is: $left", left, right)
-        assertEquals("and a ribbon takes no room from the top: $left", left, top)
+        val leftEdge = sheetLeft(left)
+        val rightEdge = sheetLeft(right)
+        assertEquals(
+            "a rail on the left moves the sheet right by its lane ($leftEdge against $rightEdge)",
+            lane,
+            leftEdge - rightEdge,
+        )
+        assertTrue(
+            "and the sheet starts past the rail's own column: $leftEdge",
+            leftEdge >= lane,
+        )
+        assertTrue(
+            "a ribbon pushes the sheet under its band (top at ${sheetTop(top)} of ${header + band})",
+            sheetTop(top) >= header + band,
+        )
     }
 
     /**

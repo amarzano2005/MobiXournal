@@ -90,6 +90,10 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                     state.thumbnails[tab.key]?.remove(index)
                     state.noteEdit()
                 },
+                // The strips' own footprint: a fitted page is framed beside them, over the desk, so a
+                // document opens in the clear space exactly as it did when a strip took a lane — and a
+                // page too big for that space can still be dragged behind the glass.
+                chrome = placement.chromeInset(),
                 modifier = Modifier.fillMaxSize(),
             )
             // The rail is one composable with two homes — the lane before the canvas or the lane after
@@ -142,6 +146,18 @@ private fun StripRail(state: DesktopShellState, modifier: Modifier = Modifier) {
         ink = state.inkActions(),
         modifier = modifier,
     )
+}
+
+/**
+ * The room a placement's strip takes on the canvas, in dp: one edge, the one it stands on.
+ *
+ * The ribbon's band is 56 dp and the rail's lane 64, and a fitted page is measured without them — which
+ * is what keeps the page on the black desk beside the bar instead of under it.
+ */
+private fun StripPlacement.chromeInset(): ChromeInset = when (this) {
+    StripPlacement.LEFT -> ChromeInset(left = ToolStripMetrics.railWidth.value)
+    StripPlacement.RIGHT -> ChromeInset(right = ToolStripMetrics.railWidth.value)
+    StripPlacement.TOP -> ChromeInset(top = ToolStripMetrics.ribbonHeight.value)
 }
 
 /** The colour capsule's verbs, as the strips' one action set — built from the shell, not from a copy. */

@@ -50,9 +50,13 @@ import com.mobixournal.render.ShapeKind
  * 2026-10-26 and the reason the page does not move when the placement changes (`docs/interface-contract.md`
  * — a floating surface may lie over the page). The rail wraps its slots rather than filling the edge, so it
  * reads as a bar of tools and not as a pane the height of the window. Each strip is the **capsule** of the
- * tablet's own recipe — 52 dp of glass in a 64 dp lane of air — and the capsule's own scroll pane and slots
- * make the surface opaque to the pointer, so a press that lands on it is never a stroke on the page beneath
+ * tablet's own recipe — 52 dp of glass in a 64 dp lane of air — filled with `DesktopTheme.stripGlass`,
+ * nearly solid: a sheet under it must not turn the bar grey. The capsule's own scroll pane and slots make
+ * the surface opaque to the pointer, so a press on it is never a stroke on the page beneath
  * (`ToolStripsTest` sends a tap and two drags at the glass and counts the page's elements).
+ *
+ * The page is framed in what these capsules *leave* ([ChromeInset]), so a document opens on the desk beside
+ * the bar and not underneath it, while a page too large for that room can still be scrolled behind it.
  *
  * The strips only **set a [ToolSelection]** — this is the chrome Phase 2 asks for, and what a pen does
  * with the picked tool arrives with the desktop editing phase. Because of that, the two placements draw
@@ -189,7 +193,7 @@ fun ToolRail(
                 // It wraps its slots: a bar of tools floating on the page, not a pane as tall as the
                 // window. `verticalScroll` inside still bounds it when a short window cannot hold them.
                 .wrapContentHeight()
-                .glassCapsule(),
+                .glassCapsule(fill = DesktopTheme.stripGlass),
         ) {
             Column(
                 Modifier
@@ -266,7 +270,7 @@ fun ToolRibbon(
                 .fillMaxWidth()
                 .height(ToolStripMetrics.ribbonCapsuleHeight)
                 .padding(horizontal = DesktopTheme.railOuterPadding)
-                .glassCapsule(),
+                .glassCapsule(fill = DesktopTheme.stripGlass),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(

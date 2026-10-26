@@ -46,6 +46,33 @@ data class Viewport(
         offsetY = PageIndexScroll.clamp(offsetY, pageH * zoom, viewH),
     )
 
+    /**
+     * The same, in the room the floating strips leave: a page that fits them **centres beside** the strip
+     * instead of under it, and a page too big for them keeps its full-range travel, so it can still be
+     * dragged behind the glass to look at the part it covers.
+     *
+     * This is the whole of "the toolbar sits over black": the window is not smaller, the *resting place*
+     * of a fitted page is. Opening a document therefore frames it in the space that is clear, exactly as a
+     * window with a lane did, while nothing is taken away from the canvas.
+     */
+    fun inChrome(chrome: ChromeInset, pageW: Float, pageH: Float, viewW: Float, viewH: Float): Viewport {
+        val contentW = pageW * zoom
+        val contentH = pageH * zoom
+        val freeW = (viewW - chrome.width).coerceAtLeast(1f)
+        val freeH = (viewH - chrome.height).coerceAtLeast(1f)
+        val x = if (contentW <= freeW) {
+            chrome.left + (freeW - contentW) / 2f
+        } else {
+            PageIndexScroll.clamp(offsetX, contentW, viewW)
+        }
+        val y = if (contentH <= freeH) {
+            chrome.top + (freeH - contentH) / 2f
+        } else {
+            PageIndexScroll.clamp(offsetY, contentH, viewH)
+        }
+        return copy(offsetX = x, offsetY = y)
+    }
+
     /** The page-space point ([pageX], [pageY]) in dp on the canvas. */
     fun toScreen(pageX: Float, pageY: Float): Pair<Float, Float> =
         (offsetX + pageX * zoom) to (offsetY + pageY * zoom)
@@ -93,6 +120,26 @@ data class Viewport(
         /** A viewport at [zoom] with the page centred (or, when taller than the view, aligned to its top). */
         fun centred(zoom: Float, pageW: Float, pageH: Float, viewW: Float, viewH: Float): Viewport =
             Viewport(zoom, 0f, 0f).clamped(pageW, pageH, viewW, viewH)
+    }
+}
+
+/**
+ * The room the window's **floating strips** take on the page's own canvas, in dp.
+ *
+ * Nothing is subtracted from the canvas — the page may run under the glass — but this is the space a
+ * fitted page is framed in, and the space it is centred in when it fits. A placement's strip contributes
+ * one edge; the rest are zero.
+ */
+data class ChromeInset(
+    val left: Float = 0f,
+    val top: Float = 0f,
+    val right: Float = 0f,
+) {
+    val width: Float get() = left + right
+    val height: Float get() = top
+
+    companion object {
+        val NONE = ChromeInset()
     }
 }
 

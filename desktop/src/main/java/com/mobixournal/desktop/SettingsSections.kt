@@ -155,20 +155,19 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
 /**
  * **Stylus**: the stream the pen is read from, the pressure filter, and the area it maps.
  *
- * The three pressure rows are the tablet's own (`docs/stylus.md`): *sensitivity* decides whether a press
- * changes the width at all, and below it the two numbers of desktop Xournal++'s filter — the **floor** under
- * a light press and the **multiplier** above it. They stay on screen while sensitivity is off, because that
- * is the state the numbers are remembered in, and the curve under them shapes the *reading* before either
- * number applies.
+ * The pressure rows are the tablet's own (`docs/stylus.md`): *sensitivity* decides whether a press changes
+ * the width, and the two numbers below it are desktop Xournal++'s filter — the floor under a light press
+ * and the multiplier above it. They stay on screen while sensitivity is off, because that is the state the
+ * numbers are remembered in.
+ *
+ * **The notes are one clause each.** A settings page is scanned, not read: a row that needs a paragraph is
+ * a row whose name is wrong, and ten pages of paragraphs is how this list came to feel like a manual.
  */
 @Composable
 private fun StylusSettings(policy: DesktopSettingsState) {
     StylusPenGroup(policy)
     StylusAreaGroup(policy)
-    SettingsNote(
-        "The status bar names the stream actually open, so a preference this host cannot honour says so. " +
-            "An area the driver cannot map keeps the whole surface rather than leaving a dead pen.",
-    )
+    SettingsNote("The status bar names the stream actually open.")
 }
 
 /** The pen itself: the stream it is read from, and the four numbers of the pressure filter. */
@@ -177,7 +176,7 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
     SettingsGroup("Pen") {
         SettingsChoice(
             label = "Stream",
-            note = "Wintab carries the pressure at the tablet's own rate; Windows Ink is the pointer stream.",
+            note = "Wintab reads the driver's packets; Windows Ink goes through the system.",
             options = PenStream.entries,
             picked = policy.penStream,
             optionLabel = { it.label },
@@ -185,14 +184,14 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
         )
         SettingsRow(
             label = "Pressure sensitivity",
-            note = "Off draws every stroke at its set width, so a pen stroke and a figure match exactly.",
+            note = "Off draws every stroke at its set width.",
             onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
         ) {
             SettingsSwitch(policy.pressureEnabled)
         }
         SettingsRow(
             label = "Minimum pressure",
-            note = "The floor under a light press: the thinnest line pressure can draw.",
+            note = "The thinnest line a light press can draw.",
         ) {
             SettingsSlider(
                 value = policy.minimumPressure,
@@ -204,7 +203,7 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Multiplier",
-            note = "Above 1.00 a light press draws thicker — how a light writer reaches the full width.",
+            note = "How far above 1.00 a light press can reach.",
         ) {
             SettingsSlider(
                 value = policy.pressureMultiplier,
@@ -216,8 +215,7 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Pressure curve",
-            note = "Shapes the reading before the two numbers above: below 1.00 a light press draws " +
-                "thicker, above it thinner. 1.00 is the model's own arithmetic, untouched.",
+            note = "Shapes the reading before those two numbers. 1.00 leaves it untouched.",
         ) {
             SettingsSlider(
                 value = policy.pressureExponent,
@@ -236,8 +234,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
     SettingsGroup("Active area") {
         SettingsChoice(
             label = "Mapped surface",
-            note = "Full is the driver's own surface, the one every other program sees; Tablet maps a " +
-                "centred rectangle of it, so a small movement of the hand covers the page.",
+            note = "Full is the driver's whole surface; Tablet maps a centred part of it.",
             options = TabletArea.entries,
             picked = policy.activeArea,
             optionLabel = { it.label },
@@ -246,7 +243,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
         if (policy.activeArea == TabletArea.TABLET) {
             SettingsRow(
                 label = "Width",
-                note = "How much of the tablet's surface the window listens to, across.",
+                note = "Share of the surface the window listens to.",
             ) {
                 SettingsSlider(
                     value = policy.areaWidthPercent.toFloat(),
@@ -259,7 +256,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
             }
             SettingsRow(
                 label = "Height",
-                note = "The same span down the surface.",
+                note = "The same, down the surface.",
             ) {
                 SettingsSlider(
                     value = policy.areaHeightPercent.toFloat(),
@@ -272,8 +269,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
             }
             SettingsRow(
                 label = "Aspect lock",
-                note = "Both spans are percentages of the surface, so an equal pair is the tablet's own " +
-                    "shape: the lock moves the height with the width.",
+                note = "Moves the height with the width, keeping the tablet's own shape.",
                 onClick = { policy.chooseAspectLock(!policy.aspectLock) },
             ) {
                 SettingsSwitch(policy.aspectLock)
@@ -295,8 +291,7 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
     SettingsGroup("Tool strips") {
         SettingsChoice(
             label = "Placement",
-            note = "Left or Right is the tablet's rail, on the edge opposite your writing hand; Top puts " +
-                "the same tools in a ribbon under the header.",
+            note = "Left or Right is the rail; Top is a ribbon under the header.",
             options = StripPlacement.entries,
             picked = policy.stripPlacement,
             optionLabel = { it.label },
@@ -308,7 +303,12 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
         for ((index, group) in groups.withIndex()) {
             SettingsRow(
                 label = group.face.label,
-                note = group.members.joinToString(" · ") { it.label },
+                // Only a slot that holds more than one tool says what it holds: "Pen — Pen" is a line
+                // that teaches nothing and makes the list twice as tall as it needs to be.
+                note = group.members
+                    .takeIf { it.size > 1 }
+                    ?.joinToString(" · ") { it.label }
+                    .orEmpty(),
             ) {
                 SettingsStepButtons(
                     upEnabled = index > 0,
@@ -321,14 +321,13 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
         if (policy.toolOrder.isNotEmpty()) {
             SettingsRow(
                 label = "Factory order",
-                note = "Put every slot back where the window draws it on a fresh install.",
+                note = "Every slot back where a fresh install draws it.",
                 onClick = policy::resetToolOrder,
             ) {
                 Text("Reset", color = DesktopTheme.accent, style = DesktopTheme.label)
             }
         }
     }
-    SettingsNote("Both strips read the same arrangement, and a picker's chevron follows its slot.")
 }
 
 /**
@@ -345,7 +344,7 @@ private fun FiguresSettings(policy: DesktopSettingsState) {
     SettingsGroup("Figure width") {
         SettingsChoice(
             label = "Preset",
-            note = "The pen's three slots, applied to every figure tool. Figures ignore pressure.",
+            note = "The pen's three slots, for every figure tool — figures ignore pressure.",
             options = widths.indices.toList(),
             picked = PenPalette.widthSlot(policy.figureWidth),
             optionLabel = { index ->
@@ -356,7 +355,7 @@ private fun FiguresSettings(policy: DesktopSettingsState) {
         )
         SettingsRow(
             label = "Width",
-            note = "Any width between the slots, in points.",
+            note = "Anything between the slots, in points.",
         ) {
             SettingsSlider(
                 value = policy.figureWidth,
@@ -367,10 +366,7 @@ private fun FiguresSettings(policy: DesktopSettingsState) {
             )
         }
     }
-    SettingsNote(
-        "The pen's own widths are in the strips' colour capsule, per tool; this one is only what a figure, " +
-            "a circuit or a placed element is drawn with.",
-    )
+    SettingsNote("The pen's own widths stay in the strip's colour capsule.")
 }
 
 /** **Colors**: the palette lives in the strip, and this page says so rather than duplicating it. */
@@ -379,12 +375,11 @@ private fun ColorsSettings() {
     SettingsGroup("The palette") {
         SettingsRow(
             label = "Colour, width and line style",
-            note = "The strip's colour capsule, and the three favourites on keys 1–3.",
+            note = "The strip's colour capsule, and the keys 1–3.",
         ) {
             Text("In the strip", color = DesktopTheme.ink, style = DesktopTheme.label)
         }
     }
-    SettingsNote("A palette editor of its own would be the tablet's Colors section; the strip already edits the same three values.")
 }
 
 /** **Navigation**: how a document opens, and the page list that reaches the others. */
@@ -393,13 +388,12 @@ private fun NavigationSettings(policy: DesktopSettingsState) {
     SettingsGroup("Opening a document") {
         SettingsChoice(
             label = "Zoom",
-            note = "Automatic fits a tall page to the width and anything else to the page.",
+            note = "Automatic: a tall page to the width, the rest to the page.",
             options = FitOnOpen.entries,
             picked = policy.fitOnOpen,
             optionLabel = { it.label },
             onPick = policy::chooseFitOnOpen,
         )
-        SettingsNote("The next document you open; the one on screen keeps its zoom.")
     }
     SettingsGroup("Windows") {
         SettingsChoice(
@@ -427,8 +421,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         // The desk, and the one thing that can only be asked of a full-screen window: the panel's rate.
         SettingsRow(
             label = "Full screen",
-            note = "F11, or this row: the window takes the whole screen and asks the display for the " +
-                "target rate.",
+            note = "F11, or this row. Asks the display for the target rate.",
             onClick = policy::toggleFullScreen,
         ) {
             SettingsSwitch(policy.fullScreen)
@@ -438,8 +431,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         if (policy.fullScreen) {
             SettingsChoice(
                 label = "Target rate",
-                note = "Asked of the display while the window is full screen. A panel without that " +
-                    "rate keeps its own, and the readout below still says which.",
+                note = "Asked only while full screen; a panel without it keeps its own.",
                 options = TARGET_HZ,
                 picked = policy.targetHz,
                 optionLabel = { "$it Hz" },
@@ -448,7 +440,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Frame time",
-            note = "The paint time per frame, beside the display's own rate.",
+            note = "Paint time per frame, beside the display's rate.",
             onClick = { policy.chooseFrameTime(!policy.frameTime) },
         ) {
             SettingsSwitch(policy.frameTime)
@@ -466,8 +458,7 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
     SettingsGroup("The document") {
         SettingsChoice(
             label = "New document",
-            note = "What every new tab is written as. A .mobix keeps figures and tables as recipes; a " +
-                "zipped .xopp carries its attachments inside one file. Save As switches either way.",
+            note = ".mobix keeps figures and tables live; zipped .xopp carries its files.",
             options = DesktopNewDocumentFormat.entries,
             picked = policy.newDocumentFormat,
             optionLabel = { it.label },
@@ -475,7 +466,7 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
         )
         SettingsRow(
             label = "Default page",
-            note = "Set as default, in Page format, is what every new sheet is born with.",
+            note = "The size new sheets are born with (set it in Page format).",
         ) {
             Text(
                 formatNumber(policy.pageWidthPt) + " × " + formatNumber(policy.pageHeightPt) + " pt",
@@ -499,14 +490,14 @@ private fun BackupSettings(policy: DesktopSettingsState) {
     SettingsGroup("Settings backup") {
         SettingsRow(
             label = "Export settings…",
-            note = "Writes every choice in this window to a file you pick.",
+            note = "Writes every choice in this window to a file.",
             onClick = { policy.pickBackupFile?.invoke(true) { file -> file?.let(policy::exportBackup) } },
         ) {
             Text("Choose…", color = DesktopTheme.accent, style = DesktopTheme.label)
         }
         SettingsRow(
             label = "Import settings…",
-            note = "Reads a backup back. A file that is not one is refused, and nothing changes.",
+            note = "Reads one back; anything else is refused.",
             onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
         ) {
             Text("Choose…", color = DesktopTheme.accent, style = DesktopTheme.label)
@@ -516,7 +507,7 @@ private fun BackupSettings(policy: DesktopSettingsState) {
     SettingsGroup("Unsaved work") {
         SettingsRow(
             label = "Recovery snapshot",
-            note = "Written after each burst of edits, and offered back when the window reopens.",
+            note = "Written after each burst of edits, offered on reopen.",
         ) {
             Text("After every edit", color = DesktopTheme.ink, style = DesktopTheme.label)
         }
@@ -529,12 +520,8 @@ private fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
         Readout("Version", DESKTOP_VERSION)
         Readout("Reads and writes", ".xopp · .mobix")
-        Readout("This window", "read-only for now")
     }
-    SettingsNote(
-        "MobiXournal is an independent, unofficial note-taking and scientific drafting app; " +
-            "not affiliated with or endorsed by the Xournal++ authors.",
-    )
+    SettingsNote("MobiXournal is an independent, unofficial note-taking and scientific drafting app.")
 }
 
 /** The version the packaged window shows — the one `compose.desktop`'s packageVersion carries. */

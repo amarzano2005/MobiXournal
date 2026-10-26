@@ -19,7 +19,11 @@ Documents, Backup and About — the tablet's own wherever the topic is the table
 shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). What the window does **not** carry is the
 phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
 shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
-**rows**, the name and one sentence on the left and the control at the right edge (`SettingsRows.kt`).
+**rows**, the name and the control at the right edge (`SettingsRows.kt`).
+
+The list is **names only** — a glyph and a word per section — because ten two-line summaries is a page of
+prose to scan past. A row's note is **one clause**, not a paragraph: a setting that needs explaining at
+length is a setting whose name is wrong, and the detail belongs in this spoke.
 
 A row that has a mechanism behind it is a real control and changes the open window the moment it is
 clicked. A row the window cannot answer is **drawn and disabled with one sentence saying what is
