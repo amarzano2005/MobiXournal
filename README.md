@@ -118,9 +118,11 @@ carries no app name, no logo and no second icon: **the caption is the tabs alone
 the taskbar where it belongs. A **hamburger** in the header opens New, Open, Save, Save
 As and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens without a file
 opens one too, instead of an empty notice. **Settings** — `Ctrl + ,`, or the row at the foot of that menu —
-is a page of the window rather than a card lying over the sheet: where the tool strips stand (side, top or
-both, and which edge), the zoom a document opens at, when the page list and the inspector appear, and
-whether the status bar reports its frame time. Each one is stored as it is chosen and applied at once. The toolbars are
+is a page of the window rather than a card lying over the sheet, laid out the way a desktop reads one: a
+narrow list of sections on the left, and one setting per row on the right, its name and a line of
+explanation beside the choice itself. It holds where the tool strips stand (side, top or both, and which
+edge), the zoom a document opens at, when the page list and the inspector appear, and whether the status
+bar reports its frame time; each one is stored as it is chosen and applied at once. The toolbars are
 the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current

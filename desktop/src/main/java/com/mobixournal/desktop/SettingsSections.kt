@@ -17,6 +17,10 @@ import androidx.compose.ui.unit.dp
  * disabled rows, which is worse than a shorter list, and each one arrives with the task that gives it a
  * setting to change (`TODO.toml`).
  *
+ * A page is **rows, not columns**: the name of the setting on the left, its control at the right edge
+ * ([SettingsRow]) — the shape a preference takes on a desktop, and the reason this file is short: a row
+ * says *what* it changes in one sentence under its name instead of a paragraph above a full-width control.
+ *
  * @property title The section's name, as the index on the left shows it.
  * @property summary One line saying what the section covers, under the title in the index.
  * @property keywords Search aliases — the words a reader types when they do not know what the window calls
@@ -62,7 +66,7 @@ enum class DesktopSettingSection(val title: String, val summary: String, val key
 }
 
 /**
- * The page of one section: its title and summary, then its cards.
+ * The page of one section: its title and summary, then its groups.
  *
  * A null [section] is the search's own answer — the field left nothing to show — and it is a sentence
  * rather than a blank page, so the reader knows the word was the problem and not the window.
@@ -75,7 +79,7 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
     }
     Text(section.title, color = DesktopTheme.ink, style = DesktopTheme.title)
     Spacer(Modifier.height(2.dp))
-    Text(section.summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+    Text(section.summary, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
     when (section) {
         DesktopSettingSection.INTERFACE -> InterfaceSettings(policy)
         DesktopSettingSection.DISPLAY -> DisplaySettings(policy)
@@ -92,10 +96,10 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
  */
 @Composable
 private fun InterfaceSettings(policy: DesktopSettingsState) {
-    SectionCard("Tool strips") {
+    SettingsGroup("Tool strips") {
         SettingsChoice(
             label = "Placement",
-            subtitle = "Side is the tablet's rail; Top puts the same tools under the header; Both keeps each lane.",
+            note = "Side is the tablet's rail; Top puts the same tools under the header; Both keeps each lane.",
             options = StripPlacement.entries,
             picked = policy.stripPlacement,
             optionLabel = { it.label },
@@ -104,7 +108,7 @@ private fun InterfaceSettings(policy: DesktopSettingsState) {
         if (policy.stripPlacement.showsRail) {
             SettingsChoice(
                 label = "Side",
-                subtitle = "The edge opposite your writing hand: Left for a right hand.",
+                note = "The edge opposite your writing hand: Left for a right hand.",
                 options = RailSide.entries,
                 picked = policy.railSide,
                 optionLabel = { it.label },
@@ -112,10 +116,10 @@ private fun InterfaceSettings(policy: DesktopSettingsState) {
             )
         }
     }
-    SectionCard("Opening a document") {
+    SettingsGroup("Opening a document") {
         SettingsChoice(
             label = "Zoom",
-            subtitle = "Automatic fits a tall page to the width and anything else to the page.",
+            note = "Automatic fits a tall page to the width and anything else to the page.",
             options = FitOnOpen.entries,
             picked = policy.fitOnOpen,
             optionLabel = { it.label },
@@ -123,10 +127,10 @@ private fun InterfaceSettings(policy: DesktopSettingsState) {
         )
         SettingsNote("The next document you open; the one on screen keeps its zoom.")
     }
-    SectionCard("Windows") {
+    SettingsGroup("Windows") {
         SettingsChoice(
             label = "Page list",
-            subtitle = "Automatic shows it once a document has more than one page.",
+            note = "Automatic shows it once a document has more than one page.",
             options = SidebarPolicy.entries,
             picked = policy.sidebarPolicy,
             optionLabel = { it.label },
@@ -134,7 +138,7 @@ private fun InterfaceSettings(policy: DesktopSettingsState) {
         )
         SettingsChoice(
             label = "Inspector",
-            subtitle = "The column that edits the element in your hand. Never keeps it shut.",
+            note = "The column that edits the element in your hand. Never keeps it shut.",
             options = InspectorPolicy.entries,
             picked = policy.inspectorPolicy,
             optionLabel = { it.label },
@@ -146,8 +150,14 @@ private fun InterfaceSettings(policy: DesktopSettingsState) {
 /** **Display**: what the status bar reports, and what the window can say about the panel it draws on. */
 @Composable
 private fun DisplaySettings(policy: DesktopSettingsState) {
-    SectionCard("Status bar") {
-        SwitchRow("Frame time", policy.frameTime) { policy.chooseFrameTime(it) }
+    SettingsGroup("Status bar") {
+        SettingsRow(
+            label = "Frame time",
+            note = "The paint time per frame, beside the display's own rate.",
+            onClick = { policy.chooseFrameTime(!policy.frameTime) },
+        ) {
+            SettingsSwitch(policy.frameTime)
+        }
         Readout("Display", refreshLabel(displayRefreshHz()))
         frameLabel(FrameMeter.averageMs, policy.frameTime)?.let { Readout("Painting", it) }
     }
@@ -157,10 +167,10 @@ private fun DisplaySettings(policy: DesktopSettingsState) {
 /** **Tablet**: the one choice the pen readers offer — which stream the window asks first. */
 @Composable
 private fun TabletSettings(policy: DesktopSettingsState) {
-    SectionCard("Pen") {
+    SettingsGroup("Pen") {
         SettingsChoice(
             label = "Stream",
-            subtitle = "Wintab carries the pressure at the tablet's own rate; Windows Ink is the pointer stream.",
+            note = "Wintab carries the pressure at the tablet's own rate; Windows Ink is the pointer stream.",
             options = PenStream.entries,
             picked = policy.penStream,
             optionLabel = { it.label },

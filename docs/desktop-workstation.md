@@ -111,13 +111,13 @@ What it does today:
   page** rasterised with PDFBox (about 144 dpi) under the ink, so a highlighter still multiplies into it;
   a `.mobix`'s bundled bytes win over the original reference, which keeps a shared notebook looking right.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
-  (the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the header —
-  Side, Top or Both, on either edge (`stripPlacement`, `railSide`), re-laid live by `PageWorkspace`.
-  `Ctrl+,` opens the surface that sets it: a section index, the section beside it, a search that finds
-  one by an everyday word, and rows that are the lane's own controls — **a row is a hook, a key and a
-  test**, so nothing it offers can be stored and forgotten (`DesktopSettingsTest`). The header carries
-  no chooser, because moving the strips is a setting. The lane is **air, not a second sheet of glass**:
-  painting it too stacked two sheets and the rail read #161618. The strip is a **capsule** with its own 6 dp lift and the family's rim, so
+  and a **48 dp ribbon capsule in a 56 dp band** under the header — Side, Top or Both, on either edge
+  (`stripPlacement`, `railSide`), re-laid live by `PageWorkspace`. `Ctrl+,` opens the surface that sets
+  it: a **232 dp index**, a page capped at 720 dp, a search that finds a section by an everyday word,
+  and **one setting per row** (name and note left, the control hugging its words at the right) — **a
+  row is a hook, a key and a test**, so nothing it offers can be stored and forgotten (`DesktopSettingsTest`,
+  `DesktopSettingsStyleTest`). The header carries no chooser, because moving the strips is a setting.
+  The lane is **air, not a second sheet of glass**: painting it too stacked two sheets, rail #161618. The strip is a **capsule** with its own 6 dp lift and the family's rim, so
   its fill is the window's band `#0C0C0D` (the glass at `DESKTOP_BAND_ALPHA`, blacker than the tablet's
   `#131314`), and each header control is the same object at 36 dp. Both placements draw the same slots,
   in the order, glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked
