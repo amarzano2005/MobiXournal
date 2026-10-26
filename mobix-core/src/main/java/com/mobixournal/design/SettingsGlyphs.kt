@@ -14,12 +14,17 @@ package com.mobixournal.design
  * stand, [APPEARANCE] for the theme and the status bar's readouts. The two shells' section lists are the
  * same list, so the same thirteen marks serve both.
  *
+ * A mark has to be recognised **at 16 dp**, the size an index row draws it, so each one is a silhouette
+ * with one idea in it: a pen, a sheet, a drop. An abstract diagram — the old nib (a stick over a
+ * triangle) and the old tap (a ring inside a ring) — reads as a funnel and a target at that size, which
+ * is why [STYLUS] now wears the toolbar's own pen and [GESTURES] a fingertip on the glass.
+ *
  * Coordinates are on the **24-unit icon grid** and the stroke is
  * [DesignTokens.TOOL_GLYPH_STROKE_UNITS] of it, the same grid and weight as the tool and chrome art, so a
  * glyph in the settings index reads as an icon of the same family at 20 dp. Nothing here names a colour.
  */
 enum class SettingsGlyph {
-    /** The pen: pressure, buttons, feel. */
+    /** The pen: pressure, buttons, feel. Wears the toolbar's pen, so the product has one pen picture. */
     STYLUS,
 
     /** Editing behaviour: default tool, snapping, recognition. */
@@ -34,7 +39,7 @@ enum class SettingsGlyph {
     /** The palette: the pen's colour and the favourites. */
     COLORS,
 
-    /** Finger and pen gestures. */
+    /** Finger and pen gestures: a fingertip touching the page. */
     GESTURES,
 
     /** The key table. */
@@ -64,7 +69,7 @@ object SettingsGlyphCatalogue {
 
     /** Every part of [glyph], on the 24-unit grid. */
     fun parts(glyph: SettingsGlyph): List<GlyphPart> = when (glyph) {
-        SettingsGlyph.STYLUS -> nib()
+        SettingsGlyph.STYLUS -> pen()
         SettingsGlyph.EDITOR -> sliders()
         SettingsGlyph.TOOLBAR -> toolbar()
         SettingsGlyph.FIGURES -> figures()
@@ -81,12 +86,15 @@ object SettingsGlyphCatalogue {
 
     // --- the art ---------------------------------------------------------------------------------
 
-    /** A stylus nib pointing down: the body, the tip's two shoulders, and the band the grip sits on. */
-    private fun nib(): List<GlyphPart> = listOf(
-        GlyphPart.Line(12f, 3.5f, 12f, 12.5f),
-        GlyphPart.Line(9.5f, 8.5f, 14.5f, 8.5f),
-        GlyphPart.Polyline(listOf(GlyphPoint(7.5f, 12.5f), GlyphPoint(12f, 20.5f), GlyphPoint(16.5f, 12.5f)), closed = true),
-    )
+    /**
+     * The pen — and it is literally the **pen tool's own drawing**, taken from [ToolGlyphCatalogue].
+     *
+     * The first version was a stick standing on a triangle: a nib drawn as a diagram. At 16 dp nobody
+     * read a pen in it, and a settings mark whose picture is not the tool it configures is worse than no
+     * mark at all. The pencil the rail already shows for *Pen* is a silhouette people know, and reusing
+     * it means the product has one pen picture instead of two that can drift apart.
+     */
+    private fun pen(): List<GlyphPart> = ToolGlyphCatalogue.parts(ToolGlyph.PEN)
 
     /** Three rules with a knob each: a setting you slide. */
     private fun sliders(): List<GlyphPart> = listOf(
@@ -121,17 +129,41 @@ object SettingsGlyphCatalogue {
         ),
     )
 
-    /** A drop of ink: the palette's own mark. */
+    /**
+     * A drop of ink: the palette's own mark, with the round belly a drop actually has.
+     *
+     * Two bowed curves meeting at a point — the first version — is a **lens**: the sides pulled in to a
+     * sliver and the bottom pointed, which at 16 dp reads as an eye, not as ink. Four curves give it a
+     * belly that holds the space inside the mark and a waist it falls from.
+     */
     private fun droplet(): List<GlyphPart> = listOf(
-        GlyphPart.Quad(12f, 3.5f, 5.5f, 12f, 12f, 20.5f),
-        GlyphPart.Quad(12f, 20.5f, 18.5f, 12f, 12f, 3.5f),
+        GlyphPart.Cubic(12f, 3.2f, 8.8f, 7.2f, 6.2f, 10.4f, 6.2f, 13.4f),
+        GlyphPart.Cubic(6.2f, 13.4f, 6.2f, 17.2f, 8.6f, 20.4f, 12f, 20.4f),
+        GlyphPart.Cubic(12f, 20.4f, 15.4f, 20.4f, 17.8f, 17.2f, 17.8f, 13.4f),
+        GlyphPart.Cubic(17.8f, 13.4f, 17.8f, 10.4f, 15.2f, 7.2f, 12f, 3.2f),
     )
 
-    /** A tap: two ripples and the surface they land on. */
+    /**
+     * Two fingertips coming down onto the page: the pair of fingers the section's taps are made with.
+     *
+     * Two concentric rings over a rule — the first version — is a target, or a record button: a ring says
+     * *aim*, not *finger*. One fingertip alone read as a post on a plinth, so the mark carries the two
+     * fingers the taps are actually made with, at slightly different lengths the way a hand's fingers are,
+     * on the glass they land on. Nothing else is added: ripples and motion arcs merge into a smudge at
+     * 16 dp.
+     */
     private fun tap(): List<GlyphPart> = listOf(
-        GlyphPart.Circle(12f, 11.5f, 2.4f),
-        GlyphPart.Circle(12f, 11.5f, 6.4f),
-        GlyphPart.Line(4.5f, 20f, 19.5f, 20f),
+        // The index finger: the longer one, drawn as a rounded tip open at the bottom.
+        GlyphPart.Line(6.4f, 16.4f, 6.4f, 7.6f),
+        GlyphPart.Cubic(6.4f, 7.6f, 6.4f, 3.8f, 10.6f, 3.8f, 10.6f, 7.6f),
+        GlyphPart.Line(10.6f, 7.6f, 10.6f, 16.4f),
+        // The second finger, a little shorter and clearly apart from the first, so the pair reads as two
+        // fingers on the glass and not as one arch with a notch.
+        GlyphPart.Line(13.4f, 16.4f, 13.4f, 9.2f),
+        GlyphPart.Cubic(13.4f, 9.2f, 13.4f, 5.4f, 17.6f, 5.4f, 17.6f, 9.2f),
+        GlyphPart.Line(17.6f, 9.2f, 17.6f, 16.4f),
+        // The page under them, so the tips are *touching* rather than floating.
+        GlyphPart.Line(3.2f, 19.6f, 20.8f, 19.6f),
     )
 
     /** A keyboard: its frame, a row of keys and the space bar. */
@@ -191,11 +223,17 @@ object SettingsGlyphCatalogue {
         GlyphPart.Quad(5f, 17.5f, 12f, 21.3f, 19f, 17.5f),
     )
 
-    /** An arrow into a tray: putting a copy somewhere safe. */
+    /**
+     * An arrow **down** into a tray: putting a copy somewhere safe.
+     *
+     * The arrow used to point up, out of the tray — which is *export*, the opposite of what this section
+     * does, and one picture away from the app's own PDF/SVG arrows. Down into the tray is the recovery
+     * snapshot: the work goes in, and comes back out when it is needed.
+     */
     private fun restore(): List<GlyphPart> = listOf(
-        GlyphPart.Line(12f, 3.5f, 12f, 13.5f),
-        GlyphPart.Line(8.5f, 7f, 12f, 3.5f),
-        GlyphPart.Line(15.5f, 7f, 12f, 3.5f),
+        GlyphPart.Line(12f, 3.4f, 12f, 13.6f),
+        GlyphPart.Line(8.4f, 10f, 12f, 13.6f),
+        GlyphPart.Line(15.6f, 10f, 12f, 13.6f),
         GlyphPart.Polyline(
             listOf(GlyphPoint(4.5f, 14.5f), GlyphPoint(4.5f, 20.5f), GlyphPoint(19.5f, 20.5f), GlyphPoint(19.5f, 14.5f)),
         ),

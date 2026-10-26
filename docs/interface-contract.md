@@ -83,6 +83,13 @@ Every surface is one of three objects. Pick the class from what the element *doe
   after the section, drawn by the tablet as an `ImageVector` and by the window into its `DrawScope`. A
   settings row may not carry a Material icon on one shell and a blank space on the other —
   `SettingsGlyphParityTest` and `DesktopSettingsGlyphTest` fail by name if it does.
+- A settings mark is a **silhouette with one idea in it**, because an index row draws it at 16 dp: a pen,
+  a sheet, a drop, two fingertips on the glass. An abstract diagram of the same idea (a nib drawn as a
+  stick over a triangle, a tap as a ring inside a ring) reads as a funnel and a target at that size and
+  is a bug, not a style. Where the product already has the picture — the **Stylus** section wears
+  `ToolGlyph.PEN`, the rail's own pen — the catalogue **reuses** it instead of drawing a second pen.
+  Art is judged by eye, so `SettingsGlyphRenderTest` paints every mark at 16 dp (asserting each draws
+  ink) and writes `build/settings-glyphs.png` and `build/settings-glyphs-index.png` to look at.
 - The **chrome's** glyphs (`ChromeGlyphCatalogue`, `mobix-core`) are every mark that is not a tool face:
   undo, redo, the file commands, the menu, the dismiss and add marks, the layer eye, and the whole
   selection bar — cut, copy, paste, duplicate, recolour, width, edit, delete and the six alignments with
