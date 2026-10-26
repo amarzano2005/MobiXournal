@@ -363,7 +363,7 @@ in page points with a floor of `SNAP_REACH_PX` screen pixels, so a zoomed-out pa
 A **component being placed** aims at one more thing: the ends of the **wires already on the page**
 (`collectPlacementTargets`) — a pin meeting a wire's end, seen from the other side, so a wire drawn before
 the part it feeds still meets it. Only a wire's ends are offered, and only to a component; the line tool aims
-at pins alone and a pen stroke is never a target, so drawing beside a line never wires anything.
+at pins alone and a pen stroke is never a target, so drawing beside a line never wires anything. A **wire being moved** is held to that same rule — it aims at pins, never at another wire's end — so a joint the magnet makes is always circuit↔line or circuit↔circuit, and two lines beside each other stay two lines.
 
 Placing a component is also the one gesture whose **own** pins are drawn while it is still under the
 stylus: `previewTargets` runs the factory's placement rule on the live drag, so the rings the user lines

@@ -155,7 +155,7 @@ What it does today:
   at the corner handle that sits there (`PinPress`, `pressesOwnPin`: a scale never magnetises). A moved
   part's **own** pins are never its targets, by position rather than id, so the magnet cannot pull it back;
   and a moved selection aims at the **ends of the page's wires** too (`collectMoveTargets`), so a part
-  carried onto the line drawn for it closes that joint (`SelectionMovePaintTest`).
+  carried onto the line drawn for it closes that joint (`SelectionMovePaintTest`). The magnet's rule is **circuit↔line or circuit↔circuit and nothing else**: a *moved wire* keeps to pins (`PinTarget.isWireEnd`), because a line is a connector and not a terminal, so two lines dragged near each other stay two lines.
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
   surface the drawn rim — and every one is a **menu that never takes the keyboard** (`FloatingSurface`,
   `DesktopPopupFocusTest`), so the shortcuts survive a flyout or a hover pill. Both keep the **shared fill
@@ -196,8 +196,7 @@ disk was left as it was — the staged-then-moved write makes that true. A **`Li
 being stale, as on an open. `DesktopSaveTest` pins all three, and byte-compares the original to prove a
 refused save touched nothing.
 
-`--args` splits its value on spaces, so a notebook under `Il mio Drive/…` arrives as several arguments: `initialDocument`
-puts the pieces back, and a path Windows squeezed finds its file by name nearby (`launchDocument`) — never by guessing.
+A notebook **opened from Explorer** arrives as the command line's tail, and an unquoted path is split at every run of spaces — with the run **squeezed into one**, so `…/09)  21-10-2026/…` reaches `main` as `09) 21-10-2026`. `initialDocument` therefore reads the line Windows actually wrote (`rawCommandLine`, `kernel32!GetCommandLineW`) before it rearranges the arguments, so a double-clicked notebook opens with no dialog at all; `--args` splits its value on spaces too, and only when the line answers nothing are those pieces put back — `launchDocument` searching by name as a last resort, never by guessing.
 
 ### Unsaved edits: the dot, the question, and a snapshot
 
