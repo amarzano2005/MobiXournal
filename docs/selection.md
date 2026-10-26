@@ -70,7 +70,11 @@ loop): the page scrolls one step per frame and the move is re-applied at the fin
 position (`SelectionGestureController.moveSelectTo`), so the element rides the scrolling sheet even
 under a held finger; a floating **Cut / Copy / Duplicate / Recolour / Width / Delete** bar
 (`SelectionActionBar` in `ui/EditorActionBars.kt`, placed by `ui/SelectionActionAnchor.kt`) acts on the
-selection (all undoable). That bar **rides with the
+selection (all undoable). **Recolour** opens the shared palette as the *compact* form — one horizontally
+scrolling row of swatches with no hint line, width-capped at about seven swatches — not the wrapping grid
+the dialogs use: this menu hangs off a 32 dp bar on the selection, so it has to read as part of that bar
+instead of opening a page-sized sheet of colours over the ink. The same compact row is what the toolbar's
+**Colour & size** pop-up shows, so a colour is picked in one shape everywhere on the canvas. That bar **rides with the
 selection** rather than sitting at the bottom edge: the view publishes the selection's box in its own
 view px (`DrawingSurfaceView.selectionScreenRect` / `onSelectionRectChanged`, reported from the render
 pass next to `reportScroll`) through `PaneState.selectionRect`, and `EditorPaneView` — whose canvas

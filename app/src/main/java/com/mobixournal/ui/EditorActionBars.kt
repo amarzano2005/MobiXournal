@@ -207,6 +207,10 @@ private val SelectionBarIcon = 18.dp
 /**
  * A drop-down that recolours the selection, offering the shared [ColorPaletteRows] — the same
  * swatches and the custom slot as the pen's palette. The colour picked is applied to the selection.
+ *
+ * It is the **compact** palette (one scrolling row, no hint line, a width cap), not the wrapping grid
+ * the dialogs use: this menu hangs off the selection bar, so it has to read as part of that small
+ * floating bar instead of opening a screen-sized sheet of swatches over the page.
  */
 @Composable
 private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
@@ -215,16 +219,25 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     Box {
         BarIconButton("Recolour", ChromeGlyph.RECOLOUR.imageVector()) { open = true }
         ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+            MenuHeading("Recolour")
             ColorPaletteRows(
                 selected = null,
                 palette = palette,
                 onPick = { c -> onRecolor(c); open = false },
                 onEditCustom = { editing = true; open = false },
+                modifier = Modifier.width(RECOLOUR_MENU_WIDTH),
+                compact = true,
             )
         }
     }
     CustomColorEditor(visible = editing, palette = palette, onDismiss = { editing = false })
 }
+
+/**
+ * How wide the recolour palette stands before it scrolls: about seven swatches, so a reader sees the
+ * palette at a glance without the menu growing to the page's width.
+ */
+private val RECOLOUR_MENU_WIDTH = 264.dp
 
 /** A width drop-down that re-widths the selected strokes, using the same configurable slots as the pen. */
 @Composable
