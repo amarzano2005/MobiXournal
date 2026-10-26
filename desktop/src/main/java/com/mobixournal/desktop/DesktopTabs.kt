@@ -289,10 +289,12 @@ class DesktopTabs {
     fun newBlankDocument(
         widthPt: Double = DesktopDocuments.PAGE_WIDTH_PT,
         heightPt: Double = DesktopDocuments.PAGE_HEIGHT_PT,
+        /** What the new tab is written as: `.mobix`, a gzip `.xopp`, or a zipped `.xopp` package. */
+        format: DesktopNewDocumentFormat = DesktopNewDocumentFormat.DEFAULT,
     ): DesktopTab {
-        val path = DesktopDocuments.newPath(tabs.map { it.key }.toSet())
+        val path = DesktopDocuments.newPath(tabs.map { it.key }.toSet(), format.extension)
         val tab = DesktopTab(
-            document = DesktopDocuments.blank(path, widthPt, heightPt),
+            document = DesktopDocuments.blank(path, widthPt, heightPt, format.container),
             title = path.nameWithoutExtension,
             unsaved = true,
         )

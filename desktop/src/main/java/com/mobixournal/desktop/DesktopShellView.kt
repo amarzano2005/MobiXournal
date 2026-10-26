@@ -65,8 +65,10 @@ internal fun DesktopShell(
             onSettings = { state.apply(ShellCommand.OPEN_SETTINGS) },
             // The menu's Pen block: its parameters are the colour capsule's panel, its one preset is
             // the factory ink — the same two things the strip offers, reached from the menu.
-            onPenParameters = { state.editColour(ColourEditorTarget.CUSTOM) },
+            onPenParameters = { state.openPenSettings() },
             onPenDefault = { state.resetPenDefaults() },
+            // The menu's own pressure rows: the same settings the Stylus page edits.
+            penPolicy = state.prefs,
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             // The page is always drawn: Settings is a **floating surface** over it, not a second window

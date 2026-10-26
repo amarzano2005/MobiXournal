@@ -55,7 +55,7 @@ compose.desktop {
 
         nativeDistributions {
             packageName = "MobiXournal"
-            packageVersion = "1.4.0"
+            packageVersion = "1.0.0"
             description = "MobiXournal desktop preview"
             // The same art as the tablet's launcher: without it the packaged .exe is stamped with the
             // JVM's own icon, so an app that draws a notebook wore a coffee cup in Explorer.

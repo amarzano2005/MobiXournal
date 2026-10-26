@@ -46,6 +46,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import kotlin.math.roundToInt
 
 /**
@@ -373,6 +374,72 @@ internal fun SettingsSwitch(on: Boolean) {
                 .width(14.dp)
                 .background(if (on) DesktopTheme.desk else DesktopTheme.inkSecondary, DesktopTheme.capsuleShape),
         )
+    }
+}
+
+/**
+ * **Two chevrons that move a row one place** — how a strip's slots are reordered.
+ *
+ * A pair rather than drag-and-drop: the settings page is read with the keyboard as often as the mouse (`Tab`
+ * reaches a chevron, `Enter` moves it), and a list that only answers a drag would be a list half the window
+ * cannot use. The ends are dimmed rather than silent, so the first slot says it has nothing above it.
+ */
+@Composable
+internal fun SettingsStepButtons(
+    upEnabled: Boolean,
+    downEnabled: Boolean,
+    onUp: () -> Unit,
+    onDown: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StepButton(ChromeGlyph.CHEVRON_UP, "Move up", upEnabled, onUp)
+        StepButton(ChromeGlyph.CHEVRON_DOWN, "Move down", downEnabled, onDown)
+    }
+}
+
+/** One chevron of [SettingsStepButtons]: the window's own button states, at a row's height. */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun StepButton(
+    glyph: ChromeGlyph,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val click = rememberUpdatedState(onClick)
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .size(SettingsMetrics.CONTROL_HEIGHT)
+            .background(DesktopTheme.activeSlot.copy(alpha = if (enabled) 0.35f else 0.15f), DesktopTheme.capsuleShape)
+            .border(
+                width = if (focused) 1.dp else 0.dp,
+                color = if (focused) DesktopTheme.accent else Color.Transparent,
+                shape = DesktopTheme.capsuleShape,
+            )
+            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
+            .focusable()
+            .onFocusChanged { focused = it.isFocused }
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                if (!enabled) {
+                    false
+                } else if (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar) {
+                    click.value()
+                    true
+                } else {
+                    false
+                }
+            }
+            .pointerInput(label, enabled) { detectTapGestures { if (enabled) click.value() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(16.dp)) {
+            drawChromeGlyph(glyph, if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted)
+        }
     }
 }
 

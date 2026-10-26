@@ -1,11 +1,16 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.PenPalette
 import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.render.PressureCurve
 import java.util.Locale
@@ -14,16 +19,12 @@ import kotlin.math.roundToInt
 /**
  * The **sections** of the window's Settings: the page of controls for one topic.
  *
- * The list is the **phone's list** (`SettingsSection` in `app/src/main/java/com/mobixournal/ui/
- * SettingsScreen.kt`): the same thirteen names, in the same order, each carrying the same glyph from the
- * shared catalogue — so the two shells' settings read as one product rather than a full list on the tablet
- * and three short pages on the PC (`docs/interface-contract.md` §9).
- *
- * What differs is how much of each section the window can answer. A row that has a mechanism behind it is
- * a real control and changes the open window; a row that does not is **drawn and disabled, with one
- * sentence saying what is missing** — never invented, and never silently dropped, because a list that
- * pretends a setting does not exist is how the parity drifted in the first place. The mechanism lands with
- * its own task (`TODO.toml`) and only then does the row start acting.
+ * The list is the tablet's list **minus what a window cannot answer**: a phone's Editor, Gestures and
+ * Storage pages configure a fingertip, a tool default and a cache that this shell has no row for, and a
+ * page of "Tablet only" rows is a page the reader has to learn to skip. What remains is what a desktop can
+ * actually decide — the pen, the strips, figures, the palette, keys, navigation, appearance, documents,
+ * backup and the app — and every one of those rows has a mechanism behind it
+ * (`docs/interface-contract.md` §9).
  *
  * A page is **rows, not columns**: the name of the setting on the left, its control at the right edge
  * ([SettingsRow]) — the shape a preference takes on a desktop, and the reason this file stays readable:
@@ -43,26 +44,21 @@ enum class DesktopSettingSection(
 ) {
     STYLUS(
         "Stylus",
-        "The pen stream and how hard it presses.",
-        "tablet pen stylus wintab windows ink pressure stream driver barrel hover eraser tip thickness",
+        "The pen stream, how hard it presses and the area it reads.",
+        "tablet pen stylus wintab windows ink pressure stream driver sensitivity multiplier minimum " +
+            "curve active area eraser tip thickness",
         SettingsGlyph.STYLUS,
-    ),
-    EDITOR(
-        "Editor",
-        "The tool a document opens on, and snapping.",
-        "default tool startup snapping snap grid rotation angle degrees shape recognition recognizer",
-        SettingsGlyph.EDITOR,
     ),
     TOOLBAR(
         "Toolbar",
-        "Where the tool strips stand and how they are laid out.",
-        "toolbar tools strip rail ribbon top side left right placement layout buttons order hide show",
+        "Where the tool strips stand and the order of their buttons.",
+        "toolbar tools strip rail ribbon top side left right placement layout buttons order reorder",
         SettingsGlyph.TOOLBAR,
     ),
     FIGURES(
         "Figures",
-        "The size and behaviour of the figures you draw.",
-        "figures shapes size stroke snapping presets geometry",
+        "The width the figure tools draw at.",
+        "figures shapes size stroke width presets geometry",
         SettingsGlyph.FIGURES,
     ),
     COLORS(
@@ -70,12 +66,6 @@ enum class DesktopSettingSection(
         "The pen's colour, width, line style and favourites.",
         "colours colors palette swatch favourites favorites width thickness line style dashed",
         SettingsGlyph.COLORS,
-    ),
-    GESTURES(
-        "Gestures",
-        "What a still two-finger tap and a three-finger tap do.",
-        "gestures finger tap two three undo redo palm rejection touch",
-        SettingsGlyph.GESTURES,
     ),
     SHORTCUTS(
         "Shortcuts",
@@ -85,32 +75,26 @@ enum class DesktopSettingSection(
     ),
     NAVIGATION(
         "Navigation",
-        "How a document opens and how the canvas moves.",
-        "navigation zoom fit page width momentum panning scrolling sidebar page list",
+        "How a document opens and how the page list behaves.",
+        "navigation zoom fit page width panning scrolling sidebar page list",
         SettingsGlyph.NAVIGATION,
     ),
     APPEARANCE(
         "Appearance",
-        "The theme, the columns, and what the status bar reads.",
-        "appearance theme dark light status bar readout frame time paint refresh inspector columns",
+        "The theme, and what the status bar reads.",
+        "appearance theme status bar readout frame time paint refresh display",
         SettingsGlyph.APPEARANCE,
     ),
     DOCUMENTS(
         "Documents",
         "The format a new document is written in, and its page.",
-        "documents format mobix xopp new default page size paper",
+        "documents format mobix xopp zipped package new default page size paper",
         SettingsGlyph.DOCUMENTS,
-    ),
-    STORAGE(
-        "Storage",
-        "Where the window keeps its own files.",
-        "storage cache settings file disk path thumbnails",
-        SettingsGlyph.STORAGE,
     ),
     BACKUP(
         "Backup",
-        "What keeps unsaved work safe.",
-        "backup recovery snapshot crash restore unsaved autosave",
+        "The recovery snapshot, and a file that carries your settings.",
+        "backup recovery snapshot crash restore unsaved settings export import file transfer",
         SettingsGlyph.BACKUP,
     ),
     ABOUT(
@@ -156,36 +140,40 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
     Text(section.summary, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
     when (section) {
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
-        DesktopSettingSection.EDITOR -> EditorSettings()
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
-        DesktopSettingSection.FIGURES -> FiguresSettings()
-        DesktopSettingSection.COLORS -> ColorsSettings(policy)
-        DesktopSettingSection.GESTURES -> UnavailableSettings(
-            "Gestures",
-            "A still two-finger tap undoes and a three-finger tap redoes on the tablet's canvas. The " +
-                "window is drawn with a pen or a mouse, so it has no finger gestures to bind.",
-        )
+        DesktopSettingSection.FIGURES -> FiguresSettings(policy)
+        DesktopSettingSection.COLORS -> ColorsSettings()
         DesktopSettingSection.SHORTCUTS -> ShortcutsSettings(policy)
         DesktopSettingSection.NAVIGATION -> NavigationSettings(policy)
         DesktopSettingSection.APPEARANCE -> AppearanceSettings(policy)
         DesktopSettingSection.DOCUMENTS -> DocumentsSettings(policy)
-        DesktopSettingSection.STORAGE -> StorageSettings()
-        DesktopSettingSection.BACKUP -> BackupSettings()
+        DesktopSettingSection.BACKUP -> BackupSettings(policy)
         DesktopSettingSection.ABOUT -> AboutSettings()
     }
 }
 
-/** A section with nothing the window can answer: its title, and one sentence saying why. */
-@Composable
-private fun UnavailableSettings(title: String, note: String) {
-    SettingsGroup(title) {
-        SettingsUnavailable(label = title, note = note)
-    }
-}
-
-/** **Stylus**: which stream the pen is read from; the feel is the reader's, not a preference here. */
+/**
+ * **Stylus**: the stream the pen is read from, the pressure filter, and the area it maps.
+ *
+ * The three pressure rows are the tablet's own (`docs/stylus.md`): *sensitivity* decides whether a press
+ * changes the width at all, and below it the two numbers of desktop Xournal++'s filter — the **floor** under
+ * a light press and the **multiplier** above it. They stay on screen while sensitivity is off, because that
+ * is the state the numbers are remembered in, and the curve under them shapes the *reading* before either
+ * number applies.
+ */
 @Composable
 private fun StylusSettings(policy: DesktopSettingsState) {
+    StylusPenGroup(policy)
+    StylusAreaGroup(policy)
+    SettingsNote(
+        "The status bar names the stream actually open, so a preference this host cannot honour says so. " +
+            "An area the driver cannot map keeps the whole surface rather than leaving a dead pen.",
+    )
+}
+
+/** The pen itself: the stream it is read from, and the four numbers of the pressure filter. */
+@Composable
+private fun StylusPenGroup(policy: DesktopSettingsState) {
     SettingsGroup("Pen") {
         SettingsChoice(
             label = "Stream",
@@ -196,8 +184,39 @@ private fun StylusSettings(policy: DesktopSettingsState) {
             onPick = policy::choosePenStream,
         )
         SettingsRow(
+            label = "Pressure sensitivity",
+            note = "Off draws every stroke at its set width, so a pen stroke and a figure match exactly.",
+            onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
+        ) {
+            SettingsSwitch(policy.pressureEnabled)
+        }
+        SettingsRow(
+            label = "Minimum pressure",
+            note = "The floor under a light press: the thinnest line pressure can draw.",
+        ) {
+            SettingsSlider(
+                value = policy.minimumPressure,
+                range = PressureCurve.MINIMUM_PRESSURE_MIN..PressureCurve.MINIMUM_PRESSURE_MAX,
+                step = 0.01f,
+                format = { String.format(Locale.ROOT, "%.2f", it) },
+                onValue = policy::chooseMinimumPressure,
+            )
+        }
+        SettingsRow(
+            label = "Multiplier",
+            note = "Above 1.00 a light press draws thicker — how a light writer reaches the full width.",
+        ) {
+            SettingsSlider(
+                value = policy.pressureMultiplier,
+                range = PressureCurve.MULTIPLIER_MIN..PressureCurve.MULTIPLIER_MAX,
+                step = 0.05f,
+                format = { String.format(Locale.ROOT, "%.2f×", it) },
+                onValue = policy::choosePressureMultiplier,
+            )
+        }
+        SettingsRow(
             label = "Pressure curve",
-            note = "Shapes the reading before the stroke's width: below 1.00 a light press draws " +
+            note = "Shapes the reading before the two numbers above: below 1.00 a light press draws " +
                 "thicker, above it thinner. 1.00 is the model's own arithmetic, untouched.",
         ) {
             SettingsSlider(
@@ -209,6 +228,11 @@ private fun StylusSettings(policy: DesktopSettingsState) {
             )
         }
     }
+}
+
+/** Where on the tablet's surface the window listens: the whole desk, or a rectangle of it. */
+@Composable
+private fun StylusAreaGroup(policy: DesktopSettingsState) {
     SettingsGroup("Active area") {
         SettingsChoice(
             label = "Mapped surface",
@@ -252,84 +276,106 @@ private fun StylusSettings(policy: DesktopSettingsState) {
                     "shape: the lock moves the height with the width.",
                 onClick = { policy.chooseAspectLock(!policy.aspectLock) },
             ) {
-                SettingsSwitch(on = policy.aspectLock)
+                SettingsSwitch(policy.aspectLock)
             }
         }
-        SettingsUnavailable(
-            "Barrel button",
-            "The pen's buttons are read by the driver and reach the window as the eraser tip.",
-        )
-    }
-    SettingsNote(
-        "The status bar names the stream actually open, so a preference this host cannot honour says so. " +
-            "An area the driver cannot map keeps the whole surface rather than leaving a dead pen.",
-    )
-}
-
-/** **Editor**: what the tablet's default-tool and snapping rows would set. */
-@Composable
-private fun EditorSettings() {
-    SettingsGroup("Tools and snapping") {
-        SettingsUnavailable(
-            "Default tool",
-            "The window opens on the pen, and the strips' own keys pick the rest (B H E V S X).",
-        )
-        SettingsUnavailable(
-            "Snapping",
-            "Figures snap to the page's pins while a connector is armed; there is no grid or angle " +
-                "snapping to configure in this build.",
-        )
     }
 }
 
-/** **Toolbar**: the one section the window has owned since the strips became a setting. */
+/**
+ * **Toolbar**: where the strips stand, and the order of their buttons.
+ *
+ * One row of three places — the rail on either edge, or the ribbon under the header — because the side is
+ * part of the placement, not a second question. The order below it is the tablet's own *Buttons* idea: each
+ * slot of the strip is a row with a pair of chevrons, and the strips read the arrangement the moment it
+ * changes ([DesktopSettingsState.toolGroups]).
+ */
 @Composable
 private fun ToolbarSettings(policy: DesktopSettingsState) {
     SettingsGroup("Tool strips") {
         SettingsChoice(
             label = "Placement",
-            note = "Side is the tablet's rail; Top puts the same tools under the header; Both keeps each lane.",
+            note = "Left or Right is the tablet's rail, on the edge opposite your writing hand; Top puts " +
+                "the same tools in a ribbon under the header.",
             options = StripPlacement.entries,
             picked = policy.stripPlacement,
             optionLabel = { it.label },
             onPick = policy::chooseStripPlacement,
         )
-        if (policy.stripPlacement.showsRail) {
-            SettingsChoice(
-                label = "Side",
-                note = "The edge opposite your writing hand: Left for a right hand.",
-                options = RailSide.entries,
-                picked = policy.railSide,
-                optionLabel = { it.label },
-                onPick = policy::chooseRailSide,
-            )
-        }
-        SettingsUnavailable(
-            "Buttons",
-            "The strips carry the tablet's sixteen tools in a fixed order; reordering slots is the " +
-                "tablet's Toolbar section and has not been ported yet.",
-        )
     }
+    val groups = policy.toolGroups
+    SettingsGroup("Buttons") {
+        for ((index, group) in groups.withIndex()) {
+            SettingsRow(
+                label = group.face.label,
+                note = group.members.joinToString(" · ") { it.label },
+            ) {
+                SettingsStepButtons(
+                    upEnabled = index > 0,
+                    downEnabled = index < groups.lastIndex,
+                    onUp = { policy.moveToolSlot(index, -1) },
+                    onDown = { policy.moveToolSlot(index, 1) },
+                )
+            }
+        }
+        if (policy.toolOrder.isNotEmpty()) {
+            SettingsRow(
+                label = "Factory order",
+                note = "Put every slot back where the window draws it on a fresh install.",
+                onClick = policy::resetToolOrder,
+            ) {
+                Text("Reset", color = DesktopTheme.accent, style = DesktopTheme.label)
+            }
+        }
+    }
+    SettingsNote("Both strips read the same arrangement, and a picker's chevron follows its slot.")
 }
 
-/** **Figures**: how a drawn figure takes its stroke. */
+/**
+ * **Figures**: the width the shape tools draw at.
+ *
+ * A figure has no pressure — it is drawn at its full width — so a rectangle would otherwise always be as
+ * thick as the pen's *slot*, and a light pen stroke beside it reads thinner. Its width is therefore its own
+ * value: the tablet's three S/M/L slots as presets, and a slider for anything between them.
+ */
 @Composable
-private fun FiguresSettings() {
-    SettingsGroup("Figures") {
-        SettingsRow(label = "Figure stroke", note = "A figure is drawn with the pen's current width.") {
-            Text("Follows the pen", color = DesktopTheme.ink, style = DesktopTheme.numeric)
-        }
-        SettingsUnavailable(
-            "Figure presets",
-            "The tablet keeps named sizes for its shapes; the window draws each figure at the width " +
-                "the strip shows.",
+private fun FiguresSettings(policy: DesktopSettingsState) {
+    val widths = PenPalette.DEFAULT_WIDTHS
+    val letters = listOf("S", "M", "L")
+    SettingsGroup("Figure width") {
+        SettingsChoice(
+            label = "Preset",
+            note = "The pen's three slots, applied to every figure tool. Figures ignore pressure.",
+            options = widths.indices.toList(),
+            picked = PenPalette.widthSlot(policy.figureWidth),
+            optionLabel = { index ->
+                val name = letters.getOrNull(index) ?: "${index + 1}"
+                "$name — ${String.format(Locale.ROOT, "%.1f", widths[index])} pt"
+            },
+            onPick = { index -> policy.chooseFigureWidth(widths[index]) },
         )
+        SettingsRow(
+            label = "Width",
+            note = "Any width between the slots, in points.",
+        ) {
+            SettingsSlider(
+                value = policy.figureWidth,
+                range = widths.first()..widths.last(),
+                step = 0.25f,
+                format = { String.format(Locale.ROOT, "%.2f pt", it) },
+                onValue = policy::chooseFigureWidth,
+            )
+        }
     }
+    SettingsNote(
+        "The pen's own widths are in the strips' colour capsule, per tool; this one is only what a figure, " +
+            "a circuit or a placed element is drawn with.",
+    )
 }
 
 /** **Colors**: the palette lives in the strip, and this page says so rather than duplicating it. */
 @Composable
-private fun ColorsSettings(policy: DesktopSettingsState) {
+private fun ColorsSettings() {
     SettingsGroup("The palette") {
         SettingsRow(
             label = "Colour, width and line style",
@@ -364,11 +410,10 @@ private fun NavigationSettings(policy: DesktopSettingsState) {
             optionLabel = { it.label },
             onPick = policy::chooseSidebarPolicy,
         )
-        SettingsUnavailable("Momentum", "The window scrolls and pans one step per gesture; the tablet's fling is not ported.")
     }
 }
 
-/** **Appearance**: the theme, the inspector column, and what the status bar reads. */
+/** **Appearance**: the theme, and what the status bar reads. */
 @Composable
 private fun AppearanceSettings(policy: DesktopSettingsState) {
     SettingsGroup("Theme") {
@@ -413,28 +458,21 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         Readout("Display", refreshLabel(displayRefreshHz()))
         frameLabel(FrameMeter.averageMs, policy.frameTime)?.let { Readout("Painting", it) }
     }
-    SettingsGroup("Inspector") {
-        SettingsChoice(
-            label = "Column",
-            note = "The column that edits the element in your hand. Never keeps it shut.",
-            options = InspectorPolicy.entries,
-            picked = policy.inspectorPolicy,
-            optionLabel = { it.label },
-            onPick = policy::chooseInspectorPolicy,
-        )
-    }
 }
 
 /** **Documents**: the container a new file is written as, and the sheet it starts on. */
 @Composable
 private fun DocumentsSettings(policy: DesktopSettingsState) {
     SettingsGroup("The document") {
-        SettingsRow(
+        SettingsChoice(
             label = "New document",
-            note = "A new tab is written as .xopp; Save As switches the container by the name you give it.",
-        ) {
-            Text(".xopp", color = DesktopTheme.ink, style = DesktopTheme.label)
-        }
+            note = "What every new tab is written as. A .mobix keeps figures and tables as recipes; a " +
+                "zipped .xopp carries its attachments inside one file. Save As switches either way.",
+            options = DesktopNewDocumentFormat.entries,
+            picked = policy.newDocumentFormat,
+            optionLabel = { it.label },
+            onPick = policy::chooseNewDocumentFormat,
+        )
         SettingsRow(
             label = "Default page",
             note = "Set as default, in Page format, is what every new sheet is born with.",
@@ -445,32 +483,36 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
                 style = DesktopTheme.numeric,
             )
         }
-        SettingsUnavailable(
-            "Format policy",
-            "A document remembers its own format and Save As converts; there is no default to choose " +
-                "until the new-document row above becomes a choice.",
-        )
+        Readout("Destination", "Documents\\MobiXournal\\Untitled n" + policy.newDocumentFormat.extension)
     }
 }
 
-/** **Storage**: the one file the window writes for itself. */
+/**
+ * **Backup**: what keeps unsaved work, and a file that carries every setting to another machine.
+ *
+ * The two settings rows are the tablet's Backup section on a desktop: export writes the whole
+ * configuration (`DesktopSettingsBackup`) and import reads one back, refusing anything this build cannot
+ * understand with the reason. The answer is a sentence under the rows, not a dialog.
+ */
 @Composable
-private fun StorageSettings() {
-    SettingsGroup("This window") {
-        SettingsRow(label = "Settings file", note = "Read once, rewritten on every change.") {
-            Text("desktop.properties", color = DesktopTheme.ink, style = DesktopTheme.label)
+private fun BackupSettings(policy: DesktopSettingsState) {
+    SettingsGroup("Settings backup") {
+        SettingsRow(
+            label = "Export settings…",
+            note = "Writes every choice in this window to a file you pick.",
+            onClick = { policy.pickBackupFile?.invoke(true) { file -> file?.let(policy::exportBackup) } },
+        ) {
+            Text("Choose…", color = DesktopTheme.accent, style = DesktopTheme.label)
         }
-        SettingsUnavailable(
-            "Cache",
-            "Thumbnails and page pictures live in memory for the session; the window writes no cache " +
-                "of its own, so there is no size to reclaim.",
-        )
+        SettingsRow(
+            label = "Import settings…",
+            note = "Reads a backup back. A file that is not one is refused, and nothing changes.",
+            onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
+        ) {
+            Text("Choose…", color = DesktopTheme.accent, style = DesktopTheme.label)
+        }
+        policy.backupNotice?.let { SettingsNote(it) }
     }
-}
-
-/** **Backup**: the recovery snapshot the window already writes. */
-@Composable
-private fun BackupSettings() {
     SettingsGroup("Unsaved work") {
         SettingsRow(
             label = "Recovery snapshot",
@@ -478,11 +520,6 @@ private fun BackupSettings() {
         ) {
             Text("After every edit", color = DesktopTheme.ink, style = DesktopTheme.label)
         }
-        SettingsUnavailable(
-            "Interval",
-            "The snapshot follows the edit's own quiet period; the tablet's timed autosave is not " +
-                "ported, so there is nothing to set.",
-        )
     }
 }
 
@@ -501,4 +538,4 @@ private fun AboutSettings() {
 }
 
 /** The version the packaged window shows — the one `compose.desktop`'s packageVersion carries. */
-internal const val DESKTOP_VERSION = "1.4.0"
+internal const val DESKTOP_VERSION = "1.0.0"

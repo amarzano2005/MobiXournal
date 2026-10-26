@@ -114,8 +114,11 @@ class DesktopGeometryTest {
         try {
             state.selectTool(DesktopTool.RECTANGLE)
             state.pickWidth(6f)
+            // A figure has its own width (the Figures section): picking a pen width does not change it,
+            // which is what lets a rectangle match a light pen stroke instead of the pen's slot.
             assertEquals("the strip writes the pen's width", 6f, state.ink.width, 1e-6f)
-            assertEquals("and the figure reads the same ink", 6f, state.shapeInk.width, 1e-6f)
+            state.prefs.chooseFigureWidth(6f)
+            assertEquals("and the figure reads its own", 6f, state.shapeInk.width, 1e-6f)
 
             val points = shapeFromDrag(
                 ShapeKind.RECTANGLE, 10.0, 10.0, 60.0, 40.0, state.shapeInk.width, constrained = false,

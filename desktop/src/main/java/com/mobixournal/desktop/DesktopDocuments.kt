@@ -32,13 +32,15 @@ internal object DesktopDocuments {
         file: File,
         widthPt: Double = PAGE_WIDTH_PT,
         heightPt: Double = PAGE_HEIGHT_PT,
+        /** The container the new tab is written as — the Documents section's answer. */
+        container: DesktopContainer = DesktopContainer.XOPP_GZIP,
     ): DesktopDocument {
         val document = Document(pages = listOf(blankPage(widthPt, heightPt)))
         return DesktopDocument(
             file = file,
             source = PageSource.of(document),
             model = document,
-            container = DesktopContainer.XOPP_GZIP,
+            container = container,
             backdrop = PageBackdrop(bundled = { null }, documentDir = file.parentFile),
         )
     }
@@ -56,9 +58,10 @@ internal object DesktopDocuments {
 
     /**
      * A path for a new document that no open tab already uses: `Untitled 1.xopp`, `Untitled 2.xopp`, …
-     * The file is not created — Save As is what writes it.
+     * The file is not created — Save As is what writes it. [extension] is the new format's own suffix
+     * (`.mobix`, `.xopp`), so the name a document is born with already says what its first save writes.
      */
-    fun newPath(taken: Set<String>): File {
+    fun newPath(taken: Set<String>, extension: String = ".xopp"): File {
         val folder = File(
             File(System.getProperty("user.home"), "Documents"),
             "MobiXournal",
@@ -68,7 +71,7 @@ internal object DesktopDocuments {
         runCatching { folder.mkdirs() }
         var index = 1
         while (true) {
-            val candidate = File(folder, "Untitled $index.xopp")
+            val candidate = File(folder, "Untitled $index$extension")
             if (DesktopTabs.keyOf(candidate) !in taken && !candidate.exists()) return candidate
             index++
         }

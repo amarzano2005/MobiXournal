@@ -14,50 +14,65 @@ package com.mobixournal.desktop
  */
 
 /**
- * **Where the tool strips stand.**
+ * **Where the tool strips stand**: three answers, and each one is a side of the window.
  *
- * The tablet has one shape: the Main Toolbar is a vertical rail down the edge opposite the writing hand,
- * and the figures live in the top bar. A window has room for the rail, for a horizontal ribbon under the
- * header, or for both — so the choice is the tablet's own placement plus the ribbon the window can afford,
- * and it is a **setting**, never a control in the chrome it moves (`docs/desktop-workstation.md`).
+ * The tablet has one shape — the Main Toolbar is a vertical rail down the edge opposite the writing hand —
+ * and the window offers that rail on either edge, or the same tools as a ribbon under the header. The
+ * section used to ask two questions (a placement of Side/Top/Both and then which side the rail took),
+ * which meant four answers for three lanes and a "both" nobody asked for; the placement is now one row
+ * of three, and the edge is part of the answer.
+ *
+ * It is a **setting**, never a control in the chrome it moves (`docs/desktop-workstation.md`).
  */
 enum class StripPlacement(val label: String) {
-    /** The vertical rail down [RailSide], which is the tablet's Main Toolbar. */
-    SIDE("Side"),
+    /** The vertical rail down the left edge, the tablet's own home for a right hand. */
+    LEFT("Left"),
+
+    /** The vertical rail down the right edge, for a left hand. */
+    RIGHT("Right"),
 
     /** The horizontal ribbon under the header, and no rail. */
     TOP("Top"),
-
-    /** Both lanes: the ribbon under the header and the rail beside the canvas. */
-    BOTH("Both"),
     ;
 
-    /** The rail's lane is drawn (Side and Both). */
+    /** The rail's lane is drawn. */
     val showsRail: Boolean get() = this != TOP
 
-    /** The ribbon's band is drawn (Top and Both). */
-    val showsRibbon: Boolean get() = this != SIDE
+    /** The ribbon's band is drawn — the top placement, and only it. */
+    val showsRibbon: Boolean get() = this == TOP
+
+    /** The edge the rail takes, or null when the strips are a ribbon. */
+    val railSide: RailSide?
+        get() = when (this) {
+            LEFT -> RailSide.LEFT
+            RIGHT -> RailSide.RIGHT
+            TOP -> null
+        }
 
     companion object {
-        /** The placement a window with no setting gets: the tablet's own rail. */
-        val DEFAULT: StripPlacement = SIDE
+        /** The placement a window with no setting gets: the tablet's own rail, on the left. */
+        val DEFAULT: StripPlacement = LEFT
 
         /**
-         * [name] as a placement, reading **both** the current names and the three this file used while
-         * the choice lived only in the properties file (`Rail`, `Ribbon`, `Both`), so an install that has
-         * already picked one keeps it.
+         * [name] as a placement, reading the current names **and** the legacy spellings this file and the
+         * properties store used (`Side`, `Rail`, `Ribbon`, `Both`) plus the old separate rail side, so an
+         * install that already picked an edge keeps it instead of jumping to the left.
          */
-        fun of(name: String?): StripPlacement = when (name?.trim()?.lowercase()) {
-            "top", "ribbon" -> TOP
-            "both" -> BOTH
-            // "side", "rail", absent or unknown: the rail, which is what the window always had.
-            else -> SIDE
+        fun of(name: String?, legacyRailSide: String? = null): StripPlacement {
+            val rail = if (RailSide.of(legacyRailSide) == RailSide.RIGHT) RIGHT else LEFT
+            return when (name?.trim()?.lowercase()) {
+                "left" -> LEFT
+                "right" -> RIGHT
+                "top", "ribbon", "both" -> TOP
+                // "side", "rail", absent or unknown: the rail, on the edge the old row stored.
+                else -> rail
+            }
         }
     }
 }
 
 /**
- * **Which edge the rail takes** — the tablet's handedness answer.
+ * **Which edge the rail takes** — the tablet's handedness answer, as [StripPlacement] spells it.
  *
  * The phone's Toolbar section calls this *Position* and explains it the same way: the rail goes on the
  * side **opposite the writing hand**, so a right hand gets Left (the default) and a left hand Right. The
@@ -140,6 +155,41 @@ enum class InspectorPolicy(val label: String) {
         val DEFAULT: InspectorPolicy = AUTOMATIC
 
         fun of(name: String?): InspectorPolicy =
+            entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT
+    }
+}
+
+/**
+ * **What a new document is written as** — the tablet's three answers, on the window's *New* command.
+ *
+ * The choice is a choice of *document*, not of file: `.mobix` keeps a figure, a table or a component as the
+ * recipe it was authored as, `.xopp` is the file desktop Xournal++ reads everywhere, and the zipped package
+ * is the same `.xopp` with its attachments inside one file instead of beside it. A window used to write
+ * every new page as a gzip `.xopp` and leave the container to Save As, which meant the laptop and the
+ * tablet disagreed about what New makes.
+ *
+ * [container] is what the new tab holds (and therefore what its first save writes); [extension] is the name
+ * the tab is born with.
+ */
+enum class DesktopNewDocumentFormat(val label: String, val extension: String) {
+    MOBIX("MobiXournal (.mobix)", ".mobix"),
+    XOPP("Xournal++ (.xopp)", ".xopp"),
+    ZIPPED("Xournal++ package (.xopp, zipped)", ".xopp"),
+    ;
+
+    /** The container a tab opened on this answer carries until Save As names another. */
+    val container: DesktopContainer
+        get() = when (this) {
+            MOBIX -> DesktopContainer.MOBIX
+            XOPP -> DesktopContainer.XOPP_GZIP
+            ZIPPED -> DesktopContainer.XOPP_ZIP
+        }
+
+    companion object {
+        /** What the window has always written, so an untouched install keeps its habit. */
+        val DEFAULT: DesktopNewDocumentFormat = XOPP
+
+        fun of(name: String?): DesktopNewDocumentFormat =
             entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: DEFAULT
     }
 }

@@ -59,6 +59,8 @@ internal fun Header(
     /** The menu's Pen block: the colour panel, and the factory ink behind one chip. */
     onPenParameters: () -> Unit = {},
     onPenDefault: () -> Unit = {},
+    /** The settings the menu's Pen block changes, so its pressure rows act on the open window. */
+    penPolicy: DesktopSettingsState? = null,
 ) {
     val tab = tabs.active
     Row(
@@ -83,6 +85,7 @@ internal fun Header(
             onSettings = onSettings,
             onPenParameters = onPenParameters,
             onPenDefault = onPenDefault,
+            penPolicy = penPolicy,
         )
         Spacer(Modifier.width(10.dp))
         TabStrip(

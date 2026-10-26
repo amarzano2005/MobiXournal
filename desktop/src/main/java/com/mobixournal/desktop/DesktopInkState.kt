@@ -95,6 +95,35 @@ internal class DesktopInkState(
     val favourites: List<Int> get() = favs.forTool(currentTool())
 
     /**
+     * Read the two inks, the palette and its custom slot back from the settings file.
+     *
+     * The store is the authority on every choice, so an imported settings backup has to reach **this**
+     * copy too: the strips and the page draw from it, and refreshing only the settings surface would leave
+     * the window painting in the colours the backup replaced.
+     */
+    fun reload() {
+        inks = DesktopInks(
+            pen = DesktopInk(
+                colour = settings.inkColour,
+                width = settings.inkWidth,
+                lineStyle = settings.inkLineStyle,
+            ),
+            highlighter = DesktopInk(
+                colour = settings.highlighterColour,
+                width = settings.highlighterWidth,
+                lineStyle = settings.highlighterLineStyle,
+            ),
+        )
+        palette = settings.paletteColours
+        paletteCustom = settings.paletteCustom
+        favs = DesktopFavourites(
+            pen = settings.colourFavourites,
+            highlighter = settings.highlighterFavourites,
+        )
+        editing = null
+    }
+
+    /**
      * Put the tool in hand back on its **factory ink** — the menu's one preset.
      *
      * The tablet's Pen block lists named presets; the window has one, because its colour capsule is where

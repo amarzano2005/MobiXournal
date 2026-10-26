@@ -31,8 +31,7 @@ class DesktopSettingsTest {
     fun `every choice survives a restart`() {
         val file = File(temp.root, "restart.properties")
         val policy = DesktopSettingsState(DesktopSettings(file))
-        policy.chooseStripPlacement(StripPlacement.TOP)
-        policy.chooseRailSide(RailSide.RIGHT)
+        policy.chooseStripPlacement(StripPlacement.RIGHT)
         policy.chooseFitOnOpen(FitOnOpen.WIDTH)
         policy.chooseSidebarPolicy(SidebarPolicy.ALWAYS)
         policy.chooseInspectorPolicy(InspectorPolicy.NEVER)
@@ -40,8 +39,8 @@ class DesktopSettingsTest {
         policy.choosePenStream(PenStream.INK)
 
         val reopened = DesktopSettings(file)
-        assertEquals(StripPlacement.TOP, reopened.stripPlacement)
-        assertEquals(RailSide.RIGHT, reopened.railSide)
+        assertEquals(StripPlacement.RIGHT, reopened.stripPlacement)
+        assertEquals("the edge is part of the placement now", RailSide.RIGHT, reopened.stripPlacement.railSide)
         assertEquals(FitOnOpen.WIDTH, reopened.fitOnOpen)
         assertEquals(SidebarPolicy.ALWAYS, reopened.sidebarPolicy)
         assertEquals(InspectorPolicy.NEVER, reopened.inspectorPolicy)
@@ -50,7 +49,7 @@ class DesktopSettingsTest {
 
         // And the state a second window builds over the same file opens on those answers.
         val second = DesktopSettingsState(reopened)
-        assertEquals(StripPlacement.TOP, second.stripPlacement)
+        assertEquals(StripPlacement.RIGHT, second.stripPlacement)
         assertEquals(RailSide.RIGHT, second.railSide)
         assertEquals(FitOnOpen.WIDTH, second.fitOnOpen)
         assertEquals(SidebarPolicy.ALWAYS, second.sidebarPolicy)
@@ -85,18 +84,83 @@ class DesktopSettingsTest {
         assertEquals("clamped to the range the model offers", PressureCurve.EXPONENT_MAX, policy.pressureExponent, 1e-6f)
     }
 
+    /**
+     * The tablet's three pressure settings: remembered, clamped, and **in force** for the next reading.
+     *
+     * The filter is the same arithmetic as desktop Xournal++'s — floor and multiplier after the curve —
+     * and the last part is the one a file cannot show: a switch that only reached the file would look
+     * applied and draw exactly as before.
+     */
+    @Test
+    fun `the pressure filter survives a restart and shapes the next reading`() {
+        val file = File(temp.root, "filter.properties")
+        val policy = DesktopSettingsState(DesktopSettings(file))
+        assertEquals("full width at the default", 0.5f, PressureFeel.shape(0.5f), 1e-6f)
+
+        policy.chooseMinimumPressure(0.4f)
+        assertEquals("a light press is floored", 0.4f, PressureFeel.shape(0.05f), 1e-6f)
+
+        policy.choosePressureMultiplier(2f)
+        // No upper clamp, exactly as desktop Xournal++ allows: a multiplier above 1 may push a stroke
+        // past its nominal width.
+        assertEquals("and a firm one is multiplied", 1.2f, PressureFeel.shape(0.6f), 1e-6f)
+
+        policy.choosePressureEnabled(false)
+        assertEquals("sensitivity off draws at the tool's width", 1f, PressureFeel.shape(0.2f), 1e-6f)
+
+        val reopened = DesktopSettings(file)
+        assertFalse(reopened.pressureEnabled)
+        assertEquals(0.4f, reopened.minimumPressure, 1e-6f)
+        assertEquals(2f, reopened.pressureMultiplier, 1e-6f)
+
+        policy.chooseMinimumPressure(9f)
+        assertEquals("clamped to the range the desktop offers", PressureCurve.MINIMUM_PRESSURE_MAX, policy.minimumPressure, 1e-6f)
+    }
+
+    /** The strips' arrangement: stored as the slots' names, and read back by both strips. */
+    @Test
+    fun `a reordered strip survives a restart`() {
+        val file = File(temp.root, "order.properties")
+        val policy = DesktopSettingsState(DesktopSettings(file))
+        assertEquals(DESKTOP_TOOL_GROUPS.map { it.face }, policy.toolGroups.map { it.face })
+
+        policy.moveToolSlot(1, -1)
+        assertEquals(
+            "the second slot took the first place",
+            DESKTOP_TOOL_GROUPS[1].face,
+            policy.toolGroups.first().face,
+        )
+        assertEquals(DESKTOP_TOOL_GROUPS.size, policy.toolGroups.size)
+        assertEquals(
+            "and it is written to the file",
+            policy.toolGroups.map { it.face.name },
+            DesktopSettings(file).toolOrder,
+        )
+
+        policy.resetToolOrder()
+        assertEquals(DESKTOP_TOOL_GROUPS.map { it.face }, DesktopSettingsState(DesktopSettings(file)).toolGroups.map { it.face })
+    }
+
     @After
     fun resetTheReadingCurve() {
         // The shape is a module-level seam, so a test that changed it must hand it back.
         PressureFeel.exponent = PressureCurve.EXPONENT_IDENTITY
+        PressureFeel.enabled = true
+        PressureFeel.multiplier = 1f
+        PressureFeel.minimum = PressureCurve.MINIMUM_PRESSURE_DEFAULT
     }
 
     /** A first run: the window's documented defaults, and nothing invented. */
     @Test
     fun `a window with no file opens on the documented defaults`() {
         val fresh = store("fresh.properties")
-        assertEquals(StripPlacement.SIDE, fresh.stripPlacement)
-        assertEquals(RailSide.LEFT, fresh.railSide)
+        assertEquals(StripPlacement.LEFT, fresh.stripPlacement)
+        assertEquals(RailSide.LEFT, fresh.stripPlacement.railSide)
+        assertTrue("a fresh pen reads its pressure", fresh.pressureEnabled)
+        assertEquals(PressureCurve.MINIMUM_PRESSURE_DEFAULT, fresh.minimumPressure, 1e-6f)
+        assertEquals(1f, fresh.pressureMultiplier, 1e-6f)
+        assertEquals(DesktopNewDocumentFormat.XOPP, fresh.newDocumentFormat)
+        assertTrue("no arrangement is the factory order", fresh.toolOrder.isEmpty())
         assertEquals(FitOnOpen.AUTO, fresh.fitOnOpen)
         assertEquals(SidebarPolicy.AUTOMATIC, fresh.sidebarPolicy)
         assertEquals(InspectorPolicy.AUTOMATIC, fresh.inspectorPolicy)
@@ -110,20 +174,25 @@ class DesktopSettingsTest {
      */
     @Test
     fun `the placement names this file used to hold still answer`() {
-        assertEquals(StripPlacement.SIDE, StripPlacement.of("Rail"))
+        assertEquals(StripPlacement.LEFT, StripPlacement.of("Rail"))
         assertEquals(StripPlacement.TOP, StripPlacement.of("Ribbon"))
-        assertEquals(StripPlacement.BOTH, StripPlacement.of("Both"))
+        assertEquals("the old both-lanes answer keeps a strip it had", StripPlacement.TOP, StripPlacement.of("Both"))
         assertEquals(StripPlacement.TOP, StripPlacement.of("top"))
 
         val legacy = File(temp.root, "legacy.properties")
         legacy.writeText("interface.toolPlacement=Ribbon\n")
         assertEquals(StripPlacement.TOP, DesktopSettings(legacy).stripPlacement)
+
+        // The two old rows together: a rail the reader had moved to the right stays on the right.
+        val moved = File(temp.root, "moved.properties")
+        moved.writeText("interface.toolPlacement=Side\ninterface.railSide=RIGHT\n")
+        assertEquals(StripPlacement.RIGHT, DesktopSettings(moved).stripPlacement)
     }
 
     /** An unknown value is the default, never an exception: a hand-edited file still opens a window. */
     @Test
     fun `an unknown value falls back to the default`() {
-        assertEquals(StripPlacement.SIDE, StripPlacement.of("Diagonal"))
+        assertEquals(StripPlacement.LEFT, StripPlacement.of("Diagonal"))
         assertEquals(RailSide.LEFT, RailSide.of("upwards"))
         assertEquals(FitOnOpen.AUTO, FitOnOpen.of("zoomed"))
         assertEquals(SidebarPolicy.AUTOMATIC, SidebarPolicy.of("sometimes"))

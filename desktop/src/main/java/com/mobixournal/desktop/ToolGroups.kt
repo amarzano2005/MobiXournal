@@ -153,6 +153,23 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     DesktopTool.CIRCUIT_LOGIC,
 )
 
+/**
+ * [DESKTOP_TOOL_GROUPS] in the reader's own order.
+ *
+ * The order is stored as the slots' **face tool** names, so it survives a build that renames or re-groups
+ * something: a name the catalogue no longer has is skipped, and a slot the stored order does not mention
+ * follows in its factory place — which is what keeps a tool added by a later build from being hidden by an
+ * arrangement written before it existed. Empty is the factory order, not "no tools".
+ *
+ * Slots the same name repeats are taken once: the strips are an arrangement, not a list a bug can double.
+ */
+fun orderedToolGroups(order: List<String>): List<ToolGroup> {
+    if (order.isEmpty()) return DESKTOP_TOOL_GROUPS
+    val byName = DESKTOP_TOOL_GROUPS.associateBy { it.face.name }
+    val picked = order.mapNotNull { byName[it] }.distinct()
+    return picked + DESKTOP_TOOL_GROUPS.filter { group -> group !in picked }
+}
+
 /** The slot [tool] lives in, or null when the strip does not show it (yet). */
 fun groupOf(tool: DesktopTool): ToolGroup? = DESKTOP_TOOL_GROUPS.firstOrNull { tool in it.members }
 

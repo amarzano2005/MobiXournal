@@ -185,42 +185,43 @@ class ToolStripsTest {
     }
 
     @Test
-    fun `the placement defaults to the side and survives a restart`() {
+    fun `the placement defaults to the left rail and survives a restart`() {
         val file = File(temp.root, "desktop.properties")
-        assertEquals(StripPlacement.SIDE, DesktopSettings(file).stripPlacement)
-        assertTrue(StripPlacement.SIDE.showsRail)
+        assertEquals(StripPlacement.LEFT, DesktopSettings(file).stripPlacement)
+        assertTrue(StripPlacement.LEFT.showsRail)
+        assertFalse("the rail is not the ribbon", StripPlacement.LEFT.showsRibbon)
 
         DesktopSettings(file).stripPlacement = StripPlacement.TOP
         assertEquals(StripPlacement.TOP, DesktopSettings(file).stripPlacement)
         assertFalse("the ribbon alone leaves no rail", StripPlacement.TOP.showsRail)
         assertTrue("and it is the ribbon", StripPlacement.TOP.showsRibbon)
-        assertTrue(StripPlacement.BOTH.showsRail)
-        assertTrue(StripPlacement.BOTH.showsRibbon)
-        // The edge the rail takes is its own answer, and the tablet's default is the right hand's edge.
-        assertEquals(RailSide.LEFT, DesktopSettings(file).railSide)
-        DesktopSettings(file).railSide = RailSide.RIGHT
-        assertEquals(RailSide.RIGHT, DesktopSettings(file).railSide)
+        assertEquals("a ribbon has no side", null, StripPlacement.TOP.railSide)
+
+        // The edge is one of the three answers now, not a second question: Right is the right-hand rail.
+        DesktopSettings(file).stripPlacement = StripPlacement.RIGHT
+        assertEquals(StripPlacement.RIGHT, DesktopSettings(file).stripPlacement)
+        assertEquals(RailSide.RIGHT, DesktopSettings(file).stripPlacement.railSide)
     }
 
     @Test
     fun `an unknown or unreadable file falls back to the default`() {
-        assertEquals(StripPlacement.SIDE, StripPlacement.of("Diagonal"))
-        assertEquals(StripPlacement.SIDE, StripPlacement.of(null))
-        assertEquals(StripPlacement.BOTH, StripPlacement.of("both"))
-        // The three names the file held before the row existed still answer, so an install that had
-        // already picked one does not find its strips moved.
-        assertEquals(StripPlacement.SIDE, StripPlacement.of("Rail"))
+        assertEquals(StripPlacement.LEFT, StripPlacement.of("Diagonal"))
+        assertEquals(StripPlacement.LEFT, StripPlacement.of(null))
+        assertEquals(StripPlacement.TOP, StripPlacement.of("both"))
+        // The names the file held before the row merged still answer, so an install that had already
+        // picked one does not find its strips moved.
+        assertEquals(StripPlacement.LEFT, StripPlacement.of("Rail"))
         assertEquals(StripPlacement.TOP, StripPlacement.of("Ribbon"))
 
         val garbage = File(temp.root, "garbage.properties")
         garbage.writeText("interface.toolPlacement=\\uZZZZ")
         assertEquals(
             "a hand-edited file must not stop the window opening",
-            StripPlacement.SIDE,
+            StripPlacement.LEFT,
             DesktopSettings(garbage).stripPlacement,
         )
-        DesktopSettings(garbage).stripPlacement = StripPlacement.BOTH
-        assertEquals(StripPlacement.BOTH, DesktopSettings(garbage).stripPlacement)
+        DesktopSettings(garbage).stripPlacement = StripPlacement.RIGHT
+        assertEquals(StripPlacement.RIGHT, DesktopSettings(garbage).stripPlacement)
     }
 
     /** Both placements draw every slot's glyph, and both mark the picked slot with the steel. */
@@ -329,11 +330,21 @@ class ToolStripsTest {
                 longestPaperRun(0 until image.width) { x -> paperAt(x, y) } >= minRun
             }
             assertTrue("$placement: the page is on screen", paperColumns.isNotEmpty() && paperRows.isNotEmpty())
-            val lane = if (placement.showsRail) railLane else 0
+            // A rail on the left pushes the page right; a rail on the right leaves the page at the edge
+            // and takes its lane after it — the two placements are one answer, so both are measured.
+            val laneLeft = placement.showsRail && placement.railSide == RailSide.LEFT
+            val lane = if (laneLeft) railLane else 0
             assertTrue(
                 "$placement: the page starts after the rail's lane (first paper column ${paperColumns.min()})",
                 paperColumns.min() >= lane,
             )
+            if (placement.showsRail && !laneLeft) {
+                assertTrue(
+                    "$placement: the rail's lane takes the right edge, past the page " +
+                        "(last paper column ${paperColumns.max()})",
+                    paperColumns.max() <= image.width - railLane,
+                )
+            }
             val band = header + if (placement.showsRibbon) ribbonBand else 0
             assertTrue(
                 "$placement: the page starts below the ribbon's band (first paper row ${paperRows.min()})",
@@ -345,7 +356,12 @@ class ToolStripsTest {
                 // Under BOTH the rail's strip starts below the ribbon, so its top is the ribbon's band.
                 val midGap = band + ToolStripMetrics.railSlotTop.value.toInt() +
                     ToolStripMetrics.slotSize.value.toInt() + gapPx / 2
-                val capsule = image.getRGB(ToolStripMetrics.railWidth.value.toInt() / 2, midGap) and 0xFFFFFF
+                val railCentreX = if (laneLeft) {
+                    ToolStripMetrics.railWidth.value.toInt() / 2
+                } else {
+                    image.width - ToolStripMetrics.railWidth.value.toInt() / 2
+                }
+                val capsule = image.getRGB(railCentreX, midGap) and 0xFFFFFF
                 assertTrue(
                     "$placement: the rail's fill is the window's glass, not a lane's band under it " +
                         "(sampled #%06X, expected #%06X)".format(capsule, windowGlass),

@@ -113,6 +113,12 @@ enum class ChromeGlyph {
 
     /** Equal gaps above and below: distribute vertically. */
     DISTRIBUTE_V,
+
+    /** A chevron up: move this row one place earlier. */
+    CHEVRON_UP,
+
+    /** And down: one place later. */
+    CHEVRON_DOWN,
 }
 
 /** The catalogue: one glyph, its path data. */
@@ -217,5 +223,7 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.ALIGN_BOTTOM -> "M16 13h-3V3h-2v10H8l4 4l4 -4ZM4 19v2h16v-2H4Z"
         ChromeGlyph.DISTRIBUTE_H -> "M4 22H2V2h2V22ZM22 2h-2v20h2V2ZM13.5 7h-3v10h3V7Z"
         ChromeGlyph.DISTRIBUTE_V -> "M22 2v2H2V2H22ZM7 10.5v3h10v-3H7ZM2 20v2h20v-2H2Z"
+        ChromeGlyph.CHEVRON_UP -> "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
+        ChromeGlyph.CHEVRON_DOWN -> "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
     }
 }

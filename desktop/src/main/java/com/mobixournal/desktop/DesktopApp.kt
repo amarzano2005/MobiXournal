@@ -111,6 +111,12 @@ fun FrameWindowScope.DesktopApp(
         DesktopExportQueue.pickPdfDestination = ::pickExportDestination
         onDispose { DesktopExportQueue.pickPdfDestination = null }
     }
+    // The Backup section's two rows need the same thing the PDF export does: a window to hang a native
+    // dialog on. The state has none, so the window lends it one for as long as it is up.
+    DisposableEffect(Unit) {
+        state.prefs.pickBackupFile = { save, onPicked -> onPicked(chooseBackupFile(window, save)) }
+        onDispose { state.prefs.pickBackupFile = null }
+    }
     DesktopTheme.Apply {
         DesktopShell(
             state = state,
@@ -169,6 +175,26 @@ private fun chooseDocument(window: Frame): File? {
         name.endsWith(".xopp", ignoreCase = true) || name.endsWith(".mobix", ignoreCase = true)
     }
     return awaitChoice(dialog)
+}
+
+/**
+ * The settings backup's own file dialog: **save** asks where to write one, **load** which to read.
+ *
+ * The proposed name carries the backup suffix, and a name typed without one is given it: a file whose
+ * name does not say what it is would be the one thing the import's own stamp test then has to explain.
+ */
+private fun chooseBackupFile(window: Frame, save: Boolean): File? {
+    val dialog = FileDialog(
+        window,
+        if (save) "Export settings" else "Import settings",
+        if (save) FileDialog.SAVE else FileDialog.LOAD,
+    )
+    dialog.file = "MobiXournal-settings" + DesktopSettingsBackup.EXTENSION
+    dialog.setFilenameFilter { _, name -> name.endsWith(DesktopSettingsBackup.EXTENSION, ignoreCase = true) }
+    val chosen = awaitChoice(dialog) ?: return null
+    if (!save) return chosen
+    return if (chosen.name.contains('.')) chosen
+    else File(chosen.parentFile, chosen.name + DesktopSettingsBackup.EXTENSION)
 }
 
 /** The native save dialog with [proposed] already in its name field, or null when it was cancelled. */

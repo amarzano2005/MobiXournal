@@ -178,7 +178,7 @@ emulator_debug = false
 [[task]]
 id = "desktop-packaging-installers-and-ci-artifact"
 title = "Desktop packaging: MSI installer and CI artifact"
-description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.4.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Windows 11 only (decision 2026-10-21): add a documented, repeatable command that builds the MSI and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the MSI and launching the packaged binary against udiff.xopp."
+description = "desktop/build.gradle.kts configures compose.desktop nativeDistributions (packageName MobiXournal, packageVersion 1.0.0) but nothing produces or publishes an artifact, so the only way to run the desktop shell is :desktop:run. Windows 11 only (decision 2026-10-21): add a documented, repeatable command that builds the MSI and wire it into the release workflow next to the APK, with the same version the Gradle build reports. Requirements: the package must start with a document argument and without one; the build must not need the Android SDK; document the command in README.md and docs/tools.md in the same commit, and record what an unsigned package means for the user. Verify by building the MSI and launching the packaged binary against udiff.xopp."
 status = "active"
 level = "task"
 category = "chore"

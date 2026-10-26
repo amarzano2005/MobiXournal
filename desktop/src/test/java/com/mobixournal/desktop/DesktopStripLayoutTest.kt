@@ -41,15 +41,14 @@ class DesktopStripLayoutTest {
         temp.newFile("strips.mobix").also { SyntheticNotebook.write(it, SyntheticNotebook.pages(4)) }
     }
 
-    private fun render(placement: StripPlacement, side: RailSide): IntArray {
-        val name = "layout-${placement.name.lowercase()}-${side.name.lowercase()}"
+    private fun render(placement: StripPlacement): IntArray {
+        val name = "layout-${placement.name.lowercase()}"
         val settings = DesktopSettings(File(temp.root, "$name.properties"))
         val state = DesktopShellState(settings)
         state.open(notebook)
         // The page list would take the outer edge and hide half of what this measures.
         state.toggleSidebar()
         state.prefs.chooseStripPlacement(placement)
-        state.prefs.chooseRailSide(side)
         val scene = ImageComposeScene(width, height, Density(1f)) {
             DesktopShell(state = state, onOpenPicker = {})
         }
@@ -95,8 +94,8 @@ class DesktopStripLayoutTest {
     /** The tablet's handedness answer, applied to the window: the rail's edge moves the page with it. */
     @Test
     fun `the rail's edge moves the sheet with it`() {
-        val leftRail = paperOrigin(render(StripPlacement.SIDE, RailSide.LEFT))
-        val rightRail = paperOrigin(render(StripPlacement.SIDE, RailSide.RIGHT))
+        val leftRail = paperOrigin(render(StripPlacement.LEFT))
+        val rightRail = paperOrigin(render(StripPlacement.RIGHT))
 
         assertTrue(
             "a left rail pushes the page right: $leftRail against $rightRail",
@@ -107,8 +106,8 @@ class DesktopStripLayoutTest {
     /** `Top` is the ribbon's band under the header and no rail at all — both halves of the claim. */
     @Test
     fun `the top placement draws the ribbon and no rail`() {
-        val side = paperOrigin(render(StripPlacement.SIDE, RailSide.LEFT))
-        val top = paperOrigin(render(StripPlacement.TOP, RailSide.LEFT))
+        val side = paperOrigin(render(StripPlacement.LEFT))
+        val top = paperOrigin(render(StripPlacement.TOP))
 
         assertTrue("the ribbon takes a band, so the sheet starts lower: $top against $side", top.second > side.second + 8)
         assertTrue("and the rail's lane is gone, so it starts further left", top.first < side.first - 8)

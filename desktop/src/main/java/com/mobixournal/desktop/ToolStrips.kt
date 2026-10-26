@@ -108,8 +108,15 @@ data class ToolStripState(
     /** The palette's editable custom slot, which both tools share; null while it is empty. */
     val custom: Int? = null,
     val favourites: List<Int> = PenPalette.COLORS.take(PaletteCodec.FAVOURITES),
-    /** Which group's picker is open, as an index into [DESKTOP_TOOL_GROUPS]; null when none is. */
+    /** Which group's picker is open, as an index into [groups]; null when none is. */
     val openGroup: Int? = null,
+    /**
+     * The slots in the reader's order, from the Toolbar section ([orderedToolGroups]).
+     *
+     * Part of the value both strips draw, for the same reason the ink is: the rail and the ribbon are two
+     * layouts of one arrangement, so a reordered button has to move in both of them at once.
+     */
+    val groups: List<ToolGroup> = DESKTOP_TOOL_GROUPS,
     /** Opening (an index) or closing (null) the picker — the slot's chevron and `Alt+Down` both go here. */
     val onOpenGroup: (Int?) -> Unit = {},
     /** The part each circuit slot is armed with — the palettes' answers, one per family. */
@@ -190,7 +197,7 @@ fun ToolRail(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for ((index, group) in DESKTOP_TOOL_GROUPS.withIndex()) {
+                for ((index, group) in state.groups.withIndex()) {
                     ToolSlot(
                         group = group,
                         selection = state.selection,
@@ -265,7 +272,7 @@ fun ToolRibbon(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
             ) {
-                for ((index, group) in DESKTOP_TOOL_GROUPS.withIndex()) {
+                for ((index, group) in state.groups.withIndex()) {
                     ToolSlot(
                         group = group,
                         selection = state.selection,

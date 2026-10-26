@@ -10,6 +10,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import com.mobixournal.design.ShortcutKeys
 import com.mobixournal.render.PressureCurve
+import java.io.File
 
 /**
  * The window's **Settings**, as state: whether the surface is up, which section it shows, what the search
@@ -45,6 +46,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         // The reading shape is a module-level seam the two ink adapters read (`PressureFeel`): the state is
         // its only writer, so opening a window puts the stored curve in force before the first stroke.
         PressureFeel.exponent = store.pressureExponent
+        PressureFeel.enabled = store.pressureEnabled
+        PressureFeel.multiplier = store.pressureMultiplier
+        PressureFeel.minimum = store.minimumPressure
     }
 
     /** Whether the surface is up. */
@@ -72,8 +76,19 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var stripPlacement by mutableStateOf(store.stripPlacement)
         private set
 
-    /** Which edge the rail takes. */
-    var railSide by mutableStateOf(store.railSide)
+    /** The edge the rail takes, derived from the placement: a ribbon has no side. */
+    val railSide: RailSide get() = stripPlacement.railSide ?: RailSide.LEFT
+
+    /**
+     * Where the surface has been dragged to, in dp from the centre of the window.
+     *
+     * A panel over a page should be movable out of the way of the thing it is changing — a settings card
+     * that can only sit in the middle covers the sheet it is being compared against. Two numbers rather
+     * than an `Offset` so this state stays plain Kotlin (no Compose geometry) and can be tested on the JVM.
+     */
+    var panelDx by mutableStateOf(0f)
+        private set
+    var panelDy by mutableStateOf(0f)
         private set
 
     /** The zoom a document opens at. */
@@ -112,6 +127,80 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** How the pen's reading is shaped before the model's pressure filter; 1.0 is untouched. */
     var pressureExponent by mutableStateOf(store.pressureExponent)
         private set
+
+    /** Whether a press changes the width at all — the tablet's *Pressure sensitivity*. */
+    var pressureEnabled by mutableStateOf(store.pressureEnabled)
+        private set
+
+    /** The floor under a filtered pressure, and the multiplier above it. */
+    var minimumPressure by mutableStateOf(store.minimumPressure)
+        private set
+    var pressureMultiplier by mutableStateOf(store.pressureMultiplier)
+        private set
+
+    /** The width a figure is drawn at, in points: a figure has no pressure, so it is its own answer. */
+    var figureWidth by mutableStateOf(store.figureWidth)
+        private set
+
+    /** What a new tab is written as. */
+    var newDocumentFormat by mutableStateOf(store.newDocumentFormat)
+        private set
+
+    /** The strip's slot order, as the reader arranged it; the factory order when it is empty. */
+    var toolOrder by mutableStateOf(store.toolOrder)
+        private set
+
+    /**
+     * The window's save/open dialog for a settings backup, installed by the shell.
+     *
+     * The surface has no window to hang a native dialog on, the same reason `DesktopExportQueue` takes its
+     * PDF destination this way. Null in a test, which is also why the two rows work without one: they
+     * answer a sentence instead of opening a dialog nothing can answer.
+     */
+    var pickBackupFile: ((save: Boolean, onPicked: (File?) -> Unit) -> Unit)? = null
+
+    /**
+     * What the last export or import said, shown under the two rows of the Backup section.
+     *
+     * A sentence rather than a dialog: backing settings up is not a question, and the answer (a file
+     * written, a file refused and why) belongs beside the rows that asked.
+     */
+    var backupNotice by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Called after an imported backup has been read back into this state — the shell refreshes what it
+     * holds outside the settings surface with it (the two inks and the palette).
+     */
+    var onRestored: (() -> Unit)? = null
+
+    /** Write every choice into [target] as a settings backup, and say where it went. */
+    fun exportBackup(target: File) {
+        backupNotice = runCatching {
+            DesktopSettingsBackup.write(store, target)
+            "Settings exported to ${target.name}."
+        }.getOrElse { failure ->
+            "The settings could not be exported: ${failure.message ?: "the file could not be written"}."
+        }
+    }
+
+    /**
+     * Read [file] back as this window's settings — every row, the strips and the pens included.
+     *
+     * A file that is not a backup this build understands changes **nothing** and says why: an import is a
+     * replacement of every choice the window keeps, so half of one would be worse than none.
+     */
+    fun importBackup(file: File) {
+        when (val check = DesktopSettingsBackup.read(file)) {
+            is DesktopSettingsBackup.BackupCheck.Ok -> {
+                store.restore(check.values)
+                reload()
+                onRestored?.invoke()
+                backupNotice = check.message
+            }
+            else -> backupNotice = check.message
+        }
+    }
 
     /** Which part of the tablet's surface is mapped. */
     var activeArea by mutableStateOf(store.activeArea)
@@ -238,16 +327,49 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     // --- the choices, each one a hook as well as a key -------------------------------------------
 
-    /** Stand the strips at [value] (top, side or both) and remember it. */
+    /** Stand the strips at [value] (left, right or top) and remember it. */
     fun chooseStripPlacement(value: StripPlacement) {
         stripPlacement = value
         store.stripPlacement = value
     }
 
-    /** Put the rail on [value] and remember it. */
-    fun chooseRailSide(value: RailSide) {
-        railSide = value
-        store.railSide = value
+    /** Move the surface by [dx] × [dy], from the drag's own deltas. */
+    fun dragPanel(dx: Float, dy: Float) {
+        panelDx += dx
+        panelDy += dy
+    }
+
+    /** Put the surface back in the middle of the window. */
+    fun resetPanelOffset() {
+        panelDx = 0f
+        panelDy = 0f
+    }
+
+    /** The strip's slots in the reader's order — what both strips draw. */
+    val toolGroups: List<ToolGroup> get() = orderedToolGroups(toolOrder)
+
+    /**
+     * Move slot [index] one place [direction] (‑1 up/left, +1 down/right) and remember the order.
+     *
+     * The edge is not wrapped: the first slot has nothing above it, and a move past the end is the same
+     * arrangement said again. The order is stored as the whole list, so the next launch draws exactly
+     * what this window shows.
+     */
+    fun moveToolSlot(index: Int, direction: Int) {
+        val groups = toolGroups
+        val target = index + direction
+        if (index !in groups.indices || target !in groups.indices) return
+        val moved = groups.toMutableList()
+        val slot = moved.removeAt(index)
+        moved.add(target, slot)
+        toolOrder = moved.map { it.face.name }
+        store.toolOrder = toolOrder
+    }
+
+    /** Put every slot back in the factory order, and forget the arrangement. */
+    fun resetToolOrder() {
+        toolOrder = emptyList()
+        store.toolOrder = emptyList()
     }
 
     /** Open documents at [value] from now on and remember it — the tab already open keeps its zoom. */
@@ -291,6 +413,80 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         pressureExponent = shaped
         PressureFeel.exponent = shaped
         store.pressureExponent = shaped
+    }
+
+    /**
+     * Honour pressure, or draw every sample at the tool's width — the tablet's switch, live per sample.
+     *
+     * The two numbers beside it stay where they are while it is off, exactly as the tablet keeps them: a
+     * filter that is switched off is not a filter whose settings are lost.
+     */
+    fun choosePressureEnabled(value: Boolean) {
+        pressureEnabled = value
+        PressureFeel.enabled = value
+        store.pressureEnabled = value
+    }
+
+    /** The floor under a filtered pressure; a light press never draws thinner than this. */
+    fun chooseMinimumPressure(value: Float) {
+        val floor = value.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX)
+        minimumPressure = floor
+        PressureFeel.minimum = floor
+        store.minimumPressure = floor
+    }
+
+    /** The multiplier over a filtered pressure: above 1 a light writer thickens every stroke. */
+    fun choosePressureMultiplier(value: Float) {
+        val scaled = value.coerceIn(PressureCurve.MULTIPLIER_MIN, PressureCurve.MULTIPLIER_MAX)
+        pressureMultiplier = scaled
+        PressureFeel.multiplier = scaled
+        store.pressureMultiplier = scaled
+    }
+
+    /** The width a figure is drawn at, in points — its own answer, independent of the pen's pressure. */
+    fun chooseFigureWidth(value: Float) {
+        val width = com.mobixournal.design.PenPalette.clampWidth(value)
+        figureWidth = width
+        store.figureWidth = width
+    }
+
+    /** What a new tab is written as, from now on. */
+    fun chooseNewDocumentFormat(value: DesktopNewDocumentFormat) {
+        newDocumentFormat = value
+        store.newDocumentFormat = value
+    }
+
+    /**
+     * Read every choice back from the store — after a settings backup has replaced it.
+     *
+     * The backup writes the file; nothing on screen changes until this runs, which is why the import is one
+     * call: the rows, the strips, the page's ink and the pen's reading all come from these values.
+     */
+    fun reload() {
+        stripPlacement = store.stripPlacement
+        fitOnOpen = store.fitOnOpen
+        sidebarPolicy = store.sidebarPolicy
+        inspectorPolicy = store.inspectorPolicy
+        frameTime = store.frameTime
+        targetHz = store.targetHz
+        penStream = store.penStream
+        pressureExponent = store.pressureExponent
+        pressureEnabled = store.pressureEnabled
+        minimumPressure = store.minimumPressure
+        pressureMultiplier = store.pressureMultiplier
+        PressureFeel.exponent = pressureExponent
+        PressureFeel.enabled = pressureEnabled
+        PressureFeel.multiplier = pressureMultiplier
+        PressureFeel.minimum = minimumPressure
+        activeArea = store.activeArea
+        areaWidthPercent = store.areaWidthPercent
+        areaHeightPercent = store.areaHeightPercent
+        aspectLock = store.aspectLock
+        figureWidth = store.figureWidth
+        newDocumentFormat = store.newDocumentFormat
+        toolOrder = store.toolOrder
+        shortcuts = store.shortcuts
+        shortcutConflict = null
     }
 
     /** Map [value]'s part of the tablet's surface, and remember it; the window reopens its reader. */

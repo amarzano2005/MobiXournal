@@ -247,53 +247,8 @@ class DesktopShellState(
     var pendingPlacement by mutableStateOf<PendingPlacement?>(null)
         internal set
 
-    /**
-     * What a lifted living-slot drag means: the family's question for a plot or a table, the placement
-     * itself for a component (whose question was the palette).
-     *
-     * A placement that lands hands the window **to the selection**, exactly as the tablet does: the new
-     * element is already what stays selected, so a tool still armed to place a second one would make the
-     * very next drag place another plot instead of moving the one just made. The marquee is therefore
-     * picked, and the next press drags, resizes or opens the pencil on what was placed.
-     */
-    fun placeOrAsk(tab: DesktopTab, slot: LivingSlot, bounds: Bounds) {
-        if (slot == LivingSlot.CIRCUIT) {
-            val element = livingElementFor(slot, bounds, shapeInk, activeCircuitKind) ?: return
-            if (placeLivingElement(tab, element) { index -> edited(tab, index) }) handToSelection()
-            return
-        }
-        // A graph's first equation starts in the pen's ink until a curve is given its own colour.
-        pendingPlacement = PendingPlacement(slot, bounds, tab.key, shapeInk.colour)
-    }
-
-    /** Pick the selection tool, so the element just placed can be moved with the next press. */
-    internal fun handToSelection() {
-        selectTool(DesktopTool.MARQUEE)
-    }
-
-    /** The question's answer: build the element from it and write it as **one** edit and one undo step. */
-    fun confirmPlacement() {
-        val pending = pendingPlacement ?: return
-        val tab = tabs.active ?: return
-        // The question was asked on a page; answering it on another tab would place the box of one
-        // document on the sheet of another.
-        if (tab.key != pending.tabKey) {
-            pendingPlacement = null
-            return
-        }
-        val element = pending.element(shapeInk, activeCircuitKind) ?: return
-        if (placeLivingElement(tab, element) { index -> edited(tab, index) }) {
-            pendingPlacement = null
-            // The same hand-over the circuit slot makes: the placed element is what stays selected, so
-            // the next drag moves it rather than placing a second one.
-            handToSelection()
-        }
-    }
-
-    /** Drop the question without placing anything — the page is exactly what it was before the drag. */
-    fun cancelPlacement() {
-        pendingPlacement = null
-    }
+    // What a lifted drag *does* with it — ask, answer, drop — is `DesktopShellPlacement.kt`, beside the
+    // command surface rather than in the middle of it.
 
     /**
      * The window's **Settings**: the surface's own state and every choice that outlives a restart
@@ -301,6 +256,15 @@ class DesktopShellState(
      * surface is the same value the strips, the sidebar and the status bar draw.
      */
     val prefs = DesktopSettingsState(settings)
+
+    init {
+        // A settings backup replaces the file; the inks and the palette this shell holds are refreshed
+        // with it, so an import is visible on the page rather than only on the settings rows.
+        prefs.onRestored = { inkState.reload() }
+    }
+
+    /** The menu's *Parameters…*: the Settings surface, open on the pen's own page. */
+    fun openPenSettings() = prefs.openAt(DesktopSettingSection.STYLUS)
 
     /**
      * The window's ink and palette, its own piece of the state, owned here and forwarded below so every
@@ -314,8 +278,14 @@ class DesktopShellState(
     /** [ink] as the page is written with it: a highlighter's slot read as a marker's tip (`DesktopInkState.pageInk`). */
     val pageInk: DesktopInk get() = inkState.pageInk
 
-    /** The pen's ink, whatever tool is in hand: a figure, a circuit or a placement writes with this one. */
-    val shapeInk: DesktopInk get() = inkState.shapeInk
+    /**
+     * The pen's ink, whatever tool is in hand: a figure, a circuit or a placement writes with this one.
+     *
+     * The width is the Figures section's own answer, not the pen's slot: a figure has no pressure, so its
+     * width is chosen once and drawn at full size — which is how a rectangle is made to match a light pen
+     * stroke instead of the pen's widest slot.
+     */
+    val shapeInk: DesktopInk get() = inkState.shapeInk.withWidth(prefs.figureWidth)
 
     /** The palette's editable custom slot, shared by both tools. Null while it is empty. */
     val paletteCustom: Int? get() = inkState.paletteCustom
@@ -338,6 +308,9 @@ class DesktopShellState(
             custom = paletteCustom,
             favourites = favourites,
             openGroup = openGroup,
+            // The Toolbar section's arrangement, so a button moved on the settings page moves in both
+            // strips — and the picker's index means the same slot in each of them.
+            groups = prefs.toolGroups,
             onOpenGroup = { group -> openGroup = group },
             circuitKinds = circuitKinds,
             circuitPickerOpen = circuitPickerOpen,
@@ -443,7 +416,7 @@ class DesktopShellState(
      * section stored — so *Set as default* is a promise the next new page keeps.
      */
     fun newDocument() {
-        tabs.newBlankDocument(settings.pageWidthPt, settings.pageHeightPt)
+        tabs.newBlankDocument(settings.pageWidthPt, settings.pageHeightPt, prefs.newDocumentFormat)
         failure = null
     }
 

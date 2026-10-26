@@ -62,6 +62,17 @@ object DesktopTheme {
     val panel: Color = tokenColour(DesignTokens.GLASS_DARK_RGB)
 
     /**
+     * The **Settings** surface's fill: [panel] with a hair of the page showing through.
+     *
+     * The settings panel is read, not glanced at: over a sheet its rows are small text on a translucent
+     * card, and at `floatingPanelAlpha` the page's own ink came through the labels. It is almost solid —
+     * 0.97 leaves the material legible as glass at the rim, where the edge is, and makes the inside a
+     * page that is read rather than looked through. Not fully [panel], because the panel still lies over
+     * the document it is changing and a completely flat card reads as a second window.
+     */
+    val settingsPanel: Color = tokenColour(DesignTokens.GLASS_DARK_RGB, 0.97f)
+
+    /**
      * One edge, one pixel, 12 % white — the hairline a *control* wears (a swatch's ring), never a second
      * rule on a band. A floating surface takes [glassRim] instead: a flat border was what made the
      * window's panels look like boxes while the tablet's looked like glass.

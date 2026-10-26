@@ -46,7 +46,16 @@ internal class PageInkGesture(
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
-    private val router = InkPointerRouter(activeTool = { tool.activeTool() }, startOnDown = startOnDown)
+    // The pressure filter is read per sample in `PressureFeel` (sensitivity, floor, multiplier and the
+    // curve), so this router hands the reading straight through: a factor floored or multiplied here as
+    // well would apply the same setting twice.
+    private val router = InkPointerRouter(
+        activeTool = { tool.activeTool() },
+        startOnDown = startOnDown,
+        pressureEnabled = true,
+        pressureMultiplier = 1f,
+        minimumPressure = 0f,
+    )
 
     /** True while a stroke this gesture started is on the sheet and will be committed. */
     var drawing: Boolean = false

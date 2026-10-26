@@ -29,24 +29,116 @@ class DesktopSettings(val file: File = defaultFile()) {
     }
 
     /**
-     * Where the tool strips stand — the rail down an edge, the ribbon under the header, or both.
+     * Where the tool strips stand — the rail down an edge, or the ribbon under the header.
      *
-     * The key is the one the choice has always lived under, and [StripPlacement.of] still reads the
-     * names it used to hold (`Rail`, `Ribbon`, `Both`), so this row arriving did not move anybody's
-     * strips.
+     * The key is the one the choice has always lived under, and [StripPlacement.of] still reads the names
+     * it used to hold (`Side`, `Rail`, `Ribbon`, `Both`) **together with the old separate rail side**, so
+     * an install that had already moved its rail to the right does not find it back on the left after this
+     * row merged the two answers into one.
      */
     var stripPlacement: StripPlacement
-        get() = StripPlacement.of(properties.getProperty(KEY_TOOL_PLACEMENT))
+        get() = StripPlacement.of(
+            properties.getProperty(KEY_TOOL_PLACEMENT),
+            properties.getProperty(KEY_RAIL_SIDE),
+        )
         set(value) {
             properties.setProperty(KEY_TOOL_PLACEMENT, value.name)
+            // The side is part of the placement now: leaving the old key behind would let a stale edge
+            // answer a question this row no longer asks.
+            properties.remove(KEY_RAIL_SIDE)
             save()
         }
 
-    /** Which edge the rail takes: the tablet's handedness answer, Left by default. */
-    var railSide: RailSide
-        get() = RailSide.of(properties.getProperty(KEY_RAIL_SIDE))
+    /**
+     * The slots of the strips, in the order the reader put them — a list of [DesktopTool] names.
+     *
+     * Empty means **the factory order** ([DESKTOP_TOOL_GROUPS]), which is also what fills in a slot a
+     * later build adds: a stored order names the tools it knows and the rest follow in their own place, so
+     * a new tool cannot be hidden by an order written before it existed.
+     */
+    var toolOrder: List<String>
+        get() = properties.getProperty(KEY_TOOL_ORDER)
+            ?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
         set(value) {
-            properties.setProperty(KEY_RAIL_SIDE, value.name)
+            val kept = value.map { it.trim() }.filter { it.isNotEmpty() }
+            if (kept.isEmpty()) {
+                properties.remove(KEY_TOOL_ORDER)
+            } else {
+                properties.setProperty(KEY_TOOL_ORDER, kept.joinToString(","))
+            }
+            save()
+        }
+
+    /**
+     * Whether the pen's pressure is honoured at all (`tablet.pressureEnabled`).
+     *
+     * Off draws every sample at the tool's set width — the tablet's *Pressure sensitivity* switch, and the
+     * way a pen stroke and a figure are made to match exactly.
+     */
+    var pressureEnabled: Boolean
+        get() = properties.getProperty(KEY_PRESSURE_ENABLED)?.trim()?.toBooleanStrictOrNull() ?: true
+        set(value) {
+            properties.setProperty(KEY_PRESSURE_ENABLED, value.toString())
+            save()
+        }
+
+    /**
+     * The floor under a filtered pressure (`tablet.minimumPressure`), clamped to the range the row offers.
+     *
+     * It is desktop Xournal++'s own `minimumPressure`, so a document written here keeps the widths the
+     * desktop app would have stored.
+     */
+    var minimumPressure: Float
+        get() = properties.getProperty(KEY_MINIMUM_PRESSURE)?.toFloatOrNull()
+            ?.takeIf { it.isFinite() }
+            ?.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX)
+            ?: PressureCurve.MINIMUM_PRESSURE_DEFAULT
+        set(value) {
+            properties.setProperty(
+                KEY_MINIMUM_PRESSURE,
+                value.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX)
+                    .toString(),
+            )
+            save()
+        }
+
+    /** The `pressureMultiplier` of the same filter, clamped to the desktop's own slider range. */
+    var pressureMultiplier: Float
+        get() = properties.getProperty(KEY_PRESSURE_MULTIPLIER)?.toFloatOrNull()
+            ?.takeIf { it.isFinite() }
+            ?.coerceIn(PressureCurve.MULTIPLIER_MIN, PressureCurve.MULTIPLIER_MAX)
+            ?: 1f
+        set(value) {
+            properties.setProperty(
+                KEY_PRESSURE_MULTIPLIER,
+                value.coerceIn(PressureCurve.MULTIPLIER_MIN, PressureCurve.MULTIPLIER_MAX).toString(),
+            )
+            save()
+        }
+
+    /**
+     * The width a **figure** is drawn at, in points (`figure.width`) — its own answer, not the pen's.
+     *
+     * A figure has no pressure, so it is always drawn at its full width; giving it a width of its own is
+     * what lets a rectangle match a light pen stroke instead of the pen's widest slot.
+     */
+    var figureWidth: Float
+        get() = properties.getProperty(KEY_FIGURE_WIDTH)?.toFloatOrNull()
+            ?.let(PenPalette::clampWidth)
+            ?: PenPalette.DEFAULT_WIDTHS[1]
+        set(value) {
+            properties.setProperty(KEY_FIGURE_WIDTH, PenPalette.clampWidth(value).toString())
+            save()
+        }
+
+    /** What a new tab is written as — the Documents section's one answer. */
+    var newDocumentFormat: DesktopNewDocumentFormat
+        get() = DesktopNewDocumentFormat.of(properties.getProperty(KEY_NEW_DOCUMENT_FORMAT))
+        set(value) {
+            properties.setProperty(KEY_NEW_DOCUMENT_FORMAT, value.name)
             save()
         }
 
@@ -338,6 +430,29 @@ class DesktopSettings(val file: File = defaultFile()) {
     private fun pagePt(key: String, fallback: Double): Double =
         properties.getProperty(key)?.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 } ?: fallback
 
+    /**
+     * Every key and value this store holds, as the settings backup writes them.
+     *
+     * A copy, never the live table: a backup is taken while the window runs, and handing out the
+     * `Properties` object would let a later write change the file being exported.
+     */
+    fun snapshot(): Map<String, String> = properties.stringPropertyNames()
+        .sorted()
+        .associateWith { properties.getProperty(it) }
+
+    /**
+     * Replace everything this store holds with [values] — an imported backup.
+     *
+     * Wholesale, not merged: a backup is a configuration, and a key the file does not carry is a key that
+     * was *not* set when it was written, so merging would keep a value from the machine being replaced.
+     * The window reads the new values through [DesktopSettingsState.reload].
+     */
+    fun restore(values: Map<String, String>) {
+        properties.clear()
+        for ((key, value) in values) properties.setProperty(key, value)
+        save()
+    }
+
     /** Write the file; a failure leaves the window running on the value just chosen. */
     private fun save() {
         runCatching {
@@ -383,6 +498,20 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** Whether the area keeps the tablet's own ratio. */
         const val KEY_ASPECT_LOCK = "tablet.aspectLock"
+
+        /** Whether the pen's pressure is honoured, and the two numbers of Xournal++'s filter. */
+        const val KEY_PRESSURE_ENABLED = "tablet.pressureEnabled"
+        const val KEY_MINIMUM_PRESSURE = "tablet.minimumPressure"
+        const val KEY_PRESSURE_MULTIPLIER = "tablet.pressureMultiplier"
+
+        /** The width a figure is drawn at, in points. */
+        const val KEY_FIGURE_WIDTH = "figure.width"
+
+        /** What a new tab is written as: `.mobix`, a gzip `.xopp` or a zipped `.xopp`. */
+        const val KEY_NEW_DOCUMENT_FORMAT = "document.newFormat"
+
+        /** The strip's slot order, as [DesktopTool] names; absent means the factory order. */
+        const val KEY_TOOL_ORDER = "interface.toolOrder"
 
         /** The key table's remapped rows, as `id:key` pairs — only the rows that differ are written. */
         const val KEY_SHORTCUTS = "interface.shortcuts"

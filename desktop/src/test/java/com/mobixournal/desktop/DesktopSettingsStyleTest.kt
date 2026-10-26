@@ -126,7 +126,7 @@ class DesktopSettingsStyleTest {
     @Test
     fun `every Toolbar setting is on the page at once`() {
         val bands = pillBands(pixels(state(DesktopSettingSection.TOOLBAR)))
-        assertTrue("one pill band per choice row: ${bands.size}", bands.size >= 2)
+        assertTrue("a pill band per choice row: ${bands.size}", bands.size >= 1)
         for (band in bands) {
             assertTrue(
                 "a pill is its control's height, not a band of a button: ${band.count()} dd",
@@ -193,7 +193,10 @@ class DesktopSettingsStyleTest {
     fun `the surface is the window's floating material`() {
         val text = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/SettingsSurface.kt").readText() +
             File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/SettingsRows.kt").readText()
-        assertTrue("the panel is the floating recipe", text.contains("glassSurface()"))
+        assertTrue(
+            "the panel is the floating recipe, on the settings' own almost-solid fill",
+            text.contains("glassSurface(fill = DesktopTheme.settingsPanel)"),
+        )
         assertTrue("and never a band over the page", !text.contains("bandSurface()"))
         assertTrue("a row takes the contract's hover step", text.contains("hoverFill("))
         assertTrue("the picked answer is the steel slot", text.contains("DesktopTheme.activeSlot"))

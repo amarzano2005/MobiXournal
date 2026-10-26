@@ -65,6 +65,8 @@ internal fun HeaderMenu(
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
     onPenDefault: () -> Unit = {},
+    /** The window's settings, for the Pen block's pressure controls; null in a test with no window. */
+    penPolicy: DesktopSettingsState? = null,
 ) {
     var open by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -93,6 +95,7 @@ internal fun HeaderMenu(
                     onSettings = { open = false; onSettings() },
                     onPenParameters = { open = false; onPenParameters() },
                     onPenDefault = { open = false; onPenDefault() },
+                    penPolicy = penPolicy,
                 )
             }
         }
@@ -115,6 +118,8 @@ internal fun MenuPanel(
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
     onPenDefault: () -> Unit = {},
+    /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
+    penPolicy: DesktopSettingsState? = null,
 ) {
     Column(
         Modifier
@@ -150,6 +155,9 @@ internal fun MenuPanel(
             MenuChip("Default", null, enabled = true, Modifier, DesktopTheme.accent, onPenDefault)
             MenuChip("Parameters…", null, enabled = true, Modifier, DesktopTheme.inkSecondary, onPenParameters)
         }
+        // The tablet's Pen block carries its pressure settings and not only a door to them: the two
+        // numbers a drawing hand reaches for mid-sentence are here, where the hand already is.
+        if (penPolicy != null) MenuPenBlock(penPolicy)
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
         MenuRow(
@@ -166,6 +174,70 @@ internal fun MenuPanel(
             enabled = true,
             onClick = onSettings,
         )
+    }
+}
+
+/**
+ * **The Pen block's pressure controls**, the tablet's Stylus rows in the menu's own material.
+ *
+ * Sensitivity is a switch and the two numbers are the window's slider, each on a row of its own at the
+ * menu's row height — so the block a reader opens mid-drawing answers the question it was opened for,
+ * and *Parameters…* stays the door to the rest (the stream, the curve, the mapped area).
+ */
+@Composable
+private fun MenuPenBlock(policy: DesktopSettingsState) {
+    Spacer(Modifier.height(MenuMetrics.sectionGap / 2))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = MenuMetrics.rowHeight)
+            .hoverFill(DesktopTheme.capsuleShape)
+            .pointerInput(Unit) { detectTapGestures { policy.choosePressureEnabled(!policy.pressureEnabled) } }
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Pressure", color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
+        SettingsSwitch(policy.pressureEnabled)
+    }
+    MenuPressureSlider(
+        label = "Min pressure",
+        value = policy.minimumPressure,
+        range = com.mobixournal.render.PressureCurve.MINIMUM_PRESSURE_MIN..
+            com.mobixournal.render.PressureCurve.MINIMUM_PRESSURE_MAX,
+        step = 0.01f,
+        format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f", it) },
+        onValue = policy::chooseMinimumPressure,
+    )
+    MenuPressureSlider(
+        label = "Multiplier",
+        value = policy.pressureMultiplier,
+        range = com.mobixournal.render.PressureCurve.MULTIPLIER_MIN..
+            com.mobixournal.render.PressureCurve.MULTIPLIER_MAX,
+        step = 0.05f,
+        format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f×", it) },
+        onValue = policy::choosePressureMultiplier,
+    )
+}
+
+/** One labelled slider of [MenuPenBlock]: the word on the left, the window's slider at the right. */
+@Composable
+private fun MenuPressureSlider(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    step: Float,
+    format: (Float) -> String,
+    onValue: (Float) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = MenuMetrics.rowHeight)
+            .padding(horizontal = 10.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = DesktopTheme.inkSecondary, style = DesktopTheme.label, modifier = Modifier.weight(1f))
+        SettingsSlider(value = value, range = range, step = step, format = format, onValue = onValue)
     }
 }
 
