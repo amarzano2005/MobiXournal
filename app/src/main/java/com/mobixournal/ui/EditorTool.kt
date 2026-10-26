@@ -39,6 +39,15 @@ enum class EditorTool {
  */
 val MARQUEE_TOOLS: Set<EditorTool> = setOf(EditorTool.SELECT, EditorTool.LASSO_SELECT, EditorTool.BG_SELECT)
 
+/**
+ * The two erasers — the tools the eraser switch leaves and comes back from.
+ *
+ * They are one family rather than one tool because the rail's slot can stand for either; a toggle that
+ * only recognised the partial eraser would send a whole-stroke eraser to the pen instead of back to the
+ * tool the user was holding.
+ */
+val ERASER_TOOLS: Set<EditorTool> = setOf(EditorTool.ERASER, EditorTool.ERASER_WHOLE)
+
 /** The geometric shape tools — drawn as ordinary pen strokes (see [ShapeKind]). */
 val SHAPE_TOOLS: List<EditorTool> = listOf(
     EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,

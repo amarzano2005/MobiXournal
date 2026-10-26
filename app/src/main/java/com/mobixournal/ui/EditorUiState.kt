@@ -127,18 +127,41 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     val panes = List(PANE_COUNT) { PaneState() }
 
     /**
+     * **The tool the eraser switch gives back** — the last tool that was not an eraser.
+     *
+     * Remembered as the tool is left ([switchToolTo]), so it is the tool the user was holding no
+     * matter how the eraser was reached: the barrel button, a finger gesture, a key, or the rail's own
+     * eraser slot. Hard-coding the pen here was the bug behind "the eraser button always gives me the
+     * pen instead of the highlighter I was using".
+     */
+    var toolBeforeEraser by mutableStateOf<EditorTool?>(null)
+        private set
+
+    /**
      * Switch to [target], or back to the tool that was live before if [target] is already selected.
      * Used by the barrel double-click bindings, where the same gesture has to toggle both ways.
      */
     fun toggleTool(target: EditorTool) {
         if (tool == target) {
-            tool = toolBeforeToggle ?: EditorTool.PEN
+            tool = toolBeforeToggle
+                ?: if (target in ERASER_TOOLS) toolBeforeEraser ?: EditorTool.PEN else EditorTool.PEN
             toolBeforeToggle = null
         } else {
             toolBeforeToggle = tool
             tool = target
         }
     }
+
+    /**
+     * What the **eraser switch** does next: the eraser from any other tool, and the tool that was
+     * live before from either eraser.
+     */
+    fun eraserSwitchTarget(settings: AppSettings): EditorTool =
+        if (tool in ERASER_TOOLS) {
+            toolBeforeEraser ?: EditorTool.PEN
+        } else {
+            preferredEraser(settings.toolGroupSelections)
+        }
 
     private var toolBeforeToggle: EditorTool? = null
 
@@ -166,6 +189,7 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
             EditorTool.PEN -> settings.copy(lastColor = color, lastWidth = width).withColorUsed(color)
             else -> if (previous in SHAPE_TOOLS) settings.copy(shapeWidth = width) else settings
         }
+        if (previous !in ERASER_TOOLS && target != previous) toolBeforeEraser = previous
         tool = target
         when {
             target == EditorTool.HIGHLIGHTER -> {

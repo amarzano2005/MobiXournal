@@ -1495,11 +1495,11 @@ private fun DrawingSurfaceView.bindEditorActions(
     onToggleFullPage = { ui.fullPage = !ui.fullPage }
     onQuickAction = { action ->
         when (action) {
-            // The eraser the rail's slot stands for — whole-stroke by default — so the button lands on
-            // the eraser the user actually uses instead of a fixed one.
+            // Into the eraser the rail's slot stands for, and back to whatever tool the user was
+            // holding — a highlighter, a figure, a selection — never a hard-coded pen.
             QuickAction.TOGGLE_ERASER -> {
                 val previous = ui.tool
-                ui.toggleTool(preferredEraser(getSettings().toolGroupSelections))
+                ui.toggleTool(ui.eraserSwitchTarget(getSettings()))
                 activateTool(ui.tool, ui, getSettings(), onSettingsChange, previous)
             }
             QuickAction.TOGGLE_SELECT -> {
@@ -1569,14 +1569,11 @@ private fun DrawingSurfaceView.bindEditorActions(
         var consumed = false
         val hit: (String) -> Boolean = { it.isNotEmpty() && char.equals(it, ignoreCase = true) }
 
-        // Toggle pen ↔ eraser
+        // Toggle the eraser with the tool that was live before it
         if (!consumed && hit(settings.penEraserToggleKey)) {
-            val newTool = if (ui.tool == EditorTool.PEN || ui.tool == EditorTool.HIGHLIGHTER) {
-                preferredEraser(settings.toolGroupSelections)
-            } else {
-                EditorTool.PEN
-            }
-            activateTool(newTool, ui, settings, onSettingsChange)
+            val previous = ui.tool
+            ui.toggleTool(ui.eraserSwitchTarget(settings))
+            activateTool(ui.tool, ui, settings, onSettingsChange, previous)
             consumed = true
         }
 

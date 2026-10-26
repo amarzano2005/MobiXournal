@@ -96,7 +96,7 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             SubpageHeader(active.title) { subpage = null }
             SettingsGroup("Toggles") {
                 SettingsNote("Flip between two tools with one key. Leave a field empty to disable it.")
-                KeySettingField("Pen ↔ Eraser", settings.penEraserToggleKey) {
+                KeySettingField("Eraser / last tool", settings.penEraserToggleKey) {
                     onChange(settings.copy(penEraserToggleKey = it))
                 }
                 KeySettingField("Hand/Pan", settings.handToggleKey) {
