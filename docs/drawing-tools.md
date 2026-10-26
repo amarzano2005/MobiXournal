@@ -59,10 +59,16 @@ page spans many screens, where almost every stroke would otherwise cost thousand
 Skia only clips away. `PdfExporter` passes no viewport and so draws everything. Above that cull sits
 `InkCache`: each visible page's ink is rasterised once into an off-screen bitmap, so a pan or fling
 frame is a **blit** rather than a re-submission of every stroke. The raster is keyed by a **zoom
-bucket** (widths step by `InkCache.BUCKET_RATIO`, 1.19×), so a pinch only re-rasterises when it
-crosses a bucket edge and the zooms in between are a ≤19 % stretch of the bitmap it already has. An
-entry is invalidated by page identity (any edit rebuilds the `Page`), by its hidden-layer set, or by
-scrolling out of view (`InkCache.retain` keeps only the visible pages). The cache **declines** two
+bucket** (widths step by `InkCache.BUCKET_RATIO`, 1.19×). An entry is invalidated by page identity
+(any edit rebuilds the `Page`), by its hidden-layer set, or by leaving the kept window
+(`InkCache.retain`, which keeps the visible pages **plus one either side** — a flick back re-blits
+rather than re-drawing the page it just left). The raster is produced on **one worker thread, never
+inside the frame**: a miss queues it and answers "not cached" for that frame, so the caller draws the
+page's elements directly (exact, just not a blit), and `InkCache.onReady` asks the view for one more
+frame when the bitmap lands. A pinch therefore never stops to rasterise: while the worker catches up
+it keeps blitting the nearest raster it already holds, as long as that is within
+`InkCache.INK_STAND_IN_MAX` (1.45×) of a stretch, and the worker follows with the bucket the fingers
+came to rest on. The cache **declines** two
 cases and the direct element path takes over: a page whose bucket would exceed its per-entry ceiling
 (`BitmapLruCache.PAGE_SHARE` of the shared budget — at deep zoom a page spans many screens and its full
 raster would dwarf the screen it feeds, and the viewport cull is the better tool there), and any

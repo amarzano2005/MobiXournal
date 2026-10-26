@@ -5,16 +5,29 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import com.mobixournal.format.model.Page
+import java.util.concurrent.Executors
 
 /**
  * Off-screen rasterisation of a page's ink, so panning and flinging blit a bitmap instead of
  * re-submitting every stroke to the canvas each frame.
  *
  * One bitmap per page index, rasterised at a **zoom bucket** rather than the exact on-screen size:
- * buckets step geometrically (see [BUCKET_RATIO]), so a pinch only re-rasterises when it crosses a
- * bucket edge and the in-between zooms are a scaled blit of at most ~19% stretch. An entry is
- * dropped when the page's content changes (page identity), when its hidden-layer set changes, or
- * when it leaves the viewport ([retain]).
+ * buckets step geometrically (see [BUCKET_RATIO]), so the in-between zooms are a scaled blit of at
+ * most ~19 % stretch. An entry is dropped when the page's content changes (page identity), when its
+ * hidden-layer set changes, or when it leaves the kept window ([retain]).
+ *
+ * **The raster is produced on a worker, never inside the frame.** Rasterising a page costs tens of
+ * milliseconds on a text-heavy sheet, and doing it on the drawing thread is what a fling or a pinch
+ * felt like: every page entering the viewport, and every bucket edge a pinch crossed, paused the
+ * frame to draw a whole page into a new bitmap. A miss now queues the raster and answers "not
+ * cached" for that frame — the caller draws the page's elements directly, which is exact, just not a
+ * blit — and [onReady] asks for one more frame once the bitmap exists. The canvas therefore glides
+ * at frame rate and the blit takes over a frame or two later.
+ *
+ * While a pinch moves through buckets the frame keeps **blitting the nearest raster it already
+ * has** ([standIn]), up to [STAND_IN_MAX] of upscale, so a pinch never shows a bare redraw either;
+ * the worker follows with the sharp one. A pinch that runs on keeps superseding the queued bucket,
+ * which is what should happen: only the bucket the fingers come to rest on is worth rasterising.
  *
  * The cache **declines** any page whose bucket would exceed [budgetPx] — at deep zoom a page spans
  * many screens and its full raster would dwarf the screen it feeds. [draw] returns false there and
@@ -26,10 +39,19 @@ import com.mobixournal.format.model.Page
  *
  * In **overview mode** (columns > 1), the cache tightens its bounds: bucket widths are capped and
  * the entry count is limited, so a multi-page grid on a large document can't blow the bitmap budget.
+ *
+ * **Threading rules** (the same ones [BitmapLruCache] states): [lock] is held only for map
+ * operations and is *never* held while rasterising, while blitting or while charging the budget —
+ * a charge can call straight back into another cache's [trim], and holding ours across that call
+ * inverts the lock order between two caches and deadlocks the drawing thread. [retain] and [clear]
+ * recycle bitmaps because they run on the drawing thread, between frames; the worker only ever
+ * *publishes* a bitmap and never recycles one, since the frame may still be blitting it.
  */
 class InkCache(
     private val budget: BitmapBudget = BitmapBudget.shared,
     private val columns: () -> Int = { 1 },
+    /** Invoked on the worker thread when a raster lands — the host asks for one more frame. */
+    onReady: () -> Unit = {},
 ) : BitmapBudget.Client {
 
     /** Max pixels in one cached page raster, from this device's share of the shared budget. */
@@ -47,21 +69,61 @@ class InkCache(
         val widthPx: Int,
     )
 
-    /** Guards [entries] and [retained]: [trim] can arrive from the PDF worker thread. */
+    /** One page's ink at one bucket, as the worker needs it — everything read off the frame. */
+    private class Raster(
+        val index: Int,
+        val page: Page,
+        val hidden: Set<Int>,
+        val widthPx: Int,
+        val heightPx: Int,
+    )
+
+    /** Guards [entries], [retained], [jobs] and [closed]. */
     private val lock = Any()
     private val entries = HashMap<Int, Entry>()
-    /** The pages last asked for by [retain] — what [trim] gives back last. */
+
+    /**
+     * The pages last asked for by [retain] — the window the canvas is showing plus its margin. What
+     * [trim] gives back last, and therefore what survives a scroll-back without a re-raster.
+     */
     private var retained: Set<Int> = emptySet()
+
+    /** The newest raster wanted per page index; a newer request replaces the queued one. */
+    private val jobs = HashMap<Int, Raster>()
+
+    /** What the worker is producing right now, so a repeated request doesn't queue the same work. */
+    private val inFlight = HashMap<Int, Raster>()
+    private var working = false
+
+    private val worker =
+        Executors.newSingleThreadExecutor { runnable -> Thread(runnable, THREAD_NAME).apply { isDaemon = true } }
+
+    /** Invoked (on the worker thread) whenever a newly rasterised page enters the cache. */
+    @Volatile
+    var onReady: (() -> Unit)? = onReady
+
+    @Volatile
+    private var closed = false
+
     private val blit = Paint(Paint.FILTER_BITMAP_FLAG)
     private val dst = RectF()
+
+    /**
+     * The worker's own painters. The drawing thread's are stateful (`Paint`/`Path` fields), so they
+     * cannot be shared with a raster running on another thread; a second pair behaves identically
+     * and keeps the worker's decoded images and parsed formulas cached across rasters.
+     */
+    private val workerStrokes = StrokePainter()
+    private val workerElements = ElementRenderer(budget)
 
     init {
         budget.register(this)
     }
 
     /**
-     * Blit page [box]'s ink at its on-screen position, rasterising it first if needed. Returns false
-     * if this page can't be cached at this zoom — the caller must then draw its elements directly.
+     * Blit page [box]'s ink at its on-screen position, rasterising it in the background if needed.
+     * Returns false if this page can't be blitted this frame — no raster yet, or a bucket too large
+     * to cache — and the caller must then draw its elements directly.
      */
     internal fun draw(
         canvas: Canvas,
@@ -69,14 +131,26 @@ class InkCache(
         scrollX: Float,
         scrollY: Float,
         hidden: Set<Int>,
-        strokes: StrokePainter,
-        elements: ElementRenderer,
     ): Boolean {
-        val entry = entryFor(box, hidden, strokes, elements) ?: return false
+        if (box.widthPx <= 0f || box.heightPx <= 0f) return false
+        val bucketW = bucketWidth(box.widthPx) ?: return false
+        val bucketH = ((box.heightPx / box.widthPx) * bucketW).toInt().coerceAtLeast(1)
+        if (bucketW.toLong() * bucketH > budgetPx) return false
+        val page = box.page
+        val hit = synchronized(lock) {
+            val entry = entries[box.index]
+            entry?.takeIf { it.page === page && it.hidden == hidden && inkStandInUsable(it.widthPx, bucketW) }
+        }
+        if (hit == null) {
+            request(box.index, page, hidden, bucketW, bucketH)
+            return false
+        }
         val left = box.toViewX(0.0, scrollX)
         val top = box.toViewY(0.0, scrollY)
         dst.set(left, top, left + box.widthPx, top + box.heightPx)
-        canvas.drawBitmap(entry.bitmap, null, dst, blit)
+        canvas.drawBitmap(hit.bitmap, null, dst, blit)
+        // A stand-in is a fine frame and a poor page: ask for the bucket the zoom actually wants.
+        if (hit.widthPx != bucketW) request(box.index, page, hidden, bucketW, bucketH)
         return true
     }
 
@@ -93,6 +167,22 @@ class InkCache(
 
     /** Drop everything (surface teardown, document swap). */
     fun clear() = retain(emptySet())
+
+    /** Stop the worker and release every raster. The view builds a fresh cache with the next view. */
+    fun close() {
+        synchronized(lock) {
+            if (closed) return
+            closed = true
+            jobs.clear()
+            inFlight.clear()
+        }
+        clear()
+        budget.unregister(this)
+        // The renderer belongs to the worker: closing it here would recycle bitmaps a raster still in
+        // flight may be drawing with, so the worker closes it when it reaches the end of its queue.
+        worker.execute { workerElements.close() }
+        worker.shutdown()
+    }
 
     /**
      * Give [bytes] back to the shared budget, off-screen pages first. Bitmaps handed back here are
@@ -116,61 +206,100 @@ class InkCache(
         return freed
     }
 
-    /** The live entry for [box], rasterising on a miss. Null when the page exceeds the budget. */
-    private fun entryFor(
-        box: PageBox,
-        hidden: Set<Int>,
-        strokes: StrokePainter,
-        elements: ElementRenderer,
-    ): Entry? {
-        if (box.widthPx <= 0f || box.heightPx <= 0f) return null
-        val bucketW = bucketWidth(box.widthPx) ?: return null
-        val bucketH = ((box.heightPx / box.widthPx) * bucketW).toInt().coerceAtLeast(1)
-        if (bucketW.toLong() * bucketH > budgetPx) return null
+    // --- the worker --------------------------------------------------------------------------
+
+    /**
+     * Queue page [index]'s ink at [widthPx] for background production. The newest request for a page
+     * wins, and one already queued — or being produced — is not queued twice: the frame asks again
+     * every frame until the raster lands, which during a pinch is many frames in a row.
+     */
+    private fun request(index: Int, page: Page, hidden: Set<Int>, widthPx: Int, heightPx: Int) {
         synchronized(lock) {
-            // In overview mode, enforce the entry count limit by dropping the eldest entries.
-            val limit = maxEntries()
-            if (limit != null && entries.size >= limit) {
-                val eldest = entries.entries.firstOrNull()?.key
-                if (eldest != null && eldest != box.index) {
-                    entries.remove(eldest)?.bitmap?.let { budget.credit(it.byteCount.toLong()); it.recycle() }
-                }
-            }
-            val cached = entries[box.index]
-            if (cached != null &&
-                cached.page === box.page &&
-                cached.widthPx == bucketW &&
-                cached.hidden == hidden
-            ) {
-                return cached
-            }
-            entries.remove(box.index)?.bitmap?.let { budget.credit(it.byteCount.toLong()); it.recycle() }
+            if (closed) return
+            val wanted = jobs[index] ?: inFlight[index]
+            if (wanted != null && wanted.page === page && wanted.widthPx == widthPx) return
+            jobs[index] = Raster(index, page, HashSet(hidden), widthPx, heightPx)
+            if (working) return
+            working = true
         }
-        val fresh = rasterise(box, hidden, bucketW, bucketH, strokes, elements) ?: return null
-        synchronized(lock) { entries[box.index] = fresh }
-        // Charged after the insert, so an over-budget total can evict this very entry if it must.
-        budget.charge(this, fresh.bitmap.byteCount.toLong())
-        return fresh
+        // The cache can be closed by the drawing thread between the check above and this call.
+        if (runCatching { worker.execute { pump() } }.isFailure) {
+            synchronized(lock) { working = false }
+        }
     }
 
-    private fun rasterise(
-        box: PageBox,
-        hidden: Set<Int>,
-        w: Int,
-        h: Int,
-        strokes: StrokePainter,
-        elements: ElementRenderer,
-    ): Entry? {
+    /**
+     * Produce the queued rasters until there are none left.
+     *
+     * One task drains the map rather than one task per request: a pinch queues a raster per bucket
+     * it crosses, and a queue of tasks would rasterise every intermediate bucket only to throw it
+     * away. Reading the map again after each raster means the worker always picks up the newest
+     * request for a page.
+     */
+    private fun pump() {
+        while (true) {
+            val job = synchronized(lock) {
+                if (closed) {
+                    working = false
+                    jobs.clear()
+                    return
+                }
+                val next = jobs.values.firstOrNull()
+                if (next == null) {
+                    working = false
+                    return
+                }
+                jobs.remove(next.index)
+                inFlight[next.index] = next
+                next
+            }
+            val fresh = rasterise(job)
+            if (fresh == null) {
+                synchronized(lock) { inFlight.remove(job.index) }
+                continue
+            }
+            publish(job, fresh)
+        }
+    }
+
+    /**
+     * Put a finished raster in the cache, unless a newer request for the same page has replaced it
+     * (its bucket is already the one nobody is asking for).
+     */
+    private fun publish(job: Raster, entry: Entry) {
+        var released = 0L
+        var replaced = 0L
+        synchronized(lock) {
+            inFlight.remove(job.index)
+            if (closed) return
+            val newer = jobs[job.index]
+            if (newer != null && newer.widthPx != job.widthPx) return
+            // Overview mode also caps how many previews are held, not only how big they may be.
+            val limit = maxEntries()
+            if (limit != null && entries.size >= limit && job.index !in entries) {
+                val eldest = entries.keys.firstOrNull()
+                if (eldest != null) released = entries.remove(eldest)?.bitmap?.byteCount?.toLong() ?: 0L
+            }
+            replaced = entries.put(job.index, entry)?.bitmap?.byteCount?.toLong() ?: 0L
+        }
+        // Outside the lock: a charge reaches into every other client's trim (see the class note).
+        if (released + replaced > 0) budget.credit(released + replaced)
+        budget.charge(this, entry.bitmap.byteCount.toLong())
+        onReady?.invoke()
+    }
+
+    /** Draw one page into a fresh bitmap. Called on the worker, never holding [lock]. */
+    private fun rasterise(job: Raster): Entry? {
         val bitmap = try {
-            Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            Bitmap.createBitmap(job.widthPx, job.heightPx, Bitmap.Config.ARGB_8888)
         } catch (_: OutOfMemoryError) {
             return null
         }
-        val scale = (w / box.page.width).toFloat()
+        val scale = (job.widthPx / job.page.width).toFloat()
         PageRenderer.drawElements(
-            Canvas(bitmap), box.page, scale, 0f, 0f, strokes, elements, hidden,
+            Canvas(bitmap), job.page, scale, 0f, 0f, workerStrokes, workerElements, job.hidden,
         )
-        return Entry(bitmap, box.page, HashSet(hidden), w)
+        return Entry(bitmap, job.page, job.hidden, job.widthPx)
     }
 
     /**
@@ -189,6 +318,7 @@ class InkCache(
     }
 
     private companion object {
+        const val THREAD_NAME = "ink-raster"
         const val BYTES_PER_PX = 4
 
         /** Narrowest bucket; below this a page is a thumbnail and the raster is nearly free. */
@@ -203,4 +333,45 @@ class InkCache(
         /** Max cached entries in overview mode; single-page mode is byte-budget only. */
         private const val OVERVIEW_MAX_ENTRIES = 12
     }
+}
+
+/**
+ * How many pages either side of the viewport keep their ink raster alive.
+ *
+ * The margin is what makes a scroll *reversible*: the canvas used to retain only the pages on
+ * screen, so the page a flick had just left was recycled on the very next frame and flicking back
+ * paid a full re-raster for a page that had been drawn a moment ago. One page either side covers a
+ * reading-speed scroll without holding a document's worth of bitmaps — the shared budget still
+ * evicts them first ([InkCache.trim]).
+ */
+internal const val INK_RETAIN_MARGIN = 1
+
+/** The on-screen pages plus [margin] either side, as the set [InkCache.retain] keeps. */
+internal fun retainedAround(
+    visible: List<PageBox>,
+    pageCount: Int,
+    margin: Int = INK_RETAIN_MARGIN,
+): Set<Int> {
+    if (visible.isEmpty() || pageCount <= 0) return emptySet()
+    val first = (visible.first().index - margin).coerceAtLeast(0)
+    val last = (visible.last().index + margin).coerceAtMost(pageCount - 1)
+    if (last < first) return emptySet()
+    return (first..last).toHashSet()
+}
+
+/** How far past its own width a cached raster may be stretched before the ink would visibly blur. */
+internal const val INK_STAND_IN_MAX = 1.45f
+
+/**
+ * Whether a raster of [cachedWidth] is a presentable stand-in for a page now drawn at [wantedWidth].
+ *
+ * Upscaling is the only thing that costs quality, so the bound is on that direction: a raster may
+ * stand in while it is stretched by at most [INK_STAND_IN_MAX] (a little past the ~19 % a bucket
+ * already implies), and any raster **wider** than the wanted bucket qualifies, because shrinking a
+ * sharper bitmap is free. Past the bound the ink would visibly blur, so the caller draws the
+ * elements instead and waits for the worker.
+ */
+internal fun inkStandInUsable(cachedWidth: Int, wantedWidth: Int): Boolean {
+    if (cachedWidth <= 0 || wantedWidth <= 0) return false
+    return wantedWidth <= cachedWidth || wantedWidth <= cachedWidth * INK_STAND_IN_MAX
 }

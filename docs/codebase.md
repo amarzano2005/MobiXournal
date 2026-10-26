@@ -169,7 +169,7 @@ app/
       DrawingSurfacePenDebug.kt # the surface's pen-diagnostics trace hooks: raw pointer/key events into PenInputLog
       PenInputLog.kt         # the pen-diagnostics log and its Android-free line formatting (pure)
       DrawingSurfaceSelection.kt # the surface's selection: rubber-band start, PDF-text selection, and the delete/restyle/copy/cut/paste/duplicate edits (extensions)
-      InkCache.kt            # off-screen page-ink bitmaps in zoom buckets, so panning blits instead of re-drawing
+      InkCache.kt            # page-ink rasters built on a worker (zoom buckets), so panning blits instead of re-drawing
       StrokeSmoother.kt      # streaming jitter filter for freehand position and pressure (pure)
       CanvasChrome.kt        # the canvas's non-document brushes: selection, band, guide, overview, hover, the radial HUD
       RadialHud.kt           # the pen-tip HUD's slot ring and its angle-to-slot geometry (pure, tested)

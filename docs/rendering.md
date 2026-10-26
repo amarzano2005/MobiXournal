@@ -23,7 +23,9 @@ pacing exists to prevent. Each frame locks the surface with **`lockHardwareCanva
 canvas rasterises and blends every window pixel on the CPU, so frame cost scaled with window *area* —
 full-screen page-flicking on a large tablet crawled while the identical gesture in a half-size
 split-screen window stayed smooth. On the GPU canvas fill rate is effectively free and the cached page
-bitmaps are plain textured blits. The `DrawingSurfaceView` holds the whole [Document] and renders every
+bitmaps are plain textured blits — and those bitmaps are produced on `InkCache`'s **own worker**, never
+inside a frame, so neither a page entering the viewport during a fling nor a pinch crossing a zoom
+bucket makes the canvas wait for a page to be drawn (the same shape `PdfPageCache` uses for its tiles). The `DrawingSurfaceView` holds the whole [Document] and renders every
 page in a single vertical stack, each page scaled to fit the view width via `PageStacker` and
 drawn with its background ruling (`BackgroundRenderer`, using the pure `BackgroundGrid` offsets and
 colours — lined rules in desktop Xournal++'s `xopp_dodgerblue`, graph/dotted in its `xopp_silver`),

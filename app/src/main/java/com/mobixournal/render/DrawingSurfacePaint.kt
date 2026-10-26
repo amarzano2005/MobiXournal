@@ -117,7 +117,7 @@ internal fun DrawingSurfaceView.paint() {
                 drawPageOutline(canvas, box)
                 drawBookmarkFlag(canvas, box)
             }
-            inkCache.retain(visible.mapTo(HashSet()) { it.index })
+            inkCache.retain(retainedAround(visible, layout.boxes.size))
             retainPdfPins(visible)
             prefetchAround(visible)
         }
@@ -325,11 +325,7 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
         drawKaraokePage(canvas, box, state, hidden)
         return
     }
-    if (inkCacheUsable &&
-        inkCache.draw(canvas, box, scrollX, scrollY, hidden, strokePainter, elementRenderer)
-    ) {
-        return
-    }
+    if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden)) return
     PageRenderer.drawElements(
         canvas, box.page, box.scale, box.leftPx - scrollX, box.topPx - scrollY,
         strokePainter, elementRenderer, hidden, visibleBounds(box),
