@@ -351,7 +351,8 @@ work, or immediately after — never defer it to "later," and never ship code wi
     document stays scannable and well-proportioned instead of turning into a wall of micro-notes.
 - Every new user-facing feature gets documented in `README.md` as part of the same work.
 - Keep the single-source-of-truth spoke docs in sync in the same pass (per `docs/architecture.md`),
-  respecting the **400-line spoke budget** verified by `DocsGuardTest`.
+  respecting the **300-line spoke budget** verified by `DocsGuardTest` — a topic that does not fit is
+  a second spoke, not a longer one.
 - Update the wording when a **library only** capability gains its call site: the doc says what is
   wired, not what is possible (`docs/mobix-format.md`, `docs/architecture.md`).
 - A new UI element must satisfy `docs/interface-contract.md`; the owning spoke is updated in the same
