@@ -126,12 +126,17 @@ androidComponents.onVariants { variant ->
 // UP-TO-DATE in 4 s. Declaring the docs as inputs makes a doc edit re-run the guards here instead of in
 // whatever clean build happens to come next. (`src/main/java` and `mobix-core` need no entry: a source
 // change there alters the compiled classes, which the test task already tracks. `desktop/` is read by
-// the same guard but is not a dependency of this module, so its own edit needs the entry.)
+// the same guard but is not a dependency of this module, so its own edit needs the entry. `AGENTS.md`
+// and `README.md` are read by the same guards (`DocClaimsTest`, and the code-file check), so they are
+// entries of their own: a front-door edit that skipped them would leave the guards unrun too.)
 tasks.withType<Test>().configureEach {
     inputs.dir(rootProject.file("docs"))
         .withPropertyName("documentation")
         .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(rootProject.file("desktop/src/main/java"))
         .withPropertyName("desktopSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(rootProject.file("AGENTS.md"), rootProject.file("README.md"))
+        .withPropertyName("frontDoorDocs")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

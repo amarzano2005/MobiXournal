@@ -74,9 +74,10 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   `desktop/src/main` (keys are relative to `com/mobixournal/`, so the desktop shell's files read
   `desktop/DesktopShell.kt`). The entries listed in it may not grow, and no new file may appear past
   the budget. Splitting a listed file is what the test rewards; the remedy for a failure is a split,
-  or a deliberate bump of a recorded number. The app test task declares `docs/` and
-  `desktop/src/main/java` as inputs (the latter is not a compile dependency of the app, so without the
-  entry a desktop-only edit would leave the guard's task UP-TO-DATE and unrun).
+  or a deliberate bump of a recorded number. The app test task declares `docs/`,
+  `desktop/src/main/java`, `AGENTS.md` and `README.md` as inputs (the desktop tree is not a compile
+  dependency of the app, so without the entry a desktop-only edit would leave the guard's task
+  UP-TO-DATE and unrun; the two front-door files are read by `DocClaimsTest` the same way).
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
 - **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both
