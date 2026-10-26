@@ -7,10 +7,11 @@ it answers — so a change loads one topic instead of the whole architecture.
 
 > **What is installed and what is not.** The Android app is the product: it reads and writes lossless
 > `.xopp` and native `.mobix`, with Compose chrome, low-latency `SurfaceView` stylus inking, PDF
-> import/export, audio, search and the STEM tools. The `desktop/` module is a working **preview**: it
-> opens every container the app writes, paints the pages, tabs, sidebar, zoom and both tool strips, but
-> it does not edit, take ink or save. There is no sync: the merge engine is library code with no caller
-> ([`mobix-format.md`](mobix-format.md) owns it).
+> import/export, audio, search and the STEM tools. The `desktop/` module is the **PC window**: it opens
+> every container the app writes, paints the pages, tabs, sidebar, zoom and the floating tool strips, and
+> edits, saves and exports them — ink, figures, living elements, text and the selection
+> ([`desktop-workstation.md`](desktop-workstation.md), [`desktop-editing.md`](desktop-editing.md)). There is
+> no sync: the merge engine is library code with no caller ([`mobix-format.md`](mobix-format.md) owns it).
 
 ---
 

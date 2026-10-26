@@ -33,7 +33,7 @@ In addition to core note-taking, MobiXournal features a specialized **STEM tools
 | What | How |
 |---|---|
 | **Android app** | Download `app-debug.apk` from the latest [GitHub Release](https://github.com/amarzano2005/MobiXournal/releases), or build it with `.\gradlew.bat assembleDebug` — the APK lands in `app/build/outputs/apk/debug/`. It installs as **MobiXournal v2 (dev)**, next to the daily app rather than over it. |
-| **Desktop app (Windows 11)** | Build it with `.\gradlew.bat :desktop:createDistributable`, then run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` (add a file path to open a document; `udiff.xopp` in this repository is a good first one). It is a self-contained folder with no installer, unsigned, and read-only for now. See *Desktop preview* below. |
+| **Desktop app (Windows 11)** | Build it with `.\gradlew.bat :desktop:createDistributable`, then run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` (add a file path to open a document; `udiff.xopp` in this repository is a good first one). It is a self-contained folder with no installer and unsigned. See *Desktop preview* below. |
 
 Both builds need a JDK 21 and, for the APK, the Android SDK — see *Build & Requirements* below.
 
