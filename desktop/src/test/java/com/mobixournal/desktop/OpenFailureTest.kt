@@ -49,10 +49,10 @@ class OpenFailureTest {
     /** Anything else carries its class name, which is what makes a bug report possible. */
     @Test
     fun `an unexpected failure names its class and message`() {
-        val reported = describeOpenFailure(FileNotFoundException("C:\\notes\\a.mobix"))
+        val reported = describeOpenFailure(IllegalStateException("the reader gave up on page 12"))
         assertEquals("Could not open the document", reported.title)
-        assertTrue(reported.detail, reported.detail.startsWith("FileNotFoundException:"))
-        assertTrue(reported.detail, reported.detail.contains("a.mobix"))
+        assertTrue(reported.detail, reported.detail.startsWith("IllegalStateException:"))
+        assertTrue(reported.detail, reported.detail.contains("page 12"))
     }
 
     /** A failure with no message is still readable. */

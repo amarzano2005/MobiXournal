@@ -196,8 +196,8 @@ disk was left as it was — the staged-then-moved write makes that true. A **`Li
 being stale, as on an open. `DesktopSaveTest` pins all three, and byte-compares the original to prove a
 refused save touched nothing.
 
-`--args` splits its value on spaces, so a notebook under `Il mio Drive/…` arrives as several arguments:
-`initialDocument` puts the pieces back together when the first is not itself a file.
+`--args` splits its value on spaces, so a notebook under `Il mio Drive/…` arrives as several arguments: `initialDocument`
+puts the pieces back, and a path Windows squeezed finds its file by name nearby (`launchDocument`) — never by guessing.
 
 ### Unsaved edits: the dot, the question, and a snapshot
 
@@ -344,7 +344,7 @@ the ribbon on their own (every slot must have drawn its glyph — the eraser slo
 and the picked one wears the active slot), then the whole window in Rail, Ribbon and Both, reading the paper
 out of the pixels: the page starts after the rail's lane and below the ribbon's band in every placement — the
 mechanical form of "a band never lies on the page". `OpenFailureTest` pins what a failed open says in each of
-its three cases and how a space-split command line is put back together. `DesktopSaveTest` is the write's
+its cases and how a command line is put back together (`DesktopLaunchPathTest`). `DesktopSaveTest` is the write's
 round trip: an edit saved over a gzip `.xopp` and over a 40-page `.mobix`, each re-opened through
 `DocumentLoader` with the container and the untouched pages asserted, a Save As that turns a `.mobix` into a
 `.xopp` and re-homes the tab, a packaged `.xopp` refused with its file byte-identical, and the version the

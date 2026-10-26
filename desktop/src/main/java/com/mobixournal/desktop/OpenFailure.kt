@@ -41,6 +41,13 @@ fun describeOpenFailure(failure: Throwable): OpenFailure {
                 "and a class disappeared underneath it. Close the window, relaunch the preview " +
                 "(`gradlew :desktop:run`), then open the same file again.",
         )
+        is java.io.FileNotFoundException -> OpenFailure(
+            "This file is not on this PC",
+            "$detail — nothing is at that path. If the notebook lives in Google Drive or OneDrive, open its " +
+                "folder once so the file is downloaded, or pick it with Open. If you opened it by " +
+                "double-clicking, the file name may contain two spaces in a row: Windows squeezes them " +
+                "into one, and Open finds the file anyway.",
+        )
         is UnsupportedOperationException -> OpenFailure("Unsupported format", detail)
         is OutOfMemoryError -> OpenFailure(
             "Not enough memory",

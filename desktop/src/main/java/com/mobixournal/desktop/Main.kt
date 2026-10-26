@@ -16,14 +16,22 @@ import java.io.File
  * notebooks in `Il mio Drive/…`, and `--args="…/Il mio Drive/x.mobix"` handed `main` two arguments and a
  * `File("…/Il")` that does not exist. When the first piece is not itself a file, the pieces are put back
  * together and the joined path is tried — a real path with a space keeps working either way.
+ *
+ * Windows' own launch can do worse than split: an unquoted file association hands the path over and the
+ * run of spaces in a folder name is **collapsed**, so the joined path is still not a file even though
+ * the document is right there. That last case is [launchDocument]'s to repair, and the path it settles
+ * on is what the window names when it cannot open anything.
  */
 internal fun initialDocument(args: Array<String>): File? {
     // Switches (`--diagnose`) are not documents: a path is the argument that does not start with `--`.
     val paths = args.filterNot { it.startsWith("--") }
     val first = paths.firstOrNull() ?: return null
-    val single = File(first)
+    val single = File(first.trim().trim('"'))
     if (single.isFile) return single
-    return File(paths.joinToString(" ")).takeIf { it.isFile } ?: single
+    val joined = paths.joinToString(" ").trim('"')
+    launchDocument(joined)?.let { return it }
+    // Nothing on disk answered to any spelling: name the whole path, not its first piece.
+    return File(joined)
 }
 
 /** The argument that turns the frame/packet watchdog on (`DesktopDiagnostics`). */

@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.format.mobix.PageSource
+import java.io.FileNotFoundException
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.Stroke
@@ -208,7 +209,10 @@ object DocumentLoader {
 
     /** Open [file] and hand back a document whose pages are read through [DesktopDocument.source]. */
     fun load(file: File): DesktopDocument {
-        require(file.isFile) { "File not found: ${file.path}" }
+        // A path that is not there is a **document** failure, not a programming error: it is what a launch
+        // argument looks like when Windows split it, what a cloud placeholder looks like before it is
+        // downloaded, and what a shortcut to a moved file looks like. `describeOpenFailure` words it.
+        if (!file.isFile) throw FileNotFoundException(file.path)
         return when (val kind = FileKind.of(leadingBytes(file))) {
             FileKind.ZIP -> openZip(file)
             FileKind.GZIP, FileKind.XML -> {
