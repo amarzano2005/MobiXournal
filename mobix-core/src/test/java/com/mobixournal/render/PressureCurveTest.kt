@@ -104,6 +104,48 @@ class PressureCurveTest {
         }
     }
 
+    /**
+     * The opt-in shape: identity at 1.0, monotonic, and pinned at both ends so a light press never
+     * crosses zero and a full press is always full. A driver that reports past its own range is clamped.
+     */
+    @Test
+    fun theReadingShapeIsIdentityAtOneAndMonotonicAroundIt() {
+        for (p in listOf(0f, 0.15f, 0.4f, 0.75f, 1f)) {
+            assertEquals("p=$p", p, PressureCurve.shape(p, 1f), 1e-6f)
+        }
+        for (exponent in listOf(0.5f, 0.8f, 1.2f, 1.6f, 2f)) {
+            assertEquals("a zero reading stays zero at $exponent", 0f, PressureCurve.shape(0f, exponent), 1e-6f)
+            assertEquals("a full press stays full at $exponent", 1f, PressureCurve.shape(1f, exponent), 1e-6f)
+            var previous = -1f
+            for (step in 0..20) {
+                val shaped = PressureCurve.shape(step / 20f, exponent)
+                assertTrue("monotonic at $exponent (step $step)", shaped >= previous)
+                previous = shaped
+            }
+        }
+        // Soft makes a light press reach a usable width sooner; hard holds it back.
+        assertTrue("a soft curve lifts a light press", PressureCurve.shape(0.3f, 0.5f) > 0.3f)
+        assertTrue("a hard curve holds it down", PressureCurve.shape(0.3f, 2f) < 0.3f)
+    }
+
+    @Test
+    fun theReadingAndTheExponentAreClampedNotThrown() {
+        assertEquals("a reading past full is full", 1f, PressureCurve.shape(1.4f, 1.5f), 1e-6f)
+        assertEquals("a negative reading is zero", 0f, PressureCurve.shape(-0.2f, 0.7f), 1e-6f)
+        assertEquals(
+            "an exponent past the range is the range",
+            PressureCurve.shape(0.5f, PressureCurve.EXPONENT_MAX),
+            PressureCurve.shape(0.5f, 9f),
+            1e-6f,
+        )
+        assertEquals(
+            "and the same at the soft end",
+            PressureCurve.shape(0.5f, PressureCurve.EXPONENT_MIN),
+            PressureCurve.shape(0.5f, 0.1f),
+            1e-6f,
+        )
+    }
+
     @Test
     fun pressureSwitchedOffAlwaysDrawsFullWidthWhateverThePressure() {
         for (p in listOf(0f, 0.2f, 0.5f, 1f)) {

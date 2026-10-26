@@ -1,5 +1,7 @@
 package com.mobixournal.render
 
+import kotlin.math.pow
+
 /**
  * Maps a raw pen pressure (0..1) onto a stroke-width multiplier, **exactly as desktop Xournal++ does**
  * (`PenInputHandler::filterPressure`): `max(minimumPressure, pressure × pressureMultiplier)`.
@@ -40,6 +42,36 @@ object PressureCurve {
 
     /** Full width — what an unmagnified pressure of 1.0 gives, and what pressure-off returns. */
     const val FULL = 1f
+
+    /** The softest response the shape offers: a light press reaches a given width sooner. */
+    const val EXPONENT_MIN = 0.5f
+
+    /** The hardest: a light press draws very thin and the width only arrives near a full press. */
+    const val EXPONENT_MAX = 2.0f
+
+    /** No shaping at all — the default, and the only value that leaves the model's widths untouched. */
+    const val EXPONENT_IDENTITY = 1f
+
+    /**
+     * The **reading response**: [pressure] raised to [exponent], clamped at both ends.
+     *
+     * This is the one curve in the model, and it is **off by default** for the reason the class note
+     * gives: at [EXPONENT_IDENTITY] it returns its input unchanged, so a document drawn without touching
+     * the setting holds exactly the widths desktop Xournal++ would have stored. It shapes the *reading*, not
+     * the width — the shaped value still goes through [penFactor], so the multiplier and the floor keep
+     * their meaning and a document's own stored pressure is never rewritten.
+     *
+     * `exponent < 1` is a soft pen (a light press gets thicker sooner), `exponent > 1` a hard one. The
+     * function is monotonic over 0..1 for every exponent in [EXPONENT_MIN]..[EXPONENT_MAX], pins both ends
+     * (0 → 0, 1 → 1), and clamps an out-of-range reading or exponent rather than throwing — a driver
+     * reporting 1.2 must not turn into a wider-than-full stroke.
+     */
+    fun shape(pressure: Float, exponent: Float): Float {
+        val reading = pressure.coerceIn(0f, 1f)
+        val curve = exponent.coerceIn(EXPONENT_MIN, EXPONENT_MAX)
+        if (curve == EXPONENT_IDENTITY) return reading
+        return reading.toDouble().pow(curve.toDouble()).toFloat().coerceIn(0f, 1f)
+    }
 
     /**
      * The width multiplier for a [pressure]. [enabled] is desktop Xournal++'s "Pressure sensitivity":

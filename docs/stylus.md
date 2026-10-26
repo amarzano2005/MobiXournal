@@ -245,11 +245,11 @@ which also resets the router so it holds no stale contact.
 
 **Pressure** feeds width through the pure `PressureCurve`, which is desktop Xournal++'s own mapping
 `max(minimumPressure, pressure × pressureMultiplier)` (`PenInputHandler::filterPressure`) with **no
-curve and no wide floor of its own** — the two settings are the desktop's, defaulting to its own
-`minimumPressure = 0.05` and `pressureMultiplier = 1.0`. Deviating there (a gamma curve, a 0.25 floor)
-would make the same physical press store a different width than the desktop and a stroke would look
-different in each app, which is exactly what this deliberately does not do. Pressure sensitivity
-switched off returns the full width, matching a shape (`PressureCurveTest`).
+curve and no wide floor of its own** — the two settings are the desktop's own, because deviating would
+make the same press store a different width in each app. Pressure sensitivity off returns the full
+width, matching a shape (`PressureCurveTest`). The one opt-in exception is `PressureCurve.shape`: the
+window's `tablet.pressureExponent` (0.5…2.0, 1.0 = untouched) shapes the reading before that filter at
+its two adapters, and the Android path does not read it ([`desktop-settings.md`](desktop-settings.md)).
 
 ## Stroke smoothing
 

@@ -1,11 +1,13 @@
 package com.mobixournal.desktop
 
 import androidx.compose.ui.input.key.Key
+import com.mobixournal.render.PressureCurve
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -55,6 +57,38 @@ class DesktopSettingsTest {
         assertEquals(InspectorPolicy.NEVER, second.inspectorPolicy)
         assertFalse(second.frameTime)
         assertEquals(PenStream.INK, second.penStream)
+    }
+
+    /**
+     * The Tablet section's pressure curve: identity until someone asks otherwise, remembered across a
+     * restart, clamped to the model's own range, and — the part a file cannot show — in force for the
+     * reading the next stroke is measured from.
+     */
+    @Test
+    fun `the pressure curve survives a restart and shapes the next reading`() {
+        val file = File(temp.root, "pressure.properties")
+        val policy = DesktopSettingsState(DesktopSettings(file))
+        assertEquals(PressureCurve.EXPONENT_IDENTITY, policy.pressureExponent, 1e-6f)
+        assertEquals(
+            "at the default the reading reaches the model untouched",
+            0.42f,
+            PressureFeel.shape(0.42f),
+            1e-6f,
+        )
+
+        policy.choosePressureExponent(1.6f)
+        assertEquals(1.6f, DesktopSettings(file).pressureExponent, 1e-6f)
+        assertEquals(1.6f, DesktopSettingsState(DesktopSettings(file)).pressureExponent, 1e-6f)
+        assertTrue("a hard curve holds a light press down", PressureFeel.shape(0.5f) < 0.5f)
+
+        policy.choosePressureExponent(9f)
+        assertEquals("clamped to the range the model offers", PressureCurve.EXPONENT_MAX, policy.pressureExponent, 1e-6f)
+    }
+
+    @After
+    fun resetTheReadingCurve() {
+        // The shape is a module-level seam, so a test that changed it must hand it back.
+        PressureFeel.exponent = PressureCurve.EXPONENT_IDENTITY
     }
 
     /** A first run: the window's documented defaults, and nothing invented. */

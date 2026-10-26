@@ -136,7 +136,9 @@ internal class PageInkGesture(
             id = change.id.value.toInt(),
             x = change.position.x,
             y = change.position.y,
-            pressure = contact?.pressure ?: change.pressure,
+            // The reading is shaped once, here, before the model's own pressure filter turns it into a
+            // width (`PressureFeel`: identity unless the Tablet section asked for a curve).
+            pressure = PressureFeel.shape(contact?.pressure ?: change.pressure),
             timeMs = change.uptimeMillis,
             tool = if (contact?.eraser == true) PointerKind.ERASER_TIP else change.pointerKind(),
             phase = phase,

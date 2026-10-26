@@ -4,12 +4,14 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -31,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -39,7 +44,9 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 /**
  * The Settings surface's own **rows**: the glue between a setting and the control that changes it.
@@ -189,6 +196,110 @@ internal fun <T> SettingsChoice(
                     text = optionLabel(option),
                     selected = option == picked,
                     onPick = { answer.value(option) },
+                )
+            }
+        }
+    }
+}
+
+/** How wide a slider draws inside a row — long enough to aim at, never the whole row. */
+private val SLIDER_WIDTH = 150.dp
+
+/**
+ * **A choice along a range** — the window's slider: a 4 dp steel track, the accent filling it to the
+ * value, a knob, and the number in the window's numeric face beside it.
+ *
+ * It wears the five states of `docs/interface-contract.md`: the resting steel, the hover step under the
+ * pointer, a **pressed** state (the knob grows while it is dragged), the accent ring when it holds the
+ * keyboard — Left/Right step it, Home/End take the ends — and *disabled*, which is not drawn here at all:
+ * a range a host cannot answer is written as [SettingsUnavailable] instead.
+ *
+ * [step] is the quantum, so a row's answer is always one of the values its own note describes: the
+ * pressure curve in hundredths, for instance, never 1.0371.
+ */
+@Composable
+internal fun SettingsSlider(
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    step: Float,
+    format: (Float) -> String,
+    onValue: (Float) -> Unit,
+) {
+    val set = rememberUpdatedState(onValue)
+    var width by remember { mutableStateOf(1f) }
+    var focused by remember { mutableStateOf(false) }
+    var pressed by remember { mutableStateOf(false) }
+    fun pickAt(px: Float) {
+        val t = (px / width).coerceIn(0f, 1f)
+        val raw = range.start + (range.endInclusive - range.start) * t
+        val snapped = range.start + ((raw - range.start) / step).roundToInt() * step
+        set.value(snapped.coerceIn(range.start, range.endInclusive))
+    }
+    fun nudge(direction: Int) {
+        set.value((value + direction * step).coerceIn(range.start, range.endInclusive))
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(format(value), color = DesktopTheme.ink, style = DesktopTheme.numeric)
+        Spacer(Modifier.width(10.dp))
+        Box(
+            Modifier
+                .width(SLIDER_WIDTH)
+                .height(SettingsMetrics.CONTROL_HEIGHT)
+                .onSizeChanged { width = it.width.toFloat().coerceAtLeast(1f) }
+                .hoverFill(DesktopTheme.capsuleShape)
+                .focusable()
+                .onFocusChanged { focused = it.isFocused }
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (event.key) {
+                        Key.DirectionRight, Key.DirectionUp -> {
+                            nudge(1); true
+                        }
+                        Key.DirectionLeft, Key.DirectionDown -> {
+                            nudge(-1); true
+                        }
+                        Key.MoveHome -> {
+                            set.value(range.start); true
+                        }
+                        Key.MoveEnd -> {
+                            set.value(range.endInclusive); true
+                        }
+                        else -> false
+                    }
+                }
+                .pointerInput(range, step) {
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            pressed = true
+                            pickAt(it.x)
+                        },
+                        onDragEnd = { pressed = false },
+                        onDragCancel = { pressed = false },
+                    ) { change, _ -> pickAt(change.position.x) }
+                }
+                .pointerInput(range, step) { detectTapGestures { pickAt(it.x) } },
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
+                val centreY = size.height / 2f
+                val trackHeight = 4.dp.toPx()
+                val radius = trackHeight / 2f
+                drawRoundRect(
+                    DesktopTheme.activeSlot,
+                    topLeft = Offset(0f, centreY - radius),
+                    size = Size(size.width, trackHeight),
+                    cornerRadius = CornerRadius(radius),
+                )
+                drawRoundRect(
+                    DesktopTheme.accent,
+                    topLeft = Offset(0f, centreY - radius),
+                    size = Size(size.width * fraction, trackHeight),
+                    cornerRadius = CornerRadius(radius),
+                )
+                drawCircle(
+                    color = if (focused) DesktopTheme.accent else DesktopTheme.inkSecondary,
+                    radius = if (pressed) 6.dp.toPx() else 5.dp.toPx(),
+                    center = Offset(size.width * fraction, centreY),
                 )
             }
         }
