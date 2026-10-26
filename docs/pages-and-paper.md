@@ -68,7 +68,8 @@ a row of disabled chips, which would claim space to state only that.
 
 ## Add/remove page
 
-**Add/remove page** edit the page list through the pure, tested `PageOps` (a new page is born at the
+**Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
+window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the
 **default page size** — the settings value `MainActivity.applyDefaultPageSize` pushes into
 `DrawingSurfaceDefaults.defaultPageWidth`/`defaultPageHeight`, which the blank-sheet factories every
 created sheet comes from — and keeps the paper ruling, but not the background, of the page in view). Each draw, erase, add, or remove snapshots

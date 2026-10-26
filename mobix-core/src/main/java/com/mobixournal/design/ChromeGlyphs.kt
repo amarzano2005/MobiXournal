@@ -57,6 +57,9 @@ enum class ChromeGlyph {
     /** Add: a new page in the strip, a colour in the palette, a row in a lane. */
     ADD,
 
+    /** A sheet of ruled text: the tablet's **Pages** section, the menu of what a page can be. */
+    DESCRIPTION,
+
     /** The layer eye, open. */
     VISIBILITY,
 
@@ -148,6 +151,9 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.CLOSE ->
             "M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"
         ChromeGlyph.ADD -> "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"
+        ChromeGlyph.DESCRIPTION ->
+            "M8 16h8v2L8 18ZM8 12h8v2L8 14ZM14 2L6 2c-1.1 0 -2 0.9 -2 2v16c0 1.1 0.89 2 1.99 2L18 " +
+                "22c1.1 0 2 -0.9 2 -2L20 8l-6 -6ZM18 20L6 20L6 4h7v5h5v11Z"
         ChromeGlyph.VISIBILITY ->
             "M12 6c3.79 0 7.17 2.13 8.82 5.5C19.17 14.87 15.79 17 12 17s-7.17 -2.13 -8.82 -5.5C4.83 " +
                 "8.13 8.21 6 12 6m0 -2C7 4 2.73 7.11 1 11.5C2.73 15.89 7 19 12 19s9.27 -3.11 11 " +

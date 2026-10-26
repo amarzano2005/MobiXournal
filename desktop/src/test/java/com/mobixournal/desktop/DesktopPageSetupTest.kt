@@ -122,15 +122,15 @@ class DesktopPageSetupTest {
     }
 
     @Test
-    fun `the page's two commands are on the strip, and each opens its own section`() {
+    fun `the page section's two questions each open their own section`() {
         val state = DesktopShellState()
-        // The strip's own slots call these; the menu no longer has a page row at all.
-        state.stripState.onPageBackground()
+        // The Pages slot's menu rows call these; the menu no longer has a page row at all.
+        state.stripState.pages.background()
         assertEquals(PageSetupSection.PAPER, state.pageSetup)
         state.closePageSetup()
         // The format section carries the page's size **and**, under it, the defaults for new sheets — the
-        // tablet keeps them in the same dialog, so the strip needs no third command for them.
-        state.stripState.onPageFormat()
+        // tablet keeps them in the same dialog, so the section needs no third command for them.
+        state.stripState.pages.format()
         assertEquals(PageSetupSection.FORMAT, state.pageSetup)
     }
 

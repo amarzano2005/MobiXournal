@@ -342,10 +342,11 @@ class DesktopShellState(
             circuitPickerOpen = circuitPickerOpen,
             onCircuitKind = ::pickCircuitKind,
             onCircuitPicker = ::showCircuitKinds,
-            // The page's own two questions, in the strip: a command of the page, not of the ink
-            // beside it, which is why both strips put them after a divider.
-            onPageBackground = { openPageSetup(PageSetupSection.PAPER) },
-            onPageFormat = { openPageSetup(PageSetupSection.FORMAT) },
+            // The page's own menu: a command of the page, not of the ink beside it.
+            pages = pagesSection.actions(
+                { openPageSetup(PageSetupSection.PAPER) },
+                { openPageSetup(PageSetupSection.FORMAT) },
+            ),
         )
 
     /**
@@ -405,11 +406,10 @@ class DesktopShellState(
     /** The active document, if any. */
     val active: DesktopTab? get() = tabs.active
 
-    /**
-     * The window's page setup — the section that is up, and the edits it makes to the page in view — as
-     * its own piece of the state (`DesktopPageSetupState`), forwarded so every caller keeps its name.
-     */
+    /** The page setup's own piece of the state: which section is up, and the edits it makes. */
     private val pageSetupState = DesktopPageSetupState(tabs) { tab, index -> edited(tab, index) }
+    /** The page **list**'s commands — add, remove, step (`DesktopPages.kt`). */
+    private val pagesSection = DesktopPages(tabs, ::edited, { defaultPageSize }) { pagesChanged(it) }
 
     /** The section of the page-setup surface that is up, or null while it is closed. */
     val pageSetup: PageSetupSection? get() = pageSetupState.section

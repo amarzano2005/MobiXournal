@@ -69,8 +69,13 @@ class DesktopDocument(
      * edit produced, which eviction never touches (`mobix-core`'s [PageWindow], the same one the
      * tablet's canvas edits through). A `.mobix` edit therefore inflates its own page and nothing else,
      * and a page the user just drew on is the page the painter, the thumbnail and the save see.
+     *
+     * It is re-pointed when the page **list** changes ([replacePages]): a window is an index over one
+     * source, so an inserted or removed page is a new window over the new list, not an edit to the old
+     * one. The cache that comes back is cold, which is what a structural change costs.
      */
-    val window: PageWindow = PageWindow(source)
+    var window: PageWindow = PageWindow(source)
+        private set
 
     /**
      * The document **model** the save writes — the same object [source] reads its pages through, so a
@@ -89,7 +94,7 @@ class DesktopDocument(
     var edits: Int by mutableStateOf(0)
         private set
 
-    val pageCount: Int get() = source.pageCount
+    val pageCount: Int get() = window.pageCount
 
     /** The page at [index] — the edit if there is one, else decoded now for a `.mobix`, in memory for a `.xopp`. */
     fun page(index: Int): Page = window.page(index)
@@ -128,9 +133,25 @@ class DesktopDocument(
      * undo never materialises the rest of a notebook either.
      */
     fun restore(snapshot: Snapshot) {
+        // A structural step (an added or removed page) changed the list itself, and an index over the
+        // old list cannot answer the new one: the window is rebuilt from the snapshot's own pages.
         model = snapshot.model
-        window.reset()
+        window = PageWindow(PageSource.of(snapshot.model.pages))
         for ((index, page) in snapshot.overlay) window.set(index, page)
+        edits++
+    }
+
+    /**
+     * Adopt a **whole page list** — what an added, removed or duplicated page is.
+     *
+     * The list is kept as it is handed over: a `.mobix`'s pages are a lazy view of its reader, and the
+     * insert/remove helpers (`PageOps`) are the only things that wrap it, element by element, so a
+     * 200-page notebook still inflates only the page someone reads. The caller records its undo step
+     * before calling (`DesktopTab.record`), exactly as for an edit to one page.
+     */
+    fun replacePages(pages: List<Page>) {
+        model = model.copy(pages = pages)
+        window = PageWindow(PageSource.of(pages))
         edits++
     }
 

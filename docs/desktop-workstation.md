@@ -139,12 +139,12 @@ What it does today:
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
-- **Restyles the sheet, from the strip**: after a divider, two command slots — **Page background** (six
-  paper styles, 2/3/5/7/10 mm rulings) and **Page format** (A4/A5/Letter/Legal either way up, mm/in/pt
-  custom fields with a swap, a **Default** entry and **Set as default**). The default is the panel's last
-  line, not a section of its own: *Default for new pages* offers the four presets and **Use this size**, and
-  prints the size new pages open at — one list of page settings, as the tablet's dialog is one list. Each
-  page change is one undo step; a new page is born on the stored default (`DesktopPageSetupTest`).
+- **Owns the page, from one section**: after a divider, one **Pages** slot wearing the tablet's own
+  sheet of ruled text (`ChromeGlyph.DESCRIPTION`) opens the phone's menu — **Add page**, **Remove page**,
+  **Previous/Next page**, **Page background** (six paper styles, 2/3/5/7/10 mm rulings) and **Page format**
+  (A4/A5/Letter/Legal either way up, mm/in/pt fields with a swap, a **Default** entry and **Set as default**).
+  The list's commands go through the shared `PageOps` the tablet's page bar uses, so a new sheet inherits the
+  same things, and each one is a single undo step — `DesktopPagesTest` adds, removes and steps on a real tab.
 - **Marks the pins a connection would join, and joins them**: while a connector is armed — the Line tool or
   a circuit family — every pin wears an accent dot and the part being pulled out shows its own, as the
   tablet draws them; the ends of a wire and of a placed part are **magnetised** onto the nearest pin

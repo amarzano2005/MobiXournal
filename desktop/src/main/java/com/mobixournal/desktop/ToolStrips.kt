@@ -122,12 +122,12 @@ data class ToolStripState(
     /** Open one family's palette, or close the open one with null. */
     val onCircuitPicker: (CircuitFamily?) -> Unit = {},
     /**
-     * The page's own two questions, drawn after the strip's divider: what the sheet *is* (its paper and
-     * ruling) and how big it is. They are commands on the page, not ink, which is why they stand apart
-     * from the tools and the palette (`docs/interface-contract.md` §2).
+     * The **page** section, drawn after the strip's divider: the tablet's own menu of what a page is
+     * (its paper and its format) and what the document's page list can become (add, remove, step).
+     * Commands on the page, not ink, which is why they stand apart from the tools and the palette
+     * (`docs/interface-contract.md` §2).
      */
-    val onPageBackground: () -> Unit = {},
-    val onPageFormat: () -> Unit = {},
+    val pages: PageMenuActions = PageMenuActions(),
 )
 
 /** Which side of its slot a strip's transient surface opens on: the rail has no room below it. */
@@ -222,7 +222,7 @@ fun ToolRail(
                 // not on the ink, so they are the last two objects of the strip rather than four more
                 // tools in it.
                 StripDivider(vertical = true)
-                PageSetupSlots(state, StripSide.RIGHT)
+                PageSectionSlot(state.pages, StripSide.RIGHT)
             }
         }
     }
@@ -294,7 +294,7 @@ fun ToolRibbon(
                 )
                 SizeSlot(state.ink, ink.onWidth, side = StripSide.BELOW)
                 StripDivider(vertical = false)
-                PageSetupSlots(state, StripSide.BELOW)
+                PageSectionSlot(state.pages, StripSide.BELOW)
             }
         }
     }
@@ -518,34 +518,6 @@ private fun SlotFace(
             }
         }
     }
-}
-
-/**
- * The strip's two **page** slots: the sheet's paper and its format, drawn after the divider.
- *
- * They are commands, not tools — nothing about them becomes the picked slot — but they wear the same
- * frame, hover and glyph as every other object on the strip, because the strip is one family and a
- * command that looked like a link beside it would be a second visual language (`docs/interface-contract.md`
- * §4: the glyph comes from the catalogue, which is why `ToolGlyph.PAGE` and `PAGE_SIZE` exist there).
- *
- * The **defaults** for new sheets are not a third command: they are part of the page's settings, and they
- * live inside the format panel (`DefaultLine`), under the page's own size — the tablet keeps them in one
- * place too, and a default must never be a button away from the size it belongs to.
- */
-@Composable
-private fun PageSetupSlots(state: ToolStripState, side: StripSide) {
-    StripCommandSlot(
-        glyph = ToolGlyph.PAGE,
-        label = "Page background",
-        offsetSide = side,
-        onClick = state.onPageBackground,
-    )
-    StripCommandSlot(
-        glyph = ToolGlyph.PAGE_SIZE,
-        label = "Page format",
-        offsetSide = side,
-        onClick = state.onPageFormat,
-    )
 }
 
 /**

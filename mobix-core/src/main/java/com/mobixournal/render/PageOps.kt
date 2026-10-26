@@ -6,7 +6,9 @@ import com.mobixournal.format.model.Page
 
 /**
  * Pure page-list edits for the editor: insert and delete pages. Kept Android-free so the
- * document-structure logic is unit-testable off-device (see `docs/pages-and-paper.md`). A new page is
+ * document-structure logic is unit-testable off-device **and shared by both shells** — the tablet's
+ * page commands and the window's Pages menu add, remove and duplicate through this one file, so the
+ * two cannot disagree about what a new page inherits (see `docs/pages-and-paper.md`). A new page is
  * born at the **default page size** the caller passes in (Settings ▸ Editor), keeping the **paper
  * ruling** of the page it sits beside, with a single empty layer — but never its content: a
  * `pdf`/`pixmap` background is dropped to a plain white sheet so the fresh page can't re-show the
@@ -24,8 +26,7 @@ object PageOps {
     fun addAfter(pages: List<Page>, index: Int, widthPt: Double, heightPt: Double): List<Page> {
         if (pages.isEmpty()) return pages
         val i = index.coerceIn(0, pages.lastIndex)
-        val fresh = freshPage(pages[i], widthPt, heightPt)
-        return pages.toMutableList().apply { add(i + 1, fresh) }
+        return insertedAt(pages, i + 1, freshPage(pages[i], widthPt, heightPt))
     }
 
     /**
@@ -35,8 +36,7 @@ object PageOps {
     fun addBefore(pages: List<Page>, index: Int, widthPt: Double, heightPt: Double): List<Page> {
         if (pages.isEmpty()) return pages
         val i = index.coerceIn(0, pages.lastIndex)
-        val fresh = freshPage(pages[i], widthPt, heightPt)
-        return pages.toMutableList().apply { add(i, fresh) }
+        return insertedAt(pages, i, freshPage(pages[i], widthPt, heightPt))
     }
 
     /**
@@ -127,7 +127,32 @@ object PageOps {
     fun removeAt(pages: List<Page>, index: Int): List<Page> {
         if (pages.size <= 1) return pages
         val i = index.coerceIn(0, pages.lastIndex)
-        return pages.toMutableList().apply { removeAt(i) }
+        return withoutAt(pages, i)
+    }
+
+    /**
+     * [pages] with one page inserted at [at], as a **view** rather than a copy.
+     *
+     * A page list can be a lazy view of a `.mobix`'s archive (`LazyPages`), where `toMutableList`
+     * would inflate every page of a two-hundred-page notebook to add one sheet. The wrapper answers
+     * index `at` with the new page and shifts the rest by one, reading through to the original list —
+     * so a save still finds the untouched pages as the archive's own.
+     */
+    private fun insertedAt(pages: List<Page>, at: Int, page: Page): List<Page> = object : AbstractList<Page>() {
+        override val size: Int get() = pages.size + 1
+
+        override fun get(index: Int): Page = when {
+            index < at -> pages[index]
+            index == at -> page
+            else -> pages[index - 1]
+        }
+    }
+
+    /** [pages] without index [at], as the same kind of view — the deletion half of [insertedAt]. */
+    private fun withoutAt(pages: List<Page>, at: Int): List<Page> = object : AbstractList<Page>() {
+        override val size: Int get() = pages.size - 1
+
+        override fun get(index: Int): Page = if (index < at) pages[index] else pages[index + 1]
     }
 
     /**

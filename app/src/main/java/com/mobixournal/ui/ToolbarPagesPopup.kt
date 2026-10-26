@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.mobix.CanvasMode
 import com.mobixournal.render.BoardReading
 import com.mobixournal.render.PageStacker
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingDialog
 import com.mobixournal.ui.theme.rememberClosingArgument
@@ -114,7 +115,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
     val board = callbacks.board
     val isInfinite = callbacks.canvasMode != CanvasMode.PAGINATED
     ToolbarPopupButton(
-        icon = Icons.Outlined.Description,
+        icon = ChromeGlyph.DESCRIPTION.imageVector(),
         contentDescription = "Pages",
     ) { dismiss ->
         if (isInfinite) {
@@ -137,7 +138,7 @@ internal fun PagesPopupButton(callbacks: ToolbarPagesCallbacks) {
         BookmarkItems(callbacks) { dismiss() }
         DropdownMenuItem(
             text = { Text("Add page") },
-            leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+            leadingIcon = { Icon(ChromeGlyph.ADD.imageVector(), contentDescription = null) },
             onClick = { callbacks.onAddPage(); dismiss() },
         )
         DropdownMenuItem(
@@ -389,25 +390,25 @@ private fun PageClipboardItems(
     if (selectedPages > 0) {
         DropdownMenuItem(
             text = { Text("Copy $selectedPages selected") },
-            leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+            leadingIcon = { Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null) },
             onClick = onCopySelectedPages,
         )
         DropdownMenuItem(
             text = { Text("Delete $selectedPages selected") },
-            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+            leadingIcon = { Icon(ChromeGlyph.DELETE.imageVector(), contentDescription = null) },
             enabled = selectedPages < pageCount,
             onClick = onDeleteSelectedPages,
         )
         DropdownMenuItem(
             text = { Text("Clear selection") },
-            leadingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
+            leadingIcon = { Icon(ChromeGlyph.CLOSE.imageVector(), contentDescription = null) },
             onClick = onClearPageSelection,
         )
     }
     if (copiedPages > 0) {
         DropdownMenuItem(
             text = { Text(if (copiedPages == 1) "Paste page" else "Paste $copiedPages pages") },
-            leadingIcon = { Icon(Icons.Outlined.ContentPaste, contentDescription = null) },
+            leadingIcon = { Icon(ChromeGlyph.PASTE.imageVector(), contentDescription = null) },
             onClick = onPastePages,
         )
     }
