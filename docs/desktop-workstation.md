@@ -277,27 +277,7 @@ Every test runs on a plain JVM host — no emulator, no device — and the pixel
 `desktop/build/desktop-render/` are what the assertions read. What each suite proves, and how to run them, is
 [desktop-testing.md](desktop-testing.md).
 
-## Why the core is shared
-
-`mobix-core` is the platform-free module: the document model, the XML/JSON layers, the `.xopp` and
-`.mobix` codecs, the paper/ink geometry and the export compilers. The rule its header states is the one
-that keeps the two shells honest: **nothing in the core may import `android.*` or Compose.** A file that
-meets it moves as a whole; a file that meets it *almost* is cut along the seam rather than copied, so
-there is never a second renderer with its own opinion of the drawing.
-
-Measured on 2026-10-22 against the Android editing path (line counts re-checked 2026-10-23):
-
-| Type | Lines | Android imports | Verdict |
-|---|---|---|---|
-| `render/XoppSynthesis.kt` | 179 | none — only `format.mobix` and `format.model` | **moved** — the export compiles in `mobix-core` |
-| `render/PageSvgWriter.kt` | 229 | none — model and `java.util.Base64` | **moved** — the SVG export compiles in `mobix-core` |
-| `render/EditHistory.kt` | 69 | none, no imports at all | **moved** — lives in `mobix-core/src/main/java/com/mobixournal/render/` |
-| `render/PdfVectorPainter.kt` | 226 | `BitmapFactory`, plus `com.tom_roush.pdfbox` (the Android PDFBox port) | **split** — the geometry is `PdfPagePlan` in `mobix-core`, and this is its Android emitter |
-| `io/DocumentIo.kt` | 666 | `ContentResolver`, `Uri`, `OpenableColumns` — and `resolver` is used in exactly one place, `displayName` | **split** — the write is `io/DocumentEncoder` in `mobix-core`, and the SAF shell keeps staging, the stores and the `content://` target |
-| `render/ElementEdits.kt` | 152 | `BitmapFactory`, for `inJustDecodeBounds` only | movable behind an injected image-size function |
-| `render/DrawingSurfaceInput.kt` | 581 | `MotionEvent`, `KeyEvent`, `SurfaceView`, `ViewConfiguration` | stays Android as the adapter, and it is **live**: it feeds `InkPointerRouter`, so the decisions are the core's (`docs/stylus.md`) and the Compose pointer is the second adapter |
-| `render/DrawingSurfaceStrokes.kt` | 683 | `MotionEvent` | stays Android; its erase geometry moved (`PageEraser`/`StrokeEraser` are in the core) and its stroke now arrives as router events — `startStrokeFrom`, `extendStrokeFrom`, `eraseAtPointer` — so only the document-shaped half is left |
-| `render/DrawingSurfaceSelection.kt` | 341 | `MotionEvent`, `ClipData`, `ClipboardManager`, `Context` | stays Android; the transform geometry is what could move |
+Why the core is shared, and what has moved into it, is [`codebase.md`](codebase.md#the-shared-core-no-android-in-mobix-core)'s.
 
 ## Decisions
 

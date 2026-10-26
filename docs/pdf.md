@@ -227,7 +227,7 @@ default this app writes whenever it can.** Desktop Xournal++ has no `relative` d
 path is carried under `domain="absolute"` and resolved against the document's own folder
 (`LoadHandler::getAbsoluteFilepath`), so what we write is exactly what desktop already reads.
 
-The string logic lives in `io/PdfReference.kt` — pure and unit-tested (`PdfReferenceTest`), with no
+The string logic lives in `format/PdfReference.kt` — pure and unit-tested (`PdfReferenceTest`), with no
 Android types, so the same helpers serve both filesystem paths and SAF **document ids**
 (`primary:Docs/notes.xopp`), which are `/`-joined paths behind a volume root.
 

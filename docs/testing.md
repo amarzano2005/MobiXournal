@@ -59,9 +59,16 @@ change can see what will fail it:
 The desktop window has suites of its own — headless Compose renders, a real document loaded through the
 codec — and [desktop-testing.md](desktop-testing.md) is their index.
 
-- **`DocsGuardTest`** (`guards/`) — every spoke doc is reachable from the index, every relative link
-  and `#anchor` between docs resolves, and every doc fits its line budget, so the architecture docs
-  cannot decay back into one unaddressable document.
+- **`DocsGuardTest`** (`guards/`) — the shape of the doc set: every spoke doc is reachable from the
+  index, every relative link and `#anchor` resolves, every doc fits its **300-line** budget, every
+  spoke opens with `# Title` + a `> Read when …` line, no two spokes claim one title or section
+  heading, no sentence is pasted into two docs, and every code file and task id a doc names exists.
+  So the architecture docs cannot decay back into one unaddressable document, or into prose that
+  describes a file that has since been renamed.
+- **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
+  (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
+  `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc
+  names exists. A new lie gets a line here — that is the rule, not a rewrite of the guard.
 - **`SourceStructureTest`** (`guards/`) — a ratchet on file and function size, measured over every
   main source set rather than only the app: `app/src/main`, `mobix-core/src/main` and
   `desktop/src/main` (keys are relative to `com/mobixournal/`, so the desktop shell's files read

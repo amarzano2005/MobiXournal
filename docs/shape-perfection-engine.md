@@ -1,5 +1,7 @@
 # Shape perfection engine — when a stroke snaps, and to what
 
+> Read when you change the dwell trigger, the tremor filter, a recognised class or one of its thresholds.
+
 **The question this answers:** a freehand stroke has just been drawn (or the stylus is resting on the
 glass) — is it a primitive, which one, and by what test? This spoke owns the shape recogniser: the
 trigger, the sample filter, the classes and the thresholds. The *tools* — which tool recognises, the

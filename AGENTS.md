@@ -80,16 +80,20 @@ streaming.
 
 ### The `desktop/` window
 
-`desktop/` is a Compose Multiplatform window (Skiko) that opens the same containers and paints their
-pages **read-only**: tabs, a page sidebar with layers, zoom, the shared tool strips and the shared
-design tokens. It consumes `mobix-core`, so a codec, a ruling or an ink rule is not forked for the PC.
-Editing in that window is not built — `docs/desktop-workstation.md` describes it as it is.
+`desktop/` is a Compose Multiplatform window (Skiko) that opens the same containers, paints their pages
+and **edits, saves and exports** them: tabs, a page sidebar with layers, zoom, the shared floating tool
+strips and the shared design tokens — ink, figures, living elements, text and the selection. It consumes
+`mobix-core`, so a codec, a ruling or an ink rule is not forked for the PC. `docs/desktop-workstation.md`
+describes the window as it is, `docs/desktop-editing.md` what a drag on its page does.
 
 ### Architectural honesty in docs and code
 
 - **Docs describe what the code does.** In spoke docs, keep the wording literal: **live** for behaviour
   wired end-to-end in `app/src/main` or `desktop/`, **library only** for tested code with no call site,
   and no entry at all for a capability that does not exist yet.
+- **A new topic is a new spoke**, and the procedure is five steps in `docs/architecture.md` (*Adding a
+  spoke*). A fact has one home: when you notice the same rule stated in a second doc, move it to its
+  owner and leave a link — and if the two can drift apart unnoticed, add a line to `DocClaimsTest`.
 - **A UI change is checked against `docs/interface-contract.md`** before it lands: one of the three
   material classes, tokens only, a glyph from the catalogue, all five states, English copy, both shells
   in agreement.
@@ -106,10 +110,17 @@ spoke opens with the question it answers, so a change loads one topic instead of
 architecture. Start there, open the one spoke your task touches, and when you make a design
 decision **record it in the owning spoke** so it isn't re-litigated later.
 
-Two JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce structural discipline:
+Three JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce structural discipline —
+`docs/architecture.md` (*How this stays honest*) owns what each doc rule is for, and
+`docs/testing.md` the full inventory:
 - **`DocsGuardTest`**: fails the build if any `.md` file in `docs/` (outside `docs/releases/`) is
-  missing from `docs/architecture.md`, if any relative markdown link or `#anchor` slug is broken, or if
-  any doc exceeds the **400-line budget**.
+  missing from `docs/architecture.md`, if any relative markdown link or `#anchor` slug is broken, if any
+  doc exceeds the **300-line budget**, if a spoke does not open with `# Title` + a `> Read when …` line,
+  if two spokes claim one title or section heading, if a sentence is pasted into two docs, if a doc
+  names a code file or task id that does not exist.
+- **`DocClaimsTest`**: the statements no file can witness — sentences that were false once
+  (`read-only` about the window), the window's Settings list derived from `DesktopSettingSection`, and
+  the test classes a doc names. A new lie gets a line here.
 - **`SourceStructureTest`**: enforces the code-splitting ratchet across `app/src/main` — no Kotlin
   file over **700 lines** and no brace-bodied function over **100 lines** (except recorded legacy
   ceilings, which may only shrink).
