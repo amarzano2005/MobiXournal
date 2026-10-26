@@ -302,6 +302,41 @@ class SelectionMovePaintTest {
         }
     }
 
+    /**
+     * The magnet's limit, from the window's side: **a line dragged near another line's end keeps the
+     * hand's translation.**
+     *
+     * A wire is a connector but not a terminal, so the joints the magnet may close are circuit↔line and
+     * circuit↔circuit. Two lines are the reader's own sketch: they are never pulled onto each other
+     * (`CircuitSnapping.snapTranslation`), which is the rule this window shares with the tablet.
+     */
+    @Test
+    fun `a dragged line does not join another lines end`() {
+        fun line(x1: Double, y1: Double, x2: Double, y2: Double) = Stroke(
+            tool = Tool.PEN,
+            color = 0xFF000000.toInt(),
+            capStyle = "round",
+            points = listOf(StrokePoint(x1, y1, 1.0), StrokePoint(x2, y2, 1.0)),
+            uniformWidth = true,
+        )
+        val sheet = Page(
+            width = width.toDouble(),
+            height = 842.0,
+            background = Background.Solid(color = 0xFFFFFFFF.toInt(), style = "plain"),
+            layers = listOf(Layer(listOf(line(100.0, 300.0, 200.0, 300.0), line(208.0, 302.0, 300.0, 302.0)))),
+        )
+        val selection = PageSelection(
+            region = rectRegion(205.0, 295.0, 305.0, 312.0),
+            refs = setOf(ElementRef(layerIndex = 0, elementIndex = 1)),
+        )
+
+        // The second line's start is 2.8 pt from the first one's end — well inside the magnet's reach.
+        val (dx, dy) = snapSelectionMove(sheet, selection, 0.0, 0.0, scale = 1f)
+
+        assertEquals("two lines stay two lines", 0.0, dx, 1e-6)
+        assertEquals(0.0, dy, 1e-6)
+    }
+
     private fun pageOf(tab: DesktopTab): Page = tab.document.page(0)
 
     /** Whether any pixel in a small window around ([x], [y]) is ink rather than paper. */

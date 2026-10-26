@@ -50,6 +50,12 @@ object CircuitSnapping {
     /** How far a wire's intermediate vertices may sit off its own straight segment, in points. */
     private const val WIRE_STRAIGHTNESS_PT: Double = 1.0
 
+    /**
+     * The `pinId` the end of a **wire** is offered under, by [collectMoveTargets] and
+     * [collectPlacementTargets] — a connector's end is a terminal, though it belongs to no component.
+     */
+    const val WIRE_END_PIN_ID: String = "wire-end"
+
     /** Represents a magnetic snapping candidate pin on the page. */
     data class PinTarget(
         val circuitId: String?,
@@ -57,7 +63,15 @@ object CircuitSnapping {
         val absX: Double,
         val absY: Double,
         val net: String?,
-    )
+    ) {
+        /**
+         * True when this target is a **wire's end** rather than a component's pin.
+         *
+         * Only a component may join one (`snapTranslation`): a line is a connector, but it is not a
+         * terminal, so two lines are never pulled together.
+         */
+        val isWireEnd: Boolean get() = pinId == WIRE_END_PIN_ID
+    }
 
     /**
      * Resolves the absolute page-coordinate position of [pin] on [circuit],
@@ -130,6 +144,9 @@ object CircuitSnapping {
      * and the one thing the reader was aiming at was not among the targets. Only the ends of a wire are
      * offered, so a symbol is still never pulled onto ink lying beside it, and a selected wire is left out
      * of its own target list.
+     *
+     * These are the targets of a **component**; a moved wire keeps to the pins among them
+     * (`snapTranslation`), because a line is not a terminal.
      */
     fun collectMoveTargets(page: Page, refs: Set<ElementRef>): List<PinTarget> {
         val out = mutableListOf<PinTarget>()
@@ -144,8 +161,8 @@ object CircuitSnapping {
                     is Stroke -> if (isWire(element)) {
                         val first = element.points.first()
                         val last = element.points.last()
-                        out += PinTarget(null, "wire-end", first.x, first.y, null)
-                        out += PinTarget(null, "wire-end", last.x, last.y, null)
+                        out += PinTarget(null, WIRE_END_PIN_ID, first.x, first.y, null)
+                        out += PinTarget(null, WIRE_END_PIN_ID, last.x, last.y, null)
                     }
                     else -> Unit
                 }
@@ -174,8 +191,8 @@ object CircuitSnapping {
                     if (!isWire(stroke)) continue
                     val first = stroke.points.first()
                     val last = stroke.points.last()
-                    add(PinTarget(null, "wire-end", first.x, first.y, null))
-                    add(PinTarget(null, "wire-end", last.x, last.y, null))
+                    add(PinTarget(null, WIRE_END_PIN_ID, first.x, first.y, null))
+                    add(PinTarget(null, WIRE_END_PIN_ID, last.x, last.y, null))
                 }
             }
         }
@@ -293,11 +310,16 @@ object CircuitSnapping {
 
     /**
      * Snaps translation ([rawDx], [rawDy]) of selected circuits or wires on [page] so that their
-     * pins/endpoints land on a **terminal** — a component pin, or the end of a wire already on the page.
+     * pins/endpoints land on a **terminal** — a component pin, or (for a component) the end of a wire
+     * already on the page.
      *
      * Only connectors are considered, and only toward terminals ([collectMoveTargets] is empty on a
      * page with neither a circuit nor a wire): a figure, or a free stroke, keeps the hand's own
      * translation whatever it passes over.
+     *
+     * The two kinds of connector aim differently, which is the rule the magnet follows: a **component**
+     * may join a pin or a wire's end (circuit↔circuit, circuit↔line), while a **wire** may join a pin
+     * only — a line is not a terminal, and two lines are never pulled together.
      */
     fun snapTranslation(
         page: Page?,
@@ -323,6 +345,11 @@ object CircuitSnapping {
         // onto the line drawn for it is the joint the magnet exists for (`collectMoveTargets`).
         val targets = collectMoveTargets(page, refs)
         if (targets.isEmpty()) return rawDx to rawDy
+        // A wire is a connector, but it is **not a terminal**: two lines drawn near each other are the
+        // reader's own sketch, and the magnet pulling one onto the other's end joined strokes that were
+        // never a net. A moved wire reaches a component's pins only; a moved component reaches pins and
+        // wire ends alike.
+        val pinTargets = targets.filterNot { it.isWireEnd }
 
         var bestDx = rawDx
         var bestDy = rawDy
@@ -348,7 +375,7 @@ object CircuitSnapping {
             for (pt in listOf(stroke.points.first(), stroke.points.last())) {
                 val candX = pt.x + rawDx
                 val candY = pt.y + rawDy
-                for (target in targets) {
+                for (target in pinTargets) {
                     val dist = hypot(candX - target.absX, candY - target.absY)
                     if (dist <= bestDist) {
                         bestDist = dist

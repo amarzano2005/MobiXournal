@@ -549,9 +549,13 @@ class CircuitSnappingTest {
         assertEquals(3.0, dy, 1e-6)
     }
 
-    /** Two wires are two connectors, so one dragged onto the other's end is a joint too. */
+    /**
+     * **Two lines are not a joint.** A wire is a connector but not a terminal: the magnet exists to join
+     * a connector to a component, so a line dragged near another line's end keeps the hand's own
+     * translation — pulling them together joined strokes that were never a net.
+     */
     @Test
-    fun aMovedWireJoinsAnotherWiresEnd() {
+    fun aMovedWireDoesNotJoinAnotherWiresEnd() {
         val page = Page(
             width = 612.0,
             height = 792.0,
@@ -560,9 +564,42 @@ class CircuitSnappingTest {
                 Layer(listOf(wire(50.0, 50.0, 150.0, 50.0), wire(158.0, 52.0, 260.0, 52.0))),
             ),
         )
-        // The second wire's start is at (158, 52); the first one's end at (150, 50).
+        // The second wire's start is 8.2 pt from the first one's end — inside the 14 pt reach, so only
+        // the rule can keep the two apart.
+        assertEquals(
+            "a wire's end is a target only for a component",
+            2,
+            CircuitSnapping.collectMoveTargets(page, setOf(ElementRef(0, 0)))
+                .count { it.pinId == CircuitSnapping.WIRE_END_PIN_ID },
+        )
         val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 1)), 0.0, 0.0)
-        assertEquals("the start is pulled onto the other end", -8.0, dx, 1e-6)
-        assertEquals(-2.0, dy, 1e-6)
+        assertEquals("two lines stay two lines", 0.0, dx, 1e-6)
+        assertEquals(0.0, dy, 1e-6)
+    }
+
+    /**
+     * The joint a moved wire **does** make: a line dragged onto a component's pin is circuit↔line, the
+     * other half of the rule above.
+     */
+    @Test
+    fun aMovedWireStillJoinsAComponentPin() {
+        val part = CircuitElement(
+            symbol = "RESISTOR",
+            positionX = 300.0,
+            positionY = 200.0,
+            pins = listOf(CircuitPin("p1", -40.0, 0.0)),
+            id = "c1",
+        )
+        val page = Page(
+            width = 612.0,
+            height = 792.0,
+            background = Background.Solid(-1, "plain"),
+            layers = listOf(Layer(listOf(part, wire(50.0, 50.0, 150.0, 50.0)))),
+        )
+        // The pin is at (260, 200). A raw move of (107, 153) leaves the wire's far end 4.2 pt short of
+        // it — inside the reach, so only the magnet can put it exactly there.
+        val (dx, dy) = CircuitSnapping.snapTranslation(page, setOf(ElementRef(0, 1)), 107.0, 153.0)
+        assertEquals("the wire's end lands on the pin", 110.0, dx, 1e-6)
+        assertEquals(150.0, dy, 1e-6)
     }
 }
