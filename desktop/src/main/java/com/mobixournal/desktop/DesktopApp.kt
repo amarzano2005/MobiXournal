@@ -103,31 +103,14 @@ fun FrameWindowScope.DesktopApp(
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.
     DisposableEffect(Unit) { onDispose { state.tabs.closeAll() } }
 
-    // The pen and the dial. Both are opened after the window exists and closed with it, and both answer
-    // `null` on a host without them, which the status bar then says in words. The dial's events arrive on
-    // Windows' own thread, so they are posted to the window's event queue before they touch any state.
-    val tablet = remember { DesktopTablet() }
+    // The pen and the dial, opened after the window exists and closed with it ([rememberTablet]).
+    val tablet = rememberTablet(window, state)
     // `Ctrl+E` arrives at the shell, which has no window to hang a dialog on: the window lends it one for
     // as long as it is up.
     DisposableEffect(Unit) {
         DesktopExportQueue.pickPdfDestination = ::pickExportDestination
         onDispose { DesktopExportQueue.pickPdfDestination = null }
     }
-    // Keyed on the pen-stream preference: choosing Windows Ink on the Settings surface reopens the readers
-    // with the next frame, which is the one hook that cannot be a value the canvas reads — the stream is a
-    // device opened once.
-    val penStream = state.prefs.penStream
-    DisposableEffect(penStream) {
-        tablet.open(
-            window = window,
-            onRotation = { degrees -> EventQueue.invokeLater { state.dialZoom(degrees) } },
-            onClick = { EventQueue.invokeLater { state.dialFit() } },
-            log = { println("MobiXournal tablet: $it") },
-            prefer = penStream,
-        )
-        onDispose { tablet.close() }
-    }
-
     DesktopTheme.Apply {
         DesktopShell(
             state = state,
@@ -144,6 +127,34 @@ fun FrameWindowScope.DesktopApp(
                 },
         )
     }
+}
+
+/**
+ * The pen and the dial, opened once per window and reopened when a setting changes the device.
+ *
+ * Both readers answer `null` on a host without them, which the status bar then says in words, and the dial's
+ * events arrive on Windows' own thread, so they are posted to the window's event queue before they touch any
+ * state. The effect is **keyed on the pen-stream preference and on the active area**: either choice reopens
+ * the readers with the next frame, which is the one hook that cannot be a value the canvas reads — a stream,
+ * and the rectangle it maps, are a device opened once.
+ */
+@Composable
+private fun rememberTablet(window: Frame, state: DesktopShellState): DesktopTablet {
+    val tablet = remember { DesktopTablet() }
+    val penStream = state.prefs.penStream
+    val windowArea = state.prefs.windowArea
+    DisposableEffect(penStream, windowArea) {
+        tablet.open(
+            window = window,
+            onRotation = { degrees -> EventQueue.invokeLater { state.dialZoom(degrees) } },
+            onClick = { EventQueue.invokeLater { state.dialFit() } },
+            log = { println("MobiXournal tablet: $it") },
+            prefer = penStream,
+            area = windowArea,
+        )
+        onDispose { tablet.close() }
+    }
+    return tablet
 }
 
 /**

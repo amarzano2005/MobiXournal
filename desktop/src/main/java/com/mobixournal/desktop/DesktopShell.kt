@@ -618,6 +618,17 @@ class DesktopShellState(
             else -> Unit
         }
         val tab = tabs.active ?: return false
+        return applyOnTab(tab, command)
+    }
+
+    /**
+     * The commands that act on a document: one `when` over the active [tab]'s own state.
+     *
+     * Split out of [apply] because the two halves answer different questions — "does the window do this
+     * with nothing open" and "what does this do to the page" — and one function holding both grew past the
+     * budget the guard sets for a function.
+     */
+    private fun applyOnTab(tab: DesktopTab, command: ShellCommand): Boolean {
         return when (command) {
             // Answered above, before a tab is needed: Settings opens with nothing on screen.
             ShellCommand.OPEN_SETTINGS -> true

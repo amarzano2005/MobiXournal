@@ -52,8 +52,23 @@ internal interface WintabApi : Library {
         /** The default **system** context: coordinates already mapped to the screen. */
         const val WTI_DEFSYSCTX = 4
 
+        /** The default **device** context: the template a context of the window's own is built from. */
+        const val WTI_DEFCONTEXT = 3
+
+        /** The device's own x and y axes, in the driver's counts. */
+        const val DVC_X = 12
+        const val DVC_Y = 13
+
         /** `CXO_MESSAGES`: deliver `WT_PACKET` to the window that opened the context. */
         const val CXO_MESSAGES = 0x0004
+
+        /**
+         * `CXO_SYSTEM`: the driver maps coordinates to the **screen** and ignores `lcIn`/`lcOut`.
+         *
+         * The default system context has it set, so a context that maps an active area has to clear it —
+         * otherwise the narrowed rectangle is written and never read.
+         */
+        const val CXO_SYSTEM = 0x0001
 
         /** `WT_PACKET`'s message number (`_WT_PACKET(WT_DEFBASE)`, `WT_DEFBASE` = 0x7FF0). */
         const val WT_PACKET = 0x7FF0
@@ -211,6 +226,14 @@ internal class TabletWintab private constructor(
     private val screenY: ScreenYMapping,
     /** The driver's full-scale pressure reading, 0 when it declares pressure but no range. */
     private val pressureMax: Int,
+    /**
+     * Whether the context is the **system** one, whose coordinates are screen pixels.
+     *
+     * A context of the window's own maps the device onto `lcOut`, which for a window context is its client
+     * area — so its packet's `x`/`y` arrive as client pixels and must not be put through `ScreenToClient` a
+     * second time.
+     */
+    private val systemSpace: Boolean,
     private val log: (String) -> Unit,
     private val onSample: ((PenContact) -> Unit)?,
     private val onEvent: ((String) -> Unit)?,
@@ -302,6 +325,7 @@ internal class TabletWintab private constructor(
      * position — so the canvas only has to subtract its own corner.
      */
     private fun clientPoint(x: Int, y: Int): InkPoint? {
+        if (!systemSpace) return InkPoint().apply { this.x = x; this.y = y }
         val point = InkPoint().apply {
             this.x = x
             this.y = screenY.of(y)
@@ -369,6 +393,8 @@ internal class TabletWintab private constructor(
             log: (String) -> Unit,
             onSample: ((PenContact) -> Unit)? = null,
             onEvent: ((String) -> Unit)? = null,
+            /** The part of the surface to map, or null for the driver's system context. */
+            area: TabletWindowArea? = null,
         ): TabletWintab? {
             val api = runCatching {
                 Native.load("wintab32", WintabApi::class.java) as WintabApi
@@ -400,12 +426,19 @@ internal class TabletWintab private constructor(
             context.pktData = WintabApi.PK_STATUS or WintabApi.PK_BUTTONS or WintabApi.PK_X or
                 WintabApi.PK_Y or WintabApi.PK_NORMAL_PRESSURE or WintabApi.PK_ORIENTATION
             context.pktMode = 0
+            // The active area, when Settings asked for one: the device context's own `lcIn`/`lcOut` narrow
+            // the surface onto the window's client area. A driver that will not describe its axes, or a
+            // context it refuses to open, keeps the system one below — an area that cannot be mapped is
+            // one row that did not happen, never a pen that stopped drawing.
+            val narrow = area?.let { deviceContext(api, window, context, it, log) }
             context.write()
             val handle = api.WTOpenA(hwnd, context, true)
             if (handle == null) {
                 log("wintab: WTOpenA refused")
                 return null
             }
+            val systemSpace = narrow == null
+            if (!systemSpace) log("wintab: ${area?.describe()}, mapped onto the window's client area")
             val user32 = runCatching {
                 Native.load("user32", InkUser32::class.java) as InkUser32
             }.getOrElse {
@@ -429,7 +462,55 @@ internal class TabletWintab private constructor(
                         "insets=${insets.left},${insets.top}",
                 )
             }.onFailure { log("wintab: window geometry unavailable (${it.message})") }
-            return TabletWintab(api, user32, hwnd, handle, screenY, pressure.axMax, log, onSample, onEvent)
+            return TabletWintab(
+                api, user32, hwnd, handle, screenY, pressure.axMax, systemSpace, log, onSample, onEvent,
+            )
+        }
+
+        /**
+         * Narrow [context] to [area] and answer true, or answer false with the reason logged.
+         *
+         * `lcIn*` is in the driver's own counts (the device axes `DVC_X`/`DVC_Y`, 0…50800 × 0…31750 on this
+         * tablet) and `lcOut*` is the window's client area — the y extent is **negative** so the out space runs
+         * downward from the top-left corner, which is what Compose's pointer coordinates are.
+         */
+        private fun deviceContext(
+            api: WintabApi,
+            window: Window,
+            context: WintabLogContext,
+            area: TabletWindowArea,
+            log: (String) -> Unit,
+        ): Boolean {
+            val x = WintabAxis()
+            val y = WintabAxis()
+            api.WTInfoA(WintabApi.WTI_DEVICES, WintabApi.DVC_X, x.pointer)
+            api.WTInfoA(WintabApi.WTI_DEVICES, WintabApi.DVC_Y, y.pointer)
+            x.read()
+            y.read()
+            val inX = TabletAreaMap.deviceSpan(x.axMin, x.axMax, area.x0, area.x1)
+            val inY = TabletAreaMap.deviceSpan(y.axMin, y.axMax, area.y0, area.y1)
+            if (inX == null || inY == null) {
+                log("wintab: the driver declares no usable axes (x ${x.axMin}..${x.axMax}, y ${y.axMin}..${y.axMax})")
+                return false
+            }
+            val size = runCatching { window.insets.let { window.width - it.left - it.right to window.height - it.top - it.bottom } }
+                .getOrNull()
+            if (size == null || size.first <= 0 || size.second <= 0) {
+                log("wintab: the window has no client area yet, so the area cannot be mapped")
+                return false
+            }
+            // The area only exists in a context the driver maps itself: the screen mapping would ignore
+            // every field below and keep reporting screen pixels.
+            context.options = context.options and WintabApi.CXO_SYSTEM.inv()
+            context.inOrgX = inX.first
+            context.inExtX = inX.second
+            context.inOrgY = inY.first
+            context.inExtY = inY.second
+            context.outOrgX = 0
+            context.outOrgY = 0
+            context.outExtX = size.first
+            context.outExtY = -size.second
+            return true
         }
     }
 }

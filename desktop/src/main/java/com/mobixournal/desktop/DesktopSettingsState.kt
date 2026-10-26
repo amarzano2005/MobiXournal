@@ -8,6 +8,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import com.mobixournal.render.PressureCurve
 
 /**
  * The window's **Settings**, as state: whether the surface is up, which section it shows, what the search
@@ -38,6 +39,12 @@ enum class SettingsKeyAction {
 }
 
 class DesktopSettingsState(private val store: DesktopSettings) {
+
+    init {
+        // The reading shape is a module-level seam the two ink adapters read (`PressureFeel`): the state is
+        // its only writer, so opening a window puts the stored curve in force before the first stroke.
+        PressureFeel.exponent = store.pressureExponent
+    }
 
     /** Whether the surface is up. */
     var open by mutableStateOf(false)
@@ -100,6 +107,32 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** The pen stream the window prefers. */
     var penStream by mutableStateOf(store.penStream)
         private set
+
+    /** How the pen's reading is shaped before the model's pressure filter; 1.0 is untouched. */
+    var pressureExponent by mutableStateOf(store.pressureExponent)
+        private set
+
+    /** Which part of the tablet's surface is mapped. */
+    var activeArea by mutableStateOf(store.activeArea)
+        private set
+
+    /** The mapped area's two spans, as percentages of the surface. */
+    var areaWidthPercent by mutableStateOf(store.areaWidthPercent)
+        private set
+    var areaHeightPercent by mutableStateOf(store.areaHeightPercent)
+        private set
+
+    /** Whether the area keeps the tablet's own ratio. */
+    var aspectLock by mutableStateOf(store.aspectLock)
+        private set
+
+    /**
+     * The rectangle this choice maps, or null for the whole surface.
+     *
+     * The window's reader is opened from it ([DesktopTablet.open]), so the value the rows change and the
+     * value the pen is mapped through cannot disagree.
+     */
+    val windowArea: TabletWindowArea? get() = store.windowArea()
 
     /** The default sheet a new page is born on — the format section's stored pair, read here for a row. */
     val pageWidthPt: Double get() = store.pageWidthPt
@@ -228,6 +261,56 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     fun choosePenStream(value: PenStream) {
         penStream = value
         store.penStream = value
+    }
+
+    /**
+     * Shape the pen's reading by [value]; the next stroke drawn reads it.
+     *
+     * Live, not on restart: the exponent is read per sample through a lambda the canvas holds, so dragging
+     * the slider and drawing again is the whole test of it.
+     */
+    fun choosePressureExponent(value: Float) {
+        val shaped = value.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX)
+        pressureExponent = shaped
+        PressureFeel.exponent = shaped
+        store.pressureExponent = shaped
+    }
+
+    /** Map [value]'s part of the tablet's surface, and remember it; the window reopens its reader. */
+    fun chooseActiveArea(value: TabletArea) {
+        activeArea = value
+        store.activeArea = value
+    }
+
+    /**
+     * Widen or narrow the mapped area, and keep the height in step while the aspect lock is on.
+     *
+     * The lock is the same statement as the sliders': both spans are percentages **of the surface**, so equal
+     * ones are the tablet's own shape. Writing both here is what makes the height row move with this one.
+     */
+    fun chooseAreaWidth(percent: Int) {
+        val width = percent.coerceIn(DesktopSettings.AREA_PERCENT_RANGE)
+        areaWidthPercent = width
+        store.areaWidthPercent = width
+        if (aspectLock) chooseAreaHeight(width)
+    }
+
+    /** Change the area's height; with the lock on, the width follows instead. */
+    fun chooseAreaHeight(percent: Int) {
+        val height = percent.coerceIn(DesktopSettings.AREA_PERCENT_RANGE)
+        areaHeightPercent = height
+        store.areaHeightPercent = height
+        if (aspectLock) {
+            areaWidthPercent = height
+            store.areaWidthPercent = height
+        }
+    }
+
+    /** Keep the area the tablet's own ratio, or let the two spans move apart, and remember the answer. */
+    fun chooseAspectLock(value: Boolean) {
+        aspectLock = value
+        store.aspectLock = value
+        if (value) chooseAreaWidth(areaWidthPercent)
     }
 
     /**

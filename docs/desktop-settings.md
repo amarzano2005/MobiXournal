@@ -47,3 +47,40 @@ that did not happen.
 
 Nothing in the window writes the display's mode except a full-screen request, and leaving full screen (or
 closing the window) puts the panel's previous mode back.
+
+## Stylus — the tablet's own section
+
+Under **Stylus**, in two groups, because the device decides both which stream exists and how much of it the
+window listens to:
+
+- **Pen → Stream** (`tablet.penStream`): *Automatic* tries Wintab — the driver's `Wintab32.dll`, whose
+  packets carry the pressure at the tablet's own rate — and falls back to Windows Ink, which walks the
+  digitizer list with `GetPointerPenInfo`; *Windows Ink* skips the driver library, for a pen whose Wintab
+  reports a contact the pointer stream reports better. The choice **reopens the readers** with the next
+  frame (`DesktopTablet.open` is keyed on it), so a switch is never a stroke that jumps half way through
+  one, and the status bar keeps naming the stream actually open — a preference this host cannot honour
+  says so instead of looking applied.
+- **Pen → Pressure curve** (`tablet.pressureExponent`, 0.5…2.0): **mine, not the desktop's**. 1.0 is the
+  line above, and any other reading is opt-in shaping applied *before* the Xournal++ filter at both of the
+  pen's adapters (`PenPacketStroke` for the driver's packets, `PageInkGesture.inkPointer` for Compose's
+  pointer) rather than after the width, because a curve in the width would bend the eraser radius and the
+  highlighter's width too. Windows' emulated mouse is a pressure-less path, so its strokes stay at full
+  width and the row cannot change them.
+- **Active area → Mapped surface** (`tablet.activeArea`): *Full* is the driver's own **system context**, the
+  surface every other program on the machine sees, and it is what the window has always read. *Tablet* maps
+  a **centred rectangle** of that surface onto the window's client area instead, so a small movement of the
+  hand covers the page.
+- **Width** and **Height** (`tablet.areaWidthPct`, `tablet.areaHeightPct`, 10…100 %) and **Aspect lock**
+  (`tablet.aspectLock`, on by default). The percentages are of the **surface**, not millimetres, because the
+  driver declares its axes in counts and no physical size this shell can trust — and both spans being
+  percentages is what makes the lock one line of arithmetic: an equal pair *is* the tablet's own shape, so
+  the lock moves the height with the width. A *Tablet* area grown to 100 % on both axes is the whole
+  surface, and the reader takes the system context rather than opening a second one for the same rectangle.
+
+The mechanism is a real context of the window's own: `TabletAreaMap` turns the rectangle into the driver's
+`lcInOrg`/`lcInExt` (the device axes, `DVC_X`/`DVC_Y`) and the client area into `lcOut`, with
+`CXO_SYSTEM` cleared — a screen-mapped context would ignore every field. A driver that declares no usable
+axis, or a context it refuses to open, **keeps the system context** rather than leaving a dead pen.
+
+**Barrel button** is drawn and unavailable: the driver reads the pen's buttons and the window receives them
+as the eraser tip, so there is no second meaning to configure yet.

@@ -86,6 +86,9 @@ internal class DesktopTablet {
      * tried — Wintab, whose packets carry the pressure at the tablet's own rate, then Windows Ink. `INK`
      * skips the driver library entirely, for a pen whose Wintab reports a contact Windows Ink reports
      * better; the window procedure is still opened either way, because it is where the wheel arrives.
+     *
+     * [area] is Settings' active-area answer, and null is the whole surface: Wintab then keeps the driver's
+     * system context, exactly as it did before the row existed.
      */
     fun open(
         window: Window,
@@ -95,6 +98,7 @@ internal class DesktopTablet {
         onSample: ((PenContact) -> Unit)? = null,
         onEvent: ((String) -> Unit)? = null,
         prefer: PenStream = PenStream.DEFAULT,
+        area: TabletWindowArea? = null,
     ) {
         // The wheel first: the ink reader's window procedure is what feeds it a raw report.
         wheel = TabletWheel.open(window, log, onNotches = {}, onEvent = onEvent)
@@ -123,7 +127,7 @@ internal class DesktopTablet {
         wintab = if (prefer == PenStream.INK) {
             null
         } else {
-            TabletWintab.open(window, log, onSample = onSample, onEvent = onEvent)
+            TabletWintab.open(window, log, onSample = onSample, onEvent = onEvent, area = area)
         }
         source = when {
             wintab != null -> PenSource.WINTAB

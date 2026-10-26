@@ -277,6 +277,22 @@ controller is bound — so "the pen draws at one width" and "the pen is a mouse 
 tell" can never be confused. With no device, both readers answer null after logging the step that said
 so, and the window keeps the wheel, the keyboard and the mouse.
 
+### The active area: a context of the window's own
+
+The driver's **system context** (`WTI_DEFSYSCTX`) is the surface every other program sees, and its
+coordinates arrive as screen pixels, which is why the canvas converts them with `ScreenToClient`. Settings'
+*Tablet* area needs the other kind: `TabletWintab.deviceContext` narrows the context's `lcInOrg`/`lcInExt` to
+the chosen rectangle of the device axes (`DVC_X`/`DVC_Y`, 0…50800 × 0…31750 here) and points `lcOut` at the
+window's client area with a **negative y extent**, so packets then arrive as client pixels and the canvas
+does not convert them again (`systemSpace` in the reader). The one field that has to be *cleared* is
+`CXO_SYSTEM`: the default system context sets it, and a screen-mapped context ignores `lcIn`/`lcOut`
+entirely — the area would be written and never read.
+
+Every failure is the fallback and not a dead pen: no loadable library, no declared axis, no client area yet
+or a refused `WTOpenA` all keep the system context, and the log says which step said so. The rectangle's own
+arithmetic is `TabletAreaMap`, pure and covered by `TabletAreaTest`; the percentages are of the **surface**,
+which is what makes the aspect lock one comparison (`docs/desktop-settings.md`).
+
 ## The hand on the pen
 
 A pan built on Compose's pointer crawled, because Windows' copy of this pen is coalesced: the driver sends

@@ -7,6 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.SettingsGlyph
+import com.mobixournal.render.PressureCurve
+import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * The **sections** of the window's Settings: the page of controls for one topic.
@@ -192,17 +195,75 @@ private fun StylusSettings(policy: DesktopSettingsState) {
             optionLabel = { it.label },
             onPick = policy::choosePenStream,
         )
-        SettingsUnavailable(
-            "Pressure curve",
-            "The tablet applies a pressure multiplier and a floor; the window's stroke width follows " +
-                "desktop Xournal++'s filter (docs/stylus.md), so there is no curve to set here yet.",
+        SettingsRow(
+            label = "Pressure curve",
+            note = "Shapes the reading before the stroke's width: below 1.00 a light press draws " +
+                "thicker, above it thinner. 1.00 is the model's own arithmetic, untouched.",
+        ) {
+            SettingsSlider(
+                value = policy.pressureExponent,
+                range = PressureCurve.EXPONENT_MIN..PressureCurve.EXPONENT_MAX,
+                step = 0.05f,
+                format = { String.format(Locale.ROOT, "%.2f×", it) },
+                onValue = policy::choosePressureExponent,
+            )
+        }
+    }
+    SettingsGroup("Active area") {
+        SettingsChoice(
+            label = "Mapped surface",
+            note = "Full is the driver's own surface, the one every other program sees; Tablet maps a " +
+                "centred rectangle of it, so a small movement of the hand covers the page.",
+            options = TabletArea.entries,
+            picked = policy.activeArea,
+            optionLabel = { it.label },
+            onPick = policy::chooseActiveArea,
         )
+        if (policy.activeArea == TabletArea.TABLET) {
+            SettingsRow(
+                label = "Width",
+                note = "How much of the tablet's surface the window listens to, across.",
+            ) {
+                SettingsSlider(
+                    value = policy.areaWidthPercent.toFloat(),
+                    range = DesktopSettings.AREA_PERCENT_RANGE.start.toFloat()..
+                        DesktopSettings.AREA_PERCENT_RANGE.endInclusive.toFloat(),
+                    step = 5f,
+                    format = { String.format(Locale.ROOT, "%d%%", it.roundToInt()) },
+                    onValue = { policy.chooseAreaWidth(it.roundToInt()) },
+                )
+            }
+            SettingsRow(
+                label = "Height",
+                note = "The same span down the surface.",
+            ) {
+                SettingsSlider(
+                    value = policy.areaHeightPercent.toFloat(),
+                    range = DesktopSettings.AREA_PERCENT_RANGE.start.toFloat()..
+                        DesktopSettings.AREA_PERCENT_RANGE.endInclusive.toFloat(),
+                    step = 5f,
+                    format = { String.format(Locale.ROOT, "%d%%", it.roundToInt()) },
+                    onValue = { policy.chooseAreaHeight(it.roundToInt()) },
+                )
+            }
+            SettingsRow(
+                label = "Aspect lock",
+                note = "Both spans are percentages of the surface, so an equal pair is the tablet's own " +
+                    "shape: the lock moves the height with the width.",
+                onClick = { policy.chooseAspectLock(!policy.aspectLock) },
+            ) {
+                SettingsSwitch(on = policy.aspectLock)
+            }
+        }
         SettingsUnavailable(
             "Barrel button",
             "The pen's buttons are read by the driver and reach the window as the eraser tip.",
         )
     }
-    SettingsNote("The status bar names the stream actually open, so a preference this host cannot honour says so.")
+    SettingsNote(
+        "The status bar names the stream actually open, so a preference this host cannot honour says so. " +
+            "An area the driver cannot map keeps the whole surface rather than leaving a dead pen.",
+    )
 }
 
 /** **Editor**: what the tablet's default-tool and snapping rows would set. */

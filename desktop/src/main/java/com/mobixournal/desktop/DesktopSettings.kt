@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.render.PressureCurve
 import java.io.File
 import java.util.Properties
 
@@ -100,6 +101,75 @@ class DesktopSettings(val file: File = defaultFile()) {
             properties.setProperty(KEY_TARGET_HZ, value.coerceIn(TARGET_HZ_RANGE).toString())
             save()
         }
+
+    /**
+     * How the pen's **reading** is shaped before Xournal++'s own pressure filter (`tablet.pressureExponent`).
+     *
+     * 1.0 is untouched: the default, and the only value that leaves a document's stored widths exactly as
+     * the tablet writes them. `PressureCurve.shape` owns the arithmetic; this key only remembers the wish.
+     */
+    var pressureExponent: Float
+        get() = properties.getProperty(KEY_PRESSURE_EXPONENT)?.toFloatOrNull()
+            ?.takeIf { it.isFinite() }
+            ?.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX)
+            ?: PressureCurve.EXPONENT_IDENTITY
+        set(value) {
+            properties.setProperty(
+                KEY_PRESSURE_EXPONENT,
+                value.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX).toString(),
+            )
+            save()
+        }
+
+    /**
+     * How much of the tablet's surface the window maps (`tablet.activeArea`).
+     *
+     * `FULL` is the driver's system context, which is what the window has always read; `TABLET` opens a
+     * context of its own over the centred rectangle [windowArea] describes.
+     */
+    var activeArea: TabletArea
+        get() = TabletArea.of(properties.getProperty(KEY_ACTIVE_AREA))
+        set(value) {
+            properties.setProperty(KEY_ACTIVE_AREA, value.name)
+            save()
+        }
+
+    /** The area's width, as a percentage of the surface (`tablet.areaWidthPct`), clamped to the rows' range. */
+    var areaWidthPercent: Int
+        get() = percentOf(properties.getProperty(KEY_AREA_WIDTH_PCT))
+        set(value) {
+            properties.setProperty(KEY_AREA_WIDTH_PCT, value.coerceIn(AREA_PERCENT_RANGE).toString())
+            save()
+        }
+
+    /** The area's height, as a percentage of the surface — followed by the width while the lock is on. */
+    var areaHeightPercent: Int
+        get() = percentOf(properties.getProperty(KEY_AREA_HEIGHT_PCT))
+        set(value) {
+            properties.setProperty(KEY_AREA_HEIGHT_PCT, value.coerceIn(AREA_PERCENT_RANGE).toString())
+            save()
+        }
+
+    /**
+     * Whether the area keeps the tablet's own ratio (`tablet.aspectLock`, on by default).
+     *
+     * Both percentages are of the surface, so **the same number on both axes is the tablet's shape** — the
+     * lock is what makes the height slider follow the width one.
+     */
+    var aspectLock: Boolean
+        get() = properties.getProperty(KEY_ASPECT_LOCK)?.trim()?.toBooleanStrictOrNull() ?: true
+        set(value) {
+            properties.setProperty(KEY_ASPECT_LOCK, value.toString())
+            save()
+        }
+
+    /** The rectangle of the surface the window maps, or null for the whole of it ([TabletAreaMap.window]). */
+    fun windowArea(): TabletWindowArea? =
+        TabletAreaMap.window(activeArea, areaWidthPercent, areaHeightPercent, aspectLock)
+
+    /** A stored percentage, or the rows' own starting point when the entry is absent or unreadable. */
+    private fun percentOf(raw: String?): Int =
+        raw?.trim()?.toIntOrNull()?.coerceIn(AREA_PERCENT_RANGE) ?: TabletAreaMap.DEFAULT_PERCENT
 
     /** Which pen stream the window prefers — Wintab and Windows Ink, or whichever this host has. */
     var penStream: PenStream
@@ -280,6 +350,22 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The refresh rate the window asks for in full screen — a wish, honoured where the panel can. */
         const val KEY_TARGET_HZ = "display.targetHz"
+
+        /** The exponent the pen's reading is shaped by, 1.0 = the model's own arithmetic untouched. */
+        const val KEY_PRESSURE_EXPONENT = "tablet.pressureExponent"
+
+        /** Which part of the tablet's surface is mapped: the whole of it, or the hand's own rectangle. */
+        const val KEY_ACTIVE_AREA = "tablet.activeArea"
+
+        /** The area's two spans, as percentages of the surface. */
+        const val KEY_AREA_WIDTH_PCT = "tablet.areaWidthPct"
+        const val KEY_AREA_HEIGHT_PCT = "tablet.areaHeightPct"
+
+        /** Whether the area keeps the tablet's own ratio. */
+        const val KEY_ASPECT_LOCK = "tablet.aspectLock"
+
+        /** The percentages [TabletAreaMap] accepts — the ranges the two sliders offer. */
+        val AREA_PERCENT_RANGE = TabletAreaMap.MIN_PERCENT..TabletAreaMap.MAX_PERCENT
 
         /** The palette the colour flyout draws, as [PaletteCodec]'s comma-separated hex list. */
         const val KEY_PALETTE_COLORS = "palette.colours"
