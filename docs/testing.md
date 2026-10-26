@@ -56,6 +56,9 @@ checked by tests that read the repo, in `app/src/test/java/com/mobixournal/guard
 code they protect. Each test carries the reasoning for its rule; this is the index of them, so a
 change can see what will fail it:
 
+The desktop window has suites of its own — headless Compose renders, a real document loaded through the
+codec — and [desktop-testing.md](desktop-testing.md) is their index.
+
 - **`DocsGuardTest`** (`guards/`) — every spoke doc is reachable from the index, every relative link
   and `#anchor` between docs resolves, and every doc fits its line budget, so the architecture docs
   cannot decay back into one unaddressable document.

@@ -46,6 +46,8 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`search.md`](search.md) | document search, handwriting index, recognition engines | you change search or recognition |
 | [`testing.md`](testing.md) | unit test coverage, architectural guards, mechanical rules | you want to know what protects a change |
 | [`desktop-workstation.md`](desktop-workstation.md) | the `desktop/` preview: module, window shell, page painting, tool strips | you work on the PC window |
+| [`desktop-editing.md`](desktop-editing.md) | the window's editing surface: figures, vertical space, placing a living element, the selection | you change what a drag on the page does |
+| [`desktop-testing.md`](desktop-testing.md) | what the `desktop/` suites render and assert, and how to run them | you add or change a desktop test |
 | [`desktop-settings.md`](desktop-settings.md) | the window's Settings surface: the index, the row rule, and what each section answers | you add or change a desktop setting |
 | [`desktop-tablet.md`](desktop-tablet.md) | the desktop pen and dial: Wintab packets, Windows Ink, the ink-latency probe and its measurements | you change how the window reads the tablet |
 

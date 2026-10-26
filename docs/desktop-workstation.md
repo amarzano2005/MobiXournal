@@ -1,7 +1,8 @@
 # Desktop workstation: the `desktop/` window
 
 > Read when you change the desktop Compose Multiplatform window: its shell and chrome, its tool strips, how
-> it opens a document, or how it paints a page.
+> it opens and saves a document, or how it paints a page. What a drag *does* is
+> [desktop-editing.md](desktop-editing.md); what the tests prove is [desktop-testing.md](desktop-testing.md).
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
@@ -223,71 +224,11 @@ back over them, and it is encoded on a background thread — a whole notebook on
 in the middle of a pause. Saving, discarding or closing the tab deletes the snapshot; nothing in `recovery/`
 is a save.
 
-### Figures, whole-stroke erasing and vertical space
+### What a drag does
 
-Four more gestures beside the ink, all built on `mobix-core` so the window has no geometry of its own:
-
-- **Seven geometry slots draw figures.** Line, Arrow, Double arrow, Axes (the shared
-  `ShapeKind.COORDINATE_AXIS`), Rectangle, Ellipse and Spline each turn one drag into an ordinary
-  constant-width stroke through `ShapeBuilder` — the tablet's own builder — so a figure made here
-  round-trips through `.xopp` as ink. The preview is the **same draft list** the sheet already paints,
-  `Shift` snaps the drag's direction to 45°, a drag shorter than 4 pt draws nothing, and `Esc` cancels
-  through `DesktopShellState.liveDrag`. With a geometry slot picked the tablet's **packets stand
-  aside**: a pen contact must not ink under a figure being dragged.
-- **The eraser's two members are two slots.** `Eraser` (`E`) cuts the disc's path out of the stroke it
-  crosses; `Eraser (whole)` (`Shift+E`) removes every stroke the disc touches. They differ by
-  `DesktopTool.eraserMode()` (`EraserMode.STANDARD` / `WHOLE_STROKE`), which `PageInkGesture` passes to
-  the same shared `PageEraser`, and one erased gesture is still one undo step either way.
-- **Vertical space reflows the page.** `Vertical space` (`Shift+V`) drops a grab line where the press
-  landed, painted as a hairline across the sheet above the ink; each move re-applies
-  `VerticalSpaceOps.shiftBelow` to the page **as it was at grab time**, so the block follows the pointer
-  without recruiting the elements it passes, and the whole drag is one undo step. A drag that shifts
-  nothing records nothing. Snapping stays **off** (`snapSpacingPt = 0.0`, a continuous drag): the tablet
-  snaps to the ruling only when its Snap-to-grid setting is on, and the window has no such setting yet.
-  Like a geometry slot, the drag is **not ink**, so the pen's packets stand aside for it too
-  (`DesktopTool.inksByPackets()`): only the pen and the two erasers are fed from the driver. That is what
-  makes the tool reachable with a stylus at all — while the packets owned the pen the Compose gesture stood
-  aside, so a pen in proximity opened a contact and the grab line never moved. `DesktopVerticalSpaceTest`
-  drags the grab line with a live packet stream and checks the block follows it.
-  The arithmetic is shared: `VerticalSpaceOps`, its `Snapping` and the per-element move (`ElementShift`)
-  live in `mobix-core`, and the app's `SelectionOps.translate` delegates to the same `ElementShift`.
-
-### Placing a living element: Plot, Table and Circuit
-
-Plot (`M`) and Table (`T`) place a living element instead of drawing it: a drag is its box, a click its
-family's default size, then the lift **asks first** in this lane — the graph dialog's fields, or the table's
-grid — before committing **one** element as **one undo step**; a cancelled question leaves nothing behind. A
-**circuit component** is asked nothing: its drag's two **ends** are the part — rotated to the hand and snapped
-onto the pins in reach — drawn **live** along the pen where it will land
-(`DesktopCircuitPreviewTest`). The placement hands the window to the **marquee** (`S`), as the tablet does, so
-the next drag moves what was just made; the **pencil**, or a **double-click** on the element, reopens the same
-lane on it ([selection.md](selection.md) owns the grips). Geometry, builders and the family palettes
-(`CircuitFamily`: passive `K`, active `Shift+K`, logic `Alt+K`) are shared with the tablet, and a slot's
-submenu stays its **second** click, a circuit palette included (`ToolSlotClickTest` drives the scene).
-
-### Selecting, moving, resizing and turning
-
-The window's selection is the tablet's, cut along the seam the core already had. **Marquee** (`S`) and
-**Lasso** (`V`) share one slot, so the strip still shows one "pick things" tool: a **drag** traces a region
-(the straight box, or the freehand loop) which is painted as it is drawn, and the **lift** selects every
-element wholly inside it; a **press inside the live outline** acts on the selection instead of starting a
-new one — the body moves it, a **corner handle** scales it about the opposite corner, and the **handle above
-it** turns it about its centre (`Shift` snaps the turn to 15°). Both paths recompute from the page **as it
-was at grab time**, so dragging back and forth cannot compound, and one drag is one edit and **one undo
-step**. `Delete` (or `Backspace`) removes what is caught, also as one step; `Esc` drops the outline before it
-means anything else. A selection belongs to the page it was drawn on: turning the page lets it go, because
-its refs name a layer and an index *of that page*.
-
-The arithmetic is core, not window: `PageSelection` (the region, the caught refs, and translate/scale/rotate
-that answer with the region moved the same way), `SelectionEdit` (the page rewrite) and `SelectionOps` live in
-`mobix-core` and are shared with the tablet, alongside `ElementShift` and `VerticalSpaceOps`. What stays here
-is the pointer half — `DesktopSelection.kt` decides *which* handle a press grabbed and *how far* it was
-dragged (`selectionHandleAt`, `scaleFactors`, `rotationBetween`, all pure and JVM-tested), `SelectionGesture.kt`
-walks the drag, and `SelectionOverlay.kt` paints the outline, the five handles and the traced region. A
-selection drag is **not ink**, so `DesktopTool.inksByPackets()` stays false for the slots: the pen's packets
-stand aside and a stylus in proximity still reaches the drag through the Compose pointer. A selection carries
-the tablet's **action bar** under its outline, and the **pencil** on it opens the selected living element in
-the inspector lane — both owned by [selection.md](selection.md).
+The figure slots, the eraser's two members, vertical space, placing a living element and the selection — with
+its handles, its action bar and the inspector lane — are [desktop-editing.md](desktop-editing.md)'s: they are
+the window's editing surface and read as one topic, which is why they no longer live in this file.
 
 ### A stroke costs the stroke
 
@@ -330,41 +271,11 @@ packets (`PenPacketPan`), one viewport write per frame; a held **Space** takes t
 The pointer over the sheet is the **tool's**: a ring wherever the tool lays ink at a width, the text cursor
 for Text (it writes words, not a band), and the hand for the hand.
 
-### Verification, runnable on any JVM host (no emulator)
+## How it is tested
 
-`./gradlew :desktop:test` loads `udiff.xopp` (6 pages, ~4 000 strokes) through `DocumentLoader`, opens a ZIP
-`.xopp` and a 40-page `.mobix` (including both **misnamed**, in either direction), refuses a text file and a
-ZIP with no document inside by name, renders page 1 of each headlessly via `ImageComposeScene`, and renders a
-table, a parametric shape, a bundled pixmap and a PDF background — asserting the pixels, not that the call
-returned (`LivingAndBackgroundTest`). `DesktopShellTest` renders the tab strip **before and after** a document
-is opened and asserts the frames differ, renders the sidebar, and checks the keyboard's zoom arithmetic. `ToolStripsTest` renders the rail and the
-ribbon on their own (every slot draws its glyph, the picked one wearing the active slot), then the whole window
-with the strip at the left, the right and the top, reading the pixels: the sheet keeps its place and reaches
-under the capsules, and a tap and two drags at the glass leave the page's elements untouched. `OpenFailureTest` pins what a failed open says
-(`DesktopLaunchPathTest`: a command line put back together). `DesktopSaveTest` is the write's
-round trip: an edit saved over a gzip `.xopp` and over a 40-page `.mobix`, each re-opened through
-`DocumentLoader` with the container and the untouched pages asserted, a Save As that turns a `.mobix` into a
-`.xopp` and re-homes the tab, a packaged `.xopp` refused with its file byte-identical, and the version the
-window stamps into a `.mobix` checked against `app/build.gradle.kts`'s `versionName`. `DesktopEditingTest` is
-the editing path headless: a 40-page `.mobix` opens through a `CountingEntrySource` with **zero** page
-entries read, an edit on page 3 opens that page alone, the model the save writes carries it and a 40-page
-repack round-trips it while the untouched pages keep their own ink; the eraser splits a bar where it crosses
-it; a pressure sample becomes its filtered width, a highlighter stays one width, and the page-point mapping
-undoes density and zoom. Its undo half drives the **shell's own commands**: a stroke, `Ctrl+Z` (model and
-painted ink both return), a second undo that reports nothing left, a redo that repaints it, and a save that
-starts a new history. `DesktopLifecycleTest` is the lifecycle headless: an edit makes a tab dirty, a save and
-an undo back to the save point make it clean, closing a dirty tab asks first, a snapshot written by one shell
-is adopted by the next and deleted once saved, and the strip's dot is drawn only while there are unsaved
-edits. Every render lands under `desktop/build/desktop-render/`: `glass-parity.png` (the same panel in the
-tablet's material and in this window's, by `GlassParityRenderTest`), and
-`glass-edge.png` / `glass-over-page.png` / `glass-show-through.png`, which `GlassEdgeTest` samples — the rim
-brighter at the top than at the bottom, or it is a border and not the family's edge, and a band of ink under
-the panel still reading through it, or the fill is a slab. `GlassMotionTest` drives the arrival through a
-scene's frame clock (`render(nanoTime)`): nothing at t=0, faint at 40 ms inside its 82 % box, the glass at
-full size by 700 ms, with `GlassPresence` holding it composed through the 230 ms exit.
-`PageLayersAndPaperTest` reads pixels too: `isometric-paper.png`'s line midpoints must fall on
-`BackgroundGrid.isometric`'s segments, and `hidden-layer.png` is a two-layer page with one off — the band
-that is gone is the check.
+Every test runs on a plain JVM host — no emulator, no device — and the pixel renders under
+`desktop/build/desktop-render/` are what the assertions read. What each suite proves, and how to run them, is
+[desktop-testing.md](desktop-testing.md).
 
 ## Why the core is shared
 
