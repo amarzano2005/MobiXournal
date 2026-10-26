@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -44,12 +45,14 @@ import com.mobixournal.render.ShapeKind
 /**
  * The two tool placements of `docs/ui-modernization.md` §2, and the metrics that keep them honest.
  *
- * **A band in its own lane, never a bar over the page.** The rail stands in a lane [railWidth] wide
- * beside the canvas and the ribbon takes a [ribbonHeight] row under the header; neither is a floating
- * surface on the sheet, so the page is never underneath the glass and the whole visible sheet stays
- * writable (`docs/chrome.md`). Inside its lane each strip is a **capsule** — the tablet's own recipe,
- * 52 dp in a 64 dp lane — so the tools sit on a raised pane of glass rather than edge to edge on a
- * slab that happens to be the same colour.
+ * **A floating bar lying on the page.** The rail is a capsule [railWidth] wide on an edge of the canvas
+ * and the ribbon one across its top; the sheet runs behind both, which is the desktop decision of
+ * 2026-10-26 and the reason the page does not move when the placement changes (`docs/interface-contract.md`
+ * — a floating surface may lie over the page). The rail wraps its slots rather than filling the edge, so it
+ * reads as a bar of tools and not as a pane the height of the window. Each strip is the **capsule** of the
+ * tablet's own recipe — 52 dp of glass in a 64 dp lane of air — and the capsule's own scroll pane and slots
+ * make the surface opaque to the pointer, so a press that lands on it is never a stroke on the page beneath
+ * (`ToolStripsTest` sends a tap and two drags at the glass and counts the page's elements).
  *
  * The strips only **set a [ToolSelection]** — this is the chrome Phase 2 asks for, and what a pen does
  * with the picked tool arrives with the desktop editing phase. Because of that, the two placements draw
@@ -58,7 +61,7 @@ import com.mobixournal.render.ShapeKind
  */
 object ToolStripMetrics {
 
-    /** The rail's lane: 64 dp (the capsule plus its air), its own column beside the canvas. */
+    /** The rail's lane: 64 dp (the capsule plus its air), floating on the canvas's edge. */
     val railWidth = DesktopTheme.railLaneWidth
 
     /** The ribbon's lane: 56 dp — the capsule plus the air above and below it. */
@@ -183,12 +186,14 @@ fun ToolRail(
             Modifier
                 .padding(vertical = DesktopTheme.railOuterPadding)
                 .width(DesktopTheme.railCapsuleWidth)
-                .fillMaxHeight()
+                // It wraps its slots: a bar of tools floating on the page, not a pane as tall as the
+                // window. `verticalScroll` inside still bounds it when a short window cannot hold them.
+                .wrapContentHeight()
                 .glassCapsule(),
         ) {
             Column(
                 Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(
                         horizontal = DesktopTheme.railLanePadding,
@@ -248,8 +253,8 @@ fun ToolRibbon(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    // The ribbon is the rail laid on its side, and it wears the same material: a capsule floating in
-    // its lane's air, not a band with a second sheet of glass behind it (see the rail's note).
+    // The ribbon is the rail laid on its side, and it wears the same material: a capsule floating over
+    // the page, not a band with a second sheet of glass behind it (see the rail's note).
     Box(
         modifier
             .fillMaxWidth()

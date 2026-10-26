@@ -5,7 +5,12 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Density
 import com.mobixournal.design.DesignTokens
@@ -33,9 +38,10 @@ import org.junit.rules.TemporaryFolder
  *  2. **The placement is a setting, not a state.** It defaults to the rail, survives a restart through
  *     [DesktopSettings], and an unknown or unreadable file falls back to the default instead of stopping
  *     the window from opening.
- *  3. **A band, never a bar over the page.** The headless renders put a document on screen in all three
- *     placements and check where the paper actually starts: after the rail's lane, below the ribbon's
- *     band. The PNGs are kept under `build/desktop-render/` so the strips can be looked at.
+ *  3. **A floating bar over the page.** The headless renders put a zoomed document on screen in all
+ *     three placements: the sheet reaches the window's edges — nothing is taken out of the canvas for a
+ *     lane — and a pen drag begun on a capsule leaves the page's ink alone. The PNGs are kept under
+ *     `build/desktop-render/` so the strips can be looked at.
  */
 class ToolStripsTest {
 
@@ -268,108 +274,166 @@ class ToolStripsTest {
     }
 
     /**
-     * The structural claim of the whole task: whichever placement is chosen, the bands take their own
-     * lanes and the page begins after them — a strip is never laid over the sheet.
+     * The rail is a **bar**, not a pane as tall as the window: given the height for its slots it ends under
+     * the last of them, and whatever is behind it — the page, in the window — shows below. A full-height
+     * capsule is what a lane looked like, which is what this change was for.
+     */
+    @Test
+    fun `the rail ends under its last slot`() {
+        val lane = ToolStripMetrics.railWidth.value.toInt()
+        val png = save(
+            ImageComposeScene(lane, 1400, Density(1f)) { ToolRail(ToolStripState(), onSelect = {}) },
+            "tools-rail-tall",
+        )
+        val image = ImageIO.read(ByteArrayInputStream(png))
+        // The rail is drawn on a transparent scene, so its own bottom is the last row with ink in it.
+        val bottom = (0 until image.height).lastOrNull { y -> (image.getRGB(lane / 2, y) ushr 24) != 0 }
+            ?: error("the rail drew nothing")
+        assertTrue(
+            "the rail is as tall as the window ($bottom of ${image.height}), not as tall as its tools",
+            bottom < image.height - 200,
+        )
+    }
+
+    /**
+     * The strips **float over the page**, and the page is left alone by them: nothing is taken out of
+     * the canvas for a lane, and a press that lands on a capsule is the strip's, not a stroke underneath.
+     *
+     * The document is zoomed past the window on purpose: a fitted sheet stops short of the lane and would
+     * pass either way, while a sheet that reaches the window's edges is measurably behind the glass. The
+     * drag is a pen's and starts in the air between two slots — inside the capsule, outside every button —
+     * which is where an unblocked drag would ink the page. The page's elements must be untouched after it.
      */
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun `the strips are lanes beside the page, never bands over it`() {
-        val document = temp.newFile("strips.mobix").also {
+    fun `the strips float over the page and swallow its presses`() {
+        val document = temp.newFile("floating.mobix").also {
             SyntheticNotebook.write(it, SyntheticNotebook.pages(6))
         }
+        val windowW = 1000
+        val windowH = 700
         val header = DesktopTheme.headerHeight.value.toInt()
-        val railLane = ToolStripMetrics.railWidth.value.toInt()
-        val ribbonBand = ToolStripMetrics.ribbonHeight.value.toInt()
+        val lane = ToolStripMetrics.railWidth.value.toInt()
+        val slot = ToolStripMetrics.slotSize.value.toInt()
 
         for (placement in StripPlacement.entries) {
-            val settings = DesktopSettings(File(temp.root, "settings-${placement.name}.properties"))
+            val settings = DesktopSettings(File(temp.root, "float-${placement.name}.properties"))
             val state = DesktopShellState(settings)
             state.open(document)
-            // The sidebar would sit between the window edge and the rail's lane, so this measurement
-            // takes it out of the picture; what it measures is the strip, not the sidebar.
+            // The page list would take the outer edge; this measures the strip, not the sidebar.
             state.toggleSidebar()
             state.prefs.chooseStripPlacement(placement)
             assertEquals("the choice was written to the settings file", placement, settings.stripPlacement)
+            val tab = state.tabs.active!!
+            tab.fit = FitMode.NONE
+            tab.viewport = Viewport(zoom = 2f, offsetX = 0f, offsetY = 0f)
+            state.selectTool(DesktopTool.PEN)
+            val before = tab.document.page(tab.page).layers.sumOf { it.elements.size }
 
-            val scene = ImageComposeScene(1000, 700, Density(1f)) {
+            // The point the drag starts from: the air between the first two slots of whichever strip is
+            // on screen — inside the capsule, over no button.
+            val x: Int
+            val y: Int
+            when {
+                placement.showsRail -> {
+                    x = if (placement.railSide == RailSide.LEFT) lane / 2 else windowW - lane / 2
+                    y = header + ToolStripMetrics.railSlotTop.value.toInt() + slot + gapPx / 2
+                }
+                else -> {
+                    x = ToolStripMetrics.ribbonSlotLeft.value.toInt() + slot + gapPx / 2
+                    y = header + ToolStripMetrics.ribbonSlotTop.value.toInt() + slot / 2
+                }
+            }
+
+            val scene = ImageComposeScene(windowW, windowH, Density(1f)) {
                 DesktopShell(state = state, onOpenPicker = {})
             }
-            val png = try {
+            val image = try {
                 Snapshot.sendApplyNotifications()
-                scene.render().encodeToData()?.bytes
+                val png = scene.render().encodeToData()!!.bytes
+                val name = "tools-shell-${placement.name.lowercase()}"
+                File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(png)
+                // A pen **tap** on the strip's own glass, then a drag across it and one down it: a tap
+                // is the one gesture no scroller answers, so a surface that is not opaque to the pointer
+                // leaves a dot on the page under it, and one direction of the two drags is the strip's
+                // own scroller's and the other nobody's.
+                pointer(scene, PointerEventType.Press, x.toFloat(), y.toFloat(), pressed = true, at = 900L)
+                pointer(scene, PointerEventType.Release, x.toFloat(), y.toFloat(), pressed = false, at = 950L)
+                for ((index, move) in listOf(200 to 0, 0 to 200).withIndex()) {
+                    val at = 1_000L + index * 200L
+                    pointer(scene, PointerEventType.Press, x.toFloat(), y.toFloat(), pressed = true, at = at)
+                    pointer(
+                        scene = scene,
+                        type = PointerEventType.Move,
+                        x = (x + move.first).toFloat(),
+                        y = (y + move.second).toFloat(),
+                        pressed = true,
+                        at = at + 50,
+                    )
+                    pointer(
+                        scene = scene,
+                        type = PointerEventType.Release,
+                        x = (x + move.first).toFloat(),
+                        y = (y + move.second).toFloat(),
+                        pressed = false,
+                        at = at + 100,
+                    )
+                }
+                ImageIO.read(ByteArrayInputStream(png))
             } finally {
                 scene.close()
             }
-            val name = "tools-shell-${placement.name.lowercase()}"
-            java.io.File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(png!!)
-            val image = ImageIO.read(ByteArrayInputStream(png))
 
-            fun paperAt(x: Int, y: Int) = (image.getRGB(x, y) and 0xFFFFFF) == PAPER
-            // The longest **unbroken** run of paper along a line, not a count of paper pixels in it: the
-            // tool glyphs are drawn in the chrome ink (pure white, as on the tablet), and twenty glyphs
-            // summed along the ribbon's row add up to a page-wide-looking count. No glyph is forty pixels
-            // wide, while the sheet is hundreds.
-            fun longestPaperRun(lines: IntRange, at: (Int) -> Boolean): Int {
-                var best = 0
-                var run = 0
-                for (index in lines) {
-                    if (at(index)) {
-                        run++
-                        if (run > best) best = run
-                    } else {
-                        run = 0
-                    }
-                }
-                return best
+            // Near-white, not the desk: a sheet's own edge carries its hairline and a little shading,
+            // so exact white would fail on a page that is plainly there.
+            fun sheetAt(px: Int, py: Int) = (image.getRGB(px, py) and 0xFF) >= 0xD0
+            // The strip's lane is 64 dp of air around a 52 dp capsule, so its first pixels are the sheet
+            // itself: a lane taken out of the canvas would be the desk's black there instead.
+            val sheetUnderTheStrip = when {
+                placement.showsRail && placement.railSide == RailSide.LEFT -> sheetAt(2, windowH / 2)
+                placement.showsRail -> sheetAt(windowW - 3, windowH / 2)
+                // The ribbon floats 4 dp below the header, over the sheet's top row.
+                else -> sheetAt(windowW / 2, header + 2)
             }
-            val minRun = 40
-            val paperColumns = (0 until image.width).filter { x ->
-                longestPaperRun(header until image.height) { y -> paperAt(x, y) } >= minRun
-            }
-            val paperRows = (header until image.height).filter { y ->
-                longestPaperRun(0 until image.width) { x -> paperAt(x, y) } >= minRun
-            }
-            assertTrue("$placement: the page is on screen", paperColumns.isNotEmpty() && paperRows.isNotEmpty())
-            // A rail on the left pushes the page right; a rail on the right leaves the page at the edge
-            // and takes its lane after it — the two placements are one answer, so both are measured.
-            val laneLeft = placement.showsRail && placement.railSide == RailSide.LEFT
-            val lane = if (laneLeft) railLane else 0
             assertTrue(
-                "$placement: the page starts after the rail's lane (first paper column ${paperColumns.min()})",
-                paperColumns.min() >= lane,
+                "$placement: the sheet stops short of the strip, so it still takes a lane from the canvas",
+                sheetUnderTheStrip,
             )
-            if (placement.showsRail && !laneLeft) {
-                assertTrue(
-                    "$placement: the rail's lane takes the right edge, past the page " +
-                        "(last paper column ${paperColumns.max()})",
-                    paperColumns.max() <= image.width - railLane,
-                )
-            }
-            val band = header + if (placement.showsRibbon) ribbonBand else 0
-            assertTrue(
-                "$placement: the page starts below the ribbon's band (first paper row ${paperRows.min()})",
-                paperRows.min() >= band,
+            assertEquals(
+                "$placement: a drag begun on the strip drew on the page under it",
+                before,
+                tab.document.page(tab.page).layers.sumOf { it.elements.size },
             )
-            if (placement.showsRail) {
-                // One layer of glass. A lane painted as a band as well stacked two sheets and the rail
-                // came out #161618 — the glass' raw RGB — instead of the window's band.
-                // Under BOTH the rail's strip starts below the ribbon, so its top is the ribbon's band.
-                val midGap = band + ToolStripMetrics.railSlotTop.value.toInt() +
-                    ToolStripMetrics.slotSize.value.toInt() + gapPx / 2
-                val railCentreX = if (laneLeft) {
-                    ToolStripMetrics.railWidth.value.toInt() / 2
-                } else {
-                    image.width - ToolStripMetrics.railWidth.value.toInt() / 2
-                }
-                val capsule = image.getRGB(railCentreX, midGap) and 0xFFFFFF
-                assertTrue(
-                    "$placement: the rail's fill is the window's glass, not a lane's band under it " +
-                        "(sampled #%06X, expected #%06X)".format(capsule, windowGlass),
-                    difference(capsule, windowGlass) <= 3,
-                )
-            }
             state.tabs.closeAll()
         }
+    }
+
+    /** One mouse event at ([x], [y]) in window pixels. */
+    @OptIn(ExperimentalComposeUiApi::class)
+    private fun pointer(
+        scene: ImageComposeScene,
+        type: PointerEventType,
+        x: Float,
+        y: Float,
+        pressed: Boolean,
+        at: Long,
+    ) {
+        scene.sendPointerEvent(
+            eventType = type,
+            pointers = listOf(
+                ComposeScenePointer(
+                    id = PointerId(1),
+                    position = Offset(x, y),
+                    pressed = pressed,
+                    type = PointerType.Mouse,
+                ),
+            ),
+            buttons = if (pressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
+            keyboardModifiers = PointerKeyboardModifiers(),
+            timeMillis = at,
+        )
+        Snapshot.sendApplyNotifications()
+        scene.render()
     }
 
     // --- rendering ------------------------------------------------------------------------------

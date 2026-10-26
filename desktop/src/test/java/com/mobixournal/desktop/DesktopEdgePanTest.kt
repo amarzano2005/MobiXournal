@@ -96,10 +96,11 @@ class DesktopEdgePanTest {
         val state = state()
         val tab = state.tabs.active!!
         // A plot at the page's own right border, so the press that grabs its body is already inside the
-        // canvas's band: the sidebar and the rail take 304 px of the window, and at 200 % the page's x 360
-        // is window x 1 024 — off screen — so the plot has to end just short of that.
+        // canvas's band. The page list is the only lane left — the tool strips float over the page since
+        // 2026-10-26 — so at 200 % the page's x 380 is window x 1 000: the plot runs under the window's
+        // edge and a press at 990 lands on its body, a handle's width away from its border.
         state.selectTool(DesktopTool.PLOT)
-        state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(200.0, 140.0, 360.0, 260.0))
+        state.placeOrAsk(tab, LivingSlot.PLOT, Bounds(200.0, 140.0, 380.0, 260.0))
         state.confirmPlacement()
         val before = plots(tab).single().left
         val startX = tab.viewport.offsetX

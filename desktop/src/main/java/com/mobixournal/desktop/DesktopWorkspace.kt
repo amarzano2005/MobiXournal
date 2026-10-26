@@ -1,42 +1,43 @@
 package com.mobixournal.desktop
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.mobixournal.format.model.LineStyle
 
 /**
- * The document's half of the window: the tool strips in their own lanes, the sidebar, the page.
+ * The document's half of the window: the sidebar in its lane, the page, and the tool strips floating over it.
  *
  * It is a separate composable because it is the **layout** and nothing else — every value it draws comes
  * from [state] and every gesture goes back through it, so the shell file keeps the state and the commands
- * (`SourceStructureTest` keeps both it and this one small). The strips are bands in their own lanes: the
- * ribbon takes a row under the header, the rail a column beside the canvas, and the page keeps the
- * rectangle that is left. Neither is ever laid over the sheet (`docs/chrome.md`).
+ * (`SourceStructureTest` keeps both it and this one small).
+ *
+ * **The strips float over the page.** The rail and the ribbon are panes of glass lying on the sheet — the
+ * desktop decision of 2026-10-26 — so the canvas takes the whole body and the page runs behind them, the
+ * way the tablet's floating chrome does. The sidebar keeps a lane of its own, because it is a list read
+ * beside the page rather than a tool reached for while drawing, and only the strips are held over the ink.
+ * The capsules are opaque to the pointer — their slots' input and their own scroll pane claim every press
+ * that starts on them — so a drag begun on a strip is never a stroke drawn underneath it.
  */
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
-    Column(Modifier.fillMaxSize()) {
-        if (state.prefs.stripPlacement.showsRibbon) StripRibbon(state)
-        // The rail is one composable with two homes — the lane before the canvas or the lane after it,
-        // whichever edge `RailSide` names — so the two edges cannot drift into two rails.
-        val showsRail = state.prefs.stripPlacement.showsRail
+    Row(Modifier.fillMaxSize()) {
+        if (state.sidebarVisible) {
+            PageSidebar(
+                tab = tab,
+                cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
+                onSelectPage = { index -> selectPage(tab, index) },
+                // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
+                revision = state.thumbnailRevision,
+            )
+        }
+        val placement = state.prefs.stripPlacement
         val railOnLeft = state.prefs.railSide == RailSide.LEFT
-        Row(Modifier.weight(1f).fillMaxWidth()) {
-            if (state.sidebarVisible) {
-                PageSidebar(
-                    tab = tab,
-                    cache = state.thumbnails.getOrPut(tab.key) { mutableMapOf() },
-                    onSelectPage = { index -> selectPage(tab, index) },
-                    // A page's thumbnail is re-painted after the edits go quiet, not per stroke.
-                    revision = state.thumbnailRevision,
-                )
-            }
-            if (showsRail && railOnLeft) StripRail(state)
+        Box(Modifier.weight(1f).fillMaxHeight()) {
             PageCanvas(
                 tab = tab,
                 panMode = state.panMode,
@@ -89,47 +90,57 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                     state.thumbnails[tab.key]?.remove(index)
                     state.noteEdit()
                 },
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                modifier = Modifier.fillMaxSize(),
             )
-            if (showsRail && !railOnLeft) StripRail(state)
-            // The inspector, in a lane of its own on the right: it takes width from the row, so the page
-            // keeps the rectangle that is left and no glass is ever drawn over the sheet. Its policy can
-            // only keep it shut — a column of blank controls is not an answer the lane has.
-            if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {
-                InspectorLane(state = state, tab = tab)
+            // The rail is one composable with two homes — the lane before the canvas or the lane after
+            // it, whichever edge `RailSide` names — so the two edges cannot drift into two rails.
+            if (placement.showsRail) {
+                StripRail(
+                    state,
+                    Modifier.align(if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd),
+                )
             }
+            if (placement.showsRibbon) StripRibbon(state, Modifier.align(Alignment.TopCenter))
+        }
+        // The inspector, in a lane of its own on the right: it takes width from the row, so the page is
+        // never resized by it. Its policy can only keep it shut — a column of blank controls is not an
+        // answer the lane has.
+        if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {
+            InspectorLane(state = state, tab = tab)
         }
     }
 }
 
 /**
- * The **ribbon**: the same tools as the rail, in a band under the header, for `Top` and `Both`.
+ * The **ribbon**: the same tools as the rail, in a pane of glass across the top of the page, for `Top`.
  *
- * It is a named composable rather than an inline call so the layout above reads as the three lanes it
+ * It is a named composable rather than an inline call so the layout above reads as the objects it
  * arranges, and so the strip's ink actions are written once (`inkActions`) instead of at each home.
  */
 @Composable
-private fun StripRibbon(state: DesktopShellState) {
+private fun StripRibbon(state: DesktopShellState, modifier: Modifier = Modifier) {
     ToolRibbon(
         state = state.stripState,
         onSelect = state::selectTool,
         // The ribbon also carries the pen's line style; the rail leaves it to the colour flyout.
         ink = state.inkActions(onLineStyle = state::pickLineStyle),
+        modifier = modifier,
     )
 }
 
 /**
- * The **rail**: the tablet's own Main Toolbar, in whichever lane `RailSide` names.
+ * The **rail**: the tablet's own Main Toolbar, on whichever edge `RailSide` names.
  *
  * One composable, called on either side of the canvas, so a change to the rail cannot reach one edge and
  * miss the other.
  */
 @Composable
-private fun StripRail(state: DesktopShellState) {
+private fun StripRail(state: DesktopShellState, modifier: Modifier = Modifier) {
     ToolRail(
         state = state.stripState,
         onSelect = state::selectTool,
         ink = state.inkActions(),
+        modifier = modifier,
     )
 }
 
