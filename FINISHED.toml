@@ -25,6 +25,39 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-settings-shortcuts"
+title = "Desktop: Shortcuts section - the key table, remappable, with conflicts and a reset"
+description = "The key table moved into mobix-core as design/ShortcutKeys.kt: the id:key codec, the one-key-one-command rule (bind answers the displaced command, and ShortcutKeys.UNBOUND records a deliberate no-key row so a theft never undoes itself at the next start) and the reset; the phone's encodeToolShortcuts/decodeToolShortcuts now delegate to it and its ShortcutKeysTest stays green. The desktop's table is data (ShortcutTable: every tool plus 25 shell commands, canonical key names, defaults identical to the old procedural table) and the shell resolves through the stored table, so a remapped key reaches the command it was bound to. The Shortcuts section is a real page (ShortcutSettings.kt): a row per command, Detect taking the next press on the page container, the conflict sentence naming the command that lost the key, Restore defaults, and interface.shortcuts storing only the rows that differ. Tests: mobix-core ShortcutKeysTest and desktop ShortcutTableTest (factory table, key naming, remap both ways, conflict, Ctrl refusal for tools, store round trip, reset); guards green. Docs: docs/desktop-settings.md (the section) and README's desktop paragraph. Deliberately not remappable: the layout's variants and second keys (Ctrl+Shift+0 zoom, keypad +/-, Backspace, arrows), which stay in DesktopKeys.unlistedCommand so a remap never breaks them."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
+id = "desktop-settings-tablet-area"
+title = "Desktop: Tablet section - active area and aspect lock"
+description = "The Stylus section's Active area group: tablet.activeArea (Full default, or Tablet), tablet.areaWidthPct/areaHeightPct (10-100%) and tablet.aspectLock. TabletWintab.deviceContext narrows the driver's lcInOrg/lcInExt from the DVC_X/DVC_Y axes and points lcOut at the client area with CXO_SYSTEM cleared, so packets arrive as client pixels; every refusal (no axis, no client area, WTOpenA) keeps the system context and logs the step. TabletAreaMap holds the pure arithmetic; TabletAreaTest covers FULL/TABLET, the centre, the lock, the clamp, the device spans and the store round trip. The pen stream and the area both reopen the readers (DesktopApp). Also fixes the guard's pre-existing 102-line DesktopShellState.apply by extracting applyOnTab. Deliberately not millimetres: the driver declares counts and no trustworthy physical size, so the spans are percentages of the surface - which is also what makes the lock one comparison."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
+id = "desktop-settings-tablet-stream"
+title = "Desktop: Tablet section - which pen stream, and how hard the pen presses"
+description = "The Tablet page's second row: tablet.pressureExponent (0.5-2.0, 1.00 identity) on a slider. PressureCurve.shape is a pure mobix-core function called at both adapters (PenPacketStroke for the driver's packets, PageInkGesture.inkPointer for Compose's pointer) before Xournal++'s own filter, so at 1.00 a stored width is exactly what the desktop would write; PressureFeel is the module seam and DesktopSettingsState its only writer. Tests: identity, monotonic, clamped ends, the store round trip. Docs: docs/stylus.md (the shared curve), docs/desktop-settings.md (the Stylus section). Deliberately not done: the phone reads no curve, so its Settings has no row yet."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
 id = "desktop-settings-display"
 title = "Desktop: Display section - theme and the rate the window asks for"
 description = "The Display (status-bar) section now owns the whole screen and the rate it asks for. F11 / ShellCommand.TOGGLE_FULLSCREEN (DesktopKeys.kt, row added to the shortcut table of docs/ui-modernization.md §3) flips a flag on DesktopSettingsState; DesktopApp applies it through FullScreenMode (DesktopDisplay.kt): the window's placement becomes Fullscreen and the display is asked for display.targetHz (60/90/120/144, default 120) via the DisplaySurface interface, matching the display's own resolution and bit depth and the exact rate. A refusal (no such mode, remote session) answers false and changes nothing, so DesktopStatus.refreshLabel keeps reporting the panel's real rate; leaving full screen — F11, the switch, or the window closing — restores the saved placement and the panel's previous mode. The target-rate row exists only while the window is full screen, where its note says so. FullScreenTest (9) covers the mode match, the refusal, the resolution rule, F11, the unstored flag and the targetHz round trip; the settings detail moved to the new spoke docs/desktop-settings.md (indexed in architecture.md) so desktop-workstation.md stays inside its 400-line budget. Deliberately not done: no header-menu row (F11 plus the Settings switch are the two doors), and no per-monitor targeting."

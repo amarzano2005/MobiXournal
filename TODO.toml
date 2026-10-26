@@ -232,48 +232,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-settings-tablet-stream"
-title = "Desktop: Tablet section - which pen stream, and how hard the pen presses"
-description = "The Tablet page's first row ships: tablet.penStream (Automatic - Wintab first and Windows Ink as the fallback; Wintab only; Windows Ink only) is read by DesktopTablet.open, so both the reader it opens and the PenSource it reports follow the choice, and the section names the stream actually open with the note that a preference this host cannot honour says so. What remains is tablet.pressureExponent, and its premise has to be settled first: there is no pressure curve anywhere in the app today (no pressureExponent or equivalent filter in app/src/main or mobix-core - grep before starting), so 'the phone's own curve applied in the stylus input filter' is not a thing to share yet. This task is now: (1) decide with the owner whether the curve ships on the desktop only or in mobix-core for both shells - if the latter, the phone's filter reads it too and its own row follows in the Android Settings; (2) implement it once in mobix-core as a pure function (monotonic on 0..1, exponent 0.5..2.0, 1.0 identity, clamped at both ends) and call it at the two adapters that turn a device sample into ink pressure - PageInkGesture.inkPointer and PenPacketStroke.pointer, never both for one stroke; (3) a slider row on Tablet (a new control in SettingsRows.kt, tokens only, the five states of docs/interface-contract.md) storing tablet.pressureExponent; (4) tests: identity at 1.0, monotonic, clamped ends, and the round trip. Docs: docs/desktop-workstation.md, docs/stylus.md (the shared curve)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1070
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-tablet-area"
-title = "Desktop: Tablet section - active area and aspect lock"
-description = "The second half of the Tablet page. tablet.activeArea (Full - the driver's whole surface; Tablet - the rectangle a hand actually writes in, in millimetres) and tablet.aspectLock (keep the area the tablet's own ratio, on by default). Today TabletWintab in desktop/src/main/java/com/mobixournal/desktop/TabletWintab.kt opens the driver's SYSTEM context, whose coordinates are already mapped to the screen, so no area can be chosen: this task opens a non-system context (WTI_DEVICES, WTI_CS_OMN), reads the axes it declares and maps them onto the page through the same page transform the pen reader already uses. An area the driver cannot map degrades to the system context with one line in the section, never to a dead pen. Tests: a pure mapping test (millimetres in, page points out, aspect lock holds the ratio, an unmappable area falls back) and one that the context in use is what PenSource reports. Docs: docs/desktop-workstation.md and the tablet reader spoke listed in docs/architecture.md."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1080
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-shortcuts"
-title = "Desktop: Shortcuts section - the key table, remappable, with conflicts and a reset"
-description = "The window's key table as a page. The table is today the enum in desktop/src/main/java/com/mobixournal/desktop/ToolSelection.kt (DesktopTool.shortcut) plus the shell commands in DesktopKeys.kt, and the phone keeps the same idea as a per-tool map (AppSettings.toolShortcutKeys, encoded by encodeToolShortcuts/decodeToolShortcuts in app/src/main/java/com/mobixournal/ui/AppSettings.kt). Move that model into mobix-core as the one authority - a new design/ShortcutKeys.kt holding the codec, the conflict rule (one key, one command: the old binding is dropped, and the row says which command lost it) and the factory reset - and have both shells read it, so a key means the same tool in both. The window persists its own table as interface.shortcuts in DesktopSettings. The page lists every command with its keys, a Detect field that takes the next press, the conflict sentence where there is one, and Restore defaults; a remapped key reaches exactly the command the old one did through DesktopShellState.onKey. Tests: codec and conflict rule in mobix-core; a desktop test that a remapped key reaches the same ShellCommand the old key did; the phone's ShortcutKeysTest stays green against the moved codec. Docs: docs/ui-modernization.md (the shortcut table section) and README (Shortcuts)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1090
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-settings-audio"
 title = "Desktop: Audio section (when recording lands)"
 description = "The Audio page, once desktop-audio-replay has landed: the input device list, the input level meter and the output choice, stored as audio.inputDevice and audio.outputDevice in DesktopSettings and read by the recorder that task builds. Until then the section is one line saying recording is not in this build. A device that has disappeared is dropped to the system default with the row saying so, rather than the recorder failing to start. Tests: a round-trip per key and the vanished-device fallback. Docs: docs/desktop-workstation.md."
