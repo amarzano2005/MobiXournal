@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import com.mobixournal.design.PenPalette
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.design.ShortcutKeys
 import com.mobixournal.render.PressureCurve
 import java.io.File
 import java.util.Properties
@@ -118,6 +119,25 @@ class DesktopSettings(val file: File = defaultFile()) {
                 KEY_PRESSURE_EXPONENT,
                 value.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX).toString(),
             )
+            save()
+        }
+
+    /**
+     * The key table this window remapped (`interface.shortcuts`), as [ShortcutKeys] writes it.
+     *
+     * Only the rows that **differ** from the factory ones are stored: an empty map is the default table, so
+     * a new build's new commands arrive with their own keys instead of with nothing.
+     */
+    var shortcuts: Map<String, String>
+        get() = ShortcutKeys.decode(properties.getProperty(KEY_SHORTCUTS), known = ShortcutTable.ids())
+        set(value) {
+            val factory = ShortcutTable.defaults()
+            val changed = value.filter { (id, key) -> id in factory && factory[id] != key }
+            if (changed.isEmpty()) {
+                properties.remove(KEY_SHORTCUTS)
+            } else {
+                properties.setProperty(KEY_SHORTCUTS, ShortcutKeys.encode(changed))
+            }
             save()
         }
 
@@ -363,6 +383,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** Whether the area keeps the tablet's own ratio. */
         const val KEY_ASPECT_LOCK = "tablet.aspectLock"
+
+        /** The key table's remapped rows, as `id:key` pairs — only the rows that differ are written. */
+        const val KEY_SHORTCUTS = "interface.shortcuts"
 
         /** The percentages [TabletAreaMap] accepts — the ranges the two sliders offer. */
         val AREA_PERCENT_RANGE = TabletAreaMap.MIN_PERCENT..TabletAreaMap.MAX_PERCENT

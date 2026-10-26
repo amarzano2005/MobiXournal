@@ -274,6 +274,10 @@ the app (the chooser moves into the Settings section; for now it lives in the wi
 is on, the strip keeps its own lane and the page is never underneath it. Hovering a slot shows the
 tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
 including while a flyout, a hover pill or a palette is open, because none of them takes the keyboard.
+Every one of those keys can be changed: **Settings → Shortcuts** lists the tools and the window's commands,
+and a click on a row followed by a press gives that command the key you pressed, taking it from whatever
+held it (the page says which command lost it). **Restore defaults** puts the table back, and the same
+stored table means the same tool on the tablet, where the same section reads it.
 The top right of the window holds the four commands you reach for constantly — **undo**, **redo**, **Save**
 and **Export PDF** — and they grey out when there is nothing to undo, nothing to save or nothing open. The
 **page list** on the left opens by itself only for a document with more than one page: a single sheet does

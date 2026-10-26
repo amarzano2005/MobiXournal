@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import android.content.Context
 import com.mobixournal.design.PenPalette
+import com.mobixournal.design.ShortcutKeys
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.GuideKind
@@ -906,20 +907,20 @@ class SettingsStore(context: Context) {
  * blank that would shadow a future default.
  */
 fun encodeToolShortcuts(keys: Map<EditorTool, String>): String =
-    keys.entries.filter { it.value.isNotEmpty() }
-        .joinToString(",") { "${it.key.name}:${it.value}" }
+    ShortcutKeys.encode(keys.mapKeys { it.key.name })
 
 /**
  * Parse what [encodeToolShortcuts] wrote, dropping entries whose tool no longer exists and any with
  * an empty key, so a stale pref degrades to "no shortcut" rather than a crash.
+ *
+ * The format itself is [ShortcutKeys]' (in `mobix-core`), the one model the window's Shortcuts section
+ * reads too — so a key means the same tool on both shells, and neither can drift on what a stored table
+ * looks like.
  */
 fun decodeToolShortcuts(raw: String?): Map<EditorTool, String> =
-    raw?.split(',')?.mapNotNull { entry ->
-        val (name, key) = entry.split(':', limit = 2).takeIf { it.size == 2 } ?: return@mapNotNull null
-        val tool = runCatching { enumValueOf<EditorTool>(name.trim()) }.getOrNull()
-            ?: return@mapNotNull null
-        if (key.isEmpty()) null else tool to key
-    }?.toMap() ?: emptyMap()
+    ShortcutKeys.decode(raw, known = EditorTool.entries.map { it.name }).mapNotNull { (name, key) ->
+        runCatching { enumValueOf<EditorTool>(name) }.getOrNull()?.let { it to key }
+    }.toMap()
 
 /**
  * Encode the pen palette for `SharedPreferences`: the ARGB values, comma-separated, written by the

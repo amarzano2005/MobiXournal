@@ -115,47 +115,32 @@ internal fun inkCommand(key: Key, alt: Boolean, ctrl: Boolean): InkCommand? {
 }
 
 /**
- * The letters a tool is bound to, as the physical key each one arrives on.
- *
- * It is a letters→keys map, not a second shortcuts table: [toolForKey] looks the letter up in
- * [DesktopTool.shortcut], so the pill's text, the doc's list and the keyboard all read one string.
- */
-internal val toolKeyLetters = mapOf(
-    Key.B to "B",
-    Key.H to "H",
-    Key.G to "G",
-    Key.E to "E",
-    Key.V to "V",
-    Key.S to "S",
-    Key.X to "X",
-    Key.L to "L",
-    Key.A to "A",
-    Key.R to "R",
-    Key.C to "C",
-    Key.P to "P",
-    Key.M to "M",
-    Key.T to "T",
-    Key.K to "K",
-)
-
-/**
  * The tool a key press picks, or null when the key is not a tool's accelerator.
  *
  * `Shift+X` is the axes tool while a bare `X` is the text box, and `Alt+K` is the logic-gate palette
  * while `K` is the passive one — which is why both modifiers are part of the lookup instead of being
  * ignored. `Ctrl` never picks a tool, so the shell's own commands keep their letters (`Ctrl+B` is the
  * sidebar, not a highlighter).
+ *
+ * The binding is read from [table] — the window's key table, `ShortcutTable.entries` for a window that has
+ * not remapped anything — so a key a reader has moved is the key this answers to, and the one it moved away
+ * from is no longer a tool's.
  */
-internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = false): DesktopTool? {
+internal fun toolForKey(
+    table: Map<String, String>,
+    key: Key,
+    shift: Boolean,
+    ctrl: Boolean,
+    alt: Boolean = false,
+): DesktopTool? {
     if (ctrl) return null
-    val letter = toolKeyLetters[key] ?: return null
-    val shortcut = when {
-        alt -> "Alt+$letter"
-        shift -> "Shift+$letter"
-        else -> letter
-    }
-    return toolForShortcut(shortcut)
+    val name = ShortcutTable.name(key, ctrl, shift, alt) ?: return null
+    return ShortcutTable.tool(table, name)
 }
+
+/** The same lookup against the factory table — what the window does before anything is remapped. */
+internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = false): DesktopTool? =
+    toolForKey(ShortcutTable.defaults(), key, shift, ctrl, alt)
 
 /**
  * The shortcut table of `docs/ui-modernization.md`, as a decision.
@@ -164,32 +149,39 @@ internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = 
  * zoom-in key on layouts where `=` shares the `0`), and the zoom keys are checked before it so the
  * more specific binding wins.
  */
-internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
-    key == Key.Escape -> ShellCommand.DISMISS_FAILURE
-    // `F11` is the whole-screen key every desktop app uses, and it is the one command here with no
-    // document behind it: the window takes the desk with nothing open.
-    key == Key.F11 -> ShellCommand.TOGGLE_FULLSCREEN
-    ctrl && key == Key.T -> ShellCommand.OPEN
-    // `Ctrl+,` — the keyboard's own way into Settings, as on every desktop app that has a preferences page.
-    ctrl && key == Key.Comma -> ShellCommand.OPEN_SETTINGS
-    ctrl && key == Key.Z -> if (shift) ShellCommand.REDO else ShellCommand.UNDO
-    ctrl && key == Key.S -> if (shift) ShellCommand.SAVE_AS else ShellCommand.SAVE
-    ctrl && key == Key.W -> ShellCommand.CLOSE_TAB
-    ctrl && key == Key.Tab -> if (shift) ShellCommand.PREVIOUS_TAB else ShellCommand.NEXT_TAB
-    ctrl && key == Key.B -> ShellCommand.TOGGLE_SIDEBAR
-    ctrl && isZoomIn(key, shift) -> ShellCommand.ZOOM_IN
-    ctrl && isZoomOut(key) -> ShellCommand.ZOOM_OUT
-    ctrl && key == Key.Zero -> ShellCommand.FIT_PAGE
-    ctrl && key == Key.One -> ShellCommand.FIT_WIDTH
-    ctrl && key == Key.X -> ShellCommand.CUT_SELECTION
-    ctrl && key == Key.C -> ShellCommand.COPY_SELECTION
-    ctrl && key == Key.V -> ShellCommand.PASTE_CLIPBOARD
-    ctrl && key == Key.D -> ShellCommand.DUPLICATE_SELECTION
-    ctrl && !shift && key == Key.E -> ShellCommand.EXPORT_PDF
-    !ctrl && (key == Key.PageDown || key == Key.DirectionDown) -> ShellCommand.NEXT_PAGE
-    !ctrl && (key == Key.PageUp || key == Key.DirectionUp) -> ShellCommand.PREVIOUS_PAGE
-    key == Key.Delete || key == Key.Backspace -> ShellCommand.DELETE_SELECTION
-    key == Key.Spacebar -> ShellCommand.START_PAN
+internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? =
+    shellCommand(ShortcutTable.defaults(), key, ctrl, shift, alt = false)
+
+/**
+ * The same table, read from [table] — the window's own, so a remapped key reaches the command it was
+ * bound to and the key it was taken from reaches nothing.
+ *
+ * What is left after the table is in [unlistedCommand]: the layout variants (`=` arriving as `Shift+0` on
+ * an Italian keyboard, the keypad's `+`/`-`), `Backspace` beside `Delete`, and the arrow keys beside
+ * `Page Up`/`Page Down`. None of those is a row of the table, so none of them is remappable — and none of
+ * them stops working when another row is.
+ */
+internal fun shellCommand(
+    table: Map<String, String>,
+    key: Key,
+    ctrl: Boolean,
+    shift: Boolean,
+    alt: Boolean = false,
+): ShellCommand? {
+    ShortcutTable.name(key, ctrl, shift, alt)
+        ?.let { name -> ShortcutTable.command(table, name)?.let { return it } }
+    return unlistedCommand(key, ctrl, shift)
+}
+
+/** The bindings the table does not own: a second key for a command, and the layout's own variants. */
+private fun unlistedCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
+    // On an Italian keyboard `=` is **Shift + 0**, so the zoom key arrives as `Ctrl + Shift + 0`.
+    ctrl && shift && key == Key.Zero -> ShellCommand.ZOOM_IN
+    ctrl && (key == Key.NumPadAdd || key == Key.Plus) -> ShellCommand.ZOOM_IN
+    ctrl && key == Key.NumPadSubtract -> ShellCommand.ZOOM_OUT
+    !ctrl && key == Key.Backspace -> ShellCommand.DELETE_SELECTION
+    !ctrl && key == Key.DirectionDown -> ShellCommand.NEXT_PAGE
+    !ctrl && key == Key.DirectionUp -> ShellCommand.PREVIOUS_PAGE
     else -> null
 }
 

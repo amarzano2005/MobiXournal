@@ -8,6 +8,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import com.mobixournal.design.ShortcutKeys
 import com.mobixournal.render.PressureCurve
 
 /**
@@ -125,6 +126,22 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** Whether the area keeps the tablet's own ratio. */
     var aspectLock by mutableStateOf(store.aspectLock)
         private set
+
+    /** The rows of the key table this window changed; the rest keep their factory keys. */
+    var shortcuts by mutableStateOf(store.shortcuts)
+        private set
+
+    /**
+     * The command that lost its key at the last binding, as the surface names it — null once it is read.
+     *
+     * The conflict is not a failure: [ShortcutKeys.bind] moves the key, and this is the sentence that says
+     * **which** command was displaced, so a row losing it is never a silent theft.
+     */
+    var shortcutConflict by mutableStateOf<ShortcutEntry?>(null)
+        private set
+
+    /** The table the window resolves keys through: the factory rows with [shortcuts] laid over them. */
+    val shortcutTable: Map<String, String> get() = ShortcutTable.merged(shortcuts)
 
     /**
      * The rectangle this choice maps, or null for the whole surface.
@@ -304,6 +321,45 @@ class DesktopSettingsState(private val store: DesktopSettings) {
             areaWidthPercent = height
             store.areaWidthPercent = height
         }
+    }
+
+    /**
+     * Bind [key] to [id], and remember the table.
+     *
+     * One key, one command: the key's previous holder loses it and is named in [shortcutConflict]. A tool
+     * may not take a `Ctrl` key — that column is the shell's, and a tool bound there would be shadowed by the
+     * command it competes with — so such a press is refused and the conflict line says why instead.
+     */
+    fun rebind(id: String, key: String) {
+        val entry = ShortcutTable.entry(id) ?: return
+        if (key.isBlank()) return
+        if (entry.tool != null && key.contains("Ctrl+", ignoreCase = true)) {
+            shortcutConflict = entry
+            return
+        }
+        val binding = ShortcutKeys.bind(shortcutTable, id, key)
+        val factory = ShortcutTable.defaults()
+        // Rows that changed, and the row the new key was taken from — filed as "no key", which is what keeps
+        // it from finding its factory key again at the next start.
+        val changed = binding.table.entries
+            .filter { it.value != factory[it.key] }
+            .associate { it.key to it.value }
+        val unbound = factory.keys.filter { it !in binding.table }.associateWith { ShortcutKeys.UNBOUND }
+        shortcuts = changed + unbound
+        shortcutConflict = binding.displaced?.let { id -> ShortcutTable.entry(id) }
+        store.shortcuts = shortcuts
+    }
+
+    /** Give every row its factory key back, and say nothing lost one. */
+    fun restoreShortcuts() {
+        shortcuts = emptyMap()
+        shortcutConflict = null
+        store.shortcuts = emptyMap()
+    }
+
+    /** The conflict sentence has been read; the next binding may write another. */
+    fun clearShortcutConflict() {
+        shortcutConflict = null
     }
 
     /** Keep the area the tablet's own ratio, or let the two spans move apart, and remember the answer. */

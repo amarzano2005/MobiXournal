@@ -543,7 +543,9 @@ class DesktopShellState(
         }
         // The order is the table's: a `Ctrl` command first (`Ctrl+1` stays fit width), then the ink keys
         // (digits and brackets, none of which is a tool's letter), then the tools.
-        val command = shellCommand(event.key, event.isCtrlPressed, event.isShiftPressed)
+        // The window's own table (`interface.shortcuts` laid over the factory rows).
+        val keys = prefs.shortcutTable
+        val command = shellCommand(keys, event.key, event.isCtrlPressed, event.isShiftPressed, event.isAltPressed)
         if (command != null) return apply(command, onOpenPicker, onSavePicker, onExportPicker)
         inkCommand(event.key, alt = event.isAltPressed, ctrl = event.isCtrlPressed)?.let { pressed ->
             when (pressed) {
@@ -554,6 +556,7 @@ class DesktopShellState(
             return true
         }
         toolForKey(
+            keys,
             event.key,
             shift = event.isShiftPressed,
             ctrl = event.isCtrlPressed,
@@ -621,13 +624,7 @@ class DesktopShellState(
         return applyOnTab(tab, command)
     }
 
-    /**
-     * The commands that act on a document: one `when` over the active [tab]'s own state.
-     *
-     * Split out of [apply] because the two halves answer different questions — "does the window do this
-     * with nothing open" and "what does this do to the page" — and one function holding both grew past the
-     * budget the guard sets for a function.
-     */
+    /** The commands that act on a document: one `when` over the active [tab]'s own state. */
     private fun applyOnTab(tab: DesktopTab, command: ShellCommand): Boolean {
         return when (command) {
             // Answered above, before a tab is needed: Settings opens with nothing on screen.

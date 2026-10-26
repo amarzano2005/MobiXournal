@@ -48,6 +48,32 @@ that did not happen.
 Nothing in the window writes the display's mode except a full-screen request, and leaving full screen (or
 closing the window) puts the panel's previous mode back.
 
+## Shortcuts — the key table, as a page
+
+Every command the window has is a row: the tools (their slot's key), and the shell's own commands (open, save,
+save as, export, the clipboard, pages, zoom, full screen, Settings). A row shows the key it holds; clicking it
+arms **Detect** and the next press is bound, so the field cannot bind a key the keyboard does not name. The
+press is caught on the page's container rather than on the row (`ShortcutSettings`), which is what makes one
+press enough: arming a row hands the focus to the page, and `Esc` is the way out of a field that is waiting.
+
+The rule is **one key, one command** and it is `ShortcutKeys.bind`'s (in `mobix-core`): the key's previous
+holder loses it, and the conflict line names the command that did — a key is never silently stolen. A stored
+row whose value is `ShortcutKeys.UNBOUND` (`-`) is a command that deliberately has no key, so a displaced row
+cannot find its factory key again at the next start. **Restore defaults** writes nothing at all, which is the
+same statement: the factory table is every row that is not in the file.
+
+`interface.shortcuts` holds only the rows that **differ** from the factory ones, as `id:key` pairs, so a build
+that adds a command ships it with its own key instead of with none. The key a press makes is
+`ShortcutTable.name`'s (`Ctrl+Shift+S`, `PageDown`, `Space`) — the same string the pill prints, the file
+stores and the row shows — and `ShortcutTable.entries` is the one list the page draws and the keyboard
+resolves through. The codec, the conflict rule and the reset are shared with the tablet's Shortcuts section,
+which is why a key means the same tool on both shells; the defaults are not shared, because a phone's commands
+are not a window's.
+
+The bindings the table does **not** own stay in `DesktopKeys.unlistedCommand`: `=` arriving as `Shift+0` on an
+Italian keyboard, the keypad's `+`/`-`, `Backspace` beside `Delete`, and the arrows beside the page keys. They
+are not rows, so they are not remappable — and none stops working when another row is remapped.
+
 ## Stylus — the tablet's own section
 
 Under **Stylus**, in two groups, because the device decides both which stream exists and how much of it the

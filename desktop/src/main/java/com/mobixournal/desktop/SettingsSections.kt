@@ -165,7 +165,7 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
             "A still two-finger tap undoes and a three-finger tap redoes on the tablet's canvas. The " +
                 "window is drawn with a pen or a mouse, so it has no finger gestures to bind.",
         )
-        DesktopSettingSection.SHORTCUTS -> ShortcutsSettings()
+        DesktopSettingSection.SHORTCUTS -> ShortcutsSettings(policy)
         DesktopSettingSection.NAVIGATION -> NavigationSettings(policy)
         DesktopSettingSection.APPEARANCE -> AppearanceSettings(policy)
         DesktopSettingSection.DOCUMENTS -> DocumentsSettings(policy)
@@ -339,21 +339,6 @@ private fun ColorsSettings(policy: DesktopSettingsState) {
         }
     }
     SettingsNote("A palette editor of its own would be the tablet's Colors section; the strip already edits the same three values.")
-}
-
-/** **Shortcuts**: the table exists and is documented; remapping it is the task that is not here yet. */
-@Composable
-private fun ShortcutsSettings() {
-    SettingsGroup("The key table") {
-        SettingsUnavailable(
-            "Remap a command",
-            "Every command has a key and the table is in docs/ui-modernization.md §3; detecting a new " +
-                "key per command, with its conflict rule and a reset, is the tablet's Shortcuts section.",
-        )
-        SettingsRow(label = "The table", note = "Keys for the tools, the file commands and the view.") {
-            Text("Documented", color = DesktopTheme.ink, style = DesktopTheme.label)
-        }
-    }
 }
 
 /** **Navigation**: how a document opens, and the page list that reaches the others. */

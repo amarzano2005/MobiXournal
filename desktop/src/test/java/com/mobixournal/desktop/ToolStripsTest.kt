@@ -99,7 +99,7 @@ class ToolStripsTest {
             val alt = tool.shortcut.startsWith("Alt+")
             val shift = tool.shortcut.startsWith("Shift+")
             val letter = tool.shortcut.removePrefix("Alt+").removePrefix("Shift+")
-            val key = toolKeyLetters.entries.single { it.value == letter }.key
+            val key = ShortcutTable.keyFor(letter) ?: error("no key prints $letter")
             assertSame(tool.label, tool, toolForKey(key, shift = shift, ctrl = false, alt = alt))
         }
         assertEquals("a bare X is the text box", DesktopTool.TEXT, toolForKey(Key.X, shift = false, ctrl = false))
