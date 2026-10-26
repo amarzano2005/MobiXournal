@@ -95,6 +95,21 @@ internal class DesktopInkState(
     val favourites: List<Int> get() = favs.forTool(currentTool())
 
     /**
+     * Put the tool in hand back on its **factory ink** — the menu's one preset.
+     *
+     * The tablet's Pen block lists named presets; the window has one, because its colour capsule is where
+     * a colour is chosen and a preset list would be a second way to set the same three values. This is the
+     * way back, and it writes through the same three setters, so the strip, the page and the file all
+     * follow in the same frame.
+     */
+    fun resetToDefaults() {
+        val factory = DesktopInks().forTool(currentTool())
+        pickColour(factory.colour)
+        pickWidth(factory.width)
+        pickLineStyle(com.mobixournal.format.model.LineStyle.PLAIN)
+    }
+
+    /**
      * Pick the ink colour **of the picked tool**, and remember it: the pen and the highlighter keep their
      * own, so switching to the highlighter never repaints the pencil.
      */

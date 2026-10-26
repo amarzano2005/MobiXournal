@@ -41,8 +41,12 @@ class DesktopMenuTest {
     private val counters = IntArray(7)
 
     private val width = MenuMetrics.width.value
+    /** The scene fits the panel, Pen block included — a row clipped by the frame cannot be clicked. */
     private val height: Float = with(MenuMetrics) {
-        (padding * 2 + tileHeight + sectionGap + chipHeight + sectionGap + dividerHeight + rowHeight).value
+        (
+            padding * 2 + tileHeight + sectionGap + chipHeight + sectionGap +
+                rowHeight + chipHeight + sectionGap + dividerHeight + rowHeight * 2
+            ).value
     }
 
     @Test
@@ -162,8 +166,15 @@ class DesktopMenuTest {
         (padding + tileHeight + sectionGap + chipHeight / 2).value
     }
 
+    /**
+     * The page-list row, by the panel's own arithmetic: the tiles, the export chips, the **Pen block**
+     * (its heading row and its preset chip), the rule, then the row.
+     */
     private fun rowCentreY(): Float = with(MenuMetrics) {
-        (padding + tileHeight + sectionGap + chipHeight + sectionGap + dividerHeight + rowHeight / 2).value
+        (
+            padding + tileHeight + sectionGap + chipHeight + sectionGap +
+                rowHeight + chipHeight + sectionGap + dividerHeight + rowHeight / 2
+            ).value
     }
 
     private fun tap(scene: ImageComposeScene, x: Float, y: Float, time: Long) {

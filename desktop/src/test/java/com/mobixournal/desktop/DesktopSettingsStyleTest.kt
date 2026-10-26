@@ -38,8 +38,13 @@ class DesktopSettingsStyleTest {
     private val width = 1000
     private val height = 700
 
-    /** The index column (232 dp), its padding and the page's own: everything right of this is the page. */
-    private val pageLeft = 260
+    /**
+     * The index column (232 dp), its padding and the page's own: everything right of this is the page.
+     *
+     * The panel is centred, so the column starts at the panel's left edge — half of the window's spare
+     * width — rather than at the window's.
+     */
+    private val pageLeft = 320
 
     private fun notebook(): File = temp.newFile("style.mobix").also {
         SyntheticNotebook.write(it, SyntheticNotebook.pages(2))
@@ -115,13 +120,13 @@ class DesktopSettingsStyleTest {
     }
 
     /**
-     * The page is **one screen**: five settings on Interface, each a row, and the last one still above the
+     * The page is **one screen**: the Toolbar section's choice rows, and the last one still above the
      * status bar. The stacked layout this replaces ran past the bottom of the same window.
      */
     @Test
-    fun `every Interface setting is on the page at once`() {
-        val bands = pillBands(pixels(state(DesktopSettingSection.INTERFACE)))
-        assertTrue("one pill band per choice row, and Interface has five: ${bands.size}", bands.size >= 5)
+    fun `every Toolbar setting is on the page at once`() {
+        val bands = pillBands(pixels(state(DesktopSettingSection.TOOLBAR)))
+        assertTrue("one pill band per choice row: ${bands.size}", bands.size >= 2)
         for (band in bands) {
             assertTrue(
                 "a pill is its control's height, not a band of a button: ${band.count()} dd",
@@ -143,7 +148,7 @@ class DesktopSettingsStyleTest {
      */
     @Test
     fun `the picked answer hugs its word`() {
-        val pixels = pixels(state(DesktopSettingSection.INTERFACE))
+        val pixels = pixels(state(DesktopSettingSection.TOOLBAR))
         val band = pillBands(pixels).first()
         val middle = (band.first + band.last) / 2
         val painted = (pageLeft until width).filter { x -> pixels.rgb(x, middle) == pillRgb }
@@ -177,12 +182,19 @@ class DesktopSettingsStyleTest {
         assertTrue("tokens only, on the contract's own surfaces: ${offenders.joinToString("; ")}", offenders.isEmpty())
     }
 
-    /** No section may reach for a Material card or a Material glyph: both shells wear one material. */
+    /**
+     * No section may reach for a Material card or a Material glyph: both shells wear one material.
+     *
+     * The panel is a **floating surface** — the glass at `floatingPanelAlpha`, the family's rim, the 20 dp
+     * corner — and it lies over the page, which is the class the contract gives a surface that comes and
+     * goes. A band it is not: a band borders the canvas and may never lie on it.
+     */
     @Test
-    fun `the surface is the window's material`() {
+    fun `the surface is the window's floating material`() {
         val text = File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/SettingsSurface.kt").readText() +
             File(repoRoot(), "desktop/src/main/java/com/mobixournal/desktop/SettingsRows.kt").readText()
-        assertTrue("the surface is a band, as the contract says", text.contains("bandSurface()"))
+        assertTrue("the panel is the floating recipe", text.contains("glassSurface()"))
+        assertTrue("and never a band over the page", !text.contains("bandSurface()"))
         assertTrue("a row takes the contract's hover step", text.contains("hoverFill("))
         assertTrue("the picked answer is the steel slot", text.contains("DesktopTheme.activeSlot"))
     }

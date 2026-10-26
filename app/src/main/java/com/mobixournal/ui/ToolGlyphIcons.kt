@@ -16,11 +16,15 @@ import com.mobixournal.design.ToolGlyphCatalogue
  * The tablet's **adapter** for the shared tool glyphs (`ToolGlyphCatalogue`, plain Kotlin in
  * `mobix-core`).
  *
- * The catalogue holds geometry only; this file turns it into an `ImageVector` on the same 24-unit grid
+ * The catalogue holds geometry only; [glyphVector] turns it into an `ImageVector` on the same 24-unit grid
  * Material's icons use, so a rail slot, a picker row and the settings list keep using `Icon` — its tint,
  * its content description and its size — while drawing the **same** picture the desktop draws from the
  * same parts. The stroke is [DesignTokens.TOOL_GLYPH_STROKE_UNITS] of the grid, which is what makes the
  * two shells' toolbars match at the same rendered size instead of merely looking similar.
+ *
+ * The builder is shared with the settings catalogue ([com.mobixournal.design.SettingsGlyphCatalogue]):
+ * one adapter for every stroke glyph the app has, so the settings index cannot end up drawing a heavier
+ * line than a tool slot does.
  *
  * The vectors are built once per glyph: an icon is immutable, and the rail asks for the same few dozens
  * on every composition.
@@ -28,17 +32,24 @@ import com.mobixournal.design.ToolGlyphCatalogue
 private val toolGlyphVectors = HashMap<ToolGlyph, ImageVector>()
 
 /** The [ImageVector] for this glyph — built once, then reused. */
-fun ToolGlyph.imageVector(): ImageVector = toolGlyphVectors.getOrPut(this) { buildVector() }
+fun ToolGlyph.imageVector(): ImageVector =
+    toolGlyphVectors.getOrPut(this) { glyphVector("ToolGlyph.${name.lowercase()}", ToolGlyphCatalogue.parts(this)) }
 
-private fun ToolGlyph.buildVector(): ImageVector {
+/**
+ * The stroke glyph [parts] as an icon — the one place a [GlyphPart] list becomes an `ImageVector`.
+ *
+ * [name] is the vector's own identity, which is what a preview or a debugging tool prints; the geometry is
+ * the 24-unit grid every glyph in the catalogue is authored on.
+ */
+fun glyphVector(name: String, parts: List<GlyphPart>): ImageVector {
     val builder = ImageVector.Builder(
-        name = "ToolGlyph.${name.lowercase()}",
+        name = name,
         defaultWidth = DesignTokens.TOOL_GLYPH_GRID.dp,
         defaultHeight = DesignTokens.TOOL_GLYPH_GRID.dp,
         viewportWidth = DesignTokens.TOOL_GLYPH_GRID,
         viewportHeight = DesignTokens.TOOL_GLYPH_GRID,
     )
-    for (part in ToolGlyphCatalogue.parts(this)) {
+    for (part in parts) {
         builder.path(
             fill = null,
             stroke = SolidColor(Color.Black),

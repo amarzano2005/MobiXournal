@@ -44,7 +44,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         private set
 
     /** The section the surface shows; the list on its left picks another. */
-    var section by mutableStateOf(DesktopSettingSection.INTERFACE)
+    var section by mutableStateOf(DesktopSettingSection.DEFAULT)
         private set
 
     /** What has been typed into the search field; empty lists every section. */
@@ -87,6 +87,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** The pen stream the window prefers. */
     var penStream by mutableStateOf(store.penStream)
         private set
+
+    /** The default sheet a new page is born on — the format section's stored pair, read here for a row. */
+    val pageWidthPt: Double get() = store.pageWidthPt
+    val pageHeightPt: Double get() = store.pageHeightPt
 
     /** The sections the search field leaves, in the list's own order. */
     val sections: List<DesktopSettingSection>

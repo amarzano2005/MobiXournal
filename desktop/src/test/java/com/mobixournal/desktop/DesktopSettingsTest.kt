@@ -154,11 +154,11 @@ class DesktopSettingsTest {
         assertEquals(DesktopSettingSection.entries, policy.sections)
 
         policy.search("wintab")
-        assertEquals(listOf(DesktopSettingSection.TABLET), policy.sections)
-        assertEquals("the page follows the list", DesktopSettingSection.TABLET, policy.shownSection)
+        assertEquals(listOf(DesktopSettingSection.STYLUS), policy.sections)
+        assertEquals("the page follows the list", DesktopSettingSection.STYLUS, policy.shownSection)
 
         policy.search("toolbar")
-        assertEquals(listOf(DesktopSettingSection.INTERFACE), policy.sections)
+        assertEquals(listOf(DesktopSettingSection.TOOLBAR), policy.sections)
 
         policy.search("zzz")
         assertTrue("nothing matches, and the page says so", policy.sections.isEmpty())

@@ -63,16 +63,18 @@ internal fun DesktopShell(
             onUndo = { state.apply(ShellCommand.UNDO) },
             onRedo = { state.apply(ShellCommand.REDO) },
             onSettings = { state.apply(ShellCommand.OPEN_SETTINGS) },
+            // The menu's Pen block: its parameters are the colour capsule's panel, its one preset is
+            // the factory ink — the same two things the strip offers, reached from the menu.
+            onPenParameters = { state.editColour(ColourEditorTarget.CUSTOM) },
+            onPenDefault = { state.resetPenDefaults() },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            // The Settings surface is a **section of the window**: it takes the whole body, so the page is
-            // not drawn under it and no card floats over a sheet the reader cannot reach. The header and
-            // the status bar stay, which is what makes it a section rather than a window of its own.
-            if (state.prefs.open) {
-                SettingsSurface(state.prefs)
-            } else {
-                WorkspaceBody(state, tablet)
-            }
+            // The page is always drawn: Settings is a **floating surface** over it, not a second window
+            // and not a page of its own. The reader keeps the document in view while a preference is
+            // changed — which is the point of changing it (`docs/interface-contract.md` — a surface that
+            // comes and goes may lie over the page; only a band may not).
+            WorkspaceBody(state, tablet)
+            if (state.prefs.open) SettingsSurface(state.prefs)
         }
         StatusBar(state.active, tablet, state.prefs.frameTime)
     }

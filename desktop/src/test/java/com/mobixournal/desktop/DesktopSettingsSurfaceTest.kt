@@ -74,8 +74,15 @@ class DesktopSettingsSurfaceTest {
         return best
     }
 
+    /**
+     * Settings **floats over the page**: the sheet is still drawn, and still readable beside the panel.
+     *
+     * It used to take the whole body between the header and the status bar, which threw away the page the
+     * reader was comparing against — on a desktop that reads as a second window. The measurement is the
+     * same one the old test used the other way round: a page-wide run of paper must survive the panel.
+     */
     @Test
-    fun `the surface takes the window and the page is not drawn under it`() {
+    fun `the surface floats over the page instead of replacing it`() {
         val state = state()
         val workspace = pixels(state, "settings-closed")
         assertTrue(
@@ -86,20 +93,22 @@ class DesktopSettingsSurfaceTest {
         state.prefs.openAt()
         val surface = pixels(state, "settings-surface")
         assertTrue(
-            "no sheet under the settings, so no page-wide run of paper",
-            longestPaperRun(surface) < 40,
+            "the page is still drawn around the panel: ${longestPaperRun(surface)}",
+            longestPaperRun(surface) >= 40,
         )
+        val changed = workspace.indices.count { workspace[it] != surface[it] }
+        assertTrue("and the panel is actually drawn on top: $changed pixels differ", changed > 20_000)
     }
 
     @Test
     fun `the index picks the page that is drawn`() {
         val state = state()
-        state.prefs.openAt(DesktopSettingSection.INTERFACE)
-        val interfacePage = pixels(state, "settings-interface")
-        state.prefs.openAt(DesktopSettingSection.TABLET)
-        val tabletPage = pixels(state, "settings-tablet")
+        state.prefs.openAt(DesktopSettingSection.TOOLBAR)
+        val toolbarPage = pixels(state, "settings-toolbar")
+        state.prefs.openAt(DesktopSettingSection.STYLUS)
+        val stylusPage = pixels(state, "settings-stylus")
 
-        val different = interfacePage.indices.count { interfacePage[it] != tabletPage[it] }
+        val different = toolbarPage.indices.count { toolbarPage[it] != stylusPage[it] }
         assertTrue("two sections are two pages, not one: $different pixels differ", different > 500)
     }
 
@@ -110,7 +119,7 @@ class DesktopSettingsSurfaceTest {
         for (section in DesktopSettingSection.entries) {
             state.prefs.show(section)
             val drawn = pixels(state, "settings-${section.name.lowercase()}")
-            assertTrue("$section draws a page", longestPaperRun(drawn) < 40)
+            assertTrue("$section draws a page over the page", longestPaperRun(drawn) >= 40)
         }
     }
 }

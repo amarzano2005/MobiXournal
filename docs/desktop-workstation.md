@@ -107,17 +107,17 @@ What it does today:
 - **Paints living entities** — tables, plots, parametric shapes, circuit components and formulas — by running
   the same compiler the Android canvas and every export use (`LivingInk`, platform-free in `mobix-core`). A
   table on the PC is the table on the tablet; an entity this build cannot draw is reported, not drawn blank.
-- **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF
-  page** rasterised with PDFBox (about 144 dpi) under the ink, so a highlighter still multiplies into it;
-  a `.mobix`'s bundled bytes win over the original reference, which keeps a shared notebook looking right.
+- **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF page**
+  rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
   and a **48 dp ribbon capsule in a 56 dp band** under the header — Side, Top or Both, on either edge
-  (`stripPlacement`, `railSide`), re-laid live by `PageWorkspace`. `Ctrl+,` opens the surface that sets
-  it: a **232 dp index**, a page capped at 720 dp, a search that finds a section by an everyday word,
-  and **one setting per row** (name and note left, the control hugging its words at the right) — **a
-  row is a hook, a key and a test**, so nothing it offers can be stored and forgotten (`DesktopSettingsTest`,
-  `DesktopSettingsStyleTest`). The header carries no chooser, because moving the strips is a setting.
-  The lane is **air, not a second sheet of glass**: painting it too stacked two sheets, rail #161618. The strip is a **capsule** with its own 6 dp lift and the family's rim, so
+  (`stripPlacement`, `railSide`), re-laid live. `Ctrl+,` opens the panel that sets it: a **floating
+  surface** over the page (glass, rim, 20 dp corner), with **the tablet's thirteen sections** in its
+  index — each wearing the shared `SettingsGlyphCatalogue` mark — and **one setting per row**. A row the
+  window cannot answer is drawn disabled with one sentence; **a live row is a hook, a key and a test**
+  (`DesktopSettingsTest`, `DesktopSettingsStyleTest`). The header has no chooser: moving the strips is a
+  setting. The lane is **air, not glass over glass**: painting it too stacked two sheets, rail #161618.
+  The strip is a **capsule** with its own 6 dp lift and the family's rim, so
   its fill is the window's band `#0C0C0D` (the glass at `DESKTOP_BAND_ALPHA`, blacker than the tablet's
   `#131314`), and each header control is the same object at 36 dp. Both placements draw the same slots,
   in the order, glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked
@@ -130,33 +130,33 @@ What it does today:
   picked**, or `Alt`+`Down`) opens its **glass picker**. **One click never opens a submenu**: the first
   click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is
   its submenu. Picking a row re-faces the slot and closes the picker, `Esc` closes it too, and no key ever
-  changes meaning. **A tool whose behaviour has not landed gets no slot**: `ToolGroupsTest` fails if an
-  acting tool has no slot, or a slot lists one that cannot act.
+  changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
-  document-red chip** and Export SVG in the accent, then a hairline, the page list's row and **Settings**. The
-  tablet's Import PDF and Page as PNG rows are absent because the window has no such command yet, not because
-  it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks all eight rows by the panel's own metrics). The tab
+  document-red chip** and Export SVG in the accent, then the tablet's **Pen block** (its heading opens the
+  colour panel, and one **Default** chip puts the tool back on its factory ink), a hairline, the page
+  list's row and **Settings**. Import PDF and Page as PNG are absent because the window has no such
+  command yet, not because it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
+  the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
-- **Owns the page, from one section**: after a divider, one **Pages** slot wearing the tablet's own
-  sheet of ruled text (`ChromeGlyph.DESCRIPTION`) opens the phone's menu — **Add page**, **Remove page**,
-  **Previous/Next page**, **Page background** (six paper styles, 2/3/5/7/10 mm rulings) and **Page format**
-  (A4/A5/Letter/Legal either way up, mm/in/pt fields with a swap, a **Default** entry and **Set as default**).
-  The list's commands go through the shared `PageOps` the tablet's page bar uses, so a new sheet inherits the
-  same things, and each one is a single undo step — `DesktopPagesTest` adds, removes and steps on a real tab.
+- **Owns the page, from one section**: after a divider, one **Pages** slot wearing the tablet's ruled sheet
+  (`ChromeGlyph.DESCRIPTION`) opens the phone's menu — **Add/Remove page**, **Previous/Next**, **Page
+  background** and **Page format** (A4/A5/Letter/Legal, mm/in/pt, **Default** and **Set as default**). Its
+  commands are the tablet's `PageOps`, one undo step each (`DesktopPagesTest` adds, removes and steps).
 - **Marks the pins a connection would join, and joins them**: while a connector is armed — the Line tool or
   a circuit family — every pin wears an accent dot and the part being pulled out shows its own, as the
   tablet draws them; the ends of a wire and of a placed part are **magnetised** onto the nearest pin
   (`snapWireEnds`, `circuitSpan`), and so is a part **selected after insertion** when it is dragged
   (`SelectionMagnet`), so what was aimed at is what is joined (`CircuitGestureTest`, `SelectionMagnetTest`).
   A **selected** part keeps its pins marked, so the dots do not vanish with the slot that placed it. A press
-  **on** a pin picks the part up, and on a selected part's own pin the drag **moves** it rather than scaling
-  at the corner handle that sits there (`PinPress`, `pressesOwnPin`: a scale never magnetises). A moved
-  part's **own** pins are never its targets, by position rather than id, so the magnet cannot pull it back;
-  and a moved selection aims at the **ends of the page's wires** too (`collectMoveTargets`), so a part
-  carried onto the line drawn for it closes that joint (`SelectionMovePaintTest`). The magnet's rule is **circuit↔line or circuit↔circuit and nothing else**: a *moved wire* keeps to pins (`PinTarget.isWireEnd`), because a line is a connector and not a terminal, so two lines dragged near each other stay two lines.
+  **on** a pin picks the part up, and on a selected part's own pin the drag **moves** it, not scales
+  (`PinPress`, `pressesOwnPin`: a scale never magnetises). A moved
+  part's **own** pins are never its targets (by position, not id), and a moved selection aims at the
+  **ends of the page's wires** too (`collectMoveTargets`), closing that joint (`SelectionMovePaintTest`).
+  The rule is **circuit↔line or circuit↔circuit**: a *moved wire* keeps to pins (`PinTarget.isWireEnd`) —
+  a line is a connector, not a terminal, so two lines dragged near each other stay two lines.
 - **One material and one icon set, not a lookalike**: every band takes the band lift, every floating
   surface the drawn rim — and every one is a **menu that never takes the keyboard** (`FloatingSurface`,
   `DesktopPopupFocusTest`), so the shortcuts survive a flyout or a hover pill. Both keep the **shared fill

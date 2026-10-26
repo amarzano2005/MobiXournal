@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.SettingsGlyph
 
 /**
  * The window's **overflow menu** — the mobile bar's menu, ported and laid out the same way.
@@ -62,6 +63,8 @@ internal fun HeaderMenu(
     onExportSvg: () -> Unit,
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
+    onPenParameters: () -> Unit = {},
+    onPenDefault: () -> Unit = {},
 ) {
     var open by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -88,6 +91,8 @@ internal fun HeaderMenu(
                     onExportSvg = { open = false; onExportSvg() },
                     onToggleSidebar = { open = false; onToggleSidebar() },
                     onSettings = { open = false; onSettings() },
+                    onPenParameters = { open = false; onPenParameters() },
+                    onPenDefault = { open = false; onPenDefault() },
                 )
             }
         }
@@ -108,6 +113,8 @@ internal fun MenuPanel(
     onExportSvg: () -> Unit,
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
+    onPenParameters: () -> Unit = {},
+    onPenDefault: () -> Unit = {},
 ) {
     Column(
         Modifier
@@ -133,6 +140,15 @@ internal fun MenuPanel(
             // stays in the accent. Colouring both the same made the PDF look like any other export.
             MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
+        }
+        // The tablet's **Pen block**: its heading with the door to the pen's parameters, and the preset
+        // chip under it. The window has one preset — the factory ink — because its strip's colour
+        // capsule is where a colour is chosen; a named preset list would be a second way to do it.
+        Spacer(Modifier.height(MenuMetrics.sectionGap))
+        MenuHeadingRow(label = "Pen", onClick = onPenParameters)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap)) {
+            MenuChip("Default", null, enabled = true, Modifier, DesktopTheme.accent, onPenDefault)
+            MenuChip("Parameters…", null, enabled = true, Modifier, DesktopTheme.inkSecondary, onPenParameters)
         }
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
@@ -223,7 +239,8 @@ private fun RowScope.MenuTile(label: String, glyph: ChromeGlyph, enabled: Boolea
 @Composable
 private fun MenuChip(
     label: String,
-    glyph: ChromeGlyph,
+    /** The chip's mark, or null for a word-only chip (the pen preset). */
+    glyph: ChromeGlyph?,
     enabled: Boolean,
     modifier: Modifier = Modifier,
     /** The command's own colour while it can act — red for a PDF, the accent for a page export. */
@@ -245,8 +262,36 @@ private fun MenuChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Canvas(Modifier.size(18.dp)) { drawChromeGlyph(glyph, ink) }
+        if (glyph != null) {
+            Canvas(Modifier.size(18.dp)) { drawChromeGlyph(glyph, ink) }
+        }
         Text(label, color = ink, style = DesktopTheme.body, maxLines = 1)
+    }
+}
+
+/**
+ * A **heading inside the menu** — the tablet's *Pen* row: the word on the left, and the glyph that opens
+ * what the words below configure on the right.
+ *
+ * It is not a command and not a label: the tablet draws it as the door to the pen's parameters, and a
+ * heading that only names a block would have the block's door somewhere else.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun MenuHeadingRow(label: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = MenuMetrics.rowHeight)
+            .hoverFill(DesktopTheme.capsuleShape)
+            .pointerInput(label) { detectTapGestures { onClick() } }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
+        Canvas(Modifier.size(16.dp)) {
+            drawSettingsGlyph(SettingsGlyph.EDITOR, DesktopTheme.inkSecondary)
+        }
     }
 }
 

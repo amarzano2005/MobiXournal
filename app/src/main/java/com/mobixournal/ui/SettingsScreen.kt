@@ -20,22 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.Backup
-import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Draw
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Input
-import androidx.compose.material.icons.outlined.Keyboard
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.PanTool
-import androidx.compose.material.icons.outlined.SpaceDashboard
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.TouchApp
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.ViewSidebar
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -56,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
@@ -82,21 +67,21 @@ enum class SettingsArea(
         "Input",
         "Stylus pressure, barrel buttons, hover, finger gestures, and keyboard shortcuts.",
         listOf(SettingsSection.STYLUS, SettingsSection.GESTURES, SettingsSection.SHORTCUTS),
-        Icons.Outlined.Input,
+        SettingsGlyph.STYLUS.imageVector(),
     ),
     /** What the drawing tools do and what they draw with: tool behaviour, figures, palette. */
     DRAWING(
         "Drawing",
         "Default tool, snapping, figure sizes and shapes, and the pen palette.",
         listOf(SettingsSection.EDITOR, SettingsSection.FIGURES, SettingsSection.COLORS),
-        Icons.Outlined.Draw,
+        SettingsGlyph.FIGURES.imageVector(),
     ),
     /** How the app looks and how the canvas is navigated: toolbars, theme, panning. */
     INTERFACE(
         "Interface",
         "Toolbar layout, theme, momentum and panning.",
         listOf(SettingsSection.TOOLBAR, SettingsSection.APPEARANCE, SettingsSection.NAVIGATION),
-        Icons.Outlined.SpaceDashboard,
+        SettingsGlyph.APPEARANCE.imageVector(),
     ),
     /** The app itself: what it writes, how much it may store, how its settings move, what it is. */
     APP(
@@ -108,7 +93,7 @@ enum class SettingsArea(
             SettingsSection.BACKUP,
             SettingsSection.ABOUT,
         ),
-        Icons.Outlined.Apps,
+        SettingsGlyph.STORAGE.imageVector(),
     ),
 }
 
@@ -136,7 +121,7 @@ enum class SettingsSection(
         "Finger drawing, hover preview, barrel button, pressure feel.",
         "pressure multiplier minimum floor barrel button double tap hover preview palm rejection " +
             "finger drawing touch eraser tip stylus pen presets diagnostics thickness",
-        Icons.Outlined.Draw,
+        SettingsGlyph.STYLUS.imageVector(),
     ),
     /** Editor behaviour: default tool, shape recognition, snapping to grid or angles. */
     EDITOR(
@@ -144,7 +129,7 @@ enum class SettingsSection(
         "Default tool and snapping to the grid or to 15° rotations.",
         "default tool startup snapping snap grid ruling rotation angle degrees shape recognition " +
             "recognizer layer pages",
-        Icons.Outlined.Tune,
+        SettingsGlyph.EDITOR.imageVector(),
     ),
     /** Toolbar configuration: which buttons appear in the Main and Secondary Toolbars and their order. */
     TOOLBAR(
@@ -152,7 +137,7 @@ enum class SettingsSection(
         "Main Toolbar position and buttons, and Secondary Toolbar (figures) configuration.",
         "main toolbar position left right handed left-handed right-handed buttons order hide show " +
             "reorder rail secondary top bar figures",
-        Icons.Outlined.ViewSidebar,
+        SettingsGlyph.TOOLBAR.imageVector(),
     ),
     /** Figures: the default figure size and each figure tool's default variant. */
     FIGURES(
@@ -160,7 +145,7 @@ enum class SettingsSection(
         "Default figure size, and each figure tool's default variant.",
         "figure size width shapes submenu triangle trapezoid scalene angles rectangle ellipse " +
             "spline arrow table circuit logic guides",
-        Icons.Outlined.Category,
+        SettingsGlyph.FIGURES.imageVector(),
     ),
     /** Colors: the pen palette every colour picker offers. */
     COLORS(
@@ -168,7 +153,7 @@ enum class SettingsSection(
         "Add, edit or remove the swatches every colour picker offers.",
         "colour color palette swatch favourite favorite custom hex pen highlighter add remove " +
             "restore default theme",
-        Icons.Outlined.Palette,
+        SettingsGlyph.COLORS.imageVector(),
     ),
     /** Finger gestures: what a still two- and three-finger tap on the canvas does. */
     GESTURES(
@@ -176,14 +161,13 @@ enum class SettingsSection(
         "What a still two-finger tap and a still three-finger tap do.",
         "finger gestures touch two finger tap double tap three triple tap undo redo toggle eraser " +
             "select full page multitouch multi-touch tap",
-        Icons.Outlined.TouchApp,
+        SettingsGlyph.GESTURES.imageVector(),
     ),
     /** Keyboard shortcuts: one key per tool and per pen colour. */
     SHORTCUTS(
         "Shortcuts",
-        "One key each to jump straight to a tool or a pen colour.",
-        "shortcut key keyboard hardware expresskey tablet remote button detect assignment",
-        Icons.Outlined.Keyboard,
+        "One key each to jump straight to a tool or a pen colour.",            "shortcut key keyboard hardware expresskey tablet remote button detect assignment",
+        SettingsGlyph.SHORTCUTS.imageVector(),
     ),
     /** Navigation: momentum scrolling strength and panning sensitivity. */
     NAVIGATION(
@@ -191,7 +175,7 @@ enum class SettingsSection(
         "Momentum scrolling and panning sensitivity.",
         "momentum scroll scrolling glide inertia pan panning sensitivity speed zoom full page " +
             "scrollbar",
-        Icons.Outlined.PanTool,
+        SettingsGlyph.NAVIGATION.imageVector(),
     ),
     /** Appearance: theme mode and wallpaper colours. */
     APPEARANCE(
@@ -199,7 +183,7 @@ enum class SettingsSection(
         "Theme and wallpaper colours.",
         "appearance interface theme dark light system dynamic color colour " +
             "material you wallpaper",
-        Icons.Outlined.DarkMode,
+        SettingsGlyph.APPEARANCE.imageVector(),
     ),
     /**
      * Documents: the format a new document is written in — the standing answer to the question the
@@ -210,28 +194,25 @@ enum class SettingsSection(
         "The format a new document is written in.",
         "document format default format default new document mobix xopp xournal++ desktop " +
             "interchange file type extension save as living graph table flattened portable",
-        Icons.Outlined.Description,
+        SettingsGlyph.DOCUMENTS.imageVector(),
     ),
     /** Storage: text import limit and PDF cache budget. */
     STORAGE(
         "Storage",
-        "How big a text file may be imported, and how much cache to keep.",
-        "storage limit size text import markdown plain text megabytes cache pdf prune disk space",
-        Icons.Outlined.Storage,
+        "How big a text file may be imported, and how much cache to keep.",            "storage limit size text import markdown plain text megabytes cache pdf prune disk space",
+        SettingsGlyph.STORAGE.imageVector(),
     ),
     /** Backup: export or import settings to and from a JSON file. */
     BACKUP(
         "Backup",
-        "Export or import your settings to and from a JSON file.",
-        "backup export import json file restore reset settings transfer migrate",
-        Icons.Outlined.Backup,
+        "Export or import your settings to and from a JSON file.",            "backup export import json file restore reset settings transfer migrate",
+        SettingsGlyph.BACKUP.imageVector(),
     ),
     /** About: version, licence, source, and support links. */
     ABOUT(
         "About",
-        "Version, licence, source code, and how to support the work.",
-        "about version build number licence license gpl source code github support donate credits",
-        Icons.Outlined.Info,
+        "Version, licence, source code, and how to support the work.",            "about version build number licence license gpl source code github support donate credits",
+        SettingsGlyph.ABOUT.imageVector(),
     ),
 }
 

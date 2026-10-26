@@ -56,6 +56,9 @@ internal fun Header(
     onRedo: () -> Unit,
     /** Open the Settings surface — the menu's row, and the window behind `Ctrl+,`. */
     onSettings: () -> Unit,
+    /** The menu's Pen block: the colour panel, and the factory ink behind one chip. */
+    onPenParameters: () -> Unit = {},
+    onPenDefault: () -> Unit = {},
 ) {
     val tab = tabs.active
     Row(
@@ -78,6 +81,8 @@ internal fun Header(
             onExportSvg = onExportSvg,
             onToggleSidebar = onToggleSidebar,
             onSettings = onSettings,
+            onPenParameters = onPenParameters,
+            onPenDefault = onPenDefault,
         )
         Spacer(Modifier.width(10.dp))
         TabStrip(

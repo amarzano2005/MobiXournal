@@ -372,6 +372,9 @@ class DesktopShellState(
      * own, so switching to the highlighter never repaints the pencil.
      */
     /** Pick the picked tool's ink colour, and remember it — what [DesktopInkState] keeps per tool. */
+    /** The menu's one pen preset: the tool in hand back on its factory colour, width and plain line. */
+    fun resetPenDefaults() = inkState.resetToDefaults()
+
     fun pickColour(colour: Int) = inkState.pickColour(colour)
 
     /** Pick the picked tool's stroke width, and remember it. */

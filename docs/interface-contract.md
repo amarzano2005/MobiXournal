@@ -79,6 +79,10 @@ Every surface is one of three objects. Pick the class from what the element *doe
   (`TOOL_GLYPH_GRID`, `TOOL_GLYPH_STROKE_UNITS`); the tablet builds an `ImageVector`, the desktop fills a
   `DrawScope`. A shell may not keep a hand-drawn set of its own, and `material.icons` is not an import the
   desktop's chrome may have.
+- The **settings'** glyphs are `SettingsGlyphCatalogue` (`mobix-core`) too: one mark per section, named
+  after the section, drawn by the tablet as an `ImageVector` and by the window into its `DrawScope`. A
+  settings row may not carry a Material icon on one shell and a blank space on the other —
+  `SettingsGlyphParityTest` and `DesktopSettingsGlyphTest` fail by name if it does.
 - The **chrome's** glyphs (`ChromeGlyphCatalogue`, `mobix-core`) are every mark that is not a tool face:
   undo, redo, the file commands, the menu, the dismiss and add marks, the layer eye, and the whole
   selection bar — cut, copy, paste, duplicate, recolour, width, edit, delete and the six alignments with

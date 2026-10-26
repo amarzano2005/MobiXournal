@@ -1,5 +1,6 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
@@ -141,6 +143,21 @@ internal fun SettingsRow(
     }
 }
 
+/**
+ * **A setting this build cannot answer yet** — drawn, disabled, and honest about it.
+ *
+ * The tablet has the row and the window does not have the mechanism behind it, so the choice is between a
+ * dead control of the same name and no row at all; neither is right. The row states what the tablet does
+ * and stops, which is the only version a reader can act on (`docs/interface-contract.md` §5: say what
+ * happened, never imply a control that is not there).
+ */
+@Composable
+internal fun SettingsUnavailable(label: String, note: String) {
+    SettingsRow(label = label, note = note) {
+        Text("Tablet only", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+    }
+}
+
 /** A sentence under a group: what an answer does, or what it deliberately does not. */
 @Composable
 internal fun SettingsNote(text: String) {
@@ -261,7 +278,7 @@ internal fun SettingsSectionRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Column(
+    Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.INDEX_ROW_HEIGHT)
@@ -269,20 +286,32 @@ internal fun SettingsSectionRow(
             .hoverFill(DesktopTheme.railSlotShape, active = selected)
             .pointerInput(section) { detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            section.title,
-            color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
-            style = DesktopTheme.body,
-        )
-        Spacer(Modifier.height(1.dp))
-        Text(
-            section.summary,
-            color = DesktopTheme.inkMuted,
-            style = DesktopTheme.label,
-            maxLines = 2,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-        )
+        // The section's own mark, from the catalogue both shells read: the same picture the tablet's
+        // settings list shows, at the size the chrome's ink is drawn.
+        Canvas(Modifier.size(16.dp)) {
+            drawSettingsGlyph(
+                section.glyph,
+                if (selected) DesktopTheme.accent else DesktopTheme.inkSecondary,
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                section.title,
+                color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
+                style = DesktopTheme.body,
+            )
+            Spacer(Modifier.height(1.dp))
+            Text(
+                section.summary,
+                color = DesktopTheme.inkMuted,
+                style = DesktopTheme.label,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
