@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -26,6 +27,19 @@ class DesktopStatusTest {
         assertEquals("refresh unknown", refreshLabel(null))
         assertEquals("refresh unknown", refreshLabel(0))
         assertEquals("refresh unknown", refreshLabel(-1))
+    }
+
+    /**
+     * The **measured** half of the same sentence: what the window reaches against the budget above, and
+     * nothing at all when there is nothing to say. A `0.0` would be a claim about a frame that has not been
+     * painted, so the label is absent instead.
+     */
+    @Test
+    fun `the paint time reads in milliseconds and stays quiet before the second frame`() {
+        assertEquals("33.3 ms paint", frameLabel(33.3))
+        assertEquals("8.3 ms paint", frameLabel(8.296))
+        assertNull("no second frame, no claim", frameLabel(0.0))
+        assertNull("and a switched-off readout says nothing", frameLabel(16.0, enabled = false))
     }
 
     /**

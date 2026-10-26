@@ -305,7 +305,7 @@ class DesktopTabs {
      * Add [document] as a tab and activate it. When the same file is already open, that tab is
      * activated and [document] is closed — the caller has just decoded a document it no longer needs.
      */
-    fun open(document: DesktopDocument): DesktopTab {
+    fun open(document: DesktopDocument, fit: FitOnOpen = FitOnOpen.DEFAULT): DesktopTab {
         val key = keyOf(document.file)
         val existing = tabs.indexOfFirst { it.key == key }
         if (existing >= 0) {
@@ -314,6 +314,9 @@ class DesktopTabs {
             return tabs[existing]
         }
         val tab = DesktopTab(document)
+        // The zoom the Settings asked for, chosen once at open: a page already on screen keeps the zoom
+        // its reader gave it, so changing the default never moves the sheet being written on.
+        tab.fit = fit.fit
         tabs += tab
         activeIndex = tabs.lastIndex
         return tab

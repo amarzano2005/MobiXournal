@@ -185,33 +185,42 @@ class ToolStripsTest {
     }
 
     @Test
-    fun `the placement defaults to the rail and survives a restart`() {
+    fun `the placement defaults to the side and survives a restart`() {
         val file = File(temp.root, "desktop.properties")
-        assertEquals(ToolPlacement.RAIL, DesktopSettings(file).toolPlacement)
-        assertTrue(ToolPlacement.RAIL.showsRail)
+        assertEquals(StripPlacement.SIDE, DesktopSettings(file).stripPlacement)
+        assertTrue(StripPlacement.SIDE.showsRail)
 
-        DesktopSettings(file).toolPlacement = ToolPlacement.RIBBON
-        assertEquals(ToolPlacement.RIBBON, DesktopSettings(file).toolPlacement)
-        assertFalse("the ribbon alone leaves no rail", ToolPlacement.RIBBON.showsRail)
-        assertTrue(ToolPlacement.BOTH.showsRail)
-        assertTrue(ToolPlacement.BOTH.showsRibbon)
+        DesktopSettings(file).stripPlacement = StripPlacement.TOP
+        assertEquals(StripPlacement.TOP, DesktopSettings(file).stripPlacement)
+        assertFalse("the ribbon alone leaves no rail", StripPlacement.TOP.showsRail)
+        assertTrue("and it is the ribbon", StripPlacement.TOP.showsRibbon)
+        assertTrue(StripPlacement.BOTH.showsRail)
+        assertTrue(StripPlacement.BOTH.showsRibbon)
+        // The edge the rail takes is its own answer, and the tablet's default is the right hand's edge.
+        assertEquals(RailSide.LEFT, DesktopSettings(file).railSide)
+        DesktopSettings(file).railSide = RailSide.RIGHT
+        assertEquals(RailSide.RIGHT, DesktopSettings(file).railSide)
     }
 
     @Test
     fun `an unknown or unreadable file falls back to the default`() {
-        assertEquals(ToolPlacement.RAIL, ToolPlacement.of("Diagonal"))
-        assertEquals(ToolPlacement.RAIL, ToolPlacement.of(null))
-        assertEquals(ToolPlacement.BOTH, ToolPlacement.of("both"))
+        assertEquals(StripPlacement.SIDE, StripPlacement.of("Diagonal"))
+        assertEquals(StripPlacement.SIDE, StripPlacement.of(null))
+        assertEquals(StripPlacement.BOTH, StripPlacement.of("both"))
+        // The three names the file held before the row existed still answer, so an install that had
+        // already picked one does not find its strips moved.
+        assertEquals(StripPlacement.SIDE, StripPlacement.of("Rail"))
+        assertEquals(StripPlacement.TOP, StripPlacement.of("Ribbon"))
 
         val garbage = File(temp.root, "garbage.properties")
         garbage.writeText("interface.toolPlacement=\\uZZZZ")
         assertEquals(
             "a hand-edited file must not stop the window opening",
-            ToolPlacement.RAIL,
-            DesktopSettings(garbage).toolPlacement,
+            StripPlacement.SIDE,
+            DesktopSettings(garbage).stripPlacement,
         )
-        DesktopSettings(garbage).toolPlacement = ToolPlacement.BOTH
-        assertEquals(ToolPlacement.BOTH, DesktopSettings(garbage).toolPlacement)
+        DesktopSettings(garbage).stripPlacement = StripPlacement.BOTH
+        assertEquals(StripPlacement.BOTH, DesktopSettings(garbage).stripPlacement)
     }
 
     /** Both placements draw every slot's glyph, and both mark the picked slot with the steel. */
@@ -271,15 +280,15 @@ class ToolStripsTest {
         val railLane = ToolStripMetrics.railWidth.value.toInt()
         val ribbonBand = ToolStripMetrics.ribbonHeight.value.toInt()
 
-        for (placement in ToolPlacement.entries) {
+        for (placement in StripPlacement.entries) {
             val settings = DesktopSettings(File(temp.root, "settings-${placement.name}.properties"))
             val state = DesktopShellState(settings)
             state.open(document)
             // The sidebar would sit between the window edge and the rail's lane, so this measurement
             // takes it out of the picture; what it measures is the strip, not the sidebar.
             state.toggleSidebar()
-            state.chooseToolPlacement(placement)
-            assertEquals("the choice was written to the settings file", placement, settings.toolPlacement)
+            state.prefs.chooseStripPlacement(placement)
+            assertEquals("the choice was written to the settings file", placement, settings.stripPlacement)
 
             val scene = ImageComposeScene(1000, 700, Density(1f)) {
                 DesktopShell(state = state, onOpenPicker = {})

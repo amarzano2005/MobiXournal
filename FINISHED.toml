@@ -25,6 +25,61 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-settings-live-apply"
+title = "Desktop: every Settings row acts on the open window, with one test each"
+description = "Every settings row writes through DesktopSettingsState, which both keeps the value in snapshot state and stores it, so the chrome reading prefs changes on the same frame: the strips re-lay (DesktopStripLayoutTest picks a placement on an already-open document), the sidebar and inspector obey their policies, the status bar shows or hides the frame time. DesktopSettingsTest's 'every choice survives a restart' writes all seven keys through the state and reads them back from a second DesktopSettings over the same file, and asserts a second state opens on them. Settings are never the installed window's file in tests: DesktopSettings.defaultFile reads the mobixournal.desktop.settings property the desktop test task sets, and DesktopInspectorLaneTest pins its own store."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
+id = "desktop-status-frame-time"
+title = "Desktop: the status bar's measured frame time"
+description = "FrameMeter.kt measures the interval between painted frames (exponential average, idle gaps dropped, published every 250 ms), PageCanvas reports each paint, the status bar shows frameLabel beside the display's own refreshLabel and the Display section offers the switch; display.frameTime stores it and defaults to on. Tests: DesktopStatusTest for refreshLabel and frameLabel, DesktopSettingsTest for the round trip."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
+id = "desktop-settings-interface-defaults"
+title = "Desktop: Interface section - default fit, sidebar and inspector"
+description = "FitOnOpen, SidebarPolicy and InspectorPolicy in DesktopSettingValues.kt with interface.fitOnOpen, interface.sidebarPolicy and interface.inspectorPolicy; DesktopTabs starts a tab on the stored fit, DesktopSidebar.shows honours the policy (Automatic keeps the more-than-one-page rule), the inspector lane keeps to the policy. Rows in Interface, the next-document note under the zoom row. Tests: DesktopSettingsTest round-trip and defaults."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
+id = "desktop-settings-toolbar-placement"
+title = "Desktop: where the tool strips stand - top, side or both, and which edge"
+description = "StripPlacement (Side/Top/Both) and RailSide (Left/Right) in DesktopSettingValues.kt, stored under interface.toolPlacement with StripPlacement.of reading the legacy Rail/Ribbon/Both names, plus interface.railSide; PageWorkspace lays the rail on either edge and the ribbon under the header, live through DesktopSettingsState.chooseStripPlacement/chooseRailSide. Interface rows carry both choices, the side row labelled for the writing hand. Tests: DesktopSettingsTest (round trip, defaults, legacy names), DesktopStripLayoutTest (rail lane on the right edge, Top draws the ribbon and no rail), ToolStripsTest updated."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
+id = "desktop-settings-surface"
+title = "Desktop: the Settings surface and its sections"
+description = "The window's Settings page: SettingsSurface.kt (section index, open section, search field, close glyph, the body of the window between header and status bar, never a card over the sheet), SettingsSections.kt (DesktopSettingSection with title/summary/keywords, search, the page per section), SettingsRows.kt (SettingsChoice, SettingsNote, SettingsSectionRow, SettingsSearchField), DesktopSettingsState.kt (open/section/query/typing, keyAction/press for Escape-clear then Escape-close and CAPTURE, one setter per choice that writes the store), ShellCommand.OPEN_SETTINGS on Ctrl+comma, the menu's Settings row, and DesktopSettingsTest + DesktopSettingsSurfaceTest. Docs: docs/desktop-workstation.md (the strips bullet names the surface), docs/ui-modernization.md (the Ctrl+, row), README's desktop section."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
 id = "desktop-settings-and-status-ui"
 title = "Desktop: the Settings section and the status bar (scope)"
 description = "Broke the scope into 11 tasks: the Settings surface itself with its section list, rows and Ctrl+comma (desktop-settings-surface); the tool strips placeable at the TOP as well as along either SIDE, on the phone's model where the rail takes the hand-opposite edge and the figures live in the top bar (desktop-settings-toolbar-placement); the Interface defaults, fit on open plus the sidebar and inspector policy; the Display page, whose theme row is linked to desktop-light-theme-and-header-extras while the target refresh and the frame-time toggle belong to it; the Tablet page in two halves, the pen stream with the phone's pressure curve and the active area with its aspect lock; the Shortcuts page, with the codec and conflict rule moved into mobix-core so a key means the same tool in both shells; the status bar's measured frame time; one task for the live-apply hooks and the restart test every new key must extend; and the Audio page, blocked behind desktop-audio-replay."

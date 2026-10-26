@@ -108,15 +108,16 @@ What it does today:
   the same compiler the Android canvas and every export use (`LivingInk`, platform-free in `mobix-core`). A
   table on the PC is the table on the tablet; an entity this build cannot draw is reported, not drawn blank.
 - **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF
-  page** rasterised with PDFBox (about 144 dpi) and placed under the ink, so a highlighter still
-  multiplies into it. A `.mobix`'s bundled bytes are preferred over the original reference, which is
-  what keeps a shared notebook looking right after the picture's file has moved away.
-- **Shows both tool placements**: a **52 dp rail capsule in a 64 dp lane** beside the page (the
-  default, the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the
-  header, read from the window's settings file (`DesktopSettings.toolPlacement`) so the choice survives a
-  restart. Moving the strips is a setting, and the header carries no chooser for it — the Interface section
-  will own that door. The lane is **air, not a second sheet of glass**: painting it too stacked two sheets
-  and the rail read #161618. The strip is a **capsule** with its own 6 dp lift and the family's rim, so
+  page** rasterised with PDFBox (about 144 dpi) under the ink, so a highlighter still multiplies into it;
+  a `.mobix`'s bundled bytes win over the original reference, which keeps a shared notebook looking right.
+- **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
+  (the tablet's own geometry and air) and a **48 dp ribbon capsule in a 56 dp band** under the header —
+  Side, Top or Both, on either edge (`stripPlacement`, `railSide`), re-laid live by `PageWorkspace`.
+  `Ctrl+,` opens the surface that sets it: a section index, the section beside it, a search that finds
+  one by an everyday word, and rows that are the lane's own controls — **a row is a hook, a key and a
+  test**, so nothing it offers can be stored and forgotten (`DesktopSettingsTest`). The header carries
+  no chooser, because moving the strips is a setting. The lane is **air, not a second sheet of glass**:
+  painting it too stacked two sheets and the rail read #161618. The strip is a **capsule** with its own 6 dp lift and the family's rim, so
   its fill is the window's band `#0C0C0D` (the glass at `DESKTOP_BAND_ALPHA`, blacker than the tablet's
   `#131314`), and each header control is the same object at 36 dp. Both placements draw the same slots,
   in the order, glyphs and shortcuts of [`ui-modernization.md`](ui-modernization.md) §3, with the picked
@@ -133,9 +134,9 @@ What it does today:
   acting tool has no slot, or a slot lists one that cannot act.
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
-  document-red chip** and Export SVG in the accent, then a hairline and the page list's row. The tablet's Import PDF, Page
-  as PNG and Settings rows are absent because the window has no such command yet, not because it has a
-  different menu (`MenuPanel`; `DesktopMenuTest` clicks all seven rows by the panel's own metrics). The tab
+  document-red chip** and Export SVG in the accent, then a hairline, the page list's row and **Settings**. The
+  tablet's Import PDF and Page as PNG rows are absent because the window has no such command yet, not because
+  it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks all eight rows by the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window
   that starts without a recovered snapshot or a file opens one, so the default screen is a sheet to write
   on; the document is dirty from birth, its `Untitled N.xopp` name waiting for Save to ask where it goes.
@@ -395,5 +396,5 @@ Measured on 2026-10-22 against the Android editing path (line counts re-checked 
 Three decisions taken on 2026-10-21, owned by [`ui-modernization.md`](ui-modernization.md): the chrome is
 the app's **own glass on a true-black desk** (Mica/Vibrancy would tint the window with the wallpaper and stop
 it matching the tablet); **both tool placements ship** — vertical rail by default, horizontal ribbon as the
-alternative — stored in the settings file; and the tab/view model is
-Compose **snapshot state**, so the chrome is redrawn by the state it reads instead of a second copy.
+alternative — chosen in **Settings**, not by a header chooser; and the tab/view model is Compose **snapshot
+state**, redrawn by the state it reads instead of a second copy.

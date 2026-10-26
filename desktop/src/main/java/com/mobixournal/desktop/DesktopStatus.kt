@@ -60,6 +60,17 @@ internal fun refreshLabel(hz: Int?): String {
 }
 
 /**
+ * **How long a frame takes**, as the status bar's own short label — or null when there is nothing to say.
+ *
+ * [refreshLabel] is the ceiling and [averageMs] is what the window reaches: a loop painting every other
+ * frame on a 120 Hz panel reads `60.0 ms paint` next to `120 Hz · 8.3 ms frame`, which is the whole point
+ * of putting the two side by side. A readout the reader has switched off, or a window that has not painted
+ * a second frame yet, says nothing at all rather than `0.0` — a zero would be a claim about the frame.
+ */
+internal fun frameLabel(averageMs: Double, enabled: Boolean = true): String? =
+    if (!enabled || averageMs <= 0.0) null else String.format(Locale.ROOT, "%.1f ms paint", averageMs)
+
+/**
  * The refresh rate of the screen this JVM draws on, or null when the host cannot name one.
  *
  * Guarded twice on purpose: a headless run has no device to ask, and a mode can report `0` — neither is
@@ -74,7 +85,7 @@ internal fun displayRefreshHz(): Int? {
 
 /** The bottom bar: page, zoom, container and how far through the document the page is. */
 @Composable
-internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null) {
+internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null, frameTime: Boolean = true) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -119,6 +130,11 @@ internal fun StatusBar(tab: DesktopTab?, tablet: DesktopTablet? = null) {
         // it changes only when the mode does (the readout is not a per-frame probe).
         val hz = remember { displayRefreshHz() }
         Text(refreshLabel(hz), color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        // And what the window reaches of that budget — the measured half of the same sentence.
+        frameLabel(FrameMeter.averageMs, frameTime)?.let { painted ->
+            Spacer(Modifier.width(14.dp))
+            Text(painted, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
+        }
         Spacer(Modifier.weight(1f))
         // The last export's own sentence — `Exported 12 pages to notes.pdf` — in the accent, because it is
         // news rather than a reading of the document. A write that worked is worth one line, not a card.

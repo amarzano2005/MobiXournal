@@ -54,6 +54,8 @@ internal fun Header(
     onToggleSidebar: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    /** Open the Settings surface — the menu's row, and the window behind `Ctrl+,`. */
+    onSettings: () -> Unit,
 ) {
     val tab = tabs.active
     Row(
@@ -75,6 +77,7 @@ internal fun Header(
             onExportPdf = onExportPdf,
             onExportSvg = onExportSvg,
             onToggleSidebar = onToggleSidebar,
+            onSettings = onSettings,
         )
         Spacer(Modifier.width(10.dp))
         TabStrip(

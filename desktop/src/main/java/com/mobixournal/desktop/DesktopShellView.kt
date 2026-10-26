@@ -2,6 +2,7 @@ package com.mobixournal.desktop
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,34 +62,54 @@ internal fun DesktopShell(
             // menu reach: a header button is a third door, never a third implementation.
             onUndo = { state.apply(ShellCommand.UNDO) },
             onRedo = { state.apply(ShellCommand.REDO) },
+            onSettings = { state.apply(ShellCommand.OPEN_SETTINGS) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            val tab = state.active
-            when {
-                // With nothing open the notice owns the window; with a document open the card floats
-                // over it instead, so an unopenable file cannot hide the one you were reading.
-                tab == null && state.failure != null -> Notice(state.failure!!.title, state.failure!!.detail)
-                tab == null -> Notice(
-                    "Open a .xopp or .mobix file to start",
-                    "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
-                        "image backgrounds, read-only.",
-                )
-                // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
-                else -> PageWorkspace(state, tab, tablet)
+            // The Settings surface is a **section of the window**: it takes the whole body, so the page is
+            // not drawn under it and no card floats over a sheet the reader cannot reach. The header and
+            // the status bar stay, which is what makes it a section rather than a window of its own.
+            if (state.prefs.open) {
+                SettingsSurface(state.prefs)
+            } else {
+                WorkspaceBody(state, tablet)
             }
-            if (tab != null) {
-                state.failure?.let { reported ->
-                    OpenFailureCard(
-                        failure = reported,
-                        onDismiss = { state.dismissFailure() },
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
-                    )
-                }
-            }
-            ColourPanelHost(state)
-            PageSetupHost(state)
-            CloseDialogHost(state)
         }
-        StatusBar(state.active, tablet)
+        StatusBar(state.active, tablet, state.prefs.frameTime)
     }
+}
+
+/**
+ * The document's own half: the notice when nothing is open, the workspace when something is, and the
+ * floating surfaces the window raises over the page.
+ *
+ * Apart from [DesktopShell] so the Settings branch is one `if` at the top rather than a condition threaded
+ * through every card the page can raise (`SourceStructureTest` keeps both files inside the budget).
+ */
+@Composable
+private fun BoxScope.WorkspaceBody(state: DesktopShellState, tablet: DesktopTablet?) {
+    val tab = state.active
+    when {
+        // With nothing open the notice owns the window; with a document open the card floats over it
+        // instead, so an unopenable file cannot hide the one you were reading.
+        tab == null && state.failure != null -> Notice(state.failure!!.title, state.failure!!.detail)
+        tab == null -> Notice(
+            "Open a .xopp or .mobix file to start",
+            "Ctrl+T, or “Open…”. The preview shows paper, ink, living entities and PDF or " +
+                "image backgrounds, read-only.",
+        )
+        // The strips in their lanes, the sidebar and the page: `DesktopWorkspace.kt`.
+        else -> PageWorkspace(state, tab, tablet)
+    }
+    if (tab != null) {
+        state.failure?.let { reported ->
+            OpenFailureCard(
+                failure = reported,
+                onDismiss = { state.dismissFailure() },
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp),
+            )
+        }
+    }
+    ColourPanelHost(state)
+    PageSetupHost(state)
+    CloseDialogHost(state)
 }

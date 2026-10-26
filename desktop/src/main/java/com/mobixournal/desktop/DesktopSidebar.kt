@@ -22,16 +22,23 @@ internal class DesktopSidebar {
     /** The answer the user gave on one document, keyed by the tab's own [DesktopTab.key]. */
     private var choice by mutableStateOf<Choice?>(null)
 
-    /** Whether the lane shows: the user's answer for this document, else the document's own page count. */
-    fun shows(tab: DesktopTab?): Boolean {
+    /**
+     * Whether the lane shows: the user's answer for this document, else [policy]'s rule.
+     *
+     * The setting is the **rule**, the toggle is one document's exception, and `Never` is the one answer a
+     * toggle cannot override — a page list the reader has switched off entirely must not reappear because
+     * `Ctrl+B` was pressed on a tab.
+     */
+    fun shows(tab: DesktopTab?, policy: SidebarPolicy = SidebarPolicy.DEFAULT): Boolean {
+        if (policy == SidebarPolicy.NEVER) return false
         val chosen = choice
         if (tab != null && chosen?.key == tab.key) return chosen.visible
-        return pageListWorthShowing(tab?.pageCount)
+        return if (policy == SidebarPolicy.ALWAYS) true else pageListWorthShowing(tab?.pageCount)
     }
 
     /** Flip the lane for [tab], remembering the answer for that document only. */
-    fun toggle(tab: DesktopTab?) {
-        val visible = !shows(tab)
+    fun toggle(tab: DesktopTab?, policy: SidebarPolicy = SidebarPolicy.DEFAULT) {
+        val visible = !shows(tab, policy)
         choice = if (tab == null) null else Choice(tab.key, visible)
     }
 

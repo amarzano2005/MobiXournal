@@ -61,6 +61,7 @@ internal fun HeaderMenu(
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
     onToggleSidebar: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -86,6 +87,7 @@ internal fun HeaderMenu(
                     onExportPdf = { open = false; onExportPdf() },
                     onExportSvg = { open = false; onExportSvg() },
                     onToggleSidebar = { open = false; onToggleSidebar() },
+                    onSettings = { open = false; onSettings() },
                 )
             }
         }
@@ -105,6 +107,7 @@ internal fun MenuPanel(
     onExportPdf: () -> Unit,
     onExportSvg: () -> Unit,
     onToggleSidebar: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     Column(
         Modifier
@@ -138,6 +141,14 @@ internal fun MenuPanel(
             shortcut = "Ctrl+B",
             enabled = true,
             onClick = onToggleSidebar,
+        )
+        // The tablet's Settings row, in the window: its own page rather than a card over the sheet, so it
+        // is here with the other commands and not in the chrome it changes.
+        MenuRow(
+            label = "Settings",
+            shortcut = "Ctrl+,",
+            enabled = true,
+            onClick = onSettings,
         )
     }
 }

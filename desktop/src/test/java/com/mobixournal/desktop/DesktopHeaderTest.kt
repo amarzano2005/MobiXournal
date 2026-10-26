@@ -65,6 +65,7 @@ class DesktopHeaderTest {
                 onExportPdf = { counts[EXPORT]++ },
                 onExportSvg = {},
                 onToggleSidebar = {},
+                onSettings = {},
                 onUndo = { counts[UNDO]++ },
                 onRedo = { counts[REDO]++ },
             )
@@ -114,6 +115,7 @@ class DesktopHeaderTest {
                 onExportPdf = {},
                 onExportSvg = {},
                 onToggleSidebar = {},
+                onSettings = {},
                 onUndo = {},
                 onRedo = {},
             )
@@ -171,6 +173,7 @@ class DesktopHeaderTest {
                     onExportPdf = {},
                     onExportSvg = {},
                     onToggleSidebar = {},
+                onSettings = {},
                     onUndo = {},
                     onRedo = {},
                 )
@@ -212,6 +215,7 @@ class DesktopHeaderTest {
                 onExportPdf = { counts[EXPORT]++ },
                 onExportSvg = {},
                 onToggleSidebar = {},
+                onSettings = {},
                 onUndo = { counts[UNDO]++ },
                 onRedo = { counts[REDO]++ },
             )

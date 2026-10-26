@@ -522,6 +522,9 @@ private fun DrawScope.paintSheet(
         sheetPicture.records,
         System.identityHashCode(page),
     )
+    // And the same frame, for the status bar: the watchdog writes a file nobody reads unless it is told to,
+    // the meter answers the question a reader asks when a stroke feels late (`FrameMeter`).
+    FrameMeter.painted()
 }
 
 /**

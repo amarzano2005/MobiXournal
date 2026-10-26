@@ -119,7 +119,7 @@ class DesktopShellState(
     private val sidebar = DesktopSidebar()
 
     /** Whether the page list is showing (`Ctrl+B`) — computed, so opening a file needs no second step. */
-    val sidebarVisible: Boolean get() = sidebar.shows(active)
+    val sidebarVisible: Boolean get() = sidebar.shows(active, prefs.sidebarPolicy)
 
     /** True while `Space` is held: a primary-button drag pans instead of drawing. */
     var panMode by mutableStateOf(false)
@@ -215,7 +215,9 @@ class DesktopShellState(
 
     /** The family whose palette is open (`CircuitKindPicker`), or null when none is. */
     var circuitPickerOpen by mutableStateOf<CircuitFamily?>(null)
-        private set
+        // Written by the shell's own commands and cleared by `WindowEscape`, which is a separate file
+        // only because this one is at its structural limit.
+        internal set
 
     /** Arm [family]'s slot with [kind]; the palette closes, because the question is answered. */
     fun pickCircuitKind(family: CircuitFamily, kind: ShapeKind) {
@@ -243,7 +245,7 @@ class DesktopShellState(
      * answer, so a circuit places at once.
      */
     var pendingPlacement by mutableStateOf<PendingPlacement?>(null)
-        private set
+        internal set
 
     /**
      * What a lifted living-slot drag means: the family's question for a plot or a table, the placement
@@ -294,12 +296,11 @@ class DesktopShellState(
     }
 
     /**
-     * Which tool strips the window shows, mirrored from the settings file into snapshot state: the file
-     * is where the choice *lives*, this is what the chrome reads, and [chooseToolPlacement] writes both —
-     * so the chrome never has to poll a file and a restart still finds the placement it had.
+     * The window's **Settings**: the surface's own state and every choice that outlives a restart
+     * (`DesktopSettingsState`). The chrome reads the values through this one object, so a row on the
+     * surface is the same value the strips, the sidebar and the status bar draw.
      */
-    var toolPlacement by mutableStateOf(settings.toolPlacement)
-        private set
+    val prefs = DesktopSettingsState(settings)
 
     /**
      * The window's ink and palette, its own piece of the state, owned here and forwarded below so every
@@ -397,12 +398,6 @@ class DesktopShellState(
     /** Commit the colour the panel handed back: the custom slot, or a new palette entry, as the ink. */
     fun commitColour(colour: Int) = inkState.commitColour(colour)
 
-    /** Move the tool strips, and remember the choice across restarts. */
-    fun chooseToolPlacement(placement: ToolPlacement) {
-        toolPlacement = placement
-        settings.toolPlacement = placement
-    }
-
     /** The active document, if any. */
     val active: DesktopTab? get() = tabs.active
 
@@ -471,7 +466,7 @@ class DesktopShellState(
     fun open(file: File) {
         runCatching { DocumentLoader.load(file) }
             .onSuccess { document ->
-                tabs.open(document)
+                tabs.open(document, prefs.fitOnOpen)
                 failure = null
             }
             .onFailure { failure = describeOpenFailure(it) }
@@ -487,7 +482,7 @@ class DesktopShellState(
     }
 
     fun toggleSidebar() {
-        sidebar.toggle(active)
+        sidebar.toggle(active, prefs.sidebarPolicy)
     }
 
     /**
@@ -513,6 +508,9 @@ class DesktopShellState(
             return true
         }
         if (textBox.box != null) return false
+        // The Settings surface owns the keyboard while it is up: `Esc` clears its search or closes it, and
+        // nothing on the page underneath is a command while a page it cannot see is covered.
+        if (prefs.onKey(event)) return true
         // A question owns `Esc` before anything else: Cancel is the answer that loses nothing.
         if (event.key == Key.Escape && closeRequest != null) {
             cancelClose()
@@ -578,7 +576,11 @@ class DesktopShellState(
         onExportPicker: () -> Unit = {},
     ): Boolean {
         when (command) {
-            ShellCommand.DISMISS_FAILURE -> return dismissSurface()
+            ShellCommand.DISMISS_FAILURE -> return WindowEscape.dismiss(this)
+            ShellCommand.OPEN_SETTINGS -> {
+                prefs.openAt()
+                return true
+            }
             ShellCommand.OPEN -> {
                 onOpenPicker()
                 return true
@@ -607,6 +609,8 @@ class DesktopShellState(
         }
         val tab = tabs.active ?: return false
         return when (command) {
+            // Answered above, before a tab is needed: Settings opens with nothing on screen.
+            ShellCommand.OPEN_SETTINGS -> true
             ShellCommand.CLOSE_TAB -> {
                 requestCloseActive(); true
             }
@@ -658,32 +662,6 @@ class DesktopShellState(
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.SAVE, ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> false
         }
-    }
-
-    /**
-     * `Esc`, in the order the window's surfaces stack: the drag in flight, the component palette, the
-     * failure card. A surface that is not up answers false, so the key is not swallowed by nothing.
-     */
-    private fun dismissSurface(): Boolean {
-        // A drag that has not finished is first: cancelling the figure is the only way back from it.
-        val cancel = liveDrag
-        if (cancel != null) {
-            liveDrag = null
-            cancel()
-            return true
-        }
-        // The placement question is newer than the palette and older than the failure card.
-        if (pendingPlacement != null) {
-            pendingPlacement = null
-            return true
-        }
-        if (circuitPickerOpen != null) {
-            circuitPickerOpen = null
-            return true
-        }
-        if (failure == null) return false
-        failure = null
-        return true
     }
 
     /**

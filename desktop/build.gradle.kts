@@ -38,6 +38,17 @@ tasks.withType<JavaExec>().configureEach {
     workingDir = rootProject.projectDir
 }
 
+// The suite must not read or write the settings file of the **installed** window. `DesktopSettings`
+// resolves `%APPDATA%\MobiXournal\desktop.properties` unless this property names another file, so a
+// developer who has already moved the rail (or hidden the inspector) would otherwise change what a
+// pixel test renders — the command-line test that clicks the lane's own rows failed that way once.
+tasks.withType<Test>().configureEach {
+    systemProperty(
+        "mobixournal.desktop.settings",
+        layout.buildDirectory.file("test-settings/desktop.properties").get().asFile.absolutePath,
+    )
+}
+
 compose.desktop {
     application {
         mainClass = "com.mobixournal.desktop.MainKt"

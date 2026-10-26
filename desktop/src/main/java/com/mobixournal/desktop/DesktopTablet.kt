@@ -81,6 +81,11 @@ internal class DesktopTablet {
      * called from whichever thread Windows raises them on — a caller with state to touch marshals to its
      * UI thread (`DesktopApp` posts them). [onSample] and [onEvent] are the diagnostics probe's observers
      * and are null in the editor.
+     *
+     * [prefer] is Settings' pen-stream answer (`PenStream`). `AUTOMATIC` is the order this class has always
+     * tried — Wintab, whose packets carry the pressure at the tablet's own rate, then Windows Ink. `INK`
+     * skips the driver library entirely, for a pen whose Wintab reports a contact Windows Ink reports
+     * better; the window procedure is still opened either way, because it is where the wheel arrives.
      */
     fun open(
         window: Window,
@@ -89,6 +94,7 @@ internal class DesktopTablet {
         log: (String) -> Unit,
         onSample: ((PenContact) -> Unit)? = null,
         onEvent: ((String) -> Unit)? = null,
+        prefer: PenStream = PenStream.DEFAULT,
     ) {
         // The wheel first: the ink reader's window procedure is what feeds it a raw report.
         wheel = TabletWheel.open(window, log, onNotches = {}, onEvent = onEvent)
@@ -112,8 +118,13 @@ internal class DesktopTablet {
                 }
             },
         )
-        // And the packet stream, which is the one that has pressure on this machine.
-        wintab = TabletWintab.open(window, log, onSample = onSample, onEvent = onEvent)
+        // And the packet stream, which is the one that has pressure on this machine — unless Settings
+        // asked for Windows Ink, which is then the only stream the pen is read from.
+        wintab = if (prefer == PenStream.INK) {
+            null
+        } else {
+            TabletWintab.open(window, log, onSample = onSample, onEvent = onEvent)
+        }
         source = when {
             wintab != null -> PenSource.WINTAB
             ink != null -> PenSource.INK

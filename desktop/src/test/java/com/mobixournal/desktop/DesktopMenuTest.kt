@@ -143,6 +143,7 @@ class DesktopMenuTest {
                     onExportPdf = { counters[PDF]++ },
                     onExportSvg = { counters[SVG]++ },
                     onToggleSidebar = { counters[SIDEBAR]++ },
+                    onSettings = {},
                 )
             }
         }

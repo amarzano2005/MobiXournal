@@ -52,7 +52,13 @@ class DesktopInspectorLaneTest {
         SyntheticNotebook.write(file, SyntheticNotebook.pages(2))
     }
 
-    private fun shell(): DesktopShellState = DesktopShellState().also { it.open(notebook()) }
+    /**
+     * A window on **its own** settings: this file clicks the lane's rows by pixel, and where the lane
+     * stands depends on the strip placement, the sidebar and the inspector policy — a store shared with
+     * another test (or with the installed window) would move the row out from under the click.
+     */
+    private fun shell(): DesktopShellState =
+        DesktopShellState(DesktopSettings(File(temp.root, "lane.properties"))).also { it.open(notebook()) }
 
     /**
      * The lane's own column, just inside its right edge: past the cards' 12 dp padding, so the pixel is the

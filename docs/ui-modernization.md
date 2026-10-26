@@ -236,6 +236,7 @@ Everything the chrome does can also be done from the keyboard:
 | `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the active tab's last command |
 | `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
 | `Ctrl + B`, `≡` | show or hide the sidebar |
+| `Ctrl + ,` | open the window's Settings — a page of the window, not a card over the page |
 | `Ctrl + =`, `Ctrl + NumPad +` | zoom in — see the layout note below |
 | `Ctrl + -`, `Ctrl + NumPad -` | zoom out |
 | `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
@@ -249,9 +250,8 @@ Everything the chrome does can also be done from the keyboard:
 | `]` / `[` | wider / thinner — one step through `S`, `M`, `L`, stopping at the ends |
 
 Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the floating
-glass over the page rather than closing silently; `Esc` is Cancel. The window's X goes through the same
-path, so neither door can lose work, and a tab with unsaved edits wears a dot in the accent after its
-label (`docs/desktop-workstation.md`).
+glass over the page rather than closing silently; `Esc` is Cancel and the window's X takes the same path.
+A tab with unsaved edits wears a dot in the accent after its label (`docs/desktop-workstation.md`).
 
 **The two history commands have defined states, not just a binding.** `Ctrl + Z` and `Ctrl + Shift + Z`
 act on the **active tab's own** `EditHistory` — undoing in one document never reaches into another — and

@@ -67,6 +67,9 @@ enum class ShellCommand {
     DUPLICATE_SELECTION,
 
     DISMISS_FAILURE,
+
+    /** Open the Settings surface (`Ctrl+,`), the window's own page for every choice it keeps. */
+    OPEN_SETTINGS,
 }
 
 /** What an ink key means, independent of the platform's event type (and therefore testable). */
@@ -158,6 +161,8 @@ internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = 
 internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
     key == Key.Escape -> ShellCommand.DISMISS_FAILURE
     ctrl && key == Key.T -> ShellCommand.OPEN
+    // `Ctrl+,` — the keyboard's own way into Settings, as on every desktop app that has a preferences page.
+    ctrl && key == Key.Comma -> ShellCommand.OPEN_SETTINGS
     ctrl && key == Key.Z -> if (shift) ShellCommand.REDO else ShellCommand.UNDO
     ctrl && key == Key.S -> if (shift) ShellCommand.SAVE_AS else ShellCommand.SAVE
     ctrl && key == Key.W -> ShellCommand.CLOSE_TAB

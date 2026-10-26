@@ -102,12 +102,17 @@ fun FrameWindowScope.DesktopApp(
         DesktopExportQueue.pickPdfDestination = ::pickExportDestination
         onDispose { DesktopExportQueue.pickPdfDestination = null }
     }
-    DisposableEffect(Unit) {
+    // Keyed on the pen-stream preference: choosing Windows Ink on the Settings surface reopens the readers
+    // with the next frame, which is the one hook that cannot be a value the canvas reads — the stream is a
+    // device opened once.
+    val penStream = state.prefs.penStream
+    DisposableEffect(penStream) {
         tablet.open(
             window = window,
             onRotation = { degrees -> EventQueue.invokeLater { state.dialZoom(degrees) } },
             onClick = { EventQueue.invokeLater { state.dialFit() } },
             log = { println("MobiXournal tablet: $it") },
+            prefer = penStream,
         )
         onDispose { tablet.close() }
     }

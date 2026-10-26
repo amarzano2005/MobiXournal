@@ -6,43 +6,17 @@ import java.io.File
 import java.util.Properties
 
 /**
- * Where the drawing tools stand, per `docs/ui-modernization.md` §2.
- *
- * Both placements ship: the vertical rail is the default and the horizontal ribbon is the alternative
- * for a 16:9 monitor, and `Both` shows the rail’s lane and the ribbon at once. Whichever is chosen it is
- * a band in its own lane beside the canvas — never a bar lying over the page.
- */
-enum class ToolPlacement(val label: String) {
-    RAIL("Rail"),
-    RIBBON("Ribbon"),
-    BOTH("Both"),
-    ;
-
-    /** The vertical rail's lane is drawn (Rail and Both). */
-    val showsRail: Boolean get() = this != RIBBON
-
-    /** The horizontal ribbon under the header is drawn (Ribbon and Both). */
-    val showsRibbon: Boolean get() = this != RAIL
-
-    companion object {
-        /** [name] as `ToolPlacement`, falling back to [RAIL] for anything this build does not know. */
-        fun of(name: String?): ToolPlacement =
-            entries.firstOrNull { it.name.equals(name?.trim(), ignoreCase = true) } ?: RAIL
-    }
-}
-
-/**
  * The desktop window's small settings store: a Java properties file beside the app's data, not a
  * database and not the Android app's settings file.
  *
- * It exists because the placement has to survive a restart, and a desktop app has somewhere ordinary to
- * put that: `%APPDATA%\MobiXournal\desktop.properties` on Windows ([defaultFile]). The file is read
- * once and rewritten on every change, so a settings write is never lost to a crash — and a read that
- * fails (a hand-edited file, a directory without permission) falls back to the documented defaults
- * instead of stopping the window from opening.
+ * It exists because a choice has to survive a restart, and a desktop app has somewhere ordinary to put
+ * that: `%APPDATA%\MobiXournal\desktop.properties` on Windows ([defaultFile]). The file is read once and
+ * rewritten on every change, so a settings write is never lost to a crash — and a read that fails (a
+ * hand-edited file, a directory without permission) falls back to the documented defaults instead of
+ * stopping the window from opening.
  *
- * Later desktop settings (Interface, Display, Tablet, Dial — `desktop-settings-and-status-ui`) join this
- * same file; that is why it is a store rather than one property.
+ * Every property here is one row of the Settings surface (`SettingsSurface`), and every row is a hook as
+ * well as a key: a choice that changed nothing on screen would be a setting the window forgot.
  */
 class DesktopSettings(val file: File = defaultFile()) {
 
@@ -52,11 +26,70 @@ class DesktopSettings(val file: File = defaultFile()) {
         runCatching { if (file.isFile) file.inputStream().use(properties::load) }
     }
 
-    /** Which tool strips the window shows. Rail is the documented default. */
-    var toolPlacement: ToolPlacement
-        get() = ToolPlacement.of(properties.getProperty(KEY_TOOL_PLACEMENT))
+    /**
+     * Where the tool strips stand — the rail down an edge, the ribbon under the header, or both.
+     *
+     * The key is the one the choice has always lived under, and [StripPlacement.of] still reads the
+     * names it used to hold (`Rail`, `Ribbon`, `Both`), so this row arriving did not move anybody's
+     * strips.
+     */
+    var stripPlacement: StripPlacement
+        get() = StripPlacement.of(properties.getProperty(KEY_TOOL_PLACEMENT))
         set(value) {
             properties.setProperty(KEY_TOOL_PLACEMENT, value.name)
+            save()
+        }
+
+    /** Which edge the rail takes: the tablet's handedness answer, Left by default. */
+    var railSide: RailSide
+        get() = RailSide.of(properties.getProperty(KEY_RAIL_SIDE))
+        set(value) {
+            properties.setProperty(KEY_RAIL_SIDE, value.name)
+            save()
+        }
+
+    /** The zoom a document opens at, before the reader touches anything. */
+    var fitOnOpen: FitOnOpen
+        get() = FitOnOpen.of(properties.getProperty(KEY_FIT_ON_OPEN))
+        set(value) {
+            properties.setProperty(KEY_FIT_ON_OPEN, value.name)
+            save()
+        }
+
+    /** When the page list shows itself: the window's own more-than-one-page rule, always or never. */
+    var sidebarPolicy: SidebarPolicy
+        get() = SidebarPolicy.of(properties.getProperty(KEY_SIDEBAR_POLICY))
+        set(value) {
+            properties.setProperty(KEY_SIDEBAR_POLICY, value.name)
+            save()
+        }
+
+    /** Whether the inspector lane may open while something is being edited. */
+    var inspectorPolicy: InspectorPolicy
+        get() = InspectorPolicy.of(properties.getProperty(KEY_INSPECTOR_POLICY))
+        set(value) {
+            properties.setProperty(KEY_INSPECTOR_POLICY, value.name)
+            save()
+        }
+
+    /**
+     * Whether the status bar reports the frame time the window actually paints at.
+     *
+     * A readout, not a behaviour: it turns one label on and nothing else, so it is safe to leave off
+     * on a machine whose number nobody is watching.
+     */
+    var frameTime: Boolean
+        get() = properties.getProperty(KEY_FRAME_TIME)?.trim()?.equals("true", ignoreCase = true) ?: true
+        set(value) {
+            properties.setProperty(KEY_FRAME_TIME, value.toString())
+            save()
+        }
+
+    /** Which pen stream the window prefers — Wintab and Windows Ink, or whichever this host has. */
+    var penStream: PenStream
+        get() = PenStream.of(properties.getProperty(KEY_PEN_STREAM))
+        set(value) {
+            properties.setProperty(KEY_PEN_STREAM, value.name)
             save()
         }
 
@@ -211,6 +244,24 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** The property the placement is stored under, named for the settings section that owns it. */
         const val KEY_TOOL_PLACEMENT = "interface.toolPlacement"
 
+        /** Which edge the rail takes. */
+        const val KEY_RAIL_SIDE = "interface.railSide"
+
+        /** The zoom a document opens at. */
+        const val KEY_FIT_ON_OPEN = "interface.fitOnOpen"
+
+        /** When the page list shows itself. */
+        const val KEY_SIDEBAR_POLICY = "interface.sidebarPolicy"
+
+        /** Whether the inspector lane may open. */
+        const val KEY_INSPECTOR_POLICY = "interface.inspectorPolicy"
+
+        /** Whether the status bar reports the paint time per frame. */
+        const val KEY_FRAME_TIME = "display.frameTime"
+
+        /** The preferred pen stream. */
+        const val KEY_PEN_STREAM = "tablet.penStream"
+
         /** The palette the colour flyout draws, as [PaletteCodec]'s comma-separated hex list. */
         const val KEY_PALETTE_COLORS = "palette.colours"
 
@@ -253,11 +304,20 @@ class DesktopSettings(val file: File = defaultFile()) {
         /**
          * The store's home: `%APPDATA%\MobiXournal\desktop.properties` on Windows, and the same
          * directory name under the user's home where `APPDATA` is not set.
+         *
+         * [TEST_SETTINGS_PROPERTY] names another file, and the suite sets it: a test that opens a window
+         * with no settings of its own must read a file that test run owns, never the one the installed
+         * window on this machine has been taught (a moved rail or a hidden inspector changes what a
+         * pixel test renders).
          */
         fun defaultFile(): File {
+            System.getProperty(TEST_SETTINGS_PROPERTY)?.takeIf { it.isNotBlank() }?.let { return File(it) }
             val appData = System.getenv("APPDATA")
             val base = if (!appData.isNullOrBlank()) File(appData) else File(System.getProperty("user.home"))
             return File(File(base, "MobiXournal"), "desktop.properties")
         }
+
+        /** The system property that moves the store, so a suite never reads the installed window's file. */
+        const val TEST_SETTINGS_PROPERTY = "mobixournal.desktop.settings"
     }
 }

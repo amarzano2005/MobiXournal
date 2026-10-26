@@ -79,7 +79,7 @@ class DesktopPageSetupTest {
     fun `the format panel draws the custom size it offers`() {
         val state = DesktopShellState(settings = DesktopSettings(temp.newFile("format.properties")))
         state.open(notebook())
-        state.chooseToolPlacement(ToolPlacement.BOTH)
+        state.prefs.chooseStripPlacement(StripPlacement.BOTH)
         state.openPageSetup(PageSetupSection.FORMAT)
         val scene = androidx.compose.ui.ImageComposeScene(1100, 900, androidx.compose.ui.unit.Density(1f)) {
             DesktopShell(state = state, onOpenPicker = {})

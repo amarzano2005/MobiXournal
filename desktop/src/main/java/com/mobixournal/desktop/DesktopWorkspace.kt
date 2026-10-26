@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.mobixournal.format.model.LineStyle
 
 /**
  * The document's half of the window: the tool strips in their own lanes, the sidebar, the page.
@@ -20,19 +21,11 @@ import androidx.compose.ui.Modifier
 @Composable
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
     Column(Modifier.fillMaxSize()) {
-        if (state.toolPlacement.showsRibbon) {
-            ToolRibbon(
-                state = state.stripState,
-                onSelect = state::selectTool,
-                ink = InkActions(
-                    onColour = state::pickColour,
-                    onWidth = state::pickWidth,
-                    onLineStyle = state::pickLineStyle,
-                    onEditCustom = { state.editColour(ColourEditorTarget.CUSTOM) },
-                    onAddColour = { state.editColour(ColourEditorTarget.NEW) },
-                ),
-            )
-        }
+        if (state.prefs.stripPlacement.showsRibbon) StripRibbon(state)
+        // The rail is one composable with two homes — the lane before the canvas or the lane after it,
+        // whichever edge `RailSide` names — so the two edges cannot drift into two rails.
+        val showsRail = state.prefs.stripPlacement.showsRail
+        val railOnLeft = state.prefs.railSide == RailSide.LEFT
         Row(Modifier.weight(1f).fillMaxWidth()) {
             if (state.sidebarVisible) {
                 PageSidebar(
@@ -43,18 +36,7 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                     revision = state.thumbnailRevision,
                 )
             }
-            if (state.toolPlacement.showsRail) {
-                ToolRail(
-                    state = state.stripState,
-                    onSelect = state::selectTool,
-                    ink = InkActions(
-                        onColour = state::pickColour,
-                        onWidth = state::pickWidth,
-                        onEditCustom = { state.editColour(ColourEditorTarget.CUSTOM) },
-                        onAddColour = { state.editColour(ColourEditorTarget.NEW) },
-                    ),
-                )
-            }
+            if (showsRail && railOnLeft) StripRail(state)
             PageCanvas(
                 tab = tab,
                 panMode = state.panMode,
@@ -109,9 +91,55 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
                 },
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+            if (showsRail && !railOnLeft) StripRail(state)
             // The inspector, in a lane of its own on the right: it takes width from the row, so the page
-            // keeps the rectangle that is left and no glass is ever drawn over the sheet.
-            InspectorLane(state = state, tab = tab)
+            // keeps the rectangle that is left and no glass is ever drawn over the sheet. Its policy can
+            // only keep it shut — a column of blank controls is not an answer the lane has.
+            if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {
+                InspectorLane(state = state, tab = tab)
+            }
         }
     }
 }
+
+/**
+ * The **ribbon**: the same tools as the rail, in a band under the header, for `Top` and `Both`.
+ *
+ * It is a named composable rather than an inline call so the layout above reads as the three lanes it
+ * arranges, and so the strip's ink actions are written once (`inkActions`) instead of at each home.
+ */
+@Composable
+private fun StripRibbon(state: DesktopShellState) {
+    ToolRibbon(
+        state = state.stripState,
+        onSelect = state::selectTool,
+        // The ribbon also carries the pen's line style; the rail leaves it to the colour flyout.
+        ink = state.inkActions(onLineStyle = state::pickLineStyle),
+    )
+}
+
+/**
+ * The **rail**: the tablet's own Main Toolbar, in whichever lane `RailSide` names.
+ *
+ * One composable, called on either side of the canvas, so a change to the rail cannot reach one edge and
+ * miss the other.
+ */
+@Composable
+private fun StripRail(state: DesktopShellState) {
+    ToolRail(
+        state = state.stripState,
+        onSelect = state::selectTool,
+        ink = state.inkActions(),
+    )
+}
+
+/** The colour capsule's verbs, as the strips' one action set — built from the shell, not from a copy. */
+private fun DesktopShellState.inkActions(
+    onLineStyle: (LineStyle) -> Unit = {},
+): InkActions = InkActions(
+    onColour = ::pickColour,
+    onWidth = ::pickWidth,
+    onLineStyle = onLineStyle,
+    onEditCustom = { editColour(ColourEditorTarget.CUSTOM) },
+    onAddColour = { editColour(ColourEditorTarget.NEW) },
+)

@@ -232,51 +232,9 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-settings-surface"
-title = "Desktop: the Settings surface and its sections"
-description = "Open the window's Settings surface: a full-window page in the window's own glass (docs/interface-contract.md), reached from a Settings row at the foot of the header overflow menu (desktop/src/main/java/com/mobixournal/desktop/DesktopMenu.kt) and from Ctrl+comma, and closed with Escape and with its own close glyph. New files in desktop/src/main/java/com/mobixournal/desktop/: SettingsSurface.kt (a section column on the left, the open section on the right, the document NOT painted behind it - a section of the window, never a card floating over the page); SettingsSections.kt (enum DesktopSettingSection carrying title, summary and search keywords, mirroring the phone's SettingsArea/SettingsSection split in app/src/main/java/com/mobixournal/ui/SettingsScreen.kt: Interface, Display, Tablet, Dial, Shortcuts, About, plus Audio when desktop-settings-audio lands; a section whose controls have not landed says so in one line rather than hiding); SettingsRows.kt (the shared controls - SettingsChoice segmented picker, SettingsToggle, SettingsNumber field, SettingsSlider, SettingsNote - tokens only, all five states, English copy, the tablet's own glyphs from the mobix-core catalogue). Add ShellCommand.OPEN_SETTINGS and CLOSE_SETTINGS to desktop/src/main/java/com/mobixournal/desktop/DesktopKeys.kt with their key mapping, and the fields settingsOpen and settingsSection to DesktopShellState, with DesktopShellView choosing between the workspace and the surface and the page shortcuts standing aside while it is open. A search field over titles, summaries and keywords, the same rule as app/src/main/java/com/mobixournal/ui/SettingsSearch.kt. Tests: DesktopSettingsSurfaceTest renders the surface with ImageComposeScene and asserts the section column and the open section draw while the document ink does not; DesktopKeysTest asserts Ctrl+comma reaches OPEN_SETTINGS and Escape while open reaches CLOSE_SETTINGS. Docs: docs/desktop-workstation.md (a Settings section, inside its 400-line budget) and README (the desktop section). Rebuild: no, this is a desktop-only change."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1030
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-toolbar-placement"
-title = "Desktop: where the tool strips stand - top, side or both, and which edge"
-description = "The row the user asked for by name: the tool strips must be placeable along the TOP as well as at the SIDE. Today ToolPlacement in desktop/src/main/java/com/mobixournal/desktop/DesktopSettings.kt is Rail/Ribbon/Both, with no way to change it from the window (the header chooser was removed on purpose, Header.kt) and no left/right choice; the phone offers exactly this in its Toolbar section (AppSettings.toolbarPosition LEFT/RIGHT in app/src/main/java/com/mobixournal/ui/AppSettings.kt, page in app/src/main/java/com/mobixournal/ui/ToolbarSection.kt), and its figures toolbar sits in the top bar. Replace the enum with StripPlacement (SIDE, TOP, BOTH) plus RailSide (LEFT, RIGHT), stored under the existing interface.toolPlacement key with a migration in StripPlacement.of that still reads the old names Rail, Ribbon and Both, and a new interface.railSide key defaulting to LEFT. PageWorkspace in desktop/src/main/java/com/mobixournal/desktop/DesktopWorkspace.kt lays the rail on the chosen edge (left: after the page sidebar, before the canvas; right: after the canvas, before the inspector lane) and the ribbon as a band under the header for TOP and BOTH, so the page keeps the rectangle that is left and nothing is ever drawn over the sheet (docs/chrome.md). The change applies live through DesktopShellState.setToolPlacement. Interface rows: a three-way Top / Side / Both choice and, while a side is drawn, Left / Right labelled for the writing hand exactly as the phone labels it. Tests: a new DesktopSettingsTest (round-trip of both keys, and the legacy names Rail/Ribbon/Both read back as SIDE/TOP/BOTH from a properties file already on disk) and DesktopStripLayoutTest, which renders PageWorkspace and asserts the rail lane sits right of the canvas under RailSide.RIGHT and that StripPlacement.TOP draws the ribbon and no rail. Docs: docs/desktop-workstation.md (Interface, the placement rule) and README (the window's toolbars)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1040
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-interface-defaults"
-title = "Desktop: Interface section - default fit, sidebar and inspector"
-description = "The rest of the Interface page, the three defaults that decide how a document opens. Default fit (Fit page / Fit width / Free zoom), applied to a tab when it is opened in desktop/src/main/java/com/mobixournal/desktop/DesktopTabs.kt, where FitMode.AUTO is chosen today. Page sidebar policy (Automatic - the existing rule that shows the sidebar only for a document of more than one page, Always, Never), applied where DesktopShellState.sidebar resolves sidebarVisible through sidebar.shows(active). Inspector policy (Shown when it has an editor - what InspectorLane in desktop/src/main/java/com/mobixournal/desktop/InspectorPanel.kt does now, Always, Never). Persist as interface.fitOnOpen, interface.sidebarPolicy and interface.inspectorPolicy in DesktopSettings, each written through the Settings surface. A change to a view default applies to the open tabs at once; the default fit applies to the next document opened, and the row says so in one line. Tests: one state test per row proving the value survives a restart through a second DesktopSettings over the same file, and one shell test that a two-page document opens with the sidebar under Always while a one-page document does not under Automatic. Docs: docs/desktop-workstation.md (Interface)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1050
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-settings-display"
 title = "Desktop: Display section - theme and the rate the window asks for"
-description = "The Display page: the window's appearance and the panel it draws on. A Theme row (Follow Windows / Light / Dark) that is the setting desktop-light-theme-and-header-extras introduces - it is linked, not re-specified here: build the row, and while that task has not landed it is one line saying the light theme is not in this build. A Target refresh row (Display default, 60, 90, 120, 144 Hz) that is what the window asks the panel for when it goes full screen through the AWT DisplayMode of GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice, falling back to the panel's own mode with a note when the display refuses, stored as display.targetHz. A Frame time row that only flips the status bar readout owned by desktop-status-frame-time, stored as display.frameTime. Tests: a DesktopSettingsTest round-trip for both keys; one test that a refused DisplayMode leaves the current mode untouched and DesktopStatus.refreshLabel unchanged; one that the target is what the full-screen request asked for. Docs: docs/desktop-workstation.md (Display)."
+description = "The Display page ships as the status bar's own section: the frame-time switch (display.frameTime, owned by desktop-status-frame-time) and the panel readout refreshLabel(displayRefreshHz()), with one line saying the window is dark only in this build (the light theme is desktop-light-theme-and-header-extras). What remains is the TARGET RATE row, and it cannot land before the window has a full-screen mode at all: a row that stores display.targetHz and changes nothing would be exactly the setting this section exists to avoid (the live-apply rule). So this task is now: (1) add a full-screen mode to the window (F11 / the header's own command, in DesktopKeys.kt with its row in the shortcut table of docs/ui-modernization.md section 3 - read the table first and never reuse a taken key), asking GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice for the stored DisplayMode through setDisplayMode, restoring the previous mode when the key is pressed again or the window closes, and catching a refusal to keep the panel's own mode untouched; (2) add display.targetHz (Display default, 60, 90, 120, 144) and its row under the status-bar card, which only exists while the mode above is in force - the row's note says so; (3) tests: a refused DisplayMode leaves the current mode untouched and DesktopStatus.refreshLabel unchanged, the target is what the full-screen request asked for, and a DesktopSettingsTest round trip for display.targetHz. Docs: docs/desktop-workstation.md (Display, and the shortcut). No Android change; verify with :desktop:test."
 status = "active"
 level = "task"
 category = "feature"
@@ -290,7 +248,7 @@ emulator_debug = false
 [[task]]
 id = "desktop-settings-tablet-stream"
 title = "Desktop: Tablet section - which pen stream, and how hard the pen presses"
-description = "The first half of the Tablet page. Add tablet.penStream (Automatic - Wintab first and Windows Ink as the fallback, which is what desktop/src/main/java/com/mobixournal/desktop/DesktopTablet.kt does today; Wintab only; Windows Ink only) read by DesktopTablet.open so both the reader it opens and the PenSource it reports follow the choice, and tablet.pressureExponent (0.5 to 2.0, 1.0 by default) applied once where a PenSample becomes ink pressure - the phone's own curve (AppSettings pressure exponent, applied in the stylus input filter) so the same hand feels the same in both shells. The status bar already reports the stream through penLabel; the section names the stream it actually opened, and says so when the chosen one is unavailable. Tests: Automatic still prefers Wintab and Windows Ink only never opens wintab (TabletWintabTest style, with the reader factories faked); exponent 1.0 leaves the pressure untouched, the curve is monotonic and clamped at both ends. Docs: docs/desktop-workstation.md and docs/stylus.md (the shared curve)."
+description = "The Tablet page's first row ships: tablet.penStream (Automatic - Wintab first and Windows Ink as the fallback; Wintab only; Windows Ink only) is read by DesktopTablet.open, so both the reader it opens and the PenSource it reports follow the choice, and the section names the stream actually open with the note that a preference this host cannot honour says so. What remains is tablet.pressureExponent, and its premise has to be settled first: there is no pressure curve anywhere in the app today (no pressureExponent or equivalent filter in app/src/main or mobix-core - grep before starting), so 'the phone's own curve applied in the stylus input filter' is not a thing to share yet. This task is now: (1) decide with the owner whether the curve ships on the desktop only or in mobix-core for both shells - if the latter, the phone's filter reads it too and its own row follows in the Android Settings; (2) implement it once in mobix-core as a pure function (monotonic on 0..1, exponent 0.5..2.0, 1.0 identity, clamped at both ends) and call it at the two adapters that turn a device sample into ink pressure - PageInkGesture.inkPointer and PenPacketStroke.pointer, never both for one stroke; (3) a slider row on Tablet (a new control in SettingsRows.kt, tokens only, the five states of docs/interface-contract.md) storing tablet.pressureExponent; (4) tests: identity at 1.0, monotonic, clamped ends, and the round trip. Docs: docs/desktop-workstation.md, docs/stylus.md (the shared curve)."
 status = "active"
 level = "task"
 category = "feature"
@@ -324,34 +282,6 @@ level = "task"
 category = "feature"
 urgency = "normal"
 order = 1090
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-status-frame-time"
-title = "Desktop: the status bar's measured frame time"
-description = "The status bar (desktop/src/main/java/com/mobixournal/desktop/DesktopStatus.kt) already says the pen source, the refresh rate and the frame budget it implies; add the frame time the window actually paints at. The shell keeps a short exponential average of the intervals between painted frames (the number DesktopDiagnostics computes under --diagnose, kept always at a cost of a few nanoseconds per frame), and the bar shows it beside the refresh label as one muted label - so a loop capped at 30 frames on a 120 Hz panel reads as 33.3 ms beside 8.3 - hidden when Display's display.frameTime is off. The tablet and dial indicators stay the penLabel they already are. Tests: DesktopStatusTest asserts the label for a known average and its absence with the readout off, and a shell test that the average follows the frames painted. Docs: docs/desktop-workstation.md (the status bar paragraph)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1100
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
-id = "desktop-settings-live-apply"
-title = "Desktop: every Settings row acts on the open window, with one test each"
-description = "A stored setting that changes nothing is a setting the window has forgotten. Collect the hooks in one place - DesktopShellState.applySetting, called by every row of the Settings surface - so a new row cannot be persisted and dropped: a new strip placement re-lays PageWorkspace, a new theme repaints the tokens, a new tablet stream reopens the reader, a new dial control re-aims one rotation, a new default fit lands on the next opened document, a new shortcut is live at the next key, the frame-time readout shows and hides. Then add DesktopSettingsRestartTest: for every key DesktopSettings owns, write it through the state, build a second DesktopSettings over the same file and assert the surface reads the value back - the test a new setting must extend. Docs: docs/desktop-workstation.md (the Settings section states the rule: a row is a hook, a key and a test)."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1110
 created = 2026-10-26
 tags = []
 rebuild = false

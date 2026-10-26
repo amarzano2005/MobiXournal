@@ -117,7 +117,10 @@ navy field dropped, so the sheet and the pen are the whole mark — while the ti
 carries no app name, no logo and no second icon: **the caption is the tabs alone**, and the art stays on
 the taskbar where it belongs. A **hamburger** in the header opens New, Open, Save, Save
 As and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens without a file
-opens one too, instead of an empty notice. The toolbars are
+opens one too, instead of an empty notice. **Settings** — `Ctrl + ,`, or the row at the foot of that menu —
+is a page of the window rather than a card lying over the sheet: where the tool strips stand (side, top or
+both, and which edge), the zoom a document opens at, when the page list and the inspector appear, and
+whether the status bar reports its frame time. Each one is stored as it is chosen and applied at once. The toolbars are
 the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
 icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
 zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
