@@ -17,17 +17,20 @@ import java.io.File
  * `File("…/Il")` that does not exist. When the first piece is not itself a file, the pieces are put back
  * together and the joined path is tried — a real path with a space keeps working either way.
  *
- * Windows' own launch can do worse than split: an unquoted file association hands the path over and the
- * run of spaces in a folder name is **collapsed**, so the joined path is still not a file even though
- * the document is right there. That last case is [launchDocument]'s to repair, and the path it settles
- * on is what the window names when it cannot open anything.
+ * Windows' own launch can do worse than split: an unquoted association hands the path over and the run of
+ * spaces in a folder name is **collapsed**, so no rearrangement of the pieces can restore it. [raw] is the
+ * line Windows actually wrote — [rawCommandLine], read by `main` and handed down — and it is consulted
+ * before any guessing: double-clicking a notebook in a `09)  21-10-2026` folder opens that notebook, with
+ * no dialog in between. Only if that fails too does [launchDocument] search by name, and the path it
+ * settles on is what the window names when it cannot open anything.
  */
-internal fun initialDocument(args: Array<String>): File? {
+internal fun initialDocument(args: Array<String>, raw: String? = null): File? {
     // Switches (`--diagnose`) are not documents: a path is the argument that does not start with `--`.
     val paths = args.filterNot { it.startsWith("--") }
     val first = paths.firstOrNull() ?: return null
     val single = File(first.trim().trim('"'))
     if (single.isFile) return single
+    documentFromCommandLine(raw)?.let { return it }
     val joined = paths.joinToString(" ").trim('"')
     launchDocument(joined)?.let { return it }
     // Nothing on disk answered to any spelling: name the whole path, not its first piece.
@@ -112,21 +115,24 @@ fun main(args: Array<String>) {
         runTabletProbe()
         return
     }
+    // The line Windows handed the process, read once: it is the only copy of a path whose spaces the
+    // argv splitter squeezed (a notebook double-clicked from a `09)  21-10-2026` folder).
+    val raw = rawCommandLine()
     // The latency probe paints a page with the editor's own canvas: `--probe-ink` alone measures a
     // blank A4 sheet, `--probe-ink udiff.xopp` the heavy page of that document.
     val ink = args.indexOf(PROBE_INK)
     if (ink >= 0) {
-        runInkProbe(initialDocument(args.drop(ink + 1).toTypedArray()))
+        runInkProbe(initialDocument(args.drop(ink + 1).toTypedArray(), raw))
         return
     }
     // The scroll probe pans and zooms a document so the watchdog can time both gestures
     // (`desktop-dirty-rect-pacing-for-scrolling-and-zooming`).
     val scroll = args.indexOf(PROBE_SCROLL)
     if (scroll >= 0) {
-        runScrollProbe(initialDocument(args.drop(scroll + 1).toTypedArray()))
+        runScrollProbe(initialDocument(args.drop(scroll + 1).toTypedArray(), raw))
         return
     }
-    val initial = initialDocument(args)
+    val initial = initialDocument(args, raw)
     application {
         // The window's close request is a **question** first: the shell answers whether it may go, and a
         // dirty tab turns the X into the same Save / Discard / Cancel dialog the tab's own close glyph

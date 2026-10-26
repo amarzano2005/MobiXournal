@@ -84,5 +84,69 @@ class DesktopLaunchPathTest {
         assertEquals("This file is not on this PC", card.title)
         assertTrue("it names the path", card.detail.contains("lost.mobix"))
         assertFalse("and no exception type", card.detail.contains("Exception"))
+        assertTrue("the cloud is the cause worth naming", card.detail.contains("available offline"))
+        assertFalse(
+            "and the window never sends the user off to open it by hand",
+            card.detail.contains("pick it with Open", ignoreCase = true),
+        )
+    }
+
+    // --- the line Windows wrote, which is the only copy of a path that is still whole ----------
+
+    private val exe = "C:\\apps\\MobiXournal\\MobiXournal.exe"
+
+    /** `"…\MobiXournal.exe" C:\…\x.mobix` — what GetCommandLineW answers for an unquoted association. */
+    private fun rawLine(path: String, quoted: Boolean = false): String =
+        "\"$exe\" " + if (quoted) "\"$path\"" else path
+
+    /**
+     * The whole point of reading the native line: argv squeezed the double space out, the line still has
+     * it, so the document opens without a word of repair.
+     */
+    @Test
+    fun `the raw command line still has the space argv squeezed out`() {
+        val real = notebook()
+        assertFalse("the collapsed spelling is not a file", File(collapsed(real)).isFile)
+
+        val opened = documentFromCommandLine(rawLine(real.path))
+
+        assertEquals(real.absoluteFile, opened?.absoluteFile)
+    }
+
+    /** A properly quoted association gives the same answer through the same read. */
+    @Test
+    fun `a quoted path on the raw line reads the same`() {
+        val real = notebook()
+        assertEquals(real.absoluteFile, documentFromCommandLine(rawLine(real.path, quoted = true))?.absoluteFile)
+    }
+
+    /** The launch takes the intact line before it tries to reassemble the pieces. */
+    @Test
+    fun `the raw line wins over the damaged arguments`() {
+        val real = notebook()
+        val pieces = collapsed(real).split(" ").toTypedArray()
+
+        val opened = initialDocument(pieces, rawLine(real.path))
+
+        assertEquals(real.absoluteFile, opened?.absoluteFile)
+    }
+
+    /** The document is the **end** of the line: a jar or a main class named earlier is not the notebook. */
+    @Test
+    fun `the document is the end of the line, not a file named earlier in it`() {
+        val real = notebook()
+        val jar = File(temp.root, "app.jar").apply { writeText("not a document") }
+
+        val line = "\"C:\\jre\\bin\\java.exe\" -cp \"$jar\" com.mobixournal.desktop.MainKt ${real.path}"
+
+        assertEquals(real.absoluteFile, documentFromCommandLine(line)?.absoluteFile)
+    }
+
+    /** Nothing on the line names a file — an app started empty, or a host that cannot read the line. */
+    @Test
+    fun `a line that names no document opens nothing`() {
+        assertNull(documentFromCommandLine("\"$exe\""))
+        assertNull(documentFromCommandLine("\"$exe\" --diagnose"))
+        assertNull(documentFromCommandLine(null))
     }
 }

@@ -43,10 +43,9 @@ fun describeOpenFailure(failure: Throwable): OpenFailure {
         )
         is java.io.FileNotFoundException -> OpenFailure(
             "This file is not on this PC",
-            "$detail — nothing is at that path. If the notebook lives in Google Drive or OneDrive, open its " +
-                "folder once so the file is downloaded, or pick it with Open. If you opened it by " +
-                "double-clicking, the file name may contain two spaces in a row: Windows squeezes them " +
-                "into one, and Open finds the file anyway.",
+            "$detail — nothing is at that path. If the notebook is stored in Google Drive or OneDrive, " +
+                "its folder has to be available offline before another app can read it; the launch also " +
+                "has to name the file exactly as it is on disk.",
         )
         is UnsupportedOperationException -> OpenFailure("Unsupported format", detail)
         is OutOfMemoryError -> OpenFailure(

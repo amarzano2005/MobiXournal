@@ -31,6 +31,10 @@ internal fun launchDocument(raw: String): File? {
 /**
  * A file with [file]'s **name** inside the deepest folder of its path that exists — or null.
  *
+ * This is the fallback for a launch whose line could not be read either (see [documentFromCommandLine]):
+ * the deepest surviving folder is searched for the name, and the answer is refused unless exactly one
+ * file carries it.
+ *
  * The search is deliberately narrow: at most [LEVELS_UP] folders above the path are tried (a damaged path
  * differs in a name, not in its drive), at most [DEPTH] levels below it are walked, and a name that
  * matches in more than one place is refused rather than guessed. [VISIT_LIMIT] keeps a cloud mount from
@@ -59,7 +63,7 @@ internal fun nearbyDocument(
         for (child in children) {
             if (++visited > VISIT_LIMIT) return
             when {
-                child.isFile && child.name.equals(wanted, ignoreCase = true) -> {
+                child.isFile && sameName(child.name, wanted) -> {
                     matches += child
                     // A second match makes the answer a guess; stop walking and refuse.
                     if (matches.size > 1) return
@@ -73,8 +77,30 @@ internal fun nearbyDocument(
     return matches.singleOrNull()
 }
 
-/** How deep below the surviving folder the search looks: the damaged names are its own children. */
-private const val DEPTH = 3
+/**
+ * A file name compared the way the damaged path compared it: **runs of spaces are the same run**.
+ *
+ * The squeeze that lost a folder's second space loses it in a file name too, so `notes  1.mobix` comes
+ * in as `notes 1.mobix`. Nothing else is relaxed — no prefix, no other punctuation — because a fuzzy
+ * match here is a wrong document opened.
+ */
+internal fun sameName(actual: String, wanted: String): Boolean =
+    actual.equals(wanted, ignoreCase = true) ||
+        collapseSpaces(actual).equals(collapseSpaces(wanted), ignoreCase = true)
+
+/** [text] with every run of whitespace turned into one space, and the ends trimmed. */
+private fun collapseSpaces(text: String): String = text.trim().replace(WHITESPACE_RUN, " ")
+
+private val WHITESPACE_RUN = Regex("\\s+")
+
+/**
+ * How deep below the surviving folder the search looks.
+ *
+ * Four, not one: a path can be damaged in more than one folder — the user's own notebook sits under
+ * `…/Appunti/01) 📚 Teoria/09)  21-10-2026/Materiale/`, four levels below the last folder both spellings
+ * agreed on — and a search that stopped sooner reported a document as missing while it was right there.
+ */
+private const val DEPTH = 6
 
 /** How many folders above the requested path are tried — a damaged name is one, never six. */
 private const val LEVELS_UP = 4
