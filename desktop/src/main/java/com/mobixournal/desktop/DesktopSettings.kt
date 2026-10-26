@@ -85,6 +85,22 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
+    /**
+     * The rate the window asks the display for **while it is full screen** (`display.targetHz`).
+     *
+     * A wish, not a setting the window can apply to itself: the panel's mode is the display's, and a machine
+     * with no 144 Hz mode keeps its own rate while the status bar keeps reporting it. Clamped to the rates
+     * the Display section offers, so a hand-edited file cannot ask for 0 Hz.
+     */
+    var targetHz: Int
+        get() = properties.getProperty(KEY_TARGET_HZ)?.trim()?.toIntOrNull()
+            ?.takeIf { it in TARGET_HZ_RANGE }
+            ?: DEFAULT_TARGET_HZ
+        set(value) {
+            properties.setProperty(KEY_TARGET_HZ, value.coerceIn(TARGET_HZ_RANGE).toString())
+            save()
+        }
+
     /** Which pen stream the window prefers — Wintab and Windows Ink, or whichever this host has. */
     var penStream: PenStream
         get() = PenStream.of(properties.getProperty(KEY_PEN_STREAM))
@@ -261,6 +277,9 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The preferred pen stream. */
         const val KEY_PEN_STREAM = "tablet.penStream"
+
+        /** The refresh rate the window asks for in full screen — a wish, honoured where the panel can. */
+        const val KEY_TARGET_HZ = "display.targetHz"
 
         /** The palette the colour flyout draws, as [PaletteCodec]'s comma-separated hex list. */
         const val KEY_PALETTE_COLORS = "palette.colours"

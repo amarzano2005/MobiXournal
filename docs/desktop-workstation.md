@@ -111,12 +111,10 @@ What it does today:
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
   and a **48 dp ribbon capsule in a 56 dp band** under the header — Side, Top or Both, on either edge
-  (`stripPlacement`, `railSide`), re-laid live. `Ctrl+,` opens the panel that sets it: a **floating
-  surface** over the page (glass, rim, 20 dp corner), with **the tablet's thirteen sections** in its
-  index — each wearing the shared `SettingsGlyphCatalogue` mark — and **one setting per row**. A row the
-  window cannot answer is drawn disabled with one sentence; **a live row is a hook, a key and a test**
-  (`DesktopSettingsTest`, `DesktopSettingsStyleTest`). The header has no chooser: moving the strips is a
-  setting. The lane is **air, not glass over glass**: painting it too stacked two sheets, rail #161618.
+  (`stripPlacement`, `railSide`), re-laid live. `Ctrl+,` opens the panel that sets it, and
+  [`desktop-settings.md`](desktop-settings.md) owns what each of its sections answers and which of them
+  the window cannot yet; the header has no chooser, because moving the strips is a setting.
+  The lane is **air, not glass over glass**: painting it too stacked two sheets, rail #161618.
   The strip is a **capsule** with its own 6 dp lift and the family's rim, so
   its fill is the window's band `#0C0C0D` (the glass at `DESKTOP_BAND_ALPHA`, blacker than the tablet's
   `#131314`), and each header control is the same object at 36 dp. Both placements draw the same slots,

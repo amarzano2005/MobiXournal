@@ -87,6 +87,17 @@ fun FrameWindowScope.DesktopApp(
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
     // one surface from the top of the window down (`DesktopTitleBar`).
     LaunchedEffect(Unit) { applyDarkTitleBar(window) }
+    // `F11` and the Display row only set a flag: taking the whole screen, and asking the panel for the
+    // target rate, is the window's own business (`DesktopDisplay`). Keyed on the rate as well, so picking
+    // another target while full screen asks the display again without leaving and re-entering the mode.
+    val fullScreen = state.prefs.fullScreen
+    val targetHz = state.prefs.targetHz
+    LaunchedEffect(fullScreen, targetHz) {
+        if (fullScreen) FullScreenMode.enter(window, targetHz) else FullScreenMode.leave(window)
+    }
+    // A window closed while on the whole screen puts the display back: leaving a panel at 144 Hz for the
+    // rest of the session is a change the reader never asked the desktop for.
+    DisposableEffect(Unit) { onDispose { FullScreenMode.leave(window) } }
     // The window's X asked the shell first (`Main`), and the shell says when every answer is in.
     LaunchedEffect(state.exitAllowed) { if (state.exitAllowed) onExit() }
     // A tab holds a reader's file handle (a `.mobix` archive); closing the window closes them all.

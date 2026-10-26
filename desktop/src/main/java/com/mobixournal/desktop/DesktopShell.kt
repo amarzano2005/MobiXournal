@@ -592,6 +592,13 @@ class DesktopShellState(
                 toggleSidebar()
                 return true
             }
+            // No document needed: the window takes the desk, and the page below it stays as it is.
+            // The placement and the display's mode are the window's to change (`DesktopApp`), which is
+            // why this is a flag here and an effect there.
+            ShellCommand.TOGGLE_FULLSCREEN -> {
+                prefs.toggleFullScreen()
+                return true
+            }
             // Both ask the window where the file goes: this class has no dialog to open.
             ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> {
                 if (tabs.active == null) return false
@@ -663,7 +670,8 @@ class DesktopShellState(
             ShellCommand.DUPLICATE_SELECTION -> duplicateSelection(tab) { index -> edited(tab, index) }
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
-            ShellCommand.SAVE, ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> false
+            ShellCommand.TOGGLE_FULLSCREEN, ShellCommand.SAVE, ShellCommand.SAVE_AS,
+            ShellCommand.EXPORT_PDF -> false
         }
     }
 

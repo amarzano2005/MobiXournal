@@ -319,6 +319,7 @@ seamless parity whether driven by an external tablet keyboard on Android or a wo
 | | Stroke Width Up / Down | `]`, `[` | Rail's size slot |
 | | Zoom In / Out | `Ctrl + =`, `Ctrl + -` | Pinch gesture |
 | | Undo / Redo | `Ctrl + Z`, `Ctrl + Shift + Z` | Two-finger tap |
+| | Full screen (window) | `F11` | — desktop only: the tablet is already the whole screen |
 
 - **Universal Shortcut & Individual Color Remapping**: All keybindings, tools, and **individual color palette slots**
   are remappable via **Settings → Input & Shortcuts**: a shortcut or a stylus gesture can select a specific
@@ -391,9 +392,8 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
   into the search results. The glyph is part of the enum, so a new section cannot be added without one.
 - **Dialogs leave the way they arrived**: a dialog is its own window, so Compose tore it down the instant its
   flag cleared — the entrance spring played in full and the panel vanished mid-frame. `DialogPresence(visible)`
-  holds the window composed for `FLOATING_EXIT_MS` (230 ms) while the surface runs the animation backwards
-  (the 0.82 scale of a `0.85/850` spring, a 170 ms fade, `LocalFloatingSurfaceClosing`), and
-  `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one. Every floating
+  holds the window composed for `FLOATING_EXIT_MS` (230 ms) while the surface runs the entrance animation
+  backwards, and `rememberClosingArgument` keeps the dialog's subject when the flag was a nullable one. Every floating
   dialog — the editor's, the pages menu's, the settings pickers' — is gated that way.
 - **The plot editor anchors to its element**: editing an existing `PlotElement` opens `PlotInspectorAnchor`
   beside the selection (committed through `applyPlotEdit`, unedited fields kept); a new plot uses the modal

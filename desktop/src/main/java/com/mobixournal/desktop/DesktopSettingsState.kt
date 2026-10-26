@@ -84,6 +84,19 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var frameTime by mutableStateOf(store.frameTime)
         private set
 
+    /**
+     * Whether the window is on the whole screen (`F11`).
+     *
+     * Deliberately **not** stored: a window opens as a window, and a file that remembered "full screen"
+     * would take the desk from a reader who double-clicked a notebook. The rate it asks for is stored.
+     */
+    var fullScreen by mutableStateOf(false)
+        private set
+
+    /** The rate the window asks the display for while it is full screen; a wish the panel may refuse. */
+    var targetHz by mutableStateOf(store.targetHz)
+        private set
+
     /** The pen stream the window prefers. */
     var penStream by mutableStateOf(store.penStream)
         private set
@@ -215,5 +228,21 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     fun choosePenStream(value: PenStream) {
         penStream = value
         store.penStream = value
+    }
+
+    /**
+     * Ask the display for [value] Hz while the window is full screen, and remember the wish.
+     *
+     * A machine with no such mode says so in the status bar instead: the display's real rate is what
+     * [refreshLabel] always reports, so the row can be set and the readout stay true.
+     */
+    fun chooseTargetHz(value: Int) {
+        targetHz = value
+        store.targetHz = value
+    }
+
+    /** Take the whole screen, or give it back — the `F11` answer and the Display row's switch. */
+    fun toggleFullScreen() {
+        fullScreen = !fullScreen
     }
 }

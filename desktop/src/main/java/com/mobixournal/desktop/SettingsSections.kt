@@ -333,6 +333,28 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         )
     }
     SettingsGroup("Status bar") {
+        // The desk, and the one thing that can only be asked of a full-screen window: the panel's rate.
+        SettingsRow(
+            label = "Full screen",
+            note = "F11, or this row: the window takes the whole screen and asks the display for the " +
+                "target rate.",
+            onClick = policy::toggleFullScreen,
+        ) {
+            SettingsSwitch(policy.fullScreen)
+        }
+        // Present only while that mode is in force: a target rate a windowed window cannot apply would
+        // be exactly the setting this section exists to avoid.
+        if (policy.fullScreen) {
+            SettingsChoice(
+                label = "Target rate",
+                note = "Asked of the display while the window is full screen. A panel without that " +
+                    "rate keeps its own, and the readout below still says which.",
+                options = TARGET_HZ,
+                picked = policy.targetHz,
+                optionLabel = { "$it Hz" },
+                onPick = policy::chooseTargetHz,
+            )
+        }
         SettingsRow(
             label = "Frame time",
             note = "The paint time per frame, beside the display's own rate.",
@@ -340,6 +362,8 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         ) {
             SettingsSwitch(policy.frameTime)
         }
+        // What the panel is *really* at — never the target. A refused mode read back as applied is the one
+        // lie a refresh readout must not tell.
         Readout("Display", refreshLabel(displayRefreshHz()))
         frameLabel(FrameMeter.averageMs, policy.frameTime)?.let { Readout("Painting", it) }
     }

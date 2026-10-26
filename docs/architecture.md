@@ -45,7 +45,8 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`text-and-markdown.md`](text-and-markdown.md) | text/markdown import, paginator, layout engine | you change text or markdown import |
 | [`search.md`](search.md) | document search, handwriting index, recognition engines | you change search or recognition |
 | [`testing.md`](testing.md) | unit test coverage, architectural guards, mechanical rules | you want to know what protects a change |
-| [`desktop-workstation.md`](desktop-workstation.md) | the `desktop/` preview: module, window shell, page painting, tool strips, settings | you work on the PC window |
+| [`desktop-workstation.md`](desktop-workstation.md) | the `desktop/` preview: module, window shell, page painting, tool strips | you work on the PC window |
+| [`desktop-settings.md`](desktop-settings.md) | the window's Settings surface: the index, the row rule, and what each section answers | you add or change a desktop setting |
 | [`desktop-tablet.md`](desktop-tablet.md) | the desktop pen and dial: Wintab packets, Windows Ink, the ink-latency probe and its measurements | you change how the window reads the tablet |
 
 Not part of the architecture index: [`tools.md`](tools.md) owns the external build/test/release

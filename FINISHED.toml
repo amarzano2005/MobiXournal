@@ -25,6 +25,17 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-settings-display"
+title = "Desktop: Display section - theme and the rate the window asks for"
+description = "The Display (status-bar) section now owns the whole screen and the rate it asks for. F11 / ShellCommand.TOGGLE_FULLSCREEN (DesktopKeys.kt, row added to the shortcut table of docs/ui-modernization.md §3) flips a flag on DesktopSettingsState; DesktopApp applies it through FullScreenMode (DesktopDisplay.kt): the window's placement becomes Fullscreen and the display is asked for display.targetHz (60/90/120/144, default 120) via the DisplaySurface interface, matching the display's own resolution and bit depth and the exact rate. A refusal (no such mode, remote session) answers false and changes nothing, so DesktopStatus.refreshLabel keeps reporting the panel's real rate; leaving full screen — F11, the switch, or the window closing — restores the saved placement and the panel's previous mode. The target-rate row exists only while the window is full screen, where its note says so. FullScreenTest (9) covers the mode match, the refusal, the resolution rule, F11, the unstored flag and the targetHz round trip; the settings detail moved to the new spoke docs/desktop-settings.md (indexed in architecture.md) so desktop-workstation.md stays inside its 400-line budget. Deliberately not done: no header-menu row (F11 plus the Settings switch are the two doors), and no per-monitor targeting."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-10-26
+completed = 2026-10-26
+tags = []
+
+[[task]]
 id = "desktop-settings-live-apply"
 title = "Desktop: every Settings row acts on the open window, with one test each"
 description = "Every settings row writes through DesktopSettingsState, which both keeps the value in snapshot state and stores it, so the chrome reading prefs changes on the same frame: the strips re-lay (DesktopStripLayoutTest picks a placement on an already-open document), the sidebar and inspector obey their policies, the status bar shows or hides the frame time. DesktopSettingsTest's 'every choice survives a restart' writes all seven keys through the state and reads them back from a second DesktopSettings over the same file, and asserts a second state opens on them. Settings are never the installed window's file in tests: DesktopSettings.defaultFile reads the mobixournal.desktop.settings property the desktop test task sets, and DesktopInspectorLaneTest pins its own store."

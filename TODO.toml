@@ -232,20 +232,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-settings-display"
-title = "Desktop: Display section - theme and the rate the window asks for"
-description = "The Display page ships as the status bar's own section: the frame-time switch (display.frameTime, owned by desktop-status-frame-time) and the panel readout refreshLabel(displayRefreshHz()), with one line saying the window is dark only in this build (the light theme is desktop-light-theme-and-header-extras). What remains is the TARGET RATE row, and it cannot land before the window has a full-screen mode at all: a row that stores display.targetHz and changes nothing would be exactly the setting this section exists to avoid (the live-apply rule). So this task is now: (1) add a full-screen mode to the window (F11 / the header's own command, in DesktopKeys.kt with its row in the shortcut table of docs/ui-modernization.md section 3 - read the table first and never reuse a taken key), asking GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice for the stored DisplayMode through setDisplayMode, restoring the previous mode when the key is pressed again or the window closes, and catching a refusal to keep the panel's own mode untouched; (2) add display.targetHz (Display default, 60, 90, 120, 144) and its row under the status-bar card, which only exists while the mode above is in force - the row's note says so; (3) tests: a refused DisplayMode leaves the current mode untouched and DesktopStatus.refreshLabel unchanged, the target is what the full-screen request asked for, and a DesktopSettingsTest round trip for display.targetHz. Docs: docs/desktop-workstation.md (Display, and the shortcut). No Android change; verify with :desktop:test."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "normal"
-order = 1060
-created = 2026-10-26
-tags = []
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-settings-tablet-stream"
 title = "Desktop: Tablet section - which pen stream, and how hard the pen presses"
 description = "The Tablet page's first row ships: tablet.penStream (Automatic - Wintab first and Windows Ink as the fallback; Wintab only; Windows Ink only) is read by DesktopTablet.open, so both the reader it opens and the PenSource it reports follow the choice, and the section names the stream actually open with the note that a preference this host cannot honour says so. What remains is tablet.pressureExponent, and its premise has to be settled first: there is no pressure curve anywhere in the app today (no pressureExponent or equivalent filter in app/src/main or mobix-core - grep before starting), so 'the phone's own curve applied in the stylus input filter' is not a thing to share yet. This task is now: (1) decide with the owner whether the curve ships on the desktop only or in mobix-core for both shells - if the latter, the phone's filter reads it too and its own row follows in the Android Settings; (2) implement it once in mobix-core as a pure function (monotonic on 0..1, exponent 0.5..2.0, 1.0 identity, clamped at both ends) and call it at the two adapters that turn a device sample into ink pressure - PageInkGesture.inkPointer and PenPacketStroke.pointer, never both for one stroke; (3) a slider row on Tablet (a new control in SettingsRows.kt, tokens only, the five states of docs/interface-contract.md) storing tablet.pressureExponent; (4) tests: identity at 1.0, monotonic, clamped ends, and the round trip. Docs: docs/desktop-workstation.md, docs/stylus.md (the shared curve)."

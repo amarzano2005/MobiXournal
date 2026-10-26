@@ -70,6 +70,12 @@ enum class ShellCommand {
 
     /** Open the Settings surface (`Ctrl+,`), the window's own page for every choice it keeps. */
     OPEN_SETTINGS,
+
+    /**
+     * Take the whole screen, or give it back (`F11`) — the placement's own key, and the only way the
+     * display's target rate is ever applied (`DesktopDisplay`).
+     */
+    TOGGLE_FULLSCREEN,
 }
 
 /** What an ink key means, independent of the platform's event type (and therefore testable). */
@@ -160,6 +166,9 @@ internal fun toolForKey(key: Key, shift: Boolean, ctrl: Boolean, alt: Boolean = 
  */
 internal fun shellCommand(key: Key, ctrl: Boolean, shift: Boolean): ShellCommand? = when {
     key == Key.Escape -> ShellCommand.DISMISS_FAILURE
+    // `F11` is the whole-screen key every desktop app uses, and it is the one command here with no
+    // document behind it: the window takes the desk with nothing open.
+    key == Key.F11 -> ShellCommand.TOGGLE_FULLSCREEN
     ctrl && key == Key.T -> ShellCommand.OPEN
     // `Ctrl+,` — the keyboard's own way into Settings, as on every desktop app that has a preferences page.
     ctrl && key == Key.Comma -> ShellCommand.OPEN_SETTINGS
