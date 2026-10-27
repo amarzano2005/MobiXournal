@@ -5,9 +5,10 @@
 
 _One spoke of the architecture docs; the index is [architecture.md](architecture.md)._
 
-What the window *is* — its shell, its strips, opening and saving — is [desktop-workstation.md](desktop-workstation.md);
-the pen and the dial are [desktop-tablet.md](desktop-tablet.md); and what a selection means, on both shells,
-is [selection.md](selection.md).
+What the window *is* — its shell and its strips — is [desktop-workstation.md](desktop-workstation.md); what it
+does with a file is [desktop-documents.md](desktop-documents.md); the pen and the dial are
+[desktop-tablet.md](desktop-tablet.md); and what a selection means, on both shells, is
+[selection.md](selection.md).
 
 ## Figures, whole-stroke erasing and vertical space
 

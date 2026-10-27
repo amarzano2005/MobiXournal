@@ -109,7 +109,7 @@ Everything the chrome does can also be done from the keyboard:
 
 Closing a dirty tab, or the window itself, raises the **Save / Discard / Cancel** question in the floating
 glass over the page rather than closing silently; `Esc` is Cancel and the window's X takes the same path.
-A tab with unsaved edits wears a dot in the accent after its label (`docs/desktop-workstation.md`).
+A tab with unsaved edits wears a dot in the accent after its label (`docs/desktop-documents.md`).
 
 **The two history commands have defined states, not just a binding.** `Ctrl + Z` and `Ctrl + Shift + Z`
 act on the **active tab's own** `EditHistory` — undoing in one document never reaches into another — and

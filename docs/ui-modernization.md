@@ -86,7 +86,7 @@ worth stating plainly:
   through a literal is a bug against this rule, not a stylistic preference.
 - **Error copy names what happened and what to do**, in that same voice, and never shows an internal
   identifier — a class name, a synthetic lambda, an exception's `toString()` — where a person is looking.
-  The desktop's failed-open card is the worked example (`docs/desktop-workstation.md`): the same event
+  The desktop's failed-open card is the worked example (`docs/desktop-documents.md`): the same event
   reported as `NoClassDefFoundError: …$openMobix$1` read as a corrupt notebook, and reads as "the
   preview has fallen behind" once it is said in English and about the right subject.
 
