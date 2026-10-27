@@ -158,14 +158,32 @@ class DesktopMenuTest {
     @Test
     fun `hovering an export chip lights the whole capsule`() {
         val scene = scene()
-        val png = try {
+        val (plain, lit) = try {
+            Snapshot.sendApplyNotifications()
+            val before = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
             mouse(scene, PointerEventType.Move, chipCentre(1), chipCentreY(), 1_000L, pressed = false)
             Snapshot.sendApplyNotifications()
-            requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
+            val after = requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
+            before to after
         } finally {
             scene.close()
         }
-        File("build/desktop-render/desktop-menu-hover.png").apply { parentFile?.mkdirs() }.writeBytes(png)
+        File("build/desktop-render/desktop-menu-hover.png").apply { parentFile?.mkdirs() }.writeBytes(lit)
+
+        // The bug this pins: the hint used to be a layer above the capsule and could be painted at the
+        // label's bounds, so the chip lit only where the words were. Both ends must brighten.
+        val before = ImageIO.read(ByteArrayInputStream(plain))
+        val after = ImageIO.read(ByteArrayInputStream(lit))
+        val y = (MenuMetrics.padding + MenuMetrics.tileHeight + MenuMetrics.sectionGap +
+            MenuMetrics.chipHeight / 2).value.toInt()
+        fun brightened(x: Float): Boolean {
+            val px = x.toInt()
+            val from = before.getRGB(px, y) and 0xFF
+            val to = after.getRGB(px, y) and 0xFF
+            return to > from
+        }
+        assertTrue("the chip's left end lights up", brightened(chipCentre(1) - 55f))
+        assertTrue("and its far right end does too", brightened(chipCentre(1) + 55f))
     }
 
     /** One frame of the panel, tall enough that nothing in the Pen block is clipped. */

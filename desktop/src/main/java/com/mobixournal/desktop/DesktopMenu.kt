@@ -450,11 +450,13 @@ private fun MenuChip(
 }
 
 /**
- * A **heading inside the menu** — the tablet's *Pen* row: the word on the left, and the glyph that opens
- * what the words below configure on the right.
+ * A **heading inside the menu** — the tablet's *Pen* row: its pen glyph beside the word, and the glyph
+ * that opens what the rows below configure at the row's end.
  *
- * It is not a command and not a label: the tablet draws it as the door to the pen's parameters, and a
- * heading that only names a block would have the block's door somewhere else.
+ * The **pen mark is beside the word** rather than only at the far end: the catalogue's own `STYLUS` glyph,
+ * the picture the tablet and the Stylus page use, so a reader sees what the block is about before reading
+ * the word. The row is the door to that page as well — a heading that only names a block would have the
+ * block's door somewhere else.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -468,6 +470,10 @@ private fun MenuHeadingRow(label: String, onClick: () -> Unit) {
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Canvas(Modifier.size(16.dp)) {
+            drawSettingsGlyph(SettingsGlyph.STYLUS, DesktopTheme.ink)
+        }
+        Spacer(Modifier.width(8.dp))
         Text(label, color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
         Canvas(Modifier.size(16.dp)) {
             drawSettingsGlyph(SettingsGlyph.EDITOR, DesktopTheme.inkSecondary)
