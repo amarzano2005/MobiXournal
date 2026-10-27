@@ -248,6 +248,14 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var shortcutConflict by mutableStateOf<ShortcutEntry?>(null)
         private set
 
+    /**
+     * The Shortcuts row waiting for a key, or null. It lives here because the **window** binds the press:
+     * a row never sees one while the surface captures keys, so the page that kept the arm drew a waiting row
+     * and bound nothing. While this is set, [keyAction] answers [SettingsKeyAction.NONE].
+     */
+    var armedShortcut by mutableStateOf<String?>(null)
+        private set
+
     /** The table the window resolves keys through: the factory rows with [shortcuts] laid over them. */
     val shortcutTable: Map<String, String> get() = ShortcutTable.merged(shortcuts)
 
@@ -293,6 +301,28 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         open = false
         typing = false
         query = ""
+        armedShortcut = null
+    }
+
+    /** Arm [id]'s row: the next press renames that shortcut — a click, then the new key. */
+    fun armShortcut(id: String) {
+        clearShortcutConflict()
+        armedShortcut = id
+    }
+
+    /** Bind [name] to the armed row; true when a row was waiting for it. */
+    fun bindArmed(name: String): Boolean {
+        val id = armedShortcut ?: return false
+        armedShortcut = null
+        rebind(id, name)
+        return true
+    }
+
+    /** Put the waiting row away without binding anything — `Esc`, and the close glyph. */
+    fun cancelArmed(): Boolean {
+        if (armedShortcut == null) return false
+        armedShortcut = null
+        return true
     }
 
     /** Show [section] — a row of the index. */
@@ -322,6 +352,8 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         // A focused field's letters are the search or the preset's name; anything else is the surface's, so
         // the page below never hears a shortcut for a page it cannot see.
         typing || presetDraft != null -> SettingsKeyAction.NONE
+        // A row waiting for a key owns the next press: the window binds it ([bindArmed]).
+        armedShortcut != null -> SettingsKeyAction.NONE
         else -> SettingsKeyAction.CAPTURE
     }
 
@@ -567,6 +599,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         toggleSelectionTool = toolNamed(store.toggleSelection, DesktopTool.MARQUEE)
         shortcuts = store.shortcuts
         shortcutConflict = null
+        armedShortcut = null
     }
 
     /** Map [value]'s part of the tablet's surface, and remember it; the window reopens its reader. */

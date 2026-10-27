@@ -110,16 +110,22 @@ closing the window) puts the panel's previous mode back.
 ## Shortcuts — the key table, as a page
 
 Every command the window has is a row: the tools (their slot's key), and the shell's own commands (open, save,
-save as, export, the clipboard, pages, zoom, full screen, Settings). A row shows the key it holds; clicking it
-arms **Detect** and the next press is bound, so the field cannot bind a key the keyboard does not name. The
-press is caught on the page's container rather than on the row (`ShortcutSettings`), which is what makes one
-press enough: arming a row hands the focus to the page, and `Esc` is the way out of a field that is waiting.
+save as, export, the clipboard, pages, zoom, full screen, Settings). Each group is a **heading over its rows**
+and nothing else — there is no separate *Detect* row and no group that repeats its own name as a row.
+
+Renaming is **click the row, then press the key**: the row lights with *Press a key…*, and the next press this
+table has a name for is bound to it. The press is the **window's**, not the page's — the arm is
+`DesktopSettingsState.armedShortcut`, read by `DesktopShellState.onKey` before anything else, because the
+window sees a press before any focusable row can. (Keeping the arm and the focus inside the page is what used
+to fail: the row was drawn waiting, the surface captured the key, and nothing was ever bound.) `Esc` puts the
+waiting row away, clicking into the search field does too, and neither touches the table.
 
 The rule is **one key, one command** and it is `ShortcutKeys.bind`'s (in `mobix-core`): the key's previous
 holder loses it, and the conflict line names the command that did — a key is never silently stolen. A stored
 row whose value is `ShortcutKeys.UNBOUND` (`-`) is a command that deliberately has no key, so a displaced row
 cannot find its factory key again at the next start. **Restore defaults** writes nothing at all, which is the
-same statement: the factory table is every row that is not in the file.
+same statement: the factory table is every row that is not in the file. A conflict is reported in a **Binding**
+card above the groups, and only while it is the last thing that happened — it is an answer, not a section.
 
 `interface.shortcuts` holds only the rows that **differ** from the factory ones, as `id:key` pairs, so a build
 that adds a command ships it with its own key instead of with none. The key a press makes is

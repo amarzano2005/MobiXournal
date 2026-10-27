@@ -161,11 +161,7 @@ class DesktopShellState(
     /** The pick, and the file that remembers it ([DesktopToolPicks]). */
     private val picks = DesktopToolPicks(settings)
 
-    /**
-     * The picked tool: what a primary drag on the page does (pen and highlighter ink, eraser rubs out).
-     * Restored from the settings file, so a session comes back on the slot it was left on — with the colour
-     * and width that slot remembers.
-     */
+    /** The picked tool — what a primary drag does. Restored from the file, with that slot's ink. */
     val tools: ToolSelection get() = picks.selection
 
     /**
@@ -341,12 +337,7 @@ class DesktopShellState(
         openGroup = null
     }
 
-    /**
-     * A **toggle** press (`Alt+E`, `Alt+H`, `Alt+S`): pick the family's tool, or put back the last one.
-     *
-     * The arithmetic is [toggledTool]'s; what belongs here is the one side effect a pick has — the text
-     * box is committed and the slot is remembered.
-     */
+    /** A **toggle** press: pick the family's tool, or put back the last one ([toggledTool]). */
     fun toggleTool(target: DesktopTool) {
         selectTool(picks.toggleTarget(target))
     }
@@ -492,6 +483,13 @@ class DesktopShellState(
             return true
         }
         if (event.type != KeyEventType.KeyDown) return false
+        // A Shortcuts row waiting for a key takes the next press: the window sees a press before any row can.
+        if (prefs.armedShortcut != null) {
+            if (event.key == Key.Escape) prefs.cancelArmed()
+            else ShortcutTable.name(event.key, event.isCtrlPressed, event.isShiftPressed, event.isAltPressed)
+                ?.let(prefs::bindArmed)
+            return true
+        }
         // A text box owns the keyboard: `Esc` commits it, every other key is a character it types.
         textBox.command(event.key)?.let {
             textBox.commit(tabs.active, ::edited)
@@ -590,16 +588,14 @@ class DesktopShellState(
                 return true
             }
             // The three switches need no document: they only change what a drag would do.
-            ShellCommand.TOGGLE_ERASER -> {
-                toggleTool(prefs.toggleEraserTool)
-                return true
-            }
-            ShellCommand.TOGGLE_HAND -> {
-                toggleTool(DesktopTool.HAND)
-                return true
-            }
-            ShellCommand.TOGGLE_SELECTION -> {
-                toggleTool(prefs.toggleSelectionTool)
+            ShellCommand.TOGGLE_ERASER, ShellCommand.TOGGLE_HAND, ShellCommand.TOGGLE_SELECTION -> {
+                toggleTool(
+                    when (command) {
+                        ShellCommand.TOGGLE_ERASER -> prefs.toggleEraserTool
+                        ShellCommand.TOGGLE_HAND -> DesktopTool.HAND
+                        else -> prefs.toggleSelectionTool
+                    },
+                )
                 return true
             }
             // Both ask the window where the file goes: this class has no dialog to open.

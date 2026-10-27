@@ -126,7 +126,12 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
         SettingsSearchField(
             query = policy.query,
             onQuery = policy::search,
-            onFocus = { focused -> policy.typing = focused },
+            onFocus = { focused ->
+                policy.typing = focused
+                // Typing in the field is not arming a row: a reader who goes back to the search is done
+                // with the shortcut they clicked.
+                if (focused) policy.cancelArmed()
+            },
             modifier = Modifier.width(240.dp),
         )
         Spacer(Modifier.width(8.dp))
