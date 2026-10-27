@@ -120,6 +120,38 @@ class DesktopSettings(val file: File = defaultFile()) {
         }
 
     /**
+     * The pen's saved pressure presets (`tablet.penPresets`) — the tablet's named pairs, in menu order.
+     *
+     * One line of `id;name;minimum;multiplier` entries, the same plain-text style as the strip's order. A
+     * stored line this build cannot read falls back to the factory preset rather than emptying the menu, and
+     * the list can never be stored empty: the last preset is the one the reader is drawing with.
+     */
+    var penPresets: List<DesktopPenPreset>
+        get() = decodePenPresets(properties.getProperty(KEY_PEN_PRESETS))
+        set(value) {
+            val kept = value.ifEmpty { DesktopPenPreset.DEFAULT_PRESETS }
+            properties.setProperty(KEY_PEN_PRESETS, encodePenPresets(kept))
+            save()
+        }
+
+    /**
+     * Which preset is live (`tablet.selectedPenPreset`), or the first saved one when the stored id is gone.
+     *
+     * Falling back rather than reporting an id nothing matches is what keeps the menu from having no chip
+     * highlighted on a file that was hand-edited or written by a build with a preset this one lacks.
+     */
+    var selectedPenPresetId: String
+        get() {
+            val presets = penPresets
+            val stored = properties.getProperty(KEY_SELECTED_PEN_PRESET)?.trim()
+            return presets.firstOrNull { it.id == stored }?.id ?: presets.first().id
+        }
+        set(value) {
+            properties.setProperty(KEY_SELECTED_PEN_PRESET, value)
+            save()
+        }
+
+    /**
      * The width a **figure** is drawn at, in points (`figure.width`) — its own answer, not the pen's.
      *
      * A figure has no pressure, so it is always drawn at its full width; giving it a width of its own is
@@ -503,6 +535,10 @@ class DesktopSettings(val file: File = defaultFile()) {
         const val KEY_PRESSURE_ENABLED = "tablet.pressureEnabled"
         const val KEY_MINIMUM_PRESSURE = "tablet.minimumPressure"
         const val KEY_PRESSURE_MULTIPLIER = "tablet.pressureMultiplier"
+
+        /** The pen's named pressure presets, and which of them is live. */
+        const val KEY_PEN_PRESETS = "tablet.penPresets"
+        const val KEY_SELECTED_PEN_PRESET = "tablet.selectedPenPreset"
 
         /** The width a figure is drawn at, in points. */
         const val KEY_FIGURE_WIDTH = "figure.width"

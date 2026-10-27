@@ -379,6 +379,58 @@ internal fun SettingsSwitch(on: Boolean) {
 }
 
 /**
+ * **A word that acts**, at a row's height — *Save*, *Cancel*, *Delete* beside a value.
+ *
+ * The window's other actions wear a glyph; these are words because they answer a name the reader just
+ * typed or a preset they are about to lose, and a dustbin glyph reads as an icon of the toolbar rather
+ * than as a command on that one row. It keeps the row controls' five states, so Tab reaches it and `Enter`
+ * takes it like every other button in the window.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+internal fun SettingsTextAction(
+    text: String,
+    enabled: Boolean = true,
+    tone: Color = DesktopTheme.accent,
+    onClick: () -> Unit,
+) {
+    val click = rememberUpdatedState(onClick)
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .height(SettingsMetrics.CONTROL_HEIGHT)
+            .background(Color.Transparent, DesktopTheme.capsuleShape)
+            .border(
+                width = if (focused) 1.dp else 0.dp,
+                color = if (focused) DesktopTheme.accent else Color.Transparent,
+                shape = DesktopTheme.capsuleShape,
+            )
+            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
+            .focusable()
+            .onFocusChanged { focused = it.isFocused }
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown || !enabled) return@onPreviewKeyEvent false
+                if (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Spacebar) {
+                    click.value()
+                    true
+                } else {
+                    false
+                }
+            }
+            .pointerInput(text, enabled) { if (enabled) detectTapGestures { click.value() } }
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text,
+            color = if (enabled) tone else DesktopTheme.inkMuted,
+            style = DesktopTheme.label,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
  * **Two chevrons that move a row one place** — how a strip's slots are reordered.
  *
  * A pair rather than drag-and-drop: the settings page is read with the keyboard as often as the mouse (`Tab`

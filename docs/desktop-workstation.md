@@ -137,8 +137,10 @@ What it does today:
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
   document-red chip** and Export SVG in the accent, then the tablet's **Pen block** (its heading opens the
-  colour panel, and one **Default** chip puts the tool back on its factory ink), a hairline, the page
-  list's row and **Settings**. Import PDF and Page as PNG are absent because the window has no such
+  colour panel, one **Default** chip puts the tool back on its factory ink, the pressure switch and its two
+  sliders, and under them the **named pen presets** as chips — picking one applies it and closes the panel,
+  *Save as preset…* names the live pair in place, as on the tablet), a hairline, the page list's row and
+  **Settings**. Import PDF and Page as PNG are absent because the window has no such
   command yet, not because it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
   the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window

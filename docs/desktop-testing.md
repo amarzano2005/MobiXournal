@@ -48,7 +48,9 @@ scene's frame clock (`render(nanoTime)`): nothing at t=0, faint at 40 ms inside 
 full size by 700 ms, with `GlassPresence` holding it composed through the 230 ms exit.
 `PageLayersAndPaperTest` reads pixels too: `isometric-paper.png`'s line midpoints must fall on
 `BackgroundGrid.isometric`'s segments, and `hidden-layer.png` is a two-layer page with one off — the band
-that is gone is the check.
+that is gone is the check. `PenPresetTest` is the pen's **presets**, as state and as a file: saving the live
+numbers under a name, the next launch opening on that preset, applying one feeding the shared pressure
+filter, a slider rewriting the live entry, and the list keeping one preset and repairing a broken line.
 
 
 ## Where the rest lives

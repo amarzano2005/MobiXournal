@@ -46,7 +46,7 @@ enum class DesktopSettingSection(
         "Stylus",
         "The pen stream, how hard it presses and the area it reads.",
         "tablet pen stylus wintab windows ink pressure stream driver sensitivity multiplier minimum " +
-            "curve active area eraser tip thickness",
+            "curve active area eraser tip thickness preset presets name save profile",
         SettingsGlyph.STYLUS,
     ),
     TOOLBAR(
@@ -160,12 +160,16 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
  * and the multiplier above it. They stay on screen while sensitivity is off, because that is the state the
  * numbers are remembered in.
  *
+ * **The presets** below them are the tablet's own idea: a name for a pair of numbers, so a hand that draws
+ * lightly on Monday and firmly on Thursday does not have to remember two values.
+ *
  * **The notes are one clause each.** A settings page is scanned, not read: a row that needs a paragraph is
  * a row whose name is wrong, and ten pages of paragraphs is how this list came to feel like a manual.
  */
 @Composable
 private fun StylusSettings(policy: DesktopSettingsState) {
     StylusPenGroup(policy)
+    StylusPresetGroup(policy)
     StylusAreaGroup(policy)
     SettingsNote("The status bar names the stream actually open.")
 }

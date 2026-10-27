@@ -33,6 +33,9 @@ enum class SettingsKeyAction {
     /** `Esc` with a search word in the field: clear it, and keep the page. */
     CLEAR_SEARCH,
 
+    /** `Esc` while a preset is being named: put the field away, and keep the page. */
+    CANCEL_PRESET,
+
     /** `Esc` on a plain surface: put it away. */
     CLOSE,
 
@@ -137,6 +140,19 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         private set
     var pressureMultiplier by mutableStateOf(store.pressureMultiplier)
         private set
+
+    /**
+     * The pen's named pressure presets ([PenPresetState]).
+     *
+     * One list, read by **both** doors — the menu's Pen block and the Stylus page — together with the live
+     * one and the name being typed. The draft lives there rather than in either surface because one field
+     * cannot be in two places: a name typed in the menu is the name the settings page shows when it comes
+     * up, and closing either one cancels the same draft.
+     */
+    private val presetState = PenPresetState(store)
+    val penPresets: List<DesktopPenPreset> get() = presetState.presets
+    val selectedPenPresetId: String get() = presetState.selectedId
+    val presetDraft: String? get() = presetState.draft
 
     /** The width a figure is drawn at, in points: a figure has no pressure, so it is its own answer. */
     var figureWidth by mutableStateOf(store.figureWidth)
@@ -295,11 +311,12 @@ class DesktopSettingsState(private val store: DesktopSettings) {
      */
     fun keyAction(key: Key): SettingsKeyAction = when {
         !open -> SettingsKeyAction.NONE
+        key == Key.Escape && presetDraft != null -> SettingsKeyAction.CANCEL_PRESET
         key == Key.Escape && query.isNotEmpty() -> SettingsKeyAction.CLEAR_SEARCH
         key == Key.Escape -> SettingsKeyAction.CLOSE
-        // A focused field's letters are the search; anything else is the surface's, so the page below
-        // never hears a shortcut for a page it cannot see.
-        typing -> SettingsKeyAction.NONE
+        // A focused field's letters are the search or the preset's name; anything else is the surface's, so
+        // the page below never hears a shortcut for a page it cannot see.
+        typing || presetDraft != null -> SettingsKeyAction.NONE
         else -> SettingsKeyAction.CAPTURE
     }
 
@@ -309,6 +326,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         SettingsKeyAction.CLEAR_SEARCH -> {
             query = ""
             shownSection?.let { section = it }
+            true
+        }
+        SettingsKeyAction.CANCEL_PRESET -> {
+            cancelPresetSave()
             true
         }
         SettingsKeyAction.CLOSE -> {
@@ -429,18 +450,63 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The floor under a filtered pressure; a light press never draws thinner than this. */
     fun chooseMinimumPressure(value: Float) {
-        val floor = value.coerceIn(PressureCurve.MINIMUM_PRESSURE_MIN, PressureCurve.MINIMUM_PRESSURE_MAX)
+        val floor = DesktopPenPreset.clampMinimum(value)
         minimumPressure = floor
         PressureFeel.minimum = floor
         store.minimumPressure = floor
+        // The live preset *is* these two numbers: a slider that moved them and left the preset behind would
+        // make the chip claim a preset the pen is no longer drawing with.
+        presetState.rewriteLive { it.copy(minimumPressure = floor) }
     }
 
     /** The multiplier over a filtered pressure: above 1 a light writer thickens every stroke. */
     fun choosePressureMultiplier(value: Float) {
-        val scaled = value.coerceIn(PressureCurve.MULTIPLIER_MIN, PressureCurve.MULTIPLIER_MAX)
+        val scaled = DesktopPenPreset.clampMultiplier(value)
         pressureMultiplier = scaled
         PressureFeel.multiplier = scaled
         store.pressureMultiplier = scaled
+        presetState.rewriteLive { it.copy(pressureMultiplier = scaled) }
+    }
+
+    /**
+     * Apply the preset [id]: its two numbers become the live filter, and the file remembers the choice.
+     *
+     * The one entry point both doors call — a menu chip and a row of the Stylus page do exactly this — so a
+     * preset cannot mean one thing in the menu and another in Settings.
+     */
+    fun applyPenPreset(id: String) {
+        // The selection moves first, inside `select`: these two setters rewrite the live preset, and one
+        // that was still the previous preset would take the new preset's numbers into its own entry.
+        val preset = presetState.select(id) ?: return
+        chooseMinimumPressure(preset.minimumPressure)
+        choosePressureMultiplier(preset.pressureMultiplier)
+    }
+
+    /** Open the name field for a new preset — the menu's *Save as preset…* and the page's row. */
+    fun beginPresetSave() = presetState.beginSave()
+
+    /** Take what has been typed into the name field. */
+    fun typePresetName(text: String) = presetState.type(text)
+
+    /** Put the name field away without saving. */
+    fun cancelPresetSave() = presetState.cancel()
+
+    /** Save the live numbers under the typed name and make the new preset the live one. */
+    fun commitPresetSave() = presetState.commit(minimumPressure, pressureMultiplier)
+
+    /** Rename the preset [id], keeping its handle; a blank name is refused. */
+    fun renamePreset(id: String, name: String) = presetState.rename(id, name)
+
+    /**
+     * Delete the preset [id] — the last one is kept, because the live filter is always one of them.
+     *
+     * Deleting the live preset hands the pen the next preset's numbers as well as the highlight, so the
+     * chip in the accent and the two sliders never describe two different pens.
+     */
+    fun deletePreset(id: String) {
+        val wasLive = selectedPenPresetId == id
+        if (!presetState.remove(id)) return
+        if (wasLive) applyPenPreset(selectedPenPresetId)
     }
 
     /** The width a figure is drawn at, in points — its own answer, independent of the pen's pressure. */
@@ -474,6 +540,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         pressureEnabled = store.pressureEnabled
         minimumPressure = store.minimumPressure
         pressureMultiplier = store.pressureMultiplier
+        presetState.reload()
         PressureFeel.exponent = pressureExponent
         PressureFeel.enabled = pressureEnabled
         PressureFeel.multiplier = pressureMultiplier
@@ -580,4 +647,5 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     fun toggleFullScreen() {
         fullScreen = !fullScreen
     }
+
 }

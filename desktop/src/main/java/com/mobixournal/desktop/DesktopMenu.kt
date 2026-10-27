@@ -3,6 +3,8 @@ package com.mobixournal.desktop
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,7 +79,12 @@ internal fun HeaderMenu(
         if (open) {
             Popup(
                 offset = with(density) { IntOffset(0, (DesktopTheme.headerHeight + 6.dp).roundToPx()) },
-                onDismissRequest = { open = false },
+                // A draft that was being named goes with the panel: a name field reopened by the next
+                // click would be a question the reader already walked away from.
+                onDismissRequest = {
+                    open = false
+                    penPolicy?.cancelPresetSave()
+                },
                 properties = FloatingSurface,
             ) {
                 // Every command closes the menu first: the panel is a set of commands, not a toolbox.
@@ -95,6 +102,7 @@ internal fun HeaderMenu(
                     onSettings = { open = false; onSettings() },
                     onPenParameters = { open = false; onPenParameters() },
                     onPenDefault = { open = false; onPenDefault() },
+                    onDismiss = { open = false },
                     penPolicy = penPolicy,
                 )
             }
@@ -118,6 +126,8 @@ internal fun MenuPanel(
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
     onPenDefault: () -> Unit = {},
+    /** Put the panel away — the preset chips close it, because they were reached mid-drawing. */
+    onDismiss: () -> Unit = {},
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
     penPolicy: DesktopSettingsState? = null,
 ) {
@@ -147,8 +157,8 @@ internal fun MenuPanel(
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
         }
         // The tablet's **Pen block**: its heading with the door to the pen's parameters, and the preset
-        // chip under it. The window has one preset — the factory ink — because its strip's colour
-        // capsule is where a colour is chosen; a named preset list would be a second way to do it.
+        // chip under it. *Default* is the factory **ink** (the strip's colour capsule is where a colour is
+        // chosen); the named **pressure presets** below it are the tablet's own list, in the menu block.
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuHeadingRow(label = "Pen", onClick = onPenParameters)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap)) {
@@ -156,8 +166,9 @@ internal fun MenuPanel(
             MenuChip("Parameters…", null, enabled = true, Modifier, DesktopTheme.inkSecondary, onPenParameters)
         }
         // The tablet's Pen block carries its pressure settings and not only a door to them: the two
-        // numbers a drawing hand reaches for mid-sentence are here, where the hand already is.
-        if (penPolicy != null) MenuPenBlock(penPolicy)
+        // numbers a drawing hand reaches for mid-sentence are here, where the hand already is — and under
+        // them the same named presets the Stylus page edits, so a preset is one click from a stroke.
+        if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss)
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
         MenuRow(
@@ -183,9 +194,13 @@ internal fun MenuPanel(
  * Sensitivity is a switch and the two numbers are the window's slider, each on a row of its own at the
  * menu's row height — so the block a reader opens mid-drawing answers the question it was opened for,
  * and *Parameters…* stays the door to the rest (the stream, the curve, the mapped area).
+ *
+ * Under the sliders are the **presets**: the tablet's scrollable chip row, the live one written in the
+ * accent and washed with it. Picking one applies it and closes the panel (the hand was mid-drawing);
+ * *Save as preset…* opens the one name field both this block and the Stylus page share.
  */
 @Composable
-private fun MenuPenBlock(policy: DesktopSettingsState) {
+private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
     Spacer(Modifier.height(MenuMetrics.sectionGap / 2))
     Row(
         Modifier
@@ -217,6 +232,95 @@ private fun MenuPenBlock(policy: DesktopSettingsState) {
         format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f×", it) },
         onValue = policy::choosePressureMultiplier,
     )
+    Spacer(Modifier.height(4.dp))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        for (preset in policy.penPresets) {
+            MenuPresetChip(
+                name = preset.name,
+                selected = preset.id == policy.selectedPenPresetId,
+                onClick = {
+                    policy.applyPenPreset(preset.id)
+                    policy.cancelPresetSave()
+                    onDismiss()
+                },
+            )
+        }
+    }
+    if (policy.presetDraft == null) {
+        MenuRow(
+            label = "Save as preset…",
+            enabled = true,
+            onClick = policy::beginPresetSave,
+        )
+    } else {
+        MenuPresetNameRow(policy)
+    }
+}
+
+/**
+ * One **preset chip** of [MenuPenBlock]: the tablet's glass chip, the live one washed with the accent.
+ *
+ * The wash and the accent word are the tablet's own statement of "this is the pen in hand" — the same two
+ * states its overflow menu draws — so the chip a reader picks is the one they see picked.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun MenuPresetChip(name: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .height(SettingsMetrics.CONTROL_HEIGHT)
+            .glassCapsule(
+                cornerRadius = MenuMetrics.chipRadius,
+                fill = if (selected) DesktopTheme.accent.copy(alpha = MenuMetrics.presetWash) else DesktopTheme.glass,
+            )
+            .hoverFill(DesktopTheme.capsuleShape, active = selected)
+            .pointerInput(name) { detectTapGestures { onClick() } }
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            name,
+            color = if (selected) DesktopTheme.accent else DesktopTheme.inkSecondary,
+            style = DesktopTheme.label,
+            maxLines = 1,
+        )
+    }
+}
+
+/** The **name field** of a preset being saved, at the menu's own row height. */
+@Composable
+private fun MenuPresetNameRow(policy: DesktopSettingsState) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PresetNameField(
+            value = policy.presetDraft.orEmpty(),
+            onValue = policy::typePresetName,
+            onCommit = policy::commitPresetSave,
+            modifier = Modifier.weight(1f),
+        )
+        SettingsTextAction(
+            text = "Save",
+            enabled = !policy.presetDraft.isNullOrBlank(),
+            onClick = policy::commitPresetSave,
+        )
+        SettingsTextAction(
+            text = "Cancel",
+            tone = DesktopTheme.inkSecondary,
+            onClick = policy::cancelPresetSave,
+        )
+    }
 }
 
 /** One labelled slider of [MenuPenBlock]: the word on the left, the window's slider at the right. */
@@ -259,6 +363,9 @@ internal object MenuMetrics {
     val dividerHeight = 11.dp
     val rowHeight = 34.dp
     val chipRadius = 12.dp
+
+    /** How strongly the live pen-preset chip is washed with the accent — picked, not hovered. */
+    const val presetWash = 0.16f
 
     /** One tile's width: four of them, their gaps, and the panel's own padding. */
     val tileWidth: androidx.compose.ui.unit.Dp
