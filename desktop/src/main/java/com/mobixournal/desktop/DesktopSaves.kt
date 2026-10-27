@@ -33,7 +33,7 @@ object DesktopSaves {
      * The app reads its own from `BuildConfig`; the window has no such field, so the number lives here
      * and `DesktopSaveTest` fails the build when it drifts from `app/build.gradle.kts`'s `versionName`.
      */
-    const val APP_VERSION = "1.3.0"
+    const val APP_VERSION = "2.0.0"
 
     /** The container a save writes for a document opened as [this]. */
     fun formatOf(container: DesktopContainer): SaveFormat = when (container) {
