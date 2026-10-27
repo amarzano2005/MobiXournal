@@ -105,45 +105,29 @@ class PressureCurveTest {
     }
 
     /**
-     * The opt-in shape: identity at 1.0, monotonic, and pinned at both ends so a light press never
-     * crosses zero and a full press is always full. A driver that reports past its own range is clamped.
+     * **One reading, from every full scale**: the shared call each input path makes, so Wintab's 0..16383,
+     * Windows Ink's 0..1024 and Android's 0..1 all arrive at the filter as the same 0..1. A device that
+     * reports past its own range is pinned at 1, a negative or impossible one at 0.
      */
     @Test
-    fun theReadingShapeIsIdentityAtOneAndMonotonicAroundIt() {
-        for (p in listOf(0f, 0.15f, 0.4f, 0.75f, 1f)) {
-            assertEquals("p=$p", p, PressureCurve.shape(p, 1f), 1e-6f)
-        }
-        for (exponent in listOf(0.5f, 0.8f, 1.2f, 1.6f, 2f)) {
-            assertEquals("a zero reading stays zero at $exponent", 0f, PressureCurve.shape(0f, exponent), 1e-6f)
-            assertEquals("a full press stays full at $exponent", 1f, PressureCurve.shape(1f, exponent), 1e-6f)
-            var previous = -1f
-            for (step in 0..20) {
-                val shaped = PressureCurve.shape(step / 20f, exponent)
-                assertTrue("monotonic at $exponent (step $step)", shaped >= previous)
-                previous = shaped
-            }
-        }
-        // Soft makes a light press reach a usable width sooner; hard holds it back.
-        assertTrue("a soft curve lifts a light press", PressureCurve.shape(0.3f, 0.5f) > 0.3f)
-        assertTrue("a hard curve holds it down", PressureCurve.shape(0.3f, 2f) < 0.3f)
+    fun aReadingIsTheDevicesFullScaleDividedOut() {
+        assertEquals("wintab, half a press", 0.5f, PressureCurve.reading(8191.5f, 16383f), 1e-4f)
+        assertEquals("windows ink, half a press", 0.5f, PressureCurve.reading(512f, 1024f), 1e-6f)
+        assertEquals("android already speaks 0..1", 0.5f, PressureCurve.reading(0.5f, 1f), 1e-6f)
+        assertEquals("past the full scale is full", 1f, PressureCurve.reading(1.4f, 1f), 1e-6f)
+        assertEquals("a negative reading is zero", 0f, PressureCurve.reading(-0.2f, 1f), 1e-6f)
+        assertEquals("a device with no range reads nothing", 0f, PressureCurve.reading(400f, 0f), 1e-6f)
     }
 
+    /**
+     * The same reading and the same three numbers give the same width **whatever the device's scale was**,
+     * which is what lets one preset be used on the phone and on the desktop.
+     */
     @Test
-    fun theReadingAndTheExponentAreClampedNotThrown() {
-        assertEquals("a reading past full is full", 1f, PressureCurve.shape(1.4f, 1.5f), 1e-6f)
-        assertEquals("a negative reading is zero", 0f, PressureCurve.shape(-0.2f, 0.7f), 1e-6f)
-        assertEquals(
-            "an exponent past the range is the range",
-            PressureCurve.shape(0.5f, PressureCurve.EXPONENT_MAX),
-            PressureCurve.shape(0.5f, 9f),
-            1e-6f,
-        )
-        assertEquals(
-            "and the same at the soft end",
-            PressureCurve.shape(0.5f, PressureCurve.EXPONENT_MIN),
-            PressureCurve.shape(0.5f, 0.1f),
-            1e-6f,
-        )
+    fun equalReadingsFromDifferentDevicesDrawTheSameWidth() {
+        val wintab = PressureCurve.widthPt(2f, PressureCurve.reading(12287f, 16383f), true, 1.4f, 0.05f)
+        val ink = PressureCurve.widthPt(2f, PressureCurve.reading(768f, 1024f), true, 1.4f, 0.05f)
+        assertEquals(wintab, ink, 1e-4)
     }
 
     @Test

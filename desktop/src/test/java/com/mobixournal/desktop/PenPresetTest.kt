@@ -81,8 +81,8 @@ class PenPresetTest {
         assertEquals(1.5f, state.pressureMultiplier, 1e-6f)
         assertEquals("light-hand", state.selectedPenPresetId)
         // The shared filter the pen's samples go through: the floor, then the multiplier.
-        assertEquals("the floor holds a light press", 0.2f, PressureFeel.shape(0.01f), 1e-6f)
-        assertEquals("the multiplier thickens a firm one", 0.6f, PressureFeel.shape(0.4f), 1e-6f)
+        assertEquals("the floor holds a light press", 0.2f, PressureFeel.factor(0.01f), 1e-6f)
+        assertEquals("the multiplier thickens a firm one", 0.6f, PressureFeel.factor(0.4f), 1e-6f)
         assertEquals("the selection is the file's answer too", "light-hand", DesktopSettings(file("apply.properties")).selectedPenPresetId)
     }
 
@@ -239,7 +239,7 @@ class PenPresetTest {
         )
         assertEquals(1f, stored.pressureMultiplier, 1e-6f)
         // The shared filter reads the reset values on the next sample.
-        assertEquals(PressureCurve.MINIMUM_PRESSURE_DEFAULT, PressureFeel.shape(0f), 1e-6f)
+        assertEquals(PressureCurve.MINIMUM_PRESSURE_DEFAULT, PressureFeel.factor(0f), 1e-6f)
     }
 
     @Test

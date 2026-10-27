@@ -31,9 +31,11 @@ which also resets the router so it holds no stale contact.
 `max(minimumPressure, pressure × pressureMultiplier)` (`PenInputHandler::filterPressure`) with **no
 curve and no wide floor of its own** — the two settings are the desktop's own, because deviating would
 make the same press store a different width in each app. Pressure sensitivity off returns the full
-width, matching a shape (`PressureCurveTest`). The one opt-in exception is `PressureCurve.shape`: the
-window's `tablet.pressureExponent` (0.5…2.0, 1.0 = untouched) shapes the reading before that filter at
-its two adapters, and the Android path does not read it ([`desktop-settings.md`](desktop-settings.md)).
+width, matching a shape (`PressureCurveTest`). There is **no curve on top of it and no second floor**, on
+either shell: the preset numbers a phone stores are the numbers the window draws with
+(`PressureParityTest`). What each input path does first is `PressureCurve.reading` — its own full scale
+divided out (Wintab's `0..axMax`, Windows Ink's `0..1024`, Android's `0..1`) — so an equal reading is an
+equal width before the filter sees it.
 
 ## Stroke smoothing
 

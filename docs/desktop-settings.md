@@ -146,9 +146,10 @@ reads — because the hand decides how hard it presses while the device decides 
   the two numbers of desktop Xournal++'s own filter (`docs/stylus.md`). The floor is the thinnest line a
   light press can draw, the multiplier how far above 1.00 a light writer reaches the full width; both belong
   to the **preset in use** and are read by the same shared filter the phone and the desktop vector painter
-  use, so a stroke is the same width on either shell. A `tablet.pressureExponent` shaping written by an
-  earlier build is still read and applied — it has **no row** now, so a pen carrying one keeps its curve
-  and this page cannot change it. With sensitivity **off** every stroke is drawn at its
+  use, so a stroke is the same width on either shell. A `tablet.pressureExponent` written by an earlier
+  build is **ignored**: the row is gone and so is the shaping, because a knob no surface shows is a
+  difference nobody can see between the phone's widths and the window's. With sensitivity **off** every
+  stroke is drawn at its
   set width, and the two numbers stay on screen because that is the state they are remembered in. The
   surface's hamburger menu carries the same rows in the same order (`MenuPenBlock`), at the menu's smaller
   line, because they are reached mid-drawing.

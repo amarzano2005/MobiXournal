@@ -3,9 +3,8 @@ package com.mobixournal.desktop
 import com.mobixournal.render.PressureCurve
 
 /**
- * The window's one **reading** knob: the shape `tablet.pressureExponent` asks for, plus the tablet's own
- * pressure settings — sensitivity, floor and multiplier — where the two adapters that turn a device sample
- * into ink can read them.
+ * The window's pressure settings — sensitivity, floor and multiplier — where the two adapters that turn a
+ * device sample into ink can read them.
  *
  * It is a module-level value for the same reason `DesktopExportQueue` is: it belongs to the window rather
  * than to a document, a tab or a canvas, and the two places that need it — `PageInkGesture.inkPointer`
@@ -15,9 +14,11 @@ import com.mobixournal.render.PressureCurve
  * **[DesktopSettingsState] is its only writer**, so the value on screen and the value stored in
  * `desktop.properties` cannot disagree.
  *
- * The whole filter is [PressureCurve]: the reading is shaped by the curve first (identity by default, which
- * is what keeps this from changing anything), then `max(minimum, reading × multiplier)` — exactly desktop
- * Xournal++'s arithmetic, so a document written here holds the widths the desktop app would have stored.
+ * The whole filter is [PressureCurve.penFactor] — `max(minimum, reading × multiplier)`, desktop
+ * Xournal++'s own arithmetic — and **nothing else**: no curve on top of it and no second floor, so the same
+ * reading with the same three numbers gives the same width here, on the phone and in the desktop app. (The
+ * window used to apply a `tablet.pressureExponent` gamma before the filter; a stored exponent is now
+ * ignored, because a knob no surface shows is a difference nobody can see.)
  * With sensitivity off the factor is full width, which is what makes a pen stroke and a figure match.
  *
  * Volatile because the packet path fills its queue on the driver's thread while the frame thread drains
@@ -28,10 +29,6 @@ import com.mobixournal.render.PressureCurve
  * change on the settings surface reaches the next sample rather than the next canvas.
  */
 internal object PressureFeel {
-
-    /** The exponent in force: 0.5 (soft) … 1.0 (untouched) … 2.0 (hard). */
-    @Volatile
-    var exponent: Float = PressureCurve.EXPONENT_IDENTITY
 
     /** Desktop Xournal++'s *Pressure sensitivity*: off draws every sample at the tool's width. */
     @Volatile
@@ -45,9 +42,9 @@ internal object PressureFeel {
     @Volatile
     var minimum: Float = PressureCurve.MINIMUM_PRESSURE_DEFAULT
 
-    /** [pressure] through every reading setting in force — the one call both adapters make. */
-    fun shape(pressure: Float): Float = PressureCurve.penFactor(
-        pressure = PressureCurve.shape(pressure, exponent),
+    /** [pressure], already 0..1, through every setting in force — the one call both adapters make. */
+    fun factor(pressure: Float): Float = PressureCurve.penFactor(
+        pressure = PressureCurve.reading(pressure, 1f),
         enabled = enabled,
         multiplier = multiplier,
         minimum = minimum,

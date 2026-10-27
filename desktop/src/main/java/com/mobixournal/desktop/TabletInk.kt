@@ -4,6 +4,7 @@ import com.sun.jna.CallbackReference
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
+import com.mobixournal.render.PressureCurve
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.win32.StdCallLibrary
 import java.awt.Window
@@ -227,7 +228,7 @@ internal data class PenContact(
         fun of(info: PenPointerInfo, atNanos: Long): PenContact {
             val mask = info.penMask
             val pressure = if (mask and InkUser32.PEN_MASK_PRESSURE != 0) {
-                (info.pressure / InkUser32.PRESSURE_MAX).coerceIn(0f, 1f)
+                PressureCurve.reading(info.pressure.toFloat(), InkUser32.PRESSURE_MAX)
             } else {
                 null
             }

@@ -227,24 +227,6 @@ class DesktopSettings(val file: File = defaultFile()) {
             save()
         }
 
-    /**
-     * How the pen's **reading** is shaped before Xournal++'s own pressure filter (`tablet.pressureExponent`).
-     *
-     * 1.0 is untouched: the default, and the only value that leaves a document's stored widths exactly as
-     * the tablet writes them. `PressureCurve.shape` owns the arithmetic; this key only remembers the wish.
-     */
-    var pressureExponent: Float
-        get() = properties.getProperty(KEY_PRESSURE_EXPONENT)?.toFloatOrNull()
-            ?.takeIf { it.isFinite() }
-            ?.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX)
-            ?: PressureCurve.EXPONENT_IDENTITY
-        set(value) {
-            properties.setProperty(
-                KEY_PRESSURE_EXPONENT,
-                value.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX).toString(),
-            )
-            save()
-        }
 
     /**
      * The key table this window remapped (`interface.shortcuts`), as [ShortcutKeys] writes it.
@@ -519,7 +501,6 @@ class DesktopSettings(val file: File = defaultFile()) {
         const val KEY_TARGET_HZ = "display.targetHz"
 
         /** The exponent the pen's reading is shaped by, 1.0 = the model's own arithmetic untouched. */
-        const val KEY_PRESSURE_EXPONENT = "tablet.pressureExponent"
 
         /** Which part of the tablet's surface is mapped: the whole of it, or the hand's own rectangle. */
         const val KEY_ACTIVE_AREA = "tablet.activeArea"

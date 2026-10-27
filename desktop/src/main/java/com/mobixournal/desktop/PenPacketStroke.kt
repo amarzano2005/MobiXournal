@@ -291,7 +291,7 @@ internal class PenPacketStroke(
         y = local.y,
         // No pressure axis means the tool's width, the same rule the mouse follows. Shaped after the
         // smoothing and before the model's pressure filter — the one place this path applies the curve.
-        pressure = PressureFeel.shape(smooth(packet.pressure ?: 1f)),
+        pressure = PressureFeel.factor(smooth(packet.pressure ?: 1f)),
         timeMs = packet.atNanos / 1_000_000L,
         tool = if (packet.eraser) PointerKind.ERASER_TIP else PointerKind.STYLUS,
         phase = if (packet.tip) InkPointerPhase.MOVE else InkPointerPhase.UP,

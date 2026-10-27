@@ -59,54 +59,29 @@ class DesktopSettingsTest {
     }
 
     /**
-     * The Tablet section's pressure curve: identity until someone asks otherwise, remembered across a
-     * restart, clamped to the model's own range, and — the part a file cannot show — in force for the
-     * reading the next stroke is measured from.
-     */
-    @Test
-    fun `the pressure curve survives a restart and shapes the next reading`() {
-        val file = File(temp.root, "pressure.properties")
-        val policy = DesktopSettingsState(DesktopSettings(file))
-        assertEquals(PressureCurve.EXPONENT_IDENTITY, policy.pressureExponent, 1e-6f)
-        assertEquals(
-            "at the default the reading reaches the model untouched",
-            0.42f,
-            PressureFeel.shape(0.42f),
-            1e-6f,
-        )
-
-        policy.choosePressureExponent(1.6f)
-        assertEquals(1.6f, DesktopSettings(file).pressureExponent, 1e-6f)
-        assertEquals(1.6f, DesktopSettingsState(DesktopSettings(file)).pressureExponent, 1e-6f)
-        assertTrue("a hard curve holds a light press down", PressureFeel.shape(0.5f) < 0.5f)
-
-        policy.choosePressureExponent(9f)
-        assertEquals("clamped to the range the model offers", PressureCurve.EXPONENT_MAX, policy.pressureExponent, 1e-6f)
-    }
-
-    /**
      * The tablet's three pressure settings: remembered, clamped, and **in force** for the next reading.
      *
-     * The filter is the same arithmetic as desktop Xournal++'s — floor and multiplier after the curve —
-     * and the last part is the one a file cannot show: a switch that only reached the file would look
+     * The filter is the same arithmetic as desktop Xournal++'s — the floor, then the multiplier —
+     * and nothing else, and the last part is the one a file cannot show: a switch that only reached the
+     * file would look
      * applied and draw exactly as before.
      */
     @Test
     fun `the pressure filter survives a restart and shapes the next reading`() {
         val file = File(temp.root, "filter.properties")
         val policy = DesktopSettingsState(DesktopSettings(file))
-        assertEquals("full width at the default", 0.5f, PressureFeel.shape(0.5f), 1e-6f)
+        assertEquals("full width at the default", 0.5f, PressureFeel.factor(0.5f), 1e-6f)
 
         policy.chooseMinimumPressure(0.4f)
-        assertEquals("a light press is floored", 0.4f, PressureFeel.shape(0.05f), 1e-6f)
+        assertEquals("a light press is floored", 0.4f, PressureFeel.factor(0.05f), 1e-6f)
 
         policy.choosePressureMultiplier(2f)
         // No upper clamp, exactly as desktop Xournal++ allows: a multiplier above 1 may push a stroke
         // past its nominal width.
-        assertEquals("and a firm one is multiplied", 1.2f, PressureFeel.shape(0.6f), 1e-6f)
+        assertEquals("and a firm one is multiplied", 1.2f, PressureFeel.factor(0.6f), 1e-6f)
 
         policy.choosePressureEnabled(false)
-        assertEquals("sensitivity off draws at the tool's width", 1f, PressureFeel.shape(0.2f), 1e-6f)
+        assertEquals("sensitivity off draws at the tool's width", 1f, PressureFeel.factor(0.2f), 1e-6f)
 
         val reopened = DesktopSettings(file)
         assertFalse(reopened.pressureEnabled)
@@ -144,7 +119,6 @@ class DesktopSettingsTest {
     @After
     fun resetTheReadingCurve() {
         // The shape is a module-level seam, so a test that changed it must hand it back.
-        PressureFeel.exponent = PressureCurve.EXPONENT_IDENTITY
         PressureFeel.enabled = true
         PressureFeel.multiplier = 1f
         PressureFeel.minimum = PressureCurve.MINIMUM_PRESSURE_DEFAULT

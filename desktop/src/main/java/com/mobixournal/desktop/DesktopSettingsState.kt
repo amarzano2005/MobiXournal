@@ -48,7 +48,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     init {
         // The reading shape is a module-level seam the two ink adapters read (`PressureFeel`): the state is
         // its only writer, so opening a window puts the stored curve in force before the first stroke.
-        PressureFeel.exponent = store.pressureExponent
         PressureFeel.enabled = store.pressureEnabled
         PressureFeel.multiplier = store.pressureMultiplier
         PressureFeel.minimum = store.minimumPressure
@@ -125,10 +124,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
 
     /** The pen stream the window prefers. */
     var penStream by mutableStateOf(store.penStream)
-        private set
-
-    /** How the pen's reading is shaped before the model's pressure filter; 1.0 is untouched. */
-    var pressureExponent by mutableStateOf(store.pressureExponent)
         private set
 
     /** Whether a press changes the width at all — the tablet's *Pressure sensitivity*. */
@@ -424,19 +419,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     }
 
     /**
-     * Shape the pen's reading by [value]; the next stroke drawn reads it.
-     *
-     * Live, not on restart: the exponent is read per sample through a lambda the canvas holds, so dragging
-     * the slider and drawing again is the whole test of it.
-     */
-    fun choosePressureExponent(value: Float) {
-        val shaped = value.coerceIn(PressureCurve.EXPONENT_MIN, PressureCurve.EXPONENT_MAX)
-        pressureExponent = shaped
-        PressureFeel.exponent = shaped
-        store.pressureExponent = shaped
-    }
-
-    /**
      * Honour pressure, or draw every sample at the tool's width — the tablet's switch, live per sample.
      *
      * The two numbers beside it stay where they are while it is off, exactly as the tablet keeps them: a
@@ -545,12 +527,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         frameTime = store.frameTime
         targetHz = store.targetHz
         penStream = store.penStream
-        pressureExponent = store.pressureExponent
         pressureEnabled = store.pressureEnabled
         minimumPressure = store.minimumPressure
         pressureMultiplier = store.pressureMultiplier
         presetState.reload()
-        PressureFeel.exponent = pressureExponent
         PressureFeel.enabled = pressureEnabled
         PressureFeel.multiplier = pressureMultiplier
         PressureFeel.minimum = minimumPressure

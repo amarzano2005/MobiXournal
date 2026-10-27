@@ -4,6 +4,7 @@ import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
+import com.mobixournal.render.PressureCurve
 import java.awt.Window
 import kotlin.math.PI
 
@@ -528,7 +529,7 @@ internal fun PenContact.Companion.of(
     pressureMax: Int,
     atNanos: Long,
 ): PenContact {
-    val pressure = if (pressureMax > 0) (packet.pressure.toFloat() / pressureMax).coerceIn(0f, 1f) else null
+    val pressure = if (pressureMax > 0) PressureCurve.reading(packet.pressure.toFloat(), pressureMax.toFloat()) else null
     val hasOrientation = packet.azimuth != 0 || packet.altitude != 0 || packet.twist != 0
     // The altitude's own zero is the glass, so a pen lying on it is 90° from vertical.
     val tilt = if (hasOrientation) ((90 - packet.altitude / 10.0) * PI / 180.0).coerceAtLeast(0.0) else null
