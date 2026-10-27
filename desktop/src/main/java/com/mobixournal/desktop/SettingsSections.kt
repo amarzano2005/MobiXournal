@@ -138,8 +138,8 @@ enum class DesktopSettingSection(
     }
 
     companion object {
-        /** The section a window opens on: the one the strips are moved from. */
-        val DEFAULT: DesktopSettingSection = TOOLBAR
+        /** The section a window opens on: the **pen**, the page every session starts from. */
+        val DEFAULT: DesktopSettingSection = STYLUS
 
         /** The sections the search field leaves, in the index's own order. */
         fun search(query: String): List<DesktopSettingSection> = entries.filter { it.matches(query) }

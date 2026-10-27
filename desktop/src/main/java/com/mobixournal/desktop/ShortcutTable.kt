@@ -38,7 +38,18 @@ internal object ShortcutTable {
         ShortcutEntry(id = tool.name, label = tool.label, defaultKey = tool.shortcut, tool = tool)
     }
 
+    /**
+     * The rows the Shortcuts page lists **first**, under *Toggle*: one key that picks a tool and, on the
+     * second press, puts back the tool that was in hand ([toggledTool]).
+     */
+    val toggleEntries: List<ShortcutEntry> get() = entries.filter { it.command in TOGGLE_COMMANDS }
+
     private fun commands(): List<ShortcutEntry> = listOf(
+        // The toggles lead the list: they are the switches a stylus button presses, so the page shows them
+        // before the long table of keys.
+        entry(ShellCommand.TOGGLE_ERASER, "Eraser, or the last tool", "Alt+E"),
+        entry(ShellCommand.TOGGLE_HAND, "Hand, or the last tool", "Alt+H"),
+        entry(ShellCommand.TOGGLE_SELECTION, "Selection, or the last tool", "Alt+S"),
         entry(ShellCommand.OPEN, "Open a document", "Ctrl+T"),
         entry(ShellCommand.SAVE, "Save", "Ctrl+S"),
         entry(ShellCommand.SAVE_AS, "Save as", "Ctrl+Shift+S"),

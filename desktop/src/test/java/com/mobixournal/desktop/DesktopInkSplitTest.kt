@@ -115,6 +115,9 @@ class DesktopInkSplitTest {
         assertEquals("the highlighter's width", 1.5f, reloaded.highlighterWidth, 1e-4f)
 
         val restarted = DesktopShellState(reloaded)
+        // The window reopens on the slot it was left on, so the pen's entry is read by picking the pen.
+        assertEquals(DesktopTool.HIGHLIGHTER, restarted.tools.current)
+        restarted.selectTool(DesktopTool.PEN)
         assertEquals(PenPalette.GREEN, restarted.ink.colour)
         restarted.selectTool(DesktopTool.HIGHLIGHTER)
         assertEquals(PenPalette.ORANGE, restarted.ink.colour)

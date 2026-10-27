@@ -76,6 +76,15 @@ enum class ShellCommand {
      * display's target rate is ever applied (`DesktopDisplay`).
      */
     TOGGLE_FULLSCREEN,
+
+    /**
+     * The **toggles** of the Shortcuts page: one press picks the tool, the next puts back the one that was
+     * in hand (`ToolToggle`). The eraser and the selection are families of two, and which member a press
+     * picks is the reader's choice, stored per family.
+     */
+    TOGGLE_ERASER,
+    TOGGLE_HAND,
+    TOGGLE_SELECTION,
 }
 
 /** What an ink key means, independent of the platform's event type (and therefore testable). */

@@ -48,6 +48,14 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
     val focus = remember { FocusRequester() }
     var detecting by remember { mutableStateOf<String?>(null) }
 
+    val onDetect: (String) -> Unit = remember(focus) {
+        { id ->
+            policy.clearShortcutConflict()
+            detecting = id
+            runCatching { focus.requestFocus() }
+        }
+    }
+
     Column(
         Modifier
             .fillMaxWidth()
@@ -73,6 +81,9 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
                 true
             },
     ) {
+        // The page leads with the switches, then the tables — a toggle is the key a reader looks for first.
+        ToggleGroup(policy = policy, detecting = detecting, onDetect = onDetect)
+
         SettingsGroup("Key table") {
             SettingsRow(
                 label = "Detect a key",
@@ -102,23 +113,15 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
             entries = ShortcutTable.entries.filter { it.tool != null },
             table = policy.shortcutTable,
             detecting = detecting,
-            onDetect = {
-                policy.clearShortcutConflict()
-                detecting = it
-                runCatching { focus.requestFocus() }
-            },
+            onDetect = onDetect,
         )
         ShortcutGroup(
             title = "Commands",
             note = "The window's own commands, from the file and the view.",
-            entries = ShortcutTable.entries.filter { it.command != null },
+            entries = ShortcutTable.entries.filter { it.command != null && it.command !in TOGGLE_COMMANDS },
             table = policy.shortcutTable,
             detecting = detecting,
-            onDetect = {
-                policy.clearShortcutConflict()
-                detecting = it
-                runCatching { focus.requestFocus() }
-            },
+            onDetect = onDetect,
         )
 
         SettingsGroup("Factory settings") {
@@ -136,6 +139,57 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
         Spacer(Modifier.height(8.dp))
     }
 }
+
+/**
+ * **Toggle**: the three switches a stylus button presses, above the tables that hold every other key.
+ *
+ * A toggle is a command, not a tool, so it lives in [ShortcutTable] beside the rest of the key table; what
+ * this group adds is the **variant**. The eraser and the selection are families of two on the page
+ * (`ToolToggle`), and which member a press picks is a choice — the cascade under each row names it, and the
+ * choice is stored per family, so the toggle has one answer rather than a state to guess.
+ */
+@Composable
+private fun ToggleGroup(policy: DesktopSettingsState, detecting: String?, onDetect: (String) -> Unit) {
+    SettingsGroup("Toggle") {
+        SettingsRow(
+            label = "Toggle",
+            note = "One press picks the tool, the next puts back the tool that was in hand.",
+        ) { }
+        for (entry in ShortcutTable.toggleEntries) {
+            ShortcutShortcutRow(
+                entry = entry,
+                key = ShortcutTable.key(policy.shortcutTable, entry.id),
+                armed = detecting == entry.id,
+                onClick = { onDetect(entry.id) },
+            )
+            when (entry.command) {
+                ShellCommand.TOGGLE_ERASER -> SettingsSelect(
+                    label = "Eraser",
+                    note = "Which eraser a toggle press picks.",
+                    options = ERASER_TOGGLES,
+                    picked = policy.toggleEraserTool,
+                    optionLabel = { if (it == DesktopTool.ERASER_WHOLE) "Whole stroke" else "Partial" },
+                    onPick = policy::chooseToggleEraser,
+                )
+                ShellCommand.TOGGLE_SELECTION -> SettingsSelect(
+                    label = "Selection",
+                    note = "Which selection a toggle press picks.",
+                    options = SELECTION_TOGGLES,
+                    picked = policy.toggleSelectionTool,
+                    optionLabel = { if (it == DesktopTool.LASSO) "Lasso" else "Marquee" },
+                    onPick = policy::chooseToggleSelection,
+                )
+                else -> Unit
+            }
+        }
+    }
+}
+
+/** The two erasers a toggle can pick, in the strip's own order. */
+private val ERASER_TOGGLES = listOf(DesktopTool.ERASER, DesktopTool.ERASER_WHOLE)
+
+/** The two selections a toggle can pick. */
+private val SELECTION_TOGGLES = listOf(DesktopTool.MARQUEE, DesktopTool.LASSO)
 
 /** One group of rows: a tool's, or a command's, with the same row shape in both. */
 @Composable

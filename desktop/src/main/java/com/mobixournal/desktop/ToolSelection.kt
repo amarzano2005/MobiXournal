@@ -63,3 +63,10 @@ data class ToolSelection(val current: DesktopTool = DesktopTool.PEN) {
 /** The tool a shortcut names (`"M"`, `"Shift+X"`), or null when no tool claims it. */
 fun toolForShortcut(shortcut: String): DesktopTool? =
     DesktopTool.entries.firstOrNull { it.shortcut.equals(shortcut.trim(), ignoreCase = true) }
+
+/**
+ * The tool a settings file names — its [DesktopTool.name] — or [fallback] when the name is absent or was
+ * written by a build that no longer has that tool.
+ */
+internal fun toolNamed(name: String?, fallback: DesktopTool): DesktopTool =
+    DesktopTool.entries.firstOrNull { it.name == name?.trim() } ?: fallback

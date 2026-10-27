@@ -161,6 +161,14 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var toolOrder by mutableStateOf(store.toolOrder)
         private set
 
+    /** The eraser the eraser **toggle key** switches to — partial, or whole-stroke. */
+    var toggleEraserTool by mutableStateOf(toolNamed(store.toggleEraser, DesktopTool.ERASER))
+        private set
+
+    /** The selection the selection **toggle key** switches to — the rectangle, or the freehand loop. */
+    var toggleSelectionTool by mutableStateOf(toolNamed(store.toggleSelection, DesktopTool.MARQUEE))
+        private set
+
     /**
      * The window's save/open dialog for a settings backup, installed by the shell.
      *
@@ -267,12 +275,14 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         }
 
     /**
-     * Open the surface, on [section] or on the one it was last showing.
+     * Open the surface — **on the pen**, which is where every session's first visit goes.
      *
      * The search is cleared: a field that reopened holding the last word would hide the sections the
-     * reader came back for.
+     * reader came back for. A caller that means a section names it (the menu's pen block asks for the
+     * stylus explicitly); the plain door always lands on the stylus, so the page a reader closed on
+     * *About* does not come back on *About* after a restart.
      */
-    fun openAt(section: DesktopSettingSection = this.section) {
+    fun openAt(section: DesktopSettingSection = DesktopSettingSection.STYLUS) {
         this.section = section
         query = ""
         open = true
@@ -418,6 +428,18 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         store.penStream = value
     }
 
+    /** Which eraser the eraser toggle switches to, and remember it for the next session. */
+    fun chooseToggleEraser(tool: DesktopTool) {
+        toggleEraserTool = tool
+        store.toggleEraser = tool.name
+    }
+
+    /** Which selection the selection toggle switches to, and remember it. */
+    fun chooseToggleSelection(tool: DesktopTool) {
+        toggleSelectionTool = tool
+        store.toggleSelection = tool.name
+    }
+
     /**
      * Honour pressure, or draw every sample at the tool's width — the tablet's switch, live per sample.
      *
@@ -541,6 +563,8 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         figureWidth = store.figureWidth
         newDocumentFormat = store.newDocumentFormat
         toolOrder = store.toolOrder
+        toggleEraserTool = toolNamed(store.toggleEraser, DesktopTool.ERASER)
+        toggleSelectionTool = toolNamed(store.toggleSelection, DesktopTool.MARQUEE)
         shortcuts = store.shortcuts
         shortcutConflict = null
     }

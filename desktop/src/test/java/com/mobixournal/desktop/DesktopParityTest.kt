@@ -141,7 +141,12 @@ class DesktopParityTest {
         assertEquals(LineStyle.DASHED, reopened.inkLineStyle)
         assertEquals(LineStyle.DOTTED, reopened.highlighterLineStyle)
 
+        // The restart comes back on the highlighter (`interface.pickedTool`), so the pen's entry is read
+        // by picking the pen — the question here is that each tool kept its own pattern, not which tool
+        // the window opened on.
         val next = DesktopShellState(settings = reopened)
+        assertEquals(DesktopTool.HIGHLIGHTER, next.tools.current)
+        next.selectTool(DesktopTool.PEN)
         assertEquals(LineStyle.DASHED, next.ink.lineStyle)
         next.selectTool(DesktopTool.HIGHLIGHTER)
         assertEquals(LineStyle.DOTTED, next.ink.lineStyle)

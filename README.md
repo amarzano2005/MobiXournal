@@ -111,6 +111,8 @@ pages as you scroll it, and the pen's own packet stream draws the ink when a gra
 - **A file to try it on**: `udiff.xopp`, at the root of this repository.
 - **Keys**: every tool and command has one; the full table is in
   [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and **Settings → Shortcuts** rebinds any of them.
+  That page also holds three **switch** keys — eraser, hand and selection — where one press picks the tool and
+  the next puts back the tool you were using, with the kind of eraser or selection chosen beside them.
 - **Pen presets**: save the pen's minimum pressure and multiplier under a name — from the hamburger's Pen
   block or **Settings → Stylus** — and the menu keeps them as chips, so a light hand and a firm one are one
   click apart, exactly as on the tablet.

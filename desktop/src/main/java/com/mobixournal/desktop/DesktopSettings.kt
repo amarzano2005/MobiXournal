@@ -73,6 +73,33 @@ class DesktopSettings(val file: File = defaultFile()) {
         }
 
     /**
+     * The tool the window had picked, by [DesktopTool] name: the strip comes back on the same slot and,
+     * with it, the colour and width that slot keeps.
+     */
+    var pickedTool: String
+        get() = properties.getProperty(KEY_PICKED_TOOL) ?: DesktopTool.PEN.name
+        set(value) {
+            properties.setProperty(KEY_PICKED_TOOL, value)
+            save()
+        }
+
+    /** Which eraser the eraser toggle switches **to**: the partial one, or the whole-stroke one. */
+    var toggleEraser: String
+        get() = properties.getProperty(KEY_TOGGLE_ERASER) ?: DesktopTool.ERASER.name
+        set(value) {
+            properties.setProperty(KEY_TOGGLE_ERASER, value)
+            save()
+        }
+
+    /** Which selection the selection toggle switches **to**: the rectangle or the freehand loop. */
+    var toggleSelection: String
+        get() = properties.getProperty(KEY_TOGGLE_SELECTION) ?: DesktopTool.MARQUEE.name
+        set(value) {
+            properties.setProperty(KEY_TOGGLE_SELECTION, value)
+            save()
+        }
+
+    /**
      * Whether the pen's pressure is honoured at all (`tablet.pressureEnabled`).
      *
      * Off draws every sample at the tool's set width — the tablet's *Pressure sensitivity* switch, and the
@@ -529,6 +556,11 @@ class DesktopSettings(val file: File = defaultFile()) {
 
         /** The strip's slot order, as [DesktopTool] names; absent means the factory order. */
         const val KEY_TOOL_ORDER = "interface.toolOrder"
+
+        /** The tool the window had picked, and the two variants its toggle keys switch to. */
+        const val KEY_PICKED_TOOL = "interface.pickedTool"
+        const val KEY_TOGGLE_ERASER = "interface.toggleEraser"
+        const val KEY_TOGGLE_SELECTION = "interface.toggleSelection"
 
         /** The key table's remapped rows, as `id:key` pairs — only the rows that differ are written. */
         const val KEY_SHORTCUTS = "interface.shortcuts"

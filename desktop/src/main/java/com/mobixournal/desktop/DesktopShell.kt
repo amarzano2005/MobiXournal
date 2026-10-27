@@ -158,9 +158,15 @@ class DesktopShellState(
         thumbnailRevision++
     }
 
-    /** The picked tool: what a primary drag on the page does (pen and highlighter ink, eraser rubs out). */
-    var tools by mutableStateOf(ToolSelection())
-        private set
+    /** The pick, and the file that remembers it ([DesktopToolPicks]). */
+    private val picks = DesktopToolPicks(settings)
+
+    /**
+     * The picked tool: what a primary drag on the page does (pen and highlighter ink, eraser rubs out).
+     * Restored from the settings file, so a session comes back on the slot it was left on — with the colour
+     * and width that slot remembers.
+     */
+    val tools: ToolSelection get() = picks.selection
 
     /**
      * Do what one bar button says on the active tab. `EDIT` is the shell's own (it opens a panel), so it
@@ -331,8 +337,18 @@ class DesktopShellState(
     fun selectTool(tool: DesktopTool) {
         // A text box is finished by leaving its tool: the typing is committed, never silently dropped.
         if (tool != DesktopTool.TEXT) textBox.commit(tabs.active, ::edited)
-        tools = tools.select(tool)
+        picks.pick(tool)
         openGroup = null
+    }
+
+    /**
+     * A **toggle** press (`Alt+E`, `Alt+H`, `Alt+S`): pick the family's tool, or put back the last one.
+     *
+     * The arithmetic is [toggledTool]'s; what belongs here is the one side effect a pick has — the text
+     * box is committed and the slot is remembered.
+     */
+    fun toggleTool(target: DesktopTool) {
+        selectTool(picks.toggleTarget(target))
     }
 
     /** `Alt + Down`: open the picked tool's group picker, or close the one that is up. */
@@ -573,6 +589,19 @@ class DesktopShellState(
                 prefs.toggleFullScreen()
                 return true
             }
+            // The three switches need no document: they only change what a drag would do.
+            ShellCommand.TOGGLE_ERASER -> {
+                toggleTool(prefs.toggleEraserTool)
+                return true
+            }
+            ShellCommand.TOGGLE_HAND -> {
+                toggleTool(DesktopTool.HAND)
+                return true
+            }
+            ShellCommand.TOGGLE_SELECTION -> {
+                toggleTool(prefs.toggleSelectionTool)
+                return true
+            }
             // Both ask the window where the file goes: this class has no dialog to open.
             ShellCommand.SAVE_AS, ShellCommand.EXPORT_PDF -> {
                 if (tabs.active == null) return false
@@ -650,7 +679,8 @@ class DesktopShellState(
             // Handled above, with no document needed.
             ShellCommand.DISMISS_FAILURE, ShellCommand.OPEN, ShellCommand.TOGGLE_SIDEBAR,
             ShellCommand.TOGGLE_FULLSCREEN, ShellCommand.SAVE, ShellCommand.SAVE_AS,
-            ShellCommand.EXPORT_PDF -> false
+            ShellCommand.EXPORT_PDF, ShellCommand.TOGGLE_ERASER, ShellCommand.TOGGLE_HAND,
+            ShellCommand.TOGGLE_SELECTION -> false
         }
     }
 

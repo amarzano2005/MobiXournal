@@ -134,6 +134,9 @@ What it does today:
   click arms the slot, the second asks; a circuit slot obeys the same rule, since its family palette is
   its submenu. Picking a row re-faces the slot and closes the picker, `Esc` closes it too, and no key ever
   changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
+  The slot is **remembered**: the pick is written as `interface.pickedTool` and the window reopens on it,
+  with the colour and width that slot keeps, so a session resumes at the pen, the marker or the eraser it
+  was left on instead of always at the pencil.
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
   document-red chip** and Export SVG in the accent, **a hairline**, then the tablet's **Pen block**: its

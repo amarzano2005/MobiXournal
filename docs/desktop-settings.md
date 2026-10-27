@@ -32,6 +32,11 @@ had before it was measured (`DesktopSettingsStyleTest` diffs a hovered group edg
 The list is **names only** — a glyph and a word per section — because ten two-line summaries is a page of
 prose to scan past, and the index is a list, not a column of paragraphs.
 
+The panel always **opens on Stylus** (`DesktopSettingSection.DEFAULT`), whatever page it was closed on: the
+pen is the choice a session starts from, and a window that came back on *About* would be remembering the one
+page nobody went back for. A caller that means another section names it — the hamburger's pen block asks for
+the stylus explicitly — and the index picks any of the ten afterwards.
+
 ### One line per setting, and a help line
 
 A row is **one line tall**: its name, and its answer at the right edge. The sentence that explains the
@@ -123,6 +128,20 @@ stores and the row shows — and `ShortcutTable.entries` is the one list the pag
 resolves through. The codec, the conflict rule and the reset are shared with the tablet's Shortcuts section,
 which is why a key means the same tool on both shells; the defaults are not shared, because a phone's commands
 are not a window's.
+
+### Toggle — the switch keys
+
+The page **leads with a Toggle group**, before the two tables: three commands that behave like a stylus
+button rather than like a tool's slot. A press picks the tool, and the next press puts back the tool that was
+in hand — `Alt+E` the eraser, `Alt+H` the hand, `Alt+S` the selection. The rule is `ToolToggle`'s, as a pure
+function: the eraser and the selection are **families of two** on the page (partial and whole-stroke,
+rectangle and loop), so a press while *either* member is in hand already counts as "there" and goes back
+rather than jumping to the sibling. A last tool that is itself in the family cannot be the answer, so the pen
+is.
+
+Which member a press **picks** is a choice, so each of the two families carries a cascade under its row —
+*Eraser* (partial / whole stroke) and *Selection* (marquee / lasso) — stored as `interface.toggleEraser` and
+`interface.toggleSelection`. The hand has no siblings, so its row is alone.
 
 The bindings the table does **not** own stay in `DesktopKeys.unlistedCommand`: `=` arriving as `Shift+0` on an
 Italian keyboard, the keypad's `+`/`-`, `Backspace` beside `Delete`, and the arrows beside the page keys. They
