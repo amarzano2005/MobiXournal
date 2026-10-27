@@ -22,12 +22,22 @@ import org.junit.Test
  *    way the rest are;
  *  - no two spokes share a title or a section heading — that is one topic with two homes, one of which
  *    is already going stale;
- *  - no sentence is pasted into two spokes: a moved paragraph leaves a pointer, not a copy.
+ *  - no sentence is pasted into two spokes: a moved paragraph leaves a pointer, not a copy;
+ *  - **the front doors are documents too** (`README.md`, `AGENTS.md`). They sat outside `docs/`, so no
+ *    rule looked at them, and the README grew three paragraphs of 12 000–23 000 characters, a desktop
+ *    section retelling the spokes feature by feature, and a shortcut table `desktop-ui-layout.md`
+ *    already owns. They now carry a recorded line budget, a cap on how long one paragraph of running
+ *    prose may be ([noFrontDoorParagraphIsAWallOfText]), and the fact that a front door *points at*
+ *    its spokes instead of restating them;
+ *  - nothing at the repository root is an orphan: a file a reader meets first is named by a doc, a
+ *    test or a script, or it does not belong there ([everyFileAtTheRootIsReferenced]).
  *
  * **Drift** (prose that describes code which has since changed):
  *
  *  - a code file a doc names must exist, so a rename, a move or a deletion fails here instead of
  *    confusing a reader who trusts the doc;
+ *  - a doc named anywhere (`docs/…md`) must exist: `TODO.toml` used to send a reader to two spokes
+ *    that had been split away, and only the files inside `docs/` were ever checked;
  *  - a task id a doc names must be in `TODO.toml` or `FINISHED.toml`;
  *  - every relative link and `#anchor` must resolve, so a renamed heading is caught at once.
  *
@@ -59,6 +69,33 @@ class DocsGuardTest {
      * or are elided with `...`. Recorded here, not silently skipped.
      */
     private val hostOnlyScripts = setOf("emulator.sh", "adb-targets.sh")
+
+    /**
+     * The two files a reader meets before any spoke. They are not spokes: they point at the spokes,
+     * which is why they get a budget of their own rather than an entry in the index.
+     */
+    private val frontDoors = listOf("README.md", "AGENTS.md")
+
+    /**
+     * How long a front door may be. Recorded rather than derived, like the source-size ceilings: the
+     * numbers are what these two files cost after being cut back to their job, and a change that pushes
+     * past one is a decision to state — usually by moving the paragraph to the spoke that owns it.
+     *
+     * `README.md` is the human's front door (what it is, how to run it, where to read more) and
+     * `AGENTS.md` the agent's map; neither is a place to accumulate detail, because detail has an owner
+     * in `docs/` and a second copy of it drifts.
+     */
+    private val frontDoorBudget = mapOf("README.md" to 360, "AGENTS.md" to 430)
+
+    /**
+     * The longest a single paragraph of **running prose** may get in a front door, in characters.
+     *
+     * A wall of text is not a style opinion here: the README's desktop section was one paragraph of
+     * 13 369 characters describing every command the window has, and a paragraph that long has no
+     * sentence a reader can find again. Lists, tables, quotes, headings, HTML and code are exempt — they
+     * are scanned by their shape, and a feature catalogue is legitimately long.
+     */
+    private val proseParagraphWall = 1_200
 
     @Test
     fun everySpokeIsReachableFromTheIndex() {
@@ -285,19 +322,223 @@ class DocsGuardTest {
     }
 
     /**
-     * Every `](target)` in the checked docs, as (file, line, target). Code is not prose: fenced blocks
+     * A doc that names another doc names one that **exists**.
+     *
+     * The architecture spokes are joined by name — `TODO.toml`'s scopes tell a task to read and update
+     * `docs/<topic>.md`, and the map in `AGENTS.md` is a list of them — so a spoke that was split, renamed
+     * or dropped leaves a task that sends its reader to a file nobody can open. That is invisible to the
+     * link check, which only looked at the files inside `docs/`.
+     *
+     * `FINISHED.toml` is deliberately **not** read: it is the finished-work archive, and a description
+     * there records what a task said when it was picked up. A doc it named may legitimately have been
+     * split since; rewriting history to match is the opposite of an archive.
+     */
+    @Test
+    fun everyDocADocNamesExists() {
+        val missing = mutableListOf<String>()
+        for (file in prose() + listOf(File(repoRoot(), "TODO.toml"))) {
+            file.readLines().forEachIndexed { i, line ->
+                for (match in docReference.findAll(line)) {
+                    val target = "docs/" + match.groupValues[1]
+                    // A *template* is not a path: `docs/releases/vX.Y.Z.md` names whichever version is
+                    // being cut, and `<topic>`/`...` are the shapes an instruction uses.
+                    if (elided.containsMatchIn(target)) continue
+                    if (!File(repoRoot(), target).isFile) missing += "${file.name}:${i + 1} -> $target"
+                }
+            }
+        }
+        assertTrue(
+            "these references name a doc the tree does not have — fix the reference, or add the spoke " +
+                "(see 'Adding a spoke' in docs/architecture.md):\n  " + missing.joinToString("\n  "),
+            missing.isEmpty(),
+        )
+    }
+
+    /**
+     * The front doors keep their **size**, in lines and in how long one paragraph may run.
+     *
+     * `everyDocFitsTheLineBudget` never saw them, and a front door with no ceiling is where detail
+     * accumulates: the README reached 539 lines and one 23 000-character block of nested bullets. The
+     * budget is a ratchet — the numbers are what the files cost once cut back to their job, so the next
+     * paragraph has to be argued for, and the argument is usually "this belongs to a spoke".
+     */
+    @Test
+    fun eachFrontDoorFitsItsBudget() {
+        val fat = frontDoorBudget.mapNotNull { (name, budget) ->
+            val file = File(repoRoot(), name)
+            if (!file.isFile) return@mapNotNull null
+            val lines = file.readLines().size
+            if (lines > budget) "$name is $lines lines (budget $budget)" else null
+        }
+        assertTrue(
+            "these front doors grew past the size they are meant to hold — move the detail to the spoke " +
+                "that owns it and link, or raise the number in `frontDoorBudget` as a decision:\n  " +
+                fat.joinToString("\n  "),
+            fat.isEmpty(),
+        )
+    }
+
+    /**
+     * A paragraph of running prose in a front door stays short enough to read.
+     *
+     * Long is not the problem — *unbroken* is: a paragraph of 13 000 characters has no sentence a reader
+     * can come back to, and the README's desktop section was exactly one of those. Splitting it costs a
+     * blank line and a full stop, which is the whole of the remedy this check asks for. Lists, tables,
+     * quotes, headings, HTML and fenced code are exempt ([proseParagraphs] is what decides).
+     */
+    @Test
+    fun noFrontDoorParagraphIsAWallOfText() {
+        val walls = mutableListOf<String>()
+        for (name in frontDoors) {
+            val file = File(repoRoot(), name)
+            if (!file.isFile) continue
+            for ((start, end, chars) in proseParagraphs(file)) {
+                if (chars > proseParagraphWall) {
+                    walls += "$name:$start-$end is $chars characters (max $proseParagraphWall) — break it " +
+                        "into paragraphs, or move the detail to its spoke"
+                }
+            }
+        }
+        assertTrue("these paragraphs are walls of text:\n  " + walls.joinToString("\n  "), walls.isEmpty())
+    }
+
+    /**
+     * Nothing at the repository root is an **orphan**.
+     *
+     * The root is the first thing a reader sees, so what sits there reads as deliberate: a screenshot
+     * nobody links, a sample file no test opens, a leftover export. Every root file is therefore either
+     * infrastructure (the build, the licence, this doc set's two front doors) or named somewhere in the
+     * repo — by a doc, a test or a script, which is also what makes a fixture such as a sample `.xopp`
+     * legitimate. Dot-files and anything `.gitignore` covers are exempt: they are the toolchain's, not
+     * the reader's.
+     */
+    @Test
+    fun everyFileAtTheRootIsReferenced() {
+        val root = repoRoot()
+        val ignored = gitignoreMatcher(root)
+        val corpus = StringBuilder()
+        val skipped = setOf(".git", "build", ".gradle", ".idea", "node_modules", ".kotlin")
+        root.walkTopDown()
+            .onEnter { it == root || it.name !in skipped }
+            .filter { it.isFile && it.extension in referenceTextExtensions }
+            .forEach { corpus.append(it.readText()).append('\n') }
+        val text = corpus.toString()
+        val orphans = root.listFiles().orEmpty()
+            .filter { it.isFile && !it.name.startsWith(".") }
+            .filter { it.name !in rootInfrastructure && !ignored(it.name) && it.name !in text }
+            .map { it.name }
+            .sorted()
+        assertEquals(
+            "these files sit at the repository root and nothing names them — link one from the doc or " +
+                "test that uses it, add it to `rootInfrastructure` if it belongs there, or put it in " +
+                ".gitignore if it is a local artifact rather than part of the tree",
+            emptyList<String>(),
+            orphans,
+        )
+    }
+
+    /** A reference to a spoke, as `docs/<name>.md`; the `docs/[name].md` template in the map is not one. */
+    private val docReference = Regex("""docs/([A-Za-z0-9/._-]+\.md)""")
+
+    /** A doc path with a placeholder in it — a release's version, a `<topic>`, an elided `...` segment. */
+    private val elided = Regex("""(\.\.\.|X\.Y\.Z|\[|<)""")
+
+    /**
+     * The root files that are their own justification: the build, the licence, the doc set's front doors.
+     * A file added here is a decision to state, the same rule as the source-size ceilings.
+     */
+    private val rootInfrastructure = setOf(
+        "README.md", "AGENTS.md", "LICENSE", "NOTICE", "TODO.toml", "FINISHED.toml",
+        "gradle.properties", "gradlew", "gradlew.bat", "settings.gradle.kts", "build.gradle.kts",
+    )
+
+    /** The extensions that count as "named somewhere": prose, code, scripts and CI. */
+    private val referenceTextExtensions = setOf("md", "toml", "kt", "kts", "py", "sh", "yml", "yaml")
+
+    /** The `.gitignore` patterns, as a matcher for one bare file name at the root. */
+    private fun gitignoreMatcher(root: File): (String) -> Boolean {
+        val file = File(root, ".gitignore")
+        if (!file.isFile) return { false }
+        val patterns = file.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") && !it.startsWith("!") }
+            .map { it.removePrefix("/").removeSuffix("/") }
+            .filter { '/' !in it }
+            .map { glob(it) }
+        return { name -> patterns.any { it.matches(name) } }
+    }
+
+    /** One `.gitignore` glob (`*`, `?`) as a regex over a single file name. */
+    private fun glob(pattern: String): Regex =
+        Regex("^" + pattern.map { c ->
+            when (c) {
+                '*' -> ".*"
+                '?' -> "."
+                else -> Regex.escape(c.toString())
+            }
+        }.joinToString("") + "$")
+
+    /**
+     * The paragraphs of **running prose** in [file], as (first line, last line, characters).
+     *
+     * A block that begins, anywhere in it, with a structural marker — a heading, a list item, a table
+     * row, a quote, an HTML tag, an indented line or a fence — is not prose and is not measured: those
+     * are scanned by their shape, and their length is a catalogue rather than a paragraph.
+     */
+    private fun proseParagraphs(file: File): List<Triple<Int, Int, Int>> {
+        val out = mutableListOf<Triple<Int, Int, Int>>()
+        val orderedItem = Regex("""^\d+\.\s""")
+        val lines = file.readLines()
+        var fenced = false
+        var start = -1
+        var chars = 0
+        fun close(end: Int) {
+            if (start >= 0) out += Triple(start + 1, end, chars)
+            start = -1
+            chars = 0
+        }
+        lines.forEachIndexed { i, raw ->
+            val line = raw.trim()
+            if (line.startsWith("```")) {
+                close(i)
+                fenced = !fenced
+                return@forEachIndexed
+            }
+            val structural = fenced || line.isEmpty() || raw.startsWith("  ") || raw.startsWith("\t") ||
+                line.startsWith("#") || line.startsWith("|") || line.startsWith(">") ||
+                line.startsWith("<") || line.startsWith("- ") || line.startsWith("* ") ||
+                line.startsWith("---") || line.startsWith("***") || orderedItem.containsMatchIn(line)
+            if (structural) {
+                close(i)
+                return@forEachIndexed
+            }
+            if (start < 0) start = i
+            chars += line.length
+        }
+        close(lines.size)
+        return out
+    }
+
+    /**
+     * Every link in the checked docs — `](target)` and the front doors' HTML `src`/`href` — as
+     * (file, line, target). Code is not prose: fenced blocks
      * and inline spans are skipped, so a dialect example such as `` `[label](url)` `` is not read as a
      * link to a file called `url`.
      */
     private fun links(): List<Triple<File, Int, String>> {
         val out = mutableListOf<Triple<File, Int, String>>()
-        for (file in checkable()) {
+        for (file in prose()) {
             var fenced = false
             file.readLines().forEachIndexed { i, raw ->
                 if (raw.trimStart().startsWith("```")) fenced = !fenced
                 if (fenced) return@forEachIndexed
-                val prose = raw.replace(Regex("`[^`]*`"), " ")
-                for (m in Regex("""]\(([^)\s]+)\)""").findAll(prose)) {
+                val line = raw.replace(Regex("`[^`]*`"), " ")
+                for (m in Regex("""]\(([^)\s]+)\)""").findAll(line)) {
+                    out += Triple(file, i + 1, m.groupValues[1])
+                }
+                // The README's header is HTML (the logo and the preview image), and a broken image is
+                // the same broken link as a broken one written in markdown.
+                for (m in Regex("(?:src|href)=\"([^\"]+)\"").findAll(line)) {
                     out += Triple(file, i + 1, m.groupValues[1])
                 }
             }
@@ -327,7 +568,7 @@ class DocsGuardTest {
         return ids
     }
 
-    /** The docs under the link and budget rules: everything in `docs/`, minus the release archive. */
+    /** The docs under the budget and heading rules: everything in `docs/`, minus the release archive. */
     private fun checkable(): List<File> =
         (spokes() + listOf(docs.resolve("tools.md"), docs.resolve(index))).distinct().sorted()
 

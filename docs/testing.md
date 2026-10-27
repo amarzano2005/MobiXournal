@@ -64,9 +64,12 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
 - **`DocsGuardTest`** (`guards/`) — the shape of the doc set: every spoke doc is reachable from the
   index, every relative link and `#anchor` resolves, every doc fits its **300-line** budget, every
   spoke opens with `# Title` + a `> Read when …` line, no two spokes claim one title or section
-  heading, no sentence is pasted into two docs, and every code file and task id a doc names exists.
-  So the architecture docs cannot decay back into one unaddressable document, or into prose that
-  describes a file that has since been renamed.
+  heading, no sentence is pasted into two docs, and every code file, doc and task id a doc names
+  exists. So the architecture docs cannot decay back into one unaddressable document, or into prose that
+  describes a file that has since been renamed. The two front doors are held to their own rules, since
+  they sit outside `docs/`: a recorded line budget, no paragraph of running prose past 1 200 characters,
+  their links resolving like a spoke's, and every file at the repository root named by something (a doc,
+  a test or a script) rather than left there as an orphan.
 - **`DocClaimsTest`** (`guards/`) — the drift no file can witness: sentences that were false once
   (`read-only` about the desktop window) are forbidden, the window's Settings list is derived from
   `DesktopSettingSection` so a new section fails until the doc names it, and every test class a doc

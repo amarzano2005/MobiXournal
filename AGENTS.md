@@ -117,7 +117,10 @@ Three JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce st
   missing from `docs/architecture.md`, if any relative markdown link or `#anchor` slug is broken, if any
   doc exceeds the **300-line budget**, if a spoke does not open with `# Title` + a `> Read when …` line,
   if two spokes claim one title or section heading, if a sentence is pasted into two docs, if a doc
-  names a code file or task id that does not exist.
+  names a code file, another doc or a task id that does not exist. The two front doors it never used to
+  read are held to their own rules, because they live outside `docs/`: a recorded **line budget**, no
+  paragraph of running prose past 1 200 characters, their links resolving like a spoke's, and every file
+  at the repository root named by a doc, a test or a script instead of sitting there as an orphan.
 - **`DocClaimsTest`**: the statements no file can witness — sentences that were false once
   (`read-only` about the window), the window's Settings list derived from `DesktopSettingSection`, and
   the test classes a doc names. A new lie gets a line here.

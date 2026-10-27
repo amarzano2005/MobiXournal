@@ -41,6 +41,18 @@ class DocClaimsTest {
             "does not edit",
             "the `desktop/` window edits ink, figures, living elements, text and the selection",
         ),
+        Claim(
+            "still to come",
+            "the window's selection, its action bar and the in-place editors for tables, graphs and " +
+                "circuits all exist; the README called them this long after they landed, which reads as a " +
+                "missing feature — describe what is there, and name what is not in TODO.toml",
+        ),
+        Claim(
+            "not checked in",
+            "`udiff.xopp` and `bhm_prior.pdf` are committed at the repo root and the README hands the first " +
+                "of them to a new user as a document to open; a doc calling a sample absent sends its " +
+                "reader looking for something that is right there",
+        ),
     )
 
     @Test

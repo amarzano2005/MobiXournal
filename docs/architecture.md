@@ -85,7 +85,15 @@ few fat documents — and from drifting into statements that are no longer true 
 - **a sentence is pasted into two spokes** — a moved paragraph leaves a pointer, not a copy;
 - **a doc names a code file that does not exist** — a rename, a deletion or a moved file shows up here
   rather than in a reader's wasted afternoon (host-only paths and elided `...` paths are exempt);
-- **a doc names a task id** that neither `TODO.toml` nor `FINISHED.toml` holds.
+- **a doc names another doc that does not exist** — a reference to `docs/…md` anywhere in the docs, the two
+  front doors or `TODO.toml` has to land on a spoke, because a scope that tells its reader to open a file
+  that was split away sends them nowhere (`FINISHED.toml` is exempt: it records the past);
+- **a doc names a task id** that neither `TODO.toml` nor `FINISHED.toml` holds;
+- **a front door outgrows its job** — `README.md` and `AGENTS.md` carry a recorded line budget and a cap on
+  one paragraph of running prose, because they sit outside `docs/` and had no rule at all: a front door
+  *points at* its spokes, and a paragraph nobody can finish belongs in the one that owns it;
+- **a file at the repository root is an orphan** — the root is the first thing a reader sees, so everything
+  there is either infrastructure or named by a doc, a test or a script.
 
 ### Adding a spoke
 
