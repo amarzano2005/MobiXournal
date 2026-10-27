@@ -45,7 +45,7 @@ class DesktopMenuTest {
     private val height: Float = with(MenuMetrics) {
         (
             padding * 2 + tileHeight + sectionGap + chipHeight + sectionGap +
-                rowHeight + chipHeight + sectionGap + dividerHeight + rowHeight * 2
+                rowHeight + sectionGap + dividerHeight + rowHeight * 2
             ).value
     }
 
@@ -151,6 +151,23 @@ class DesktopMenuTest {
         assertTrue("the Pen block is drawn, not only the desk", !drawn.contentEquals(bare))
     }
 
+    /**
+     * The hover step on an export chip, drawn so the shape of the lit area can be looked at: the whole
+     * capsule, not the label's box.
+     */
+    @Test
+    fun `hovering an export chip lights the whole capsule`() {
+        val scene = scene()
+        val png = try {
+            mouse(scene, PointerEventType.Move, chipCentre(1), chipCentreY(), 1_000L, pressed = false)
+            Snapshot.sendApplyNotifications()
+            requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
+        } finally {
+            scene.close()
+        }
+        File("build/desktop-render/desktop-menu-hover.png").apply { parentFile?.mkdirs() }.writeBytes(png)
+    }
+
     /** One frame of the panel, tall enough that nothing in the Pen block is clipped. */
     private fun panelFrame(policy: DesktopSettingsState?): ByteArray {
         val scene = ImageComposeScene(width.toInt(), 560, Density(1f)) {
@@ -216,13 +233,13 @@ class DesktopMenuTest {
     }
 
     /**
-     * The page-list row, by the panel's own arithmetic: the tiles, the export chips, the **Pen block**
-     * (its heading row and its preset chip), the rule, then the row.
+     * The page-list row, by the panel's own arithmetic: the tiles, the export chips, the **Pen heading**
+     * (the block below it is the shell's settings, absent in this test), the rule, then the row.
      */
     private fun rowCentreY(): Float = with(MenuMetrics) {
         (
             padding + tileHeight + sectionGap + chipHeight + sectionGap +
-                rowHeight + chipHeight + sectionGap + dividerHeight + rowHeight / 2
+                rowHeight + sectionGap + dividerHeight + rowHeight / 2
             ).value
     }
 

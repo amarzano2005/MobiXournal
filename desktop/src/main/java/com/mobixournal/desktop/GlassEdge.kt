@@ -147,6 +147,35 @@ internal fun Modifier.hoverFill(
 }
 
 /**
+ * A **glass capsule that answers the pointer inside its own fill** — the same hover step as [hoverFill],
+ * drawn as the capsule's fill rather than as a second background laid over the first.
+ *
+ * The two are not interchangeable on a weighted child: an overlay is a layer of its own, and on a menu chip
+ * inside a popup it could be painted at the label's bounds instead of the capsule's, lighting a corner of a
+ * control the pointer was over. One background cannot disagree with the shape it fills. [active] keeps the
+ * given fill, for a chip that is already picked.
+ */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@Composable
+internal fun Modifier.hoverCapsule(
+    cornerRadius: Dp = DesktopTheme.capsuleRadius,
+    fill: Color = DesktopTheme.glass,
+    hoverFill: Color = DesktopTheme.hoverSlot,
+    shadow: Dp = DesktopTheme.capsuleShadow,
+    active: Boolean = false,
+): Modifier {
+    var hovered by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(cornerRadius)
+    return this
+        .onPointerEvent(PointerEventType.Enter) { hovered = true }
+        .onPointerEvent(PointerEventType.Exit) { hovered = false }
+        .shadow(shadow, shape, clip = false)
+        .clip(shape)
+        .background(if (hovered && !active) hoverFill else fill)
+        .glassRim(cornerRadius)
+}
+
+/**
  * A **band** of chrome — the header, the status bar, the sidebar, a tool lane — as the tablet draws it:
  * the glass fill and **one** cast shadow underneath for [DesktopTheme.bandShadow].
  *

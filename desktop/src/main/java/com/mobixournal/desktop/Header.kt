@@ -56,9 +56,8 @@ internal fun Header(
     onRedo: () -> Unit,
     /** Open the Settings surface — the menu's row, and the window behind `Ctrl+,`. */
     onSettings: () -> Unit,
-    /** The menu's Pen block: the colour panel, and the factory ink behind one chip. */
+    /** The menu's Pen block: the door to the Stylus page, behind its heading's glyph. */
     onPenParameters: () -> Unit = {},
-    onPenDefault: () -> Unit = {},
     /** The settings the menu's Pen block changes, so its pressure rows act on the open window. */
     penPolicy: DesktopSettingsState? = null,
 ) {
@@ -84,7 +83,6 @@ internal fun Header(
             onToggleSidebar = onToggleSidebar,
             onSettings = onSettings,
             onPenParameters = onPenParameters,
-            onPenDefault = onPenDefault,
             penPolicy = penPolicy,
         )
         Spacer(Modifier.width(10.dp))

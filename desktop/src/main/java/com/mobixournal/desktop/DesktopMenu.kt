@@ -66,7 +66,6 @@ internal fun HeaderMenu(
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
-    onPenDefault: () -> Unit = {},
     /** The window's settings, for the Pen block's pressure controls; null in a test with no window. */
     penPolicy: DesktopSettingsState? = null,
 ) {
@@ -101,7 +100,6 @@ internal fun HeaderMenu(
                     onToggleSidebar = { open = false; onToggleSidebar() },
                     onSettings = { open = false; onSettings() },
                     onPenParameters = { open = false; onPenParameters() },
-                    onPenDefault = { open = false; onPenDefault() },
                     onDismiss = { open = false },
                     penPolicy = penPolicy,
                 )
@@ -125,7 +123,6 @@ internal fun MenuPanel(
     onToggleSidebar: () -> Unit,
     onSettings: () -> Unit,
     onPenParameters: () -> Unit = {},
-    onPenDefault: () -> Unit = {},
     /** Put the panel away — the preset chips close it, because they were reached mid-drawing. */
     onDismiss: () -> Unit = {},
     /** The pressure controls of the Pen block, when the shell has settings to show (see [MenuPenBlock]). */
@@ -156,18 +153,12 @@ internal fun MenuPanel(
             MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
         }
-        // The tablet's **Pen block**: its heading with the door to the pen's parameters, and the reset
-        // chip under it. *Factory ink* is the **ink**, not a pressure preset — its old name was
-        // *Default*, which became a lie the moment the presets below had a Default of their own.
+        // The tablet's **Pen block**, and only the pen's own answers in it: the heading (with the glyph
+        // that opens the Stylus page), the pressure switch, its two numbers and the presets. Nothing about
+        // the **ink** lives here — a colour and a width have their capsule in the strip, and an ink reset
+        // beside a pressure preset made two different things share one word.
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuHeadingRow(label = "Pen", onClick = onPenParameters)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap)) {
-            MenuChip("Factory ink", null, enabled = true, Modifier, DesktopTheme.accent, onPenDefault)
-            MenuChip("Parameters…", null, enabled = true, Modifier, DesktopTheme.inkSecondary, onPenParameters)
-        }
-        // The tablet's Pen block carries its pressure settings and not only a door to them: the two
-        // numbers a drawing hand reaches for mid-sentence are here, where the hand already is — and under
-        // them the same named presets the Stylus page edits, so a preset is one click from a stroke.
         if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss)
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
@@ -189,17 +180,18 @@ internal fun MenuPanel(
 }
 
 /**
- * **The Pen block's pressure controls**, the tablet's Stylus rows in the menu's own material.
+ * **The Pen block**, the tablet's Stylus rows in the menu's own material — and only the pen's own answers.
  *
  * Sensitivity is a switch and the two numbers are the window's slider, each on a row of its own at the
- * menu's row height — so the block a reader opens mid-drawing answers the question it was opened for,
- * and *Parameters…* stays the door to the rest (the stream, the curve, the mapped area).
+ * menu's row height, so the block a reader opens mid-drawing answers the question it was opened for. The
+ * heading above it (with its glyph) is the door to the rest — the stream, the curve, the mapped area — on
+ * the Stylus page, and there is **nothing about the ink** here: a colour and a width live in the strip's
+ * capsule, where they are changed.
  *
  * Under the sliders are the **presets**, under a heading of their own: the tablet's scrollable chip row,
- * the live one written in the accent and washed with it, and *Save…* beside the heading. The heading is
- * what keeps them apart from the *Factory ink* chip above — a word on each row rather than two chips that
- * read the same. Picking a preset applies it and closes the panel (the hand was mid-drawing); *Save…*
- * opens the one name field both this block and the Stylus page share.
+ * the live one written in the accent and washed with it, and *Save…* beside the heading. Picking a preset
+ * applies it and closes the panel (the hand was mid-drawing); *Save…* opens the one name field both this
+ * block and the Stylus page share.
  */
 @Composable
 private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
@@ -286,11 +278,11 @@ private fun MenuPresetChip(name: String, selected: Boolean, onClick: () -> Unit)
     Row(
         Modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .glassCapsule(
+            .hoverCapsule(
                 cornerRadius = MenuMetrics.chipRadius,
                 fill = if (selected) DesktopTheme.accent.copy(alpha = MenuMetrics.presetWash) else DesktopTheme.glass,
+                active = selected,
             )
-            .hoverFill(DesktopTheme.capsuleShape, active = selected)
             .pointerInput(name) { detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -428,7 +420,7 @@ private fun RowScope.MenuTile(label: String, glyph: ChromeGlyph, enabled: Boolea
 @Composable
 private fun MenuChip(
     label: String,
-    /** The chip's mark, or null for a word-only chip (the pen preset). */
+    /** The chip's mark, or null for a word-only chip. */
     glyph: ChromeGlyph?,
     enabled: Boolean,
     modifier: Modifier = Modifier,
@@ -440,12 +432,11 @@ private fun MenuChip(
     Row(
         modifier
             .height(MenuMetrics.chipHeight)
-            .glassCapsule(
+            .hoverCapsule(
                 cornerRadius = MenuMetrics.chipRadius,
                 fill = DesktopTheme.glass,
-                shadow = DesktopTheme.capsuleShadow,
+                active = !enabled,
             )
-            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
             .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

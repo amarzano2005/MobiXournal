@@ -136,11 +136,13 @@ What it does today:
   changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
-  document-red chip** and Export SVG in the accent, then the tablet's **Pen block** (its heading opens the
-  Stylus page, one **Factory ink** chip puts the tool back on its factory ink, the pressure switch and its
-  two sliders, and under a **Presets** heading the **named pen presets** as chips with *Save…* beside the
-  heading — picking one applies it and closes the panel, *Save…* names the live pair in place, as on the
-  tablet), a hairline, the page list's row and **Settings**. Import PDF and Page as PNG are absent because the window has no such
+  document-red chip** and Export SVG in the accent, then the tablet's **Pen block** (its heading, with the
+  glyph beside it, opens the Stylus page; inside, only the pen's own answers — the pressure switch, its two
+  sliders, and under a **Presets** heading the **named pen presets** as chips with *Save…* beside the
+  heading, picking one applies it and closes the panel, *Save…* names the live pair in place, as on the
+  tablet), a hairline, the page list's row and **Settings**. The block carries **nothing about the ink**: a
+  colour and a width live in the strip's capsule, and a reset beside a pressure preset made two different
+  things share one word. Import PDF and Page as PNG are absent because the window has no such
   command yet, not because it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by
   the panel's own metrics). The tab
   strip's **`+`** makes a new page (A4, graph ruling, one empty layer — `DesktopDocuments`) and a window

@@ -124,22 +124,6 @@ internal class DesktopInkState(
     }
 
     /**
-     * Put the tool in hand back on its **factory ink** — the menu's *Factory ink* chip.
-     *
-     * This is the **ink**, not the pen's pressure: the window has no named ink presets, because its colour
-     * capsule is where a colour is chosen and a preset list would be a second way to set the same three
-     * values. The named presets beside it in the Pen block are the pressure pairs (`PenPresetState`), a
-     * different question. It writes through the same three setters, so the strip, the page and the file all
-     * follow in the same frame.
-     */
-    fun resetToDefaults() {
-        val factory = DesktopInks().forTool(currentTool())
-        pickColour(factory.colour)
-        pickWidth(factory.width)
-        pickLineStyle(com.mobixournal.format.model.LineStyle.PLAIN)
-    }
-
-    /**
      * Pick the ink colour **of the picked tool**, and remember it: the pen and the highlighter keep their
      * own, so switching to the highlighter never repaints the pencil.
      */
