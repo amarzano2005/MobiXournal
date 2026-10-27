@@ -83,6 +83,13 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   `desktop/src/main/java`, `AGENTS.md` and `README.md` as inputs (the desktop tree is not a compile
   dependency of the app, so without the entry a desktop-only edit would leave the guard's task
   UP-TO-DATE and unrun; the two front-door files are read by `DocClaimsTest` the same way).
+- **`XoppExportCoverageTest`** (`guards/`) — the `.mobix` → `.xopp` export as a coverage ratchet. An
+  exhaustive `when` over the sealed `Element` interface stops the build compiling when a new element
+  family lands without a branch; a recorded family count makes that branch come with a sample; and the
+  walk over those samples asserts each family compiles to ink, reaches a `.xopp` a reader reopens, keeps
+  its point geometry where the XML has no telemetry to keep, and is **reported** rather than dropped
+  when it cannot be drawn. It is the mechanism behind the compatibility contract of
+  [xopp-bridge.md](xopp-bridge.md).
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
 - **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both

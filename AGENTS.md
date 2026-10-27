@@ -38,13 +38,15 @@ you pull in a spoke only when the task touches it, instead of reading everything
 
 ## What this project is
 
-**MobiXournal** is an **independent, unofficial note-taking and scientific drafting app** for Android.
-It began as a companion for [Xournal++](https://github.com/xournalpp/xournalpp) (`.xopp`) — continuing
-Brian Monroe's **NeXopp** ([github.com/bamonroe/NeXopp](https://github.com/bamonroe/NeXopp)) under the
-label **MobiXournal** (not affiliated with or endorsed by the Xournal++ authors; see _Branding and
-identity_ in `docs/codebase.md`). It reads and writes Xournal++ documents losslessly, and it has a
-native format for what a `.xopp` cannot carry: living STEM elements, full stylus telemetry and paged
-streaming.
+**MobiXournal** is an **independent, unofficial note-taking and scientific drafting app** for **Android
+and Windows** — the tablet editor and the `desktop/` window, over one shared `mobix-core`. It began as a
+companion for [Xournal++](https://github.com/xournalpp/xournalpp) (`.xopp`) — continuing Brian Monroe's
+**NeXopp** ([github.com/bamonroe/NeXopp](https://github.com/bamonroe/NeXopp)) under the label
+**MobiXournal** (not affiliated with or endorsed by the Xournal++ authors; see _Branding and identity_ in
+`docs/codebase.md`). Its documents live in its own native format, `.mobix`, which carries what a `.xopp`
+cannot: living STEM elements, full stylus telemetry and paged streaming. Reading and writing `.xopp`
+without loss is a **permanent contract** rather than a migration step — `docs/xopp-bridge.md` states it,
+with the tests that enforce it.
 
 ### Two formats, one document
 
@@ -127,6 +129,11 @@ Three JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce st
 - **`SourceStructureTest`**: enforces the code-splitting ratchet across `app/src/main` — no Kotlin
   file over **700 lines** and no brace-bodied function over **100 lines** (except recorded legacy
   ceilings, which may only shrink).
+- **`XoppExportCoverageTest`**: the `.mobix` → `.xopp` export as a coverage ratchet — an exhaustive
+  `when` over the sealed `Element` interface stops the build compiling when a new element family lands
+  without a branch, a recorded family count makes that branch come with a sample, and the samples prove
+  each family compiles to ink, reaches a `.xopp` a reader reopens, and is **reported** rather than
+  dropped when it cannot be drawn. It is the enforcement behind the contract in `docs/xopp-bridge.md`.
 
 ---
 

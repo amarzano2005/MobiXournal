@@ -10,6 +10,31 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 that carries the semantics across. The container is [mobix-format.md](mobix-format.md)'s, the `.xopp` schema
 is [xopp-format.md](xopp-format.md)'s, and the element schema is [mobix-elements.md](mobix-elements.md)'s.
 
+## The compatibility contract
+
+`.mobix` is where a document lives; `.xopp` is the format it must be able to leave in, and come back
+from, for as long as the app exists. Three promises, and what each one costs:
+
+1. **A `.xopp` nobody has edited is written back byte for byte.** Opening and re-exporting an untouched
+   file reproduces the same XML — creator, title, preview, pages, layers, elements, audio links,
+   backgrounds and ruling included (`MobixDocumentTest`, `XmlEqualityRoundTripTest`).
+2. **Every living entity becomes ink in its own place and can be revived.** A table, plot, shape,
+   circuit or formula is flattened into the strokes and text a `.xopp` can hold, and the `mobix:meta`
+   block records where that ink landed and its digest. The import honours a claim only while the ink
+   still hashes to it, so a file edited elsewhere imports as that edit (`MobixMetaRevival`,
+   `XoppExportTest`, `FormatDriftTest`).
+3. **Nothing leaves silently.** What the XML has no words for is either lost with the drawing intact —
+   stylus telemetry (`tilt`, `azimuth`, `dtMs`), and the *editable* nature of everything flattened — or
+   reported as a gap: a curve whose formula this build cannot evaluate, and an element from a newer
+   `.mobix` that has no `.xopp` spelling at all.
+
+The rule for new work follows from the third promise: **an element family added to `.mobix` is not
+finished until it can leave.** Give it an arm in `LivingInk` — or record the deliberate loss beside the
+gap it produces — and then a sample in `XoppExportCoverageTest`, where an exhaustive `when` over the
+sealed `Element` interface stops the build compiling until the family is named and the export walk
+proves it reaches a real file. That test is what keeps this contract alive across a schema change:
+"we must remember" became "the build said no".
+
 ## Dual-format bridge (`.mobix` ↔ `.xopp`)
 
 To maintain complete workflow parity with desktop Linux Xournal++, MobiXournal provides a bidirectional
