@@ -120,17 +120,6 @@ fun removePenPreset(presets: List<DesktopPenPreset>, id: String): List<DesktopPe
     return left.ifEmpty { presets }
 }
 
-/** [presets] with the entry at [id] renamed; the id is stable, so the selection survives a rename. */
-fun renamePenPreset(
-    presets: List<DesktopPenPreset>,
-    id: String,
-    name: String,
-): List<DesktopPenPreset> {
-    val trimmed = name.trim()
-    if (trimmed.isEmpty()) return presets
-    return presets.map { if (it.id == id) it.copy(name = trimmed) else it }
-}
-
 /**
  * A handle for a preset called [name] that no entry in [presets] holds yet.
  *

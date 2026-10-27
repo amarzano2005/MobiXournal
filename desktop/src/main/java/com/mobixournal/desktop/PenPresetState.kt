@@ -97,14 +97,6 @@ class PenPresetState(private val store: DesktopSettings) {
         draft = null
     }
 
-    /** Rename the preset [id], keeping its handle; a blank name is refused. */
-    fun rename(id: String, name: String) {
-        val updated = renamePenPreset(presets, id, name)
-        if (updated == presets) return
-        presets = updated
-        store.penPresets = updated
-    }
-
     /**
      * Delete [id], moving the selection to the first preset it leaves when the deleted one was live.
      *

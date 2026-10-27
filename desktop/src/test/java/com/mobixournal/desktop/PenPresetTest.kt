@@ -148,21 +148,6 @@ class PenPresetTest {
     }
 
     @Test
-    fun `renaming keeps the handle, and a blank name is refused`() {
-        val state = policy("rename.properties")
-        state.beginPresetSave()
-        state.typePresetName("Light hand")
-        state.commitPresetSave()
-
-        state.renamePreset("light-hand", "  Firm hand  ")
-        assertEquals("Firm hand", state.penPresets.first { it.id == "light-hand" }.name)
-        assertEquals("the selection followed the id", "light-hand", state.selectedPenPresetId)
-
-        state.renamePreset("light-hand", "  ")
-        assertEquals("a blank name changes nothing", "Firm hand", state.penPresets.first { it.id == "light-hand" }.name)
-    }
-
-    @Test
     fun `the last preset cannot be deleted and deleting the live one falls back`() {
         val state = policy("delete.properties")
         state.chooseMinimumPressure(0.2f)

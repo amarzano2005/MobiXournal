@@ -494,9 +494,6 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     /** Save the live numbers under the typed name and make the new preset the live one. */
     fun commitPresetSave() = presetState.commit(minimumPressure, pressureMultiplier)
 
-    /** Rename the preset [id], keeping its handle; a blank name is refused. */
-    fun renamePreset(id: String, name: String) = presetState.rename(id, name)
-
     /**
      * Delete the preset [id] — the last one is kept, because the live filter is always one of them.
      *
