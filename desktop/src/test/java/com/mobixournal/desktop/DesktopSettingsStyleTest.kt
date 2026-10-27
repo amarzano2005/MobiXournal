@@ -126,35 +126,39 @@ class DesktopSettingsStyleTest {
     }
 
     /**
-     * The page is **one screen**: the Toolbar section's choice rows, and the last one still above the
-     * status bar. The stacked layout this replaces ran past the bottom of the same window.
+     * The **preset strip** is a strip of capsules on the page, not a row of bands.
+     *
+     * This is the measure a *choice row* used to be held to as well: a row of answers that painted a
+     * band of a button where its control should have been. A choice row is a select now
+     * (`SettingsSelect`), whose capsule is the same steel and the same control height, so the claim is
+     * kept where the window still draws a capsule of its own — the carousel on the Stylus page.
      */
     @Test
-    fun `every Toolbar setting is on the page at once`() {
-        val bands = pillBands(pixels(state(DesktopSettingSection.TOOLBAR)))
-        assertTrue("a pill band per choice row: ${bands.size}", bands.size >= 1)
+    fun `the preset strip is a strip of capsules, on the page`() {
+        val bands = pillBands(pixels(state(DesktopSettingSection.STYLUS)))
+        assertTrue("a pill band for the picked preset: ${bands.size}", bands.size >= 1)
         for (band in bands) {
             assertTrue(
-                "a pill is its control's height, not a band of a button: ${band.count()} dd",
+                "a chip is its control's height, not a band of a button: ${band.count()} dd",
                 band.count() in 20..40,
             )
         }
         val lowest = bands.maxOf { it.last }
         assertTrue(
-            "the last setting is above the status bar: $lowest of $height",
+            "the strip is on the page, above the status bar: $lowest of $height",
             lowest < height - 32,
         )
     }
 
     /**
-     * A pill is as wide as its word: the first picked answer is a chip, not a third of the page.
+     * A chip is as wide as its word: the picked preset is a chip, not a third of the page.
      *
      * Measured from the first to the last pixel of the steel fill in the band's middle row, so the
      * answer's own letters (drawn in the accent, over the fill) do not cut the measurement in three.
      */
     @Test
-    fun `the picked answer hugs its word`() {
-        val pixels = pixels(state(DesktopSettingSection.TOOLBAR))
+    fun `the picked chip hugs its word`() {
+        val pixels = pixels(state(DesktopSettingSection.STYLUS))
         val band = pillBands(pixels).first()
         val middle = (band.first + band.last) / 2
         val painted = (pageLeft until width).filter { x -> pixels.rgb(x, middle) == pillRgb }

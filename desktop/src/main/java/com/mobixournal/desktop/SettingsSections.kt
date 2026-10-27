@@ -210,7 +210,7 @@ private fun StylusSettings(policy: DesktopSettingsState) {
 @Composable
 private fun StylusPressureGroup(policy: DesktopSettingsState) {
     SettingsGroup("Pressure") {
-        SettingsChoice(
+        SettingsSelect(
             label = "Stream",
             note = "Wintab reads the driver's packets; Windows Ink goes through the system.",
             options = PenStream.entries,
@@ -262,7 +262,7 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
 @Composable
 private fun StylusAreaGroup(policy: DesktopSettingsState) {
     SettingsGroup("Active area") {
-        SettingsChoice(
+        SettingsSelect(
             label = "Mapped surface",
             note = "Full is the driver's whole surface; Tablet maps a centred part of it.",
             options = TabletArea.entries,
@@ -319,7 +319,7 @@ private fun StylusAreaGroup(policy: DesktopSettingsState) {
 @Composable
 private fun ToolbarSettings(policy: DesktopSettingsState) {
     SettingsGroup("Tool strips") {
-        SettingsChoice(
+        SettingsSelect(
             label = "Placement",
             note = "Left or Right is the rail; Top is a ribbon under the header.",
             options = StripPlacement.entries,
@@ -370,7 +370,7 @@ private fun FiguresSettings(policy: DesktopSettingsState) {
     val widths = PenPalette.DEFAULT_WIDTHS
     val letters = listOf("S", "M", "L")
     SettingsGroup("Figure width") {
-        SettingsChoice(
+        SettingsSelect(
             label = "Preset",
             note = "The pen's three slots, for every figure tool — figures ignore pressure.",
             options = widths.indices.toList(),
@@ -414,7 +414,7 @@ private fun ColorsSettings() {
 @Composable
 private fun NavigationSettings(policy: DesktopSettingsState) {
     SettingsGroup("Opening a document") {
-        SettingsChoice(
+        SettingsSelect(
             label = "Zoom",
             note = "Automatic: a tall page to the width, the rest to the page.",
             options = FitOnOpen.entries,
@@ -424,7 +424,7 @@ private fun NavigationSettings(policy: DesktopSettingsState) {
         )
     }
     SettingsGroup("Windows") {
-        SettingsChoice(
+        SettingsSelect(
             label = "Page list",
             note = "Automatic shows it once a document has more than one page.",
             options = SidebarPolicy.entries,
@@ -457,7 +457,7 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
         // Present only while that mode is in force: a target rate a windowed window cannot apply would
         // be exactly the setting this section exists to avoid.
         if (policy.fullScreen) {
-            SettingsChoice(
+            SettingsSelect(
                 label = "Target rate",
                 note = "Asked only while full screen; a panel without it keeps its own.",
                 options = TARGET_HZ,
@@ -484,8 +484,8 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
 @Composable
 private fun DocumentsSettings(policy: DesktopSettingsState) {
     SettingsGroup("The document") {
-        // A **select**, not pills: the three answers are phrases, and three lozenges of that length were the
-        // loudest thing on the page (see `SettingsSelect`).
+        // The three answers are phrases, which is what made a row of pills read as three big buttons; every
+        // choice of the window is a select now (see `SettingsSelect`).
         SettingsSelect(
             label = "New document",
             note = ".mobix keeps figures and tables live; zipped .xopp carries its files.",

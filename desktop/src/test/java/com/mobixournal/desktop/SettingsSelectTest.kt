@@ -1,6 +1,8 @@
 package com.mobixournal.desktop
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -25,6 +27,23 @@ class SettingsSelectTest {
     fun `stepping past an end wraps to the other`() {
         assertEquals(DesktopNewDocumentFormat.MOBIX, nextChoice(formats, DesktopNewDocumentFormat.ZIPPED, 1))
         assertEquals(DesktopNewDocumentFormat.ZIPPED, nextChoice(formats, DesktopNewDocumentFormat.MOBIX, -1))
+    }
+
+    /**
+     * The list is **as wide as its longest answer**, inside a floor and a cap: three words open a narrow
+     * menu, and three phrases open one wide enough to read whole without running into the page's edge.
+     */
+    @Test
+    fun `the list is as wide as its longest answer`() {
+        val words = selectMenuWidthFor(30.dp)
+        val phrases = selectMenuWidthFor(240.dp)
+        assertTrue("a list of words still opens wider than one word: $words", words >= 150.dp)
+        assertTrue("a list of phrases stops short of the panel's edge: $phrases", phrases <= 340.dp)
+        assertTrue("and is wider than the words: $phrases > $words", phrases > words)
+        assertTrue(
+            "a phrase too long for the cap is cut at the cap, not past it",
+            selectMenuWidthFor(400.dp) == 340.dp,
+        )
     }
 
     @Test

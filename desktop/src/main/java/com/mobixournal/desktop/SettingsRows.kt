@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -192,7 +190,7 @@ private const val CONTROL_SHARE = 1.4f
  * the end**.
  *
  * The page's grammar is one sentence per kind of thing (`docs/desktop-settings.md`): a *value* ends in a
- * slider with its number, a *choice* in pills, a *toggle* in a switch, and a **command** in nothing at all —
+ * slider with its number, a *choice* in a select, a *toggle* in a switch, and a **command** in nothing at all —
  * the row itself is the button. Before that split, *Reset to defaults* and *Export settings…* wore a label, a
  * sentence and a word at the edge, exactly like the settings around them, and the only thing marking them as
  * actions was the accent of one word.
@@ -263,44 +261,6 @@ internal fun SettingsNote(text: String) {
     Spacer(Modifier.height(6.dp))
     Text(text, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
 }
-
-/**
- * **One answer of a few**, as a row: the names of the answers, and the picked one.
- *
- * [options] are values, not words, so a renamed enum cannot leave a row reporting a name the store does
- * not know; the pills are as wide as their own labels and never share the row out equally, which is what
- * made four words look like four tables of buttons.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun <T> SettingsChoice(
-    label: String,
-    note: String? = null,
-    options: List<T>,
-    picked: T,
-    optionLabel: (T) -> String,
-    onPick: (T) -> Unit,
-) {
-    val answer = rememberUpdatedState(onPick)
-    SettingsRow(label = label, note = note) {
-        // A **wrapping** row: three long answers (the three document formats) are wider than the answer's
-        // share of the row, and a row that hid the third pill behind the edge would be offering two
-        // choices where the window has three. The pills keep hugging the right edge while they fit.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            for (option in options) {
-                SettingsPill(
-                    text = optionLabel(option),
-                    selected = option == picked,
-                    onPick = { answer.value(option) },
-                )
-            }
-        }
-    }
-}
-
 
 /** How wide a slider draws inside a row — long enough to aim at, never the whole row. */
 private val SLIDER_WIDTH = 150.dp
@@ -407,15 +367,17 @@ internal fun SettingsSlider(
 }
 
 /**
- * One **pill**: an answer that is one of a few.
+ * One **pill**: a name on a capsule that is picked, not a question that is answered.
+ *
+ * Its one user is the Stylus page's **preset carousel**, where the chips *are* the content — a strip of
+ * names you switch between. A row that answers a question (*Left · Right · Top*, three document formats) is
+ * a [SettingsSelect] instead: the window keeps one shape for "one answer of a few", and the pills that used
+ * to draw those rows were that same control in a louder costume.
  *
  * It draws the window's own states — steel when picked, the hover step under the pointer, the accent ring
  * when it holds the keyboard — because a settings page is navigated with Tab as often as with the mouse and
  * a control that only answers the pointer is a control half the window cannot reach. `Enter` and `Space`
  * take it, as every other button in the window does.
- *
- * Two controls wear it: the answers of a [SettingsChoice], and the chips of the Stylus page's preset
- * carousel — both of them "one of a few, and this is the one".
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
