@@ -15,8 +15,11 @@ android {
         applicationId = "com.mobixournal"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.3.0"
+        // The tablet app's own line, restarted at 2.0.0 when the v2 channel became the product.
+        // The Windows window numbers itself separately (desktop/build.gradle.kts, from 1.0.0): no
+        // version is derived from the other, and `scripts/todo.sh versions` reads both.
+        versionCode = 6
+        versionName = "2.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -29,7 +32,8 @@ android {
      * That matters because the Android package *is* the app's identity: installing a build of the same
      * package with a different signing key (the release APK carried the debug key; a rebuild can carry
      * another) replaces the user's install, taking the session cache and settings with it. The owner
-     * runs 1.3.0 daily while v2 is built, so the two have to coexist: same launcher, two icons.
+     * runs the released app daily while this channel is built, so the two have to coexist: same
+     * launcher, two icons.
      *
      * **Ending the transition** is this one line: when the v2 line is ready to *take over* the daily
      * app, delete the `debug` block (and `src/debug/res/`) so the build is `com.mobixournal` again and

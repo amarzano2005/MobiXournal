@@ -55,8 +55,13 @@ compose.desktop {
 
         nativeDistributions {
             packageName = "MobiXournal"
+            // The window's **own** version line, starting at 1.0.0 and independent of the tablet app's
+            // (2.0.0 in app/build.gradle.kts): two artifacts, two numbers, neither derived from the
+            // other. It must stay numeric `X.Y.Z` — Compose writes it into the MSI's version resource
+            // and Windows reads that as a number, so a suffix fails at packaging, not at review.
+            // `scripts/todo.sh versions` prints and checks both lines.
             packageVersion = "1.0.0"
-            description = "MobiXournal desktop preview"
+            description = "MobiXournal for Windows: native .mobix documents, lossless .xopp interchange"
             // The same art as the tablet's launcher: without it the packaged .exe is stamped with the
             // JVM's own icon, so an app that draws a notebook wore a coffee cup in Explorer.
             windows {

@@ -365,6 +365,26 @@ def cmd_verify_release(args):
     print(f"  pending for the next release: {pending}")
 
 
+def cmd_versions(args):
+    """Print **both** version lines and check that each one is releasable.
+
+    The Android app and the Windows window version themselves independently
+    (`docs/tools.md` owns the rule and the reasoning): the tablet restarted its
+    numbering at 2.0.0, the window starts at 1.0.0, and neither is derived from
+    the other. This reads the two Gradle files — the single source for each
+    number, never a copy in a doc — and fails when one of them is not a shape a
+    release can use (a missing `versionCode`, an MSI version that is not numeric).
+    """
+    root = store.find_repo_root()
+    name, code = release.gradle_version(root)
+    print(f"android  {name}  (versionCode {code})   app/build.gradle.kts")
+    print(f"desktop  {release.desktop_version(root)}   desktop/build.gradle.kts")
+    problems = release.check_versions(root)
+    if problems:
+        print("\n".join(f"- {p}" for p in problems))
+        sys.exit("these versions are not releasable")
+
+
 def cmd_validate(args):
     problems = []
     seen = {}
@@ -647,6 +667,10 @@ def build_parser():
     vr.add_argument("--version", required=True,
                     help="release version, X.Y.Z or the vX.Y.Z tag")
     vr.set_defaults(func=cmd_verify_release)
+
+    vs = sub.add_parser("versions",
+                        help="print both version lines (app and window) and check them")
+    vs.set_defaults(func=cmd_versions)
 
     so = sub.add_parser("sort", help="rewrite TODO.toml in `order` sequence")
     so.set_defaults(func=cmd_sort)

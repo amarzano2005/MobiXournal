@@ -221,3 +221,27 @@ locally before pushing a tag to catch it in a second instead of a CI cycle.
 - **A tag without its notes file fails the release step** — deliberately: the workflow's
   `body_path` finds nothing and errors, rather than silently publishing an empty body. Write
   `docs/releases/vX.Y.Z.md` *before* pushing the tag.
+
+### Two versions, one product
+
+The tablet app and the Windows window are **two artifacts with two version lines**. The app restarted
+its numbering at **2.0.0** when the v2 channel became the product; the window starts at **1.0.0**.
+Neither number is derived from the other, and neither is copied into a doc: each lives in the Gradle
+file of the artifact that carries it (`versionName`/`versionCode` in `app/build.gradle.kts`,
+`packageVersion` in `desktop/build.gradle.kts`). Read and check both with:
+
+```sh
+scripts/todo.sh versions
+```
+
+It prints the two values and fails when either is not a shape a release can use. The window's number
+is stricter on purpose: Compose writes `packageVersion` into the MSI's version resource, which Windows
+reads as a *number*, so a suffix such as `1.0.0-rc1` fails at packaging — the check says so in a second
+instead.
+
+`release --bump-gradle` owns the **app** line, because its `versionCode` has to move with it and only
+the archive knows what is pending. The window's number is edited in its Gradle file: its packaging, its
+installer and its own release notes are `desktop-packaging-installers-and-ci-artifact`'s work, which is
+why there is no second changelog to keep in step yet. Tags stay `vX.Y.Z` for an app release, and
+`verify-release` compares them against the app's `versionName` — a desktop tag needs that job extended,
+and that belongs to the same task.

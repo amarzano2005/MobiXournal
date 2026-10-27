@@ -195,6 +195,67 @@ def test_bump_gradle():
               "bump_gradle leaves the file's CRLF line endings intact")
 
 
+DESKTOP_SAMPLE = (
+    "compose.desktop {\n"
+    "    application {\n"
+    "        nativeDistributions {\n"
+    '            packageName = "MobiXournal"\n'
+    '            packageVersion = "1.0.0"\n'
+    "        }\n"
+    "    }\n"
+    "}\n"
+)
+
+
+def _two_line_repo(tmp, app_text=GRADLE_SAMPLE, desktop_text=DESKTOP_SAMPLE):
+    os.makedirs(os.path.join(tmp, "app"), exist_ok=True)
+    os.makedirs(os.path.join(tmp, "desktop"), exist_ok=True)
+    with open(os.path.join(tmp, "app", "build.gradle.kts"), "w", encoding="utf-8") as fh:
+        fh.write(app_text)
+    with open(os.path.join(tmp, "desktop", "build.gradle.kts"), "w", encoding="utf-8") as fh:
+        fh.write(desktop_text)
+
+
+def test_desktop_version():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp)
+        check(release.desktop_version(tmp) == "1.0.0",
+              "desktop_version reads packageVersion, not the app's versionName")
+
+
+def test_the_two_lines_are_independent():
+    with tempfile.TemporaryDirectory() as tmp:
+        # The app is on 2.x while the window starts at 1.0.0: neither number is
+        # derived from the other, so a different pair is still releasable.
+        _two_line_repo(tmp)
+        problems = release.check_versions(tmp)
+        check(problems == [], f"two independent, well-formed versions are fine: {problems}")
+
+
+def test_check_versions_rejects_an_msi_suffix():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp, desktop_text=DESKTOP_SAMPLE.replace("1.0.0", "1.0.0-rc1"))
+        problems = release.check_versions(tmp)
+        check(any("not numeric" in p for p in problems),
+              "a non-numeric MSI version is reported, because Windows reads it as a number")
+
+
+def test_check_versions_rejects_a_missing_desktop_version():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp, desktop_text="compose.desktop { }\n")
+        problems = release.check_versions(tmp)
+        check(any("no packageVersion" in p for p in problems),
+              "a missing packageVersion is reported rather than defaulted")
+
+
+def test_check_versions_rejects_a_bad_app_line():
+    with tempfile.TemporaryDirectory() as tmp:
+        _two_line_repo(tmp, app_text=GRADLE_SAMPLE.replace('"1.1.0"', '"1.2"'))
+        problems = release.check_versions(tmp)
+        check(any("not X.Y.Z" in p for p in problems),
+              "an app versionName that is not X.Y.Z is reported")
+
+
 def main():
     test_versions()
     test_latest_version()
@@ -205,6 +266,11 @@ def main():
     test_write_changelog_refuses_clobber()
     test_write_changelog_keeps_unicode()
     test_bump_gradle()
+    test_desktop_version()
+    test_the_two_lines_are_independent()
+    test_check_versions_rejects_an_msi_suffix()
+    test_check_versions_rejects_a_missing_desktop_version()
+    test_check_versions_rejects_a_bad_app_line()
     if _FAILURES:
         print(f"\n{len(_FAILURES)} check(s) failed")
         return 1

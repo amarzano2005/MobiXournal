@@ -58,6 +58,7 @@ _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 _GRADLE_VERSION_CODE_RE = re.compile(r"^(\s*versionCode\s*=\s*)(\d+)(\s*)$", re.M)
 _GRADLE_VERSION_NAME_RE = re.compile(r'^(\s*versionName\s*=\s*")([^"]*)("\s*)$', re.M)
+_GRADLE_PACKAGE_VERSION_RE = re.compile(r'^(\s*packageVersion\s*=\s*")([^"]*)("\s*)$', re.M)
 
 
 # --- version helpers -------------------------------------------------------
@@ -281,3 +282,58 @@ def gradle_version(root):
     if not code or not name:
         return None, None
     return name.group(2), int(code.group(2))
+
+
+# --- the second version line ------------------------------------------------
+#
+# The product ships as two artifacts, and each carries its **own** version: the
+# Android app (`app/build.gradle.kts`) and the Windows window
+# (`desktop/build.gradle.kts`). Neither is derived from the other — the tablet
+# restarted its numbering at 2.0.0, the window starts at 1.0.0 — so a number
+# belongs to the file that names it. Nothing here writes the app's version into
+# the window's or the other way round; ``check_versions`` only says whether each
+# one is a shape a release can use.
+
+def desktop_gradle_path(root):
+    return os.path.join(root, "desktop", "build.gradle.kts")
+
+
+def desktop_version(root):
+    """The ``packageVersion`` the Windows package is built with, or ``None``."""
+    path = desktop_gradle_path(root)
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as fh:
+        match = _GRADLE_PACKAGE_VERSION_RE.search(fh.read())
+    return match.group(2) if match else None
+
+
+def check_versions(root):
+    """Both version lines, as the problems a release would trip over.
+
+    Empty means both artifacts can be named. The window's version has to be
+    **numeric** ``X.Y.Z`` and nothing else: Compose writes it into the MSI's
+    version resource, which Windows reads as a number, so ``1.0.0-rc1`` fails at
+    packaging time — a check here catches it in a second instead.
+    """
+    problems = []
+    name, code = gradle_version(root)
+    if not name or not is_version(name):
+        problems.append(
+            f"app/build.gradle.kts has versionName {name!r}, which is not X.Y.Z"
+        )
+    if not isinstance(code, int) or code <= 0:
+        problems.append(
+            f"app/build.gradle.kts has versionCode {code!r}, which is not a positive integer"
+        )
+    desktop = desktop_version(root)
+    if desktop is None:
+        problems.append(
+            "desktop/build.gradle.kts has no packageVersion, so the Windows package has no version"
+        )
+    elif not is_version(desktop):
+        problems.append(
+            f"desktop packageVersion {desktop!r} is not numeric X.Y.Z — Windows reads the MSI "
+            "version as a number, so a suffix such as -rc1 fails at packaging"
+        )
+    return problems
