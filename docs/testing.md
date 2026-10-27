@@ -90,6 +90,12 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   its point geometry where the XML has no telemetry to keep, and is **reported** rather than dropped
   when it cannot be drawn. It is the mechanism behind the compatibility contract of
   [xopp-bridge.md](xopp-bridge.md).
+- **`CiCoverageTest`** (`guards/`) — the suites CI actually runs. It reads `settings.gradle.kts` and the
+  workflow's Gradle lines and fails when a module that carries a test source set is not named there,
+  and it fails in the other direction too (no Gradle line found, or `:desktop:test` gone) so a rewritten
+  workflow cannot blind it. The rule exists because the modules do not share a task name — the Android
+  app has `testDebugUnitTest`, the plain JVM modules have `test` — so a workflow naming one of them runs
+  one module and reports success for the rest.
 - **`ToolbarMenuGuardTest`** (`ui/`) — only the file that defines `ToolbarMenu` may call Material3's
   `DropdownMenu`, so a pop-up cannot quietly fall back to the paler default panel.
 - **`ToolGlyphWeightTest`** (`ui/`) — both toolbars draw the same `Icons.Outlined` tool set, so both
@@ -133,3 +139,16 @@ That suite is part of CI, in its own job: `.github/workflows/build.yml` runs `:d
 `desktop/build/desktop-render/` as the `desktop-render` artifact on every run — including a failed
 one, where the render is often what explains the failure. It is a separate job rather than a step in
 the Android job so Skiko's rasterising never gates or slows the APK build.
+
+## What CI runs
+
+`.github/workflows/build.yml` is the only place a suite is guaranteed to run, and it names its tasks
+project by project: the Android job runs `:app:testDebugUnitTest :mobix-core:test` and then builds the
+APK, the Windows job runs `:desktop:test` (above). That explicitness is load-bearing rather than
+verbose — `testDebugUnitTest` exists only in the Android module, so a workflow naming it alone ran that
+suite and left `mobix-core` unexecuted, which is exactly where the `.xopp`/`.mobix` codecs, the document
+model and `FormatDriftTest` live: every step passed, and a whole module's tests were never called.
+`CiCoverageTest` closes that from both sides, failing the build when a module with tests is missing from
+the workflow or when the workflow stops being readable as Gradle invocations. The local front doors
+(`scripts/build.sh`, `scripts/host-build.sh`) default to the same two suites, so the missing run shows up
+before the push instead of after it.

@@ -73,11 +73,11 @@ the wrapper's own confusing failure. See
 
 ### Build Commands
 ```sh
-# Full build: unit tests + debug APK
+# Full build: the app and core unit tests + debug APK
 scripts/build.sh
 
-# Run JVM unit tests only (instant, no device needed)
-scripts/build.sh testDebugUnitTest
+# Run the JVM unit tests only (instant, no device needed) — both suites
+scripts/build.sh :app:testDebugUnitTest :mobix-core:test
 
 # Clean release-path build of the debug APK
 scripts/build.sh clean assembleDebug

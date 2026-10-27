@@ -35,12 +35,14 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   is a thin wrapper that calls `/data/android/build.sh` (override the location with
   `ANDROID_TOOLCHAIN`).
 - **How to run it:**
-  - `scripts/build.sh` — the default check loop: `testDebugUnitTest assembleDebug`.
-  - `scripts/build.sh <tasks…>` — arbitrary Gradle tasks, e.g. `scripts/build.sh testDebugUnitTest`
+  - `scripts/build.sh` — the default check loop: `:app:testDebugUnitTest :mobix-core:test
+    :app:assembleDebug` — **both** suites, because `testDebugUnitTest` exists only in the Android
+    module and would leave the core (codecs, model, `FormatDriftTest`) unrun (`docs/testing.md`).
+  - `scripts/build.sh <tasks…>` — arbitrary Gradle tasks, e.g. `scripts/build.sh :app:testDebugUnitTest`
     or `scripts/build.sh clean assembleDebug`.
   - Direct equivalent: `/data/android/build.sh <project-dir> <tasks…>`.
 - **Outputs:** debug APK at `app/build/outputs/apk/debug/app-debug.apk`; unit-test reports at
-  `app/build/reports/tests/testDebugUnitTest/`.
+  `app/build/reports/tests/testDebugUnitTest/` and `mobix-core/build/reports/tests/test/`.
 - **Gotchas:**
   - The builder mounts the project's **parent** dir as `/workspace` and runs `./gradlew` in the
     project subdir, so sibling files resolve; it keeps a **per-project Gradle cache** at
@@ -102,9 +104,9 @@ the platform defaults), records `sdk.dir` **only when `local.properties` doesn't
 would use without building; `--jdk`/`--sdk` override the search; every other argument is a Gradle task.
 
 ```sh
-scripts/host-build.sh                       # unit tests + debug APK (the loop's default)
+scripts/host-build.sh                       # both unit-test suites + debug APK (the loop's default)
 scripts/host-build.sh --list                # which JDK and SDK it picked, then stop
-scripts/host-build.sh testDebugUnitTest     # any Gradle task passes through
+scripts/host-build.sh :app:testDebugUnitTest   # any Gradle task passes through
 ```
 
 It fails loudly with the JDK window and where it looked when it finds nothing, so the failure names

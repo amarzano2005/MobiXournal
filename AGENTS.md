@@ -112,7 +112,7 @@ spoke opens with the question it answers, so a change loads one topic instead of
 architecture. Start there, open the one spoke your task touches, and when you make a design
 decision **record it in the owning spoke** so it isn't re-litigated later.
 
-Three JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce structural discipline —
+The JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce structural discipline —
 `docs/architecture.md` (*How this stays honest*) owns what each doc rule is for, and
 `docs/testing.md` the full inventory:
 - **`DocsGuardTest`**: fails the build if any `.md` file in `docs/` (outside `docs/releases/`) is
@@ -134,6 +134,10 @@ Three JVM guard suites in `app/src/test/java/com/mobixournal/guards/` enforce st
   without a branch, a recorded family count makes that branch come with a sample, and the samples prove
   each family compiles to ink, reaches a `.xopp` a reader reopens, and is **reported** rather than
   dropped when it cannot be drawn. It is the enforcement behind the contract in `docs/xopp-bridge.md`.
+- **`CiCoverageTest`**: every module with a test source set is named by a Gradle line in
+  `.github/workflows/build.yml`. The modules do not share a task name — the app has
+  `testDebugUnitTest`, the JVM ones `test` — so naming one runs one module and reports success for the
+  rest; `mobix-core` (codecs, `FormatDriftTest`) had no CI run at all this way.
 
 ---
 
@@ -152,9 +156,9 @@ the start of a task, then follow the matching profile below:
 | **C. Other Linux / macOS / Windows hosts** (without `/data/android`) | `/data/android` absent | `scripts/host-build.sh` (auto-discovers JDK 17–24 preferring 21 + Android SDK) or `./gradlew` | Host SDK `emulator` + `adb`; run `androidTest` via `scripts/host-build.sh connectedDebugAndroidTest` |
 
 ### Profile A — Linux `/data/android` container host
-- **Containerized build & test**: Always use `scripts/build.sh` (`testDebugUnitTest assembleDebug` by
-  default) and `scripts/todo.sh <command>`. Do not rely on host-installed JDK/SDK when `/data/android`
-  is available.
+- **Containerized build & test**: Always use `scripts/build.sh` (which defaults to both unit-test
+  suites plus `assembleDebug`) and `scripts/todo.sh <command>`. Do not rely on host-installed JDK/SDK
+  when `/data/android` is available.
 - **Containerized emulator**: Drive the emulator via `emulator.sh` (`up`, `install`, `launch
   com.mobixournal.v2`, `screenshot`, `ui`, `logcat`) and run instrumented tests via
   `scripts/connected-test.sh` (never plain `connectedDebugAndroidTest` inside the throwaway builder
@@ -224,14 +228,14 @@ The **repository layout** (every package/module and what it does) lives in
 
 ```sh
 # 1. On Linux container hosts with /data/android (Profile A):
-scripts/build.sh                           # unit tests + debug APK inside container
-scripts/build.sh testDebugUnitTest         # unit tests only
+scripts/build.sh                           # both unit-test suites + debug APK inside container
+scripts/build.sh :app:testDebugUnitTest :mobix-core:test   # both unit-test suites only
 
 # 2. On hosts without /data/android via Git Bash / POSIX shell (Profiles B, C & D):
 scripts/host-build.sh                      # auto-discovers JDK 21 + SDK, runs unit tests + debug APK
 
 # 3. Direct PowerShell fast path on a Windows host (Profiles B & D):
-.\gradlew.bat testDebugUnitTest            # unit tests (JVM; no device needed)
+.\gradlew.bat :app:testDebugUnitTest :mobix-core:test   # both suites (JVM; no device needed)
 .\gradlew.bat assembleDebug                # build debug APK (com.mobixournal.v2)
 ```
 

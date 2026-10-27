@@ -35,7 +35,7 @@ usage() {
     echo "  --jdk PATH  use this JDK (default: the first supported one found)"
     echo "  --sdk PATH  use this Android SDK (default: ANDROID_HOME, then the usual locations)"
     echo "  --list      print the JDK and SDK that would be used, then stop"
-    echo "  (no tasks)  testDebugUnitTest assembleDebug"
+    echo "  (no tasks)  :app:testDebugUnitTest :mobix-core:test :app:assembleDebug"
 }
 
 die() {
@@ -249,8 +249,10 @@ ANDROID_HOME="$SDK"
 ANDROID_SDK_ROOT="$SDK"
 export JAVA_HOME ANDROID_HOME ANDROID_SDK_ROOT
 
+# Both suites by default: `testDebugUnitTest` is the Android module's only, so naming it alone skips
+# `mobix-core` — the codecs, the model and the format drift test.
 if [ "$#" -eq 0 ]; then
-    set -- testDebugUnitTest assembleDebug
+    set -- :app:testDebugUnitTest :mobix-core:test :app:assembleDebug
 fi
 
 if [ -x "$REPO/gradlew" ]; then
