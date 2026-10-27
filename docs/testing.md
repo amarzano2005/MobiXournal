@@ -40,11 +40,13 @@ gridlines, page ops, eraser hit-testing, text layout, LaTeX geometry and undo/re
 the `audio/` tests cover fn/ts mapping and WAV framing. All of it runs on the JVM with no device
 attached.
 
-**The `udiff.xopp` self-skip rule.** `RealFileRoundTripTest` round-trips a real
-desktop-generated `udiff.xopp` end to end, read from the **repo root** (the builder mounts the
-project's parent dir, so the file resolves inside the container). The sample is not checked in,
-so the test **self-skips when it is absent** — the suite is green with or without it, and
-dropping a fresh `udiff.xopp` at the repo root is all it takes to turn the extra coverage on.
+**The two root fixtures.** `RealFileRoundTripTest` round-trips a real desktop-generated `udiff.xopp`
+end to end, read from the **repo root** (the builder mounts the project's parent dir, so the file
+resolves inside the container); `bhm_prior.pdf`, beside it, is what the PDF-background and desktop-save
+suites open. Both are committed at the root — the README hands `udiff.xopp` to a new user as a first
+document — and the round-trip test still **skips itself when the sample is absent**, so a checkout
+that drops it stays green and putting a fresh `udiff.xopp` back is all it takes to turn the extra
+coverage on.
 
 What the device-only paths (stylus events, hover, the emulator harness) are covered by lives in
 [`stylus.md`](stylus.md) and [`tools.md`](tools.md) — this file owns the JVM suite.
