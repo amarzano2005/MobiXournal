@@ -132,10 +132,15 @@ internal fun MenuPanel(
         Modifier
             .glassSurface()
             .width(MenuMetrics.width)
-            .padding(MenuMetrics.padding),
+            // Air above and below, but **none** at the sides: a row's highlight spans the panel, as a
+            // menu's does. The commands keep their inset by padding themselves, so the light lands on
+            // the whole row a reader points at instead of a rounded band inside it.
+            .padding(vertical = MenuMetrics.padding),
     ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = MenuMetrics.padding),
             horizontalArrangement = Arrangement.spacedBy(MenuMetrics.tileGap),
         ) {
             MenuTile("New", ChromeGlyph.NEW, enabled = true, onClick = onNew)
@@ -145,7 +150,9 @@ internal fun MenuPanel(
         }
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = MenuMetrics.padding),
             horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap),
         ) {
             // The tablet's rule for the two exports: the PDF chip is the document red, the page raster

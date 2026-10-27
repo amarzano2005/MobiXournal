@@ -141,7 +141,8 @@ What it does today:
   sliders, a **Reset to defaults** row, and under a **Presets** heading the **named pen presets** as chips
   with *Save…* beside the heading, picking one applies it and closes the panel, *Save…* names the live pair
   in place, as on the tablet — the menu is the one popup that takes the keyboard, because that field is
-  typed in), a hairline, the page list's row and **Settings**. The block carries **nothing about the ink**: a
+  typed in), a hairline, the page list's row and **Settings**. Its commands keep their 10 dp inset by
+  padding themselves, so a row's hover spans the panel's whole width, as a menu's does. The block carries **nothing about the ink**: a
   colour and a width live in the strip's capsule, and a reset beside a pressure preset made two different
   things share one word. Import PDF and Page as PNG are absent because the window has no such
   command yet, not because it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by

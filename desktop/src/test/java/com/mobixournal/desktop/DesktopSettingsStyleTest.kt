@@ -1,10 +1,16 @@
 package com.mobixournal.desktop
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.mobixournal.format.mobix.SyntheticNotebook
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -158,6 +164,84 @@ class DesktopSettingsStyleTest {
             "the picked chip is wide enough to read and narrow enough to be a chip: $chip px " +
                 "(band ${band.first}..${band.last}, x ${painted.first()}..${painted.last()})",
             chip in 40..260,
+        )
+    }
+
+    /**
+     * A hovered row lights **the whole card**, not a rounded band inside it.
+     *
+     * A row used to sit inside the card's 12 dp padding, so its hover was a capsule floating in the card —
+     * a card inside a card, which reads as an element that lights by halves. The measurement is a diff of
+     * the same group with and without the pointer: the lit region has to start at the card's own left edge
+     * and end at its right one.
+     */
+    @Test
+    fun `a hovered row lights its card edge to edge`() {
+        val width = 320
+        val height = 170
+        fun frame(hovered: Boolean): IntArray {
+            val scene = ImageComposeScene(width, height, Density(1f)) {
+                androidx.compose.foundation.layout.Box(
+                    androidx.compose.ui.Modifier
+                        .size(width.dp, height.dp)
+                        .background(DesktopTheme.desk),
+                ) {
+                    androidx.compose.foundation.layout.Column(
+                        androidx.compose.ui.Modifier.fillMaxWidth().padding(10.dp),
+                    ) {
+                        SettingsGroup("Presets") {
+                            SettingsRow(label = "Default", note = "0.05 · 1.00×", onClick = {}) {
+                                androidx.compose.material3.Text(
+                                    "In use",
+                                    color = DesktopTheme.accent,
+                                    style = DesktopTheme.label,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            return try {
+                Snapshot.sendApplyNotifications()
+                if (hovered) {
+                    scene.sendPointerEvent(
+                        androidx.compose.ui.input.pointer.PointerEventType.Enter,
+                        androidx.compose.ui.geometry.Offset(width / 2f, height / 2f),
+                    )
+                    Snapshot.sendApplyNotifications()
+                }
+                val image = javax.imageio.ImageIO.read(
+                    java.io.ByteArrayInputStream(scene.render().encodeToData()!!.bytes),
+                )
+                IntArray(image.width * image.height).also {
+                    image.getRGB(0, 0, image.width, image.height, it, 0, image.width)
+                }
+            } finally {
+                scene.close()
+            }
+        }
+
+        val rest = frame(hovered = false)
+        val lit = frame(hovered = true)
+
+        // The card is the group inside the frame's own 10 dp inset, and the strongest row of the diff is
+        // the one the pointer is on — measured rather than guessed, so a change of spacing cannot make the
+        // test read the wrong row.
+        val cardLeft = 10
+        val cardRight = width - 10 - 1
+        val changedRows = (0 until height).map { y ->
+            y to (0 until width).count { x -> rest[y * width + x] != lit[y * width + x] }
+        }
+        val rowY = changedRows.maxByOrNull { it.second }!!.first
+        val changed = (0 until width).filter { x -> rest[rowY * width + x] != lit[rowY * width + x] }
+        assertTrue("the row answers the pointer: ${changed.size} px", changed.size > width / 3)
+        assertTrue(
+            "the light starts at the card's left edge ($cardLeft), not inside it: ${changed.first()}",
+            changed.first() in cardLeft..(cardLeft + 1),
+        )
+        assertTrue(
+            "and stops at its right edge ($cardRight): ${changed.last()}",
+            changed.last() in (cardRight - 1)..cardRight,
         )
     }
 

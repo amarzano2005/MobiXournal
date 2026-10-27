@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -37,6 +38,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -92,6 +94,10 @@ internal object SettingsMetrics {
  * The card is the lane's recipe (`DesktopTheme.card`, the 10 dp slot corner, no rim — a band takes none),
  * and the heading is sentence case in the heading role: the inspector's uppercase eyebrow belongs to a
  * panel read while drawing, where a short shout helps; a settings page is read, not glanced at.
+ *
+ * It **clips** its rows and pads them vertically only: a row's own fill has to reach the card's edges, or
+ * a lit row is a rounded band floating inside the card — a card inside a card, which is what a highlight
+ * with its own margins reads as. The corner a row cannot have, the card has for it.
  */
 @Composable
 internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
@@ -101,8 +107,9 @@ internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(DesktopTheme.card, DesktopTheme.railSlotShape)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .clip(DesktopTheme.railSlotShape)
+            .background(DesktopTheme.card)
+            .padding(vertical = 4.dp),
     ) {
         content()
     }
@@ -115,6 +122,10 @@ internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
  * With [onClick] the whole row is the hit area and takes the hover step — that is what a switch, a choice
  * or a readout wants, because aiming at a 32 dp pill in a 1 000 px row is work nobody asked for. Without
  * it the row is a label beside a control that handles its own pointer (a field).
+ *
+ * The hover is the row's **full width**: the fill is a rectangle spanning the card, and the 12 dp that used
+ * to be the card's padding now sits *inside* the row. The light therefore covers the whole row a reader
+ * sees, and the card's own clip rounds it where the group ends.
  */
 @Composable
 internal fun SettingsRow(
@@ -133,11 +144,11 @@ internal fun SettingsRow(
                     Modifier
                 } else {
                     Modifier
-                        .hoverFill(DesktopTheme.railSlotShape)
+                        .hoverFill(RectangleShape)
                         .pointerInput(onClick) { detectTapGestures { press.value?.invoke() } }
                 },
             )
-            .padding(vertical = 5.dp),
+            .padding(horizontal = 12.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {

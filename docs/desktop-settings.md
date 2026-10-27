@@ -21,6 +21,11 @@ phone's Editor, Gestures and Storage pages: they configure a default tool, a fin
 shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
 **rows**, the name and the control at the right edge (`SettingsRows.kt`).
 
+A row lights **the whole width of its card**: the group clips its rows and pads them vertically only, and
+the 12 dp that reads as the card's padding sits inside the row. A highlight with its own margins inside
+the card reads as a card inside a card — an element that lights by halves — and that is the shape the row
+had before it was measured (`DesktopSettingsStyleTest` diffs a hovered group edge to edge).
+
 The list is **names only** — a glyph and a word per section — because ten two-line summaries is a page of
 prose to scan past. A row's note is **one clause**, not a paragraph: a setting that needs explaining at
 length is a setting whose name is wrong, and the detail belongs in this spoke.
