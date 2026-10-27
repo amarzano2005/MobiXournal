@@ -82,10 +82,16 @@ _FINISHED_HEADER = """\
 
 
 def find_repo_root(start=None):
-    """Walk up from *start* (default: CWD) until a directory holds .git."""
+    """Walk up from *start* (default: CWD) until a directory holds `.git`.
+
+    `.git` may be a **file**: that is how a linked worktree records the repository
+    it belongs to, so a checkout made with `git worktree add` (or an agent
+    workspace on one) is a repository too. Checking only for a directory made
+    every command fail there with "not inside a git repository".
+    """
     path = os.path.abspath(start or os.getcwd())
     while True:
-        if os.path.isdir(os.path.join(path, ".git")):
+        if os.path.exists(os.path.join(path, ".git")):
             return path
         parent = os.path.dirname(path)
         if parent == path:
