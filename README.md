@@ -33,7 +33,7 @@ In addition to core note-taking, MobiXournal features a specialized **STEM tools
 | What | How |
 |---|---|
 | **Android app** | Download `app-debug.apk` from the latest [GitHub Release](https://github.com/amarzano2005/MobiXournal/releases), or build it with `.\gradlew.bat assembleDebug` — the APK lands in `app/build/outputs/apk/debug/`. It installs as **MobiXournal v2 (dev)**, next to the daily app rather than over it. |
-| **Desktop app (Windows 11)** | Build it with `.\gradlew.bat :desktop:createDistributable`, then run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` (add a file path to open a document; `udiff.xopp` in this repository is a good first one). It is a self-contained folder with no installer and unsigned. See *Desktop preview* below. |
+| **Desktop app (Windows 11)** | Build it with `.\gradlew.bat :desktop:createDistributable`, then run `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe` (add a file path to open a document; `udiff.xopp` in this repository is a good first one). It is a self-contained folder with no installer and unsigned. See *Desktop app* below. |
 
 Both builds need a JDK 21 and, for the APK, the Android SDK — see *Build & Requirements* below.
 
@@ -95,246 +95,49 @@ scripts/host-build.sh connectedDebugAndroidTest
 ```
 For emulator installation, deployment, and testing harnesses, refer to [`docs/tools.md`](docs/tools.md). Cutting a release is documented there too, and it is a command rather than a chore: `scripts/todo.sh release --version <version> --bump-gradle` stamps everything finished since the last release and drafts `docs/releases/v<version>.md` from it, then you curate that draft and push the `v<version>` tag so CI builds the APK and publishes the Release.
 
-### 🖥️ Desktop preview (experimental)
+### 🖥️ Desktop app (Windows 11)
 
-The desktop app is in the tree: a native window that opens your
-documents and shows every page as it was written — paper ruling, pen strokes with their pressure taper,
-highlighters, dashed lines, text boxes, and the living parts of a page too: tables, graphs, parametric
-shapes, circuit components and our formulas, plus photo and annotated-PDF page backgrounds — with zoom. A standard `.xopp`, a single-file `.xopp` package and a native
-`.mobix` all open, and the window works out which one it has from the file's content rather than its
-name. A long `.mobix` notebook opens instantly and reads pages as you scroll, instead of loading every
-page up front. Opening a notebook by double-clicking it in Explorer just works — including from a folder
-whose name holds a double space or an emoji, where Windows hands the window a damaged path.
+A native PC window, in the tree and buildable today. It opens a `.xopp`, a zipped `.xopp` or a native
+`.mobix` — the family is read from the file's bytes rather than its name — and paints every page as it was
+written: the paper's ruling, strokes with their pressure taper, highlighters, text boxes, images, photo and
+annotated-PDF backgrounds, and the live tables, graphs, shapes, circuits and formulas.
 
-The window wears the app's own frosted-glass chrome over a black desk, with the same Inter typeface and
-the same Material text scale as the tablet — the picker panel grows in and draws back on the same spring
-the tablet's panels use. Its
-Windows title bar is painted in the same band colour as the header, so the window reads as one surface
-from the caption down instead of a light system bar sitting on a dark app, and the document tabs are the
-same glass capsules as the rest of the chrome, the active one wearing the family's edge. The window wears the
-app's own icon on the taskbar, where the JVM's coffee cup used to be — the tablet's launcher art with its
-navy field dropped, so the sheet and the pen are the whole mark — while the title bar above the header
-carries no app name, no logo and no second icon: **the caption is the tabs alone**, and the art stays on
-the taskbar where it belongs. A **hamburger** in the header opens New, Open, Save, Save
-As and the sidebar toggle, the strip's **`+`** starts a new page, and a window that opens without a file
-opens one too, instead of an empty notice. The menu is the tablet's, command for command: the four file
-tiles, the export chips, a **Pen** block whose **Parameters…** chip opens the pen's own settings page and
-whose **Default** chip puts the pen back on its factory ink, and the page list and **Settings** rows under a
-rule. The menu's Pen block also carries the three pressure controls — **Pressure**, **Min pressure** and
-**Multiplier** — so the hand that is drawing never has to leave the pen. **Settings** — `Ctrl + ,`, or the
-row at the foot of that menu — opens as a **floating panel over the page** (the document stays in view
-while you change what it looks like), which you can **drag by its title bar** to keep the part you are
-comparing against uncovered; its glass is nearly solid, because a settings page is read rather than looked
-through. The left column is the tablet's own list of sections — each wearing the same glyph the tablet
-draws — and one setting per row sits on the right. What it holds today: the pen's stream, **pressure
-sensitivity, minimum pressure and multiplier**, its curve and the mapped area of a graphics tablet; where
-the tool strips stand (**left**, **right** or **top**) and **the order of their buttons**; the **width the
-figure tools draw at**; the key table; the zoom a document opens at and when the page list appears; the
-theme and what the status bar reports; the format a **new document** is written in (`.mobix`, `.xopp` or a
-zipped `.xopp`); a **backup of all of it** to a file and back; and the version. Each one is stored as it is
-chosen and applied at once. The toolbars are
-the tablet's too: the same raised glass capsules floating in their own lanes, and the same monoline tool
-icons, down to the picked slot's shape. More than one document can be open, each in its own tab that remembers the page and the
-zoom you left it at. A collapsible sidebar lists the pages of the current document as thumbnails (and the current
-page's layers, each with an eye that hides it from the page and from the thumbnail without touching the file),
-and the page can be fitted to the window, fitted to its width, or zoomed freely, up to **3 200 %** — a
-single glyph fills the window when you need to look that closely — and the point under the cursor stays
-where it is while you zoom. A page saved as one long strip — how a lecture
-written to the bottom of the sheet comes out of the tablet — opens fitted to its width instead of being
-shrunk to a sliver, so the handwriting stays readable and the wheel reads down it. You can **write on the
-page** with the pen and the highlighter and **rub ink out** with the eraser — the stroke appears as you
-draw, a smooth line rather than a chain of corners, and lands in the document when you lift, and
-`Ctrl + Z` takes it back (with `Ctrl + Shift + Z` to put it again). The eraser has its two members as two slots: `E` cuts the ink it crosses, `Shift + E`
-takes whole strokes. **Type on it** with Text (`X`): a press opens a box where you pressed, `Enter` starts
-a new line, and `Esc` or a click elsewhere commits it as one edit — ink and typing undo the same way.
-**Click words that are already on the page and you edit them**: the box comes up with your text, in its own
-font, size and colour, the caret where you clicked, so a word in the middle of a line is corrected in one
-click — and correcting it (or emptying it, which deletes the box) is one undo step, whether the words were
-typed on the PC, on the tablet or in desktop Xournal++. What you type sits exactly where it
-will land, on the bare page: no panel, just the caret. The side column that styles a box opens **with the
-box you are typing** and closes when you finish it. Select a box and press the pencil (or double-click it)
-and the same column sets its **face** — Sans, Serif or Monospace, bold, italic — its **size** and its
-**colour**, one undo step per change, the same five choices the tablet's text dialog offers. The pen and the highlighter keep **separate colours, widths and favourite colours**,
-as on the tablet: dragging a yellow highlighter over a page leaves the pencil the colour it was, and
-switching back brings that ink back with it — and the marker draws a **band** about six times the pen at
-the same size, the same three tips the tablet uses, instead of a wide pen. Each tool also remembers its
-**stroke pattern** — solid, long dash, dash-dot or dotted — picked beside the colour. **Drag a figure** with Line, Arrow, Double arrow,
-Axes, Rectangle, Ellipse or Spline — one drag, one stroke, `Shift` to snap the direction to 45°, `Esc` to
-cancel — each of the seven a slot of its own, one click and no submenu, and a figure always draws in the
-pen's ink and at the pen's width even while the highlighter is the tool in hand, as on the tablet. While the Line tool or a
-circuit family is armed, every **circuit pin** on the page wears a small dot, and the ends of what you draw
-are **pulled onto the nearest pin**: a wire drawn near a terminal joins it, and a part dropped on one meets
-it, so a circuit can be assembled rather than drawn near — a selected part keeps its pins marked, so you can
-**pick the part up by its pin** and drag it onto another pin or onto the end of a line you have drawn there,
-where it settles exactly. **Pan** with the **hand** (`G`): a drag
-moves the page instead of drawing on it, and with the pen it follows the stylus at the tablet's own rate,
-travelling further than the pen does so a flick of the wrist crosses the sheet — while every tool keeps its
-own state meanwhile. The sheet itself is editable from the **toolbar**: its last button, after a divider,
-opens **Pages** — the same menu the tablet shows. There you **add, remove or step through pages**, and set a
-page's **background** (the tablet's paper styles and 2, 3, 5, 7 or 10 mm ruling) or its **format** — the
-A4/A5/Letter/Legal presets either way up, **any size you type** in millimetres, inches or points with a swap
-button, and — on the same panel's last line — the **default for new pages**: the four presets, **Use this
-size** to keep the sheet you just typed, and the size new pages will open at. Changing a page or the page
-list is one undoable edit written in the file's own ruling parameter, while setting the default only
-affects sheets that do not exist yet, so it never resizes the page under your ink. And **shift a page down**
-with Vertical space (`Shift + V`), which moves everything below the line you drop and nothing the line
-crosses. **Pick things up** with Marquee (`S`) or Lasso (`V`): a click on any element catches it where it
-lies (one click on empty paper lets the selection go, and a double-click opens a living element's editor),
-then drag the outline to move it, pull a corner to resize it or the handle above it to turn
-it (`Shift` snaps the turn), and `Delete` takes it away — each drag one edit, one `Ctrl + Z`. `Esc` lets a
-selection go. A bar appears under the outline with the tablet's own actions — cut, copy, paste, duplicate,
-recolour or re-width what is caught, align and distribute a group, delete — and `Ctrl+C`/`Ctrl+X`/`Ctrl+V`/
-`Ctrl+D` do the same from the keyboard; a paste lands beside what it copied and stays selected. The **pencil**
-on that bar opens the selected table, plot, figure, component or formula in a lane beside the page, where its
-own values are editable without a dialog ever covering the sheet. The lane opens **while you are editing**
-and closes when you are done — `Esc`, the close glyph or `Done` — or as soon as you select something else, so
-it never sits there as a panel you did not ask for. It is the same width every time, with a header naming the
-element (its symbol and its formula, grid or value), grouped cards of fields, and one action at the bottom. A
-graph's card leads with the **graph itself**, redrawn as you edit it, carries every equation it has with
-**Add equation** and a remove glyph beside each row, and its display switches work right there — the same
-preview the placement asked its questions with. **Every equation has its own colour**: a swatch sits beside
-each formula, a new row arrives in the next palette ink instead of the same black as the one above it, and
-the curve is drawn in the colour of its row — in the card before it is placed and in the lane afterwards,
-because both write through the same builder. **Place** a graph or a table with Plot (`M`) or Table (`T`):
-drag the box it should fill (or click for the default size), and the right-hand lane asks what the element
-should be before it exists — the graph dialog's own questions for a plot (formula, domain, critical points,
-derivative, summary, shaded area) or the table's columns, rows and header — so **Place** writes one live,
-selected element and one `Ctrl + Z` puts the page back, while Cancel leaves the page untouched. A **circuit
-component** (`K` passive parts, `Shift + K` active parts, `Alt + K` logic gates) is drawn instead of asked
-about: the drag is the part — its **two ends** set its length *and* its angle, so a part drawn at 45° stands
-at 45° and its ends settle on the pins in reach — its pins and body appearing on the sheet as the pen moves
-and landing on the lift as one live, selected element, exactly as a figure behaves. A circuit slot opens the tablet's palette
-of that family's symbols on a **second** click — the first only arms the slot, and the little chevron on
-the slot opens the palette straight away — and the drawing is the pen's own colour and width. A slot that holds several tools works the same way: one click
-picks the tool, a second click asks which of them. Once an element is placed the window switches to the
-selection tool, as the tablet does, so the next drag moves what you just made instead of placing another.
-**Type on the page** with Text (`X`): click where the line should start and a field opens there, in your ink's
-colour and size, with the page still untouched — `Enter` starts a new line, and `Esc` (or a click somewhere
-else) writes the box as one undoable edit. Type nothing and nothing is written, so a click you change your
-mind about leaves no empty box and nothing to undo. Clicking **words already on the page** opens them for
-editing instead (whatever wrote them — this window, the tablet, or desktop Xournal++), with their own font,
-size and colour; clearing the text deletes the box, and both are one undo step. The Text slot's second member, **Formula** (`Shift + T`),
-notes a formula instead: it asks for the LaTeX (or Typst) source, shows it typeset as you type, and **Place**
-writes it as one live math block — the same element the tablet edits and the `.xopp` export understands.
-A live element can also be shaped **where it sits**: a figure wears a ring on each corner and a table a ring
-on each divider, so dragging one bends the figure or rewidens that column without touching a cell's text, and
-a double-click on the element opens the card that edits it.
-Dragging a selection, an element already on the page, a figure being drawn or a vertical-space line against
-the **edge of the canvas scrolls the view** while the drag keeps going, and the scroll eases in and settles
-rather than jumping: a marquee keeps catching ink past the border, a box or an arrow keeps opening, and an
-element can be carried to a part of the sheet that is off screen without lifting the pen. A shape and a reflow are ordinary edits, so they round-trip through `.xopp` like ink, and `Ctrl + S` writes it back to the file you opened
-(a `.xopp` stays a `.xopp`, a `.mobix` stays a `.mobix`), with `Ctrl + Shift + S` saving a copy under
-the format its name asks for. The same document leaves the window a second way: **Export PDF** in the menu
-(or `Ctrl + E`) writes the whole notebook as one PDF — the paper and its ruling, every stroke, text box,
-figure, table, plot, component and formula, with the page of an annotated PDF or a photograph underneath —
-and **Export pages as SVG** writes one vector file per page beside the notebook. Neither command touches the
-document; a PDF is asked where to go, the SVG pages go next to the file you opened, and an infinite board
-is politely refused rather than printed as one sheet of itself. The window speaks English, like the tablet
-app, and it is a separate module, so it never affects the Android build.
+It also edits them. Pen and highlighter, both erasers, the figure tools, text boxes, vertical space and the
+selection with its action bar and inspector lane all write to the page, each gesture one undo step, and
+`Ctrl + S` saves back in the format the file already had. Tabs, the page sidebar, the zoom, the pages menu
+and the Settings panel are the tablet's, drawn in the same glass. A notebook written for a term reads its
+pages as you scroll it, and the pen's own packet stream draws the ink when a graphics tablet is attached.
 
-The graphics tablet is read directly, through the tablet driver's own packet stream rather than the
-desktop's mouse pointer, and the stroke itself begins and ends with that stream — so the pen behaves like
-a pen: strokes taper with the pressure you actually apply, they start even from the lightest touch and
-survive a pause in the middle of the line, the pen's tilt and the way you hold it travel with the ink, and
-turning the pen round to its eraser end rubs out. The mouse the system emulates alongside the pen never
-draws that line, so one touch is one stroke and never two. The ink is published once per screen frame rather
-than once per driver packet, so a fast hand costs one redraw a frame instead of hundreds, and the window
-asks for a frame only when the pen has something new to draw — a sheet nobody is writing on is not
-repainted at all. Scrolling and zooming are just as cheap on a dense page: the sheet is recorded once at
-document scale and moved by the canvas, so a wheel notch or a pinch costs a replay instead of a
-re-render (0.2 ms a frame on this project's densest document, where it used to cost 3.6–4.3 ms). The line was measured against the nib (`--probe-ink`): a pen reading becomes ink in a
-median 1.5–2.0 ms (5.2 ms p95) on a blank page and on this project's densest six-page document, so the
-line lands on the very next frame your screen shows instead of the one after — at 144 Hz that is 6.9 ms,
-and the status bar tells you the rate it found (`120 Hz · 8.3 ms frame`) beside the pen stream. A lift costs
-one stroke, not the page: the sheet keeps a recorded base plus one picture per stroke since it, so writing
-for a minute is as quick as the first letter. Over the page the pointer **is the tool's**: every tool that
-marks the sheet at a width — pen, highlighter, both erasers, every figure, a circuit, vertical space, the
-selection — wears a ring the size of the line it will write, and the desktop's arrow goes away while it
-does, instead of sitting glued to the ring and pointing at nothing; the **hand** carries the hand, because
-it moves the page, and **Text** carries the text cursor, because it writes words and not a band of ink. The ring
-adds the width and the exact point you are about to draw at. The ring is driven by the tablet's own readings rather than by the slower mouse
-copy of them, so it sits under the nib instead of trailing it, and it keeps its place while you hold the
-pen still above the page. The status bar says which stream the window has — `pen: Wintab`,
-`pen: Windows Ink` or `pen: mouse` — and on `pen: mouse` the pen draws at the tool's width, because
-nothing richer reached the window.
+- **A file to try it on**: `udiff.xopp`, at the root of this repository.
+- **Keys**: every tool and command has one; the full table is in
+  [`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md) and **Settings → Shortcuts** rebinds any of them.
+- **A remote or synced file** has to be available offline before it opens — a Drive or OneDrive placeholder
+  is not a document.
+- **Not yet**: importing anything but a document, editing layers, and an installer. What is left is in
+  [`TODO.toml`](TODO.toml), and the window's own state is
+  [`docs/desktop-workstation.md`](docs/desktop-workstation.md) (*What the window does not do*).
 
-Turn the tablet's **rotary dial** to zoom — clockwise in, anticlockwise out, at the cursor, exactly as
-`Ctrl` and the wheel do — while the mouse's wheel keeps scrolling the page: the window tells the two
-apart by the device the notch came from, so neither takes the other's action. Pressing a dial that
-Windows exposes as a radial controller returns to the page's fitted view; that one lists **MobiXournal**
-among its tools (choose it there once if your tablet asks), and the status bar adds `dial` while it is
-bound.
-
-A tab with edits the file does not have yet shows a small blue dot beside its name. Closing it — the
-`×`, `Ctrl + W`, or the window's own close button — asks first: **Save**, **Discard** or **Cancel**. If
-the window is interrupted with unsaved work still open (a crash, a forced shutdown), those tabs come
-back on the next start marked "recovered", and saving them writes the file they came from.
-
-Isometric paper — the triangular ±30° sheet — is ruled here from the same geometry the tablet uses, so the
-two shells draw the same grid.
-
-The drawing tools stand in one of three places: a vertical rail beside the page (on the left by default, or
-on the right for a left hand) or a horizontal ribbon under the header, each a rounded pane of glass with a
-little air around it rather than a strip glued to the window's edge. **Settings → Toolbar** picks the place
-and the order of the buttons, and both are remembered the next time you start the app. Whichever is on, the strip
-is a **floating bar**, nearly solid so a white page never turns it grey: it lies over the sheet, the page
-runs behind it and choosing another edge moves the tools rather than the page. A press on the bar belongs
-to the bar, never to the ink under it, and a document still opens framed on the desk **beside** the bar.
-Hovering a slot shows the
-tool's name and its keyboard shortcut, and the shortcuts pick the tool without leaving the keyboard —
-including while a flyout, a hover pill or a palette is open, because none of them takes the keyboard.
-Every one of those keys can be changed: **Settings → Shortcuts** lists the tools and the window's commands,
-and a click on a row followed by a press gives that command the key you pressed, taking it from whatever
-held it (the page says which command lost it). **Restore defaults** puts the table back, and the same
-stored table means the same tool on the tablet, where the same section reads it.
-The top right of the window holds the four commands you reach for constantly — **undo**, **redo**, **Save**
-and **Export PDF** — and they grey out when there is nothing to undo, nothing to save or nothing open. The
-**page list** on the left opens by itself only for a document with more than one page: a single sheet does
-not need a list of one, and `Ctrl + B` still shows or hides it whenever you want, remembering your answer
-for that document.
-
-The hamburger menu is the tablet's menu in a window: **New**, **Open**, **Save** and **Save As** as four
-pictures with their names under them, **Export PDF** and **Export SVG** as two blue chips, and the page list
-under a hairline. Pick anything and the panel closes behind it.
-
-A slot can hold a **family**: the eraser slot holds both erasers and the figure slot holds the seven
-figures, with a small chevron that opens the family's list — click it, click the slot again once it is
-the tool in hand, right-click the slot, hold it, or press `Alt`+`Down`, and picking a row re-faces the slot. Nothing on the strip is a button that does
-nothing: a tool the window cannot draw with yet is simply not shown.
-The colour slot also carries the palette: pick a swatch, define your own colour in the window's HSV/hex panel, or add a new
-one, and the palette, the favourites and the width are remembered between runs.
-
-| Key | What it does |
-|---|---|
-| `Ctrl + T`, `+` in the strip | open a document (an already-open file jumps to its tab) || `Ctrl + S` / `Ctrl + Shift + S` | save back to the file, when it has unsaved edits / Save As (the name's suffix picks the format) |
-| `Ctrl + E` | export the document as a PDF (the menu also exports the pages as SVG files) |
-| `Ctrl + Z` / `Ctrl + Shift + Z` | undo / redo the last edit in the current document |
-| `Ctrl + W`, `×` on a tab | close the tab (it asks first if the tab has unsaved edits) |
-| `Ctrl + Tab` / `Ctrl + Shift + Tab` | next / previous document |
-| `Ctrl + B`, `≡` | show or hide the sidebar |
-| `Ctrl + =` or the keypad's `+`, `Ctrl + -` | zoom in / out |
-| `Ctrl + 0` / `Ctrl + 1` | fit the page / fit the width |
-| `Page Up` / `Page Down` | previous / next page |
-| `B` `H` `E` `V` `S` `X` `L` `A` `R` `C` `P` `M` `T` `K` | pick that tool (pen, highlighter, eraser, lasso, marquee, text, line, arrow, rectangle, ellipse, spline, plot, table, circuit) |
-| `Shift + X` | the axes tool (`X` alone is the text box) |
-| `Shift + T` | the formula tool (`T` alone is the table) |
-| `1` `2` `3` | pick favourite colour 1 / 2 / 3 (the favourites are remembered between runs) |
-| `Alt + 1`…`Alt + 3` | make the colour in use that favourite |
-| `]` / `[` | wider / thinner one step (S, M, L) |
-
-Wheel scrolls the page, `Ctrl` + wheel zooms where you point, and middle-drag or `Space` + drag pans.
-A tab's name can be edited in place with a double-click, and tabs can be dragged into a new order.
+Two commands, both on a Windows 11 host with a JDK 21 (see *Build & Requirements* below):
 
 ```sh
-# Windows 11 (needs a JDK 21 host, as the Android build does)
+# Run it from the tree, opening one document
 .\gradlew.bat :desktop:run --args="udiff.xopp"
+
+# Or package a self-contained, unsigned folder to double-click
+.\gradlew.bat :desktop:createDistributable
 ```
 
-Start it without an argument and use the **Open** button (or `Ctrl + T`) to pick a file — a path with spaces works either way. A
-file that cannot be read leaves the document you already have on screen and says why in a card at the top
-of the page, which a click or `Esc` dismisses. Selection and the in-place editors for tables, graphs and
-circuits are still to come; the status with the next steps lives in
-[`docs/desktop-workstation.md`](docs/desktop-workstation.md).
+That folder is `desktop/build/compose/binaries/main/app/MobiXournal/MobiXournal.exe`; it takes a document
+path as its argument, and without one it opens on an empty desk with **Open** in reach.
+
+The detail lives in the spokes, one topic each: what the window is and what a drag on its page does —
+[`docs/desktop-workstation.md`](docs/desktop-workstation.md),
+[`docs/desktop-editing.md`](docs/desktop-editing.md); its panels, its keys and its pen —
+[`docs/desktop-ui-layout.md`](docs/desktop-ui-layout.md),
+[`docs/desktop-settings.md`](docs/desktop-settings.md),
+[`docs/desktop-tablet.md`](docs/desktop-tablet.md),
+[`docs/desktop-pen-feel.md`](docs/desktop-pen-feel.md); what its suite proves —
+[`docs/desktop-testing.md`](docs/desktop-testing.md).
 
 ---
 
