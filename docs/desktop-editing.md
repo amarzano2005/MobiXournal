@@ -10,6 +10,16 @@ does with a file is [desktop-documents.md](desktop-documents.md); the pen and th
 [desktop-tablet.md](desktop-tablet.md); and what a selection means, on both shells, is
 [selection.md](selection.md).
 
+## Where a press lands
+
+A press maps to the page through **the viewport the sheet was painted in**, and no other:
+`SheetLayout.liveViewport` is `Viewport.inChrome` over the window's live scroll — the rule `paintSheet`
+draws with — so ink, a marquee, a figure and a living drag all land under the pointer. A second
+derivation (clamping the scroll in the *whole* window instead of centring in the room beside the rail)
+put a fitted page's ink half a rail's lane away from the pointer, and the gap shrank as the reader
+zoomed in, which reads as a zoom bug and is not one. `PointerMappingTest` holds the arithmetic and
+`PagePressSceneTest` a stroke through Compose's own dispatch on a fitted page.
+
 ## Figures, whole-stroke erasing and vertical space
 
 Four more gestures beside the ink, all built on `mobix-core` so the window has no geometry of its own:

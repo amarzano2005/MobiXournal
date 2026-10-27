@@ -262,7 +262,15 @@ private fun Modifier.hoverTracking(pointer: PenPointer, followMouse: () -> Boole
         }
         .onPointerEvent(PointerEventType.Exit) { if (followMouse()) pointer.hover.value = null }
 
-/** A page's size and the viewport in force for it, in the window it is being shown in. */
+/**
+ * A page's size and the viewport in force for it, in the window it is being shown in.
+ *
+ * [viewport] is **the one the sheet is painted in**, and [chrome] is the room the floating strips take —
+ * the two facts a press needs to land where the page was drawn. Everything that maps a pointer goes
+ * through [liveViewport] instead of recomputing the rule: a second derivation (that was `clamp`ed but not
+ * centred in the chrome) put the ink a strip's width away from the pointer on a fitted page, and the error
+ * shrank as the reader zoomed in, which is what made it look like a zoom bug.
+ */
 internal data class SheetLayout(
     val pageW: Float,
     val pageH: Float,
@@ -270,7 +278,18 @@ internal data class SheetLayout(
     val viewW: Float,
     val viewH: Float,
     val viewport: Viewport,
-)
+    val chrome: ChromeInset = ChromeInset.NONE,
+) {
+    /**
+     * The viewport a pointer maps through, from the window's own scroll [offsets].
+     *
+     * Live, not captured: a drag that reaches the canvas's edge scrolls the sheet, so the mapping during a
+     * gesture has to be the view the reader is looking at. The rule is [Viewport.inChrome] — the painter's
+     * — and not a second, hand-rolled centring.
+     */
+    fun liveViewport(offsets: Viewport): Viewport = offsets.copy(zoom = zoom)
+        .inChrome(chrome, pageW, pageH, viewW, viewH)
+}
 
 /**
  * The page's box and the zoom that fits it — and the one write the canvas makes to the tab's own
@@ -303,7 +322,7 @@ internal fun sheetLayout(
             tab.viewport = tab.viewport.copy(zoom = zoom)
         }
     }
-    return SheetLayout(pageW, pageH, zoom, viewW, viewH, viewport)
+    return SheetLayout(pageW, pageH, zoom, viewW, viewH, viewport, chrome)
 }
 
 /**

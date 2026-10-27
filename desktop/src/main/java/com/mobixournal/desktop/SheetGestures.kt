@@ -45,10 +45,9 @@ internal fun Modifier.sheetGestures(
         ink = ink,
         shapeInk = shapeInk,
         targets = targets,
-        viewport = {
-            tab.viewport.copy(zoom = sheet.zoom)
-                .clamped(sheet.pageW, sheet.pageH, sheet.viewW, sheet.viewH)
-        },
+        // The painter's own rule, from the window's live scroll: one derivation for where the sheet is
+        // drawn and where a press lands ([SheetLayout.liveViewport]).
+        viewport = { sheet.liveViewport(tab.viewport) },
         pageW = sheet.pageW,
         pageH = sheet.pageH,
         viewW = sheet.viewW,
