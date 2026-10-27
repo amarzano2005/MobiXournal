@@ -221,6 +221,28 @@ class PenPresetTest {
     }
 
     @Test
+    fun `reset puts the live preset back on the factory numbers`() {
+        val state = policy("reset.properties")
+        state.chooseMinimumPressure(0.4f)
+        state.choosePressureMultiplier(2f)
+
+        state.resetPressureToDefaults()
+
+        assertEquals(PressureCurve.MINIMUM_PRESSURE_DEFAULT, state.minimumPressure, 1e-6f)
+        assertEquals(1f, state.pressureMultiplier, 1e-6f)
+        val stored = DesktopSettings(file("reset.properties")).penPresets.first()
+        assertEquals(
+            "the live preset's own entry is rewritten, so the chip names these numbers",
+            PressureCurve.MINIMUM_PRESSURE_DEFAULT,
+            stored.minimumPressure,
+            1e-6f,
+        )
+        assertEquals(1f, stored.pressureMultiplier, 1e-6f)
+        // The shared filter reads the reset values on the next sample.
+        assertEquals(PressureCurve.MINIMUM_PRESSURE_DEFAULT, PressureFeel.shape(0f), 1e-6f)
+    }
+
+    @Test
     fun `the list round-trips through the stored line`() {
         val presets = listOf(
             DesktopPenPreset("default", "Default", 0.05f, 1f),

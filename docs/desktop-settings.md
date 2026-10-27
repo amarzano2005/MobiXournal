@@ -120,7 +120,9 @@ much of it the window listens to:
   numbers**, and moving either slider **rewrites the live entry**, so the chip never names numbers the pen
   is no longer drawing with. Saving an existing name rewrites it in place (the handle, and so the selection,
   survives), the list always keeps one entry, and a stored line this build cannot read falls back to the
-  factory preset rather than emptying the menu.
+  factory preset rather than emptying the menu. **Reset to defaults** puts the floor and the multiplier back
+  on the factory numbers (0.05 and 1.00×) through the same two setters, so it rewrites the live preset like a
+  slider would — the tablet's *Reset*, and the only way to undo a slider dragged far without a drag back.
 - **Active area → Mapped surface** (`tablet.activeArea`): *Full* is the driver's own **system context**, the
   surface every other program on the machine sees, and it is what the window has always read. *Tablet* maps
   a **centred rectangle** of that surface onto the window's client area instead, so a small movement of the

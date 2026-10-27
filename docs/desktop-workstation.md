@@ -138,9 +138,10 @@ What it does today:
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
   document-red chip** and Export SVG in the accent, then the tablet's **Pen block** (its heading, with the
   glyph beside it, opens the Stylus page; inside, only the pen's own answers — the pressure switch, its two
-  sliders, and under a **Presets** heading the **named pen presets** as chips with *Save…* beside the
-  heading, picking one applies it and closes the panel, *Save…* names the live pair in place, as on the
-  tablet), a hairline, the page list's row and **Settings**. The block carries **nothing about the ink**: a
+  sliders, a **Reset to defaults** row, and under a **Presets** heading the **named pen presets** as chips
+  with *Save…* beside the heading, picking one applies it and closes the panel, *Save…* names the live pair
+  in place, as on the tablet — the menu is the one popup that takes the keyboard, because that field is
+  typed in), a hairline, the page list's row and **Settings**. The block carries **nothing about the ink**: a
   colour and a width live in the strip's capsule, and a reset beside a pressure preset made two different
   things share one word. Import PDF and Page as PNG are absent because the window has no such
   command yet, not because it has a different menu (`MenuPanel`; `DesktopMenuTest` clicks every row by

@@ -218,6 +218,13 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
             )
         }
         SettingsRow(
+            label = "Reset to defaults",
+            note = "The factory floor and multiplier, back on the preset in use.",
+            onClick = policy::resetPressureToDefaults,
+        ) {
+            Text("Reset", color = DesktopTheme.accent, style = DesktopTheme.label)
+        }
+        SettingsRow(
             label = "Pressure curve",
             note = "Shapes the reading before those two numbers. 1.00 leaves it untouched.",
         ) {

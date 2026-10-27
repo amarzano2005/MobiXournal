@@ -17,3 +17,13 @@ import androidx.compose.ui.window.PopupProperties
  * normally. A popup is a menu: it closes on a pick or on a click outside, and neither needs the keyboard.
  */
 internal val FloatingSurface = PopupProperties(focusable = false, dismissOnClickOutside = true)
+
+/**
+ * The **hamburger menu's** surface — the one popup of the window that takes the keyboard.
+ *
+ * It is the exception to [FloatingSurface] because the Pen block names a preset in a field of its own: a
+ * popup that never takes the keyboard is a popup whose field is a picture of one. Unlike a hover pill this
+ * one is opened by a deliberate click, and the window's shortcuts going quiet while a menu is up is what a
+ * menu means.
+ */
+internal val MenuSurface = PopupProperties(focusable = true, dismissOnClickOutside = true)

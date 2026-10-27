@@ -84,7 +84,7 @@ internal fun HeaderMenu(
                     open = false
                     penPolicy?.cancelPresetSave()
                 },
-                properties = FloatingSurface,
+                properties = MenuSurface,
             ) {
                 // Every command closes the menu first: the panel is a set of commands, not a toolbox.
                 MenuPanel(
@@ -226,6 +226,20 @@ private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
         format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f×", it) },
         onValue = policy::choosePressureMultiplier,
     )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "Reset to defaults",
+            color = DesktopTheme.inkSecondary,
+            style = DesktopTheme.label,
+            modifier = Modifier.weight(1f),
+        )
+        SettingsTextAction(text = "Reset", onClick = policy::resetPressureToDefaults)
+    }
     Spacer(Modifier.height(2.dp))
     Row(
         Modifier
@@ -311,6 +325,7 @@ private fun MenuPresetNameRow(policy: DesktopSettingsState) {
             onValue = policy::typePresetName,
             onCommit = policy::commitPresetSave,
             modifier = Modifier.weight(1f),
+            onCancel = policy::cancelPresetSave,
         )
         SettingsTextAction(
             text = "Save",

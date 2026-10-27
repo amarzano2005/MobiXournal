@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
  * typed with a different rule. It takes the keyboard as soon as it appears — a door named *Save as preset*
  * should not need a second click on the field it opened — and `Enter` is the same commit as the Save word
  * beside it, so a name can be written and kept without leaving the keyboard.
+ *
+ * `Esc` puts the draft away (never the surface behind it): the field owns the key while it is open, which
+ * is what the Stylus page's own note promises and what a menu that takes the keyboard owes the reader.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -41,8 +44,10 @@ internal fun PresetNameField(
     onValue: (String) -> Unit,
     onCommit: () -> Unit,
     modifier: Modifier = Modifier,
+    onCancel: () -> Unit = {},
 ) {
     val commit = rememberUpdatedState(onCommit)
+    val cancel = rememberUpdatedState(onCancel)
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     Box(
@@ -66,11 +71,16 @@ internal fun PresetNameField(
                 .focusRequester(focus)
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                    if (event.key == Key.Enter || event.key == Key.NumPadEnter) {
-                        commit.value()
-                        true
-                    } else {
-                        false
+                    when (event.key) {
+                        Key.Enter, Key.NumPadEnter -> {
+                            commit.value()
+                            true
+                        }
+                        Key.Escape -> {
+                            cancel.value()
+                            true
+                        }
+                        else -> false
                     }
                 },
         )

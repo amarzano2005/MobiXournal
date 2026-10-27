@@ -469,6 +469,18 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     }
 
     /**
+     * Put the live preset's two numbers back on the factory pair — the tablet's *Reset* in its pen dialog.
+     *
+     * It resets the **numbers of the preset in use**, not the list: the slider setters rewrite the live entry,
+     * so the chip and the pen stay the same pen, and the other presets are untouched.
+     */
+    fun resetPressureToDefaults() {
+        val factory = DesktopPenPreset.factoryDefault()
+        chooseMinimumPressure(factory.minimumPressure)
+        choosePressureMultiplier(factory.pressureMultiplier)
+    }
+
+    /**
      * Apply the preset [id]: its two numbers become the live filter, and the file remembers the choice.
      *
      * The one entry point both doors call — a menu chip and a row of the Stylus page do exactly this — so a

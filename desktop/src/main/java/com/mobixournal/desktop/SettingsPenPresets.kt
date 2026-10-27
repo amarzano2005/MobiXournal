@@ -62,6 +62,7 @@ internal fun StylusPresetGroup(policy: DesktopSettingsState) {
                     onValue = policy::typePresetName,
                     onCommit = policy::commitPresetSave,
                     modifier = Modifier.width(170.dp),
+                    onCancel = policy::cancelPresetSave,
                 )
                 Spacer(Modifier.width(6.dp))
                 SettingsTextAction(

@@ -131,6 +131,11 @@ internal fun Modifier.glassSurface(
  *
  * [active] suppresses the hover fill, because a picked surface already answers: a tab cannot be both
  * selected and merely pointed at, and painting both would put two greys on one capsule.
+ *
+ * [base] is the surface's **own** fill, for a control that rests on one (a picked pill): the hover is then
+ * the same single background at another colour rather than a second layer over the first. Two layers are
+ * what let a light and the shape it lights disagree — the bug the menu's chips had, where an overlay could
+ * be painted at the label's bounds and light a corner of the capsule. One background cannot.
  */
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
@@ -138,12 +143,13 @@ internal fun Modifier.hoverFill(
     shape: Shape,
     active: Boolean = false,
     fill: Color = DesktopTheme.hoverSlot,
+    base: Color = Color.Transparent,
 ): Modifier {
     var hovered by remember { mutableStateOf(false) }
     return this
         .onPointerEvent(PointerEventType.Enter) { hovered = true }
         .onPointerEvent(PointerEventType.Exit) { hovered = false }
-        .background(if (hovered && !active) fill else Color.Transparent, shape)
+        .background(if (hovered && !active) fill else base, shape)
 }
 
 /**

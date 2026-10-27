@@ -321,19 +321,18 @@ internal fun SettingsSlider(
 private fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
     val pick = rememberUpdatedState(onPick)
     var focused by remember { mutableStateOf(false) }
+    // The rest state **is** the capsule's fill, and the hover step swaps that same fill: a picked pill
+    // cannot light by halves, because there is no second layer to be a different size than the first.
+    val resting = if (selected) DesktopTheme.activeSlot else DesktopTheme.activeSlot.copy(alpha = 0.35f)
     Box(
         Modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(
-                if (selected) DesktopTheme.activeSlot else DesktopTheme.activeSlot.copy(alpha = 0.35f),
-                DesktopTheme.capsuleShape,
-            )
+            .hoverFill(DesktopTheme.capsuleShape, active = selected, base = resting)
             .border(
                 width = if (focused) 1.dp else 0.dp,
                 color = if (focused) DesktopTheme.accent else Color.Transparent,
                 shape = DesktopTheme.capsuleShape,
             )
-            .hoverFill(DesktopTheme.capsuleShape, active = selected)
             .focusable()
             .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent { event ->
@@ -513,8 +512,13 @@ internal fun SettingsSectionRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.INDEX_ROW_HEIGHT)
-            .background(if (selected) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.railSlotShape)
-            .hoverFill(DesktopTheme.railSlotShape, active = selected)
+            // The picked fill and the hover step are the *same* background: a section that lights for the
+            // pointer and one that lights because it is the open page cannot draw two different boxes.
+            .hoverFill(
+                DesktopTheme.railSlotShape,
+                active = selected,
+                base = if (selected) DesktopTheme.activeSlot else Color.Transparent,
+            )
             .pointerInput(section) { detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
