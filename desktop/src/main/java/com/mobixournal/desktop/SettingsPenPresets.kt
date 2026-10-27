@@ -17,26 +17,30 @@ import androidx.compose.ui.unit.dp
  *
  * *Save as preset* opens **one** name field — the menu's Pen block opens the same draft — and the last
  * preset stays: a list with no entry would be a filter with no name, and the pen is always drawing with one
- * of them.
+ * of them. Deleting the live preset is therefore two steps — pick another, then delete it — because the
+ * right edge of the live row says what it is rather than offering to remove the pen's current numbers.
  */
 @Composable
 internal fun StylusPresetGroup(policy: DesktopSettingsState) {
     SettingsGroup("Presets") {
         for (preset in policy.penPresets) {
             val live = preset.id == policy.selectedPenPresetId
+            // One word at the right edge, not two: the live row says it *is* the pen, every other row
+            // offers the one action it has. A row that said "in use" in its note **and** at its edge read
+            // as a state the reader had to reconcile with itself.
             SettingsRow(
                 label = preset.name,
-                note = if (live) "${preset.values} · in use" else preset.values,
+                note = preset.values,
                 onClick = { policy.applyPenPreset(preset.id) },
             ) {
-                if (policy.penPresets.size > 1) {
+                if (live) {
+                    Text("In use", color = DesktopTheme.accent, style = DesktopTheme.label)
+                } else {
                     SettingsTextAction(
                         text = "Delete",
                         tone = DesktopTheme.danger,
                         onClick = { policy.deletePreset(preset.id) },
                     )
-                } else if (live) {
-                    Text("In use", color = DesktopTheme.accent, style = DesktopTheme.label)
                 }
             }
         }

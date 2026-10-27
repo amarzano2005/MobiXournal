@@ -63,8 +63,8 @@ internal fun DesktopShell(
             onUndo = { state.apply(ShellCommand.UNDO) },
             onRedo = { state.apply(ShellCommand.REDO) },
             onSettings = { state.apply(ShellCommand.OPEN_SETTINGS) },
-            // The menu's Pen block: its parameters are the colour capsule's panel, its one preset is
-            // the factory ink — the same two things the strip offers, reached from the menu.
+            // The menu's Pen block: its parameters door is the Stylus page, *Factory ink* resets the ink,
+            // and the named pressure presets are that page's list, reached without leaving the sheet.
             onPenParameters = { state.openPenSettings() },
             onPenDefault = { state.resetPenDefaults() },
             // The menu's own pressure rows: the same settings the Stylus page edits.

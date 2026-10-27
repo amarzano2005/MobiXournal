@@ -124,11 +124,12 @@ internal class DesktopInkState(
     }
 
     /**
-     * Put the tool in hand back on its **factory ink** — the menu's one preset.
+     * Put the tool in hand back on its **factory ink** — the menu's *Factory ink* chip.
      *
-     * The tablet's Pen block lists named presets; the window has one, because its colour capsule is where
-     * a colour is chosen and a preset list would be a second way to set the same three values. This is the
-     * way back, and it writes through the same three setters, so the strip, the page and the file all
+     * This is the **ink**, not the pen's pressure: the window has no named ink presets, because its colour
+     * capsule is where a colour is chosen and a preset list would be a second way to set the same three
+     * values. The named presets beside it in the Pen block are the pressure pairs (`PenPresetState`), a
+     * different question. It writes through the same three setters, so the strip, the page and the file all
      * follow in the same frame.
      */
     fun resetToDefaults() {

@@ -131,6 +131,55 @@ class DesktopMenuTest {
         assertTrue("the raster chip is written in the accent", rasterChip > 12)
     }
 
+    /**
+     * The Pen block **with the pen's presets in it** — the block a reader opens mid-drawing, drawn whole so
+     * the heading, the pressure rows and the chips can be looked at instead of trusted.
+     *
+     * The frame is filed as `desktop-pen-presets.png`. The second frame has no settings, so it draws no Pen
+     * block; the two differing is what proves the picture is the block's and not the desk's.
+     */
+    @Test
+    fun `the pen block draws the pressure rows and the presets`() {
+        val policy = DesktopSettingsState(DesktopSettings(File(temp.root, "menu-pen.properties")))
+        policy.beginPresetSave()
+        policy.typePresetName("Light hand")
+        policy.commitPresetSave()
+
+        val drawn = panelFrame(policy)
+        val bare = panelFrame(null)
+        File("build/desktop-render/desktop-pen-presets.png").apply { parentFile?.mkdirs() }.writeBytes(drawn)
+        assertTrue("the Pen block is drawn, not only the desk", !drawn.contentEquals(bare))
+    }
+
+    /** One frame of the panel, tall enough that nothing in the Pen block is clipped. */
+    private fun panelFrame(policy: DesktopSettingsState?): ByteArray {
+        val scene = ImageComposeScene(width.toInt(), 560, Density(1f)) {
+            Box(Modifier.size(width.dp, 560.dp).background(DesktopTheme.desk)) {
+                MenuPanel(
+                    sidebarVisible = true,
+                    canSave = true,
+                    canExport = true,
+                    onNew = {},
+                    onOpen = {},
+                    onSave = {},
+                    onSaveAs = {},
+                    onExportPdf = {},
+                    onExportSvg = {},
+                    onToggleSidebar = {},
+                    onSettings = {},
+                    onDismiss = {},
+                    penPolicy = policy,
+                )
+            }
+        }
+        return try {
+            Snapshot.sendApplyNotifications()
+            requireNotNull(scene.render().encodeToData()?.bytes) { "Skia produced no PNG" }
+        } finally {
+            scene.close()
+        }
+    }
+
     private fun scene(canSave: Boolean = true, canExport: Boolean = true): ImageComposeScene =
         ImageComposeScene(width.toInt(), height.toInt(), Density(1f)) {
             // The desk behind the panel, so the glass has something to be glass over — as it does in

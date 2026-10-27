@@ -156,13 +156,13 @@ internal fun MenuPanel(
             MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
         }
-        // The tablet's **Pen block**: its heading with the door to the pen's parameters, and the preset
-        // chip under it. *Default* is the factory **ink** (the strip's colour capsule is where a colour is
-        // chosen); the named **pressure presets** below it are the tablet's own list, in the menu block.
+        // The tablet's **Pen block**: its heading with the door to the pen's parameters, and the reset
+        // chip under it. *Factory ink* is the **ink**, not a pressure preset — its old name was
+        // *Default*, which became a lie the moment the presets below had a Default of their own.
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuHeadingRow(label = "Pen", onClick = onPenParameters)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MenuMetrics.chipGap)) {
-            MenuChip("Default", null, enabled = true, Modifier, DesktopTheme.accent, onPenDefault)
+            MenuChip("Factory ink", null, enabled = true, Modifier, DesktopTheme.accent, onPenDefault)
             MenuChip("Parameters…", null, enabled = true, Modifier, DesktopTheme.inkSecondary, onPenParameters)
         }
         // The tablet's Pen block carries its pressure settings and not only a door to them: the two
@@ -195,9 +195,11 @@ internal fun MenuPanel(
  * menu's row height — so the block a reader opens mid-drawing answers the question it was opened for,
  * and *Parameters…* stays the door to the rest (the stream, the curve, the mapped area).
  *
- * Under the sliders are the **presets**: the tablet's scrollable chip row, the live one written in the
- * accent and washed with it. Picking one applies it and closes the panel (the hand was mid-drawing);
- * *Save as preset…* opens the one name field both this block and the Stylus page share.
+ * Under the sliders are the **presets**, under a heading of their own: the tablet's scrollable chip row,
+ * the live one written in the accent and washed with it, and *Save…* beside the heading. The heading is
+ * what keeps them apart from the *Factory ink* chip above — a word on each row rather than two chips that
+ * read the same. Picking a preset applies it and closes the panel (the hand was mid-drawing); *Save…*
+ * opens the one name field both this block and the Stylus page share.
  */
 @Composable
 private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
@@ -232,33 +234,41 @@ private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
         format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f×", it) },
         onValue = policy::choosePressureMultiplier,
     )
-    Spacer(Modifier.height(4.dp))
+    Spacer(Modifier.height(2.dp))
     Row(
         Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 10.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        for (preset in policy.penPresets) {
-            MenuPresetChip(
-                name = preset.name,
-                selected = preset.id == policy.selectedPenPresetId,
-                onClick = {
-                    policy.applyPenPreset(preset.id)
-                    policy.cancelPresetSave()
-                    onDismiss()
-                },
-            )
-        }
-    }
-    if (policy.presetDraft == null) {
-        MenuRow(
-            label = "Save as preset…",
-            enabled = true,
+        Text("Presets", color = DesktopTheme.inkSecondary, style = DesktopTheme.label, modifier = Modifier.weight(1f))
+        SettingsTextAction(
+            text = "Save…",
+            enabled = policy.presetDraft == null,
             onClick = policy::beginPresetSave,
         )
+    }
+    if (policy.presetDraft == null) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            for (preset in policy.penPresets) {
+                MenuPresetChip(
+                    name = preset.name,
+                    selected = preset.id == policy.selectedPenPresetId,
+                    onClick = {
+                        policy.applyPenPreset(preset.id)
+                        policy.cancelPresetSave()
+                        onDismiss()
+                    },
+                )
+            }
+        }
     } else {
         MenuPresetNameRow(policy)
     }

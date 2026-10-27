@@ -115,8 +115,8 @@ much of it the window listens to:
   highlighter's width too. Windows' emulated mouse is a pressure-less path, so its strokes stay at full
   width and the row cannot change them.
 - **Presets** — the tablet's named pairs: one row per saved preset with its two numbers as the note and the
-  live one marked *in use*, clicked to apply (`tablet.penPresets`, `tablet.selectedPenPreset`). *Save as
-  preset* opens the one name field; the menu's Pen block opens the same draft. A preset is **only those two
+  live one marked *in use*, clicked to apply (`tablet.penPresets`, `tablet.selectedPenPreset`). The page's
+  *Save as preset* and the menu's *Save…* open the one name field — the same draft, whichever door did it. A preset is **only those two
   numbers**, and moving either slider **rewrites the live entry**, so the chip never names numbers the pen
   is no longer drawing with. Saving an existing name rewrites it in place (the handle, and so the selection,
   survives), the list always keeps one entry, and a stored line this build cannot read falls back to the
