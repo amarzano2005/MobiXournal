@@ -94,40 +94,45 @@ are not rows, so they are not remappable — and none stops working when another
 
 ## Stylus — the tablet's own section
 
-Under **Stylus**, in three groups — the pen's stream and its numbers, the presets that name those numbers, and
-the area the device reads — because the device decides which stream exists, while the drawing hand decides how
-much of it the window listens to:
+Under **Stylus**, in two groups — the pen's **Pressure** (what it is read from, whether a press changes the
+width, and the preset that names its two numbers followed by those numbers) and the **Active area** the device
+reads — because the hand decides how hard it presses while the device decides how far that hand travels:
 
-- **Pen → Stream** (`tablet.penStream`): *Automatic* tries Wintab — the driver's `Wintab32.dll`, whose
+- **Pressure → Stream** (`tablet.penStream`): *Automatic* tries Wintab — the driver's `Wintab32.dll`, whose
   packets carry the pressure at the tablet's own rate — and falls back to Windows Ink, which walks the
   digitizer list with `GetPointerPenInfo`; *Windows Ink* skips the driver library, for a pen whose Wintab
   reports a contact the pointer stream reports better. The choice **reopens the readers** with the next
   frame (`DesktopTablet.open` is keyed on it), so a switch is never a stroke that jumps half way through
   one, and the status bar keeps naming the stream actually open — a preference this host cannot honour
   says so instead of looking applied.
-- **Pen → Pressure sensitivity** (`tablet.pressureEnabled`, on by default), then **Minimum pressure**
+- **Pressure → Pressure sensitivity** (`tablet.pressureEnabled`, on by default), then **Minimum pressure**
   (`tablet.minimumPressure`) and **Multiplier** (`tablet.pressureMultiplier`): the tablet's Stylus rows, and
   the two numbers of desktop Xournal++'s own filter (`docs/stylus.md`). The floor is the thinnest line a
-  light press can draw, the multiplier how far above 1.00 a light writer reaches the full width; both are
-  read by the same shared filter the phone and the desktop vector painter use, so a stroke is the same
-  width on either shell. With sensitivity **off** every stroke is drawn at its set width, and the two
-  numbers stay on screen because that is the state they are remembered in. The surface's hamburger menu
+  light press can draw, the multiplier how far above 1.00 a light writer reaches the full width; both belong
+  to the **preset in use** and are read by the same shared filter the phone and the desktop vector painter
+  use, so a stroke is the same width on either shell. With sensitivity **off** every stroke is drawn at its
+  set width, and the two numbers stay on screen because that is the state they are remembered in. The
+  surface's hamburger menu
   carries the same three controls (`MenuPenBlock`), because they are reached mid-drawing.
-- **Pen → Pressure curve** (`tablet.pressureExponent`, 0.5…2.0): **mine, not the desktop's**. 1.0 is the
+- **Pressure → Presets** — the tablet's named pairs, as one **carousel**: a strip of chips where the preset
+  in use wears the accent on the steel fill, one click applies it (`tablet.penPresets`,
+  `tablet.selectedPenPreset`), and **New preset** beside the heading opens the one name field the menu's
+  *Save…* opens too — the same draft, whichever door did it. A preset is **only those two numbers**, and
+  the sliders under the strip edit *its* numbers (their notes say so), so moving one **rewrites the live
+  entry** and the lit chip never names numbers the pen is not drawing with. Saving an existing name rewrites
+  it in place (the handle, and so the selection, survives), the list always keeps one entry, and a stored
+  line this build cannot read falls back to the factory preset rather than emptying the strip.
+- **Pressure → Delete preset** acts on the preset in use — the only one a lit chip can mean — and is
+  disabled on the last entry, because the pen always draws with one of them.
+- **Pressure → Reset to defaults** puts the floor and the multiplier back on the factory numbers (0.05 and
+  1.00×) through the same two setters, so it rewrites the live preset like a slider would — the tablet's
+  *Reset*, and the only way to undo a slider dragged far without a drag back.
+- **Pressure → Pressure curve** (`tablet.pressureExponent`, 0.5…2.0): **mine, not the desktop's**. 1.0 is the
   line above, and any other reading is opt-in shaping applied *before* the Xournal++ filter at both of the
   pen's adapters (`PenPacketStroke` for the driver's packets, `PageInkGesture.inkPointer` for Compose's
   pointer) rather than after the width, because a curve in the width would bend the eraser radius and the
   highlighter's width too. Windows' emulated mouse is a pressure-less path, so its strokes stay at full
   width and the row cannot change them.
-- **Presets** — the tablet's named pairs: one row per saved preset with its two numbers as the note and the
-  live one marked *in use*, clicked to apply (`tablet.penPresets`, `tablet.selectedPenPreset`). The page's
-  *Save as preset* and the menu's *Save…* open the one name field — the same draft, whichever door did it. A preset is **only those two
-  numbers**, and moving either slider **rewrites the live entry**, so the chip never names numbers the pen
-  is no longer drawing with. Saving an existing name rewrites it in place (the handle, and so the selection,
-  survives), the list always keeps one entry, and a stored line this build cannot read falls back to the
-  factory preset rather than emptying the menu. **Reset to defaults** puts the floor and the multiplier back
-  on the factory numbers (0.05 and 1.00×) through the same two setters, so it rewrites the live preset like a
-  slider would — the tablet's *Reset*, and the only way to undo a slider dragged far without a drag back.
 - **Active area → Mapped surface** (`tablet.activeArea`): *Full* is the driver's own **system context**, the
   surface every other program on the machine sees, and it is what the window has always read. *Tablet* maps
   a **centred rectangle** of that surface onto the window's client area instead, so a small movement of the

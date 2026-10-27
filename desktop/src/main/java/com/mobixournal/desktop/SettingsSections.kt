@@ -153,31 +153,40 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
 }
 
 /**
- * **Stylus**: the stream the pen is read from, the pressure filter, and the area it maps.
+ * **Stylus**: the pressure the pen draws with, and the area it maps.
  *
- * The pressure rows are the tablet's own (`docs/stylus.md`): *sensitivity* decides whether a press changes
- * the width, and the two numbers below it are desktop Xournal++'s filter — the floor under a light press
- * and the multiplier above it. They stay on screen while sensitivity is off, because that is the state the
- * numbers are remembered in.
+ * **One group for the filter** — the stream it is read from, whether a press changes the width, the preset
+ * that names the two numbers, then those two numbers — because a preset *is* those numbers: a reader who
+ * met the list and the sliders as two groups had to work out that they described one pen. The area the
+ * device reads is the second subject: the hand decides how hard it presses, the surface it is read from
+ * decides how far that hand travels.
  *
- * **The presets** below them are the tablet's own idea: a name for a pair of numbers, so a hand that draws
- * lightly on Monday and firmly on Thursday does not have to remember two values.
+ * The rows are the tablet's own (`docs/stylus.md`): *sensitivity* decides whether a press changes the
+ * width, and the floor and the multiplier are desktop Xournal++'s filter. They stay on screen while
+ * sensitivity is off, because that is the state the numbers are remembered in.
  *
  * **The notes are one clause each.** A settings page is scanned, not read: a row that needs a paragraph is
  * a row whose name is wrong, and ten pages of paragraphs is how this list came to feel like a manual.
  */
 @Composable
 private fun StylusSettings(policy: DesktopSettingsState) {
-    StylusPenGroup(policy)
-    StylusPresetGroup(policy)
+    StylusPressureGroup(policy)
     StylusAreaGroup(policy)
     SettingsNote("The status bar names the stream actually open.")
 }
 
-/** The pen itself: the stream it is read from, and the four numbers of the pressure filter. */
+/**
+ * **Pressure**: what the pen is read from, the preset that names its two numbers, and those numbers.
+ *
+ * Order is the order the question is met in — the stream, whether pressure counts at all, then *which* pair
+ * of numbers, then the pair itself — so the two sliders sit under the carousel that decides whose numbers
+ * they are, and their notes say so. *Delete preset* acts on the preset in use (the only one a carousel with
+ * a lit chip can mean) and refuses on the last entry, because the pen always draws with one of them; the
+ * two rows under it write that same live entry, and *Reset* is the tablet's own escape from a drag.
+ */
 @Composable
-private fun StylusPenGroup(policy: DesktopSettingsState) {
-    SettingsGroup("Pen") {
+private fun StylusPressureGroup(policy: DesktopSettingsState) {
+    SettingsGroup("Pressure") {
         SettingsChoice(
             label = "Stream",
             note = "Wintab reads the driver's packets; Windows Ink goes through the system.",
@@ -193,9 +202,10 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
         ) {
             SettingsSwitch(policy.pressureEnabled)
         }
+        StylusPresetCarousel(policy)
         SettingsRow(
             label = "Minimum pressure",
-            note = "The thinnest line a light press can draw.",
+            note = "The thinnest line a light press can draw, on the preset in use.",
         ) {
             SettingsSlider(
                 value = policy.minimumPressure,
@@ -207,7 +217,7 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
         }
         SettingsRow(
             label = "Multiplier",
-            note = "How far above 1.00 a light press can reach.",
+            note = "How far above 1.00 a light press can reach, on the preset in use.",
         ) {
             SettingsSlider(
                 value = policy.pressureMultiplier,
@@ -215,6 +225,17 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
                 step = 0.05f,
                 format = { String.format(Locale.ROOT, "%.2f×", it) },
                 onValue = policy::choosePressureMultiplier,
+            )
+        }
+        SettingsRow(
+            label = "Delete preset",
+            note = "Removes the preset in use; the last one stays.",
+        ) {
+            SettingsTextAction(
+                text = "Delete",
+                enabled = policy.penPresets.size > 1,
+                tone = DesktopTheme.danger,
+                onClick = { policy.deletePreset(policy.selectedPenPresetId) },
             )
         }
         SettingsRow(
@@ -237,6 +258,7 @@ private fun StylusPenGroup(policy: DesktopSettingsState) {
             )
         }
     }
+    SettingsNote("Picking a preset writes its two numbers; moving a slider rewrites the preset in use.")
 }
 
 /** Where on the tablet's surface the window listens: the whole desk, or a rectangle of it. */

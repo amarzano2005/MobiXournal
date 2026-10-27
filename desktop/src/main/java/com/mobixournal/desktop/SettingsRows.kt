@@ -326,10 +326,13 @@ internal fun SettingsSlider(
  * when it holds the keyboard — because a settings page is navigated with Tab as often as with the mouse and
  * a control that only answers the pointer is a control half the window cannot reach. `Enter` and `Space`
  * take it, as every other button in the window does.
+ *
+ * Two controls wear it: the answers of a [SettingsChoice], and the chips of the Stylus page's preset
+ * carousel — both of them "one of a few, and this is the one".
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
+internal fun SettingsPill(text: String, selected: Boolean, onPick: () -> Unit) {
     val pick = rememberUpdatedState(onPick)
     var focused by remember { mutableStateOf(false) }
     // The rest state **is** the capsule's fill, and the hover step swaps that same fill: a picked pill
