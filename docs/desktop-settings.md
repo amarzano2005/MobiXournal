@@ -50,7 +50,12 @@ whose name is wrong, and the detail belongs in this spoke.
 One rule per kind of thing, so a reader can tell an answer from an action at a glance:
 
 - a **value** ends in a slider with its number beside the track (`Minimum pressure`, `Multiplier`);
-- a **choice** ends in pills, and the picked one is the only one washed with the steel (`Stream`, `Placement`);
+- a **choice** ends in pills when the answers are two or three words — the picked one the only one washed
+  with the steel (`Stream`, `Placement`) — and in a **select** when they are phrases: the answer in hand on
+  a capsule with a chevron, the rest of the list in a menu under it (`New document`, three formats). Three
+  lozenges of phrase length read as three big buttons, wrapped onto two lines to say one thing, and shouted
+  louder than every real control on the page; both shapes are focusable, and the select steps with
+  Left/Right as well as picking from its list;
 - a **toggle** ends in the switch, and the whole row is the hit area (`Pressure sensitivity`);
 - a **readout** ends in a word or a number with no control at all (`Recovery snapshot` → *After every edit*);
 - a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button

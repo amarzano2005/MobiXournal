@@ -484,7 +484,9 @@ private fun AppearanceSettings(policy: DesktopSettingsState) {
 @Composable
 private fun DocumentsSettings(policy: DesktopSettingsState) {
     SettingsGroup("The document") {
-        SettingsChoice(
+        // A **select**, not pills: the three answers are phrases, and three lozenges of that length were the
+        // loudest thing on the page (see `SettingsSelect`).
+        SettingsSelect(
             label = "New document",
             note = ".mobix keeps figures and tables live; zipped .xopp carries its files.",
             options = DesktopNewDocumentFormat.entries,
