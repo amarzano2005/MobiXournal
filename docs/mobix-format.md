@@ -12,8 +12,10 @@ container tree here, and don't restate the bridge ([xopp-bridge.md](xopp-bridge.
 ## Motivation: why evolve beyond `.xopp`
 
 MobiXournal began as a strict companion to Xournal++ on Linux, storing everything in `.xopp`
-(gzip-compressed XML, documented in [xopp-format.md](xopp-format.md)). While this achieves
-interoperability, `.xopp` imposes hard architectural bottlenecks:
+(gzip-compressed XML, documented in [xopp-format.md](xopp-format.md)). That is the origin, not the
+current shape: `.mobix` is where a document lives now, and `.xopp` is the interchange format whose
+lossless round trip is a standing contract ([xopp-bridge.md](xopp-bridge.md)). The reason for the
+native format is that `.xopp` imposes hard architectural bottlenecks:
 
 1. **Dead geometry**: Any complex object (function plots, geometric figures, circuit symbols, tables)
    must be flattened into raw strokes (`<stroke>`) or text boxes. The semantic intent is lost:

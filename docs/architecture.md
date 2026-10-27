@@ -5,13 +5,14 @@ shared `mobix-core` module, the `desktop/` window, the repository layout and the
 is the **index**, not the content: each topic below is one spoke, and each spoke opens with the question
 it answers — so a change loads one topic instead of the whole architecture.
 
-> **What is installed and what is not.** The Android app is the product: it reads and writes lossless
-> `.xopp` and native `.mobix`, with Compose chrome, low-latency `SurfaceView` stylus inking, PDF
-> import/export, audio, search and the STEM tools. The `desktop/` module is the **PC window**: it opens
-> every container the app writes, paints the pages, tabs, sidebar, zoom and the floating tool strips, and
-> edits, saves and exports them — ink, figures, living elements, text and the selection
-> ([`desktop-workstation.md`](desktop-workstation.md), [`desktop-editing.md`](desktop-editing.md)). There is
-> no sync: the merge engine is library code with no caller ([`mobix-format.md`](mobix-format.md) owns it).
+> **What is installed and what is not.** Two shells, one core, one document format. The **Android
+> editor** and the **`desktop/` PC window** both consume `mobix-core` and both open, paint, edit, save
+> and export the same documents — ink, figures, living elements, text and the selection — so a codec, a
+> ruling or an ink rule is never forked for the PC ([`desktop-workstation.md`](desktop-workstation.md),
+> [`desktop-documents.md`](desktop-documents.md)). A document lives in the native `.mobix`;
+> `.xopp` is the interchange format and the compatibility contract is [`xopp-bridge.md`](xopp-bridge.md)'s.
+> There is no sync: the merge engine is library code with no caller ([`mobix-format.md`](mobix-format.md)
+> owns it).
 
 ---
 
@@ -23,7 +24,7 @@ it answers — so a change loads one topic instead of the whole architecture.
 | [`codebase.md`](codebase.md) | what it is built on, the shared-core rule, branding and identity | you ask what the project is or what must not cross into `mobix-core` |
 | [`stack.md`](stack.md) | pinned tech stack: Kotlin, Compose M3, SurfaceView, PDFBox, SAF | you wonder why a dependency or framework is chosen |
 | [`xopp-format.md`](xopp-format.md) | on-disk `.xopp` schema: containers, gzip XML, elements, round-trip fidelity | you read or write `.xopp` or debug Xournal++ compatibility |
-| [`xopp-bridge.md`](xopp-bridge.md) | the `.mobix` ↔ `.xopp` bridge: synthesis, revival, the metadata block | you change how a drawing converts between the two formats |
+| [`xopp-bridge.md`](xopp-bridge.md) | the `.xopp` compatibility contract, and the bridge that keeps it: synthesis, revival, the metadata block | you change how a document leaves as `.xopp` or comes back with its elements intact |
 | [`mobix-format.md`](mobix-format.md) | native `.mobix`: why it exists, what it adds, where it sits in the app, engine work | you work on the native format or the streaming engine |
 | [`mobix-schema-spec.md`](mobix-schema-spec.md) | the `.mobix` envelope: mimetype, manifest, `canvas.json`, pages | you read or write the container or the page/background shape |
 | [`mobix-streaming-api.md`](mobix-streaming-api.md) | the published `.mobix` contract a second shell opens, reads and writes with | you call `mobix-core` from outside the engine |

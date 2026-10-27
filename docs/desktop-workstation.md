@@ -11,9 +11,11 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 A **`desktop` Gradle module** (Compose Multiplatform 1.7 on Skiko) that opens the app's own documents and
 paints their pages in a native window. Every word the window shows is **English**, like the tablet's UI —
-[`ui-modernization.md`](ui-modernization.md) owns that rule. It is the feasibility proof this spoke was
-written against: the model and the codecs are platform-free, so a PC window can show the same page the
-Android editor shows. Windows 11 is the only platform it is built and run on.
+[`ui-modernization.md`](ui-modernization.md) owns that rule. It is the **second shell of the product**,
+not a viewer beside it: the model and the codecs are platform-free, so this window opens, edits, saves
+and exports the same document the tablet does, through the same code (`mobix-core`) rather than a copy
+of it. Windows 11 is the only platform it is built and run on — a product decision, not a limit of the
+code.
 
 What it does today:
 - Opens **every container the app writes** — gzip `.xopp`, self-contained ZIP `.xopp` and native `.mobix` —

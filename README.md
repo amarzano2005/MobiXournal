@@ -2,12 +2,12 @@
   <img src="docs/assets/logo.png" alt="MobiXournal Logo" width="140" height="140" />
 
   # MobiXournal
-  **A stylus-first Xournal++ (`.xopp`) editor & STEM companion for Android — with full graphics tablet support & ExpressKey shortcuts**
+  **A stylus-first note-taking & STEM drafting suite for Android and Windows — native `.mobix` documents, lossless `.xopp` interchange, full graphics-tablet support**
 
   [![Android CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
   [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](LICENSE)
-  [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white)](https://android.com)
-  [![Format: .xopp](https://img.shields.io/badge/Format-.xopp%20(100%25%20roundtrip)-orange)](https://github.com/xournalpp/xournalpp)
+  [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20%2F%20Windows%2011-3DDC84?logo=android&logoColor=white)](docs/desktop-workstation.md)
+  [![Format](https://img.shields.io/badge/Format-.mobix%20(native)%20%2F%20.xopp%20(lossless)-orange)](docs/xopp-bridge.md)
   [![Stylus & Tablet](https://img.shields.io/badge/Stylus-S--Pen%20%7C%20Active%20Pen%20%7C%20Tablet-blueviolet)]()
 
   <br />
@@ -15,9 +15,9 @@
   <img src="docs/assets/preview.jpg" alt="MobiXournal Tablet UI Preview" width="850" />
 </div>
 
-**MobiXournal** is an open-source Android app designed for handwritten notes, sketching, and technical documentation using the native [Xournal++](https://github.com/xournalpp/xournalpp) (`.xopp`) format, with first-class support for active styluses, graphics tablets (Wacom, Huion, XP-Pen), and configurable hardware shortcuts.
+**MobiXournal** is an open-source note-taking and technical-drafting suite for Android and Windows. Its documents are stored in its own native format, `.mobix`, which keeps what an XML drawing cannot — living tables, plots, circuits and formulas, full stylus telemetry, and pages read as you scroll — and it reads and writes [Xournal++](https://github.com/xournalpp/xournalpp) files (`.xopp`) without loss, so a notebook still opens on a desktop that has only Xournal++. Active styluses, graphics tablets (Wacom, Huion, XP-Pen) and configurable hardware shortcuts are first-class.
 
-The primary goal is **100% format fidelity and round-trip safety**: files edited on Android reopen identically in desktop Xournal++ on Linux, macOS, or Windows without losing strokes, layers, backgrounds, or metadata.
+Two promises hold the project together: **`.mobix` is the document** — nothing the app can author is lost when it saves — and **`.xopp` stays a complete interchange copy**, whose return trip gives back the same file. A notebook edited here reopens identically in desktop Xournal++ on Linux, macOS or Windows, and a `.xopp` brought back in is revived as the editable elements it was, as long as nobody edited it in between.
 
 In addition to core note-taking, MobiXournal features a specialized **STEM toolset** (electronic circuits, IEEE logic gates, relational schema tables, coordinate systems, parametric splines, virtual drafting instruments, and on-device LaTeX rendering) saved as standard vector strokes.
 
@@ -335,7 +335,7 @@ Full architectural details, data flow diagrams, and test suites are documented i
 MobiXournal is free software licensed under the **GNU General Public License, version 2 or later** ([GPL-2.0-or-later](LICENSE)), matching upstream [Xournal++](https://github.com/xournalpp/xournalpp).
 
 ```
-MobiXournal - Stylus-first Xournal++ editor for Android
+MobiXournal - native-format note-taking and STEM drafting for Android and Windows
 Copyright (C) 2024-2026 amarzano2005
 Based on NeXopp, Copyright (C) 2023-2024 Brian Monroe
 Based on Xournal++, Copyright (C) 2018-2026 The Xournal++ Team

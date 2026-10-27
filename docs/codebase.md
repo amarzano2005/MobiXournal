@@ -74,6 +74,17 @@ Xournal++ writes `Xournal++ <version>` into `creator`, so the two writers stay t
 launcher/task-switcher label (`@string/app_name`) carries the same name, so this app is never
 mistaken for the official Xournal++ app.
 
+**What this is, and where `.xopp` sits in it.** MobiXournal is a note-taking and technical-drafting
+suite with **two shells** — the Android editor and the Windows window — over one shared core,
+`mobix-core`. Its documents live in its **own native format, `.mobix`**, which is where what an XML
+drawing cannot hold is kept: living tables, plots, circuits and formulas, full stylus telemetry, and
+paged streaming. `.xopp` is the **interchange** format, not the store: a document is read from it and
+written to it without loss in both directions, and that is a **permanent guarantee** of the product
+rather than a step it is migrating through ([`xopp-bridge.md`](xopp-bridge.md) states it as a
+contract, with the tests that hold it and what "lossless" means where the XML has no words for a
+recipe). Xournal++ is where the project came from and what it must stay compatible with; it is not
+what a MobiXournal document is made of.
+
 **Relationship to Xournal++.** The app is a derivative work: it reads and writes desktop Xournal++'s
 `.xopp` format, and its palette, shape recogniser and highlighter behaviour are derived from or
 matched to upstream. Upstream is GPL-2.0-or-later, so this app keeps that licence (see `LICENSE`) and

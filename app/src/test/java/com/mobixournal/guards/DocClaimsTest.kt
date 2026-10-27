@@ -48,6 +48,22 @@ class DocClaimsTest {
                 "missing feature — describe what is there, and name what is not in TODO.toml",
         ),
         Claim(
+            "feasibility proof",
+            "the `desktop/` window is the second shell of the product, not a demonstration: it opens, " +
+                "edits, saves and exports the same documents the tablet does (docs/codebase.md owns the " +
+                "identity statement, docs/desktop-workstation.md the window)",
+        ),
+        Claim(
+            "Android app is the product",
+            "two shells share one core — naming the Android app *the* product writes the PC window out " +
+                "of the product it belongs to",
+        ),
+        Claim(
+            "companion for Android",
+            "the app is not an Android companion to another editor: the document lives in its own native " +
+                "format and two shells open it (docs/codebase.md)",
+        ),
+        Claim(
             "not checked in",
             "`udiff.xopp` and `bhm_prior.pdf` are committed at the repo root and the README hands the first " +
                 "of them to a new user as a document to open; a doc calling a sample absent sends its " +
