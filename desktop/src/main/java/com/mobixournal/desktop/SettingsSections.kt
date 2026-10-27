@@ -17,6 +17,20 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
+ * The index's **four areas** — the tablet's own split, under the tablet's own words.
+ *
+ * Ten names in one column is a list read top to bottom; four short groups is a list scanned by its shape, and
+ * a reader who uses both shells finds the same subjects under the same headings. The areas are the phone's
+ * minus the pages this shell does not carry (`docs/desktop-settings.md`).
+ */
+enum class DesktopSettingArea(val title: String) {
+    INPUT("Input"),
+    DRAWING("Drawing"),
+    INTERFACE("Interface"),
+    APP("App & data"),
+}
+
+/**
  * The **sections** of the window's Settings: the page of controls for one topic.
  *
  * The list is the tablet's list **minus what a window cannot answer**: a phone's Editor, Gestures and
@@ -105,6 +119,15 @@ enum class DesktopSettingSection(
     ),
     ;
 
+    /** The area of the index this section is listed under. */
+    val area: DesktopSettingArea
+        get() = when (this) {
+            STYLUS, SHORTCUTS -> DesktopSettingArea.INPUT
+            FIGURES, COLORS -> DesktopSettingArea.DRAWING
+            TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
+            DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
+        }
+
     /** Whether this section answers [needle] — its title, its summary or one of its aliases. */
     fun matches(needle: String): Boolean {
         if (needle.isBlank()) return true
@@ -135,9 +158,9 @@ internal fun DesktopSettingPage(policy: DesktopSettingsState, section: DesktopSe
         Text("No setting matches that.", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         return
     }
+    // The title only: the section's one-line summary lives in the panel's help line, at rest, under the
+    // page — a sentence under the title as well would spend a row saying the same thing twice.
     Text(section.title, color = DesktopTheme.ink, style = DesktopTheme.title)
-    Spacer(Modifier.height(2.dp))
-    Text(section.summary, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
     when (section) {
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
@@ -227,15 +250,12 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
                 onValue = policy::choosePressureMultiplier,
             )
         }
-        SettingsRow(
+        SettingsCommand(
             label = "Reset to defaults",
             note = "The factory floor and multiplier, back on the preset in use.",
             onClick = policy::resetPressureToDefaults,
-        ) {
-            Text("Reset", color = DesktopTheme.accent, style = DesktopTheme.label)
-        }
+        )
     }
-    SettingsNote("Picking a preset writes its two numbers; moving a slider rewrites the preset in use.")
 }
 
 /** Where on the tablet's surface the window listens: the whole desk, or a rectangle of it. */
@@ -329,13 +349,11 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
             }
         }
         if (policy.toolOrder.isNotEmpty()) {
-            SettingsRow(
-                label = "Factory order",
+            SettingsCommand(
+                label = "Restore factory order",
                 note = "Every slot back where a fresh install draws it.",
                 onClick = policy::resetToolOrder,
-            ) {
-                Text("Reset", color = DesktopTheme.accent, style = DesktopTheme.label)
-            }
+            )
         }
     }
 }
@@ -498,20 +516,16 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
 @Composable
 private fun BackupSettings(policy: DesktopSettingsState) {
     SettingsGroup("Settings backup") {
-        SettingsRow(
+        SettingsCommand(
             label = "Export settings…",
             note = "Writes every choice in this window to a file.",
             onClick = { policy.pickBackupFile?.invoke(true) { file -> file?.let(policy::exportBackup) } },
-        ) {
-            Text("Choose…", color = DesktopTheme.accent, style = DesktopTheme.label)
-        }
-        SettingsRow(
+        )
+        SettingsCommand(
             label = "Import settings…",
             note = "Reads one back; anything else is refused.",
             onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
-        ) {
-            Text("Choose…", color = DesktopTheme.accent, style = DesktopTheme.label)
-        }
+        )
         policy.backupNotice?.let { SettingsNote(it) }
     }
     SettingsGroup("Unsaved work") {

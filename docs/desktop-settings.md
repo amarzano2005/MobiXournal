@@ -14,10 +14,13 @@ cannot be lost off an edge (and it is not stored — a window that opened with i
 would be the setting nobody chose). Its fill is `DesktopTheme.settingsPanel`, the glass at **0.97**: at the
 floating alpha the page's own ink came up through the labels.
 
-Its index is **ten sections** — Stylus, Toolbar, Figures, Colors, Shortcuts, Navigation, Appearance,
+Its index is **ten sections** — Stylus, Shortcuts, Figures, Colors, Toolbar, Navigation, Appearance,
 Documents, Backup and About — the tablet's own wherever the topic is the tablet's too, and each wearing the
-shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). What the window does **not** carry is the
-phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
+shared `SettingsGlyphCatalogue` mark (`SettingsSections.kt`). They are listed under the tablet's **four
+areas** — *Input*, *Drawing*, *Interface*, *App & data* (`DesktopSettingArea`) — because ten names in one
+flat column is a list read top to bottom while four short groups is one scanned by its shape, and a reader
+who uses both shells finds the same subjects under the same headings. What the window does **not** carry is
+the phone's Editor, Gestures and Storage pages: they configure a default tool, a fingertip and a cache this
 shell has no row for, and a page of "tablet only" rows is a page the reader learns to skip. A page is
 **rows**, the name and the control at the right edge (`SettingsRows.kt`).
 
@@ -27,8 +30,34 @@ the card reads as a card inside a card — an element that lights by halves — 
 had before it was measured (`DesktopSettingsStyleTest` diffs a hovered group edge to edge).
 
 The list is **names only** — a glyph and a word per section — because ten two-line summaries is a page of
-prose to scan past. A row's note is **one clause**, not a paragraph: a setting that needs explaining at
-length is a setting whose name is wrong, and the detail belongs in this spoke.
+prose to scan past, and the index is a list, not a column of paragraphs.
+
+### One line per setting, and a help line
+
+A row is **one line tall**: its name, and its answer at the right edge. The sentence that explains the
+answer is not drawn under the name — it goes to the panel's **help line**, the footer under the body, which
+shows the sentence of whatever the pointer is over (a page row, or an index row, where it is that section's
+summary) and the open page's own summary at rest. Two lines per row made a page of twelve settings run past
+the bottom of a 640 dp panel: the reader scrolled to find out what a setting already on screen wanted, and
+the answers were what got pushed off. The hand-off is the rows' (`LocalSettingsHelp`, `SettingsHelpTest`),
+so a page rendered outside the panel — a fixture — simply keeps its sentences to itself.
+
+A note is still **one clause**, not a paragraph: a setting that needs explaining at length is a setting
+whose name is wrong, and the detail belongs in this spoke.
+
+### The page's grammar
+
+One rule per kind of thing, so a reader can tell an answer from an action at a glance:
+
+- a **value** ends in a slider with its number beside the track (`Minimum pressure`, `Multiplier`);
+- a **choice** ends in pills, and the picked one is the only one washed with the steel (`Stream`, `Placement`);
+- a **toggle** ends in the switch, and the whole row is the hit area (`Pressure sensitivity`);
+- a **readout** ends in a word or a number with no control at all (`Recovery snapshot` → *After every edit*);
+- a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button
+  (`Reset to defaults`, `Export settings…`, `Restore factory order`, `SettingsCommand`).
+
+A **destructive** mark is never a command row: it is a red glyph on the thing it destroys — the × on a pen
+preset — because "delete which one?" is a question a row at the bottom of a list cannot answer.
 
 A row that has a mechanism behind it is a real control and changes the open window the moment it is
 clicked. A row the window cannot answer is **drawn and disabled with one sentence saying what is

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +24,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +49,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
@@ -84,8 +90,14 @@ internal object SettingsMetrics {
      */
     val PAGE_MAX_WIDTH = 720.dp
 
-    /** The index's row: a title and a summary, tighter than a page row because it is a list. */
-    val INDEX_ROW_HEIGHT = 44.dp
+    /**
+     * The index's row: a glyph and a name, tighter than a page row because it is a list.
+     *
+     * 38 dp and not 44: the index now carries four eyebrows over its ten names, and at 44 the last two
+     * sections fell below a 640 dp panel — the one list in the window that must show *all* of itself at
+     * once.
+     */
+    val INDEX_ROW_HEIGHT = 38.dp
 }
 
 /**
@@ -116,8 +128,13 @@ internal fun SettingsGroup(title: String, content: @Composable () -> Unit) {
 }
 
 /**
- * **One setting**: its name (and the sentence that says what the answer means) on the left, [control] at
- * the right edge.
+ * **One setting**: its name on the left, [control] at the right edge, and **one line tall**.
+ *
+ * The sentence that says what the answer means is not drawn here: it goes to the panel's **help line**
+ * ([LocalSettingsHelp]), which shows the sentence of the row under the pointer. Two lines per row made a
+ * page of twelve settings run past the bottom of a 700 px window — the reader scrolled to find out what a
+ * setting they could already see wanted, and the answers themselves were the thing pushed off. One line of
+ * names is a list that fits; the explanation arrives when it is asked for.
  *
  * With [onClick] the whole row is the hit area and takes the hover step — that is what a switch, a choice
  * or a readout wants, because aiming at a 32 dp pill in a 1 000 px row is work nobody asked for. Without
@@ -139,6 +156,7 @@ internal fun SettingsRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.ROW_HEIGHT)
+            .reportHelp(note)
             .then(
                 if (onClick == null) {
                     Modifier
@@ -151,16 +169,72 @@ internal fun SettingsRow(
             .padding(horizontal = 12.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(label, color = DesktopTheme.ink, style = DesktopTheme.body)
-            // A blank note is no note: an empty line is a row that looks mis-measured.
-            if (!note.isNullOrBlank()) {
-                Text(note, color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-            }
-        }
+        Text(label, color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(16.dp))
-        control()
+        // The answer's side has a share of its own rather than "whatever is left": a control wider than
+        // the row (three long pills, once) took the whole width and squeezed the label into a column of
+        // single letters. A weighted box means the label always keeps its share, and the control fits or
+        // wraps inside its own.
+        Box(Modifier.weight(CONTROL_SHARE), contentAlignment = Alignment.CenterEnd) { control() }
     }
+}
+
+/** How the row splits between the name and the answer: the answer's share, against the label's 1. */
+private const val CONTROL_SHARE = 1.4f
+
+/**
+ * **A command**, as a row: the whole width lights up and the word is in the accent, with **no control at
+ * the end**.
+ *
+ * The page's grammar is one sentence per kind of thing (`docs/desktop-settings.md`): a *value* ends in a
+ * slider with its number, a *choice* in pills, a *toggle* in a switch, and a **command** in nothing at all —
+ * the row itself is the button. Before that split, *Reset to defaults* and *Export settings…* wore a label, a
+ * sentence and a word at the edge, exactly like the settings around them, and the only thing marking them as
+ * actions was the accent of one word.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+internal fun SettingsCommand(label: String, note: String? = null, onClick: () -> Unit) {
+    val press = rememberUpdatedState(onClick)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = SettingsMetrics.ROW_HEIGHT)
+            .reportHelp(note)
+            .hoverFill(RectangleShape)
+            .pointerInput(onClick) { detectTapGestures { press.value() } }
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, color = DesktopTheme.accent, style = DesktopTheme.body, modifier = Modifier.weight(1f))
+    }
+}
+
+/**
+ * The panel's **help line**: the sentence of whatever the pointer is over, shown in the footer.
+ *
+ * A composition local rather than a parameter because the sentence belongs to the *row*, and threading it up
+ * through every page and group would make the layout of a settings page about plumbing. `null` (the default)
+ * is a page rendered outside the surface — a test fixture, a preview — and the rows then simply keep their
+ * sentences to themselves.
+ */
+internal val LocalSettingsHelp = compositionLocalOf<MutableState<String>?> { null }
+
+/**
+ * Hands this row's sentence to the help line while the pointer is on it, and takes it back when it leaves.
+ *
+ * The leaving half only clears the line if it still holds *this* row's sentence: crossing from one row to
+ * the next can deliver the new row's enter before the old row's exit, and the footer must not blank what it
+ * has just been given.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun Modifier.reportHelp(note: String?): Modifier {
+    val help = LocalSettingsHelp.current ?: return this
+    val sentence = note.orEmpty()
+    return this
+        .onPointerEvent(PointerEventType.Enter) { help.value = sentence }
+        .onPointerEvent(PointerEventType.Exit) { if (help.value == sentence) help.value = "" }
 }
 
 /**
@@ -192,6 +266,7 @@ internal fun SettingsNote(text: String) {
  * not know; the pills are as wide as their own labels and never share the row out equally, which is what
  * made four words look like four tables of buttons.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun <T> SettingsChoice(
     label: String,
@@ -203,7 +278,13 @@ internal fun <T> SettingsChoice(
 ) {
     val answer = rememberUpdatedState(onPick)
     SettingsRow(label = label, note = note) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        // A **wrapping** row: three long answers (the three document formats) are wider than the answer's
+        // share of the row, and a row that hid the third pill behind the edge would be offering two
+        // choices where the window has three. The pills keep hugging the right edge while they fit.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             for (option in options) {
                 SettingsPill(
                     text = optionLabel(option),
@@ -533,6 +614,8 @@ internal fun SettingsSectionRow(
                 active = selected,
                 base = if (selected) DesktopTheme.activeSlot else Color.Transparent,
             )
+            // The index is names only, so its sentence is the help line's too: what the section covers.
+            .reportHelp(section.summary)
             .pointerInput(section) { detectTapGestures { onClick() } }
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
