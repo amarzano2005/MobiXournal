@@ -137,7 +137,7 @@ class DocClaimsTest {
     @Test
     fun everyTestClassADocNamesExists() {
         val classes = kotlinTypes()
-        val gradleTasks = setOf("androidTest", "connectedDebugAndroidTest")
+        val gradleTasks = setOf("androidTest", "connectedDebugAndroidTest", "testDebugUnitTest")
         val missing = mutableListOf<String>()
         for (file in prose()) {
             file.readLines().forEachIndexed { i, line ->
