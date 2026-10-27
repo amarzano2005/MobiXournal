@@ -180,9 +180,9 @@ private fun StylusSettings(policy: DesktopSettingsState) {
  *
  * Order is the order the question is met in — the stream, whether pressure counts at all, then *which* pair
  * of numbers, then the pair itself — so the two sliders sit under the carousel that decides whose numbers
- * they are, and their notes say so. *Delete preset* acts on the preset in use (the only one a carousel with
- * a lit chip can mean) and refuses on the last entry, because the pen always draws with one of them; the
- * two rows under it write that same live entry, and *Reset* is the tablet's own escape from a drag.
+ * they are, and their notes say so. The carousel owns deleting and adding a preset (the × on the chip, the
+ * `+` after the last one), and these two rows write that same live entry, so *Reset* is the only command
+ * left down here: the tablet's own escape from a slider dragged far.
  */
 @Composable
 private fun StylusPressureGroup(policy: DesktopSettingsState) {
@@ -228,34 +228,11 @@ private fun StylusPressureGroup(policy: DesktopSettingsState) {
             )
         }
         SettingsRow(
-            label = "Delete preset",
-            note = "Removes the preset in use; the last one stays.",
-        ) {
-            SettingsTextAction(
-                text = "Delete",
-                enabled = policy.penPresets.size > 1,
-                tone = DesktopTheme.danger,
-                onClick = { policy.deletePreset(policy.selectedPenPresetId) },
-            )
-        }
-        SettingsRow(
             label = "Reset to defaults",
             note = "The factory floor and multiplier, back on the preset in use.",
             onClick = policy::resetPressureToDefaults,
         ) {
             Text("Reset", color = DesktopTheme.accent, style = DesktopTheme.label)
-        }
-        SettingsRow(
-            label = "Pressure curve",
-            note = "Shapes the reading before those two numbers. 1.00 leaves it untouched.",
-        ) {
-            SettingsSlider(
-                value = policy.pressureExponent,
-                range = PressureCurve.EXPONENT_MIN..PressureCurve.EXPONENT_MAX,
-                step = 0.05f,
-                format = { String.format(Locale.ROOT, "%.2f×", it) },
-                onValue = policy::choosePressureExponent,
-            )
         }
     }
     SettingsNote("Picking a preset writes its two numbers; moving a slider rewrites the preset in use.")

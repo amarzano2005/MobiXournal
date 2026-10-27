@@ -110,29 +110,25 @@ reads — because the hand decides how hard it presses while the device decides 
   the two numbers of desktop Xournal++'s own filter (`docs/stylus.md`). The floor is the thinnest line a
   light press can draw, the multiplier how far above 1.00 a light writer reaches the full width; both belong
   to the **preset in use** and are read by the same shared filter the phone and the desktop vector painter
-  use, so a stroke is the same width on either shell. With sensitivity **off** every stroke is drawn at its
+  use, so a stroke is the same width on either shell. A `tablet.pressureExponent` shaping written by an
+  earlier build is still read and applied — it has **no row** now, so a pen carrying one keeps its curve
+  and this page cannot change it. With sensitivity **off** every stroke is drawn at its
   set width, and the two numbers stay on screen because that is the state they are remembered in. The
   surface's hamburger menu
   carries the same three controls (`MenuPenBlock`), because they are reached mid-drawing.
 - **Pressure → Presets** — the tablet's named pairs, as one **carousel**: a strip of chips where the preset
   in use wears the accent on the steel fill, one click applies it (`tablet.penPresets`,
-  `tablet.selectedPenPreset`), and **New preset** beside the heading opens the one name field the menu's
-  *Save…* opens too — the same draft, whichever door did it. A preset is **only those two numbers**, and
-  the sliders under the strip edit *its* numbers (their notes say so), so moving one **rewrites the live
-  entry** and the lit chip never names numbers the pen is not drawing with. Saving an existing name rewrites
-  it in place (the handle, and so the selection, survives), the list always keeps one entry, and a stored
-  line this build cannot read falls back to the factory preset rather than emptying the strip.
-- **Pressure → Delete preset** acts on the preset in use — the only one a lit chip can mean — and is
-  disabled on the last entry, because the pen always draws with one of them.
+  `tablet.selectedPenPreset`). The strip's two marks act on the thing they sit on: a **red ×** beside a chip
+  removes that pair — drawn only while a second one exists, because the pen always draws with one — and a
+  **`+`** caps the last chip, opening the one name field the menu's *Save…* opens too (the same draft,
+  whichever door did it; it is dimmed while a name is being written). A preset is **only those two
+  numbers**, and the sliders under the strip edit *its* numbers (their notes say so), so moving one
+  **rewrites the live entry** and the lit chip never names numbers the pen is not drawing with. Saving an
+  existing name rewrites it in place (the handle, and so the selection, survives), and a stored line this
+  build cannot read falls back to the factory preset rather than emptying the strip.
 - **Pressure → Reset to defaults** puts the floor and the multiplier back on the factory numbers (0.05 and
   1.00×) through the same two setters, so it rewrites the live preset like a slider would — the tablet's
   *Reset*, and the only way to undo a slider dragged far without a drag back.
-- **Pressure → Pressure curve** (`tablet.pressureExponent`, 0.5…2.0): **mine, not the desktop's**. 1.0 is the
-  line above, and any other reading is opt-in shaping applied *before* the Xournal++ filter at both of the
-  pen's adapters (`PenPacketStroke` for the driver's packets, `PageInkGesture.inkPointer` for Compose's
-  pointer) rather than after the width, because a curve in the width would bend the eraser radius and the
-  highlighter's width too. Windows' emulated mouse is a pressure-less path, so its strokes stay at full
-  width and the row cannot change them.
 - **Active area → Mapped surface** (`tablet.activeArea`): *Full* is the driver's own **system context**, the
   surface every other program on the machine sees, and it is what the window has always read. *Tablet* maps
   a **centred rectangle** of that surface onto the window's client area instead, so a small movement of the
