@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -41,8 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.SettingsGlyph
-import com.mobixournal.ui.theme.floatingRim
-import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
  * A macro-area of the settings: the four things the app's preferences are *about*, each owning the
@@ -386,20 +383,12 @@ private fun StackedSettings(
                     if (query.isNotEmpty()) {
                         SearchResultRows(query, results, onSection)
                     } else {
-                        Surface(
-                            shape = SettingsCardShape,
-                            color = rememberFloatingSurfaceColor(),
-                            tonalElevation = 0.dp,
-                            shadowElevation = 2.dp,
-                            modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
-                        ) {
-                            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                val areas = SettingsArea.values()
-                                areas.forEachIndexed { index, entry ->
-                                    SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
-                                    if (index < areas.size - 1) {
-                                        SettingsDivider()
-                                    }
+                        SettingsCard(verticalInset = 4.dp) {
+                            val areas = SettingsArea.values()
+                            areas.forEachIndexed { index, entry ->
+                                SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
+                                if (index < areas.size - 1) {
+                                    SettingsDivider()
                                 }
                             }
                         }
@@ -445,19 +434,11 @@ private fun SectionBody(
 @Composable
 private fun SectionRows(area: SettingsArea, onOpen: (SettingsSection) -> Unit) {
     SettingsNote(area.summary, Modifier.padding(start = 4.dp, bottom = 12.dp))
-    Surface(
-        shape = SettingsCardShape,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
-    ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-            area.sections.forEachIndexed { index, entry ->
-                SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
-                if (index < area.sections.size - 1) {
-                    SettingsDivider()
-                }
+    SettingsCard(verticalInset = 4.dp) {
+        area.sections.forEachIndexed { index, entry ->
+            SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
+            if (index < area.sections.size - 1) {
+                SettingsDivider()
             }
         }
     }
@@ -483,24 +464,16 @@ private fun SearchResultRows(
         }
         return
     }
-    Surface(
-        shape = SettingsCardShape,
-        color = rememberFloatingSurfaceColor(),
-        tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
-    ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-            results.forEachIndexed { index, entry ->
-                val where = areaOf(entry)?.title
-                SectionRow(
-                    title = entry.title,
-                    summary = if (where == null) entry.summary else "$where · ${entry.summary}",
-                    icon = entry.icon,
-                ) { onOpen(entry) }
-                if (index < results.size - 1) {
-                    SettingsDivider()
-                }
+    SettingsCard(verticalInset = 4.dp) {
+        results.forEachIndexed { index, entry ->
+            val where = areaOf(entry)?.title
+            SectionRow(
+                title = entry.title,
+                summary = if (where == null) entry.summary else "$where · ${entry.summary}",
+                icon = entry.icon,
+            ) { onOpen(entry) }
+            if (index < results.size - 1) {
+                SettingsDivider()
             }
         }
     }
@@ -544,11 +517,13 @@ internal fun SectionRow(
     icon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
+    val reach = LocalSettingsCardInset.current
     Row(
         modifier = Modifier
+            .fullBleedRow(reach)
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = reach, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {

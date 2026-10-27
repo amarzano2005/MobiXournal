@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -31,8 +30,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -58,12 +57,13 @@ fun dragTargetIndex(from: Int, offset: Float, rowHeight: Int, count: Int): Int {
 /** A labelled switch with a title and subtitle; the whole row toggles it, not just the thumb. */
 @Composable
 fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val reach = LocalSettingsCardInset.current
     Row(
         modifier = Modifier
+            .fullBleedRow(reach)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(vertical = 10.dp),
+            .padding(horizontal = reach, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -87,12 +87,13 @@ fun <T> OptionGroup(
     onSelect: (T) -> Unit,
 ) {
     ControlHeader(title, subtitle, Modifier.padding(top = 8.dp, bottom = 4.dp))
+    val reach = LocalSettingsCardInset.current
     options.forEach { option ->
         Row(
-            modifier = Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+            modifier = Modifier.fullBleedRow(reach)
+                .fillMaxWidth()
                 .selectable(selected = option == selected, role = Role.RadioButton, onClick = { onSelect(option) })
-                .padding(vertical = 2.dp),
+                .padding(horizontal = reach, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RadioButton(selected = option == selected, onClick = null, modifier = Modifier.padding(12.dp))
@@ -329,12 +330,15 @@ fun RailItemRow(
     val drag by rememberUpdatedState(onDrag)
     val dragEnd by rememberUpdatedState(onDragEnd)
     val height by rememberUpdatedState(onHeight)
+    val reach = LocalSettingsCardInset.current
     Surface(
         color = if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
-        shape = RoundedCornerShape(12.dp),
+        // The lifted row is the card's full width; the card's own rounded clip supplies the corners.
+        shape = RectangleShape,
         tonalElevation = if (dragging) 6.dp else 0.dp,
         shadowElevation = if (dragging) 6.dp else 0.dp,
         modifier = Modifier
+            .fullBleedRow(reach)
             .fillMaxWidth()
             .zIndex(if (dragging) 1f else 0f)
             .graphicsLayer { translationY = dragOffset }
@@ -349,7 +353,7 @@ fun RailItemRow(
             },
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = reach, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

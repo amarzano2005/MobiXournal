@@ -10,8 +10,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -42,19 +46,102 @@ fun SettingsGroup(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
         )
-        Surface(
-            shape = SettingsCardShape,
-            color = rememberFloatingSurfaceColor(),
-            tonalElevation = 0.dp,
-            shadowElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
-        ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), content = content)
+        SettingsCard(content = content)
+    }
+}
+
+/**
+ * The horizontal air a settings card gives its own content: the space between the card's rounded edge
+ * and a row's text.
+ *
+ * It is one constant because two things must agree on it — the card pads its content by exactly this,
+ * and [fullBleedRow] reaches back out by exactly this, which is what lets a row's highlight be the
+ * card's own width instead of a rounded band floating inside it.
+ */
+internal val SettingsRowInset: Dp = 16.dp
+
+/**
+ * How far past its own content a control inside a settings card reaches, provided by [SettingsCard].
+ *
+ * Zero everywhere else. The same row composables (`SwitchRow`, `OptionGroup`, `SectionRow`) are drawn
+ * inside dialogs too, where there is no card to reach across and a row must keep the bounds it always
+ * had; a dialog simply never provides the inset.
+ */
+internal val LocalSettingsCardInset = compositionLocalOf { 0.dp }
+
+/**
+ * One settings card: the rounded, floating container that a [SettingsGroup] and the index pages put
+ * their rows in.
+ *
+ * The content is padded by [SettingsRowInset] and the same number is published to the rows through
+ * [LocalSettingsCardInset], so a row can lay itself out into that padding and light the whole card
+ * (see [fullBleedRow]).
+ */
+@Composable
+internal fun SettingsCard(
+    verticalInset: Dp = 8.dp,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        shape = SettingsCardShape,
+        color = rememberFloatingSurfaceColor(),
+        tonalElevation = 0.dp,
+        shadowElevation = 2.dp,
+        modifier = modifier.fillMaxWidth().floatingRim(20.dp),
+    ) {
+        CompositionLocalProvider(LocalSettingsCardInset provides SettingsRowInset) {
+            Column(
+                Modifier.padding(horizontal = SettingsRowInset, vertical = verticalInset),
+                content = content,
+            )
         }
     }
 }
 
-/** The hairline between two controls inside one [SettingsGroup] card. */
+/**
+ * Lays this control out into the card's own horizontal padding, so its **bounds** — and therefore its
+ * press, selection or drag highlight — are the card's width, while its content keeps [SettingsRowInset]
+ * of air and the card's rounded clip supplies the corners.
+ *
+ * A Compose ripple is drawn inside the node it belongs to, so a row sitting in the card's padded
+ * content can only ever light the middle of the card: a smaller copy of the card's own shape, which
+ * reads as a box inside a box. Reaching out by the inset is what makes the row *be* the box; the card
+ * clips the overflow at its rounded edge, exactly as the desktop window's rows do.
+ *
+ * [reach] is [LocalSettingsCardInset], so outside a card this is a no-op.
+ */
+internal fun Modifier.fullBleedRow(reach: Dp): Modifier = layout { measurable, constraints ->
+    val bounds = if (constraints.hasBoundedWidth) {
+        fullBleedBounds(constraints.maxWidth, reach.roundToPx())
+    } else {
+        // A row in an unbounded parent has no card edge to reach for; keep the bounds it was given.
+        null
+    }
+    val placeable = measurable.measure(
+        bounds?.let { constraints.copy(minWidth = 0, maxWidth = it.contentWidth) } ?: constraints,
+    )
+    layout(bounds?.reportedWidth ?: placeable.width, placeable.height) {
+        placeable.place(bounds?.contentX ?: 0, 0)
+    }
+}
+
+/**
+ * The bounds [fullBleedRow] gives a row, in pixels: what the row reports to its parent, the width its
+ * content is measured at, and where that content is placed from the row's left edge.
+ *
+ * The arithmetic is its own function so it can be checked on the JVM ([SettingsRowFullBleedTest]): the
+ * content must reach exactly one inset past each side, which is the card's own edge.
+ */
+internal data class FullBleedBounds(val reportedWidth: Int, val contentWidth: Int, val contentX: Int)
+
+internal fun fullBleedBounds(maxWidth: Int, reach: Int): FullBleedBounds = FullBleedBounds(
+    reportedWidth = maxWidth,
+    contentWidth = maxWidth + reach * 2,
+    contentX = -reach,
+)
+
+/** The hairline between two controls inside one [SettingsGroup] card — inset with the content it separates. */
 @Composable
 fun SettingsDivider() {
     HorizontalDivider(

@@ -20,6 +20,18 @@ then area, then section — because a permanent list on a phone would leave the 
 in. Back pops whichever shape is on screen one step at a time (section → search results → area → out of
 settings), so the system back button mirrors the title-bar arrow either way.
 
+## Rows light the card's width
+
+A row's press, selection or drag highlight is **the card's width** — the same rule the window's rows keep
+(`desktop-settings.md`). A card pads its content by `SettingsRowInset` (16 dp) and a Compose ripple can
+only paint inside its own node, so a row laid out in that padded content lit a smaller copy of the card's
+shape: a box inside a box. `SettingsCard` (`SettingsLayout.kt`) pads by that inset *and* publishes it as
+`LocalSettingsCardInset`; a row (`SwitchRow`, `<T> OptionGroup`, `SectionRow`, `RailItemRow`, `LinkRow`)
+opens with `fullBleedRow(reach)`, which lays it out into the padding while keeping its content inset, and
+carries no `clip` of its own — the card's rounded clip is the row's shape. Outside a card the local is
+zero, so the same rows inside dialogs (the shape editor's switches) do not move. `SettingsRowFullBleedTest`
+pins the arithmetic and the wiring, so a row added later cannot go back to a half-lit box.
+
 ## Settings search
 
 **Search** runs over the sections from both shapes (`SettingsSearch.kt`, pure): a query matches a

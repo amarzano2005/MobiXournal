@@ -48,7 +48,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
-import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 
 /**
@@ -72,22 +71,14 @@ fun ShortcutsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 
     when (val active = subpage) {
         null -> {
-            Surface(
-                shape = SettingsCardShape,
-                color = rememberFloatingSurfaceColor(),
-                tonalElevation = 0.dp,
-                shadowElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth().floatingRim(20.dp),
-            ) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    val pages = ShortcutSubpage.values()
-                    pages.forEachIndexed { index, page ->
-                        SectionRow(title = page.title, summary = page.summary) {
-                            subpage = page
-                        }
-                        if (index < pages.size - 1) {
-                            SettingsDivider()
-                        }
+            SettingsCard(verticalInset = 4.dp) {
+                val pages = ShortcutSubpage.values()
+                pages.forEachIndexed { index, page ->
+                    SectionRow(title = page.title, summary = page.summary) {
+                        subpage = page
+                    }
+                    if (index < pages.size - 1) {
+                        SettingsDivider()
                     }
                 }
             }

@@ -98,8 +98,13 @@ private fun InfoRow(label: String, value: String) {
 /** A tappable line that hands its URL to the system browser. */
 @Composable
 private fun LinkRow(label: String, url: String, open: (String) -> Unit) {
+    val reach = LocalSettingsCardInset.current
     Column(
-        modifier = Modifier.fillMaxWidth().clickable { open(url) }.padding(vertical = 8.dp),
+        modifier = Modifier
+            .fullBleedRow(reach)
+            .fillMaxWidth()
+            .clickable { open(url) }
+            .padding(horizontal = reach, vertical = 8.dp),
     ) {
         Text(
             label,
