@@ -159,6 +159,8 @@ internal fun DesktopShellState.pagesChanged(tab: DesktopTab) {
 internal fun PageSectionSlot(actions: PageMenuActions, side: StripSide) {
     var open by remember { mutableStateOf(false) }
     var hovered by remember { mutableStateOf(false) }
+    // A second click on the slot closes its menu instead of reopening it (see [DismissGuard]).
+    val guard = remember { DismissGuard() }
     val density = LocalDensity.current
     val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
     val gapPx = with(density) { ToolStripMetrics.tooltipGap.roundToPx() }
@@ -172,7 +174,7 @@ internal fun PageSectionSlot(actions: PageMenuActions, side: StripSide) {
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(actions) { detectTapGestures { open = !open } },
+                .pointerInput(actions) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },
             contentAlignment = Alignment.Center,
         ) {
             // The tablet's own Description mark: the section is the page, not the ruling or the size.
@@ -196,7 +198,10 @@ internal fun PageSectionSlot(actions: PageMenuActions, side: StripSide) {
                     StripSide.RIGHT -> IntOffset(slotPx + gapPx, 0)
                     StripSide.BELOW -> IntOffset(0, slotPx + gapPx)
                 },
-                onDismissRequest = { open = false },
+                onDismissRequest = {
+                    guard.closed(Unit)
+                    open = false
+                },
                 properties = FloatingSurface,
             ) {
                 PageMenuPanel(actions) { open = false }

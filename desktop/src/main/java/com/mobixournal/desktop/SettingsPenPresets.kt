@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 
@@ -46,18 +47,24 @@ import com.mobixournal.design.ChromeGlyph
  * control, not controls of their own.
  */
 @Composable
-internal fun StylusPresetCarousel(policy: DesktopSettingsState) {
+internal fun StylusPresetCarousel(
+    policy: DesktopSettingsState,
+    /** The strip's left inset: the page's 12 dp, or the menu's own line inset. */
+    inset: Dp = 12.dp,
+    /** Called after a chip is applied — the menu puts itself away, the page stays where it is. */
+    onApplied: () -> Unit = {},
+) {
     Text(
         "Presets",
         color = DesktopTheme.inkSecondary,
         style = DesktopTheme.label,
-        modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 2.dp),
+        modifier = Modifier.padding(start = inset, top = 4.dp, bottom = 2.dp),
     )
     Row(
         Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = inset),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -71,6 +78,7 @@ internal fun StylusPresetCarousel(policy: DesktopSettingsState) {
                 SettingsPill(text = preset.name, selected = preset.id == live) {
                     policy.applyPenPreset(preset.id)
                     policy.cancelPresetSave()
+                    onApplied()
                 }
                 if (deletable) {
                     PresetDeleteMark(name = preset.name) { policy.deletePreset(preset.id) }

@@ -3,8 +3,6 @@ package com.mobixournal.desktop
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.SettingsGlyph
+import com.mobixournal.render.PressureCurve
+import java.util.Locale
 
 /**
  * The window's **overflow menu** — the mobile bar's menu, ported and laid out the same way.
@@ -70,9 +70,11 @@ internal fun HeaderMenu(
     penPolicy: DesktopSettingsState? = null,
 ) {
     var open by remember { mutableStateOf(false) }
+    // The guard that lets a second click on the hamburger put the menu away (see [DismissGuard]).
+    val guard = remember { DismissGuard() }
     val density = LocalDensity.current
     Box {
-        HeaderGlyph(active = open, onClick = { open = !open }) { color ->
+        HeaderGlyph(active = open, onClick = { open = !open && guard.mayOpen(MENU_TRIGGER) }) { color ->
             drawChromeGlyph(ChromeGlyph.MENU, color)
         }
         if (open) {
@@ -81,6 +83,7 @@ internal fun HeaderMenu(
                 // A draft that was being named goes with the panel: a name field reopened by the next
                 // click would be a question the reader already walked away from.
                 onDismissRequest = {
+                    guard.closed(MENU_TRIGGER)
                     open = false
                     penPolicy?.cancelPresetSave()
                 },
@@ -160,17 +163,21 @@ internal fun MenuPanel(
             MenuChip("Export PDF", ChromeGlyph.PDF, canExport, Modifier.weight(1f), DesktopTheme.documentRed, onExportPdf)
             MenuChip("Export SVG", ChromeGlyph.PICTURE, canExport, Modifier.weight(1f), DesktopTheme.accent, onExportSvg)
         }
-        // The tablet's **Pen block**, and only the pen's own answers in it: the heading (with the glyph
-        // that opens the Stylus page), the pressure switch, its two numbers and the presets. Nothing about
-        // the **ink** lives here — a colour and a width have their capsule in the strip, and an ink reset
-        // beside a pressure preset made two different things share one word.
+        // A rule between the **exports** and the **pen**: the two chips above it act on the document's
+        // bytes, and everything under it acts on the pen or on the window. A reader scanning for "export"
+        // stops at the line, which is what the tablet's own menu does.
         Spacer(Modifier.height(MenuMetrics.sectionGap))
+        MenuDivider()
+        // The tablet's **Pen block**, and only the pen's own answers in it, in the Stylus page's order:
+        // the stream, the switch, the presets, their two numbers, the way back to the factory pair. Nothing
+        // about the **ink** lives here — a colour and a width have their capsule in the strip.
         MenuHeadingRow(label = "Pen", onClick = onPenParameters)
-        if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss)
+        if (penPolicy != null) MenuPenBlock(penPolicy, onDismiss, onPenParameters)
         Spacer(Modifier.height(MenuMetrics.sectionGap))
         MenuDivider()
         MenuRow(
             label = if (sidebarVisible) "Hide page list" else "Show page list",
+            glyph = ChromeGlyph.DESCRIPTION,
             shortcut = "Ctrl+B",
             enabled = true,
             onClick = onToggleSidebar,
@@ -179,6 +186,7 @@ internal fun MenuPanel(
         // is here with the other commands and not in the chrome it changes.
         MenuRow(
             label = "Settings",
+            glyph = ChromeGlyph.SETTINGS,
             shortcut = "Ctrl+,",
             enabled = true,
             onClick = onSettings,
@@ -187,187 +195,106 @@ internal fun MenuPanel(
 }
 
 /**
- * **The Pen block**, the tablet's Stylus rows in the menu's own material — and only the pen's own answers.
+ * **The Pen block**, in the Stylus page's own order — the pen's answers, scaled to the menu.
  *
- * Sensitivity is a switch and the two numbers are the window's slider, each on a row of its own at the
- * menu's row height, so the block a reader opens mid-drawing answers the question it was opened for. The
- * heading above it (with its glyph) is the door to the rest — the stream, the curve, the mapped area — on
- * the Stylus page, and there is **nothing about the ink** here: a colour and a width live in the strip's
- * capsule, where they are changed.
+ * The page asks its questions in one order and the menu keeps it: the stream it is read from, whether
+ * pressure counts at all, *which* preset names the two numbers, then those numbers, then the way back to
+ * the factory pair. A reader who learns one surface finds the same rows in the same places on the other
+ * (`docs/desktop-settings.md`, *The Pen block*).
  *
- * Under the sliders are the **presets**, under a heading of their own: the tablet's scrollable chip row,
- * the live one written in the accent and washed with it, and *Save…* beside the heading. Picking a preset
- * applies it and closes the panel (the hand was mid-drawing); *Save…* opens the one name field both this
- * block and the Stylus page share.
+ * The **stream is a readout here**, not a select: a select's list is a popup, and a popup opened inside the
+ * menu's own popup takes the menu down with it. The row therefore states the stream in hand in the accent
+ * and wears the page's door glyph, so the click that names it goes where it can be changed.
+ *
+ * The rows are [MenuSettingRow] — [SettingsRow] at the menu's 34 dp line and in the *label* role — because
+ * this block sits in a menu, not on a page. The smaller line is also what stopped the old *Pressure* row
+ * from reading as a heading over its own sliders.
+ *
+ * The **presets** are the page's own carousel, × and `+` included: one component on both surfaces, so a
+ * preset deleted here is deleted there, and nothing about the pair can drift between the two. Picking one
+ * applies it and puts the panel away — the hand was mid-drawing.
  */
 @Composable
-private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit) {
-    Spacer(Modifier.height(MenuMetrics.sectionGap / 2))
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = MenuMetrics.rowHeight)
-            .hoverFill(DesktopTheme.capsuleShape)
-            .pointerInput(Unit) { detectTapGestures { policy.choosePressureEnabled(!policy.pressureEnabled) } }
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun MenuPenBlock(policy: DesktopSettingsState, onDismiss: () -> Unit, onPenParameters: () -> Unit) {
+    MenuSettingRow(label = "Stream", onClick = onPenParameters) {
+        Text(policy.penStream.label, color = DesktopTheme.accent, style = DesktopTheme.label)
+        Spacer(Modifier.width(6.dp))
+        Canvas(Modifier.size(14.dp)) {
+            drawSettingsGlyph(SettingsGlyph.EDITOR, DesktopTheme.inkSecondary)
+        }
+    }
+    MenuSettingRow(
+        label = "Pressure sensitivity",
+        onClick = { policy.choosePressureEnabled(!policy.pressureEnabled) },
     ) {
-        Text("Pressure", color = DesktopTheme.ink, style = DesktopTheme.body, modifier = Modifier.weight(1f))
         SettingsSwitch(policy.pressureEnabled)
     }
-    MenuPressureSlider(
-        label = "Min pressure",
-        value = policy.minimumPressure,
-        range = com.mobixournal.render.PressureCurve.MINIMUM_PRESSURE_MIN..
-            com.mobixournal.render.PressureCurve.MINIMUM_PRESSURE_MAX,
-        step = 0.01f,
-        format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f", it) },
-        onValue = policy::chooseMinimumPressure,
-    )
-    MenuPressureSlider(
-        label = "Multiplier",
-        value = policy.pressureMultiplier,
-        range = com.mobixournal.render.PressureCurve.MULTIPLIER_MIN..
-            com.mobixournal.render.PressureCurve.MULTIPLIER_MAX,
-        step = 0.05f,
-        format = { java.lang.String.format(java.util.Locale.ROOT, "%.2f×", it) },
-        onValue = policy::choosePressureMultiplier,
-    )
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            "Reset to defaults",
-            color = DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-            modifier = Modifier.weight(1f),
-        )
-        SettingsTextAction(text = "Reset", onClick = policy::resetPressureToDefaults)
-    }
-    Spacer(Modifier.height(2.dp))
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Presets", color = DesktopTheme.inkSecondary, style = DesktopTheme.label, modifier = Modifier.weight(1f))
-        SettingsTextAction(
-            text = "Save…",
-            enabled = policy.presetDraft == null,
-            onClick = policy::beginPresetSave,
+    StylusPresetCarousel(policy, inset = MenuMetrics.penInset, onApplied = onDismiss)
+    MenuSettingRow(label = "Minimum pressure") {
+        SettingsSlider(
+            value = policy.minimumPressure,
+            range = PressureCurve.MINIMUM_PRESSURE_MIN..PressureCurve.MINIMUM_PRESSURE_MAX,
+            step = 0.01f,
+            format = { String.format(Locale.ROOT, "%.2f", it) },
+            onValue = policy::chooseMinimumPressure,
+            width = MenuMetrics.sliderWidth,
         )
     }
-    if (policy.presetDraft == null) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            for (preset in policy.penPresets) {
-                MenuPresetChip(
-                    name = preset.name,
-                    selected = preset.id == policy.selectedPenPresetId,
-                    onClick = {
-                        policy.applyPenPreset(preset.id)
-                        policy.cancelPresetSave()
-                        onDismiss()
-                    },
-                )
-            }
-        }
-    } else {
-        MenuPresetNameRow(policy)
+    MenuSettingRow(label = "Multiplier") {
+        SettingsSlider(
+            value = policy.pressureMultiplier,
+            range = PressureCurve.MULTIPLIER_MIN..PressureCurve.MULTIPLIER_MAX,
+            step = 0.05f,
+            format = { String.format(Locale.ROOT, "%.2f×", it) },
+            onValue = policy::choosePressureMultiplier,
+            width = MenuMetrics.sliderWidth,
+        )
     }
+    MenuSettingRow(
+        label = "Reset to defaults",
+        tone = DesktopTheme.accent,
+        onClick = policy::resetPressureToDefaults,
+    )
 }
 
 /**
- * One **preset chip** of [MenuPenBlock]: the tablet's glass chip, the live one washed with the accent.
+ * **One small setting row of the menu**: its name on the left, its control at the end, on the menu's own
+ * line with a capsule that lights under the pointer.
  *
- * The wash and the accent word are the tablet's own statement of "this is the pen in hand" — the same two
- * states its overflow menu draws — so the chip a reader picks is the one they see picked.
+ * It is the page's [SettingsRow] at the menu's scale — the same grammar, the same control — and the whole
+ * row is the hit area when it has an action, so the switch at the end is reachable from a hand that is
+ * holding a pen.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun MenuPresetChip(name: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .height(SettingsMetrics.CONTROL_HEIGHT)
-            .hoverCapsule(
-                cornerRadius = MenuMetrics.chipRadius,
-                fill = if (selected) DesktopTheme.accent.copy(alpha = MenuMetrics.presetWash) else DesktopTheme.glass,
-                active = selected,
-            )
-            .pointerInput(name) { detectTapGestures { onClick() } }
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            name,
-            color = if (selected) DesktopTheme.accent else DesktopTheme.inkSecondary,
-            style = DesktopTheme.label,
-            maxLines = 1,
-        )
-    }
-}
-
-/** The **name field** of a preset being saved, at the menu's own row height. */
-@Composable
-private fun MenuPresetNameRow(policy: DesktopSettingsState) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        PresetNameField(
-            value = policy.presetDraft.orEmpty(),
-            onValue = policy::typePresetName,
-            onCommit = policy::commitPresetSave,
-            modifier = Modifier.weight(1f),
-            onCancel = policy::cancelPresetSave,
-        )
-        SettingsTextAction(
-            text = "Save",
-            enabled = !policy.presetDraft.isNullOrBlank(),
-            onClick = policy::commitPresetSave,
-        )
-        SettingsTextAction(
-            text = "Cancel",
-            tone = DesktopTheme.inkSecondary,
-            onClick = policy::cancelPresetSave,
-        )
-    }
-}
-
-/** One labelled slider of [MenuPenBlock]: the word on the left, the window's slider at the right. */
-@Composable
-private fun MenuPressureSlider(
+private fun MenuSettingRow(
     label: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    step: Float,
-    format: (Float) -> String,
-    onValue: (Float) -> Unit,
+    tone: Color = DesktopTheme.ink,
+    onClick: (() -> Unit)? = null,
+    control: @Composable () -> Unit = {},
 ) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = MenuMetrics.rowHeight)
-            .padding(horizontal = 10.dp, vertical = 2.dp),
+            .then(
+                if (onClick == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .hoverFill(DesktopTheme.capsuleShape)
+                        .pointerInput(label, onClick) { detectTapGestures { onClick() } }
+                },
+            )
+            .padding(horizontal = MenuMetrics.penInset, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = DesktopTheme.inkSecondary, style = DesktopTheme.label, modifier = Modifier.weight(1f))
-        SettingsSlider(value = value, range = range, step = step, format = format, onValue = onValue)
+        Text(label, color = tone, style = DesktopTheme.label, modifier = Modifier.weight(1f))
+        control()
     }
 }
+
+/** What the hamburger's own [DismissGuard] remembers: the one menu, so one key. */
+private val MENU_TRIGGER = Any()
 
 /**
  * The panel's numbers, in one place: the layout reads them and so does `DesktopMenuTest`, which clicks
@@ -388,8 +315,14 @@ internal object MenuMetrics {
     val rowHeight = 34.dp
     val chipRadius = 12.dp
 
-    /** How strongly the live pen-preset chip is washed with the accent — picked, not hovered. */
-    const val presetWash = 0.16f
+    /** The pen block's own inset: the page's 12 dp pulled in to the menu's 10 dp lines. */
+    val penInset = 10.dp
+
+    /**
+     * The pen block's slider track: the panel is 320 dp wide, so the page's 150 dp track beside a label
+     * would run out of the row — the number and this length still leave *Minimum pressure* its room.
+     */
+    val sliderWidth = 118.dp
 
     /** One tile's width: four of them, their gaps, and the panel's own padding. */
     val tileWidth: androidx.compose.ui.unit.Dp
@@ -508,6 +441,8 @@ private fun MenuHeadingRow(label: String, onClick: () -> Unit) {
 @Composable
 private fun MenuRow(
     label: String,
+    /** The row's mark, from the chrome catalogue — the same picture the tablet's own menu row carries. */
+    glyph: ChromeGlyph? = null,
     shortcut: String? = null,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -521,9 +456,15 @@ private fun MenuRow(
             .pointerInput(label, enabled) {
                 if (enabled) detectTapGestures { onClick() }
             }
-            .padding(horizontal = 10.dp, vertical = 7.dp),
+            .padding(horizontal = MenuMetrics.penInset, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (glyph != null) {
+            Canvas(Modifier.size(16.dp)) {
+                drawChromeGlyph(glyph, if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted)
+            }
+            Spacer(Modifier.width(8.dp))
+        }
         Text(
             label,
             color = if (enabled) DesktopTheme.ink else DesktopTheme.inkMuted,

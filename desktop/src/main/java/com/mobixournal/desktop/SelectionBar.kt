@@ -154,6 +154,8 @@ internal fun SelectionBar(
     placement: () -> IntOffset,
 ) {
     var alignOpen by remember { mutableStateOf(false) }
+    // A second click on the align button puts its menu away (see [DismissGuard]).
+    val alignGuard = remember { DismissGuard() }
     if (!ui.hasSelection && !ui.hasClipboard) return
     Box(modifier.offset { placement() }) {
         Row(
@@ -185,8 +187,13 @@ internal fun SelectionBar(
                     "Align & distribute",
                     "",
                     active = alignOpen,
-                ) { alignOpen = !alignOpen }
-                if (alignOpen) AlignMenu(ui) { alignOpen = false }
+                ) { alignOpen = !alignOpen && alignGuard.mayOpen(Unit) }
+                if (alignOpen) {
+                    AlignMenu(ui) {
+                        alignGuard.closed(Unit)
+                        alignOpen = false
+                    }
+                }
             }
             BarDivider()
             BarButton(ChromeGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {

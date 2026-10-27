@@ -150,14 +150,14 @@ reads — because the hand decides how hard it presses while the device decides 
   earlier build is still read and applied — it has **no row** now, so a pen carrying one keeps its curve
   and this page cannot change it. With sensitivity **off** every stroke is drawn at its
   set width, and the two numbers stay on screen because that is the state they are remembered in. The
-  surface's hamburger menu
-  carries the same three controls (`MenuPenBlock`), because they are reached mid-drawing.
+  surface's hamburger menu carries the same rows in the same order (`MenuPenBlock`), at the menu's smaller
+  line, because they are reached mid-drawing.
 - **Pressure → Presets** — the tablet's named pairs, as one **carousel**: a strip of chips where the preset
   in use wears the accent on the steel fill, one click applies it (`tablet.penPresets`,
   `tablet.selectedPenPreset`). The strip's two marks act on the thing they sit on: a **red ×** beside a chip
   removes that pair — drawn only while a second one exists, because the pen always draws with one — and a
-  **`+`** caps the last chip, opening the one name field the menu's *Save…* opens too (the same draft,
-  whichever door did it; it is dimmed while a name is being written). A preset is **only those two
+  **`+`** caps the last chip, opening the one name field the *Stylus* page and the menu's Pen block share
+  (the same draft, whichever surface did it; the `+` is dimmed while a name is being written). A preset is **only those two
   numbers**, and the sliders under the strip edit *its* numbers (their notes say so), so moving one
   **rewrites the live entry** and the lit chip never names numbers the pen is not drawing with. Saving an
   existing name rewrites it in place (the handle, and so the selection, survives), and a stored line this

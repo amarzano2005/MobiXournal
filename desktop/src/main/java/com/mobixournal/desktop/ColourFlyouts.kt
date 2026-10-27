@@ -100,6 +100,8 @@ internal fun ColourSlot(
 ) {
     var open by remember { mutableStateOf(false) }
     var hovered by remember { mutableStateOf(false) }
+    // A second click on the slot closes its flyout instead of reopening it (see [DismissGuard]).
+    val guard = remember { DismissGuard() }
     val anchor = flyoutOffset(side)
     Box {
         Box(
@@ -111,7 +113,7 @@ internal fun ColourSlot(
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(Unit) { detectTapGestures { open = !open } },
+                .pointerInput(Unit) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -127,7 +129,14 @@ internal fun ColourSlot(
             StripPill(label = "Colour", accent = colourKeyLabel(favourites, ink.colour), offset = anchor)
         }
         if (open) {
-            Popup(offset = anchor, onDismissRequest = { open = false }, properties = FloatingSurface) {
+            Popup(
+                offset = anchor,
+                onDismissRequest = {
+                    guard.closed(Unit)
+                    open = false
+                },
+                properties = FloatingSurface,
+            ) {
                 PaletteFlyout(
                     palette = palette,
                     current = ink.colour,
@@ -161,6 +170,8 @@ internal fun ColourSlot(
 internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide) {
     var open by remember { mutableStateOf(false) }
     var hovered by remember { mutableStateOf(false) }
+    // A second click on the slot closes its flyout instead of reopening it (see [DismissGuard]).
+    val guard = remember { DismissGuard() }
     val anchor = flyoutOffset(side)
     Box {
         Box(
@@ -172,7 +183,7 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(Unit) { detectTapGestures { open = !open } },
+                .pointerInput(Unit) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -190,7 +201,14 @@ internal fun SizeSlot(ink: DesktopInk, onPick: (Float) -> Unit, side: StripSide)
             )
         }
         if (open) {
-            Popup(offset = anchor, onDismissRequest = { open = false }, properties = FloatingSurface) {
+            Popup(
+                offset = anchor,
+                onDismissRequest = {
+                    guard.closed(Unit)
+                    open = false
+                },
+                properties = FloatingSurface,
+            ) {
                 SizeFlyout(
                     ink = ink,
                     onPick = { width ->

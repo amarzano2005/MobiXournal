@@ -284,13 +284,15 @@ internal fun SettingsSlider(
     step: Float,
     format: (Float) -> String,
     onValue: (Float) -> Unit,
+    /** The track's length — [SLIDER_WIDTH] on a page, shorter in a 320 dp menu. */
+    width: Dp = SLIDER_WIDTH,
 ) {
     val set = rememberUpdatedState(onValue)
-    var width by remember { mutableStateOf(1f) }
+    var trackPx by remember { mutableStateOf(1f) }
     var focused by remember { mutableStateOf(false) }
     var pressed by remember { mutableStateOf(false) }
     fun pickAt(px: Float) {
-        val t = (px / width).coerceIn(0f, 1f)
+        val t = (px / trackPx).coerceIn(0f, 1f)
         val raw = range.start + (range.endInclusive - range.start) * t
         val snapped = range.start + ((raw - range.start) / step).roundToInt() * step
         set.value(snapped.coerceIn(range.start, range.endInclusive))
@@ -303,9 +305,9 @@ internal fun SettingsSlider(
         Spacer(Modifier.width(10.dp))
         Box(
             Modifier
-                .width(SLIDER_WIDTH)
+                .width(width)
                 .height(SettingsMetrics.CONTROL_HEIGHT)
-                .onSizeChanged { width = it.width.toFloat().coerceAtLeast(1f) }
+                .onSizeChanged { trackPx = it.width.toFloat().coerceAtLeast(1f) }
                 .hoverFill(DesktopTheme.capsuleShape)
                 .focusable()
                 .onFocusChanged { focused = it.isFocused }

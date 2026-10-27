@@ -73,6 +73,9 @@ internal fun <T> SettingsSelect(
 ) {
     var open by remember { mutableStateOf(false) }
     var anchor by remember { mutableStateOf(IntSize.Zero) }
+    // The click that closes the list must not open it again (see [DismissGuard]): the popup's own dismissal
+    // arrives on the same press the capsule takes.
+    val guard = remember { DismissGuard() }
     val pick = rememberUpdatedState(onPick)
     val menuWidth = selectMenuWidth(options.map(optionLabel))
     SettingsRow(label = label, note = note) {
@@ -80,7 +83,7 @@ internal fun <T> SettingsSelect(
             SettingsSelectCapsule(
                 text = optionLabel(picked),
                 open = open,
-                onToggle = { open = !open },
+                onToggle = { open = !open && guard.mayOpen(Unit) },
                 onStep = { delta -> pick.value(nextChoice(options, picked, delta)) },
                 onSize = { anchor = it },
             )
@@ -90,7 +93,10 @@ internal fun <T> SettingsSelect(
                 val shift = with(LocalDensity.current) { (menuWidth - anchor.width.toDp()).roundToPx() }
                 Popup(
                     offset = IntOffset(-shift, anchor.height + 4),
-                    onDismissRequest = { open = false },
+                    onDismissRequest = {
+                        guard.closed(Unit)
+                        open = false
+                    },
                     properties = FloatingSurface,
                 ) {
                     SettingsSelectMenu(

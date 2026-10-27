@@ -136,12 +136,16 @@ What it does today:
   changes meaning. **A tool whose behaviour has not landed gets no slot** (`ToolGroupsTest` checks both ways).
 - **Opens its file commands from a menu shaped like the tablet's**: the header's hamburger opens one
   glass panel — four **tiles** of art over a word (New, Open, Save, Save As), **Export PDF as a
-  document-red chip** and Export SVG in the accent, then the tablet's **Pen block** (its heading, with the
-  glyph beside it, opens the Stylus page; inside, only the pen's own answers — the pressure switch, its two
-  sliders, a **Reset to defaults** row, and under a **Presets** heading the **named pen presets** as chips
-  with *Save…* beside the heading, picking one applies it and closes the panel, *Save…* names the live pair
-  in place, as on the tablet — the menu is the one popup that takes the keyboard, because that field is
-  typed in), a hairline, the page list's row and **Settings**. Its commands keep their 10 dp inset by
+  document-red chip** and Export SVG in the accent, **a hairline**, then the tablet's **Pen block**: its
+  heading (the pen glyph beside the word) opens the Stylus page, and under it the page's own questions in
+  the page's own order — the **Stream** as a readout in the accent (its list is a popup, and a popup inside
+  the menu's popup would take the menu down; the row is the door to the page instead), **Pressure
+  sensitivity**, the **preset carousel** with its × and `+`, **Minimum pressure**, **Multiplier**, and
+  **Reset to defaults** as a command row in the accent. The rows are the page's rows at the menu's 34 dp
+  line, which is what keeps *Pressure sensitivity* from reading as a heading over its own sliders. Picking a
+  preset applies it and closes the panel (the hand was mid-drawing); the name field the `+` opens is the one
+  the Stylus page opens, so the menu is the only popup that takes the keyboard. A second hairline, then the
+  **page list** and **Settings** rows, each wearing its own mark. Its commands keep their 10 dp inset by
   padding themselves, so a row's hover spans the panel's whole width, as a menu's does. The block carries **nothing about the ink**: a
   colour and a width live in the strip's capsule, and a reset beside a pressure preset made two different
   things share one word. Import PDF and Page as PNG are absent because the window has no such

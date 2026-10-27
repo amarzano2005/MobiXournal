@@ -119,6 +119,14 @@ enum class ChromeGlyph {
 
     /** And down: one place later. */
     CHEVRON_DOWN,
+
+    /**
+     * The gear: the window's Settings, and the tablet's — the menu row that opens the page of controls.
+     *
+     * It is the one mark the two shells used to answer differently (the phone took Material's `Settings`,
+     * the window had no glyph for the row at all); the catalogue is the same picture on both.
+     */
+    SETTINGS,
 }
 
 /** The catalogue: one glyph, its path data. */
@@ -225,5 +233,17 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.DISTRIBUTE_V -> "M22 2v2H2V2H22ZM7 10.5v3h10v-3H7ZM2 20v2h20v-2H2Z"
         ChromeGlyph.CHEVRON_UP -> "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"
         ChromeGlyph.CHEVRON_DOWN -> "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
+        ChromeGlyph.SETTINGS ->
+            "M19.14 12.94c0.04-0.3 0.06-0.61 0.06-0.94 0-0.32-0.02-0.64-0.07-0.94l2.03-1.58" +
+                "c0.18-0.14 0.23-0.41 0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39 0.96" +
+                "c-0.5-0.38-1.03-0.7-1.62-0.94L14.4 2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84" +
+                "c-0.24 0-0.43 0.17-0.47 0.41L9.25 5.35C8.66 5.59 8.12 5.92 7.63 6.29L5.24 5.33" +
+                "c-0.22-0.08-0.47 0-0.59 0.22L2.74 8.87c-0.12 0.21-0.08 0.47 0.12 0.61l2.03 1.58" +
+                "C4.84 11.36 4.8 11.69 4.8 12s0.02 0.64 0.07 0.94l-2.03 1.58c-0.18 0.14-0.23 0.41-0.12 0.61" +
+                "l1.92 3.32c0.12 0.22 0.37 0.29 0.59 0.22l2.39-0.96c0.5 0.38 1.03 0.7 1.62 0.94l0.36 2.54" +
+                "c0.05 0.24 0.24 0.41 0.48 0.41h3.84c0.24 0 0.44-0.17 0.47-0.41l0.36-2.54" +
+                "c0.59-0.24 1.13-0.56 1.62-0.94l2.39 0.96c0.22 0.08 0.47 0 0.59-0.22l1.92-3.32" +
+                "c0.12-0.22 0.07-0.47-0.12-0.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6" +
+                "s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
     }
 }

@@ -137,6 +137,11 @@ On the desktop every surface wears `Modifier.hoverFill()` (`GlassEdge.kt`), and 
 the hovered pixel against the unhovered one, so a control that answers only its tooltip — as the rail did
 — fails.
 
+A control that opens a surface is **also a control that closes it**: the second click is the surface's own
+dismissal, so the trigger may not reopen what its own click has just put away (`DismissGuard` — a Compose
+popup dismisses on the press the trigger is about to take, and a plain `open = !open` flips the flag back
+up). Every trigger of every popup and flyout goes through it; `DismissGuardTest` holds the rule.
+
 A **status readout** is the one thing that is not interactive, and it is not exempt from colour: the
 desktop's dirty dot is a token mark that is either there or absent, with no hover, focus or picked state —
 those five belong to the control beside it (the close glyph). `DesktopLifecycleTest` reads the dot out of
