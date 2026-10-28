@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -593,7 +594,12 @@ private fun EditorBody(
 private fun RailLane(toolbar: @Composable () -> Unit) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
-        color = glassColor,
+        // The lane wears its glass **composited over the chrome colour**, never the translucent fill:
+        // the header above casts `bandShadowDp` down onto this band, and 0.88 of glass lets 12% of that
+        // shadow through as a faint line just above the rail's first slot — the top band and the lateral
+        // one overlapping by a few dp. Behind the lane there is nothing but the chrome colour, so this is
+        // the same pixel the glass already produced, with nothing left to show through.
+        color = glassColor.compositeOver(rememberChromeColor()),
         shadowElevation = ModernTheme.bandShadowDp,
         modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
     ) {
