@@ -136,7 +136,10 @@ internal object PageStacker {
         val cellWidth = ((viewWidthPx - gapPx * (cols - 1)) / cols).coerceAtLeast(1f)
 
         val rows = ArrayList<List<Placed>>()
-        var top = gapPx
+        // The **first** row starts at the content's own top, so the page begins directly under the
+        // frame's closing edge with no strip of desk between them — `docs/chrome-frame.md` owns the rod.
+        // [gapPx] therefore separates pages (and rows), it is not a margin around the document.
+        var top = 0f
         for (start in 0 until source.pageCount step cols) {
             val row = (start until minOf(start + cols, source.pageCount)).map { index ->
                 val size = source.pageSize(index)

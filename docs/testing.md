@@ -121,7 +121,8 @@ codec — and [desktop-testing.md](desktop-testing.md) is their index.
   across all layout combinations (rail docked Left and Right, and Full-page) without overlapping, that
   the header is a single continuous full-width Surface whose column contains both the tools and tabs, and
   that a tablet band shades its own closing edge inside itself with no elevation, so no band's shadow can
-  land on the band beside it.
+  land on the band beside it — the header's edge inset where the rail's lane begins and the lane shading
+  the edge facing the canvas, so the frame's two arms close on one shadow.
 - **`FormatDriftTest`** (`format/`) — the `.xopp` mapping the docs describe against what the writers
   emit, so the format documentation cannot drift from the code.
 - **`DesktopColorParityTest`**, **`RealFileRoundTripTest`**, **`SelectionHandleRadiusTest`** and

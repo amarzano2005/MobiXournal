@@ -42,8 +42,9 @@ window's own panes and strips by [desktop-ui-layout.md](desktop-ui-layout.md).
   sheet, where a hand reaches first ([chrome-frame.md](chrome-frame.md#the-frame-around-the-page-the-chromes-bands-and-the-canvass-rest)).
   **The rule, and its one carve-out** — *bands never lie on the page; transient surfaces may*: an anchored
   popover, dialog or selection bar comes and goes with the gesture, so it may sit over the ink, never as a band.
-- **One edge per surface**: a header closes on **one** bottom edge, across the full width, with one shadow
-  and **no rim**; its rows (tools, document tabs) are separated by their own content, not by a line. A rim
+- **One edge per surface**: a header closes on **one** bottom edge, with one shadow and **no rim**; in the
+  tablet's Standard layout that edge stops where the rail's lane begins and the lane carries it on down the
+  page's margin, so the two arms of the frame close on a single continuous shadow rather than a seam; its rows (tools, document tabs) are separated by their own content, not by a line. A rim
   and an inner hairline are tidy on a light scheme, but over the true-black one they read as three grey
   rules across the window — one above the header, one through it, one below — so the slab's fill and its
   shadow are the whole of its edge (removed 2026-10-13; `docs/chrome.md` owns the note). Two nested slabs

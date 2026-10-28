@@ -38,6 +38,12 @@ back to a quiet bead on release. That replaces the earlier filled band with a he
 keeps the same one-tap-off-the-page rule as the rest of the chrome — the divider is transient furniture
 *over* the seam between two pages, and it never covers a pixel inside either sheet.
 
+**The sheet starts on the frame's edge.** The page stack's first page sits at the *content's* top —
+`PageStacker` begins the first row at zero and the gap separates pages, it is not a margin around the
+document — so no strip of desk runs between the header's closing edge and the paper. The lane's edge and
+the header's are one corner, not two bands meeting: the header's segment is inset by the lane's width and
+the lane fades the same edge down its canvas side (`interface-contract.md`, the Band row).
+
 Whatever the chrome occupies the canvas does not, and that is the point. A translucent bar floating *on*
 the page hides the ink under it and swallows the stylus there, and the strip it covers is the top of the
 sheet — where a note taker's hand reaches first. Every pixel of the page the user can see is a pixel

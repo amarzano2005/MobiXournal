@@ -193,7 +193,7 @@ class ChromeGeometryGuardTest {
         assertTrue(
             "EditorBody must place RailLane and canvas in a Row, starting below the entire header slab",
             editorBodyContent.contains("Row(modifier = modifier)") &&
-                editorBodyContent.contains("RailLane(toolbar)") &&
+                editorBodyContent.contains("RailLane(toolbar,") &&
                 editorBodyContent.contains("canvas("),
         )
     }
@@ -259,14 +259,21 @@ class ChromeGeometryGuardTest {
             headerBand.contains("bandShadowDp"),
         )
         assertTrue(
-            "EditorTopBar must carry its closing edge itself (Modifier.bandClosingEdge)",
-            headerBand.contains("bandClosingEdge()"),
+            "EditorTopBar must carry its closing edge itself (Modifier.frameClosingEdge, which insets " +
+                "Modifier.bandClosingEdge where the rail's lane begins so the frame has one shadow and no " +
+                "seam across the joint between its two arms)",
+            headerBand.contains("frameClosingEdge("),
         )
 
-        // The rail's lane: a band, so it shades and casts nothing either.
+        // The rail's lane: a band, so it shades and casts nothing either — and it shades the edge it
+        // shares with the page, which is the rest of the header's own corner.
         val railLane = screen.substringAfter("private fun RailLane(").substringBefore("\n}")
         assertFalse("RailLane must not carry a band elevation", railLane.contains("bandShadowDp"))
         assertFalse("RailLane must not cast a shadow at all", railLane.contains("shadowElevation = "))
+        assertTrue(
+            "RailLane must shade the edge facing the canvas (Modifier.bandSideEdge)",
+            railLane.contains("bandSideEdge("),
+        )
 
         // The edge itself: the band's own pixels, the band-shadow token's height, fading to the scrim.
         val edge = findNestedSourceFile("theme", "BandEdge.kt").readText()

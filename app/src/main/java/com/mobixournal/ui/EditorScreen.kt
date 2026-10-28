@@ -40,6 +40,7 @@ import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Uncompilable
 import com.mobixournal.render.tracePenParameters
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.bandSideEdge
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberClosingArgument
@@ -581,16 +582,21 @@ private fun EditorBody(
         // tab row; see `RailSizing.kt`.
         val railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT
         Row(modifier = modifier) {
-            if (railOnLeft) RailLane(toolbar)
+            if (railOnLeft) RailLane(toolbar, canvasOnRight = true)
             canvas(Modifier.weight(1f).fillMaxHeight())
-            if (!railOnLeft) RailLane(toolbar)
+            if (!railOnLeft) RailLane(toolbar, canvasOnRight = false)
         }
     }
 }
 
-/** The rail's lane: exactly the width the rail occupies, and the height it may scroll in. */
+/**
+ * The rail's lane: exactly the width the rail occupies, and the height it may scroll in.
+ *
+ * @param canvasOnRight true when the lane is docked left, so the page begins at its right edge — the
+ *   side its `bandSideEdge` shades, continuing the header's closing edge down the margin as one corner.
+ */
 @Composable
-private fun RailLane(toolbar: @Composable () -> Unit) {
+private fun RailLane(toolbar: @Composable () -> Unit, canvasOnRight: Boolean) {
     val glassColor = rememberGlassSurfaceColor()
     Surface(
         // **The lane wears the band's own glass, never the canvas's background.** The header and this
@@ -602,11 +608,14 @@ private fun RailLane(toolbar: @Composable () -> Unit) {
         // would draw the desk's edge down the rail.
         color = glassColor.compositeOver(rememberChromeColor()),
         // **No cast shadow.** A band on the tablet does not cast: the header shades its own bottom edge
-        // ([EditorTopBar]) and this lane stands on the desk beside the page, so an elevation here was a
-        // shadow with nowhere to land — it went *up* onto the header, in the lane's column only, which
-        // read as a step across the header's bottom edge at x = the lane's width, and sideways onto the
-        // canvas, which the canvas painted over. The lane's own edge is the desk beside it.
-        modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight(),
+        // ([EditorTopBar]) and this lane shades the edge it shares with the page
+        // (`Modifier.bandSideEdge`), which is the rest of the same corner — one frame, one shadow. An
+        // elevation here was a shadow with nowhere to land: it went *up* onto the header, in the lane's
+        // column only, which read as a step across the header's bottom edge at x = the lane's width.
+        modifier = Modifier
+            .width(SideToolbarModernTotalWidth)
+            .fillMaxHeight()
+            .bandSideEdge(canvasOnRight),
     ) {
         Box(modifier = Modifier.width(SideToolbarModernTotalWidth).fillMaxHeight()) {
             toolbar()

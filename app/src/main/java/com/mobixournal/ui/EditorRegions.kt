@@ -116,6 +116,7 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.bandClosingEdge
+import com.mobixournal.ui.theme.frameClosingEdge
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
@@ -170,31 +171,29 @@ fun EditorTopBar(
     // rows are told apart by their content (tools above, chips below) rather than by an edge.
     //
     // It used to wear a `BorderStroke` rim and a hairline *inside* itself between the rows
-    // (`Modifier.topHairline`) — one header, one rim, one seam, as a tab row under a top app bar is drawn.
-    // On the OLED dark scheme both read as grey lines across the whole window: the rim closed the header at
-    // the top and the bottom of the screen and the hairline cut it in two, so the chrome was banded by
-    // three grey rules through what the design calls a single slab (removed 2026-10-13; `docs/chrome.md`
-    // carries the rule, and the geometry is what a guard will pin, not the ink).
+    // (`Modifier.topHairline`): on the OLED dark scheme both read as grey lines across the window, banding
+    // what the design calls a single slab by three grey rules (removed 2026-10-13; `docs/chrome.md` owns the
+    // rule, and the geometry is what a guard pins, not the ink).
     //
     // The tabs are inside the bar rather than on a slab of their own because that arrangement left the
-    // header's bottom edge with a step: the slab had to be held out of the rail's column to stop the two
-    // colliding, so its left end stopped where the rail's lane began and the header was a tab row shallower
-    // over the lane than over the page — a notch of bare desk over the rail, with the chips starting to one
-    // side of it. A row of *this* bar cannot notch: it spans the width the bar spans. The rail's lane
-    // therefore starts below the whole slab (see [EditorBody]), which is what the rail's own spacing budget
-    // pays for — `RailSizing.kt` counts the tab row in.
+    // header's bottom edge with a step: the slab had to be held out of the rail's column, so its left end
+    // stopped where the rail's lane began and the header was a tab row shallower over the lane than over the
+    // page — a notch of bare desk over the rail. A row of *this* bar cannot notch. The rail's lane therefore
+    // starts below the whole slab (see [EditorBody]) — `RailSizing.kt` counts the tab row in.
     // A caller with no settings to read has nowhere to put a second row, so its tabs stay in the
     // title slot; the editor itself gives them a strip of their own under the tools.
     val tabsInline = settings == null || onSettingsChange == null
     val tabsUnderTheTools = !tabsInline && !ui.fullPage
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
-    // No `shadowElevation`: a band on the tablet closes on its own edge (`Modifier.bandClosingEdge`,
-    // `theme/BandEdge.kt`) instead of casting onto the band beside it — `docs/interface-contract.md`.
+    // No `shadowElevation`: a band on the tablet closes on its own edge instead of casting onto the
+    // band beside it, and that edge stops where the rail's lane begins (`frameClosingEdge`, whose KDoc
+    // and `docs/interface-contract.md` own the rule) so both arms close on one continuous corner.
+    val laneEdge = if (settings == null || ui.fullPage) 0.dp else SideToolbarModernTotalWidth
     Surface(
         color = glassColor,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Box(modifier = Modifier.fillMaxWidth().bandClosingEdge()) {
+        Box(modifier = Modifier.fillMaxWidth().frameClosingEdge(laneEdge, railOnLeft)) {
             Column {
                 TopAppBar(
                     navigationIcon = {

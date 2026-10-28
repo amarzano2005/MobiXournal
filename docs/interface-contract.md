@@ -36,9 +36,14 @@ Every surface is one of three objects. Pick the class from what the element *doe
   lane and on the canvas (both painted it over, so it was never seen) while the lane's own fell back **up**
   onto the header in the lane's column alone — the header closing on a soft edge over the rail and on a
   hard step over the page. The band therefore draws its edge **inside itself** (`BandBottomShadow`,
-  `ui/EditorRegions.kt`; strength `bandShadowAlpha`): a `4 dp` vertical fade at its closing edge, full
-  width, one direction, landing on no other surface. The desktop keeps the cast shadow, because there a
-  strip is an object lying over the page and has room to cast one.
+  `ui/EditorRegions.kt`; strength `bandShadowAlpha`): a `4 dp` fade at its closing edge, one direction,
+  landing on no other surface. The desktop keeps the cast shadow, because there a strip is an object lying
+  over the page and has room to cast one.
+- **The frame's two arms share one edge.** The header's edge is a *segment*, not a full-width line: it runs
+  only over the width the canvas has (`bandClosingEdge(startInset, endInset)`, inset by the rail's lane
+  width on the side the lane is docked) and the lane draws the same fade, `4 dp` tall and the same scrim,
+  down its edge facing the page (`bandSideEdge`). Together they are one corner: a full-width header edge
+  crossing the lane's column put a soft line across the joint and made one frame read as two surfaces.
   `ChromeGeometryGuardTest.bandsShadeTheirOwnClosingEdgeAndCastNothing` fails the build if a tablet band
   gains an elevation again, or loses its own edge.
 - A picker, menu or dialog that comes and goes **may** lie over the page; a band **may not**.

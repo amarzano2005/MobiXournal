@@ -18,17 +18,17 @@ class PageStackerTest {
 
     @Test fun stacksPagesTopToBottomWithGaps() {
         assertEquals(2, layout.boxes.size)
-        assertEquals(10f, layout.boxes[0].topPx, 1e-4f) // first gap
+        assertEquals(0f, layout.boxes[0].topPx, 1e-4f) // the page starts at the content's top
         assertEquals(200f, layout.boxes[0].heightPx, 1e-4f)
-        assertEquals(220f, layout.boxes[1].topPx, 1e-4f) // gap + page + gap
-        assertEquals(430f, layout.totalHeightPx, 1e-4f) // 3 gaps + 2 pages
+        assertEquals(210f, layout.boxes[1].topPx, 1e-4f) // page + gap
+        assertEquals(420f, layout.totalHeightPx, 1e-4f) // 2 pages + 1 gap + the trailing gap
         assertEquals(1f, layout.boxes[0].scale, 1e-4f)
     }
 
     @Test fun pageAtMapsContentYToItsBand() {
-        assertNull("gap above the first page has no page", layout.pageAt(5f))
+        assertEquals(0, layout.pageAt(5f)!!.index) // the first page is flush with the content's top
         assertEquals(0, layout.pageAt(50f)!!.index)
-        assertNull("inter-page gap has no page", layout.pageAt(215f))
+        assertNull("inter-page gap has no page", layout.pageAt(205f))
         assertEquals(1, layout.pageAt(300f)!!.index)
     }
 
@@ -66,18 +66,18 @@ class PageStackerTest {
         val grid = PageStacker.stack(listOf(page(100.0, 200.0), page(100.0, 200.0)), 210, 10f, columns = 2)
         assertEquals(2, grid.columns)
         assertEquals(1f, grid.boxes[0].scale, 1e-4f)
-        assertEquals(10f, grid.boxes[0].topPx, 1e-4f)
-        assertEquals(10f, grid.boxes[1].topPx, 1e-4f) // same row
+        assertEquals(0f, grid.boxes[0].topPx, 1e-4f)
+        assertEquals(0f, grid.boxes[1].topPx, 1e-4f) // same row
         assertEquals(0f, grid.boxes[0].leftPx, 1e-4f)
         assertEquals(110f, grid.boxes[1].leftPx, 1e-4f) // page + gap
-        assertEquals(220f, grid.totalHeightPx, 1e-4f) // one row: gap + page + gap
+        assertEquals(210f, grid.totalHeightPx, 1e-4f) // one row: page + trailing gap
     }
 
     @Test fun twoColumnsWrapToASecondRow() {
         val pages = List(3) { page(100.0, 200.0) }
         val grid = PageStacker.stack(pages, 210, 10f, columns = 2)
-        assertEquals(220f, grid.boxes[2].topPx, 1e-4f)
-        assertEquals(430f, grid.totalHeightPx, 1e-4f)
+        assertEquals(210f, grid.boxes[2].topPx, 1e-4f)
+        assertEquals(420f, grid.totalHeightPx, 1e-4f)
         // The lone page on the last row is centred in the content band.
         assertEquals(55f, grid.boxes[2].leftPx, 1e-4f)
     }
