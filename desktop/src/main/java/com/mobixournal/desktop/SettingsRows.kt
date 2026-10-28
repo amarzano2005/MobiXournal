@@ -611,11 +611,12 @@ internal fun SettingsSectionRow(
 }
 
 /**
- * The search field: a capsule of the window's glass that takes the keyboard as soon as the surface opens.
+ * The search field: a capsule of the window's glass that takes the keyboard **only when it is clicked**.
  *
- * [onFocus] is what keeps the window's shortcuts out of it — while the field holds the keyboard every
- * letter is the search, and while it does not the surface still swallows the page's keys
- * (`DesktopSettingsState.onKey`).
+ * It is deliberately not focused when the surface opens: the window's index is what a reader comes back
+ * for, and a field that already holds the keyboard turns the first letter of a shortcut into a search.
+ * [onFocus] is how the filter is armed — while the field holds the keyboard every letter is the search,
+ * and while it does not the list is the whole index (`DesktopSettingsState.sections`).
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -626,9 +627,6 @@ internal fun SettingsSearchField(
     modifier: Modifier = Modifier,
 ) {
     val focus = remember { FocusRequester() }
-    // The surface opens on a list of three sections; the field is a question, not the reason it is up, so
-    // it is focused but never sends anything: the *first* keystroke is what narrows the list.
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     Box(
         modifier
             .height(SettingsMetrics.CONTROL_HEIGHT)

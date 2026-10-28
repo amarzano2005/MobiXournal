@@ -350,7 +350,7 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
         }
         if (policy.toolOrder.isNotEmpty()) {
             SettingsCommand(
-                label = "Restore factory order",
+                label = "Reset to defaults",
                 note = "Every slot back where a fresh install draws it.",
                 onClick = policy::resetToolOrder,
             )

@@ -32,6 +32,12 @@ had before it was measured (`DesktopSettingsStyleTest` diffs a hovered group edg
 The list is **names only** — a glyph and a word per section — because ten two-line summaries is a page of
 prose to scan past, and the index is a list, not a column of paragraphs.
 
+The header carries a **search field** beside the close glyph, and it narrows the index **only while it
+holds the keyboard**: a section stays in the list when its title, its summary or one of its search aliases
+contains the word, and clicking away gives the whole index back. The field is deliberately not focused when
+the surface opens — the list is what a reader comes back for, and a bar that already has the keyboard turns
+the first letter of a shortcut into a search.
+
 The panel always **opens on Stylus** (`DesktopSettingSection.DEFAULT`), whatever page it was closed on: the
 pen is the choice a session starts from, and a window that came back on *About* would be remembering the one
 page nobody went back for. A caller that means another section names it — the hamburger's pen block asks for
@@ -66,7 +72,8 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
 - a **toggle** ends in the switch, and the whole row is the hit area (`Pressure sensitivity`);
 - a **readout** ends in a word or a number with no control at all (`Recovery snapshot` → *After every edit*);
 - a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button
-  (`Reset to defaults`, `Export settings…`, `Restore factory order`, `SettingsCommand`).
+  (`Reset to defaults`, `Export settings…`, `SettingsCommand`) — one label for every way back to the
+  factory values, in whichever section it stands.
 
 A **destructive** mark is never a command row: it is a red glyph on the thing it destroys — the × on a pen
 preset — because "delete which one?" is a question a row at the bottom of a list cannot answer.
@@ -123,7 +130,7 @@ waiting row away, clicking into the search field does too, and neither touches t
 The rule is **one key, one command** and it is `ShortcutKeys.bind`'s (in `mobix-core`): the key's previous
 holder loses it, and the conflict line names the command that did — a key is never silently stolen. A stored
 row whose value is `ShortcutKeys.UNBOUND` (`-`) is a command that deliberately has no key, so a displaced row
-cannot find its factory key again at the next start. **Restore defaults** writes nothing at all, which is the
+cannot find its factory key again at the next start. **Reset to defaults** writes nothing at all, which is the
 same statement: the factory table is every row that is not in the file. A conflict is reported in a **Binding**
 card above the groups, and only while it is the last thing that happened — it is an answer, not a section.
 
@@ -225,8 +232,8 @@ two different questions:
 - **Buttons**: one row per **slot**, its members listed underneath (the eraser holds partial and
   whole-stroke, the Text slot prose and formula), with a pair of chevrons that move it up or down. The
   arrangement is `DesktopSettingsState.toolGroups` and both strips read it, so a button moved here moves in
-  the rail and in the ribbon — and a picker's chevron follows its slot. **Factory order** puts every slot
-  back; like **Restore defaults** on the key table, it writes nothing, because the factory order is every
+  the rail and in the ribbon — and a picker's chevron follows its slot. **Reset to defaults** puts every
+  slot back; like the key table's own reset, it writes nothing, because the factory order is every
   slot that is not in the file (`toolbar.order`).
 
 ## Figures — a width of their own

@@ -55,16 +55,16 @@ internal fun ShortcutsSettings(policy: DesktopSettingsState) {
         )
 
         SettingsGroup("Factory settings") {
-            SettingsRow(
-                label = "Restore defaults",
+            // A command row, like the other sections' way back to the factory values: one label, one
+            // shape, wherever the window offers a reset (`Reset to defaults`).
+            SettingsCommand(
+                label = "Reset to defaults",
                 note = "Every row back to the key it ships with.",
                 onClick = {
                     policy.cancelArmed()
                     policy.restoreShortcuts()
                 },
-            ) {
-                Text("Restore", color = DesktopTheme.accent, style = DesktopTheme.label)
-            }
+            )
         }
         Spacer(Modifier.height(8.dp))
     }

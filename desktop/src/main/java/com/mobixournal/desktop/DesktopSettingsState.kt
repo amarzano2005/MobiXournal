@@ -70,7 +70,8 @@ class DesktopSettingsState(private val store: DesktopSettings) {
      *
      * The page's own shortcuts are the window's, not the settings': with the field focused every letter is
      * an answer to the search, and with nothing focused in the surface no page command may fire behind it
-     * either. [onKey] is what reads this.
+     * either. It is also what arms the filter: [sections] narrows the index only while this is true, so a
+     * word left in a bar the reader has clicked away from hides nothing.
      */
     var typing by mutableStateOf(false)
 
@@ -271,9 +272,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     val pageWidthPt: Double get() = store.pageWidthPt
     val pageHeightPt: Double get() = store.pageHeightPt
 
-    /** The sections the search field leaves, in the list's own order. */
+    /** The sections on the left: the whole index, or what the **focused** search field leaves. */
     val sections: List<DesktopSettingSection>
-        get() = DesktopSettingSection.search(query)
+        get() = if (typing) DesktopSettingSection.search(query) else DesktopSettingSection.entries
 
     /** The section a click on the list opens, or the first one the search left. */
     val shownSection: DesktopSettingSection?
@@ -330,7 +331,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         this.section = section
     }
 
-    /** Take the search field's text. */
+    /** Take the search field's text — the field's own answer while it holds the keyboard. */
     fun search(text: String) {
         query = text
         // A section the filter hides cannot stay the answer: the page follows the list.

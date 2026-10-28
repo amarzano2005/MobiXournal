@@ -230,6 +230,7 @@ class DesktopSettingsTest {
         policy.openAt()
         assertEquals(DesktopSettingSection.entries, policy.sections)
 
+        policy.typing = true
         policy.search("wintab")
         assertEquals(listOf(DesktopSettingSection.STYLUS), policy.sections)
         assertEquals("the page follows the list", DesktopSettingSection.STYLUS, policy.shownSection)
@@ -240,5 +241,25 @@ class DesktopSettingsTest {
         policy.search("zzz")
         assertTrue("nothing matches, and the page says so", policy.sections.isEmpty())
         assertNull(policy.shownSection)
+    }
+
+    /**
+     * The filter is the **field's**, not the page's: leaving the bar gives the whole index back, so a word
+     * typed once cannot hide a section for the rest of the visit.
+     */
+    @Test
+    fun `a word in a field nobody is typing in does not hide a section`() {
+        val policy = DesktopSettingsState(store())
+        policy.openAt()
+        policy.typing = true
+        policy.search("wintab")
+        assertEquals(listOf(DesktopSettingSection.STYLUS), policy.sections)
+
+        policy.typing = false
+        assertEquals(
+            "the index comes back with the keyboard",
+            DesktopSettingSection.entries,
+            policy.sections,
+        )
     }
 }

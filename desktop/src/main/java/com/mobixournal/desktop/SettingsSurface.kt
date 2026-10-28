@@ -128,9 +128,9 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
             onQuery = policy::search,
             onFocus = { focused ->
                 policy.typing = focused
-                // Typing in the field is not arming a row: a reader who goes back to the search is done
-                // with the shortcut they clicked.
-                if (focused) policy.cancelArmed()
+                // The filter is the field's while it holds the keyboard: clicking away gives the index
+                // back, so a word typed once cannot hide a section for the rest of the visit.
+                if (focused) policy.cancelArmed() else policy.search("")
             },
             modifier = Modifier.width(240.dp),
         )

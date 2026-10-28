@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,12 +92,29 @@ internal fun StylusPresetCarousel(
         )
     }
     if (policy.presetDraft != null) {
-        SettingsRow(label = "Preset name", note = "Enter saves it, Esc puts the field away.") {
+        PresetNameBlock(policy, inset)
+    }
+}
+
+/**
+ * **The line a preset is named on**: the label and its note above, the field and its two words below.
+ *
+ * It is a block of its own rather than a [SettingsRow], because a row gives its control a *share* of the
+ * line: the field plus *Save* and *Cancel* are wider than that share in a 320 dp menu — where this same
+ * carousel is drawn — so the last word landed on top of the field. Full width, the field takes exactly
+ * what the two words leave.
+ */
+@Composable
+private fun PresetNameBlock(policy: DesktopSettingsState, inset: Dp) {
+    Column(Modifier.fillMaxWidth().padding(start = inset, end = inset, top = 4.dp, bottom = 2.dp)) {
+        Text("Preset name", color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
+        Spacer(Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
             PresetNameField(
                 value = policy.presetDraft.orEmpty(),
                 onValue = policy::typePresetName,
                 onCommit = policy::commitPresetSave,
-                modifier = Modifier.width(170.dp),
+                modifier = Modifier.weight(1f),
                 onCancel = policy::cancelPresetSave,
             )
             Spacer(Modifier.width(6.dp))
@@ -111,6 +129,12 @@ internal fun StylusPresetCarousel(
                 onClick = policy::cancelPresetSave,
             )
         }
+        Text(
+            "Enter saves it, Esc puts the field away.",
+            color = DesktopTheme.inkMuted,
+            style = DesktopTheme.label,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 
